@@ -74,8 +74,16 @@ Ideas, criticism, discussions, and research references are always welcome.
 
 [Motivation Playlist](https://youtube.com/playlist?list=PL6aYkE4NLbmp06bQhMWiT147qcEPf4g5p&si=T9TxsLuS7m3VhWz-)
 
+---
+
 ## Sources
+
+### SDT
 
 - Intrinsic Motivation and Self-Determination in Human Behavior ~ [Edward L. Deci](https://en.wikipedia.org/wiki/Edward_L._Deci) and [Richard M. Ryan](https://en.wikipedia.org/wiki/Richard_M._Ryan)
 - [CSDT - Center for Self-Determination Theory](https://selfdeterminationtheory.org/)
 - [motivation-science-learning](https://github.com/mattx2/motivation-science-learning/tree/main) ~ [Matt Kiba](https://github.com/mattx2)
+
+### Gamification
+
+- [The Hidden Cost of Gamification](https://youtu.be/Y5-q-HZ6VO4?si=FucLUTulbfqXYPnf) ~ [struthless](https://www.youtube.com/@struthless)
