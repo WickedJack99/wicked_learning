@@ -82,16 +82,16 @@ Only admins with configuration permissions can edit defaults. Content authors ma
 
 # Edge Cases
 
-- Two active profiles set the same key.
-- A default references a deleted visual asset.
-- A local override becomes invalid after a schema change.
+- Two active profiles set the same key. Review note: Check keys before creating a new one and deny creation if already existing.
+- A default references a deleted visual asset. Review note: deny deletion of visual assets used by default, if deleted by workaround, ask at admin view to set new visual.
+- A local override becomes invalid after a schema change. 
 - An archived profile is still assigned to old content.
 
 # Open Questions
 
-- Should profile inheritance be single-parent or layered by priority?
-- Which defaults should be locked against local overrides?
-- Should existing content automatically update when defaults change?
+- Should profile inheritance be single-parent or layered by priority? Review note: Question for next iteration; what are pro cons for single-parent, what for layered by priority?
+- Which defaults should be locked against local overrides? Review not: Everything should be able to be overriden.
+- Should existing content automatically update when defaults change? Review note: yes, if default was used.
 
 # MVP Scope
 
