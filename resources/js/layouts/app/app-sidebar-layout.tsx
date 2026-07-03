@@ -1,20 +1,16 @@
-import { AppContent } from '@/components/app-content';
-import { AppShell } from '@/components/app-shell';
-import { AppSidebar } from '@/components/app-sidebar';
-import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import { AppBottomNav } from '@/components/app-bottom-nav';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    void breadcrumbs;
+
     return (
-        <AppShell variant="sidebar">
-            <AppSidebar />
-            <AppContent variant="sidebar" className="overflow-x-hidden">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
-                {children}
-            </AppContent>
-        </AppShell>
+        <div className="h-svh overflow-hidden bg-background">
+            <main className="h-full overflow-hidden">{children}</main>
+            <AppBottomNav />
+        </div>
     );
 }

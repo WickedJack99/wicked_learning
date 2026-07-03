@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+  <title id="title">Mira calm portrait</title>
+  <desc id="desc">A calm guide in a teal lit terminal frame.</desc>
+  <rect width="420" height="520" rx="28" fill="#0f172a"/>
+  <path d="M40 410 C120 350 300 350 380 410 V520 H40Z" fill="#134e4a"/>
+  <circle cx="210" cy="190" r="94" fill="#f7d7bd"/>
+  <path d="M116 180 C118 84 304 72 306 182 C270 132 164 132 116 180Z" fill="#263447"/>
+  <path d="M124 188 C132 104 292 96 300 188 C258 156 166 156 124 188Z" fill="#334155"/>
+  <circle cx="176" cy="196" r="8" fill="#102027"/>
+  <circle cx="244" cy="196" r="8" fill="#102027"/>
+  <path d="M178 238 C198 252 224 252 244 238" fill="none" stroke="#7c2d12" stroke-width="8" stroke-linecap="round"/>
+  <path d="M82 52 H338 V100 H360 V468 H60 V100 H82Z" fill="none" stroke="#5eead4" stroke-opacity="0.65" stroke-width="8"/>
+  <g fill="#5eead4" opacity="0.8">
+    <rect x="78" y="74" width="70" height="8" rx="4"/>
+    <rect x="272" y="74" width="70" height="8" rx="4"/>
+    <rect x="96" y="430" width="228" height="8" rx="4"/>
+  </g>
+</svg>

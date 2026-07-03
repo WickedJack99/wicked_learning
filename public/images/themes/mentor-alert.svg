@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+  <title id="title">Mira alert portrait</title>
+  <desc id="desc">A focused guide reviewing alert signals.</desc>
+  <rect width="420" height="520" rx="28" fill="#18181b"/>
+  <path d="M40 414 C120 350 300 350 380 414 V520 H40Z" fill="#7f1d1d"/>
+  <circle cx="210" cy="188" r="92" fill="#f5d0b6"/>
+  <path d="M118 178 C122 84 298 82 302 178 C260 134 164 134 118 178Z" fill="#374151"/>
+  <path d="M168 188 H188 M232 188 H252" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M184 238 C202 230 222 230 240 238" fill="none" stroke="#7c2d12" stroke-width="8" stroke-linecap="round"/>
+  <rect x="58" y="62" width="304" height="70" rx="14" fill="#450a0a" stroke="#fca5a5" stroke-width="6"/>
+  <path d="M88 96 H168 M194 96 H330" stroke="#fecaca" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="176" cy="96" r="8" fill="#f87171"/>
+</svg>

@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+#[Fillable([
+    'learning_map_id',
+    'slug',
+    'title',
+    'description',
+    'position_q',
+    'position_r',
+    'state',
+    'visual_config',
+    'start_activity_id',
+])]
+class LearningNode extends Model
+{
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'visual_config' => 'array',
+        ];
+    }
+
+    /**
+     * @return BelongsTo<LearningMap, $this>
+     */
+    public function map(): BelongsTo
+    {
+        return $this->belongsTo(LearningMap::class, 'learning_map_id');
+    }
+
+    /**
+     * @return BelongsTo<LearningActivity, $this>
+     */
+    public function startActivity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'start_activity_id');
+    }
+
+    /**
+     * @return HasMany<LearningActivity, $this>
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(LearningActivity::class)->orderBy('sort_order');
+    }
+}

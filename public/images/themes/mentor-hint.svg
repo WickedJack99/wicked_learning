@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+  <title id="title">Mira hint portrait</title>
+  <desc id="desc">A guide beside branching signal paths.</desc>
+  <rect width="420" height="520" rx="28" fill="#111827"/>
+  <path d="M38 416 C118 342 302 342 382 416 V520 H38Z" fill="#1d4ed8"/>
+  <circle cx="210" cy="186" r="92" fill="#f6d3b8"/>
+  <path d="M118 176 C126 88 296 82 304 176 C260 142 164 142 118 176Z" fill="#475569"/>
+  <circle cx="176" cy="194" r="8" fill="#0f172a"/>
+  <circle cx="244" cy="194" r="8" fill="#0f172a"/>
+  <path d="M180 236 C200 248 224 248 244 236" fill="none" stroke="#7c2d12" stroke-width="8" stroke-linecap="round"/>
+  <path d="M58 118 H114 C150 118 164 150 194 150 H360" fill="none" stroke="#7dd3fc" stroke-width="8" stroke-linecap="round"/>
+  <path d="M194 150 C226 150 224 206 260 206 H356" fill="none" stroke="#86efac" stroke-width="8" stroke-linecap="round"/>
+  <path d="M194 150 C226 150 224 96 260 96 H356" fill="none" stroke="#facc15" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="194" cy="150" r="16" fill="#5eead4"/>
+</svg>

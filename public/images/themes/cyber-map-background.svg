@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Abstract cyber learning map background</title>
+  <desc id="desc">A dark network landscape with teal paths and soft signal lights.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="0.48" stop-color="#0c1b1f"/>
+      <stop offset="1" stop-color="#151225"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#5eead4" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#5eead4" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="96" height="83" patternUnits="userSpaceOnUse">
+      <path d="M48 0 96 27.7v55.4L48 110.8 0 83.1V27.7Z" fill="none" stroke="#2dd4bf" stroke-opacity="0.12" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#grid)" opacity="0.9"/>
+  <circle cx="360" cy="220" r="260" fill="url(#glow)"/>
+  <circle cx="1160" cy="700" r="340" fill="url(#glow)" opacity="0.75"/>
+  <path d="M120 760 C300 660 420 820 600 690 S900 500 1060 590 1320 690 1480 520" fill="none" stroke="#7dd3fc" stroke-opacity="0.28" stroke-width="8"/>
+  <path d="M180 340 C360 260 470 430 690 330 S1010 180 1230 320 1370 430 1500 360" fill="none" stroke="#86efac" stroke-opacity="0.2" stroke-width="6"/>
+  <g fill="#ccfbf1">
+    <circle cx="250" cy="690" r="5"/>
+    <circle cx="540" cy="720" r="7"/>
+    <circle cx="780" cy="560" r="5"/>
+    <circle cx="1040" cy="595" r="8"/>
+    <circle cx="1330" cy="650" r="6"/>
+  </g>
+</svg>
