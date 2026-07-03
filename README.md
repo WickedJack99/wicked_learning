@@ -14,6 +14,8 @@ This project is an experiment in designing a learning environment around intrins
 
 It is heavily inspired by research in Self-Determination Theory (SDT), Cognitive Load Theory, Multimedia Learning, and self-regulated learning.
 
+It also includes my ideas as a gamer.
+
 The goal is not simply to build another learning platform.
 
 The goal is to explore how software can support curiosity, mastery, autonomy, and meaningful progress.
