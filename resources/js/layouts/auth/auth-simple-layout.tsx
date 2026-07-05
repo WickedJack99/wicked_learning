@@ -5,6 +5,7 @@ import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { home } from '@/routes';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import type { AuthThemePage } from '@/theme/platform-theme';
+import { getPresentationBackgroundImage } from '@/theme/presentation';
 import type { AuthLayoutProps } from '@/types';
 
 export default function AuthSimpleLayout({
@@ -16,7 +17,15 @@ export default function AuthSimpleLayout({
     useAppearancePageSync(Boolean(props.auth.user), props.appearance);
     const { resolvedAppearance } = useAppearance();
     const page = component.replace('auth/', '') as AuthThemePage;
-    const theme = getAuthTheme(page, resolvedAppearance);
+    const backgroundImage = getPresentationBackgroundImage(
+        props.publicPresentation,
+        page,
+        resolvedAppearance,
+    );
+    const theme = {
+        ...getAuthTheme(page, resolvedAppearance),
+        ...(backgroundImage ? { backgroundImage } : {}),
+    };
     const themeStyle = getAuthThemeStyle(theme);
 
     return (

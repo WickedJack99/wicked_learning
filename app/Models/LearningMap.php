@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'learning_world_id',
@@ -44,5 +45,20 @@ class LearningMap extends Model
     public function nodes(): HasMany
     {
         return $this->hasMany(LearningNode::class);
+    }
+
+    /**
+     * Portal links that start from a node on this map.
+     *
+     * @return HasManyThrough<LearningPortalLink, LearningNode, $this>
+     */
+    public function outgoingPortalLinks(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            LearningPortalLink::class,
+            LearningNode::class,
+            'learning_map_id',
+            'source_learning_node_id',
+        );
     }
 }

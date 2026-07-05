@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\PlatformInfoPage;
 use App\Models\RegistrationToken;
 use App\Models\User;
 use DateTimeInterface;
@@ -22,8 +23,38 @@ class SettingsController extends Controller
             'assignableRegistrationRoles' => $user->assignableRoles(),
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
+            'platformInfoPages' => $canManageUsers ? $this->platformInfoPages() : [],
             'createdRegistrationToken' => $request->session()->get('created_registration_token'),
         ]);
+    }
+
+    /**
+     * @return array<string, array{key: string, markdown: string|null, updated_at: string|null, updated_by: array{id: int, name: string, email: string}|null}>
+     */
+    private function platformInfoPages(): array
+    {
+        $pages = PlatformInfoPage::query()
+            ->with('updatedBy:id,name,email')
+            ->whereIn('key', ['about', 'imprint', 'data-protection'])
+            ->get()
+            ->keyBy('key');
+
+        return collect(['about', 'imprint', 'data-protection'])
+            ->mapWithKeys(function (string $key) use ($pages): array {
+                $page = $pages->get($key);
+
+                return [
+                    $key => [
+                        'key' => $key,
+                        'markdown' => $page?->markdown,
+                        'updated_at' => $this->dateForFrontend($page?->updated_at),
+                        'updated_by' => $page?->updatedBy
+                            ? $this->userReference($page->updatedBy)
+                            : null,
+                    ],
+                ];
+            })
+            ->all();
     }
 
     /**

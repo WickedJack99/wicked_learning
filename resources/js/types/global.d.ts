@@ -1,4 +1,5 @@
 import type { Appearance } from '@/theme/appearance';
+import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { Auth } from '@/types/auth';
 
 declare global {
@@ -22,6 +23,7 @@ declare module '@inertiajs/core' {
             name: string;
             appearance: Appearance;
             auth: Auth;
+            publicPresentation: PublicPresentationSettings;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

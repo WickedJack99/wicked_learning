@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'from_activity_id',
     'to_activity_id',
+    'from_connector',
+    'to_connector',
     'trigger',
     'trigger_value',
     'label',

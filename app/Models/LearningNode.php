@@ -53,4 +53,20 @@ class LearningNode extends Model
     {
         return $this->hasMany(LearningActivity::class)->orderBy('sort_order');
     }
+
+    /**
+     * @return HasMany<LearningPortalLink, $this>
+     */
+    public function outgoingPortalLinks(): HasMany
+    {
+        return $this->hasMany(LearningPortalLink::class, 'source_learning_node_id');
+    }
+
+    /**
+     * @return HasMany<LearningPortalLink, $this>
+     */
+    public function incomingPortalLinks(): HasMany
+    {
+        return $this->hasMany(LearningPortalLink::class, 'target_learning_node_id');
+    }
 }

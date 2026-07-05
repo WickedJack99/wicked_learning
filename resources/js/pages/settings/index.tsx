@@ -6,13 +6,12 @@ import {
     CalendarClock,
     Copy,
     Database,
-    FileText,
+    Image,
     Info,
     KeyRound,
     Map,
     Plus,
     Shield,
-    ShieldCheck,
     SlidersHorizontal,
     Trash2,
     User,
@@ -33,12 +32,15 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { platformInfoLinks } from '@/features/platform-info/content';
+import type { PlatformInfoPageKey } from '@/features/platform-info/content';
+import { AdminPresentationPanel } from '@/features/platform-presentation/admin-presentation-panel';
 import { cn } from '@/lib/utils';
+import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { User as AuthUser } from '@/types';
 
 type SettingsPanelKey =
     | 'admin-defaults'
+    | 'admin-presentation'
     | 'admin-users'
     | 'admin-world'
     | 'appearance'
@@ -86,7 +88,18 @@ type SettingsIndexProps = {
     assignableRegistrationRoles: UserRole[];
     canManageUsers: boolean;
     createdRegistrationToken?: string | null;
+    platformInfoPages: Partial<
+        Record<PlatformInfoPageKey, PlatformInfoContent>
+    >;
+    publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
+};
+
+type PlatformInfoContent = {
+    key: PlatformInfoPageKey;
+    markdown: string | null;
+    updated_at: string | null;
+    updated_by: UserReference | null;
 };
 
 type AccessFormState = {
@@ -133,43 +146,33 @@ const personalSettings: SettingsListItem[] = [
 
 const informationSettings: SettingsListItem[] = [
     {
-        key: 'about',
-        label: 'About',
-        description: 'SDT, learning philosophy and project direction.',
+        key: 'about-and-legal',
+        label: 'About & legal',
+        description: 'Read about the platform, imprint and data protection.',
         icon: Info,
-        href: platformInfoLinks.find((link) => link.key === 'about')
-            ?.settingsHref,
-    },
-    {
-        key: 'imprint',
-        label: 'Imprint',
-        description: 'Publisher and responsibility information.',
-        icon: FileText,
-        href: platformInfoLinks.find((link) => link.key === 'imprint')
-            ?.settingsHref,
-    },
-    {
-        key: 'data-protection',
-        label: 'Data Protection',
-        description: 'Privacy notes and future data handling direction.',
-        icon: ShieldCheck,
-        href: platformInfoLinks.find((link) => link.key === 'data-protection')
-            ?.settingsHref,
+        href: '/settings/about',
     },
 ] satisfies SettingsListItem[];
 
 const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-world',
-        label: 'World content',
-        description: 'Maps, nodes, activities and portals.',
+        label: 'Edit world',
+        description: 'Maps, nodes, activities and portal links.',
         icon: Map,
+        href: '/settings/worlds',
     },
     {
         key: 'admin-users',
         label: 'Users',
         description: 'Registration tokens, roles and account access.',
         icon: Users,
+    },
+    {
+        key: 'admin-presentation',
+        label: 'Public presentation',
+        description: 'Welcome, auth backgrounds and public information pages.',
+        icon: Image,
     },
     {
         key: 'admin-defaults',
@@ -208,6 +211,10 @@ const panelContent: Partial<
         title: 'World content',
         body: 'First admin target: create and edit maps, hex nodes, activity graphs, dialogue stages, questions and portals.',
     },
+    'admin-presentation': {
+        title: 'Public presentation',
+        body: 'Admin controls for public-facing content and authentication visuals.',
+    },
     'admin-defaults': {
         title: 'Defaults',
         body: 'Platform defaults can define theme assets, hover colors, map behavior and learning-design policies.',
@@ -216,6 +223,7 @@ const panelContent: Partial<
 
 const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-defaults',
+    'admin-presentation',
     'admin-users',
     'admin-world',
     'appearance',
@@ -270,6 +278,8 @@ export default function SettingsIndex({
     assignableRegistrationRoles,
     canManageUsers,
     createdRegistrationToken = null,
+    platformInfoPages,
+    publicPresentation,
     registrationTokens,
 }: SettingsIndexProps) {
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
@@ -319,6 +329,8 @@ export default function SettingsIndex({
                                     createdRegistrationToken
                                 }
                                 onBack={clearPanel}
+                                platformInfoPages={platformInfoPages}
+                                publicPresentation={publicPresentation}
                                 assignableRegistrationRoles={
                                     assignableRegistrationRoles
                                 }
@@ -429,6 +441,8 @@ function SettingsDetail({
     canManageUsers,
     createdRegistrationToken,
     onBack,
+    platformInfoPages,
+    publicPresentation,
     registrationTokens,
     selectedPanel,
 }: {
@@ -437,6 +451,10 @@ function SettingsDetail({
     canManageUsers: boolean;
     createdRegistrationToken: string | null;
     onBack: () => void;
+    platformInfoPages: Partial<
+        Record<PlatformInfoPageKey, PlatformInfoContent>
+    >;
+    publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
     selectedPanel: SettingsPanelKey;
 }) {
@@ -455,6 +473,11 @@ function SettingsDetail({
                     createdRegistrationToken={createdRegistrationToken}
                     registrationTokens={registrationTokens}
                     users={adminUsers}
+                />
+            ) : selectedPanel === 'admin-presentation' && canManageUsers ? (
+                <AdminPresentationPanel
+                    platformInfoContent={platformInfoPages}
+                    presentation={publicPresentation}
                 />
             ) : content ? (
                 <PlaceholderPanel content={content} panel={selectedPanel} />

@@ -6,44 +6,38 @@ import { platformInfoLinks } from '@/features/platform-info/content';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { login, register } from '@/routes';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
+import {
+    getPresentationBackgroundImage,
+    getWelcomePages,
+} from '@/theme/presentation';
 
 const worldHref = '/world';
 
-const welcomePages = [
-    {
-        eyebrow: 'Explorable learning platform',
-        title: 'Learning Worlds',
-        body: 'A first slice of a domain-agnostic learning environment built around exploration, dialogue, reflection and useful feedback instead of points, streaks or leaderboards.',
-        primaryLabel: 'Enter the first world',
-    },
-    {
-        eyebrow: 'Self-Determination Theory',
-        title: 'Motivation without pressure loops',
-        body: 'The platform is designed around autonomy, competence and relatedness. The interface should invite learners to choose, understand, retry and connect instead of chasing external rewards.',
-        primaryLabel: 'Read about the concept',
-    },
-    {
-        eyebrow: 'Configurable worlds',
-        title: 'One learning model, many stories',
-        body: 'A world can look like a cyber network, a medieval map, an astronomy field or something quiet and abstract. Themes change the story, while maps, nodes and activities keep the learning structure coherent.',
-        primaryLabel: 'Explore the first map',
-    },
-];
-
 export default function Welcome() {
-    const { auth, appearance } = usePage().props;
+    const { auth, appearance, publicPresentation } = usePage().props;
     useAppearancePageSync(Boolean(auth.user), appearance);
     const { resolvedAppearance } = useAppearance();
-    const theme = getAuthTheme('welcome', resolvedAppearance);
+    const backgroundImage = getPresentationBackgroundImage(
+        publicPresentation,
+        'welcome',
+        resolvedAppearance,
+    );
+    const theme = {
+        ...getAuthTheme('welcome', resolvedAppearance),
+        ...(backgroundImage ? { backgroundImage } : {}),
+    };
     const themeStyle = getAuthThemeStyle(theme);
+    const welcomePages = getWelcomePages(publicPresentation);
+    const pageCount = welcomePages.length;
     const [activePage, setActivePage] = useState(0);
     const wheelLocked = useRef(false);
 
-    const goToPage = useCallback((pageIndex: number) => {
-        setActivePage(
-            Math.min(Math.max(pageIndex, 0), welcomePages.length - 1),
-        );
-    }, []);
+    const goToPage = useCallback(
+        (pageIndex: number) => {
+            setActivePage(Math.min(Math.max(pageIndex, 0), pageCount - 1));
+        },
+        [pageCount],
+    );
 
     const handleWheel = useCallback(
         (event: React.WheelEvent<HTMLElement>) => {

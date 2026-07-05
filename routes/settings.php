@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\PlatformInfoPageController;
+use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminUserController;
+use App\Http\Controllers\Settings\AdminWorldController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\SettingsController;
@@ -44,6 +47,66 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
+    Route::get('settings/worlds', [AdminWorldController::class, 'index'])
+        ->name('settings.worlds.index');
+
+    Route::post('settings/worlds/maps', [AdminWorldController::class, 'storeMap'])
+        ->name('settings.worlds.maps.store');
+
+    Route::post('settings/worlds/portal-links', [AdminWorldController::class, 'storePortalLink'])
+        ->name('settings.worlds.portal-links.store');
+
+    Route::delete('settings/worlds/portal-links/{portalLink}', [AdminWorldController::class, 'destroyPortalLink'])
+        ->name('settings.worlds.portal-links.destroy');
+
+    Route::post('settings/worlds/node-images', [AdminWorldController::class, 'uploadNodeImage'])
+        ->name('settings.worlds.node-images.store');
+
+    Route::get('settings/worlds/maps/{map}/edit', [AdminWorldController::class, 'editMap'])
+        ->name('settings.worlds.maps.edit');
+
+    Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
+        ->name('settings.worlds.maps.nodes.store');
+
+    Route::patch('settings/worlds/nodes/{node}', [AdminWorldController::class, 'updateNode'])
+        ->name('settings.worlds.nodes.update');
+
+    Route::post('settings/worlds/nodes/{node}/insert', [AdminWorldController::class, 'insertNode'])
+        ->name('settings.worlds.nodes.insert');
+
+    Route::patch('settings/worlds/nodes/{node}/swap', [AdminWorldController::class, 'swapNode'])
+        ->name('settings.worlds.nodes.swap');
+
+    Route::get('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'edit'])
+        ->name('settings.worlds.nodes.activities.edit');
+
+    Route::post('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'store'])
+        ->name('settings.worlds.nodes.activities.store');
+
+    Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
+        ->name('settings.worlds.activities.update');
+
+    Route::delete('settings/worlds/activities/{activity}', [AdminActivityController::class, 'destroy'])
+        ->name('settings.worlds.activities.destroy');
+
+    Route::patch('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'updateStart'])
+        ->name('settings.worlds.nodes.activities.start.update');
+
+    Route::delete('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'destroyStart'])
+        ->name('settings.worlds.nodes.activities.start.destroy');
+
+    Route::post('settings/worlds/nodes/{node}/activity-transitions', [AdminActivityController::class, 'storeTransition'])
+        ->name('settings.worlds.nodes.activity-transitions.store');
+
+    Route::delete('settings/worlds/activity-transitions/{transition}', [AdminActivityController::class, 'destroyTransition'])
+        ->name('settings.worlds.activity-transitions.destroy');
+
+    Route::patch('settings/presentation', [PresentationController::class, 'update'])
+        ->name('settings.presentation.update');
+
+    Route::post('settings/presentation/background-images', [PresentationController::class, 'uploadBackgroundImage'])
+        ->name('settings.presentation.background-images.store');
+
     Route::patch('settings/info-pages/{page}', [PlatformInfoPageController::class, 'update'])
         ->name('settings.info-pages.update');
 

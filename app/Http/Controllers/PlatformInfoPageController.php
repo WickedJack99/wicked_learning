@@ -45,7 +45,7 @@ class PlatformInfoPageController extends Controller
 
         return Inertia::render(self::SETTINGS_COMPONENTS[$page], [
             'platformInfoContent' => $this->contentFor($page),
-            'canEditPlatformInfo' => $request->user()->can('manage-users'),
+            'canEditPlatformInfo' => false,
         ]);
     }
 
@@ -55,7 +55,7 @@ class PlatformInfoPageController extends Controller
 
         $data = $request->validate([
             'markdown' => ['required', 'string', 'max:50000'],
-            'redirect_to' => ['nullable', 'string', Rule::in(['/settings/about', '/settings/imprint', '/settings/data-protection'])],
+            'redirect_to' => ['nullable', 'string', Rule::in(['/settings/about', '/settings/imprint', '/settings/data-protection', '/settings?panel=admin-presentation'])],
         ]);
 
         PlatformInfoPage::query()->updateOrCreate(

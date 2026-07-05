@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property array<string, mixed>|null $config
+ */
 #[Fillable([
     'learning_node_id',
     'slug',
@@ -16,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'introduction',
     'config',
     'sort_order',
+    'graph_position_x',
+    'graph_position_y',
 ])]
 class LearningActivity extends Model
 {

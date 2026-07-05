@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\PlatformPresentationSetting;
 use App\Support\Appearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -36,6 +37,9 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $appearanceCookie = $request->cookie('appearance');
+        $browserAppearance = is_string($appearanceCookie) ? $appearanceCookie : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -45,9 +49,10 @@ class HandleInertiaRequests extends Middleware
             'appearance' => $request->user()
                 ? Appearance::forAuthenticatedUser(
                     $request->user()->preference?->appearance,
-                    $request->cookie('appearance'),
+                    $browserAppearance,
                 )
                 : Appearance::forGuest(),
+            'publicPresentation' => PlatformPresentationSetting::current(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

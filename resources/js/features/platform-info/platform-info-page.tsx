@@ -12,6 +12,7 @@ import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
+import { getPresentationBackgroundImage } from '@/theme/presentation';
 
 type PlatformInfoContent = {
     key: PlatformInfoPageKey;
@@ -34,8 +35,13 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
         canEditPlatformInfo?: boolean;
         platformInfoContent?: PlatformInfoContent;
     }>();
-    const { auth, appearance, canEditPlatformInfo, platformInfoContent } =
-        props;
+    const {
+        auth,
+        appearance,
+        canEditPlatformInfo,
+        platformInfoContent,
+        publicPresentation,
+    } = props;
     useAppearancePageSync(Boolean(auth.user), appearance);
     const { resolvedAppearance } = useAppearance();
     const page = platformInfoPages[pageKey];
@@ -114,7 +120,15 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
         );
     }
 
-    const theme = getAuthTheme('welcome', resolvedAppearance);
+    const backgroundImage = getPresentationBackgroundImage(
+        publicPresentation,
+        'welcome',
+        resolvedAppearance,
+    );
+    const theme = {
+        ...getAuthTheme('welcome', resolvedAppearance),
+        ...(backgroundImage ? { backgroundImage } : {}),
+    };
     const themeStyle = getAuthThemeStyle(theme);
 
     return (

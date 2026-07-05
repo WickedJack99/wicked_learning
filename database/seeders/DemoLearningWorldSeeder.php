@@ -7,6 +7,7 @@ use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningPortalLink;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
@@ -225,13 +226,15 @@ class DemoLearningWorldSeeder extends Seeder
             'sort_order' => 40,
             'config' => [
                 'prompt' => 'In your own words, what did the source IP distribution help you understand?',
-                'note' => 'Reflection storage will come later; for now this keeps the loop active and learner-owned.',
+                'note' => 'This note is private orientation for your own thinking.',
             ],
         ]);
 
         ActivityTransition::query()->create([
             'from_activity_id' => $mentorDialogue->id,
             'to_activity_id' => $signalQuestion->id,
+            'from_connector' => 'completed',
+            'to_connector' => 'in',
             'trigger' => 'completed',
             'label' => 'Inspect the alert',
         ]);
@@ -239,6 +242,8 @@ class DemoLearningWorldSeeder extends Seeder
         ActivityTransition::query()->create([
             'from_activity_id' => $signalQuestion->id,
             'to_activity_id' => $reflection->id,
+            'from_connector' => 'correct',
+            'to_connector' => 'in',
             'trigger' => 'correct',
             'label' => 'Reflect on the clue',
         ]);
@@ -246,6 +251,8 @@ class DemoLearningWorldSeeder extends Seeder
         ActivityTransition::query()->create([
             'from_activity_id' => $signalQuestion->id,
             'to_activity_id' => $sourceReview->id,
+            'from_connector' => 'incorrect',
+            'to_connector' => 'in',
             'trigger' => 'incorrect',
             'label' => 'Review the clue',
         ]);
@@ -253,22 +260,25 @@ class DemoLearningWorldSeeder extends Seeder
         ActivityTransition::query()->create([
             'from_activity_id' => $sourceReview->id,
             'to_activity_id' => $signalQuestion->id,
+            'from_connector' => 'completed',
+            'to_connector' => 'in',
             'trigger' => 'completed',
             'label' => 'Try the alert again',
         ]);
 
         $signalGate->update(['start_activity_id' => $mentorDialogue->id]);
 
-        $this->seedSecondaryNodes($map);
+        $portal = $this->seedSecondaryNodes($map);
+        $this->seedPortalSibling($world, $map, $portal);
     }
 
-    private function seedSecondaryNodes(LearningMap $map): void
+    private function seedSecondaryNodes(LearningMap $map): LearningNode
     {
         $fieldNotes = LearningNode::query()->create([
             'learning_map_id' => $map->id,
             'slug' => 'field-notes',
             'title' => 'Field Notes',
-            'description' => 'A future place for learner-owned notes and recall prompts.',
+            'description' => 'A quiet place for learner-owned notes and recall prompts.',
             'position_q' => 1,
             'position_r' => 0,
             'state' => 'available',
@@ -279,7 +289,7 @@ class DemoLearningWorldSeeder extends Seeder
                 'foregroundColor' => '#bfdbfe',
                 'labelColor' => '#ffffff',
                 'highlightColor' => '#7dd3fc',
-                'tooltip' => 'Coming next: personal notes without public scoring.',
+                'tooltip' => 'Personal notes without public scoring.',
                 'light' => [
                     'tileColor' => '#dbeafe',
                     'foregroundColor' => '#1d4ed8',
@@ -291,13 +301,14 @@ class DemoLearningWorldSeeder extends Seeder
 
         $fieldNotesActivity = LearningActivity::query()->create([
             'learning_node_id' => $fieldNotes->id,
-            'slug' => 'field-notes-preview',
-            'type' => 'placeholder',
-            'title' => 'Prepare personal notes',
-            'introduction' => 'A future learner-owned note space for recall prompts and self-explanations.',
+            'slug' => 'write-a-field-note',
+            'type' => 'reflection',
+            'title' => 'Write a field note',
+            'introduction' => 'Capture one observation in your own words.',
             'sort_order' => 10,
             'config' => [
-                'nextStep' => 'Next implementation step: add a small note editor and connect notes to the current node without public scoring.',
+                'prompt' => 'What is one idea from this map that you want to remember or question later?',
+                'note' => 'Field notes are for orientation, not for ranking.',
             ],
         ]);
 
@@ -332,7 +343,7 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_map_id' => $map->id,
             'slug' => 'portal-foundation',
             'title' => 'Portal Foundation',
-            'description' => 'A placeholder for map-to-map travel.',
+            'description' => 'A travel point that connects this map with another learning space.',
             'position_q' => -1,
             'position_r' => 1,
             'state' => 'hinted',
@@ -343,7 +354,7 @@ class DemoLearningWorldSeeder extends Seeder
                 'foregroundColor' => '#bbf7d0',
                 'labelColor' => '#ffffff',
                 'highlightColor' => '#4ade80',
-                'tooltip' => 'Future maps can connect here.',
+                'tooltip' => 'Use this path to move between connected maps.',
                 'light' => [
                     'tileColor' => '#dcfce7',
                     'foregroundColor' => '#15803d',
@@ -355,16 +366,77 @@ class DemoLearningWorldSeeder extends Seeder
 
         $portalActivity = LearningActivity::query()->create([
             'learning_node_id' => $portal->id,
-            'slug' => 'portal-preview',
-            'type' => 'placeholder',
-            'title' => 'Prepare map travel',
-            'introduction' => 'A future portal action for moving between maps while preserving the learner context.',
+            'slug' => 'prepare-for-travel',
+            'type' => 'portal',
+            'title' => 'Prepare for travel',
+            'introduction' => 'This route links the current map with a related learning space.',
             'sort_order' => 10,
             'config' => [
-                'nextStep' => 'Next implementation step: connect this node to another map and show a clear travel action here.',
+                'portalMode' => 'output',
             ],
         ]);
 
         $portal->update(['start_activity_id' => $portalActivity->id]);
+
+        return $portal;
+    }
+
+    private function seedPortalSibling(LearningWorld $world, LearningMap $sourceMap, LearningNode $sourcePortal): void
+    {
+        $targetMap = LearningMap::query()->create([
+            'learning_world_id' => $world->id,
+            'slug' => 'signal-archive',
+            'title' => 'Signal Archive',
+            'description' => 'A connected map for archived signal-reading practice.',
+            'background_config' => $sourceMap->background_config,
+            'grid_config' => $sourceMap->grid_config,
+        ]);
+
+        $targetPortal = LearningNode::query()->create([
+            'learning_map_id' => $targetMap->id,
+            'slug' => 'return-gate',
+            'title' => 'Return Gate',
+            'description' => 'The sibling portal back toward the first sector.',
+            'position_q' => 0,
+            'position_r' => 0,
+            'state' => 'hinted',
+            'visual_config' => [
+                'icon' => 'orbit',
+                'label' => 'Return Gate',
+                'tileColor' => '#19312b',
+                'foregroundColor' => '#bbf7d0',
+                'labelColor' => '#ffffff',
+                'highlightColor' => '#4ade80',
+                'tooltip' => 'Return toward the first sector.',
+                'light' => [
+                    'tileColor' => '#dcfce7',
+                    'foregroundColor' => '#15803d',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#16a34a',
+                ],
+            ],
+        ]);
+
+        $arrivalActivity = LearningActivity::query()->create([
+            'learning_node_id' => $targetPortal->id,
+            'slug' => 'arrive-through-the-gate',
+            'type' => 'portal',
+            'title' => 'Arrive through the gate',
+            'introduction' => 'This node receives learners who travel through a linked portal.',
+            'sort_order' => 10,
+            'config' => [
+                'portalMode' => 'input',
+            ],
+        ]);
+
+        $targetPortal->update(['start_activity_id' => $arrivalActivity->id]);
+
+        LearningPortalLink::query()->create([
+            'source_learning_node_id' => $sourcePortal->id,
+            'target_learning_node_id' => $targetPortal->id,
+            'label' => 'First Sector to Signal Archive',
+            'description' => 'Portal pair connecting the first map to the signal archive.',
+            'config' => ['travelMode' => 'portal'],
+        ]);
     }
 }
