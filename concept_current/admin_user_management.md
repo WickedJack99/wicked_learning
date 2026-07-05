@@ -17,6 +17,11 @@ Implemented now:
 - Admin users can ban another user until a selected date.
 - Admin users can delete another user.
 - Admin users cannot lock themselves out from the Users panel.
+- Admin users can edit public presentation settings from a separate Settings subpanel.
+- Admin users can configure login, registration and welcome background image paths.
+- Admin users can upload and download public presentation background images.
+- Admin users can edit welcome-page text blocks.
+- Admin users can edit About, Imprint and Data Protection Markdown from the public presentation subpanel.
 
 Design notes:
 
@@ -24,6 +29,8 @@ Design notes:
 - Token creation opens as an overlay dialog so the Users panel stays readable.
 - The login access control runs both during login and on later authenticated web requests.
 - The role system is intentionally simple until there is a real need for more detailed permissions.
+- Public presentation editing is kept separate from user administration so the Settings main view does not become a dumping ground.
+- World editing also uses a separate page rather than a shared Settings subpanel because the editor has its own graph/map state.
 
 Future direction:
 

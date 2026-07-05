@@ -35,3 +35,15 @@ Reason: storing `system` in the backend caused ambiguous behavior between browse
 Changed to overlay dialog.
 
 Reason: displaying token roles, expiration picker and actions inline made the Users panel too convoluted. Token creation is a focused task and belongs in an overlay panel.
+
+## Editing information pages from each individual settings page
+
+Changed to a public presentation admin panel.
+
+Reason: About, Imprint and Data Protection editing belongs with other public-facing presentation controls. Keeping those controls in one admin subpanel prevents the Settings main view from becoming too crowded.
+
+## Editing controls inside the learner map
+
+Rejected for now.
+
+Reason: admins are also normal learners. Editing tools inside the learner map would make the learning view feel like a workbench. World editing now starts from Settings and uses separate admin pages.

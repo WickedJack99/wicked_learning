@@ -16,6 +16,9 @@ Current configurable visual fields include:
 - Dialogue text and speaker metadata.
 - Cursor assets for the themed map/settings experience.
 - Authentication and welcome-page color treatment.
+- Admin-editable login, registration and welcome background image paths.
+- Admin-uploaded background images stored through Laravel's public storage disk.
+- Admin-editable welcome page text blocks.
 
 Appearance behavior:
 
@@ -23,5 +26,7 @@ Appearance behavior:
 - The earlier `system` option was removed from authenticated settings to avoid ambiguous backend state.
 - Public pages use a local unauthenticated preference before login.
 - When a user registers or logs in, authenticated state should become the source of truth.
+- Public presentation settings are stored in the backend and shared through Inertia so welcome/auth pages can render configured content without code changes.
+- Uploaded public presentation images are stored below `/storage/presentation/backgrounds/...` and can be downloaded again from the admin panel.
 
 Future themes should be able to replace these with medieval, astronomy, biology, abstract or other visuals without changing the learning logic.
