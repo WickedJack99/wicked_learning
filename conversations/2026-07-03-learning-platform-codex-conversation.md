@@ -946,3 +946,59 @@ The following checks were run during this continuation:
 ### Current Git Request
 
 WickedJack99 asked Codex to stage the accumulated changes, create useful separate commits, push them to GitHub, and update this conversation archive in a separate commit.
+
+## Continuation Summary - 2026-07-05
+
+This section records the later world-editing and activity-authoring work from the current chat continuation. It summarizes the visible user and assistant dialogue without hidden instructions or raw tool logs.
+
+### User Direction
+
+WickedJack99 continued steering the admin world editor and learner travel loop:
+
+- Make world-map administration happen inside Settings instead of the learner map view, because admins are also learners.
+- Add an admin world graph where maps appear as graph nodes and portal links appear as edges.
+- Let admins create standalone maps before any portals exist, so worlds can be prepared ahead of time.
+- Add a full-screen map editor for each map with draggable hex editing.
+- Let admins add tiles, edit existing tiles, add empty-space spacer nodes, insert tiles between neighboring nodes and swap adjacent tiles with edge arrows.
+- Improve the alignment and hitboxes of insert buttons and arrow controls in the map editor.
+- Add an activity graph editor for each tile/node with start/end points, activity nodes, connectors and removable transitions.
+- Support generic activity types, especially portal activities with input/output direction.
+- Let admins edit and delete activity nodes, with confirmation before deletion.
+- Wire portal links so a learner can actually travel from one portal node to another.
+- Add per-node visual controls: hide empty-space nodes on the learner map while still preserving map spacing, upload/download a node image, show that image instead of the default icon, and optionally hide the tile label on the world map while keeping the side-panel title.
+- Commit and push the work in logical feature groups, and update this conversation archive.
+
+### Codex Work
+
+Codex implemented the requested features across Laravel, Inertia, React and TypeScript:
+
+- Added `LearningPortalLink`, portal-link migrations and demo data linking `Portal Foundation` to `Return Gate`.
+- Added admin world graph pages under `resources/js/pages/settings/worlds`.
+- Added map creation from the world graph, including standalone maps without portal links.
+- Added portal-link creation and deletion from the admin world graph.
+- Added map editing with draggable hex layout, editable tiles, empty-space spacer nodes, insert controls and adjacent-node swap controls.
+- Added activity graph editing with activity creation, editing, deletion, start-node selection and transition management.
+- Added an activity-type registry with connector metadata for dialogue, question, reflection, placeholder and portal activities.
+- Added learner serialization for map identity and outgoing portal links.
+- Updated the learner world page to navigate by `?map=...&focused=...`.
+- Added a portal activity renderer that displays the target map/node and lets learners travel through an outgoing portal link.
+- Updated active-activity persistence so the bottom navigation can return to the correct map and focused node.
+- Converted the demo portal activity from placeholder behavior to a real outbound portal activity and added an input portal activity on the destination node.
+- Added node-image upload support under `/settings/worlds/node-images`.
+- Stored new tile visual options in `visual_config`: `imageUrl`, `hideLabel` and `hideEmptySpace`.
+- Updated the learner world map so node images replace icons, labels can be hidden and empty-space spacers can remain invisible while still shaping map bounds.
+- Updated concept files in `concept_current` to keep the current project direction aligned with WickedJack99's decisions.
+
+### Verification Mentioned In The Dialogue
+
+The following checks were run during this continuation:
+
+- `php artisan migrate --force`
+- `php artisan test`
+- `php artisan test tests/Feature/Settings/AdminWorldsTest.php`
+- `php artisan test tests/Feature/Settings/AdminWorldsTest.php tests/Feature/DashboardTest.php`
+- `npm run types:check`
+- `npm run lint:check`
+- `npm run format:check`
+- `npm run build`
+- `vendor\bin\pint.bat --parallel --test`
