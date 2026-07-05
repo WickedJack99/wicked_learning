@@ -11,4 +11,14 @@ The product goal is to support:
 - Relatedness: future social features should support cooperation and care, not comparison.
 - Wellbeing: learning loops should feel inviting, active and humane.
 
-The first implementation is intentionally small: one seeded world map, one branching node, one dialogue, one question and one reflection.
+The first implementation is intentionally small, but now contains more than the learner slice:
+
+- One seeded world map with configurable hex nodes.
+- A small activity graph with dialogue, question, review and reflection activities.
+- A themed welcome and authentication flow.
+- Authenticated light and dark appearance preferences.
+- Settings navigation with user-facing and admin-facing panels.
+- Admin registration-token and user-access management.
+- Editable platform information pages for About, Imprint and Data Protection.
+
+The platform should stay generic. A deployment about medieval history, astronomy, cybersecurity or biology should be able to change visuals and story framing without rewriting learning logic.

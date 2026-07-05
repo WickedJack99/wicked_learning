@@ -22,4 +22,11 @@
 
 ## MVP Interpretation
 
-The current dashboard shows completed activity state only as personal orientation. The question feedback explains the reasoning and offers a review loop when the selected answer misses the key clue.
+The current world shows completed activity state only as personal orientation. The question feedback explains the reasoning and offers a review loop when the selected answer misses the key clue.
+
+Admin and registration features should also follow the same spirit:
+
+- Registration tokens are access-control tools, not reward coupons.
+- Roles describe responsibility and capability, not learner status.
+- Bans and disabled login are moderation/safety controls, not learning feedback.
+- Public information pages should explain the platform direction clearly enough that users understand what kind of environment they are entering.

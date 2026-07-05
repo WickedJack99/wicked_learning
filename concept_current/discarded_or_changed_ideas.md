@@ -20,6 +20,18 @@ Reason: leaderboards create social comparison and status pressure. Future relate
 
 ## Full admin UI before a learner slice
 
-Deferred.
+Changed.
 
-Reason: seeded configuration is enough to test the first experience. Admin tooling should grow from concrete content needs rather than theoretical completeness.
+Reason: full content administration is still deferred, but concrete user administration is now needed early because registration tokens, roles, bans and disabled login shape how a public deployment can be operated safely.
+
+## Authenticated system appearance option
+
+Removed for now.
+
+Reason: storing `system` in the backend caused ambiguous behavior between browser state, backend state and first render. Authenticated settings now store the resolved user choice. Public pages may still use a local unauthenticated preference before login.
+
+## Inline registration-token creation form
+
+Changed to overlay dialog.
+
+Reason: displaying token roles, expiration picker and actions inline made the Users panel too convoluted. Token creation is a focused task and belongs in an overlay panel.
