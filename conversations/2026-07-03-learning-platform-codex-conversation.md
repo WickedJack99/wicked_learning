@@ -883,3 +883,66 @@ The first export command hit a PowerShell quoting snag while trying to clean up 
 
 The transcript is created and looks structurally right, but the stored session has a few mojibake characters like `Iâ€™ll` from earlier app encoding. I’m regenerating it once with a conservative encoding repair so it reads more naturally in GitHub.
 
+## Continuation Summary - 2026-07-04 to 2026-07-05
+
+This section records the continuation after the first transcript export. It is summarized from the visible development dialogue so it stays useful for the project repository without including hidden instructions or raw tool logs.
+
+### User Direction
+
+WickedJack99 continued steering the learning-platform prototype toward a configurable, exploration-first experience:
+
+- Keep user management, login, registration and Laravel/Fortify basics, but remove the default-feeling sidebar navigation from the learner experience.
+- Add a bottom floating navigation bar with map, settings, active-activity return and logout actions.
+- Keep the world map non-scrollable, mobile-friendly and visually consistent.
+- Fix world-map focus behavior so closing a node panel also removes the `focused` URL state.
+- Support light and dark mode consistently, with authenticated preferences stored on the backend and unauthenticated preferences stored only locally before login.
+- Avoid the world map briefly rendering in the wrong theme after reload.
+- Make theme usage consistent through shared appearance helpers/hooks.
+- Add About, Imprint and Data Protection pages for unauthenticated users and also inside settings for authenticated users.
+- Let admins edit those information pages with Markdown.
+- Add roles, starting with `admin` and `user`.
+- Add an admin Users panel in settings.
+- Let admins create one-use registration tokens.
+- Store who created a registration token, when it was created, when it expires, who used it and when.
+- Let registration tokens assign one or more roles.
+- Let users with a role create only tokens for roles at the same level or below.
+- Let admins disable login, ban users until a picked date and delete users.
+- Replace the Disable login checkbox with an enabled/disabled toggle.
+- Let users have multiple roles, displayed and editable with removable role chips.
+- Move token creation into an overlay panel instead of displaying the whole form inline in the Users panel.
+
+### Codex Work
+
+Codex implemented the requested changes across Laravel, Inertia, React and TypeScript:
+
+- Added backend appearance preference support with `UserPreference`, appearance middleware, an appearance controller and shared frontend appearance helpers.
+- Added unauthenticated theme persistence so pre-login screens can use local light/dark preference while authenticated screens use the backend user preference.
+- Refactored world-map rendering into smaller feature files under `resources/js/features/world`.
+- Stabilized world-map theme initialization to avoid light-mode flashes when dark mode is selected.
+- Improved bottom-nav behavior, active-activity return state, logout action and cursor styling.
+- Added platform information pages with reusable Markdown rendering.
+- Added admin editing for About, Imprint and Data Protection pages.
+- Added access-control middleware to block disabled or banned users from logging in.
+- Added `RegistrationToken`, token migrations and registration-token validation during registration.
+- Added roles to users and tokens, including multi-role support with compatibility for the earlier single `role` column.
+- Added admin settings data through `SettingsController` and admin user actions through `AdminUserController`.
+- Added UI for admin user management, token creation, role chips, role editing, ban dates, login toggles, user details and token audit details.
+- Changed token creation from inline expansion to a focused overlay dialog.
+
+### Verification Mentioned In The Dialogue
+
+The following checks were run during this continuation:
+
+- `php artisan migrate`
+- `php artisan test tests\Feature\Settings\AdminUsersTest.php tests\Feature\Auth\RegistrationTest.php tests\Feature\Auth\AuthenticationTest.php`
+- `php artisan test tests\Feature\Settings\AdminUsersTest.php`
+- `npm run types:check`
+- `npm run lint:check`
+- `npm run format:check`
+- `vendor\bin\pint.bat --parallel --test`
+- `vendor\bin\phpstan.bat analyse --memory-limit=512M app/Actions/Fortify/CreateNewUser.php app/Http/Controllers/Settings/AdminUserController.php app/Http/Controllers/Settings/SettingsController.php app/Models/RegistrationToken.php app/Models/User.php`
+- `npm run build`
+
+### Current Git Request
+
+WickedJack99 asked Codex to stage the accumulated changes, create useful separate commits, push them to GitHub, and update this conversation archive in a separate commit.
