@@ -27,6 +27,7 @@ class LearningWorldController extends Controller
                 'maps.nodes.activities.dialogueStages',
                 'maps.nodes.activities.question.options',
                 'maps.nodes.activities.transitions',
+                'maps.nodes.outgoingPortalLinks.targetNode.map',
             ])
             ->where('slug', 'demo-cybersecurity')
             ->first();
@@ -154,6 +155,9 @@ class LearningWorldController extends Controller
                     ->values()
                     ->map(fn ($node) => [
                         'id' => $node->id,
+                        'mapId' => $map->id,
+                        'mapSlug' => $map->slug,
+                        'mapTitle' => $map->title,
                         'slug' => $node->slug,
                         'title' => $node->title,
                         'description' => $node->description,
@@ -163,6 +167,17 @@ class LearningWorldController extends Controller
                         ],
                         'state' => $node->state,
                         'visualConfig' => $node->visual_config ?? [],
+                        'outgoingPortalLinks' => $node->outgoingPortalLinks->map(fn ($link) => [
+                            'id' => $link->id,
+                            'label' => $link->label,
+                            'description' => $link->description,
+                            'targetMapId' => $link->targetNode->map->id,
+                            'targetMapSlug' => $link->targetNode->map->slug,
+                            'targetMapTitle' => $link->targetNode->map->title,
+                            'targetNodeId' => $link->targetNode->id,
+                            'targetNodeSlug' => $link->targetNode->slug,
+                            'targetNodeTitle' => $link->targetNode->title,
+                        ])->values(),
                         'startActivityId' => $node->start_activity_id,
                         'activities' => $node->activities->map(fn ($activity) => [
                             'id' => $activity->id,
@@ -197,6 +212,8 @@ class LearningWorldController extends Controller
                             'transitions' => $activity->transitions->map(fn ($transition) => [
                                 'id' => $transition->id,
                                 'toActivityId' => $transition->to_activity_id,
+                                'fromConnector' => $transition->from_connector ?? $transition->trigger,
+                                'toConnector' => $transition->to_connector ?? 'in',
                                 'trigger' => $transition->trigger,
                                 'triggerValue' => $transition->trigger_value,
                                 'label' => $transition->label,

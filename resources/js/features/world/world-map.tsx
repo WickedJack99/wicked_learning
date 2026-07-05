@@ -313,12 +313,16 @@ const HexTile = memo(function HexTile({
     const highlight = visualConfig.highlightColor ?? '#7dd3fc';
     const tileColor = visualConfig.tileColor ?? '#12343b';
     const isLocked = node.state === 'locked';
+    const isHiddenSpace = node.state === 'hidden';
+    const hideEmptySpace =
+        isHiddenSpace && visualConfig.hideEmptySpace !== false;
+    const imageUrl = visualConfig.imageUrl ?? '';
     const canInteract = !isLocked && node.state !== 'hidden';
     const resolvedTileCursor = canInteract ? tileCursor : 'default';
     const highlightClass = cn(
         'pointer-events-none absolute opacity-0 transition-opacity duration-150 group-hover:opacity-100',
         isSelected && canInteract && 'opacity-100',
-        !canInteract && 'hidden',
+        hideEmptySpace && 'hidden',
     );
     const tileStyle: TileStyle = {
         ...style,
@@ -335,6 +339,8 @@ const HexTile = memo(function HexTile({
                 canInteract && 'hover:z-20 hover:-translate-y-1',
                 isSelected && canInteract && 'z-10 -translate-y-1',
                 isLocked && 'opacity-72',
+                isHiddenSpace && 'opacity-45',
+                hideEmptySpace && 'invisible',
             )}
             data-hex-tile
             data-hex-tile-id={node.id}
@@ -390,25 +396,36 @@ const HexTile = memo(function HexTile({
                     style={{ cursor: resolvedTileCursor }}
                 >
                     <Icon
-                        className="size-7"
+                        className={cn('size-7', imageUrl && 'hidden')}
                         style={{
                             color: visualConfig.foregroundColor ?? '#ccfbf1',
                             cursor: resolvedTileCursor,
                         }}
                     />
+                    {imageUrl ? (
+                        <img
+                            alt=""
+                            className="max-h-9 max-w-14 object-contain"
+                            draggable={false}
+                            src={imageUrl}
+                            style={{ cursor: resolvedTileCursor }}
+                        />
+                    ) : null}
                     {isCompleted ? (
                         <CheckCircle2 className="absolute -top-2 -right-3 size-4 text-emerald-300" />
                     ) : null}
                 </span>
-                <span
-                    className="text-xs leading-tight font-medium"
-                    style={{
-                        color: visualConfig.labelColor ?? '#ffffff',
-                        cursor: resolvedTileCursor,
-                    }}
-                >
-                    {visualConfig.label ?? node.title}
-                </span>
+                {!visualConfig.hideLabel ? (
+                    <span
+                        className="text-xs leading-tight font-medium"
+                        style={{
+                            color: visualConfig.labelColor ?? '#ffffff',
+                            cursor: resolvedTileCursor,
+                        }}
+                    >
+                        {visualConfig.label ?? node.title}
+                    </span>
+                ) : null}
             </span>
             {isLocked ? (
                 <span

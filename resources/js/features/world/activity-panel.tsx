@@ -2,6 +2,7 @@ import {
     ArrowLeft,
     ArrowRight,
     CheckCircle2,
+    Map as MapIcon,
     MessageCircle,
     PlayCircle,
     RotateCcw,
@@ -14,6 +15,7 @@ import type {
     ActivityTransition,
     LearningActivity,
     LearningNode,
+    LearningPortalLink,
     LearningProgress,
     QuestionAnswerProgress,
 } from '@/types';
@@ -27,6 +29,7 @@ export function ActivityPanel({
     onClose,
     onComplete,
     onMoveToActivity,
+    onTravel,
 }: {
     activity: LearningActivity | null;
     answerProgress: LearningProgress['answers'];
@@ -35,6 +38,7 @@ export function ActivityPanel({
     onClose: () => void;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    onTravel: (portalLink: LearningPortalLink) => void;
 }) {
     if (!node) {
         return null;
@@ -90,6 +94,15 @@ export function ActivityPanel({
 
                 {activity.type === 'placeholder' ? (
                     <PlaceholderActivity activity={activity} />
+                ) : null}
+
+                {activity.type === 'portal' ? (
+                    <PortalActivity
+                        activity={activity}
+                        node={node}
+                        onComplete={onComplete}
+                        onTravel={onTravel}
+                    />
                 ) : null}
             </ActivityFrame>
         </PanelShell>
@@ -164,6 +177,81 @@ function PlaceholderActivity({ activity }: { activity: LearningActivity }) {
             <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {nextStep}
             </p>
+        </div>
+    );
+}
+
+function PortalActivity({
+    activity,
+    node,
+    onComplete,
+    onTravel,
+}: {
+    activity: LearningActivity;
+    node: LearningNode;
+    onComplete: (activity: LearningActivity) => Promise<void>;
+    onTravel: (portalLink: LearningPortalLink) => void;
+}) {
+    const [isTravelling, setIsTravelling] = useState(false);
+    const portalMode = activity.config.portalMode;
+    const link = node.outgoingPortalLinks[0] ?? null;
+    const isInputPortal = portalMode === 'input';
+
+    const travel = async () => {
+        if (!link) {
+            return;
+        }
+
+        setIsTravelling(true);
+
+        try {
+            await onComplete(activity);
+            onTravel(link);
+        } finally {
+            setIsTravelling(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-1 flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
+            <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/14 dark:text-teal-200">
+                    <MapIcon className="size-4" />
+                </span>
+                <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                        {isInputPortal
+                            ? 'Arrival portal'
+                            : link
+                              ? (link.label ?? 'Linked portal')
+                              : 'Portal not linked yet'}
+                    </h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {isInputPortal
+                            ? 'This portal is configured as an entry point for paths that arrive here.'
+                            : link
+                              ? `Travel to ${link.targetMapTitle} / ${link.targetNodeTitle}.`
+                              : 'An admin can connect this tile to another portal in Settings > Edit World.'}
+                    </p>
+                    {link?.description ? (
+                        <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {link.description}
+                        </p>
+                    ) : null}
+                </div>
+            </div>
+
+            {!isInputPortal ? (
+                <Button
+                    className="mt-auto"
+                    disabled={!link || isTravelling}
+                    onClick={() => void travel()}
+                    type="button"
+                >
+                    Travel
+                    <ArrowRight className="ml-2 size-4" />
+                </Button>
+            ) : null}
         </div>
     );
 }

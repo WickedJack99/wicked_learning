@@ -6,6 +6,7 @@ const activeActivityStorageKey = 'learning.activeActivity';
 export type ActiveActivity = {
     activityId: number;
     activityTitle: string;
+    mapSlug?: string;
     nodeSlug?: string;
     nodeTitle: string;
     worldHref?: string;
@@ -42,9 +43,10 @@ export function persistActiveActivity(
         JSON.stringify({
             activityId: activity.id,
             activityTitle: activity.title,
+            mapSlug: node.mapSlug,
             nodeSlug: node.slug,
             nodeTitle: node.title,
-            worldHref: `${worldHref}?focused=${encodeURIComponent(node.slug)}`,
+            worldHref: `${worldHref}?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`,
         }),
     );
     window.dispatchEvent(new Event('learning:active-activity-changed'));

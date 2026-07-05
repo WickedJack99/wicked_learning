@@ -10,7 +10,9 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
     LearningActivity,
+    LearningMap,
     LearningNode,
+    LearningPortalLink,
     LearningProgress,
     LearningWorld,
 } from '@/types';
@@ -31,7 +33,22 @@ type PanelSwipe = {
 export default function World({ world, progress }: WorldProps) {
     const { url } = usePage();
     const { resolvedAppearance } = useAppearance();
-    const map = world?.maps[0] ?? null;
+    const mapSlug = useMemo(
+        () => new URL(url, 'http://learning.local').searchParams.get('map'),
+        [url],
+    );
+    const urlMap = useMemo(() => findMap(world, mapSlug), [mapSlug, world]);
+    const [currentMapId, setCurrentMapId] = useState<number | null>(
+        urlMap?.id ?? world?.maps[0]?.id ?? null,
+    );
+    const map = useMemo(
+        () =>
+            world?.maps.find((candidate) => candidate.id === currentMapId) ??
+            urlMap ??
+            world?.maps[0] ??
+            null,
+        [currentMapId, urlMap, world],
+    );
     const mapTheme = map
         ? resolveThemeVariant(map.backgroundConfig, resolvedAppearance)
         : null;
@@ -147,6 +164,42 @@ export default function World({ world, progress }: WorldProps) {
         setPanelSwipe(null);
         clearFocusedQueryParam();
     }, []);
+
+    const travelToPortal = useCallback(
+        (portalLink: LearningPortalLink) => {
+            const targetMap = world?.maps.find(
+                (candidate) => candidate.id === portalLink.targetMapId,
+            );
+            const targetNode =
+                targetMap?.nodes.find(
+                    (candidate) =>
+                        candidate.id === portalLink.targetNodeId ||
+                        candidate.slug === portalLink.targetNodeSlug,
+                ) ?? null;
+
+            if (
+                !targetMap ||
+                !targetNode ||
+                targetNode.state === 'locked' ||
+                targetNode.state === 'hidden'
+            ) {
+                return;
+            }
+
+            const firstActivity = getStartActivity(targetNode);
+
+            setCurrentMapId(targetMap.id);
+            setSelectedNodeId(targetNode.id);
+            setActiveActivityId(firstActivity?.id ?? null);
+            setPanelSwipe(null);
+            persistActiveActivity(targetNode, firstActivity);
+            replaceWorldQuery({
+                focused: targetNode.slug,
+                map: targetMap.slug,
+            });
+        },
+        [world],
+    );
 
     if (!world || !map) {
         return (
@@ -309,6 +362,7 @@ export default function World({ world, progress }: WorldProps) {
                         onClose={clearNodeFocus}
                         onComplete={markCompleted}
                         onMoveToActivity={moveToActivity}
+                        onTravel={travelToPortal}
                     />
                 </aside>
             </main>
@@ -325,6 +379,21 @@ World.layout = {
     ],
 };
 
+function findMap(
+    world: LearningWorld | null,
+    mapSlug: string | null,
+): LearningMap | null {
+    if (!world || !mapSlug) {
+        return null;
+    }
+
+    return (
+        world.maps.find(
+            (map) => map.slug === mapSlug || map.id.toString() === mapSlug,
+        ) ?? null
+    );
+}
+
 function getStartActivity(node: LearningNode): LearningActivity | null {
     return (
         node.activities.find(
@@ -332,6 +401,28 @@ function getStartActivity(node: LearningNode): LearningActivity | null {
         ) ??
         node.activities[0] ??
         null
+    );
+}
+
+function replaceWorldQuery(params: { focused?: string; map?: string }): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    if (params.map) {
+        url.searchParams.set('map', params.map);
+    }
+
+    if (params.focused) {
+        url.searchParams.set('focused', params.focused);
+    }
+
+    window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
     );
 }
 

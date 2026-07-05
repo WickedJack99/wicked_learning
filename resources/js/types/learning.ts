@@ -46,6 +46,9 @@ export type LearningMap = {
 
 export type LearningNode = {
     id: number;
+    mapId: number;
+    mapSlug: string;
+    mapTitle: string;
     slug: string;
     title: string;
     description: string | null;
@@ -69,10 +72,26 @@ export type LearningNode = {
         tileColor?: string;
         foregroundColor?: string;
         highlightColor?: string;
+        hideEmptySpace?: boolean;
+        hideLabel?: boolean;
         tooltip?: string;
+        imageUrl?: string;
     }>;
+    outgoingPortalLinks: LearningPortalLink[];
     startActivityId: number | null;
     activities: LearningActivity[];
+};
+
+export type LearningPortalLink = {
+    description: string | null;
+    id: number;
+    label: string | null;
+    targetMapId: number;
+    targetMapSlug: string;
+    targetMapTitle: string;
+    targetNodeId: number;
+    targetNodeSlug: string;
+    targetNodeTitle: string;
 };
 
 export type LearningActivity = {
@@ -116,7 +135,9 @@ export type LearningQuestionOption = {
 
 export type ActivityTransition = {
     id: number;
+    fromConnector: string;
     toActivityId: number | null;
+    toConnector: string;
     trigger: string;
     triggerValue: string | null;
     label: string | null;
