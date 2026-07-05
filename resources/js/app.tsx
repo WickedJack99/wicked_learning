@@ -8,15 +8,25 @@ import SettingsLayout from '@/layouts/settings/layout';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+// Read the server/browser appearance before React mounts so every component
+// resolves the same light or dark theme on its first render.
+initializeTheme();
+
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
                 return null;
+            case name.startsWith('info/'):
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name === 'settings/index':
+                return AppLayout;
+            case name === 'settings/about':
+            case name === 'settings/imprint':
+            case name === 'settings/data-protection':
                 return AppLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
@@ -37,6 +47,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-
-// This will set light / dark mode on load...
-initializeTheme();

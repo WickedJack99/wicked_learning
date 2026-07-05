@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Appearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,12 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'appearance' => $request->user()
+                ? Appearance::forAuthenticatedUser(
+                    $request->user()->preference?->appearance,
+                    $request->cookie('appearance'),
+                )
+                : Appearance::forGuest(),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

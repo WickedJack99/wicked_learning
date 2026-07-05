@@ -41,10 +41,29 @@ class DemoLearningWorldSeeder extends Seeder
             'background_config' => [
                 'imageUrl' => '/images/themes/cyber-map-background.svg',
                 'overlay' => 'rgba(7, 13, 18, 0.58)',
+                'pageBackground' => '#0b1117',
                 'cursor' => "url('/images/cursors/cyber-cursor.svg') 4 4, default",
                 'draggingCursor' => "url('/images/cursors/cyber-hand.svg') 12 10, default",
                 'tileCursor' => "url('/images/cursors/cyber-hand.svg') 12 10, pointer",
                 'panelBackground' => 'rgba(5, 15, 22, 0.72)',
+                'panelTextColor' => '#f8fafc',
+                'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
+                'sidePanelBackground' => '#111820',
+                'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
+                'sidePanelTextColor' => '#f8fafc',
+                'accentColor' => '#99f6e4',
+                'light' => [
+                    'overlay' => 'rgba(238, 251, 252, 0.72)',
+                    'pageBackground' => '#e8f6f8',
+                    'panelBackground' => 'rgba(255, 255, 255, 0.78)',
+                    'panelTextColor' => '#0f172a',
+                    'panelMutedTextColor' => 'rgba(51, 65, 85, 0.78)',
+                    'sidePanelBackground' => '#ffffff',
+                    'sidePanelBorderColor' => 'rgba(15, 23, 42, 0.12)',
+                    'sidePanelTextColor' => '#0f172a',
+                    'accentColor' => '#0e7490',
+                    'cardBorderColor' => 'rgba(14, 116, 144, 0.18)',
+                ],
             ],
             'grid_config' => [
                 'tileWidth' => 132,
@@ -66,8 +85,15 @@ class DemoLearningWorldSeeder extends Seeder
                 'label' => 'Signal Gate',
                 'tileColor' => '#12343b',
                 'foregroundColor' => '#99f6e4',
+                'labelColor' => '#ffffff',
                 'highlightColor' => '#36d399',
                 'tooltip' => 'Start here: short dialogue, then a question.',
+                'light' => [
+                    'tileColor' => '#d5f5f0',
+                    'foregroundColor' => '#0f766e',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#0d9488',
+                ],
             ],
         ]);
 
@@ -251,8 +277,15 @@ class DemoLearningWorldSeeder extends Seeder
                 'label' => 'Field Notes',
                 'tileColor' => '#253047',
                 'foregroundColor' => '#bfdbfe',
+                'labelColor' => '#ffffff',
                 'highlightColor' => '#7dd3fc',
                 'tooltip' => 'Coming next: personal notes without public scoring.',
+                'light' => [
+                    'tileColor' => '#dbeafe',
+                    'foregroundColor' => '#1d4ed8',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#2563eb',
+                ],
             ],
         ]);
 
@@ -283,8 +316,15 @@ class DemoLearningWorldSeeder extends Seeder
                 'label' => 'Quiet Archive',
                 'tileColor' => '#2d2338',
                 'foregroundColor' => '#e9d5ff',
+                'labelColor' => '#ffffff',
                 'highlightColor' => '#c084fc',
                 'tooltip' => 'Locked for now. Later this should open because of understanding, not points.',
+                'light' => [
+                    'tileColor' => '#ede9fe',
+                    'foregroundColor' => '#6d28d9',
+                    'labelColor' => '#334155',
+                    'highlightColor' => '#8b5cf6',
+                ],
             ],
         ]);
 
@@ -301,8 +341,15 @@ class DemoLearningWorldSeeder extends Seeder
                 'label' => 'Portal',
                 'tileColor' => '#19312b',
                 'foregroundColor' => '#bbf7d0',
+                'labelColor' => '#ffffff',
                 'highlightColor' => '#4ade80',
                 'tooltip' => 'Future maps can connect here.',
+                'light' => [
+                    'tileColor' => '#dcfce7',
+                    'foregroundColor' => '#15803d',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#16a34a',
+                ],
             ],
         ]);
 

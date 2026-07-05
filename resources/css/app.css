@@ -141,3 +141,63 @@
         @apply bg-background text-foreground;
     }
 }
+
+@layer utilities {
+    @keyframes nav-inserted-item {
+        0%,
+        82% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes map-surface-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .animate-map-surface-in {
+        animation: map-surface-in 500ms ease-out both;
+    }
+
+    .animate-nav-inserted-item {
+        animation: nav-inserted-item 1150ms ease-out both;
+    }
+
+    .platform-shell {
+        cursor: var(--platform-cursor, default);
+    }
+
+    .platform-shell
+        :is(
+            a,
+            button,
+            [role='button'],
+            summary,
+            select,
+            input[type='checkbox'],
+            input[type='radio']
+        ) {
+        cursor: var(--platform-action-cursor, pointer);
+    }
+
+    .platform-shell
+        :is(input:not([type='checkbox']):not([type='radio']), textarea) {
+        cursor: text;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .animate-map-surface-in,
+        .animate-nav-inserted-item {
+            animation: none;
+        }
+    }
+}

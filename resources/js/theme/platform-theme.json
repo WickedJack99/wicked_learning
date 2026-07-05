@@ -1,0 +1,54 @@
+{
+    "auth": {
+        "default": {
+            "backgroundColor": "#07111f",
+            "backgroundImage": "/images/themes/cyber-map-background.svg",
+            "backgroundOverlay": "linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))",
+            "panelBackground": "rgba(7, 17, 31, 0.82)",
+            "borderLineColor": "rgba(94, 234, 212, 0.24)",
+            "titleTextColor": "#f8fafc",
+            "descriptionTextColor": "rgba(203, 213, 225, 0.78)",
+            "eyebrowTextColor": "#67e8f9",
+            "labelTextColor": "#e2e8f0",
+            "linkTextColor": "#67e8f9",
+            "inputBackground": "rgba(2, 6, 23, 0.36)",
+            "inputBorderColor": "rgba(125, 211, 252, 0.32)",
+            "focusRingColor": "#67e8f9",
+            "buttonBackground": "#5eead4",
+            "buttonTextColor": "#06111f",
+            "logoBackground": "#5eead4",
+            "logoColor": "#06111f"
+        },
+        "light": {
+            "backgroundColor": "#ecfeff",
+            "backgroundOverlay": "linear-gradient(120deg, rgba(236, 254, 255, 0.94), rgba(240, 249, 255, 0.82), rgba(219, 234, 254, 0.62))",
+            "panelBackground": "rgba(255, 255, 255, 0.86)",
+            "borderLineColor": "rgba(8, 145, 178, 0.24)",
+            "titleTextColor": "#0f172a",
+            "descriptionTextColor": "rgba(51, 65, 85, 0.78)",
+            "eyebrowTextColor": "#0e7490",
+            "labelTextColor": "#0f172a",
+            "linkTextColor": "#0369a1",
+            "inputBackground": "rgba(255, 255, 255, 0.7)",
+            "inputBorderColor": "rgba(14, 116, 144, 0.28)",
+            "focusRingColor": "#0891b2",
+            "buttonBackground": "#0e7490",
+            "buttonTextColor": "#ffffff",
+            "logoBackground": "#0e7490",
+            "logoColor": "#ffffff"
+        },
+        "pages": {
+            "login": {
+                "backgroundImage": "/images/themes/mentor-calm.svg"
+            },
+            "register": {
+                "backgroundImage": "/images/themes/mentor-hint.svg"
+            },
+            "welcome": {
+                "backgroundImage": "/images/themes/cyber-map-background.svg",
+                "panelBackground": "transparent",
+                "borderLineColor": "transparent"
+            }
+        }
+    }
+}

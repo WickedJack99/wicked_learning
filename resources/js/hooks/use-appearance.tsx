@@ -1,7 +1,20 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+import {
+    applyAppearanceToDocument,
+    authenticatedAppearanceStorageKey,
+    isAuthenticatedSession,
+    normalizeAppearance,
+    readDocumentAppearance,
+    readInitialResolvedAppearance,
+    readStoredAppearance,
+    resolveAppearance,
+    setAppearanceCookie,
+    storeAppearance,
+} from '@/theme/appearance';
+import type { Appearance, ResolvedAppearance } from '@/theme/appearance';
+import { persistAppearance } from '@/theme/appearance-persistence';
 
-export type ResolvedAppearance = 'light' | 'dark';
-export type Appearance = ResolvedAppearance | 'system';
+export type { Appearance, ResolvedAppearance } from '@/theme/appearance';
 
 export type UseAppearanceReturn = {
     readonly appearance: Appearance;
@@ -10,46 +23,24 @@ export type UseAppearanceReturn = {
 };
 
 const listeners = new Set<() => void>();
-let currentAppearance: Appearance = 'system';
+const resolvedListeners = new Set<() => void>();
+const initialStoredAppearance = readStoredAppearance();
 
-const prefersDark = (): boolean => {
-    if (typeof window === 'undefined') {
-        return false;
-    }
+let currentAppearance: Appearance = initialStoredAppearance.appearance;
+let currentResolvedAppearance: ResolvedAppearance =
+    readInitialResolvedAppearance(currentAppearance);
+let documentThemeObserver: MutationObserver | null = null;
 
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+const getResolvedAppearanceSnapshot = (): ResolvedAppearance => {
+    return currentResolvedAppearance;
 };
 
-const setCookie = (name: string, value: string, days = 365): void => {
-    if (typeof document === 'undefined') {
-        return;
-    }
-
-    const maxAge = days * 24 * 60 * 60;
-    document.cookie = `${name}=${value};path=/;max-age=${maxAge};SameSite=Lax`;
-};
-
-const getStoredAppearance = (): Appearance => {
-    if (typeof window === 'undefined') {
-        return 'system';
-    }
-
-    return (localStorage.getItem('appearance') as Appearance) || 'system';
-};
-
-const isDarkMode = (appearance: Appearance): boolean => {
-    return appearance === 'dark' || (appearance === 'system' && prefersDark());
-};
+const notify = (): void => listeners.forEach((listener) => listener());
+const notifyResolved = (): void =>
+    resolvedListeners.forEach((listener) => listener());
 
 const applyTheme = (appearance: Appearance): void => {
-    if (typeof document === 'undefined') {
-        return;
-    }
-
-    const isDark = isDarkMode(appearance);
-
-    document.documentElement.classList.toggle('dark', isDark);
-    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    currentResolvedAppearance = applyAppearanceToDocument(appearance);
 };
 
 const subscribe = (callback: () => void) => {
@@ -58,7 +49,27 @@ const subscribe = (callback: () => void) => {
     return () => listeners.delete(callback);
 };
 
-const notify = (): void => listeners.forEach((listener) => listener());
+const subscribeResolvedAppearance = (callback: () => void) => {
+    resolvedListeners.add(callback);
+
+    if (
+        typeof document !== 'undefined' &&
+        typeof MutationObserver !== 'undefined' &&
+        !documentThemeObserver
+    ) {
+        documentThemeObserver = new MutationObserver(() => {
+            currentResolvedAppearance =
+                readDocumentAppearance() ?? currentResolvedAppearance;
+            notifyResolved();
+        });
+        documentThemeObserver.observe(document.documentElement, {
+            attributeFilter: ['class'],
+            attributes: true,
+        });
+    }
+
+    return () => resolvedListeners.delete(callback);
+};
 
 const mediaQuery = (): MediaQueryList | null => {
     if (typeof window === 'undefined') {
@@ -68,23 +79,95 @@ const mediaQuery = (): MediaQueryList | null => {
     return window.matchMedia('(prefers-color-scheme: dark)');
 };
 
-const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
+const handleSystemThemeChange = (): void => {
+    applyTheme(currentAppearance);
+    notify();
+    notifyResolved();
+};
 
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    if (!localStorage.getItem('appearance')) {
-        localStorage.setItem('appearance', 'system');
-        setCookie('appearance', 'system');
+    const storedAppearance = readStoredAppearance();
+    currentAppearance = storedAppearance.appearance;
+
+    if (isAuthenticatedSession() && currentAppearance === 'system') {
+        currentAppearance = resolveAppearance(currentAppearance);
     }
 
-    currentAppearance = getStoredAppearance();
-    applyTheme(currentAppearance);
+    if (isAuthenticatedSession() || storedAppearance.hasStoredPreference) {
+        storeAppearance(currentAppearance);
+    }
 
-    // Set up system theme change listener
+    if (isAuthenticatedSession()) {
+        setAppearanceCookie(
+            authenticatedAppearanceStorageKey,
+            currentAppearance,
+        );
+    }
+
+    applyTheme(currentAppearance);
+    notifyResolved();
+
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
+}
+
+export function syncAppearanceWithPage(
+    isAuthenticated: boolean,
+    serverAppearanceValue: unknown,
+): void {
+    const serverAppearance = normalizeAppearance(serverAppearanceValue);
+
+    if (typeof window !== 'undefined') {
+        window.__INITIAL_AUTHENTICATED__ = isAuthenticated;
+    }
+
+    if (!isAuthenticated) {
+        return;
+    }
+
+    if (currentAppearance === 'system' && serverAppearance) {
+        currentAppearance =
+            serverAppearance === 'system'
+                ? resolveAppearance(serverAppearance)
+                : serverAppearance;
+        storeAppearance(currentAppearance, true);
+        setAppearanceCookie(
+            authenticatedAppearanceStorageKey,
+            currentAppearance,
+        );
+        applyTheme(currentAppearance);
+        notify();
+        notifyResolved();
+
+        return;
+    }
+
+    const persistedAppearance =
+        currentAppearance === 'system'
+            ? resolveAppearance(currentAppearance)
+            : currentAppearance;
+
+    storeAppearance(persistedAppearance, true);
+    setAppearanceCookie(authenticatedAppearanceStorageKey, persistedAppearance);
+
+    if (
+        (persistedAppearance === 'light' || persistedAppearance === 'dark') &&
+        serverAppearance !== persistedAppearance
+    ) {
+        persistAppearance(persistedAppearance);
+    }
+}
+
+export function useAppearancePageSync(
+    isAuthenticated: boolean,
+    serverAppearance: unknown,
+): void {
+    useEffect(() => {
+        syncAppearanceWithPage(isAuthenticated, serverAppearance);
+    }, [isAuthenticated, serverAppearance]);
 }
 
 export function useAppearance(): UseAppearanceReturn {
@@ -94,21 +177,34 @@ export function useAppearance(): UseAppearanceReturn {
         () => 'system',
     );
 
-    const resolvedAppearance: ResolvedAppearance = isDarkMode(appearance)
-        ? 'dark'
-        : 'light';
+    const resolvedAppearance: ResolvedAppearance = useSyncExternalStore(
+        subscribeResolvedAppearance,
+        getResolvedAppearanceSnapshot,
+        getResolvedAppearanceSnapshot,
+    );
 
     const updateAppearance = (mode: Appearance): void => {
-        currentAppearance = mode;
+        const isAuthenticated = isAuthenticatedSession();
+        const persistedAppearance =
+            mode === 'system' ? resolveAppearance(mode) : mode;
 
-        // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', mode);
+        currentAppearance = persistedAppearance;
+        storeAppearance(persistedAppearance, isAuthenticated);
 
-        // Store in cookie for SSR...
-        setCookie('appearance', mode);
+        if (isAuthenticated) {
+            setAppearanceCookie(
+                authenticatedAppearanceStorageKey,
+                persistedAppearance,
+            );
+        }
 
-        applyTheme(mode);
+        applyTheme(persistedAppearance);
         notify();
+        notifyResolved();
+
+        if (isAuthenticated) {
+            persistAppearance(persistedAppearance);
+        }
     };
 
     return { appearance, resolvedAppearance, updateAppearance } as const;

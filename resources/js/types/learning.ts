@@ -7,19 +7,35 @@ export type LearningWorld = {
     maps: LearningMap[];
 };
 
+type ThemeVariant<T> = T & {
+    dark?: Partial<T>;
+    light?: Partial<T>;
+};
+
 export type LearningMap = {
     id: number;
     slug: string;
     title: string;
     description: string | null;
-    backgroundConfig: {
+    backgroundConfig: ThemeVariant<{
+        accentColor?: string;
+        cardBackground?: string;
+        cardBorderColor?: string;
+        cardTextColor?: string;
         imageUrl?: string;
         overlay?: string;
         cursor?: string;
         draggingCursor?: string;
         tileCursor?: string;
         panelBackground?: string;
-    };
+        panelMutedTextColor?: string;
+        panelTextColor?: string;
+        pageBackground?: string;
+        sidePanelBackground?: string;
+        sidePanelBorderColor?: string;
+        sidePanelMutedTextColor?: string;
+        sidePanelTextColor?: string;
+    }>;
     gridConfig: {
         tileWidth?: number;
         tileHeight?: number;
@@ -45,14 +61,16 @@ export type LearningNode = {
         | 'hinted'
         | 'locked'
         | 'recommended';
-    visualConfig: {
+    visualConfig: ThemeVariant<{
+        borderColor?: string;
         icon?: string;
         label?: string;
+        labelColor?: string;
         tileColor?: string;
         foregroundColor?: string;
         highlightColor?: string;
         tooltip?: string;
-    };
+    }>;
     startActivityId: number | null;
     activities: LearningActivity[];
 };
