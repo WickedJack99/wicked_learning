@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'role' => User::ROLE_ADMIN,
+            'roles' => [User::ROLE_ADMIN],
         ]);
 
         $this->call(DemoLearningWorldSeeder::class);

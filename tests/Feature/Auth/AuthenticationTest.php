@@ -53,6 +53,46 @@ test('users can not authenticate with invalid password', function () {
     $this->assertGuest();
 });
 
+test('users with disabled login can not authenticate', function () {
+    $user = User::factory()->create([
+        'login_disabled_at' => now(),
+    ]);
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response->assertSessionHasErrors('email');
+    $this->assertGuest();
+});
+
+test('users banned until a future date can not authenticate', function () {
+    $user = User::factory()->create([
+        'banned_until' => now()->addDay(),
+    ]);
+
+    $response = $this->post(route('login.store'), [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response->assertSessionHasErrors('email');
+    $this->assertGuest();
+});
+
+test('blocked authenticated sessions are ended on the next request', function () {
+    $user = User::factory()->create([
+        'login_disabled_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('world'))
+        ->assertRedirect(route('login'));
+
+    $this->assertGuest();
+});
+
 test('users can logout', function () {
     $user = User::factory()->create();
 

@@ -3,7 +3,10 @@ export type User = {
     name: string;
     email: string;
     avatar?: string;
+    role: 'admin' | 'user';
     email_verified_at: string | null;
+    login_disabled_at?: string | null;
+    banned_until?: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
@@ -11,7 +14,7 @@ export type User = {
 };
 
 export type Auth = {
-    user: User;
+    user: User | null;
 };
 
 /* @chisel-passkeys */
