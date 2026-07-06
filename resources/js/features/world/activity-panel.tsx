@@ -1,6 +1,7 @@
 import {
     ArrowLeft,
     ArrowRight,
+    Bookmark,
     CheckCircle2,
     Map as MapIcon,
     MessageCircle,
@@ -29,15 +30,19 @@ export function ActivityPanel({
     onClose,
     onComplete,
     onMoveToActivity,
+    onToggleBookmark,
     onTravel,
+    isBookmarked,
 }: {
     activity: LearningActivity | null;
     answerProgress: LearningProgress['answers'];
+    isBookmarked: boolean;
     node: LearningNode | null;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
     onClose: () => void;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    onToggleBookmark: (node: LearningNode) => void;
     onTravel: (portalLink: LearningPortalLink) => void;
 }) {
     if (!node) {
@@ -45,12 +50,39 @@ export function ActivityPanel({
     }
 
     if (node.state === 'locked') {
-        return null;
+        return (
+            <PanelShell
+                eyebrow="Location"
+                headerAction={
+                    <BookmarkButton
+                        isBookmarked={isBookmarked}
+                        node={node}
+                        onToggleBookmark={onToggleBookmark}
+                    />
+                }
+                onClose={onClose}
+                title={node.title}
+            >
+                <NodeSummary node={node} />
+                <LockedActivityState />
+            </PanelShell>
+        );
     }
 
     if (!activity) {
         return (
-            <PanelShell eyebrow="Location" onClose={onClose} title={node.title}>
+            <PanelShell
+                eyebrow="Location"
+                headerAction={
+                    <BookmarkButton
+                        isBookmarked={isBookmarked}
+                        node={node}
+                        onToggleBookmark={onToggleBookmark}
+                    />
+                }
+                onClose={onClose}
+                title={node.title}
+            >
                 <NodeSummary node={node} />
                 <EmptyActivityState />
             </PanelShell>
@@ -63,7 +95,18 @@ export function ActivityPanel({
         ) ?? null;
 
     return (
-        <PanelShell eyebrow="Location" onClose={onClose} title={node.title}>
+        <PanelShell
+            eyebrow="Location"
+            headerAction={
+                <BookmarkButton
+                    isBookmarked={isBookmarked}
+                    node={node}
+                    onToggleBookmark={onToggleBookmark}
+                />
+            }
+            onClose={onClose}
+            title={node.title}
+        >
             <NodeSummary node={node} />
 
             <ActivityFrame activity={activity}>
@@ -128,6 +171,20 @@ function EmptyActivityState() {
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 This panel is ready for future actions such as starting a first
                 activity, opening a portal or showing unlock requirements.
+            </p>
+        </div>
+    );
+}
+
+function LockedActivityState() {
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                Locked for now
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                This place is visible for orientation, but its activities are
+                not open yet.
             </p>
         </div>
     );
@@ -259,11 +316,13 @@ function PortalActivity({
 function PanelShell({
     children,
     eyebrow,
+    headerAction,
     onClose,
     title,
 }: {
     children?: React.ReactNode;
     eyebrow: string;
+    headerAction?: React.ReactNode;
     onClose?: () => void;
     title: string;
 }) {
@@ -278,6 +337,7 @@ function PanelShell({
                         {title}
                     </h2>
                 </div>
+                {headerAction}
                 {onClose ? (
                     <Button
                         aria-label="Close node panel"
@@ -291,6 +351,34 @@ function PanelShell({
             </div>
             {children}
         </div>
+    );
+}
+
+function BookmarkButton({
+    isBookmarked,
+    node,
+    onToggleBookmark,
+}: {
+    isBookmarked: boolean;
+    node: LearningNode;
+    onToggleBookmark: (node: LearningNode) => void;
+}) {
+    return (
+        <Button
+            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this tile'}
+            onClick={() => onToggleBookmark(node)}
+            size="icon"
+            type="button"
+            variant="ghost"
+        >
+            <Bookmark
+                className={cn(
+                    'size-4',
+                    isBookmarked &&
+                        'fill-cyan-600 text-cyan-600 dark:fill-teal-200 dark:text-teal-200',
+                )}
+            />
+        </Button>
     );
 }
 

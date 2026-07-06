@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Cog, DoorOpen, Map, PlayCircle } from 'lucide-react';
+import { Bookmark, Cog, DoorOpen, Map, PlayCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -94,6 +94,10 @@ export function AppBottomNav() {
         () => url.startsWith('/world') || url.startsWith('/dashboard'),
         [url],
     );
+    const isBookmarksActive = useMemo(
+        () => url.startsWith('/bookmarks'),
+        [url],
+    );
     const isSettingsActive = useMemo(() => url.startsWith('/settings'), [url]);
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
@@ -103,6 +107,13 @@ export function AppBottomNav() {
                 icon: <Map className="size-5" />,
                 id: 'map',
                 label: 'Map',
+            },
+            {
+                active: isBookmarksActive,
+                href: '/bookmarks',
+                icon: <Bookmark className="size-5" />,
+                id: 'bookmarks',
+                label: 'Bookmarks',
             },
             {
                 active: isSettingsActive,
@@ -141,6 +152,7 @@ export function AppBottomNav() {
         ];
     }, [
         activeActivity,
+        isBookmarksActive,
         isMapActive,
         isSettingsActive,
         handleLogout,

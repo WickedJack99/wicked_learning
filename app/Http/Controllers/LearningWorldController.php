@@ -6,6 +6,9 @@ use App\Models\ActivityTransition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerQuestionAnswer;
 use App\Models\LearningActivity;
+use App\Models\LearningMap;
+use App\Models\LearningNode;
+use App\Models\LearningNodeBookmark;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
@@ -33,6 +36,7 @@ class LearningWorldController extends Controller
             ->first();
 
         return Inertia::render('world', [
+            'bookmarkedNodeIds' => $this->bookmarkedNodeIds($request),
             'world' => $world ? $this->serializeWorld($world) : null,
             'progress' => $this->serializeProgress($request),
         ]);
@@ -127,6 +131,63 @@ class LearningWorldController extends Controller
                 'explanation' => $question->explanation,
                 'nextActivityId' => $transition?->to_activity_id,
             ],
+        ]);
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'query' => ['required', 'string', 'min:1', 'max:80'],
+        ]);
+        $query = trim((string) $data['query']);
+
+        $maps = LearningMap::query()
+            ->whereHas('world', fn ($worldQuery) => $worldQuery->where('slug', 'demo-cybersecurity'))
+            ->where(function ($mapQuery) use ($query): void {
+                $mapQuery
+                    ->where('title', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%");
+            })
+            ->limit(8)
+            ->get()
+            ->map(fn (LearningMap $map): array => [
+                'id' => "map:{$map->id}",
+                'kind' => 'map',
+                'mapId' => $map->id,
+                'mapSlug' => $map->slug,
+                'subtitle' => 'World map',
+                'title' => $map->title,
+            ]);
+
+        $nodes = LearningNode::query()
+            ->with('map')
+            ->where('state', '!=', 'hidden')
+            ->whereHas('map.world', fn ($worldQuery) => $worldQuery->where('slug', 'demo-cybersecurity'))
+            ->where(function ($nodeQuery) use ($query): void {
+                $nodeQuery
+                    ->where('title', 'like', "%{$query}%")
+                    ->orWhere('description', 'like', "%{$query}%")
+                    ->orWhere('slug', 'like', "%{$query}%")
+                    ->orWhereHas('map', fn ($mapQuery) => $mapQuery->where('title', 'like', "%{$query}%"));
+            })
+            ->limit(32)
+            ->get()
+            ->filter(fn (LearningNode $node): bool => ($node->visual_config['hideEmptySpace'] ?? false) !== true)
+            ->take(24)
+            ->map(fn (LearningNode $node): array => [
+                'id' => "node:{$node->id}",
+                'kind' => 'node',
+                'mapId' => $node->map->id,
+                'mapSlug' => $node->map->slug,
+                'nodeId' => $node->id,
+                'nodeSlug' => $node->slug,
+                'subtitle' => $node->map->title.($node->state === 'locked' ? ' - locked' : ''),
+                'title' => $node->title,
+            ]);
+
+        return response()->json([
+            'results' => $maps->concat($nodes)->values(),
         ]);
     }
 
@@ -258,6 +319,18 @@ class LearningWorldController extends Controller
             'activities' => $activities,
             'answers' => $answers,
         ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function bookmarkedNodeIds(Request $request): array
+    {
+        return LearningNodeBookmark::query()
+            ->where('user_id', $request->user()->id)
+            ->pluck('learning_node_id')
+            ->map(fn (int $nodeId): int => $nodeId)
+            ->all();
     }
 
     private function findQuestionTransition(LearningQuestion $question, LearningQuestionOption $option): ?ActivityTransition

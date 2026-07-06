@@ -26,6 +26,7 @@ const nodeIcons: Record<string, ElementType> = {
 
 export function WorldMap({
     activityProgress,
+    allowLockedSelection = false,
     map,
     mode,
     onClearFocus,
@@ -33,6 +34,7 @@ export function WorldMap({
     selectedNode,
 }: {
     activityProgress: LearningProgress['activities'];
+    allowLockedSelection?: boolean;
     map: LearningMap;
     mode: ResolvedAppearance;
     onClearFocus: () => void;
@@ -270,6 +272,7 @@ export function WorldMap({
                         <HexTile
                             isCompleted={hasCompletedActivity}
                             isSelected={isSelected}
+                            allowLockedSelection={allowLockedSelection}
                             key={node.id}
                             mode={mode}
                             node={node}
@@ -292,6 +295,7 @@ export function WorldMap({
 const HexTile = memo(function HexTile({
     isCompleted,
     isSelected,
+    allowLockedSelection,
     node,
     onSelectNode,
     shouldSuppressClick,
@@ -299,6 +303,7 @@ const HexTile = memo(function HexTile({
     tileCursor,
     mode,
 }: {
+    allowLockedSelection: boolean;
     isCompleted: boolean;
     isSelected: boolean;
     node: LearningNode;
@@ -317,7 +322,8 @@ const HexTile = memo(function HexTile({
     const hideEmptySpace =
         isHiddenSpace && visualConfig.hideEmptySpace !== false;
     const imageUrl = visualConfig.imageUrl ?? '';
-    const canInteract = !isLocked && node.state !== 'hidden';
+    const canInteract =
+        node.state !== 'hidden' && (allowLockedSelection || !isLocked);
     const resolvedTileCursor = canInteract ? tileCursor : 'default';
     const highlightClass = cn(
         'pointer-events-none absolute opacity-0 transition-opacity duration-150 group-hover:opacity-100',

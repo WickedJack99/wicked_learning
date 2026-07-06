@@ -69,4 +69,12 @@ class LearningNode extends Model
     {
         return $this->hasMany(LearningPortalLink::class, 'target_learning_node_id');
     }
+
+    /**
+     * @return HasMany<LearningNodeBookmark, $this>
+     */
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(LearningNodeBookmark::class);
+    }
 }

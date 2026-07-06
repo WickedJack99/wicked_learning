@@ -228,4 +228,14 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasOne(RegistrationToken::class, 'used_by_user_id');
     }
+
+    /**
+     * Personal places this user wants to revisit.
+     *
+     * @return HasMany<LearningNodeBookmark, $this>
+     */
+    public function learningNodeBookmarks(): HasMany
+    {
+        return $this->hasMany(LearningNodeBookmark::class);
+    }
 }

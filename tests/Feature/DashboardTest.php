@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\LearningNode;
+use App\Models\LearningNodeBookmark;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Inertia\Testing\AssertableInertia;
@@ -15,6 +17,80 @@ test('authenticated users can visit the world map', function () {
 
     $response = $this->get(route('world'));
     $response->assertOk();
+});
+
+test('authenticated users can visit their bookmark map', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+
+    LearningNodeBookmark::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('bookmarks'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('bookmarks')
+            ->where('bookmarkMap.slug', 'bookmarks')
+            ->where('bookmarkMap.nodes.0.slug', 'portal-foundation')
+            ->where('bookmarkMap.nodes.0.mapSlug', 'first-sector')
+            ->where('bookmarkMap.nodes.0.position.q', 0)
+            ->where('bookmarkMap.nodes.0.position.r', 0)
+        );
+});
+
+test('authenticated users can create and remove node bookmarks', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($user)
+        ->postJson(route('learning.nodes.bookmark.store', $node))
+        ->assertOk()
+        ->assertJson([
+            'bookmarked' => true,
+            'bookmarkedNodeIds' => [$node->id],
+        ]);
+
+    expect(LearningNodeBookmark::query()
+        ->where('user_id', $user->id)
+        ->where('learning_node_id', $node->id)
+        ->exists())->toBeTrue();
+
+    $this->actingAs($user)
+        ->deleteJson(route('learning.nodes.bookmark.destroy', $node))
+        ->assertOk()
+        ->assertJson([
+            'bookmarked' => false,
+            'bookmarkedNodeIds' => [],
+        ]);
+
+    expect(LearningNodeBookmark::query()
+        ->where('user_id', $user->id)
+        ->where('learning_node_id', $node->id)
+        ->exists())->toBeFalse();
+});
+
+test('authenticated users can search visible maps and nodes', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', ['query' => 'archive']))
+        ->assertOk()
+        ->assertJsonPath('results.0.kind', 'map')
+        ->assertJsonPath('results.0.mapSlug', 'signal-archive');
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', ['query' => 'quiet']))
+        ->assertOk()
+        ->assertJsonFragment([
+            'kind' => 'node',
+            'nodeSlug' => 'quiet-archive',
+        ]);
 });
 
 test('world map serializes outgoing portal links for learner travel', function () {

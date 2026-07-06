@@ -1,8 +1,11 @@
 import { Head, usePage } from '@inertiajs/react';
+import { Map as MapIcon, MapPin, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPanel } from '@/features/world/activity-panel';
-import { postJson } from '@/features/world/api';
+import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { resolveThemeVariant } from '@/features/world/theme';
 import { worldHref } from '@/features/world/types';
 import { WorldMap } from '@/features/world/world-map';
@@ -18,6 +21,7 @@ import type {
 } from '@/types';
 
 type WorldProps = {
+    bookmarkedNodeIds: number[];
     world: LearningWorld | null;
     progress: LearningProgress;
 };
@@ -30,7 +34,35 @@ type PanelSwipe = {
     offsetX: number;
 };
 
-export default function World({ world, progress }: WorldProps) {
+type SearchResult =
+    | {
+          id: string;
+          kind: 'map';
+          mapId: number;
+          mapSlug: string;
+          subtitle: string;
+          title: string;
+      }
+    | {
+          id: string;
+          kind: 'node';
+          mapId: number;
+          mapSlug: string;
+          nodeId: number;
+          nodeSlug: string;
+          subtitle: string;
+          title: string;
+      };
+
+type SearchResponse = {
+    results: SearchResult[];
+};
+
+export default function World({
+    bookmarkedNodeIds: initialBookmarkedNodeIds,
+    world,
+    progress,
+}: WorldProps) {
     const { url } = usePage();
     const { resolvedAppearance } = useAppearance();
     const mapSlug = useMemo(
@@ -78,6 +110,12 @@ export default function World({ world, progress }: WorldProps) {
         progress.activities,
     );
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
+    const [bookmarkedNodeIds, setBookmarkedNodeIds] = useState(
+        initialBookmarkedNodeIds,
+    );
+    const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [isSearchLoading, setIsSearchLoading] = useState(false);
 
     const selectedNode = useMemo(() => {
         if (!map) {
@@ -103,6 +141,44 @@ export default function World({ world, progress }: WorldProps) {
             null
         );
     }, [activeActivityId, selectedNode]);
+    useEffect(() => {
+        const query = searchTerm.trim();
+
+        if (query.length === 0) {
+            return;
+        }
+
+        const controller = new AbortController();
+        const timer = window.setTimeout(() => {
+            setIsSearchLoading(true);
+
+            void getJson<SearchResponse>(
+                `/learning/search?query=${encodeURIComponent(query)}`,
+                controller.signal,
+            )
+                .then((response) => setSearchResults(response.results))
+                .catch((error: unknown) => {
+                    if (
+                        error instanceof DOMException &&
+                        error.name === 'AbortError'
+                    ) {
+                        return;
+                    }
+
+                    setSearchResults([]);
+                })
+                .finally(() => {
+                    if (!controller.signal.aborted) {
+                        setIsSearchLoading(false);
+                    }
+                });
+        }, 180);
+
+        return () => {
+            controller.abort();
+            window.clearTimeout(timer);
+        };
+    }, [searchTerm]);
 
     useEffect(() => {
         if (!activeActivity) {
@@ -158,6 +234,27 @@ export default function World({ world, progress }: WorldProps) {
         setSelectedNodeId(node.id);
         setActiveActivityId(firstActivity?.id ?? null);
     }, []);
+    const focusNode = useCallback(
+        (node: LearningNode, targetMap: LearningMap) => {
+            const firstActivity =
+                node.state === 'locked' ? null : getStartActivity(node);
+
+            setCurrentMapId(targetMap.id);
+            setSelectedNodeId(node.id);
+            setActiveActivityId(firstActivity?.id ?? null);
+            setPanelSwipe(null);
+
+            if (firstActivity) {
+                persistActiveActivity(node, firstActivity);
+            }
+
+            replaceWorldQuery({
+                focused: node.slug,
+                map: targetMap.slug,
+            });
+        },
+        [],
+    );
     const clearNodeFocus = useCallback(() => {
         setSelectedNodeId(null);
         setActiveActivityId(null);
@@ -200,6 +297,77 @@ export default function World({ world, progress }: WorldProps) {
         },
         [world],
     );
+
+    const goToSearchResult = useCallback(
+        (result: SearchResult) => {
+            if (result.kind === 'map') {
+                const resultMap = findMap(world, result.mapSlug);
+
+                if (!resultMap) {
+                    window.location.assign(
+                        `/world?map=${encodeURIComponent(result.mapSlug)}`,
+                    );
+
+                    return;
+                }
+
+                setCurrentMapId(resultMap.id);
+                setSelectedNodeId(null);
+                setActiveActivityId(null);
+                setPanelSwipe(null);
+                replaceWorldQuery({
+                    map: resultMap.slug,
+                });
+
+                return;
+            }
+
+            const resultMap = findMap(world, result.mapSlug);
+            const resultNode =
+                resultMap?.nodes.find(
+                    (candidate) =>
+                        candidate.id === result.nodeId ||
+                        candidate.slug === result.nodeSlug,
+                ) ?? null;
+
+            if (!resultMap || !resultNode) {
+                window.location.assign(
+                    `/world?map=${encodeURIComponent(result.mapSlug)}&focused=${encodeURIComponent(result.nodeSlug)}`,
+                );
+
+                return;
+            }
+
+            focusNode(resultNode, resultMap);
+        },
+        [focusNode, world],
+    );
+
+    const toggleBookmark = useCallback(
+        async (node: LearningNode) => {
+            const isBookmarked = bookmarkedNodeIds.includes(node.id);
+            const response = isBookmarked
+                ? await deleteJson<{ bookmarkedNodeIds: number[] }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                  )
+                : await postJson<{ bookmarkedNodeIds: number[] }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                      {},
+                  );
+
+            setBookmarkedNodeIds(response.bookmarkedNodeIds);
+        },
+        [bookmarkedNodeIds],
+    );
+
+    const updateSearchTerm = useCallback((value: string) => {
+        setSearchTerm(value);
+
+        if (value.trim().length === 0) {
+            setSearchResults([]);
+            setIsSearchLoading(false);
+        }
+    }, []);
 
     if (!world || !map) {
         return (
@@ -273,6 +441,15 @@ export default function World({ world, progress }: WorldProps) {
                         onSelectNode={openNode}
                     />
                 </section>
+
+                <WorldSearch
+                    onClear={() => updateSearchTerm('')}
+                    onSearchTermChange={updateSearchTerm}
+                    onSelectResult={goToSearchResult}
+                    results={searchResults}
+                    searchTerm={searchTerm}
+                    isLoading={isSearchLoading}
+                />
 
                 <aside
                     className={cn(
@@ -352,6 +529,11 @@ export default function World({ world, progress }: WorldProps) {
                     <ActivityPanel
                         activity={activeActivity}
                         answerProgress={answerProgress}
+                        isBookmarked={
+                            selectedNode
+                                ? bookmarkedNodeIds.includes(selectedNode.id)
+                                : false
+                        }
                         node={selectedNode}
                         onAnswer={(questionId, answer) =>
                             setAnswerProgress((current) => ({
@@ -362,6 +544,7 @@ export default function World({ world, progress }: WorldProps) {
                         onClose={clearNodeFocus}
                         onComplete={markCompleted}
                         onMoveToActivity={moveToActivity}
+                        onToggleBookmark={(node) => void toggleBookmark(node)}
                         onTravel={travelToPortal}
                     />
                 </aside>
@@ -394,6 +577,93 @@ function findMap(
     );
 }
 
+function WorldSearch({
+    isLoading,
+    onClear,
+    onSearchTermChange,
+    onSelectResult,
+    results,
+    searchTerm,
+}: {
+    isLoading: boolean;
+    onClear: () => void;
+    onSearchTermChange: (value: string) => void;
+    onSelectResult: (result: SearchResult) => void;
+    results: SearchResult[];
+    searchTerm: string;
+}) {
+    const hasSearch = searchTerm.trim().length > 0;
+
+    return (
+        <div className="absolute bottom-5 left-4 z-20 w-[min(24rem,calc(100%-2rem))] md:left-5">
+            {hasSearch ? (
+                <div className="mb-2 max-h-[42svh] overflow-y-auto rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86">
+                    {isLoading ? (
+                        <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                            Searching...
+                        </p>
+                    ) : results.length > 0 ? (
+                        <div className="grid gap-1">
+                            {results.map((result) => (
+                                <button
+                                    className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
+                                    key={result.id}
+                                    onClick={() => onSelectResult(result)}
+                                    type="button"
+                                >
+                                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/12 dark:text-teal-200">
+                                        {result.kind === 'map' ? (
+                                            <MapIcon className="size-4" />
+                                        ) : (
+                                            <MapPin className="size-4" />
+                                        )}
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block truncate text-sm font-semibold text-slate-950 dark:text-white">
+                                            {result.title}
+                                        </span>
+                                        <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+                                            {result.subtitle}
+                                        </span>
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                            No visible maps or tiles found.
+                        </p>
+                    )}
+                </div>
+            ) : null}
+
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86">
+                <Search className="ml-2 size-4 shrink-0 text-slate-500 dark:text-slate-400" />
+                <Input
+                    aria-label="Search maps and tiles"
+                    className="h-9 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                    onChange={(event) =>
+                        onSearchTermChange(event.currentTarget.value)
+                    }
+                    placeholder="Search maps and tiles"
+                    value={searchTerm}
+                />
+                {hasSearch ? (
+                    <Button
+                        aria-label="Clear search"
+                        onClick={onClear}
+                        size="icon"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <X className="size-4" />
+                    </Button>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
 function getStartActivity(node: LearningNode): LearningActivity | null {
     return (
         node.activities.find(
@@ -413,6 +683,10 @@ function replaceWorldQuery(params: { focused?: string; map?: string }): void {
 
     if (params.map) {
         url.searchParams.set('map', params.map);
+    }
+
+    if (!params.focused) {
+        url.searchParams.delete('focused');
     }
 
     if (params.focused) {
