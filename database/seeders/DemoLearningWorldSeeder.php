@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
 use App\Models\LearningActivity;
+use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -84,16 +85,20 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'radioTower',
                 'label' => 'Signal Gate',
-                'tileColor' => '#12343b',
-                'foregroundColor' => '#99f6e4',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#36d399',
                 'tooltip' => 'Start here: short dialogue, then a question.',
+                'dark' => [
+                    'tileColor' => '#12343b',
+                    'foregroundColor' => '#99f6e4',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#36d399',
+                    'imageUrl' => '/images/nodes/signal-gate-dark.svg',
+                ],
                 'light' => [
                     'tileColor' => '#d5f5f0',
                     'foregroundColor' => '#0f766e',
                     'labelColor' => '#0f172a',
                     'highlightColor' => '#0d9488',
+                    'imageUrl' => '/images/nodes/signal-gate-light.svg',
                 ],
             ],
         ]);
@@ -285,16 +290,20 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'bookOpen',
                 'label' => 'Field Notes',
-                'tileColor' => '#253047',
-                'foregroundColor' => '#bfdbfe',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#7dd3fc',
                 'tooltip' => 'Personal notes without public scoring.',
+                'dark' => [
+                    'tileColor' => '#253047',
+                    'foregroundColor' => '#bfdbfe',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#7dd3fc',
+                    'imageUrl' => '/images/nodes/field-notes-dark.svg',
+                ],
                 'light' => [
                     'tileColor' => '#dbeafe',
                     'foregroundColor' => '#1d4ed8',
                     'labelColor' => '#0f172a',
                     'highlightColor' => '#2563eb',
+                    'imageUrl' => '/images/nodes/field-notes-light.svg',
                 ],
             ],
         ]);
@@ -325,16 +334,20 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'lockKeyhole',
                 'label' => 'Quiet Archive',
-                'tileColor' => '#2d2338',
-                'foregroundColor' => '#e9d5ff',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#c084fc',
                 'tooltip' => 'Locked for now. Later this should open because of understanding, not points.',
+                'dark' => [
+                    'tileColor' => '#2d2338',
+                    'foregroundColor' => '#e9d5ff',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#c084fc',
+                    'imageUrl' => '/images/nodes/quiet-archive-dark.svg',
+                ],
                 'light' => [
                     'tileColor' => '#ede9fe',
                     'foregroundColor' => '#6d28d9',
                     'labelColor' => '#334155',
                     'highlightColor' => '#8b5cf6',
+                    'imageUrl' => '/images/nodes/quiet-archive-light.svg',
                 ],
             ],
         ]);
@@ -350,16 +363,20 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'orbit',
                 'label' => 'Portal',
-                'tileColor' => '#19312b',
-                'foregroundColor' => '#bbf7d0',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#4ade80',
                 'tooltip' => 'Use this path to move between connected maps.',
+                'dark' => [
+                    'tileColor' => '#19312b',
+                    'foregroundColor' => '#bbf7d0',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#4ade80',
+                    'imageUrl' => '/images/nodes/portal-gate-dark.svg',
+                ],
                 'light' => [
                     'tileColor' => '#dcfce7',
                     'foregroundColor' => '#15803d',
                     'labelColor' => '#0f172a',
                     'highlightColor' => '#16a34a',
+                    'imageUrl' => '/images/nodes/portal-gate-light.svg',
                 ],
             ],
         ]);
@@ -403,16 +420,20 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'orbit',
                 'label' => 'Return Gate',
-                'tileColor' => '#19312b',
-                'foregroundColor' => '#bbf7d0',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#4ade80',
                 'tooltip' => 'Return toward the first sector.',
+                'dark' => [
+                    'tileColor' => '#19312b',
+                    'foregroundColor' => '#bbf7d0',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#4ade80',
+                    'imageUrl' => '/images/nodes/portal-gate-dark.svg',
+                ],
                 'light' => [
                     'tileColor' => '#dcfce7',
                     'foregroundColor' => '#15803d',
                     'labelColor' => '#0f172a',
                     'highlightColor' => '#16a34a',
+                    'imageUrl' => '/images/nodes/portal-gate-light.svg',
                 ],
             ],
         ]);
@@ -434,9 +455,70 @@ class DemoLearningWorldSeeder extends Seeder
         LearningPortalLink::query()->create([
             'source_learning_node_id' => $sourcePortal->id,
             'target_learning_node_id' => $targetPortal->id,
+            'source_learning_activity_id' => $sourcePortal
+                ->activities()
+                ->where('type', 'portal')
+                ->where('slug', 'prepare-for-travel')
+                ->value('id'),
+            'target_learning_activity_id' => $arrivalActivity->id,
             'label' => 'First Sector to Signal Archive',
             'description' => 'Portal pair connecting the first map to the signal archive.',
             'config' => ['travelMode' => 'portal'],
         ]);
+
+        $this->seedStartRoutes();
+    }
+
+    private function seedStartRoutes(): void
+    {
+        LearningNode::query()
+            ->whereNotNull('start_activity_id')
+            ->get()
+            ->each(function (LearningNode $node): void {
+                LearningActivityStart::query()->updateOrCreate(
+                    [
+                        'learning_node_id' => $node->id,
+                        'learning_activity_id' => $node->start_activity_id,
+                    ],
+                    [
+                        ...$this->routeImageExamples($node),
+                        'label' => null,
+                        'sort_order' => 10,
+                    ],
+                );
+            });
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function routeImageExamples(LearningNode $node): array
+    {
+        return match ($node->slug) {
+            'portal-foundation' => [
+                'button_border_color_dark' => '#c084fc',
+                'button_border_color_light' => '#7c3aed',
+                'button_color_dark' => '#1e1230',
+                'button_color_light' => '#f5f3ff',
+                'image_dark' => '/images/routes/portal-route-dark.svg',
+                'image_light' => '/images/routes/portal-route-light.svg',
+            ],
+            'signal-gate' => [
+                'button_border_color_dark' => '#5eead4',
+                'button_border_color_light' => '#0891b2',
+                'button_color_dark' => '#0f172a',
+                'button_color_light' => '#ecfeff',
+                'image_dark' => '/images/routes/signal-route-dark.svg',
+                'image_light' => '/images/routes/signal-route-light.svg',
+            ],
+            default => [
+                'button_border_color_dark' => null,
+                'button_border_color_light' => null,
+                'button_color_dark' => null,
+                'button_color_light' => null,
+                'image_dark' => null,
+                'image_light' => null,
+            ],
+        };
     }
 }

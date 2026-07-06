@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\LearningActivity;
+use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\User;
@@ -96,6 +98,22 @@ test('authenticated users can search visible maps and nodes', function () {
 test('world map serializes outgoing portal links for learner travel', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $exitPortal = LearningActivity::query()->create([
+        'config' => ['portalMode' => 'input'],
+        'learning_node_id' => $node->id,
+        'slug' => 'stale-exit-start',
+        'type' => 'portal',
+        'title' => 'Stale exit start',
+        'sort_order' => 999,
+    ]);
+
+    LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $exitPortal->id,
+        'label' => null,
+        'sort_order' => 999,
+    ]);
 
     $this->actingAs($user)
         ->get(route('world'))
@@ -103,8 +121,26 @@ test('world map serializes outgoing portal links for learner travel', function (
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('world')
             ->where('world.maps.0.nodes.0.mapSlug', 'first-sector')
+            ->has('world.maps.0.nodes.0.startRoutes', 1)
+            ->where('world.maps.0.nodes.0.startRoutes.0.imageDark', '/images/routes/portal-route-dark.svg')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetMapSlug', 'signal-archive')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetNodeSlug', 'return-gate')
+        );
+});
+
+test('authenticated users can play a node activity graph outside the map', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('node.slug', 'signal-gate')
+            ->has('node.activities', 4)
+            ->where('node.mapSlug', 'first-sector')
         );
 });
 

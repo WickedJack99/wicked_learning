@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Map as MapIcon, MapPin, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import type {
     LearningActivity,
     LearningMap,
     LearningNode,
-    LearningPortalLink,
     LearningProgress,
     LearningWorld,
 } from '@/types';
@@ -102,14 +101,8 @@ export default function World({
         );
     }, [focusedNodeSlug, map]);
     const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
-    const [activeActivityId, setActiveActivityId] = useState<number | null>(
-        null,
-    );
     const [panelSwipe, setPanelSwipe] = useState<PanelSwipe | null>(null);
-    const [activityProgress, setActivityProgress] = useState(
-        progress.activities,
-    );
-    const [answerProgress, setAnswerProgress] = useState(progress.answers);
+    const activityProgress = progress.activities;
     const [bookmarkedNodeIds, setBookmarkedNodeIds] = useState(
         initialBookmarkedNodeIds,
     );
@@ -124,23 +117,6 @@ export default function World({
 
         return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
     }, [map, selectedNodeId]);
-
-    const activeActivity = useMemo(() => {
-        if (!selectedNode) {
-            return null;
-        }
-
-        return (
-            selectedNode.activities.find(
-                (activity) => activity.id === activeActivityId,
-            ) ??
-            selectedNode.activities.find(
-                (activity) => activity.id === selectedNode.startActivityId,
-            ) ??
-            selectedNode.activities[0] ??
-            null
-        );
-    }, [activeActivityId, selectedNode]);
     useEffect(() => {
         const query = searchTerm.trim();
 
@@ -181,24 +157,6 @@ export default function World({
     }, [searchTerm]);
 
     useEffect(() => {
-        if (!activeActivity) {
-            return;
-        }
-
-        void postJson(`/learning/activities/${activeActivity.id}/progress`, {
-            status: 'reached',
-        }).catch(() => undefined);
-    }, [activeActivity]);
-
-    useEffect(() => {
-        if (!activeActivity || !selectedNode) {
-            return;
-        }
-
-        persistActiveActivity(selectedNode, activeActivity);
-    }, [activeActivity, selectedNode]);
-
-    useEffect(() => {
         if (!focusedNodeSlug) {
             return;
         }
@@ -213,10 +171,8 @@ export default function World({
             return;
         }
 
-        const firstActivity = getStartActivity(focusedNode);
         const animationFrame = window.requestAnimationFrame(() => {
             setSelectedNodeId(focusedNode.id);
-            setActiveActivityId(firstActivity?.id ?? null);
             setPanelSwipe(null);
         });
 
@@ -228,25 +184,13 @@ export default function World({
             return;
         }
 
-        const firstActivity = getStartActivity(node);
-
-        persistActiveActivity(node, firstActivity);
         setSelectedNodeId(node.id);
-        setActiveActivityId(firstActivity?.id ?? null);
     }, []);
     const focusNode = useCallback(
         (node: LearningNode, targetMap: LearningMap) => {
-            const firstActivity =
-                node.state === 'locked' ? null : getStartActivity(node);
-
             setCurrentMapId(targetMap.id);
             setSelectedNodeId(node.id);
-            setActiveActivityId(firstActivity?.id ?? null);
             setPanelSwipe(null);
-
-            if (firstActivity) {
-                persistActiveActivity(node, firstActivity);
-            }
 
             replaceWorldQuery({
                 focused: node.slug,
@@ -257,46 +201,9 @@ export default function World({
     );
     const clearNodeFocus = useCallback(() => {
         setSelectedNodeId(null);
-        setActiveActivityId(null);
         setPanelSwipe(null);
         clearFocusedQueryParam();
     }, []);
-
-    const travelToPortal = useCallback(
-        (portalLink: LearningPortalLink) => {
-            const targetMap = world?.maps.find(
-                (candidate) => candidate.id === portalLink.targetMapId,
-            );
-            const targetNode =
-                targetMap?.nodes.find(
-                    (candidate) =>
-                        candidate.id === portalLink.targetNodeId ||
-                        candidate.slug === portalLink.targetNodeSlug,
-                ) ?? null;
-
-            if (
-                !targetMap ||
-                !targetNode ||
-                targetNode.state === 'locked' ||
-                targetNode.state === 'hidden'
-            ) {
-                return;
-            }
-
-            const firstActivity = getStartActivity(targetNode);
-
-            setCurrentMapId(targetMap.id);
-            setSelectedNodeId(targetNode.id);
-            setActiveActivityId(firstActivity?.id ?? null);
-            setPanelSwipe(null);
-            persistActiveActivity(targetNode, firstActivity);
-            replaceWorldQuery({
-                focused: targetNode.slug,
-                map: targetMap.slug,
-            });
-        },
-        [world],
-    );
 
     const goToSearchResult = useCallback(
         (result: SearchResult) => {
@@ -313,7 +220,6 @@ export default function World({
 
                 setCurrentMapId(resultMap.id);
                 setSelectedNodeId(null);
-                setActiveActivityId(null);
                 setPanelSwipe(null);
                 replaceWorldQuery({
                     map: resultMap.slug,
@@ -369,6 +275,24 @@ export default function World({
         }
     }, []);
 
+    const startNode = useCallback(
+        (node: LearningNode, activityId: number | null) => {
+            const firstActivity =
+                getActivityById(node, activityId) ?? getStartActivity(node);
+
+            if (firstActivity) {
+                persistActiveActivity(node, firstActivity);
+            }
+
+            const activityQuery = firstActivity
+                ? `?activity=${firstActivity.id}`
+                : '';
+
+            router.visit(`/learning/nodes/${node.id}/play${activityQuery}`);
+        },
+        [],
+    );
+
     if (!world || !map) {
         return (
             <>
@@ -384,41 +308,6 @@ export default function World({
             </>
         );
     }
-
-    const moveToActivity = (activityId: number | null) => {
-        if (activityId) {
-            const nextActivity =
-                selectedNode?.activities.find(
-                    (activity) => activity.id === activityId,
-                ) ?? null;
-
-            if (selectedNode) {
-                persistActiveActivity(selectedNode, nextActivity);
-            }
-
-            setActiveActivityId(activityId);
-        }
-    };
-
-    const markCompleted = async (activity: LearningActivity) => {
-        const response = await postJson<{
-            progress: {
-                activityId: number;
-                status: string;
-                completedAt: string | null;
-            };
-        }>(`/learning/activities/${activity.id}/progress`, {
-            status: 'completed',
-        });
-
-        setActivityProgress((current) => ({
-            ...current,
-            [response.progress.activityId]: {
-                status: response.progress.status,
-                completedAt: response.progress.completedAt,
-            },
-        }));
-    };
 
     return (
         <>
@@ -527,25 +416,15 @@ export default function World({
                     }}
                 >
                     <ActivityPanel
-                        activity={activeActivity}
-                        answerProgress={answerProgress}
                         isBookmarked={
                             selectedNode
                                 ? bookmarkedNodeIds.includes(selectedNode.id)
                                 : false
                         }
                         node={selectedNode}
-                        onAnswer={(questionId, answer) =>
-                            setAnswerProgress((current) => ({
-                                ...current,
-                                [questionId]: answer,
-                            }))
-                        }
                         onClose={clearNodeFocus}
-                        onComplete={markCompleted}
-                        onMoveToActivity={moveToActivity}
+                        onStart={startNode}
                         onToggleBookmark={(node) => void toggleBookmark(node)}
-                        onTravel={travelToPortal}
                     />
                 </aside>
             </main>
@@ -666,11 +545,25 @@ function WorldSearch({
 
 function getStartActivity(node: LearningNode): LearningActivity | null {
     return (
+        getActivityById(node, node.startRoutes[0]?.activityId ?? null) ??
         node.activities.find(
             (activity) => activity.id === node.startActivityId,
         ) ??
         node.activities[0] ??
         null
+    );
+}
+
+function getActivityById(
+    node: LearningNode,
+    activityId: number | null,
+): LearningActivity | null {
+    if (!activityId) {
+        return null;
+    }
+
+    return (
+        node.activities.find((activity) => activity.id === activityId) ?? null
     );
 }
 

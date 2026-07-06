@@ -321,7 +321,11 @@ const HexTile = memo(function HexTile({
     const isHiddenSpace = node.state === 'hidden';
     const hideEmptySpace =
         isHiddenSpace && visualConfig.hideEmptySpace !== false;
+    const hideImage = visualConfig.hideImage === true;
     const imageUrl = visualConfig.imageUrl ?? '';
+    const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+    const visibleImageUrl =
+        !hideImage && imageUrl && failedImageUrl !== imageUrl ? imageUrl : '';
     const canInteract =
         node.state !== 'hidden' && (allowLockedSelection || !isLocked);
     const resolvedTileCursor = canInteract ? tileCursor : 'default';
@@ -378,6 +382,19 @@ const HexTile = memo(function HexTile({
                     cursor: resolvedTileCursor,
                 }}
             />
+            {visibleImageUrl ? (
+                <img
+                    alt=""
+                    className="absolute inset-[7px] size-[calc(100%-14px)] object-cover"
+                    draggable={false}
+                    onError={() => setFailedImageUrl(visibleImageUrl)}
+                    src={visibleImageUrl}
+                    style={{
+                        clipPath: HEX_TILE_CLIP_PATH,
+                        cursor: resolvedTileCursor,
+                    }}
+                />
+            ) : null}
             <span
                 className={cn(highlightClass, 'inset-0')}
                 style={{
@@ -402,21 +419,12 @@ const HexTile = memo(function HexTile({
                     style={{ cursor: resolvedTileCursor }}
                 >
                     <Icon
-                        className={cn('size-7', imageUrl && 'hidden')}
+                        className={cn('size-7', visibleImageUrl && 'hidden')}
                         style={{
                             color: visualConfig.foregroundColor ?? '#ccfbf1',
                             cursor: resolvedTileCursor,
                         }}
                     />
-                    {imageUrl ? (
-                        <img
-                            alt=""
-                            className="max-h-9 max-w-14 object-contain"
-                            draggable={false}
-                            src={imageUrl}
-                            style={{ cursor: resolvedTileCursor }}
-                        />
-                    ) : null}
                     {isCompleted ? (
                         <CheckCircle2 className="absolute -top-2 -right-3 size-4 text-emerald-300" />
                     ) : null}

@@ -13,10 +13,8 @@ import {
     ArrowLeft,
     ArrowRight,
     GitBranch,
-    Link2,
     Map as MapIcon,
     Pencil,
-    Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -32,13 +30,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
@@ -68,20 +59,22 @@ type PortalLinkSummary = {
     description: string | null;
     id: number;
     label: string | null;
+    sourceActivity: PortalActivitySummary | null;
     sourceMapId: number;
     sourceNode: NodeSummary;
+    targetActivity: PortalActivitySummary | null;
     targetMapId: number;
     targetNode: NodeSummary;
 };
 
-type PortalCandidate = NodeSummary & {
-    mapId: number;
-    mapTitle: string;
+type PortalActivitySummary = {
+    id: number;
+    title: string;
+    type: string;
 };
 
 type WorldGraph = {
     maps: MapSummary[];
-    portalCandidates: PortalCandidate[];
     portalLinks: PortalLinkSummary[];
     world: WorldSummary;
 };
@@ -90,13 +83,6 @@ type CreateMapForm = {
     description: string;
     slug: string;
     title: string;
-};
-
-type CreatePortalForm = {
-    description: string;
-    label: string;
-    source_learning_node_id: string;
-    target_learning_node_id: string;
 };
 
 type MapNodeData = {
@@ -135,18 +121,6 @@ export default function AdminWorldIndex({
         slug: '',
         title: '',
     });
-    const [portalOpen, setPortalOpen] = useState(false);
-    const [linking, setLinking] = useState(false);
-    const [portalErrors, setPortalErrors] = useState<Record<string, string>>(
-        {},
-    );
-    const [portalForm, setPortalForm] = useState<CreatePortalForm>({
-        description: '',
-        label: '',
-        source_learning_node_id: '',
-        target_learning_node_id: '',
-    });
-
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
     useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
 
@@ -155,6 +129,12 @@ export default function AdminWorldIndex({
             currentEdges.map((edge) => ({
                 ...edge,
                 animated: edge.id === edgeId,
+                label:
+                    edge.id === edgeId && edge.data
+                        ? portalActivityLabel(edge.data)
+                        : edge.data
+                          ? (edge.data.label ?? 'Portal')
+                          : edge.label,
                 style: edgeStyle(edge.id === edgeId),
             })),
         );
@@ -180,39 +160,6 @@ export default function AdminWorldIndex({
                 resetCreateForm();
             },
             onFinish: () => setCreating(false),
-        });
-    };
-
-    const resetPortalForm = () => {
-        setPortalErrors({});
-        setPortalForm({
-            description: '',
-            label: '',
-            source_learning_node_id: '',
-            target_learning_node_id: '',
-        });
-    };
-
-    const createPortalLink = () => {
-        setLinking(true);
-
-        router.post('/settings/worlds/portal-links', portalForm, {
-            preserveScroll: true,
-            onError: (errors) => setPortalErrors(errors),
-            onSuccess: () => {
-                setPortalOpen(false);
-                resetPortalForm();
-            },
-            onFinish: () => setLinking(false),
-        });
-    };
-
-    const deletePortalLink = (portal: PortalLinkSummary) => {
-        router.delete(`/settings/worlds/portal-links/${portal.id}`, {
-            preserveScroll: true,
-            onSuccess: () => {
-                setSelectedPortal(null);
-            },
         });
     };
 
@@ -276,10 +223,7 @@ export default function AdminWorldIndex({
                         <aside className="flex min-h-0 flex-col gap-4">
                             <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]">
                                 {selectedPortal ? (
-                                    <PortalDetails
-                                        onDelete={deletePortalLink}
-                                        portal={selectedPortal}
-                                    />
+                                    <PortalDetails portal={selectedPortal} />
                                 ) : selectedMap ? (
                                     <MapDetails map={selectedMap} />
                                 ) : (
@@ -316,27 +260,13 @@ export default function AdminWorldIndex({
                                     Travel
                                 </p>
                                 <h2 className="mt-2 text-lg font-semibold">
-                                    Portal link
+                                    Portal routes
                                 </h2>
                                 <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                    Connect two tiles so a portal activity can
-                                    move learners between maps or regions.
+                                    Routes are edited inside Entry portal
+                                    activities. Hover a graph edge to see the
+                                    connected portal activities.
                                 </p>
-                                <Button
-                                    className="mt-4 w-full"
-                                    disabled={
-                                        worldGraph.portalCandidates.length < 2
-                                    }
-                                    onClick={() => {
-                                        resetPortalForm();
-                                        setPortalOpen(true);
-                                    }}
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    <Link2 className="size-4" />
-                                    Create portal link
-                                </Button>
                             </div>
                         </aside>
                     </section>
@@ -425,151 +355,6 @@ export default function AdminWorldIndex({
                     </form>
                 </DialogContent>
             </Dialog>
-
-            <Dialog open={portalOpen} onOpenChange={setPortalOpen}>
-                <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                        <DialogTitle>Create portal link</DialogTitle>
-                        <DialogDescription>
-                            Pick the portal tile where travel starts and the
-                            sibling tile learners arrive at.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <form
-                        className="grid gap-4"
-                        onSubmit={(event) => {
-                            event.preventDefault();
-                            createPortalLink();
-                        }}
-                    >
-                        <div className="grid gap-2">
-                            <Label htmlFor="portal-source">From tile</Label>
-                            <Select
-                                onValueChange={(value) =>
-                                    setPortalForm((current) => ({
-                                        ...current,
-                                        source_learning_node_id: value,
-                                    }))
-                                }
-                                value={portalForm.source_learning_node_id}
-                            >
-                                <SelectTrigger
-                                    className="w-full"
-                                    id="portal-source"
-                                >
-                                    <SelectValue placeholder="Choose source tile" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {worldGraph.portalCandidates.map(
-                                        (candidate) => (
-                                            <SelectItem
-                                                key={candidate.id}
-                                                value={candidate.id.toString()}
-                                            >
-                                                {candidate.mapTitle} /{' '}
-                                                {candidate.title}
-                                            </SelectItem>
-                                        ),
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            <InputError
-                                message={portalErrors.source_learning_node_id}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="portal-target">To tile</Label>
-                            <Select
-                                onValueChange={(value) =>
-                                    setPortalForm((current) => ({
-                                        ...current,
-                                        target_learning_node_id: value,
-                                    }))
-                                }
-                                value={portalForm.target_learning_node_id}
-                            >
-                                <SelectTrigger
-                                    className="w-full"
-                                    id="portal-target"
-                                >
-                                    <SelectValue placeholder="Choose target tile" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {worldGraph.portalCandidates.map(
-                                        (candidate) => (
-                                            <SelectItem
-                                                disabled={
-                                                    portalForm.source_learning_node_id ===
-                                                    candidate.id.toString()
-                                                }
-                                                key={candidate.id}
-                                                value={candidate.id.toString()}
-                                            >
-                                                {candidate.mapTitle} /{' '}
-                                                {candidate.title}
-                                            </SelectItem>
-                                        ),
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            <InputError
-                                message={portalErrors.target_learning_node_id}
-                            />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="portal-label">Label</Label>
-                            <Input
-                                id="portal-label"
-                                onChange={(event) =>
-                                    setPortalForm((current) => ({
-                                        ...current,
-                                        label: event.target.value,
-                                    }))
-                                }
-                                placeholder="Generated from both tiles if empty"
-                                value={portalForm.label}
-                            />
-                            <InputError message={portalErrors.label} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <Label htmlFor="portal-description">
-                                Description
-                            </Label>
-                            <textarea
-                                className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                                id="portal-description"
-                                onChange={(event) =>
-                                    setPortalForm((current) => ({
-                                        ...current,
-                                        description: event.target.value,
-                                    }))
-                                }
-                                placeholder="Optional admin note about this route."
-                                value={portalForm.description}
-                            />
-                            <InputError message={portalErrors.description} />
-                        </div>
-
-                        <DialogFooter>
-                            <Button
-                                disabled={linking}
-                                onClick={() => setPortalOpen(false)}
-                                type="button"
-                                variant="outline"
-                            >
-                                Cancel
-                            </Button>
-                            <Button disabled={linking} type="submit">
-                                Create link
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }
@@ -631,13 +416,7 @@ function MapDetails({ map }: { map: MapSummary }) {
     );
 }
 
-function PortalDetails({
-    onDelete,
-    portal,
-}: {
-    onDelete: (portal: PortalLinkSummary) => void;
-    portal: PortalLinkSummary;
-}) {
+function PortalDetails({ portal }: { portal: PortalLinkSummary }) {
     return (
         <div>
             <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
@@ -650,27 +429,38 @@ function PortalDetails({
                 {portal.description ?? 'No portal description yet.'}
             </p>
             <div className="mt-5 grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                <PortalEndpoint direction="From" node={portal.sourceNode} />
+                <PortalEndpoint
+                    activity={portal.sourceActivity}
+                    direction="From"
+                    node={portal.sourceNode}
+                />
                 <ArrowRight className="mx-auto size-4 text-slate-400" />
-                <PortalEndpoint direction="To" node={portal.targetNode} />
+                <PortalEndpoint
+                    activity={portal.targetActivity}
+                    direction="To"
+                    node={portal.targetNode}
+                />
             </div>
-            <Button
-                className="mt-5 w-full text-red-600 hover:text-red-700 dark:text-red-300 dark:hover:text-red-200"
-                onClick={() => onDelete(portal)}
-                type="button"
-                variant="outline"
-            >
-                <Trash2 className="size-4" />
-                Delete portal link
-            </Button>
+            {portal.sourceActivity ? (
+                <Button asChild className="mt-5 w-full" variant="outline">
+                    <Link
+                        href={`/settings/worlds/nodes/${portal.sourceNode.id}/activities`}
+                    >
+                        <Pencil className="size-4" />
+                        Edit source activity
+                    </Link>
+                </Button>
+            ) : null}
         </div>
     );
 }
 
 function PortalEndpoint({
+    activity,
     direction,
     node,
 }: {
+    activity: PortalActivitySummary | null;
     direction: string;
     node: NodeSummary;
 }) {
@@ -680,6 +470,11 @@ function PortalEndpoint({
                 {direction}
             </p>
             <p className="mt-1 text-sm font-semibold">{node.title}</p>
+            {activity ? (
+                <p className="mt-1 text-xs text-cyan-700 dark:text-teal-200">
+                    {activity.title}
+                </p>
+            ) : null}
             <p className="text-xs text-slate-500 dark:text-slate-400">
                 {node.description ?? node.slug}
             </p>
@@ -694,7 +489,7 @@ function EmptyDetails() {
             <h2 className="text-lg font-semibold">Select a map or portal</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Click a world-map node to edit it, or click a portal edge to see
-                the linked portal tiles.
+                the connected portal activities.
             </p>
         </div>
     );
@@ -745,6 +540,12 @@ function buildGraphEdges(portalLinks: PortalLinkSummary[]): PortalEdge[] {
         },
         style: edgeStyle(false),
     }));
+}
+
+function portalActivityLabel(portal: PortalLinkSummary): string {
+    return `${portal.sourceActivity?.title ?? portal.sourceNode.title} -> ${
+        portal.targetActivity?.title ?? portal.targetNode.title
+    }`;
 }
 
 function edgeStyle(active: boolean): CSSProperties {

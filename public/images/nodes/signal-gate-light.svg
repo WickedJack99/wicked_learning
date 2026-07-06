@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Signal gate light icon</title>
+  <desc id="desc">A teal antenna with signal waves.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M48 56v20" stroke="#0f766e" stroke-width="7"/>
+    <path d="M34 78h28" stroke="#0d9488" stroke-width="7"/>
+    <circle cx="48" cy="42" r="8" stroke="#115e59" stroke-width="7"/>
+    <path d="M30 29a27 27 0 0 0 0 27M66 29a27 27 0 0 1 0 27" stroke="#0d9488" stroke-width="6"/>
+    <path d="M20 20a41 41 0 0 0 0 45M76 20a41 41 0 0 1 0 45" stroke="#14b8a6" stroke-width="5" opacity=".82"/>
+  </g>
+  <circle cx="68" cy="24" r="7" fill="#16a34a"/>
+  <path d="m65 24 2 2 5-6" fill="none" stroke="#f0fdf4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"/>
+</svg>

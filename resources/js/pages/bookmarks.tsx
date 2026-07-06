@@ -176,7 +176,11 @@ function BookmarkPanel({
             </div>
 
             <div className="mt-auto grid gap-3">
-                <Button asChild>
+                <Button
+                    asChild
+                    className="border border-slate-200 bg-white/90 text-slate-950 shadow-none hover:bg-cyan-50 hover:text-slate-950 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900 dark:hover:text-white"
+                    variant="ghost"
+                >
                     <Link
                         href={`/world?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`}
                     >

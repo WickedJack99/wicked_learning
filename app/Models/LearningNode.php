@@ -47,6 +47,14 @@ class LearningNode extends Model
     }
 
     /**
+     * @return HasMany<LearningActivityStart, $this>
+     */
+    public function activityStarts(): HasMany
+    {
+        return $this->hasMany(LearningActivityStart::class)->orderBy('sort_order');
+    }
+
+    /**
      * @return HasMany<LearningActivity, $this>
      */
     public function activities(): HasMany

@@ -95,6 +95,7 @@ class LearningBookmarkController extends Controller
             'visualConfig' => $node->visual_config ?? [],
             'outgoingPortalLinks' => [],
             'startActivityId' => null,
+            'startRoutes' => [],
             'activities' => [],
         ];
     }

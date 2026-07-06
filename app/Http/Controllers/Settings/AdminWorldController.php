@@ -192,6 +192,19 @@ class AdminWorldController extends Controller
         return redirect()->route('settings.worlds.maps.edit', $map);
     }
 
+    public function updateMap(Request $request, LearningMap $map): RedirectResponse
+    {
+        $data = $request->validate([
+            ...$this->mapVisualRules(),
+        ]);
+
+        $map->forceFill([
+            'background_config' => $this->mergeSubmittedConfig($map->background_config ?? [], $data['background_config'] ?? []),
+        ])->save();
+
+        return redirect()->route('settings.worlds.maps.edit', $map);
+    }
+
     public function insertNode(Request $request, LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
@@ -322,6 +335,16 @@ class AdminWorldController extends Controller
      */
     private function nodeContentRules(LearningMap $map, ?LearningNode $node = null): array
     {
+        $themeVisualRules = [];
+
+        foreach (['dark', 'light'] as $mode) {
+            $themeVisualRules["visual_config.{$mode}.tileColor"] = ['nullable', 'string', 'max:40'];
+            $themeVisualRules["visual_config.{$mode}.foregroundColor"] = ['nullable', 'string', 'max:40'];
+            $themeVisualRules["visual_config.{$mode}.labelColor"] = ['nullable', 'string', 'max:40'];
+            $themeVisualRules["visual_config.{$mode}.highlightColor"] = ['nullable', 'string', 'max:40'];
+            $themeVisualRules["visual_config.{$mode}.imageUrl"] = ['nullable', 'string', 'max:2048'];
+        }
+
         return [
             'title' => ['required', 'string', 'max:120'],
             'slug' => [
@@ -334,17 +357,43 @@ class AdminWorldController extends Controller
             ],
             'description' => ['nullable', 'string', 'max:1000'],
             'state' => ['required', 'string', Rule::in(['active', 'available', 'completed', 'hidden', 'hinted', 'locked', 'recommended'])],
-            'visual_config.icon' => ['nullable', 'string', 'max:80'],
             'visual_config.label' => ['nullable', 'string', 'max:80'],
-            'visual_config.tileColor' => ['nullable', 'string', 'max:40'],
-            'visual_config.foregroundColor' => ['nullable', 'string', 'max:40'],
-            'visual_config.labelColor' => ['nullable', 'string', 'max:40'],
-            'visual_config.highlightColor' => ['nullable', 'string', 'max:40'],
             'visual_config.hideEmptySpace' => ['nullable', 'boolean'],
+            'visual_config.hideImage' => ['nullable', 'boolean'],
             'visual_config.hideLabel' => ['nullable', 'boolean'],
-            'visual_config.imageUrl' => ['nullable', 'string', 'max:2048'],
             'visual_config.tooltip' => ['nullable', 'string', 'max:255'],
+            ...$themeVisualRules,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapVisualRules(): array
+    {
+        $rules = [];
+        $colorFields = [
+            'accentColor',
+            'overlay',
+            'pageBackground',
+            'panelBackground',
+            'panelMutedTextColor',
+            'panelTextColor',
+            'sidePanelBackground',
+            'sidePanelBorderColor',
+            'sidePanelMutedTextColor',
+            'sidePanelTextColor',
+        ];
+
+        foreach (['', 'dark.', 'light.'] as $prefix) {
+            foreach ($colorFields as $field) {
+                $rules["background_config.{$prefix}{$field}"] = ['nullable', 'string', 'max:255'];
+            }
+
+            $rules["background_config.{$prefix}imageUrl"] = ['nullable', 'string', 'max:2048'];
+        }
+
+        return $rules;
     }
 
     /**
@@ -354,26 +403,93 @@ class AdminWorldController extends Controller
     {
         $title = (string) $data['title'];
         $slug = ($data['slug'] ?? null) ?: $this->uniqueNodeSlug($map, $title, $node->exists ? $node : null);
-        $visualConfig = array_filter(
-            $data['visual_config'] ?? [],
-            fn ($value): bool => $value !== null && $value !== '',
-        );
+        $visualConfig = $this->filterEmptyConfig($data['visual_config'] ?? []);
 
         $node->forceFill([
             'slug' => $slug,
             'title' => $title,
             'description' => $data['description'] ?? null,
             'state' => $data['state'],
-            'visual_config' => [
+            'visual_config' => array_replace_recursive([
                 'icon' => 'map',
                 'label' => $title,
-                'tileColor' => '#253047',
-                'foregroundColor' => '#bfdbfe',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#7dd3fc',
-                ...$visualConfig,
-            ],
+                'dark' => [
+                    'tileColor' => '#253047',
+                    'foregroundColor' => '#bfdbfe',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#7dd3fc',
+                ],
+                'light' => [
+                    'tileColor' => '#dbeafe',
+                    'foregroundColor' => '#1d4ed8',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#2563eb',
+                ],
+            ], $visualConfig),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    private function filterEmptyConfig(array $config): array
+    {
+        $filtered = [];
+
+        foreach ($config as $key => $value) {
+            if (is_array($value)) {
+                $nested = $this->filterEmptyConfig($value);
+
+                if ($nested !== []) {
+                    $filtered[$key] = $nested;
+                }
+
+                continue;
+            }
+
+            if ($value !== null && $value !== '') {
+                $filtered[$key] = $value;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Merge editable config fields into existing JSON while allowing submitted
+     * empty strings to clear earlier values.
+     *
+     * @param  array<string, mixed>  $existing
+     * @param  array<string, mixed>  $incoming
+     * @return array<string, mixed>
+     */
+    private function mergeSubmittedConfig(array $existing, array $incoming): array
+    {
+        foreach ($incoming as $key => $value) {
+            if (is_array($value)) {
+                $merged = $this->mergeSubmittedConfig(
+                    is_array($existing[$key] ?? null) ? $existing[$key] : [],
+                    $value,
+                );
+
+                if ($merged === []) {
+                    unset($existing[$key]);
+                } else {
+                    $existing[$key] = $merged;
+                }
+
+                continue;
+            }
+
+            if ($value === null || $value === '') {
+                unset($existing[$key]);
+            } else {
+                $existing[$key] = $value;
+            }
+        }
+
+        return $existing;
     }
 
     /**
@@ -438,7 +554,7 @@ class AdminWorldController extends Controller
         $mapIds = $world->maps->pluck('id');
 
         return LearningPortalLink::query()
-            ->with(['sourceNode.map', 'targetNode.map'])
+            ->with(['sourceActivity', 'sourceNode.map', 'targetActivity', 'targetNode.map'])
             ->whereHas('sourceNode', fn ($query) => $query->whereIn('learning_map_id', $mapIds))
             ->orWhereHas('targetNode', fn ($query) => $query->whereIn('learning_map_id', $mapIds))
             ->get()
@@ -448,6 +564,16 @@ class AdminWorldController extends Controller
                 'description' => $link->description,
                 'sourceMapId' => $link->sourceNode->map->id,
                 'targetMapId' => $link->targetNode->map->id,
+                'sourceActivity' => $link->sourceActivity ? [
+                    'id' => $link->sourceActivity->id,
+                    'title' => $link->sourceActivity->title,
+                    'type' => $link->sourceActivity->type,
+                ] : null,
+                'targetActivity' => $link->targetActivity ? [
+                    'id' => $link->targetActivity->id,
+                    'title' => $link->targetActivity->title,
+                    'type' => $link->targetActivity->type,
+                ] : null,
                 'sourceNode' => $this->nodeSummary($link->sourceNode),
                 'targetNode' => $this->nodeSummary($link->targetNode),
             ])

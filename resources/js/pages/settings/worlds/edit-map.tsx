@@ -6,12 +6,14 @@ import {
     GitBranch,
     Image,
     Map as MapIcon,
+    Palette,
     Save,
     Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { Dispatch, PointerEvent, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
+import { SettingsAccordionSection } from '@/components/settings-accordion-section';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -24,6 +26,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { resolveThemeVariant } from '@/features/world/theme';
+import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
 type EditableWorld = {
@@ -43,11 +47,11 @@ type EditableNode = {
     slug: string;
     state: string;
     title: string;
-    visualConfig: Record<string, boolean | string>;
+    visualConfig: VisualConfig;
 };
 
 type EditableMap = {
-    backgroundConfig: Record<string, unknown>;
+    backgroundConfig: MapVisualConfig;
     description: string | null;
     gridConfig: {
         gap?: number;
@@ -59,6 +63,41 @@ type EditableMap = {
     nodes: EditableNode[];
     slug: string;
     title: string;
+};
+
+type NestedVisualConfig = Record<string, boolean | string | undefined>;
+
+type VisualConfigValue = boolean | string | NestedVisualConfig | undefined;
+
+type VisualConfig = Record<string, VisualConfigValue>;
+
+type ThemeMode = 'dark' | 'light';
+
+type NodeVisualThemeFields = {
+    foregroundColor: string;
+    highlightColor: string;
+    imageUrl: string;
+    labelColor: string;
+    tileColor: string;
+};
+
+type MapVisualThemeFields = {
+    accentColor: string;
+    imageUrl: string;
+    overlay: string;
+    pageBackground: string;
+    panelBackground: string;
+    panelMutedTextColor: string;
+    panelTextColor: string;
+    sidePanelBackground: string;
+    sidePanelBorderColor: string;
+    sidePanelMutedTextColor: string;
+    sidePanelTextColor: string;
+};
+
+type MapVisualConfig = Partial<MapVisualThemeFields> & {
+    dark?: Partial<MapVisualThemeFields>;
+    light?: Partial<MapVisualThemeFields>;
 };
 
 type EditableMapPayload = {
@@ -94,17 +133,19 @@ type NodeForm = {
     state: string;
     title: string;
     visual_config: {
-        foregroundColor: string;
-        highlightColor: string;
+        dark: NodeVisualThemeFields;
         hideEmptySpace: boolean;
+        hideImage: boolean;
         hideLabel: boolean;
-        icon: string;
-        imageUrl: string;
         label: string;
-        labelColor: string;
-        tileColor: string;
+        light: NodeVisualThemeFields;
         tooltip: string;
     };
+};
+
+type MapVisualForm = MapVisualThemeFields & {
+    dark: MapVisualThemeFields;
+    light: MapVisualThemeFields;
 };
 
 const directions: Direction[] = [
@@ -137,12 +178,28 @@ export default function EditWorldMap({
     editableMap: EditableMapPayload;
 }) {
     const { map, world } = editableMap;
+    const { resolvedAppearance } = useAppearance();
+    const previewMapTheme = resolveThemeVariant<Partial<MapVisualThemeFields>>(
+        map.backgroundConfig,
+        resolvedAppearance,
+    );
     const [selectedNode, setSelectedNode] = useState<EditableNode | null>(null);
     const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
-    const [uploadingNodeImage, setUploadingNodeImage] = useState(false);
-    const [nodeImageUploadError, setNodeImageUploadError] = useState('');
+    const [mapVisualOpen, setMapVisualOpen] = useState(false);
+    const [mapVisualForm, setMapVisualForm] = useState<MapVisualForm>(() =>
+        mapVisualFormFromConfig(map.backgroundConfig),
+    );
+    const [mapVisualErrors, setMapVisualErrors] = useState<
+        Record<string, string>
+    >({});
+    const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
+        null,
+    );
+    const [imageUploadErrors, setImageUploadErrors] = useState<
+        Record<string, string>
+    >({});
     const [form, setForm] = useState<NodeForm>(() => emptyNodeForm(0, 0));
     const [insertionContext, setInsertionContext] =
         useState<InsertionContext | null>(null);
@@ -172,7 +229,7 @@ export default function EditWorldMap({
         setSelectedCell(cell);
         setInsertionContext(null);
         setErrors({});
-        setNodeImageUploadError('');
+        setImageUploadErrors({});
         setForm(
             map.nodes.length === 0
                 ? firstNodeForm(cell.q, cell.r)
@@ -204,7 +261,7 @@ export default function EditWorldMap({
             sourceNodeId: node.id,
         });
         setErrors({});
-        setNodeImageUploadError('');
+        setImageUploadErrors({});
         setForm(emptyNodeForm(position.q, position.r));
     };
 
@@ -217,7 +274,7 @@ export default function EditWorldMap({
         setSelectedCell(null);
         setInsertionContext(null);
         setErrors({});
-        setNodeImageUploadError('');
+        setImageUploadErrors({});
         setForm(nodeFormFromNode(node));
     };
 
@@ -271,15 +328,39 @@ export default function EditWorldMap({
         saveNode(emptySpaceOverride(form.position_q, form.position_r));
     };
 
-    const uploadNodeImage = async (file: File) => {
+    const saveMapVisuals = () => {
+        setProcessing(true);
+
+        router.patch(
+            `/settings/worlds/maps/${map.id}`,
+            {
+                background_config: mapVisualForm,
+            },
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setMapVisualErrors(nextErrors),
+                onSuccess: () => {
+                    setMapVisualOpen(false);
+                    setMapVisualErrors({});
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    const uploadWorldImage = async (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => {
         const formData = new FormData();
         const csrfToken = document
             .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
             ?.getAttribute('content');
 
         formData.append('image', file);
-        setUploadingNodeImage(true);
-        setNodeImageUploadError('');
+        setUploadingImageKey(key);
+        setImageUploadErrors((current) => ({ ...current, [key]: '' }));
 
         try {
             const response = await fetch('/settings/worlds/node-images', {
@@ -298,20 +379,25 @@ export default function EditWorldMap({
             };
 
             if (!response.ok || !payload.url) {
-                setNodeImageUploadError(
-                    payload.errors?.image?.[0] ??
+                setImageUploadErrors((current) => ({
+                    ...current,
+                    [key]:
+                        payload.errors?.image?.[0] ??
                         payload.message ??
                         'The image could not be uploaded.',
-                );
+                }));
 
                 return;
             }
 
-            setVisualTextConfig(setForm, 'imageUrl', payload.url);
+            onUploaded(payload.url);
         } catch {
-            setNodeImageUploadError('The image could not be uploaded.');
+            setImageUploadErrors((current) => ({
+                ...current,
+                [key]: 'The image could not be uploaded.',
+            }));
         } finally {
-            setUploadingNodeImage(false);
+            setUploadingImageKey(null);
         }
     };
 
@@ -420,9 +506,28 @@ export default function EditWorldMap({
                             <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
                                 {world.title}
                             </p>
-                            <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
-                                Edit {map.title}
-                            </h1>
+                            <div className="mt-1 flex flex-wrap items-center gap-3">
+                                <h1 className="truncate text-2xl font-semibold tracking-normal">
+                                    Edit {map.title}
+                                </h1>
+                                <Button
+                                    onClick={() => {
+                                        setMapVisualForm(
+                                            mapVisualFormFromConfig(
+                                                map.backgroundConfig,
+                                            ),
+                                        );
+                                        setMapVisualErrors({});
+                                        setMapVisualOpen(true);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <Palette className="size-4" />
+                                    Map visuals
+                                </Button>
+                            </div>
                         </div>
                         <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
                             Drag from any tile or empty area. Use plus buttons
@@ -438,6 +543,20 @@ export default function EditWorldMap({
                         onPointerMove={moveDrag}
                         onPointerUp={stopDrag}
                     >
+                        {previewMapTheme.imageUrl ? (
+                            <div
+                                className="pointer-events-none absolute inset-0 bg-cover bg-center"
+                                style={{
+                                    backgroundImage: `url(${previewMapTheme.imageUrl})`,
+                                }}
+                            />
+                        ) : null}
+                        <div
+                            className="pointer-events-none absolute inset-0"
+                            style={{
+                                background: previewMapTheme.overlay,
+                            }}
+                        />
                         <div className="absolute top-4 left-4 z-30 rounded-xl border border-slate-200 bg-white/82 p-3 text-sm shadow-lg backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
                             <div className="flex items-center gap-2 font-semibold">
                                 <MapIcon className="size-4 text-cyan-700 dark:text-teal-200" />
@@ -486,6 +605,7 @@ export default function EditWorldMap({
                                     onAdd={() => openCreateTile(cell)}
                                     onEdit={openEditTile}
                                     onInsert={openInsertTile}
+                                    mode={resolvedAppearance}
                                     onSwap={swapNode}
                                 />
                             ))}
@@ -493,6 +613,142 @@ export default function EditWorldMap({
                     </section>
                 </div>
             </main>
+
+            <Dialog onOpenChange={setMapVisualOpen} open={mapVisualOpen}>
+                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Map visuals</DialogTitle>
+                        <DialogDescription>
+                            Configure fallback, dark-mode and light-mode visuals
+                            for this map. Empty mode fields inherit the fallback
+                            value.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-5">
+                        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                            <div>
+                                <h3 className="text-sm font-semibold">
+                                    Fallback visuals
+                                </h3>
+                                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    These values are used unless dark or light
+                                    mode overrides them.
+                                </p>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                {mapVisualFields.map((field) => (
+                                    <TextField
+                                        error={
+                                            mapVisualErrors[
+                                                `background_config.${field.key}`
+                                            ]
+                                        }
+                                        key={field.key}
+                                        label={field.label}
+                                        onChange={(value) =>
+                                            setMapVisualTextConfig(
+                                                setMapVisualForm,
+                                                field.key,
+                                                value,
+                                            )
+                                        }
+                                        value={mapVisualForm[field.key]}
+                                    />
+                                ))}
+                            </div>
+                            <NodeImageInput
+                                description="Fallback background image for this map."
+                                error={
+                                    imageUploadErrors.mapBase ||
+                                    mapVisualErrors[
+                                        'background_config.imageUrl'
+                                    ]
+                                }
+                                id="map-image-url"
+                                label="Fallback map image"
+                                onChange={(value) =>
+                                    setMapVisualTextConfig(
+                                        setMapVisualForm,
+                                        'imageUrl',
+                                        value,
+                                    )
+                                }
+                                onUpload={(file) =>
+                                    void uploadWorldImage(
+                                        'mapBase',
+                                        file,
+                                        (url) =>
+                                            setMapVisualTextConfig(
+                                                setMapVisualForm,
+                                                'imageUrl',
+                                                url,
+                                            ),
+                                    )
+                                }
+                                uploading={uploadingImageKey === 'mapBase'}
+                                value={mapVisualForm.imageUrl}
+                            />
+                        </div>
+
+                        <MapVisualModeFields
+                            errors={mapVisualErrors}
+                            imageError={imageUploadErrors.mapDark}
+                            mode="dark"
+                            onImageUpload={(file) =>
+                                void uploadWorldImage('mapDark', file, (url) =>
+                                    setMapVisualThemeTextConfig(
+                                        setMapVisualForm,
+                                        'dark',
+                                        'imageUrl',
+                                        url,
+                                    ),
+                                )
+                            }
+                            setForm={setMapVisualForm}
+                            uploadingImage={uploadingImageKey === 'mapDark'}
+                            values={mapVisualForm.dark}
+                        />
+
+                        <MapVisualModeFields
+                            errors={mapVisualErrors}
+                            imageError={imageUploadErrors.mapLight}
+                            mode="light"
+                            onImageUpload={(file) =>
+                                void uploadWorldImage('mapLight', file, (url) =>
+                                    setMapVisualThemeTextConfig(
+                                        setMapVisualForm,
+                                        'light',
+                                        'imageUrl',
+                                        url,
+                                    ),
+                                )
+                            }
+                            setForm={setMapVisualForm}
+                            uploadingImage={uploadingImageKey === 'mapLight'}
+                            values={mapVisualForm.light}
+                        />
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setMapVisualOpen(false)}
+                            type="button"
+                            variant="secondary"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={processing}
+                            onClick={saveMapVisuals}
+                            type="button"
+                        >
+                            <Save className="size-4" />
+                            Save map visuals
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog
                 onOpenChange={(open) => {
@@ -515,44 +771,85 @@ export default function EditWorldMap({
                     </DialogHeader>
 
                     <div className="grid gap-4">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <TextField
-                                error={errors.title}
-                                label="Title"
-                                onChange={(value) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        title: value,
-                                        visual_config: {
-                                            ...current.visual_config,
-                                            label:
-                                                current.visual_config.label ||
-                                                value,
-                                        },
-                                    }))
-                                }
-                                value={form.title}
-                            />
-                            <TextField
-                                error={errors.slug}
-                                label="Slug"
-                                onChange={(value) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        slug: value,
-                                    }))
-                                }
-                                placeholder="Optional, generated if empty"
-                                value={form.slug}
-                            />
-                            <TextField
-                                error={errors['visual_config.icon']}
-                                label="Icon key"
-                                onChange={(value) =>
-                                    setVisualTextConfig(setForm, 'icon', value)
-                                }
-                                value={form.visual_config.icon}
-                            />
+                        {selectedNode ? (
+                            <SettingsAccordionSection
+                                defaultOpen
+                                description="Open the activity graph for this tile."
+                                title="Activities"
+                            >
+                                <Button asChild type="button" variant="outline">
+                                    <Link
+                                        href={`/settings/worlds/nodes/${selectedNode.id}/activities`}
+                                    >
+                                        <GitBranch className="size-4" />
+                                        Edit activities
+                                    </Link>
+                                </Button>
+                            </SettingsAccordionSection>
+                        ) : null}
+
+                        <SettingsAccordionSection
+                            defaultOpen
+                            description="Name, URL slug and learner-facing summary."
+                            title="Basics"
+                        >
+                            <div className="grid gap-3 sm:grid-cols-2">
+                                <TextField
+                                    error={errors.title}
+                                    label="Title"
+                                    onChange={(value) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            title: value,
+                                            visual_config: {
+                                                ...current.visual_config,
+                                                label:
+                                                    current.visual_config
+                                                        .label || value,
+                                            },
+                                        }))
+                                    }
+                                    value={form.title}
+                                />
+                                <TextField
+                                    error={errors.slug}
+                                    label="Slug"
+                                    onChange={(value) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            slug: value,
+                                        }))
+                                    }
+                                    placeholder="Optional, generated if empty"
+                                    value={form.slug}
+                                />
+                            </div>
+
+                            <div className="grid gap-1">
+                                <Label htmlFor="tile-description">
+                                    Description
+                                </Label>
+                                <textarea
+                                    className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                    id="tile-description"
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            description:
+                                                event.currentTarget.value,
+                                        }))
+                                    }
+                                    value={form.description}
+                                />
+                                <InputError message={errors.description} />
+                            </div>
+                        </SettingsAccordionSection>
+
+                        <SettingsAccordionSection
+                            defaultOpen
+                            description="Learner-facing label and visibility behavior for the tile."
+                            title="Tile display"
+                        >
                             <TextField
                                 error={errors['visual_config.label']}
                                 label="Tile label"
@@ -561,106 +858,114 @@ export default function EditWorldMap({
                                 }
                                 value={form.visual_config.label}
                             />
-                            <TextField
-                                error={errors['visual_config.tileColor']}
-                                label="Tile color"
-                                onChange={(value) =>
-                                    setVisualTextConfig(
-                                        setForm,
-                                        'tileColor',
-                                        value,
-                                    )
-                                }
-                                value={form.visual_config.tileColor}
-                            />
-                            <TextField
-                                error={errors['visual_config.highlightColor']}
-                                label="Highlight color"
-                                onChange={(value) =>
-                                    setVisualTextConfig(
-                                        setForm,
-                                        'highlightColor',
-                                        value,
-                                    )
-                                }
-                                value={form.visual_config.highlightColor}
-                            />
-                        </div>
 
-                        <NodeImageInput
-                            error={
-                                nodeImageUploadError ||
-                                errors['visual_config.imageUrl']
-                            }
-                            onChange={(value) =>
-                                setVisualTextConfig(setForm, 'imageUrl', value)
-                            }
-                            onUpload={(file) => void uploadNodeImage(file)}
-                            uploading={uploadingNodeImage}
-                            value={form.visual_config.imageUrl}
-                        />
-
-                        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                            <CheckboxField
-                                checked={form.visual_config.hideLabel}
-                                description="The title still appears in the side panel after the tile is selected."
-                                id="hide-label"
-                                label="Hide tile label on world map"
-                                onCheckedChange={(checked) =>
-                                    setVisualBooleanConfig(
-                                        setForm,
-                                        'hideLabel',
-                                        checked,
-                                    )
-                                }
-                            />
-                            {form.state === 'hidden' ? (
+                            <div className="grid gap-3">
                                 <CheckboxField
-                                    checked={form.visual_config.hideEmptySpace}
-                                    description="The tile keeps its coordinate and spacing, but learners do not see or click it."
-                                    id="hide-empty-space"
-                                    label="Hide this empty space on learner map"
+                                    checked={form.visual_config.hideLabel}
+                                    description="The title still appears in the side panel after the tile is selected."
+                                    id="hide-label"
+                                    label="Hide tile label on world map"
                                     onCheckedChange={(checked) =>
                                         setVisualBooleanConfig(
                                             setForm,
-                                            'hideEmptySpace',
+                                            'hideLabel',
                                             checked,
                                         )
                                     }
                                 />
-                            ) : null}
-                        </div>
+                                <CheckboxField
+                                    checked={form.visual_config.hideImage}
+                                    description="The configured dark and light images stay saved, but the world map shows the icon instead."
+                                    id="hide-image"
+                                    label="Hide node image on world map"
+                                    onCheckedChange={(checked) =>
+                                        setVisualBooleanConfig(
+                                            setForm,
+                                            'hideImage',
+                                            checked,
+                                        )
+                                    }
+                                />
+                                {form.state === 'hidden' ? (
+                                    <CheckboxField
+                                        checked={
+                                            form.visual_config.hideEmptySpace
+                                        }
+                                        description="The tile keeps its coordinate and spacing, but learners do not see or click it."
+                                        id="hide-empty-space"
+                                        label="Hide this empty space on learner map"
+                                        onCheckedChange={(checked) =>
+                                            setVisualBooleanConfig(
+                                                setForm,
+                                                'hideEmptySpace',
+                                                checked,
+                                            )
+                                        }
+                                    />
+                                ) : null}
+                            </div>
+                        </SettingsAccordionSection>
 
-                        <div className="grid gap-1">
-                            <Label htmlFor="tile-description">
-                                Description
-                            </Label>
-                            <textarea
-                                className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                id="tile-description"
-                                onChange={(event) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        description: event.currentTarget.value,
-                                    }))
+                        <SettingsAccordionSection
+                            description="Dark mode colors and the image displayed on the world map."
+                            title="Dark mode visuals"
+                        >
+                            <NodeVisualModeFields
+                                errors={errors}
+                                imageError={imageUploadErrors.nodeDark}
+                                mode="dark"
+                                onImageUpload={(file) =>
+                                    void uploadWorldImage(
+                                        'nodeDark',
+                                        file,
+                                        (url) =>
+                                            setVisualThemeTextConfig(
+                                                setForm,
+                                                'dark',
+                                                'imageUrl',
+                                                url,
+                                            ),
+                                    )
                                 }
-                                value={form.description}
+                                setForm={setForm}
+                                uploadingImage={
+                                    uploadingImageKey === 'nodeDark'
+                                }
+                                values={form.visual_config.dark}
                             />
-                            <InputError message={errors.description} />
-                        </div>
+                        </SettingsAccordionSection>
+
+                        <SettingsAccordionSection
+                            description="Light mode colors and the image displayed on the world map."
+                            title="Light mode visuals"
+                        >
+                            <NodeVisualModeFields
+                                errors={errors}
+                                imageError={imageUploadErrors.nodeLight}
+                                mode="light"
+                                onImageUpload={(file) =>
+                                    void uploadWorldImage(
+                                        'nodeLight',
+                                        file,
+                                        (url) =>
+                                            setVisualThemeTextConfig(
+                                                setForm,
+                                                'light',
+                                                'imageUrl',
+                                                url,
+                                            ),
+                                    )
+                                }
+                                setForm={setForm}
+                                uploadingImage={
+                                    uploadingImageKey === 'nodeLight'
+                                }
+                                values={form.visual_config.light}
+                            />
+                        </SettingsAccordionSection>
                     </div>
 
                     <DialogFooter>
-                        {selectedNode ? (
-                            <Button asChild type="button" variant="outline">
-                                <Link
-                                    href={`/settings/worlds/nodes/${selectedNode.id}/activities`}
-                                >
-                                    <GitBranch className="size-4" />
-                                    Edit activities
-                                </Link>
-                            </Button>
-                        ) : null}
                         <Button
                             onClick={closeDialog}
                             type="button"
@@ -696,12 +1001,14 @@ export default function EditWorldMap({
 function HexGridCell({
     cell,
     neighboringNode,
+    mode,
     onAdd,
     onEdit,
     onInsert,
     onSwap,
 }: {
     cell: GridCell;
+    mode: ThemeMode;
     neighboringNode: (direction: Direction) => EditableNode | null;
     onAdd: () => void;
     onEdit: (node: EditableNode) => void;
@@ -709,9 +1016,10 @@ function HexGridCell({
     onSwap: (node: EditableNode, direction: Direction) => void;
 }) {
     const node = cell.occupiedNode;
-    const visual = node?.visualConfig ?? {};
+    const visual = node ? resolveThemeVariant(node.visualConfig, mode) : {};
     const isEmptySpace = node?.state === 'hidden';
     const imageUrl = typeof visual.imageUrl === 'string' ? visual.imageUrl : '';
+    const hideImage = visual.hideImage === true;
     const hideLabel = visual.hideLabel === true;
     const hideEmptySpace = isEmptySpace && visual.hideEmptySpace !== false;
 
@@ -757,16 +1065,20 @@ function HexGridCell({
                         }}
                         type="button"
                     >
-                        {imageUrl ? (
+                        {imageUrl && !hideImage ? (
                             <img
                                 alt=""
-                                className="max-h-12 max-w-16 object-contain"
+                                className="absolute inset-[7px] size-[calc(100%-14px)] object-cover"
                                 draggable={false}
                                 src={imageUrl}
+                                style={{
+                                    clipPath:
+                                        'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                                }}
                             />
                         ) : null}
                         {!hideLabel || isEmptySpace ? (
-                            <span>
+                            <span className="relative z-10">
                                 {isEmptySpace
                                     ? hideEmptySpace
                                         ? 'Hidden empty space'
@@ -890,12 +1202,14 @@ function InsertBetweenControl({
 }
 
 function TextField({
+    colorPicker = false,
     error,
     label,
     onChange,
     placeholder,
     value,
 }: {
+    colorPicker?: boolean;
     error?: string;
     label: string;
     onChange: (value: string) => void;
@@ -903,35 +1217,220 @@ function TextField({
     value: string;
 }) {
     const id = label.toLowerCase().replaceAll(' ', '-');
+    const pickerValue = isHexColor(value) ? value : '#000000';
 
     return (
         <div className="grid gap-1">
             <Label htmlFor={id}>{label}</Label>
-            <Input
-                id={id}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder={placeholder}
-                value={value}
-            />
+            <div
+                className={cn(
+                    'grid gap-2',
+                    colorPicker && 'grid-cols-[auto_1fr]',
+                )}
+            >
+                {colorPicker ? (
+                    <Input
+                        aria-label={`${label} picker`}
+                        className="h-9 w-12 cursor-pointer p-1"
+                        onChange={(event) =>
+                            onChange(event.currentTarget.value)
+                        }
+                        type="color"
+                        value={pickerValue}
+                    />
+                ) : null}
+                <Input
+                    id={id}
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    placeholder={placeholder}
+                    value={value}
+                />
+            </div>
             <InputError message={error} />
         </div>
     );
 }
 
+function isHexColor(value: string): boolean {
+    return /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+const nodeVisualFields: {
+    key: keyof Omit<NodeVisualThemeFields, 'imageUrl'>;
+    label: string;
+}[] = [
+    { key: 'tileColor', label: 'Tile color' },
+    { key: 'foregroundColor', label: 'Icon/text color' },
+    { key: 'labelColor', label: 'Label color' },
+    { key: 'highlightColor', label: 'Highlight color' },
+];
+
+const mapVisualFields: {
+    key: keyof Omit<MapVisualThemeFields, 'imageUrl'>;
+    label: string;
+}[] = [
+    { key: 'overlay', label: 'Overlay background' },
+    { key: 'pageBackground', label: 'Page background' },
+    { key: 'panelBackground', label: 'Map panel background' },
+    { key: 'panelTextColor', label: 'Map panel text' },
+    { key: 'panelMutedTextColor', label: 'Map panel muted text' },
+    { key: 'accentColor', label: 'Accent color' },
+    { key: 'sidePanelBackground', label: 'Side panel background' },
+    { key: 'sidePanelBorderColor', label: 'Side panel border' },
+    { key: 'sidePanelTextColor', label: 'Side panel text' },
+    { key: 'sidePanelMutedTextColor', label: 'Side panel muted text' },
+];
+
+function NodeVisualModeFields({
+    errors,
+    imageError,
+    mode,
+    onImageUpload,
+    setForm,
+    uploadingImage,
+    values,
+}: {
+    errors: Record<string, string>;
+    imageError?: string;
+    mode: ThemeMode;
+    onImageUpload: (file: File) => void;
+    setForm: Dispatch<SetStateAction<NodeForm>>;
+    uploadingImage: boolean;
+    values: NodeVisualThemeFields;
+}) {
+    const labelPrefix = mode === 'dark' ? 'Dark mode' : 'Light mode';
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div>
+                <h3 className="text-sm font-semibold">{labelPrefix}</h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    These values define how the tile appears in this mode.
+                </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+                {nodeVisualFields.map((field) => (
+                    <TextField
+                        colorPicker
+                        error={errors[`visual_config.${mode}.${field.key}`]}
+                        key={field.key}
+                        label={`${labelPrefix} ${field.label}`}
+                        onChange={(value) =>
+                            setVisualThemeTextConfig(
+                                setForm,
+                                mode,
+                                field.key,
+                                value,
+                            )
+                        }
+                        value={values[field.key]}
+                    />
+                ))}
+            </div>
+            <NodeImageInput
+                description={`${labelPrefix} image displayed on this tile in the world map.`}
+                error={imageError || errors[`visual_config.${mode}.imageUrl`]}
+                id={`node-${mode}-image-url`}
+                label={`${labelPrefix} node image`}
+                onChange={(value) =>
+                    setVisualThemeTextConfig(setForm, mode, 'imageUrl', value)
+                }
+                onUpload={onImageUpload}
+                uploading={uploadingImage}
+                value={values.imageUrl}
+            />
+        </div>
+    );
+}
+
+function MapVisualModeFields({
+    errors,
+    imageError,
+    mode,
+    onImageUpload,
+    setForm,
+    uploadingImage,
+    values,
+}: {
+    errors: Record<string, string>;
+    imageError?: string;
+    mode: ThemeMode;
+    onImageUpload: (file: File) => void;
+    setForm: Dispatch<SetStateAction<MapVisualForm>>;
+    uploadingImage: boolean;
+    values: MapVisualThemeFields;
+}) {
+    const labelPrefix = mode === 'dark' ? 'Dark mode' : 'Light mode';
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div>
+                <h3 className="text-sm font-semibold">{labelPrefix}</h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Empty fields inherit the fallback map visual values.
+                </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+                {mapVisualFields.map((field) => (
+                    <TextField
+                        error={errors[`background_config.${mode}.${field.key}`]}
+                        key={field.key}
+                        label={`${labelPrefix} ${field.label}`}
+                        onChange={(value) =>
+                            setMapVisualThemeTextConfig(
+                                setForm,
+                                mode,
+                                field.key,
+                                value,
+                            )
+                        }
+                        value={values[field.key]}
+                    />
+                ))}
+            </div>
+            <NodeImageInput
+                description={`${labelPrefix} background image override for this map.`}
+                error={
+                    imageError || errors[`background_config.${mode}.imageUrl`]
+                }
+                id={`map-${mode}-image-url`}
+                label={`${labelPrefix} map image`}
+                onChange={(value) =>
+                    setMapVisualThemeTextConfig(
+                        setForm,
+                        mode,
+                        'imageUrl',
+                        value,
+                    )
+                }
+                onUpload={onImageUpload}
+                uploading={uploadingImage}
+                value={values.imageUrl}
+            />
+        </div>
+    );
+}
+
 function NodeImageInput({
+    description,
     error,
+    id,
+    label,
     onChange,
     onUpload,
     uploading,
     value,
 }: {
+    description: string;
     error?: string;
+    id: string;
+    label: string;
     onChange: (value: string) => void;
     onUpload: (file: File) => void;
     uploading: boolean;
     value: string;
 }) {
-    const uploadId = 'node-image-upload';
+    const uploadId = `${id}-upload`;
 
     return (
         <div className="grid gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
@@ -940,16 +1439,15 @@ function NodeImageInput({
                     <Image className="size-4" />
                 </span>
                 <div>
-                    <Label htmlFor="node-image-url">Node image</Label>
+                    <Label htmlFor={id}>{label}</Label>
                     <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        If set, this image is shown instead of the configured
-                        icon.
+                        {description}
                     </p>
                 </div>
             </div>
 
             <Input
-                id="node-image-url"
+                id={id}
                 onChange={(event) => onChange(event.currentTarget.value)}
                 placeholder="/storage/learning/nodes/example.svg"
                 value={value}
@@ -1035,15 +1533,7 @@ function CheckboxField({
 
 function setVisualTextConfig(
     setForm: Dispatch<SetStateAction<NodeForm>>,
-    key:
-        | 'foregroundColor'
-        | 'highlightColor'
-        | 'icon'
-        | 'imageUrl'
-        | 'label'
-        | 'labelColor'
-        | 'tileColor'
-        | 'tooltip',
+    key: 'label' | 'tooltip',
     value: string,
 ) {
     setForm((current) => ({
@@ -1055,9 +1545,27 @@ function setVisualTextConfig(
     }));
 }
 
+function setVisualThemeTextConfig(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    mode: ThemeMode,
+    key: keyof NodeVisualThemeFields,
+    value: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            [mode]: {
+                ...current.visual_config[mode],
+                [key]: value,
+            },
+        },
+    }));
+}
+
 function setVisualBooleanConfig(
     setForm: Dispatch<SetStateAction<NodeForm>>,
-    key: 'hideEmptySpace' | 'hideLabel',
+    key: 'hideEmptySpace' | 'hideImage' | 'hideLabel',
     value: boolean,
 ) {
     setForm((current) => ({
@@ -1069,6 +1577,78 @@ function setVisualBooleanConfig(
     }));
 }
 
+function setMapVisualTextConfig(
+    setForm: Dispatch<SetStateAction<MapVisualForm>>,
+    key: keyof MapVisualThemeFields,
+    value: string,
+) {
+    setForm((current) => ({
+        ...current,
+        [key]: value,
+    }));
+}
+
+function setMapVisualThemeTextConfig(
+    setForm: Dispatch<SetStateAction<MapVisualForm>>,
+    mode: ThemeMode,
+    key: keyof MapVisualThemeFields,
+    value: string,
+) {
+    setForm((current) => ({
+        ...current,
+        [mode]: {
+            ...current[mode],
+            [key]: value,
+        },
+    }));
+}
+
+function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
+    if (mode === 'light') {
+        return {
+            foregroundColor: '#1d4ed8',
+            highlightColor: '#2563eb',
+            imageUrl: '',
+            labelColor: '#0f172a',
+            tileColor: '#dbeafe',
+        };
+    }
+
+    return {
+        foregroundColor: '#bfdbfe',
+        highlightColor: '#7dd3fc',
+        imageUrl: '',
+        labelColor: '#ffffff',
+        tileColor: '#253047',
+    };
+}
+
+function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
+    return {
+        foregroundColor: '',
+        highlightColor: '',
+        imageUrl: '',
+        labelColor: '',
+        tileColor: '',
+    };
+}
+
+function emptyMapVisualThemeFields(): MapVisualThemeFields {
+    return {
+        accentColor: '',
+        imageUrl: '',
+        overlay: '',
+        pageBackground: '',
+        panelBackground: '',
+        panelMutedTextColor: '',
+        panelTextColor: '',
+        sidePanelBackground: '',
+        sidePanelBorderColor: '',
+        sidePanelMutedTextColor: '',
+        sidePanelTextColor: '',
+    };
+}
+
 function emptyNodeForm(q: number, r: number): NodeForm {
     return {
         title: '',
@@ -1078,15 +1658,12 @@ function emptyNodeForm(q: number, r: number): NodeForm {
         position_r: r,
         state: 'available',
         visual_config: {
-            icon: 'map',
-            imageUrl: '',
+            dark: defaultNodeVisualThemeFields('dark'),
             label: '',
-            tileColor: '#253047',
-            foregroundColor: '#bfdbfe',
-            labelColor: '#ffffff',
-            highlightColor: '#7dd3fc',
             hideEmptySpace: false,
+            hideImage: false,
             hideLabel: false,
+            light: defaultNodeVisualThemeFields('light'),
             tooltip: '',
         },
     };
@@ -1115,15 +1692,24 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
         position_r: r,
         state: 'hidden',
         visual_config: {
-            icon: 'empty',
-            imageUrl: '',
+            dark: {
+                foregroundColor: '#94a3b8',
+                highlightColor: '#94a3b8',
+                imageUrl: '',
+                labelColor: '#64748b',
+                tileColor: '#f8fafc',
+            },
             label: '',
-            tileColor: '#f8fafc',
-            foregroundColor: '#94a3b8',
-            labelColor: '#64748b',
-            highlightColor: '#94a3b8',
             hideEmptySpace: true,
+            hideImage: false,
             hideLabel: true,
+            light: {
+                foregroundColor: '#94a3b8',
+                highlightColor: '#94a3b8',
+                imageUrl: '',
+                labelColor: '#64748b',
+                tileColor: '#f8fafc',
+            },
             tooltip: 'Empty editor-only space.',
         },
     };
@@ -1138,34 +1724,98 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
         position_r: node.position.r,
         state: node.state,
         visual_config: {
-            icon: stringConfig(node.visualConfig.icon, 'map'),
-            imageUrl: stringConfig(node.visualConfig.imageUrl, ''),
+            dark: nodeVisualThemeFieldsFromConfig(node.visualConfig.dark, {
+                foregroundColor: stringConfig(
+                    node.visualConfig.foregroundColor,
+                    '#bfdbfe',
+                ),
+                highlightColor: stringConfig(
+                    node.visualConfig.highlightColor,
+                    '#7dd3fc',
+                ),
+                imageUrl: stringConfig(node.visualConfig.imageUrl, ''),
+                labelColor: stringConfig(
+                    node.visualConfig.labelColor,
+                    '#ffffff',
+                ),
+                tileColor: stringConfig(node.visualConfig.tileColor, '#253047'),
+            }),
             label: stringConfig(node.visualConfig.label, node.title),
-            tileColor: stringConfig(node.visualConfig.tileColor, '#253047'),
-            foregroundColor: stringConfig(
-                node.visualConfig.foregroundColor,
-                '#bfdbfe',
-            ),
-            labelColor: stringConfig(node.visualConfig.labelColor, '#ffffff'),
-            highlightColor: stringConfig(
-                node.visualConfig.highlightColor,
-                '#7dd3fc',
-            ),
             hideEmptySpace: booleanConfig(
                 node.visualConfig.hideEmptySpace,
                 node.state === 'hidden',
             ),
+            hideImage: booleanConfig(node.visualConfig.hideImage, false),
             hideLabel: booleanConfig(node.visualConfig.hideLabel, false),
+            light: nodeVisualThemeFieldsFromConfig(
+                node.visualConfig.light,
+                defaultNodeVisualThemeFields('light'),
+            ),
             tooltip: stringConfig(node.visualConfig.tooltip, ''),
         },
     };
 }
 
-function booleanConfig(value: boolean | string | undefined, fallback: boolean) {
+function mapVisualFormFromConfig(config: MapVisualConfig): MapVisualForm {
+    return {
+        ...mapVisualThemeFieldsFromConfig(config),
+        dark: mapVisualThemeFieldsFromConfig(config.dark),
+        light: mapVisualThemeFieldsFromConfig(config.light),
+    };
+}
+
+function nodeVisualThemeFieldsFromConfig(
+    config: VisualConfigValue,
+    fallback: NodeVisualThemeFields = emptyNodeVisualThemeFields(),
+): NodeVisualThemeFields {
+    const themeConfig = isVisualConfig(config) ? config : {};
+
+    return {
+        foregroundColor: stringConfig(
+            themeConfig.foregroundColor,
+            fallback.foregroundColor,
+        ),
+        highlightColor: stringConfig(
+            themeConfig.highlightColor,
+            fallback.highlightColor,
+        ),
+        imageUrl: stringConfig(themeConfig.imageUrl, fallback.imageUrl),
+        labelColor: stringConfig(themeConfig.labelColor, fallback.labelColor),
+        tileColor: stringConfig(themeConfig.tileColor, fallback.tileColor),
+    };
+}
+
+function mapVisualThemeFieldsFromConfig(
+    config: Partial<MapVisualThemeFields> | undefined,
+): MapVisualThemeFields {
+    return {
+        ...emptyMapVisualThemeFields(),
+        accentColor: stringConfig(config?.accentColor, ''),
+        imageUrl: stringConfig(config?.imageUrl, ''),
+        overlay: stringConfig(config?.overlay, ''),
+        pageBackground: stringConfig(config?.pageBackground, ''),
+        panelBackground: stringConfig(config?.panelBackground, ''),
+        panelMutedTextColor: stringConfig(config?.panelMutedTextColor, ''),
+        panelTextColor: stringConfig(config?.panelTextColor, ''),
+        sidePanelBackground: stringConfig(config?.sidePanelBackground, ''),
+        sidePanelBorderColor: stringConfig(config?.sidePanelBorderColor, ''),
+        sidePanelMutedTextColor: stringConfig(
+            config?.sidePanelMutedTextColor,
+            '',
+        ),
+        sidePanelTextColor: stringConfig(config?.sidePanelTextColor, ''),
+    };
+}
+
+function isVisualConfig(value: VisualConfigValue): value is NestedVisualConfig {
+    return typeof value === 'object' && value !== null;
+}
+
+function booleanConfig(value: VisualConfigValue, fallback: boolean) {
     return typeof value === 'boolean' ? value : fallback;
 }
 
-function stringConfig(value: boolean | string | undefined, fallback: string) {
+function stringConfig(value: unknown, fallback: string) {
     return typeof value === 'string' ? value : fallback;
 }
 
@@ -1180,6 +1830,14 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
         visual_config: {
             ...form.visual_config,
             ...override.visual_config,
+            dark: {
+                ...form.visual_config.dark,
+                ...override.visual_config?.dark,
+            },
+            light: {
+                ...form.visual_config.light,
+                ...override.visual_config?.light,
+            },
         },
     };
 }

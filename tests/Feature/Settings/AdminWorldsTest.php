@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LearningActivity;
+use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -151,7 +152,59 @@ test('admin users can open the activity graph editor', function () {
             ->where('activityGraph.node.slug', 'signal-gate')
             ->has('activityGraph.activities', 4)
             ->has('activityGraph.transitions', 4)
+            ->has('activityGraph.portalCandidates')
             ->has('activityGraph.activityTypes')
+        );
+});
+
+test('admin users configure portal destinations from portal activities', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceNode = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $targetActivity = LearningActivity::query()->where('slug', 'arrive-through-the-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $sourceNode), [
+            'title' => 'Open archive portal',
+            'type' => 'portal',
+            'portal_mode' => 'output',
+            'portal_background_dark' => '/storage/learning/nodes/portal-dark.webp',
+            'portal_background_light' => '/storage/learning/nodes/portal-light.webp',
+            'portal_duration_seconds' => 2.5,
+            'portal_foreground_dark' => '/storage/learning/nodes/swirl-dark.svg',
+            'portal_foreground_light' => '/storage/learning/nodes/swirl-light.svg',
+            'portal_foreground_x' => 42,
+            'portal_foreground_y' => 58,
+            'portal_swirl_enabled' => false,
+            'target_portal_activity_id' => $targetActivity->id,
+            'introduction' => 'Travel toward the archive.',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $sourceNode));
+
+    $activity = LearningActivity::query()->where('slug', 'open-archive-portal')->firstOrFail();
+    $link = LearningPortalLink::query()
+        ->where('source_learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    expect($link->source_learning_node_id)->toBe($sourceNode->id)
+        ->and($link->target_learning_node_id)->toBe($targetActivity->learning_node_id)
+        ->and($link->target_learning_activity_id)->toBe($targetActivity->id);
+    expect($activity->config['portalBackgroundDark'])->toBe('/storage/learning/nodes/portal-dark.webp')
+        ->and($activity->config['portalBackgroundLight'])->toBe('/storage/learning/nodes/portal-light.webp')
+        ->and($activity->config['portalDurationSeconds'])->toBe(2.5)
+        ->and($activity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/swirl-dark.svg')
+        ->and($activity->config['portalForegroundLight'])->toBe('/storage/learning/nodes/swirl-light.svg')
+        ->and($activity->config['portalForegroundX'])->toBe(42)
+        ->and($activity->config['portalForegroundY'])->toBe(58)
+        ->and($activity->config['portalSwirlEnabled'])->toBeFalse();
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.nodes.activities.edit', $sourceNode))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('activityGraph.portalCandidates')
         );
 });
 
@@ -173,14 +226,15 @@ test('admin users can create and connect activity graph nodes', function () {
     $activity = LearningActivity::query()->where('slug', 'choose-a-note-path')->firstOrFail();
 
     $this->actingAs($admin)
-        ->patch(route('settings.worlds.nodes.activities.start.update', $node), [
+        ->post(route('settings.worlds.nodes.activities.start.update', $node), [
             'activity_id' => $activity->id,
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
-    $node->refresh();
-
-    expect($node->start_activity_id)->toBe($activity->id);
+    expect(LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->where('learning_activity_id', $activity->id)
+        ->exists())->toBeTrue();
 
     $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
@@ -202,6 +256,115 @@ test('admin users can create and connect activity graph nodes', function () {
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
     expect($activity->transitions()->exists())->toBeFalse();
+});
+
+test('admin users can configure multiple independent start routes for a node', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $easyRoute = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'easy-field-route',
+        'type' => 'placeholder',
+        'title' => 'Easy field route',
+        'sort_order' => 100,
+    ]);
+    $hardRoute = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'hard-field-route',
+        'type' => 'placeholder',
+        'title' => 'Hard field route',
+        'sort_order' => 110,
+    ]);
+    $exitPortal = LearningActivity::query()->create([
+        'config' => ['portalMode' => 'input'],
+        'learning_node_id' => $node->id,
+        'slug' => 'exit-field-route',
+        'type' => 'portal',
+        'title' => 'Exit field route',
+        'sort_order' => 120,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.start.update', $node), [
+            'activity_id' => $exitPortal->id,
+        ])
+        ->assertSessionHasErrors('activity_id');
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.start.update', $node), [
+            'activity_id' => $easyRoute->id,
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.start.update', $node), [
+            'activity_id' => $hardRoute->id,
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect(LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->pluck('learning_activity_id')
+        ->all())->toContain($easyRoute->id, $hardRoute->id)
+        ->not->toContain($exitPortal->id);
+
+    LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $exitPortal->id,
+        'label' => null,
+        'sort_order' => 120,
+    ]);
+
+    $easyStart = LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->where('learning_activity_id', $easyRoute->id)
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activity-starts.update', $easyStart), [
+            'button_border_color_dark' => '#334155',
+            'button_border_color_light' => '#e2e8f0',
+            'button_color_dark' => '#0f172a',
+            'button_color_light' => '#ffffff',
+            'image_dark' => '/images/routes/easy-dark.svg',
+            'image_light' => '/images/routes/easy-light.svg',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $easyStart->refresh();
+
+    expect($easyStart->button_border_color_dark)->toBe('#334155')
+        ->and($easyStart->button_border_color_light)->toBe('#e2e8f0')
+        ->and($easyStart->button_color_dark)->toBe('#0f172a')
+        ->and($easyStart->button_color_light)->toBe('#ffffff')
+        ->and($easyStart->image_dark)->toBe('/images/routes/easy-dark.svg')
+        ->and($easyStart->image_light)->toBe('/images/routes/easy-light.svg');
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.nodes.activities.edit', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('activityGraph.node.startRoutes', 3)
+            ->where('activityGraph.node.startRoutes.1.buttonColorDark', '#0f172a')
+            ->where('activityGraph.node.startRoutes.1.buttonBorderColorLight', '#e2e8f0')
+            ->where('activityGraph.node.startRoutes.1.imageDark', '/images/routes/easy-dark.svg')
+        );
+
+    $this->actingAs($admin)
+        ->delete(route('settings.worlds.activity-starts.destroy', $easyStart))
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect(LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->where('learning_activity_id', $easyRoute->id)
+        ->exists())->toBeFalse()
+        ->and(LearningActivityStart::query()
+            ->where('learning_node_id', $node->id)
+            ->where('learning_activity_id', $hardRoute->id)
+            ->exists())->toBeTrue();
 });
 
 test('admin users can edit and delete activity graph nodes', function () {
@@ -256,13 +419,20 @@ test('admin users can add a tile to a map', function () {
             'position_r' => -1,
             'state' => 'available',
             'visual_config' => [
-                'icon' => 'map',
                 'label' => 'Practice',
-                'tileColor' => '#253047',
-                'foregroundColor' => '#bfdbfe',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#7dd3fc',
                 'tooltip' => 'Created from the admin editor.',
+                'dark' => [
+                    'tileColor' => '#253047',
+                    'foregroundColor' => '#bfdbfe',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#7dd3fc',
+                ],
+                'light' => [
+                    'tileColor' => '#dbeafe',
+                    'foregroundColor' => '#1d4ed8',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#2563eb',
+                ],
             ],
         ])
         ->assertRedirect(route('settings.worlds.maps.edit', $map));
@@ -296,13 +466,20 @@ test('admin users can add the first tile to an empty map', function () {
             'position_r' => 0,
             'state' => 'available',
             'visual_config' => [
-                'icon' => 'map',
                 'label' => 'First Tile',
-                'tileColor' => '#253047',
-                'foregroundColor' => '#bfdbfe',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#7dd3fc',
                 'tooltip' => 'Starting tile for this map.',
+                'dark' => [
+                    'tileColor' => '#253047',
+                    'foregroundColor' => '#bfdbfe',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#7dd3fc',
+                ],
+                'light' => [
+                    'tileColor' => '#dbeafe',
+                    'foregroundColor' => '#1d4ed8',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#2563eb',
+                ],
             ],
         ])
         ->assertRedirect(route('settings.worlds.maps.edit', $map));
@@ -331,15 +508,24 @@ test('admin users can edit an existing tile', function () {
             'position_r' => $node->position_r,
             'state' => 'available',
             'visual_config' => [
-                'icon' => 'radio-tower',
-                'imageUrl' => '/storage/learning/nodes/custom.svg',
                 'label' => 'Signal Gate',
-                'tileColor' => '#0f3f46',
-                'foregroundColor' => '#9cf5df',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#40f08a',
+                'hideImage' => true,
                 'hideLabel' => true,
                 'tooltip' => 'Edited tile.',
+                'dark' => [
+                    'tileColor' => '#082f49',
+                    'foregroundColor' => '#bae6fd',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#38bdf8',
+                    'imageUrl' => '/storage/learning/nodes/dark.svg',
+                ],
+                'light' => [
+                    'tileColor' => '#e0f2fe',
+                    'foregroundColor' => '#0369a1',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#0284c7',
+                    'imageUrl' => '/storage/learning/nodes/light.svg',
+                ],
             ],
         ])
         ->assertRedirect(route('settings.worlds.maps.edit', $node->map));
@@ -348,9 +534,55 @@ test('admin users can edit an existing tile', function () {
 
     expect($node->title)->toBe('Signal Gate Revised')
         ->and($node->description)->toBe('Updated from the admin editor.')
-        ->and($node->visual_config['imageUrl'])->toBe('/storage/learning/nodes/custom.svg')
+        ->and($node->visual_config['hideImage'])->toBeTrue()
         ->and($node->visual_config['hideLabel'])->toBeTrue()
-        ->and($node->visual_config['tooltip'])->toBe('Edited tile.');
+        ->and($node->visual_config['tooltip'])->toBe('Edited tile.')
+        ->and($node->visual_config['dark']['imageUrl'])->toBe('/storage/learning/nodes/dark.svg')
+        ->and($node->visual_config['light']['tileColor'])->toBe('#e0f2fe');
+});
+
+test('admin users can edit map visual theme variants', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.update', $map), [
+            'background_config' => [
+                'imageUrl' => '/storage/learning/maps/default.webp',
+                'overlay' => 'rgba(1, 8, 14, 0.72)',
+                'pageBackground' => '#08111a',
+                'panelBackground' => 'rgba(8, 17, 26, 0.78)',
+                'panelTextColor' => '#f8fafc',
+                'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
+                'accentColor' => '#99f6e4',
+                'sidePanelBackground' => '#111820',
+                'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
+                'sidePanelTextColor' => '#f8fafc',
+                'sidePanelMutedTextColor' => 'rgba(226, 232, 240, 0.72)',
+                'dark' => [
+                    'imageUrl' => '/storage/learning/maps/dark.webp',
+                    'pageBackground' => '#020617',
+                    'accentColor' => '#5eead4',
+                ],
+                'light' => [
+                    'imageUrl' => '/storage/learning/maps/light.webp',
+                    'overlay' => 'rgba(240, 253, 250, 0.74)',
+                    'pageBackground' => '#ecfeff',
+                    'panelTextColor' => '#0f172a',
+                    'accentColor' => '#0e7490',
+                ],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $map));
+
+    $map->refresh();
+
+    expect($map->background_config['imageUrl'])->toBe('/storage/learning/maps/default.webp')
+        ->and($map->background_config['dark']['imageUrl'])->toBe('/storage/learning/maps/dark.webp')
+        ->and($map->background_config['light']['pageBackground'])->toBe('#ecfeff');
 });
 
 test('admin users can upload a node image', function () {
@@ -418,13 +650,20 @@ test('admin users can insert a tile between neighboring tiles', function () {
             'direction_q' => $direction[0],
             'direction_r' => $direction[1],
             'visual_config' => [
-                'icon' => 'map',
                 'label' => 'Inserted',
-                'tileColor' => '#253047',
-                'foregroundColor' => '#bfdbfe',
-                'labelColor' => '#ffffff',
-                'highlightColor' => '#7dd3fc',
                 'tooltip' => 'Inserted from the edge control.',
+                'dark' => [
+                    'tileColor' => '#253047',
+                    'foregroundColor' => '#bfdbfe',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#7dd3fc',
+                ],
+                'light' => [
+                    'tileColor' => '#dbeafe',
+                    'foregroundColor' => '#1d4ed8',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#2563eb',
+                ],
             ],
         ])
         ->assertRedirect(route('settings.worlds.maps.edit', $portal->map));
