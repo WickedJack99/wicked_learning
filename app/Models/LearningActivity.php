@@ -65,4 +65,20 @@ class LearningActivity extends Model
     {
         return $this->hasMany(ActivityTransition::class, 'from_activity_id');
     }
+
+    /**
+     * @return HasOne<LearningPortalLink, $this>
+     */
+    public function outgoingPortalLink(): HasOne
+    {
+        return $this->hasOne(LearningPortalLink::class, 'source_learning_activity_id');
+    }
+
+    /**
+     * @return HasMany<LearningPortalLink, $this>
+     */
+    public function incomingPortalLinks(): HasMany
+    {
+        return $this->hasMany(LearningPortalLink::class, 'target_learning_activity_id');
+    }
 }

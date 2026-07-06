@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
+  <title id="title">Portal route dark preview</title>
+  <desc id="desc">A dark portal route preview with layered rings and a glowing path.</desc>
+  <defs>
+    <radialGradient id="portal" cx=".68" cy=".5" r=".55">
+      <stop offset="0" stop-color="#a78bfa"/>
+      <stop offset=".42" stop-color="#14b8a6"/>
+      <stop offset="1" stop-color="#0f172a"/>
+    </radialGradient>
+    <linearGradient id="path" x1="0" x2="1">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#c084fc"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="240" fill="#070b14"/>
+  <circle cx="438" cy="120" r="112" fill="url(#portal)" opacity=".82"/>
+  <circle cx="438" cy="120" r="76" fill="none" stroke="#f0abfc" stroke-opacity=".55" stroke-width="10"/>
+  <circle cx="438" cy="120" r="42" fill="none" stroke="#5eead4" stroke-opacity=".75" stroke-width="8"/>
+  <path d="M52 164c96-72 156-74 238-44 54 20 91 15 148-22" fill="none" stroke="url(#path)" stroke-linecap="round" stroke-width="14"/>
+  <g fill="#e0f2fe">
+    <path d="M126 86h70a24 24 0 0 1 24 24v42a24 24 0 0 1-24 24h-70a24 24 0 0 1-24-24v-42a24 24 0 0 1 24-24z" opacity=".12"/>
+    <path d="M158 102h34v14h-34a22 22 0 0 0 0 44h34v14h-34a36 36 0 1 1 0-72z"/>
+  </g>
+</svg>

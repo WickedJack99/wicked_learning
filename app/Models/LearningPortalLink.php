@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'source_learning_node_id',
     'target_learning_node_id',
+    'source_learning_activity_id',
+    'target_learning_activity_id',
     'label',
     'description',
     'config',
@@ -39,5 +41,21 @@ class LearningPortalLink extends Model
     public function targetNode(): BelongsTo
     {
         return $this->belongsTo(LearningNode::class, 'target_learning_node_id');
+    }
+
+    /**
+     * @return BelongsTo<LearningActivity, $this>
+     */
+    public function sourceActivity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'source_learning_activity_id');
+    }
+
+    /**
+     * @return BelongsTo<LearningActivity, $this>
+     */
+    public function targetActivity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'target_learning_activity_id');
     }
 }

@@ -164,12 +164,45 @@
         }
     }
 
+    @keyframes portal-swirl {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+
     .animate-map-surface-in {
         animation: map-surface-in 500ms ease-out both;
     }
 
     .animate-nav-inserted-item {
         animation: nav-inserted-item 1150ms ease-out both;
+    }
+
+    .animate-portal-swirl {
+        animation: portal-swirl 1800ms linear infinite;
+        transform-origin: center;
+    }
+
+    .route-options-scroll {
+        scrollbar-color: rgb(14 116 144 / 0.68) transparent;
+        scrollbar-width: thin;
+    }
+
+    .route-options-scroll::-webkit-scrollbar {
+        width: 0.45rem;
+    }
+
+    .route-options-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .route-options-scroll::-webkit-scrollbar-thumb {
+        background: rgb(14 116 144 / 0.68);
+        border-radius: 999px;
     }
 
     .platform-shell {
@@ -196,7 +229,8 @@
 
     @media (prefers-reduced-motion: reduce) {
         .animate-map-surface-in,
-        .animate-nav-inserted-item {
+        .animate-nav-inserted-item,
+        .animate-portal-swirl {
             animation: none;
         }
     }

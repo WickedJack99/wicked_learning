@@ -73,19 +73,36 @@ export type LearningNode = {
         foregroundColor?: string;
         highlightColor?: string;
         hideEmptySpace?: boolean;
+        hideImage?: boolean;
         hideLabel?: boolean;
         tooltip?: string;
         imageUrl?: string;
     }>;
     outgoingPortalLinks: LearningPortalLink[];
     startActivityId: number | null;
+    startRoutes: LearningActivityStart[];
     activities: LearningActivity[];
+};
+
+export type LearningActivityStart = {
+    activityId: number;
+    buttonBorderColorDark: string | null;
+    buttonBorderColorLight: string | null;
+    buttonColorDark: string | null;
+    buttonColorLight: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    label: string;
+    sortOrder: number;
 };
 
 export type LearningPortalLink = {
     description: string | null;
     id: number;
     label: string | null;
+    sourceActivityId: number | null;
+    targetActivityId: number | null;
     targetMapId: number;
     targetMapSlug: string;
     targetMapTitle: string;

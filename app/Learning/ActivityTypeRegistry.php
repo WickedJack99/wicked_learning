@@ -50,12 +50,12 @@ class ActivityTypeRegistry
             [
                 'key' => 'portal',
                 'label' => 'Portal',
-                'description' => 'A map or node travel activity. Outbound portals must end their path.',
+                'description' => 'A map or node travel activity. Entry portals must end their path.',
                 'inputs' => [$this->connector('in', 'In')],
                 'outputs' => [$this->connector('travel', 'Travel')],
                 'portalModes' => [
-                    ['key' => 'input', 'label' => 'Input portal'],
-                    ['key' => 'output', 'label' => 'Output portal'],
+                    ['key' => 'input', 'label' => 'Exit portal'],
+                    ['key' => 'output', 'label' => 'Entry portal'],
                 ],
             ],
         ];
@@ -127,7 +127,7 @@ class ActivityTypeRegistry
 
         if ($portalMode === 'input') {
             return [
-                'inputs' => [$this->connector('portal-entry', 'Portal entry')],
+                'inputs' => [$this->connector('portal-entry', 'Exit')],
                 'outputs' => [$this->connector('arrived', 'Arrived')],
             ];
         }

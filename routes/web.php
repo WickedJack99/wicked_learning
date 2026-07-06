@@ -26,6 +26,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.nodes.bookmark.destroy');
     Route::get('learning/search', [LearningWorldController::class, 'search'])
         ->name('learning.search');
+    Route::get('learning/nodes/{node}/play', [LearningWorldController::class, 'play'])
+        ->name('learning.nodes.play');
     Route::post('learning/activities/{activity}/progress', [LearningWorldController::class, 'markActivity'])
         ->name('learning.activities.progress');
     Route::post('learning/questions/{question}/answer', [LearningWorldController::class, 'answerQuestion'])

@@ -65,6 +65,9 @@ Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
     Route::get('settings/worlds/maps/{map}/edit', [AdminWorldController::class, 'editMap'])
         ->name('settings.worlds.maps.edit');
 
+    Route::patch('settings/worlds/maps/{map}', [AdminWorldController::class, 'updateMap'])
+        ->name('settings.worlds.maps.update');
+
     Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
         ->name('settings.worlds.maps.nodes.store');
 
@@ -89,11 +92,17 @@ Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
     Route::delete('settings/worlds/activities/{activity}', [AdminActivityController::class, 'destroy'])
         ->name('settings.worlds.activities.destroy');
 
-    Route::patch('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'updateStart'])
+    Route::post('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'updateStart'])
         ->name('settings.worlds.nodes.activities.start.update');
 
     Route::delete('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'destroyStart'])
         ->name('settings.worlds.nodes.activities.start.destroy');
+
+    Route::patch('settings/worlds/activity-starts/{start}', [AdminActivityController::class, 'updateStartRoute'])
+        ->name('settings.worlds.activity-starts.update');
+
+    Route::delete('settings/worlds/activity-starts/{start}', [AdminActivityController::class, 'destroyStartRoute'])
+        ->name('settings.worlds.activity-starts.destroy');
 
     Route::post('settings/worlds/nodes/{node}/activity-transitions', [AdminActivityController::class, 'storeTransition'])
         ->name('settings.worlds.nodes.activity-transitions.store');

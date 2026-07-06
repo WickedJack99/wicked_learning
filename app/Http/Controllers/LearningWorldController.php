@@ -6,6 +6,7 @@ use App\Models\ActivityTransition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerQuestionAnswer;
 use App\Models\LearningActivity;
+use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
@@ -30,6 +31,7 @@ class LearningWorldController extends Controller
                 'maps.nodes.activities.dialogueStages',
                 'maps.nodes.activities.question.options',
                 'maps.nodes.activities.transitions',
+                'maps.nodes.activityStarts.activity',
                 'maps.nodes.outgoingPortalLinks.targetNode.map',
             ])
             ->where('slug', 'demo-cybersecurity')
@@ -38,6 +40,28 @@ class LearningWorldController extends Controller
         return Inertia::render('world', [
             'bookmarkedNodeIds' => $this->bookmarkedNodeIds($request),
             'world' => $world ? $this->serializeWorld($world) : null,
+            'progress' => $this->serializeProgress($request),
+        ]);
+    }
+
+    /**
+     * Play one node's activity graph away from the map surface.
+     */
+    public function play(Request $request, LearningNode $node): Response
+    {
+        $node->loadMissing([
+            'map.world',
+            'activities.dialogueStages',
+            'activities.question.options',
+            'activities.transitions',
+            'activityStarts.activity',
+            'outgoingPortalLinks.targetNode.map',
+        ]);
+
+        abort_if($node->state === 'hidden' || $node->state === 'locked', 404);
+
+        return Inertia::render('learning/node-play', [
+            'node' => $this->serializeNode($node),
             'progress' => $this->serializeProgress($request),
         ]);
     }
@@ -214,73 +238,106 @@ class LearningWorldController extends Controller
                 'nodes' => $map->nodes
                     ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
                     ->values()
-                    ->map(fn ($node) => [
-                        'id' => $node->id,
-                        'mapId' => $map->id,
-                        'mapSlug' => $map->slug,
-                        'mapTitle' => $map->title,
-                        'slug' => $node->slug,
-                        'title' => $node->title,
-                        'description' => $node->description,
-                        'position' => [
-                            'q' => $node->position_q,
-                            'r' => $node->position_r,
-                        ],
-                        'state' => $node->state,
-                        'visualConfig' => $node->visual_config ?? [],
-                        'outgoingPortalLinks' => $node->outgoingPortalLinks->map(fn ($link) => [
-                            'id' => $link->id,
-                            'label' => $link->label,
-                            'description' => $link->description,
-                            'targetMapId' => $link->targetNode->map->id,
-                            'targetMapSlug' => $link->targetNode->map->slug,
-                            'targetMapTitle' => $link->targetNode->map->title,
-                            'targetNodeId' => $link->targetNode->id,
-                            'targetNodeSlug' => $link->targetNode->slug,
-                            'targetNodeTitle' => $link->targetNode->title,
-                        ])->values(),
-                        'startActivityId' => $node->start_activity_id,
-                        'activities' => $node->activities->map(fn ($activity) => [
-                            'id' => $activity->id,
-                            'slug' => $activity->slug,
-                            'type' => $activity->type,
-                            'title' => $activity->title,
-                            'introduction' => $activity->introduction,
-                            'config' => $activity->config ?? [],
-                            'dialogueStages' => $activity->dialogueStages->map(fn ($stage) => [
-                                'id' => $stage->id,
-                                'key' => $stage->stage_key,
-                                'speakerName' => $stage->speaker_name,
-                                'speakerRole' => $stage->speaker_role,
-                                'body' => $stage->body,
-                                'portraitUrl' => $stage->portrait_url,
-                                'imageAlt' => $stage->image_alt,
-                                'mood' => $stage->mood,
-                                'visualConfig' => $stage->visual_config ?? [],
-                            ])->values(),
-                            'question' => $activity->question ? [
-                                'id' => $activity->question->id,
-                                'prompt' => $activity->question->prompt,
-                                'allowMultiple' => $activity->question->allow_multiple,
-                                'options' => $activity->question->options->map(fn ($option) => [
-                                    'id' => $option->id,
-                                    'label' => $option->label,
-                                    'body' => $option->body,
-                                    'outcomeKey' => $option->outcome_key,
-                                    'weights' => $option->weights ?? [],
-                                ])->values(),
-                            ] : null,
-                            'transitions' => $activity->transitions->map(fn ($transition) => [
-                                'id' => $transition->id,
-                                'toActivityId' => $transition->to_activity_id,
-                                'fromConnector' => $transition->from_connector ?? $transition->trigger,
-                                'toConnector' => $transition->to_connector ?? 'in',
-                                'trigger' => $transition->trigger,
-                                'triggerValue' => $transition->trigger_value,
-                                'label' => $transition->label,
-                            ])->values(),
-                        ])->values(),
+                    ->map(fn (LearningNode $node) => $this->serializeNode($node))
+                    ->values(),
+            ])->values(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeNode(LearningNode $node): array
+    {
+        $node->loadMissing([
+            'map',
+            'activities.dialogueStages',
+            'activities.question.options',
+            'activities.transitions',
+            'outgoingPortalLinks.targetNode.map',
+        ]);
+
+        return [
+            'id' => $node->id,
+            'mapId' => $node->map->id,
+            'mapSlug' => $node->map->slug,
+            'mapTitle' => $node->map->title,
+            'slug' => $node->slug,
+            'title' => $node->title,
+            'description' => $node->description,
+            'position' => [
+                'q' => $node->position_q,
+                'r' => $node->position_r,
+            ],
+            'state' => $node->state,
+            'visualConfig' => $node->visual_config ?? [],
+            'outgoingPortalLinks' => $node->outgoingPortalLinks->map(fn ($link) => [
+                'id' => $link->id,
+                'label' => $link->label,
+                'description' => $link->description,
+                'sourceActivityId' => $link->source_learning_activity_id,
+                'targetActivityId' => $link->target_learning_activity_id,
+                'targetMapId' => $link->targetNode->map->id,
+                'targetMapSlug' => $link->targetNode->map->slug,
+                'targetMapTitle' => $link->targetNode->map->title,
+                'targetNodeId' => $link->targetNode->id,
+                'targetNodeSlug' => $link->targetNode->slug,
+                'targetNodeTitle' => $link->targetNode->title,
+            ])->values(),
+            'startActivityId' => $this->eligibleStartActivityId($node),
+            'startRoutes' => $node->activityStarts
+                ->filter(fn (LearningActivityStart $start): bool => $this->canStartRoute($start->activity))
+                ->map(fn (LearningActivityStart $start) => [
+                    'id' => $start->id,
+                    'activityId' => $start->learning_activity_id,
+                    'buttonBorderColorDark' => $start->button_border_color_dark,
+                    'buttonBorderColorLight' => $start->button_border_color_light,
+                    'buttonColorDark' => $start->button_color_dark,
+                    'buttonColorLight' => $start->button_color_light,
+                    'imageDark' => $start->image_dark,
+                    'imageLight' => $start->image_light,
+                    'label' => $start->label ?: $start->activity->title,
+                    'sortOrder' => $start->sort_order,
+                ])->values(),
+            'activities' => $node->activities->map(fn (LearningActivity $activity) => [
+                'id' => $activity->id,
+                'slug' => $activity->slug,
+                'type' => $activity->type,
+                'title' => $activity->title,
+                'introduction' => $activity->introduction,
+                'config' => $activity->config ?? [],
+                'dialogueStages' => $activity->dialogueStages->map(fn ($stage) => [
+                    'id' => $stage->id,
+                    'key' => $stage->stage_key,
+                    'speakerName' => $stage->speaker_name,
+                    'speakerRole' => $stage->speaker_role,
+                    'body' => $stage->body,
+                    'portraitUrl' => $stage->portrait_url,
+                    'imageAlt' => $stage->image_alt,
+                    'mood' => $stage->mood,
+                    'visualConfig' => $stage->visual_config ?? [],
+                ])->values(),
+                'question' => $activity->question ? [
+                    'id' => $activity->question->id,
+                    'prompt' => $activity->question->prompt,
+                    'allowMultiple' => $activity->question->allow_multiple,
+                    'options' => $activity->question->options->map(fn ($option) => [
+                        'id' => $option->id,
+                        'label' => $option->label,
+                        'body' => $option->body,
+                        'outcomeKey' => $option->outcome_key,
+                        'weights' => $option->weights ?? [],
                     ])->values(),
+                ] : null,
+                'transitions' => $activity->transitions->map(fn ($transition) => [
+                    'id' => $transition->id,
+                    'toActivityId' => $transition->to_activity_id,
+                    'fromConnector' => $transition->from_connector ?? $transition->trigger,
+                    'toConnector' => $transition->to_connector ?? 'in',
+                    'trigger' => $transition->trigger,
+                    'triggerValue' => $transition->trigger_value,
+                    'label' => $transition->label,
+                ])->values(),
             ])->values(),
         ];
     }
@@ -340,5 +397,26 @@ class LearningWorldController extends Controller
         return $question->activity->transitions
             ->first(fn ($transition) => $transition->trigger === 'outcome' && $transition->trigger_value === $option->outcome_key)
             ?: $question->activity->transitions->first(fn ($transition) => $transition->trigger === $trigger);
+    }
+
+    private function eligibleStartActivityId(LearningNode $node): ?int
+    {
+        $node->loadMissing('activities');
+
+        $activity = $node->activities
+            ->first(fn (LearningActivity $activity): bool => $activity->id === $node->start_activity_id);
+
+        return $activity && $this->canStartRoute($activity) ? $activity->id : null;
+    }
+
+    private function canStartRoute(?LearningActivity $activity): bool
+    {
+        if (! $activity) {
+            return false;
+        }
+
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return $activity->type !== 'portal' || ($config['portalMode'] ?? 'output') !== 'input';
     }
 }
