@@ -47,3 +47,21 @@ Reason: About, Imprint and Data Protection editing belongs with other public-fac
 Rejected for now.
 
 Reason: admins are also normal learners. Editing tools inside the learner map would make the learning view feel like a workbench. World editing now starts from Settings and uses separate admin pages.
+
+## Node fallback image as primary visual source
+
+Changed to dark/light node images.
+
+Reason: the fallback image concept came from the early icon-based tile prototype. The current visual direction needs images to be the main node artwork, with separate dark and light variants for theming. The old fallback image field was removed from the node editor.
+
+## Icon key as the main tile visual
+
+Changed to image-first tile visuals with icon fallback.
+
+Reason: icon keys are still useful as a safe fallback when no image is configured or image loading fails, but the long-term platform direction is configurable landscape/map artwork rather than small symbols.
+
+## Playing activities inside the map side panel
+
+Changed to a separate node-play page.
+
+Reason: keeping the full map active while playing activities adds visual and browser complexity. The map side panel now describes the node and offers route starts; the activity player runs on a separate page.
