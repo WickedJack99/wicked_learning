@@ -128,7 +128,14 @@ Important areas:
 
 ## Documentation and concept notes
 
-This repository documents both implementation and thinking. Older concept files may contain ideas that changed or were discarded. The most useful concept documents should be treated as living notes rather than a fixed specification.
+The `documentation` folder contains slower-moving project documentation:
+
+- [Documentation index](documentation/README.md)
+- [Local setup](documentation/setup.md)
+- [Feature overview](documentation/features.md)
+- [Architecture notes](documentation/architecture.md)
+
+This repository also documents both implementation and thinking. Older concept files may contain ideas that changed or were discarded. The most useful concept documents should be treated as living notes rather than a fixed specification.
 
 The direction at the moment is practical prototyping: build a usable slice, test how it feels, then update the concept when the implementation teaches us something.
 
