@@ -93,6 +93,31 @@ The rule of thumb:
 - learner-facing map: explore, focus, bookmark, search and start routes
 - admin settings: create users, configure presentation, edit worlds and wire activities
 
+## Implementation boundaries
+
+Controllers and React pages should stay thin. Larger behavior belongs in classes or components named after what they do.
+
+Laravel controllers may authorize, validate or delegate validation, call an Action, Service, Query or Serializer, and return an Inertia response, redirect or JSON response. They should not contain graph traversal, progress rules, portal-link rules, slug generation, long serialization blocks, hex-grid positioning, file-upload rules or multi-step editing workflows.
+
+Preferred backend homes:
+
+- Actions for write operations such as `CreateLearningMap`, `UpdateLearningNode`, `InsertLearningNodeIntoHexGrid` or `AnswerLearningQuestion`.
+- Services for reusable behavior such as `LearnerProgressService`, `PortalLinkService`, `NodePositionService` or `UniqueSlugGenerator`.
+- Query classes for read-heavy loading such as `LoadPlayableNode`, `SearchLearningWorld` or `LoadEditableWorldGraph`.
+- Serializers for Inertia and JSON payload shaping such as `LearningWorldSerializer`, `LearningNodeSerializer` or `AdminWorldGraphSerializer`.
+- Validation classes or Form Requests when validation starts making controllers noisy.
+
+React pages should compose smaller feature components and hooks. Map math, graph editing rules, form transformations and API state should not accumulate directly in page components. Pure logic, such as hex-grid geometry, should live in feature modules that can be reused and tested independently.
+
+As rough size guides:
+
+- controllers should usually stay below 150 lines
+- services should usually stay below 200 lines
+- methods should usually stay below 40 lines
+- classes should have one clear responsibility
+
+When implementing a larger feature, briefly identify the controller, Action or Service, Serializer or Query, and React component or hook that should own the work before editing.
+
 ## Database evolution
 
 The schema is changing quickly because the app is still a prototype. Changes should be made through migrations so a real application database can be upgraded later.
