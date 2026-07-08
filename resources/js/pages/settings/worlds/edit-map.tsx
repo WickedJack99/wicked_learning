@@ -26,6 +26,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    axialToPoint,
+    coordinateKey,
+    directions,
+    dragClickThreshold,
+    edgeControlPosition,
+    insertControlLine,
+    tileControlHeight,
+    tileControlWidth,
+} from '@/features/admin-worlds/hex-grid-geometry';
+import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
 import { resolveThemeVariant } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
@@ -105,13 +116,6 @@ type EditableMapPayload = {
     world: EditableWorld;
 };
 
-type Direction = {
-    label: string;
-    q: number;
-    r: number;
-    rotate: number;
-};
-
 type GridCell = {
     occupiedNode: EditableNode | null;
     q: number;
@@ -147,30 +151,6 @@ type MapVisualForm = MapVisualThemeFields & {
     dark: MapVisualThemeFields;
     light: MapVisualThemeFields;
 };
-
-const directions: Direction[] = [
-    { label: 'right', q: 1, r: 0, rotate: 0 },
-    { label: 'upper right', q: 1, r: -1, rotate: -60 },
-    { label: 'upper left', q: 0, r: -1, rotate: -120 },
-    { label: 'left', q: -1, r: 0, rotate: 180 },
-    { label: 'lower left', q: -1, r: 1, rotate: 120 },
-    { label: 'lower right', q: 0, r: 1, rotate: 60 },
-];
-
-const hexWidth = 120;
-const hexHeight = 104;
-const edgeGap = 90;
-const centerDistanceScale = (hexHeight + edgeGap) / hexHeight;
-const horizontalStep = hexWidth * 0.75 * centerDistanceScale;
-const verticalStep = hexHeight + edgeGap;
-const tileControlWidth = 220;
-const tileControlHeight = 202;
-const tileCenter = {
-    x: tileControlWidth / 2,
-    y: tileControlHeight / 2,
-};
-const edgeControlOutset = 8;
-const dragClickThreshold = 6;
 
 export default function EditWorldMap({
     editableMap,
@@ -1888,124 +1868,4 @@ function nodeMap(nodes: EditableNode[]): Map<string, EditableNode> {
             node,
         ]),
     );
-}
-
-function axialToPoint(q: number, r: number): { x: number; y: number } {
-    return {
-        x: q * horizontalStep,
-        y: (r + q / 2) * verticalStep,
-    };
-}
-
-function edgeControlPosition(direction: Direction): {
-    rotation: number;
-    x: number;
-    y: number;
-} {
-    const edge = edgeGeometryForDirection(direction);
-    const normal = unitVectorForAngle(screenAngleForDirection(direction));
-
-    return {
-        rotation: screenAngleForDirection(direction),
-        x: tileCenter.x + edge.center.x + normal.x * edgeControlOutset,
-        y: tileCenter.y + edge.center.y + normal.y * edgeControlOutset,
-    };
-}
-
-function insertControlLine(direction: Direction): {
-    end: { x: number; y: number };
-    midpoint: { x: number; y: number };
-    start: { x: number; y: number };
-} {
-    const sourceArrow = edgeControlPosition(direction);
-    const neighborOffset = axialToPoint(direction.q, direction.r);
-    const targetArrow = edgeControlPosition(oppositeDirection(direction));
-    const end = {
-        x: neighborOffset.x + targetArrow.x,
-        y: neighborOffset.y + targetArrow.y,
-    };
-    const start = {
-        x: sourceArrow.x,
-        y: sourceArrow.y,
-    };
-
-    return {
-        end,
-        midpoint: {
-            x: (start.x + end.x) / 2,
-            y: (start.y + end.y) / 2,
-        },
-        start,
-    };
-}
-
-function oppositeDirection(direction: Direction): Direction {
-    return (
-        directions.find(
-            (candidate) =>
-                candidate.q === -direction.q && candidate.r === -direction.r,
-        ) ?? direction
-    );
-}
-
-function screenAngleForDirection(direction: Direction): number {
-    const target = axialToPoint(direction.q, direction.r);
-
-    return (Math.atan2(target.y, target.x) * 180) / Math.PI;
-}
-
-function unitVectorForAngle(angle: number): { x: number; y: number } {
-    const radians = (angle * Math.PI) / 180;
-
-    return {
-        x: Math.cos(radians),
-        y: Math.sin(radians),
-    };
-}
-
-function edgeGeometryForDirection(direction: Direction): {
-    center: { x: number; y: number };
-    tangentAngle: number;
-} {
-    switch (coordinateKey(direction.q, direction.r)) {
-        case '1:0':
-            return {
-                center: { x: hexWidth * 0.375, y: hexHeight * 0.25 },
-                tangentAngle: -60,
-            };
-        case '1:-1':
-            return {
-                center: { x: hexWidth * 0.375, y: -hexHeight * 0.25 },
-                tangentAngle: 60,
-            };
-        case '0:-1':
-            return {
-                center: { x: 0, y: -hexHeight * 0.5 },
-                tangentAngle: 0,
-            };
-        case '-1:0':
-            return {
-                center: { x: -hexWidth * 0.375, y: -hexHeight * 0.25 },
-                tangentAngle: -60,
-            };
-        case '-1:1':
-            return {
-                center: { x: -hexWidth * 0.375, y: hexHeight * 0.25 },
-                tangentAngle: 60,
-            };
-        case '0:1':
-            return {
-                center: { x: 0, y: hexHeight * 0.5 },
-                tangentAngle: 0,
-            };
-        default:
-            return {
-                center: { x: 0, y: 0 },
-                tangentAngle: 0,
-            };
-    }
-}
-
-function coordinateKey(q: number, r: number): string {
-    return `${q}:${r}`;
 }
