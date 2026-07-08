@@ -5,6 +5,9 @@ use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\NpcDialogueAnswer;
+use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Http\UploadedFile;
@@ -150,8 +153,10 @@ test('admin users can open the activity graph editor', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/worlds/edit-node-activities')
             ->where('activityGraph.node.slug', 'signal-gate')
-            ->has('activityGraph.activities', 4)
-            ->has('activityGraph.transitions', 4)
+            ->has('activityGraph.activities', 5)
+            ->where('activityGraph.activities.1.slug', 'guided-signal-dialogue')
+            ->where('activityGraph.activities.1.type', 'npc_dialogue')
+            ->has('activityGraph.transitions', 5)
             ->has('activityGraph.portalCandidates')
             ->has('activityGraph.activityTypes')
         );
@@ -256,6 +261,167 @@ test('admin users can create and connect activity graph nodes', function () {
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
     expect($activity->transitions()->exists())->toBeFalse();
+});
+
+test('admin users can author npc dialogue activity graphs', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'title' => 'Meet the Archivist',
+            'type' => 'npc_dialogue',
+            'introduction' => 'A branching conversation with an archivist.',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'meet-the-archivist')
+        ->firstOrFail();
+    $endNode = NpcDialogueNode::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('type', 'end')
+        ->firstOrFail();
+
+    expect($endNode->config['connectorSymbol'])->toBe('A')
+        ->and($endNode->config['connectorColor'])->toBe('#0ea5e9');
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.activities.npc-dialogue.edit', $activity))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/worlds/edit-npc-dialogue')
+            ->where('dialogueGraph.activity.slug', 'meet-the-archivist')
+            ->has('dialogueGraph.dialogueNodes', 1)
+        );
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activities.npc-dialogue.nodes.store', $activity), [
+            'body' => 'Welcome to the archive. Let us follow the useful trace.',
+            'config' => [
+                'backgroundDark' => '/storage/learning/dialogue/archive-dark.webp',
+                'bubbleColorDark' => '#0f172a',
+                'npcX' => 48,
+                'typingSpeed' => 24,
+            ],
+            'title' => 'Archivist greeting',
+            'type' => 'npc_interaction',
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    $interaction = NpcDialogueNode::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('type', 'npc_interaction')
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activities.npc-dialogue.transitions.store', $activity), [
+            'from_connector' => 'start',
+            'from_dialogue_node_id' => null,
+            'to_connector' => 'in',
+            'to_dialogue_node_id' => $interaction->id,
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activities.npc-dialogue.transitions.store', $activity), [
+            'from_connector' => 'out',
+            'from_dialogue_node_id' => $interaction->id,
+            'to_connector' => 'in',
+            'to_dialogue_node_id' => $endNode->id,
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    expect(NpcDialogueTransition::query()
+        ->where('learning_activity_id', $activity->id)
+        ->count())->toBe(2);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.npc-dialogue-nodes.update', $endNode), [
+            'config' => [
+                'connectorColor' => '#ef4444',
+                'connectorSymbol' => 'Z',
+            ],
+            'title' => 'Needs review',
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    $endNode->refresh();
+
+    expect($endNode->title)->toBe('Needs review')
+        ->and($endNode->config['connectorColor'])->toBe('#ef4444')
+        ->and($endNode->config['connectorSymbol'])->toBe('Z');
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
+            'from_activity_id' => $activity->id,
+            'from_connector' => 'dialogue-end-'.$endNode->id,
+            'to_activity_id' => null,
+            'to_connector' => 'end',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($activity->transitions()->where('from_connector', 'dialogue-end-'.$endNode->id)->exists())->toBeTrue();
+});
+
+test('learners can answer npc dialogue questions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $learner = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'spot-the-signal',
+        'type' => 'npc_dialogue',
+        'title' => 'Spot the Signal',
+        'introduction' => 'A small dialogue question.',
+        'sort_order' => 20,
+        'config' => [],
+    ]);
+    $questionNode = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'npc_interaction',
+        'title' => 'Mira',
+        'body' => 'Which observation is useful?',
+        'config' => [
+            'interactionMode' => 'question',
+            'answers' => [
+                [
+                    'key' => 'guess',
+                    'label' => 'A',
+                    'body' => 'A dramatic guess.',
+                    'isCorrect' => false,
+                    'feedback' => 'Look for observable evidence first.',
+                ],
+                [
+                    'key' => 'pattern',
+                    'label' => 'B',
+                    'body' => 'A repeated event pattern.',
+                    'isCorrect' => true,
+                    'feedback' => 'Yes, repeated observations are useful.',
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.npc-dialogue-nodes.answer', $questionNode), [
+            'answer_key' => 'pattern',
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.answerKey', 'pattern')
+        ->assertJsonPath('answer.isCorrect', true)
+        ->assertJsonPath('answer.feedback', 'Yes, repeated observations are useful.');
+
+    expect(NpcDialogueAnswer::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->where('npc_dialogue_node_id', $questionNode->id)
+        ->where('answer_key', 'pattern')
+        ->where('is_correct', true)
+        ->exists())->toBeTrue();
 });
 
 test('admin users can configure multiple independent start routes for a node', function () {

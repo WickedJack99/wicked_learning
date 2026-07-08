@@ -69,9 +69,13 @@ export type LearningNode = {
         icon?: string;
         label?: string;
         labelColor?: string;
+        labelOpacity?: string;
         tileColor?: string;
+        tileOpacity?: string;
         foregroundColor?: string;
+        foregroundOpacity?: string;
         highlightColor?: string;
+        highlightOpacity?: string;
         hideEmptySpace?: boolean;
         hideImage?: boolean;
         hideLabel?: boolean;
@@ -119,8 +123,33 @@ export type LearningActivity = {
     introduction: string | null;
     config: Record<string, string | boolean | number | null>;
     dialogueStages: DialogueStage[];
+    npcDialogueNodes: NpcDialogueNode[];
+    npcDialogueTransitions: NpcDialogueTransition[];
     question: LearningQuestion | null;
     transitions: ActivityTransition[];
+};
+
+export type NpcDialogueNode = {
+    body: string | null;
+    config: Record<
+        string,
+        | Array<Record<string, boolean | number | string | null>>
+        | boolean
+        | number
+        | string
+        | null
+    >;
+    id: number;
+    title: string;
+    type: 'end' | 'npc_interaction' | string;
+};
+
+export type NpcDialogueTransition = {
+    fromConnector: string;
+    fromNodeId: number | null;
+    id: number;
+    toConnector: string;
+    toNodeId: number;
 };
 
 export type DialogueStage = {

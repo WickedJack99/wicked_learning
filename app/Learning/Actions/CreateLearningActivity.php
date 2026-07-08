@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Support\UniqueSlugGenerator;
@@ -12,6 +13,7 @@ class CreateLearningActivity
 {
     public function __construct(
         private readonly PortalActivityConfiguration $portalConfig,
+        private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
     ) {}
@@ -35,6 +37,7 @@ class CreateLearningActivity
         ]);
 
         $this->portalLinkService->syncForActivity($activity, $data['target_portal_activity_id'] ?? null);
+        $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
 
         return $activity;
     }

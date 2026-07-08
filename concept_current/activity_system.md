@@ -23,6 +23,27 @@ The Start node can connect to multiple first activities. Each Start-to-activity 
 
 The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections and portals without replacing the graph itself.
 
+NPC dialogue activities now use the same graph idea at a nested level:
+
+- The node-level activity graph contains an `NPC dialogue` activity with one Entry connector.
+- The activity exposes one Exit connector per End node inside the NPC dialogue graph.
+- End nodes have a color and a letter/number symbol so the matching activity-level connector remains understandable for colorblind admins.
+- The nested NPC dialogue editor has a synthetic Start node, configurable NPC interaction nodes and configurable End nodes.
+- NPC interaction nodes already carry the first layer of visual playback config: dark/light background images, dark/light NPC images, slide direction, slide/fade timing, NPC x/y position, speech bubble text, typing speed, dark/light speech bubble colors, borders and opacity.
+- Runtime playback happens on the separate node-play route, not as an overlay on the world map.
+- Runtime NPC dialogue playback follows the nested dialogue graph from its Start node through interaction nodes to End nodes. End nodes complete the NPC dialogue activity and use the matching activity-level Exit connector to continue the parent activity route.
+- NPC interaction nodes can now be configured as either monologue or question interactions. Question interactions display configured answer options, block normal forward/back controls until an answer is selected, store answer correctness privately, show feedback, and expose one dialogue-graph output connector per answer. Answer routing is controlled by visible graph edges, so multiple answers can connect to the same follow-up node or to separate monologues/questions/end nodes.
+- Keyboard playback controls are part of runtime: left arrow moves back where allowed, right arrow or space continues, and enter confirms a question answer.
+- The demo seed includes a second Signal Gate route named `Guided signal dialogue`. It uses simple dark/light NPC and background SVG assets, a question interaction with multiple answer output connectors, correctness tracking, feedback, a review loop and a successful end connector.
+
+Planned deeper dialogue layers:
+
+- An NPC interaction node can later open another graph for speech bubbles.
+- Speech-bubble nodes can include monologue bubbles, question bubbles and answer bubbles.
+- Question bubbles can have a configurable number of exits; each answer can route to shared or distinct follow-up bubbles.
+- Bubble-level End nodes should map back to the parent NPC interaction node's outputs in the same color-and-symbol style.
+- Answer correctness is tracked for private learning analytics and feedback routing, not for public scores, streaks or leaderboards.
+
 Portal activities are represented as one activity type with a portal direction in config. The labels intentionally use learner/admin language:
 
 - Entry portal: a route that sends the learner to another node or map. It must end its activity path.

@@ -10,6 +10,7 @@ class LoadEditableActivityGraph
     {
         $node->loadMissing(
             'map.world',
+            'activities.npcDialogueNodes',
             'activities.transitions.toActivity',
             'activities.outgoingPortalLink.targetActivity.node.map',
             'activities.outgoingPortalLink.targetNode.map',

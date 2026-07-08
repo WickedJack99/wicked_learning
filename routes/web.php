@@ -32,6 +32,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.progress');
     Route::post('learning/questions/{question}/answer', [LearningWorldController::class, 'answerQuestion'])
         ->name('learning.questions.answer');
+    Route::post('learning/npc-dialogue-nodes/{node}/answer', [LearningWorldController::class, 'answerNpcDialogue'])
+        ->name('learning.npc-dialogue-nodes.answer');
 });
 
 require __DIR__.'/settings.php';

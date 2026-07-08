@@ -17,6 +17,7 @@ import {
     Download,
     GitBranch,
     Image,
+    MessageCircle,
     Pencil,
     Plus,
     Play,
@@ -50,8 +51,10 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
 type Connector = {
+    color?: string;
     id: string;
     label: string;
+    symbol?: string;
 };
 
 type ActivityTypeDefinition = {
@@ -1115,17 +1118,47 @@ function ActivityGraphNodeCard({
                           : 'No target portal selected'}
                 </p>
             ) : null}
+            {activity.type === 'npc_dialogue' ? (
+                <p className="mt-2 rounded-md bg-slate-200 px-2 py-1 text-xs leading-5 text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                    Dialogue exits are defined by End nodes inside the NPC
+                    dialogue graph.
+                </p>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-1">
                 {activity.connectors.outputs.map((connector) => (
                     <span
                         className="rounded-md bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200"
                         key={connector.id}
+                        style={
+                            connector.color
+                                ? {
+                                      backgroundColor: `${connector.color}22`,
+                                      color: connector.color,
+                                  }
+                                : undefined
+                        }
                     >
                         {connector.label}
                     </span>
                 ))}
             </div>
             <div className="nodrag nopan mt-4 flex items-center gap-2">
+                {activity.type === 'npc_dialogue' ? (
+                    <Button
+                        asChild
+                        className="h-8 px-3 text-xs"
+                        onClick={(event) => event.stopPropagation()}
+                        type="button"
+                        variant="secondary"
+                    >
+                        <Link
+                            href={`/settings/worlds/activities/${activity.id}/npc-dialogue`}
+                        >
+                            <MessageCircle className="size-3.5" />
+                            Edit dialogue
+                        </Link>
+                    </Button>
+                ) : null}
                 <Button
                     className="h-8 px-3 text-xs"
                     onClick={(event) => {
@@ -1212,6 +1245,7 @@ function ConnectorHandles({
                     key={connector.id}
                     position={position}
                     style={{
+                        backgroundColor: connector.color,
                         top: `${((index + 1) / (connectors.length + 1)) * 100}%`,
                     }}
                     title={connector.label}

@@ -6,6 +6,8 @@ use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningQuestionOption;
+use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 
 class LearningActivitySerializer
 {
@@ -24,10 +26,44 @@ class LearningActivitySerializer
             'dialogueStages' => $activity->dialogueStages
                 ->map(fn (DialogueStage $stage): array => $this->dialogueStage($stage))
                 ->values(),
+            'npcDialogueNodes' => $activity->npcDialogueNodes
+                ->map(fn (NpcDialogueNode $node): array => $this->npcDialogueNode($node))
+                ->values(),
+            'npcDialogueTransitions' => $activity->npcDialogueTransitions
+                ->map(fn (NpcDialogueTransition $transition): array => $this->npcDialogueTransition($transition))
+                ->values(),
             'question' => $this->question($activity),
             'transitions' => $activity->transitions
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->values(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function npcDialogueNode(NpcDialogueNode $node): array
+    {
+        return [
+            'id' => $node->id,
+            'type' => $node->type,
+            'title' => $node->title,
+            'body' => $node->body,
+            'config' => $node->config ?? [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function npcDialogueTransition(NpcDialogueTransition $transition): array
+    {
+        return [
+            'id' => $transition->id,
+            'fromNodeId' => $transition->from_dialogue_node_id,
+            'toNodeId' => $transition->to_dialogue_node_id,
+            'fromConnector' => $transition->from_connector,
+            'toConnector' => $transition->to_connector,
         ];
     }
 

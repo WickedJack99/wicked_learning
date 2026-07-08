@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminActivityController;
+use App\Http\Controllers\Settings\AdminNpcDialogueController;
 use App\Http\Controllers\Settings\AdminUserController;
 use App\Http\Controllers\Settings\AdminWorldController;
 use App\Http\Controllers\Settings\AppearanceController;
@@ -91,6 +92,24 @@ Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
 
     Route::delete('settings/worlds/activities/{activity}', [AdminActivityController::class, 'destroy'])
         ->name('settings.worlds.activities.destroy');
+
+    Route::get('settings/worlds/activities/{activity}/npc-dialogue', [AdminNpcDialogueController::class, 'edit'])
+        ->name('settings.worlds.activities.npc-dialogue.edit');
+
+    Route::post('settings/worlds/activities/{activity}/npc-dialogue/nodes', [AdminNpcDialogueController::class, 'storeNode'])
+        ->name('settings.worlds.activities.npc-dialogue.nodes.store');
+
+    Route::patch('settings/worlds/npc-dialogue-nodes/{node}', [AdminNpcDialogueController::class, 'updateNode'])
+        ->name('settings.worlds.npc-dialogue-nodes.update');
+
+    Route::delete('settings/worlds/npc-dialogue-nodes/{node}', [AdminNpcDialogueController::class, 'destroyNode'])
+        ->name('settings.worlds.npc-dialogue-nodes.destroy');
+
+    Route::post('settings/worlds/activities/{activity}/npc-dialogue/transitions', [AdminNpcDialogueController::class, 'storeTransition'])
+        ->name('settings.worlds.activities.npc-dialogue.transitions.store');
+
+    Route::delete('settings/worlds/npc-dialogue-transitions/{transition}', [AdminNpcDialogueController::class, 'destroyTransition'])
+        ->name('settings.worlds.npc-dialogue-transitions.destroy');
 
     Route::post('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'updateStart'])
         ->name('settings.worlds.nodes.activities.start.update');

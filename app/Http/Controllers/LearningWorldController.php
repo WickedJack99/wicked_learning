@@ -10,10 +10,12 @@ use App\Learning\Serializers\LearningNodeSerializer;
 use App\Learning\Serializers\LearningWorldSerializer;
 use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearningBookmarkService;
+use App\Learning\Services\NpcDialogueAnswerService;
 use App\Learning\Services\QuestionAnswerService;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
 use App\Models\LearningQuestion;
+use App\Models\NpcDialogueNode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -30,6 +32,7 @@ class LearningWorldController extends Controller
         private readonly LearnerProgressSerializer $progressSerializer,
         private readonly LearnerProgressService $progressService,
         private readonly QuestionAnswerService $questionAnswerService,
+        private readonly NpcDialogueAnswerService $npcDialogueAnswerService,
         private readonly LearningBookmarkService $bookmarkService,
     ) {}
 
@@ -83,6 +86,21 @@ class LearningWorldController extends Controller
                 $request->user()->id,
                 $question,
                 (int) $data['option_id'],
+            ),
+        ]);
+    }
+
+    public function answerNpcDialogue(Request $request, NpcDialogueNode $node): JsonResponse
+    {
+        $data = $request->validate([
+            'answer_key' => ['required', 'string', 'max:80'],
+        ]);
+
+        return response()->json([
+            'answer' => $this->npcDialogueAnswerService->answer(
+                $request->user()->id,
+                $node,
+                (string) $data['answer_key'],
             ),
         ]);
     }

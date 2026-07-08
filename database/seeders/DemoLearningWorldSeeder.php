@@ -12,6 +12,8 @@ use App\Models\LearningPortalLink;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
+use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 use Illuminate\Database\Seeder;
 
 class DemoLearningWorldSeeder extends Seeder
@@ -271,10 +273,192 @@ class DemoLearningWorldSeeder extends Seeder
             'label' => 'Try the alert again',
         ]);
 
+        $this->seedNpcDialogueExample($signalGate, $reflection);
+
         $signalGate->update(['start_activity_id' => $mentorDialogue->id]);
 
         $portal = $this->seedSecondaryNodes($map);
         $this->seedPortalSibling($world, $map, $portal);
+    }
+
+    private function seedNpcDialogueExample(LearningNode $signalGate, LearningActivity $reflection): void
+    {
+        $npcDialogue = LearningActivity::query()->create([
+            'learning_node_id' => $signalGate->id,
+            'slug' => 'guided-signal-dialogue',
+            'type' => 'npc_dialogue',
+            'title' => 'Guided signal dialogue',
+            'introduction' => 'A graph-based NPC dialogue with a question, private feedback and a review loop.',
+            'sort_order' => 15,
+            'config' => [],
+        ]);
+
+        $intro = $this->createNpcInteraction($npcDialogue, [
+            'body' => 'Let us inspect a small alert together. I will ask one question, then we will keep the useful clue.',
+            'graph_position_x' => 120,
+            'graph_position_y' => 20,
+            'sort_order' => 10,
+            'title' => 'Mira opens the trace',
+        ]);
+
+        $question = $this->createNpcInteraction($npcDialogue, [
+            'body' => 'The alert shows 84 failed login attempts in 4 minutes, spread across 51 source IP addresses. What changes your next investigation step?',
+            'config' => [
+                ...$this->npcVisualConfig(),
+                'interactionMode' => 'question',
+                'answers' => [],
+            ],
+            'graph_position_x' => 480,
+            'graph_position_y' => 20,
+            'sort_order' => 20,
+            'title' => 'Mira asks for the clue',
+        ]);
+
+        $review = $this->createNpcInteraction($npcDialogue, [
+            'body' => 'One target account tells us who was under pressure. The 51 source IPs tell us the behavior is distributed. Try the clue again with that split in mind.',
+            'graph_position_x' => 840,
+            'graph_position_y' => 200,
+            'sort_order' => 30,
+            'title' => 'Mira reframes the evidence',
+        ]);
+
+        $correct = $this->createNpcInteraction($npcDialogue, [
+            'body' => 'Exactly. Source distribution changes the hypothesis from one person mistyping to a wider pattern worth investigating.',
+            'graph_position_x' => 840,
+            'graph_position_y' => -120,
+            'sort_order' => 40,
+            'title' => 'Mira confirms the pattern',
+        ]);
+
+        $end = NpcDialogueNode::query()->create([
+            'learning_activity_id' => $npcDialogue->id,
+            'type' => 'end',
+            'title' => 'Pattern understood',
+            'config' => [
+                'connectorColor' => '#2dd4bf',
+                'connectorSymbol' => 'A',
+            ],
+            'sort_order' => 50,
+            'graph_position_x' => 1180,
+            'graph_position_y' => -80,
+        ]);
+
+        $question->update([
+            'config' => [
+                ...$question->config,
+                'answers' => [
+                    [
+                        'key' => 'source-distribution',
+                        'label' => 'A',
+                        'body' => 'The attempts came from many source IP addresses.',
+                        'isCorrect' => true,
+                        'feedback' => 'Yes. The spread across sources changes the shape of the investigation.',
+                    ],
+                    [
+                        'key' => 'single-account',
+                        'label' => 'B',
+                        'body' => 'Only one account was targeted, so it is probably one user mistyping.',
+                        'isCorrect' => false,
+                        'feedback' => 'A single target matters, but it does not explain the distributed source pattern.',
+                    ],
+                    [
+                        'key' => 'server-offline',
+                        'label' => 'C',
+                        'body' => 'The server is probably offline because the attempts failed.',
+                        'isCorrect' => false,
+                        'feedback' => 'The failures alone do not show an outage. The source spread is the clearer clue here.',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->connectNpcDialogue($npcDialogue, null, $intro);
+        $this->connectNpcDialogue($npcDialogue, $intro, $question);
+        $this->connectNpcDialogue($npcDialogue, $question, $correct, 'source-distribution');
+        $this->connectNpcDialogue($npcDialogue, $question, $review, 'single-account');
+        $this->connectNpcDialogue($npcDialogue, $question, $review, 'server-offline');
+        $this->connectNpcDialogue($npcDialogue, $review, $question);
+        $this->connectNpcDialogue($npcDialogue, $correct, $end);
+
+        ActivityTransition::query()->create([
+            'from_activity_id' => $npcDialogue->id,
+            'to_activity_id' => $reflection->id,
+            'from_connector' => 'dialogue-end-'.$end->id,
+            'to_connector' => 'in',
+            'trigger' => 'completed',
+            'label' => 'Keep the useful clue',
+        ]);
+
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $signalGate->id,
+            'learning_activity_id' => $npcDialogue->id,
+            'label' => 'Try NPC dialogue',
+            'image_dark' => '/images/routes/signal-route-dark.svg',
+            'image_light' => '/images/routes/signal-route-light.svg',
+            'button_color_dark' => '#0f172a',
+            'button_border_color_dark' => '#2dd4bf',
+            'button_color_light' => '#ecfeff',
+            'button_border_color_light' => '#0891b2',
+            'sort_order' => 20,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createNpcInteraction(LearningActivity $activity, array $overrides): NpcDialogueNode
+    {
+        return NpcDialogueNode::query()->create([
+            'learning_activity_id' => $activity->id,
+            'type' => 'npc_interaction',
+            'title' => $overrides['title'],
+            'body' => $overrides['body'],
+            'config' => $overrides['config'] ?? $this->npcVisualConfig(),
+            'sort_order' => $overrides['sort_order'],
+            'graph_position_x' => $overrides['graph_position_x'],
+            'graph_position_y' => $overrides['graph_position_y'],
+        ]);
+    }
+
+    private function connectNpcDialogue(
+        LearningActivity $activity,
+        ?NpcDialogueNode $from,
+        NpcDialogueNode $to,
+        string $fromConnector = 'out',
+    ): void {
+        NpcDialogueTransition::query()->create([
+            'learning_activity_id' => $activity->id,
+            'from_dialogue_node_id' => $from?->id,
+            'to_dialogue_node_id' => $to->id,
+            'from_connector' => $from ? $fromConnector : 'start',
+            'to_connector' => 'in',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function npcVisualConfig(): array
+    {
+        return [
+            'backgroundDark' => '/images/themes/npc-dialogue-background-dark.svg',
+            'backgroundLight' => '/images/themes/npc-dialogue-background-light.svg',
+            'bubbleBorderColorDark' => '#2dd4bf',
+            'bubbleBorderColorLight' => '#0891b2',
+            'bubbleColorDark' => '#0f172a',
+            'bubbleColorLight' => '#ffffff',
+            'bubbleOpacityDark' => 92,
+            'bubbleOpacityLight' => 94,
+            'fadeDurationSeconds' => 0.4,
+            'interactionMode' => 'monologue',
+            'npcImageDark' => '/images/themes/npc-mira-dark.svg',
+            'npcImageLight' => '/images/themes/npc-mira-light.svg',
+            'npcX' => 72,
+            'npcY' => 46,
+            'slideDirection' => 'right',
+            'slideDurationSeconds' => 0.6,
+            'typingSpeed' => 20,
+        ];
     }
 
     private function seedSecondaryNodes(LearningMap $map): LearningNode

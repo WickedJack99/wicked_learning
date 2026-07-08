@@ -51,6 +51,22 @@ class LearningActivity extends Model
     }
 
     /**
+     * @return HasMany<NpcDialogueNode, $this>
+     */
+    public function npcDialogueNodes(): HasMany
+    {
+        return $this->hasMany(NpcDialogueNode::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<NpcDialogueTransition, $this>
+     */
+    public function npcDialogueTransitions(): HasMany
+    {
+        return $this->hasMany(NpcDialogueTransition::class);
+    }
+
+    /**
      * @return HasOne<LearningQuestion, $this>
      */
     public function question(): HasOne

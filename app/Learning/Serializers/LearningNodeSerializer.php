@@ -60,6 +60,8 @@ class LearningNodeSerializer
         $node->loadMissing([
             'map',
             'activities.dialogueStages',
+            'activities.npcDialogueNodes',
+            'activities.npcDialogueTransitions',
             'activities.question.options',
             'activities.transitions',
             'outgoingPortalLinks.targetNode.map',

@@ -2,10 +2,14 @@
 
 namespace App\Learning;
 
+use App\Learning\Services\NpcDialogueConfiguration;
 use App\Models\LearningActivity;
+use App\Models\NpcDialogueNode;
 
 class ActivityTypeRegistry
 {
+    public function __construct(private readonly NpcDialogueConfiguration $npcDialogue) {}
+
     /**
      * Activity type definitions are intentionally small and data-shaped so new
      * activity renderers can be added without changing the graph editor.
@@ -15,6 +19,13 @@ class ActivityTypeRegistry
     public function definitions(): array
     {
         return [
+            [
+                'key' => 'npc_dialogue',
+                'label' => 'NPC dialogue',
+                'description' => 'A graph-based NPC conversation with one entry and exits defined by dialogue end nodes.',
+                'inputs' => [$this->connector('in', 'Entry')],
+                'outputs' => [$this->connector('dialogue-end-pending', 'A End')],
+            ],
             [
                 'key' => 'dialogue',
                 'label' => 'Dialogue',
@@ -81,6 +92,10 @@ class ActivityTypeRegistry
             return $this->portalConnectors($activity);
         }
 
+        if ($activity->type === 'npc_dialogue') {
+            return $this->npcDialogueConnectors($activity);
+        }
+
         $definition = collect($this->definitions())
             ->first(fn (array $candidate): bool => $candidate['key'] === $activity->type);
 
@@ -115,6 +130,26 @@ class ActivityTypeRegistry
     private function connector(string $id, string $label): array
     {
         return ['id' => $id, 'label' => $label];
+    }
+
+    /**
+     * @return array{inputs: array<int, array<string, string>>, outputs: array<int, array<string, string>>}
+     */
+    private function npcDialogueConnectors(LearningActivity $activity): array
+    {
+        $activity->loadMissing('npcDialogueNodes');
+        $endNodes = $activity->npcDialogueNodes
+            ->filter(fn (NpcDialogueNode $node): bool => $node->type === 'end')
+            ->values();
+
+        return [
+            'inputs' => [$this->connector('in', 'Entry')],
+            'outputs' => $endNodes->isEmpty()
+                ? [$this->connector('dialogue-end-pending', 'A End')]
+                : $endNodes
+                    ->map(fn (NpcDialogueNode $node, int $index): array => $this->npcDialogue->connectorFor($node, $index))
+                    ->all(),
+        ];
     }
 
     /**

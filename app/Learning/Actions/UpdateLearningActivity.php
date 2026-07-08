@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Support\UniqueSlugGenerator;
@@ -10,6 +11,7 @@ use App\Models\LearningActivity;
 class UpdateLearningActivity
 {
     public function __construct(
+        private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
@@ -23,6 +25,7 @@ class UpdateLearningActivity
         $activity->loadMissing('node');
         $updates = $this->updatesFor($activity, $data);
         $activity->forceFill($updates)->save();
+        $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
         $this->syncPortalLinkWhenNeeded($activity, $data);
 
         return $activity;

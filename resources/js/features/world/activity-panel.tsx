@@ -23,6 +23,7 @@ import type {
     QuestionAnswerProgress,
 } from '@/types';
 import { postJson } from './api';
+import { NpcDialogueActivity } from './npc-dialogue-player';
 
 export function ActivityPanel({
     node,
@@ -270,6 +271,14 @@ export function ActivityPlayer({
                     activity={activity}
                     answer={answerProgress[activity.question.id]}
                     onAnswer={onAnswer}
+                    onMoveToActivity={onMoveToActivity}
+                />
+            ) : null}
+
+            {activity.type === 'npc_dialogue' ? (
+                <NpcDialogueActivity
+                    activity={activity}
+                    onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
                 />
             ) : null}
