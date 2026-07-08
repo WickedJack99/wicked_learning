@@ -41,15 +41,23 @@ class LearningNodeVisualConfig
             'label' => $title,
             'dark' => [
                 'tileColor' => '#253047',
+                'tileOpacity' => '100',
                 'foregroundColor' => '#bfdbfe',
+                'foregroundOpacity' => '100',
                 'labelColor' => '#ffffff',
+                'labelOpacity' => '100',
                 'highlightColor' => '#7dd3fc',
+                'highlightOpacity' => '100',
             ],
             'light' => [
                 'tileColor' => '#dbeafe',
+                'tileOpacity' => '100',
                 'foregroundColor' => '#1d4ed8',
+                'foregroundOpacity' => '100',
                 'labelColor' => '#0f172a',
+                'labelOpacity' => '100',
                 'highlightColor' => '#2563eb',
+                'highlightOpacity' => '100',
             ],
         ];
     }

@@ -5,6 +5,7 @@ import {
     Download,
     GitBranch,
     Image,
+    LockKeyhole,
     Map as MapIcon,
     Palette,
     Save,
@@ -37,7 +38,7 @@ import {
     tileControlWidth,
 } from '@/features/admin-worlds/hex-grid-geometry';
 import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
-import { resolveThemeVariant } from '@/features/world/theme';
+import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
@@ -86,10 +87,14 @@ type ThemeMode = 'dark' | 'light';
 
 type NodeVisualThemeFields = {
     foregroundColor: string;
+    foregroundOpacity: string;
     highlightColor: string;
+    highlightOpacity: string;
     imageUrl: string;
     labelColor: string;
+    labelOpacity: string;
     tileColor: string;
+    tileOpacity: string;
 };
 
 type MapVisualThemeFields = {
@@ -314,7 +319,7 @@ export default function EditWorldMap({
         router.patch(
             `/settings/worlds/maps/${map.id}`,
             {
-                background_config: mapVisualForm,
+                background_config: mapVisualPayload(mapVisualForm),
             },
             {
                 preserveScroll: true,
@@ -599,78 +604,12 @@ export default function EditWorldMap({
                     <DialogHeader>
                         <DialogTitle>Map visuals</DialogTitle>
                         <DialogDescription>
-                            Configure fallback, dark-mode and light-mode visuals
-                            for this map. Empty mode fields inherit the fallback
-                            value.
+                            Configure dark-mode defaults and optional light-mode
+                            overrides for this map.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-5">
-                        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                            <div>
-                                <h3 className="text-sm font-semibold">
-                                    Fallback visuals
-                                </h3>
-                                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                    These values are used unless dark or light
-                                    mode overrides them.
-                                </p>
-                            </div>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                {mapVisualFields.map((field) => (
-                                    <TextField
-                                        error={
-                                            mapVisualErrors[
-                                                `background_config.${field.key}`
-                                            ]
-                                        }
-                                        key={field.key}
-                                        label={field.label}
-                                        onChange={(value) =>
-                                            setMapVisualTextConfig(
-                                                setMapVisualForm,
-                                                field.key,
-                                                value,
-                                            )
-                                        }
-                                        value={mapVisualForm[field.key]}
-                                    />
-                                ))}
-                            </div>
-                            <NodeImageInput
-                                description="Fallback background image for this map."
-                                error={
-                                    imageUploadErrors.mapBase ||
-                                    mapVisualErrors[
-                                        'background_config.imageUrl'
-                                    ]
-                                }
-                                id="map-image-url"
-                                label="Fallback map image"
-                                onChange={(value) =>
-                                    setMapVisualTextConfig(
-                                        setMapVisualForm,
-                                        'imageUrl',
-                                        value,
-                                    )
-                                }
-                                onUpload={(file) =>
-                                    void uploadWorldImage(
-                                        'mapBase',
-                                        file,
-                                        (url) =>
-                                            setMapVisualTextConfig(
-                                                setMapVisualForm,
-                                                'imageUrl',
-                                                url,
-                                            ),
-                                    )
-                                }
-                                uploading={uploadingImageKey === 'mapBase'}
-                                value={mapVisualForm.imageUrl}
-                            />
-                        </div>
-
+                    <div className="grid gap-4">
                         <MapVisualModeFields
                             errors={mapVisualErrors}
                             imageError={imageUploadErrors.mapDark}
@@ -838,8 +777,32 @@ export default function EditWorldMap({
                                 }
                                 value={form.visual_config.label}
                             />
+                            <TextField
+                                error={errors['visual_config.tooltip']}
+                                label="Hover text"
+                                onChange={(value) =>
+                                    setVisualTextConfig(
+                                        setForm,
+                                        'tooltip',
+                                        value,
+                                    )
+                                }
+                                placeholder="Shown when learners hover the tile"
+                                value={form.visual_config.tooltip}
+                            />
 
                             <div className="grid gap-3">
+                                {form.state !== 'hidden' ? (
+                                    <CheckboxField
+                                        checked={form.state === 'locked'}
+                                        description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
+                                        id="lock-node"
+                                        label="Lock node for learners"
+                                        onCheckedChange={(checked) =>
+                                            setLockedState(setForm, checked)
+                                        }
+                                    />
+                                ) : null}
                                 <CheckboxField
                                     checked={form.visual_config.hideLabel}
                                     description="The title still appears in the side panel after the tile is selected."
@@ -855,7 +818,7 @@ export default function EditWorldMap({
                                 />
                                 <CheckboxField
                                     checked={form.visual_config.hideImage}
-                                    description="The configured dark and light images stay saved, but the world map shows the icon instead."
+                                    description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
                                     id="hide-image"
                                     label="Hide node image on world map"
                                     onCheckedChange={(checked) =>
@@ -998,10 +961,23 @@ function HexGridCell({
     const node = cell.occupiedNode;
     const visual = node ? resolveThemeVariant(node.visualConfig, mode) : {};
     const isEmptySpace = node?.state === 'hidden';
+    const isLocked = node?.state === 'locked';
     const imageUrl = typeof visual.imageUrl === 'string' ? visual.imageUrl : '';
     const hideImage = visual.hideImage === true;
     const hideLabel = visual.hideLabel === true;
     const hideEmptySpace = isEmptySpace && visual.hideEmptySpace !== false;
+    const tileColor =
+        withOpacity(
+            typeof visual.tileColor === 'string' ? visual.tileColor : '#253047',
+            visual.tileOpacity,
+        ) ?? '#253047';
+    const labelColor =
+        withOpacity(
+            typeof visual.labelColor === 'string'
+                ? visual.labelColor
+                : '#ffffff',
+            visual.labelOpacity,
+        ) ?? '#ffffff';
 
     return (
         <div
@@ -1032,16 +1008,10 @@ function HexGridCell({
                             onEdit(node);
                         }}
                         style={{
-                            background: isEmptySpace
-                                ? undefined
-                                : ((visual.tileColor as string | undefined) ??
-                                  '#253047'),
+                            background: isEmptySpace ? undefined : tileColor,
                             clipPath:
                                 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-                            color: isEmptySpace
-                                ? undefined
-                                : ((visual.labelColor as string | undefined) ??
-                                  '#ffffff'),
+                            color: isEmptySpace ? undefined : labelColor,
                         }}
                         type="button"
                     >
@@ -1065,6 +1035,17 @@ function HexGridCell({
                                         : 'Visible empty space'
                                     : ((visual.label as string | undefined) ??
                                       node.title)}
+                            </span>
+                        ) : null}
+                        {isLocked ? (
+                            <span
+                                className="pointer-events-none absolute inset-0 z-20 grid place-items-center"
+                                style={{
+                                    clipPath:
+                                        'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                                }}
+                            >
+                                <LockKeyhole className="size-10 text-slate-950/42 drop-shadow-[0_2px_10px_rgba(255,255,255,0.55)] dark:text-white/45 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]" />
                             </span>
                         ) : null}
                     </button>
@@ -1231,18 +1212,112 @@ function TextField({
     );
 }
 
+function ColorOpacityField({
+    colorError,
+    colorValue,
+    label,
+    onColorChange,
+    onOpacityChange,
+    opacityError,
+    opacityValue,
+}: {
+    colorError?: string;
+    colorValue: string;
+    label: string;
+    onColorChange: (value: string) => void;
+    onOpacityChange: (value: string) => void;
+    opacityError?: string;
+    opacityValue: string;
+}) {
+    const id = label.toLowerCase().replaceAll(' ', '-');
+    const colorPickerValue = isHexColor(colorValue) ? colorValue : '#000000';
+    const resolvedOpacity = opacityValue || '100';
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="grid gap-2 sm:grid-cols-[auto_1fr_7rem]">
+                <Input
+                    aria-label={`${label} picker`}
+                    className="h-9 w-12 cursor-pointer p-1"
+                    onChange={(event) =>
+                        onColorChange(event.currentTarget.value)
+                    }
+                    type="color"
+                    value={colorPickerValue}
+                />
+                <Input
+                    id={id}
+                    onChange={(event) =>
+                        onColorChange(event.currentTarget.value)
+                    }
+                    value={colorValue}
+                />
+                <div className="grid gap-1">
+                    <Label
+                        className="text-[0.68rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
+                        htmlFor={`${id}-opacity`}
+                    >
+                        Opacity %
+                    </Label>
+                    <Input
+                        id={`${id}-opacity`}
+                        max="100"
+                        min="0"
+                        onChange={(event) =>
+                            onOpacityChange(event.currentTarget.value)
+                        }
+                        type="number"
+                        value={resolvedOpacity}
+                    />
+                </div>
+            </div>
+            <Input
+                aria-label={`${label} opacity slider`}
+                max="100"
+                min="0"
+                onChange={(event) => onOpacityChange(event.currentTarget.value)}
+                type="range"
+                value={resolvedOpacity}
+            />
+            <InputError message={colorError || opacityError} />
+        </div>
+    );
+}
+
 function isHexColor(value: string): boolean {
     return /^#[0-9a-fA-F]{6}$/.test(value);
 }
 
+type NodeVisualColorKey =
+    | 'foregroundColor'
+    | 'highlightColor'
+    | 'labelColor'
+    | 'tileColor';
+
+type NodeVisualOpacityKey =
+    | 'foregroundOpacity'
+    | 'highlightOpacity'
+    | 'labelOpacity'
+    | 'tileOpacity';
+
 const nodeVisualFields: {
-    key: keyof Omit<NodeVisualThemeFields, 'imageUrl'>;
+    key: NodeVisualColorKey;
     label: string;
+    opacityKey: NodeVisualOpacityKey;
 }[] = [
-    { key: 'tileColor', label: 'Tile color' },
-    { key: 'foregroundColor', label: 'Icon/text color' },
-    { key: 'labelColor', label: 'Label color' },
-    { key: 'highlightColor', label: 'Highlight color' },
+    { key: 'tileColor', label: 'Tile color', opacityKey: 'tileOpacity' },
+    {
+        key: 'foregroundColor',
+        label: 'Icon/text color',
+        opacityKey: 'foregroundOpacity',
+    },
+    { key: 'labelColor', label: 'Label color', opacityKey: 'labelOpacity' },
+    {
+        key: 'highlightColor',
+        label: 'Highlight color',
+        opacityKey: 'highlightOpacity',
+    },
 ];
 
 const mapVisualFields: {
@@ -1290,12 +1365,14 @@ function NodeVisualModeFields({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
                 {nodeVisualFields.map((field) => (
-                    <TextField
-                        colorPicker
-                        error={errors[`visual_config.${mode}.${field.key}`]}
+                    <ColorOpacityField
+                        colorError={
+                            errors[`visual_config.${mode}.${field.key}`]
+                        }
+                        colorValue={values[field.key]}
                         key={field.key}
                         label={`${labelPrefix} ${field.label}`}
-                        onChange={(value) =>
+                        onColorChange={(value) =>
                             setVisualThemeTextConfig(
                                 setForm,
                                 mode,
@@ -1303,7 +1380,18 @@ function NodeVisualModeFields({
                                 value,
                             )
                         }
-                        value={values[field.key]}
+                        onOpacityChange={(value) =>
+                            setVisualThemeTextConfig(
+                                setForm,
+                                mode,
+                                field.opacityKey,
+                                value,
+                            )
+                        }
+                        opacityError={
+                            errors[`visual_config.${mode}.${field.opacityKey}`]
+                        }
+                        opacityValue={values[field.opacityKey]}
                     />
                 ))}
             </div>
@@ -1324,6 +1412,7 @@ function NodeVisualModeFields({
 }
 
 function MapVisualModeFields({
+    defaultOpen = false,
     errors,
     imageError,
     mode,
@@ -1332,6 +1421,7 @@ function MapVisualModeFields({
     uploadingImage,
     values,
 }: {
+    defaultOpen?: boolean;
     errors: Record<string, string>;
     imageError?: string;
     mode: ThemeMode;
@@ -1341,15 +1431,17 @@ function MapVisualModeFields({
     values: MapVisualThemeFields;
 }) {
     const labelPrefix = mode === 'dark' ? 'Dark mode' : 'Light mode';
+    const description =
+        mode === 'dark'
+            ? 'These values are the default map visuals.'
+            : 'Empty fields inherit the dark-mode defaults.';
 
     return (
-        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-            <div>
-                <h3 className="text-sm font-semibold">{labelPrefix}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    Empty fields inherit the fallback map visual values.
-                </p>
-            </div>
+        <SettingsAccordionSection
+            defaultOpen={defaultOpen}
+            description={description}
+            title={`${labelPrefix} visuals`}
+        >
             <div className="grid gap-3 sm:grid-cols-2">
                 {mapVisualFields.map((field) => (
                     <TextField
@@ -1387,7 +1479,7 @@ function MapVisualModeFields({
                 uploading={uploadingImage}
                 value={values.imageUrl}
             />
-        </div>
+        </SettingsAccordionSection>
     );
 }
 
@@ -1557,14 +1649,13 @@ function setVisualBooleanConfig(
     }));
 }
 
-function setMapVisualTextConfig(
-    setForm: Dispatch<SetStateAction<MapVisualForm>>,
-    key: keyof MapVisualThemeFields,
-    value: string,
+function setLockedState(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    locked: boolean,
 ) {
     setForm((current) => ({
         ...current,
-        [key]: value,
+        state: locked ? 'locked' : 'available',
     }));
 }
 
@@ -1587,29 +1678,41 @@ function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
     if (mode === 'light') {
         return {
             foregroundColor: '#1d4ed8',
+            foregroundOpacity: '100',
             highlightColor: '#2563eb',
+            highlightOpacity: '100',
             imageUrl: '',
             labelColor: '#0f172a',
+            labelOpacity: '100',
             tileColor: '#dbeafe',
+            tileOpacity: '100',
         };
     }
 
     return {
         foregroundColor: '#bfdbfe',
+        foregroundOpacity: '100',
         highlightColor: '#7dd3fc',
+        highlightOpacity: '100',
         imageUrl: '',
         labelColor: '#ffffff',
+        labelOpacity: '100',
         tileColor: '#253047',
+        tileOpacity: '100',
     };
 }
 
 function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
     return {
         foregroundColor: '',
+        foregroundOpacity: '',
         highlightColor: '',
+        highlightOpacity: '',
         imageUrl: '',
         labelColor: '',
+        labelOpacity: '',
         tileColor: '',
+        tileOpacity: '',
     };
 }
 
@@ -1674,10 +1777,14 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
         visual_config: {
             dark: {
                 foregroundColor: '#94a3b8',
+                foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
+                highlightOpacity: '100',
                 imageUrl: '',
                 labelColor: '#64748b',
+                labelOpacity: '100',
                 tileColor: '#f8fafc',
+                tileOpacity: '100',
             },
             label: '',
             hideEmptySpace: true,
@@ -1685,10 +1792,14 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
             hideLabel: true,
             light: {
                 foregroundColor: '#94a3b8',
+                foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
+                highlightOpacity: '100',
                 imageUrl: '',
                 labelColor: '#64748b',
+                labelOpacity: '100',
                 tileColor: '#f8fafc',
+                tileOpacity: '100',
             },
             tooltip: 'Empty editor-only space.',
         },
@@ -1709,16 +1820,29 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
                     node.visualConfig.foregroundColor,
                     '#bfdbfe',
                 ),
+                foregroundOpacity: stringConfig(
+                    node.visualConfig.foregroundOpacity,
+                    '100',
+                ),
                 highlightColor: stringConfig(
                     node.visualConfig.highlightColor,
                     '#7dd3fc',
+                ),
+                highlightOpacity: stringConfig(
+                    node.visualConfig.highlightOpacity,
+                    '100',
                 ),
                 imageUrl: stringConfig(node.visualConfig.imageUrl, ''),
                 labelColor: stringConfig(
                     node.visualConfig.labelColor,
                     '#ffffff',
                 ),
+                labelOpacity: stringConfig(
+                    node.visualConfig.labelOpacity,
+                    '100',
+                ),
                 tileColor: stringConfig(node.visualConfig.tileColor, '#253047'),
+                tileOpacity: stringConfig(node.visualConfig.tileOpacity, '100'),
             }),
             label: stringConfig(node.visualConfig.label, node.title),
             hideEmptySpace: booleanConfig(
@@ -1737,10 +1861,21 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
 }
 
 function mapVisualFormFromConfig(config: MapVisualConfig): MapVisualForm {
+    const legacyFallback = mapVisualThemeFieldsFromConfig(config);
+    const dark = mapVisualThemeFieldsFromConfig(config.dark, legacyFallback);
+
     return {
-        ...mapVisualThemeFieldsFromConfig(config),
-        dark: mapVisualThemeFieldsFromConfig(config.dark),
+        ...dark,
+        dark,
         light: mapVisualThemeFieldsFromConfig(config.light),
+    };
+}
+
+function mapVisualPayload(form: MapVisualForm): MapVisualForm {
+    return {
+        ...form.dark,
+        dark: form.dark,
+        light: form.light,
     };
 }
 
@@ -1755,35 +1890,73 @@ function nodeVisualThemeFieldsFromConfig(
             themeConfig.foregroundColor,
             fallback.foregroundColor,
         ),
+        foregroundOpacity: stringConfig(
+            themeConfig.foregroundOpacity,
+            fallback.foregroundOpacity,
+        ),
         highlightColor: stringConfig(
             themeConfig.highlightColor,
             fallback.highlightColor,
         ),
+        highlightOpacity: stringConfig(
+            themeConfig.highlightOpacity,
+            fallback.highlightOpacity,
+        ),
         imageUrl: stringConfig(themeConfig.imageUrl, fallback.imageUrl),
         labelColor: stringConfig(themeConfig.labelColor, fallback.labelColor),
+        labelOpacity: stringConfig(
+            themeConfig.labelOpacity,
+            fallback.labelOpacity,
+        ),
         tileColor: stringConfig(themeConfig.tileColor, fallback.tileColor),
+        tileOpacity: stringConfig(
+            themeConfig.tileOpacity,
+            fallback.tileOpacity,
+        ),
     };
 }
 
 function mapVisualThemeFieldsFromConfig(
     config: Partial<MapVisualThemeFields> | undefined,
+    fallback: MapVisualThemeFields = emptyMapVisualThemeFields(),
 ): MapVisualThemeFields {
     return {
-        ...emptyMapVisualThemeFields(),
-        accentColor: stringConfig(config?.accentColor, ''),
-        imageUrl: stringConfig(config?.imageUrl, ''),
-        overlay: stringConfig(config?.overlay, ''),
-        pageBackground: stringConfig(config?.pageBackground, ''),
-        panelBackground: stringConfig(config?.panelBackground, ''),
-        panelMutedTextColor: stringConfig(config?.panelMutedTextColor, ''),
-        panelTextColor: stringConfig(config?.panelTextColor, ''),
-        sidePanelBackground: stringConfig(config?.sidePanelBackground, ''),
-        sidePanelBorderColor: stringConfig(config?.sidePanelBorderColor, ''),
+        ...fallback,
+        accentColor: stringConfig(config?.accentColor, fallback.accentColor),
+        imageUrl: stringConfig(config?.imageUrl, fallback.imageUrl),
+        overlay: stringConfig(config?.overlay, fallback.overlay),
+        pageBackground: stringConfig(
+            config?.pageBackground,
+            fallback.pageBackground,
+        ),
+        panelBackground: stringConfig(
+            config?.panelBackground,
+            fallback.panelBackground,
+        ),
+        panelMutedTextColor: stringConfig(
+            config?.panelMutedTextColor,
+            fallback.panelMutedTextColor,
+        ),
+        panelTextColor: stringConfig(
+            config?.panelTextColor,
+            fallback.panelTextColor,
+        ),
+        sidePanelBackground: stringConfig(
+            config?.sidePanelBackground,
+            fallback.sidePanelBackground,
+        ),
+        sidePanelBorderColor: stringConfig(
+            config?.sidePanelBorderColor,
+            fallback.sidePanelBorderColor,
+        ),
         sidePanelMutedTextColor: stringConfig(
             config?.sidePanelMutedTextColor,
-            '',
+            fallback.sidePanelMutedTextColor,
         ),
-        sidePanelTextColor: stringConfig(config?.sidePanelTextColor, ''),
+        sidePanelTextColor: stringConfig(
+            config?.sidePanelTextColor,
+            fallback.sidePanelTextColor,
+        ),
     };
 }
 

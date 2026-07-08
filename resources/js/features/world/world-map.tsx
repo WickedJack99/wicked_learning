@@ -14,6 +14,7 @@ import {
     HEX_TILE_CLIP_PATH,
     normalizeCursorValue,
     resolveThemeVariant,
+    withOpacity,
 } from './theme';
 import type { ResolvedAppearance, TileStyle } from './types';
 
@@ -315,8 +316,16 @@ const HexTile = memo(function HexTile({
 }) {
     const visualConfig = resolveThemeVariant(node.visualConfig, mode);
     const Icon = nodeIcons[visualConfig.icon ?? ''] ?? RadioTower;
-    const highlight = visualConfig.highlightColor ?? '#7dd3fc';
-    const tileColor = visualConfig.tileColor ?? '#12343b';
+    const highlight =
+        withOpacity(
+            visualConfig.highlightColor ?? '#7dd3fc',
+            visualConfig.highlightOpacity,
+        ) ?? '#7dd3fc';
+    const tileColor =
+        withOpacity(
+            visualConfig.tileColor ?? '#12343b',
+            visualConfig.tileOpacity,
+        ) ?? '#12343b';
     const isLocked = node.state === 'locked';
     const isHiddenSpace = node.state === 'hidden';
     const hideEmptySpace =
@@ -326,6 +335,7 @@ const HexTile = memo(function HexTile({
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const visibleImageUrl =
         !hideImage && imageUrl && failedImageUrl !== imageUrl ? imageUrl : '';
+    const showFallbackIcon = !hideImage && !visibleImageUrl;
     const canInteract =
         node.state !== 'hidden' && (allowLockedSelection || !isLocked);
     const resolvedTileCursor = canInteract ? tileCursor : 'default';
@@ -348,7 +358,6 @@ const HexTile = memo(function HexTile({
                 'group absolute isolate flex items-center justify-center overflow-hidden text-left transition-transform duration-200 focus-visible:z-20 focus-visible:outline-none',
                 canInteract && 'hover:z-20 hover:-translate-y-1',
                 isSelected && canInteract && 'z-10 -translate-y-1',
-                isLocked && 'opacity-72',
                 isHiddenSpace && 'opacity-45',
                 hideEmptySpace && 'invisible',
             )}
@@ -419,9 +428,13 @@ const HexTile = memo(function HexTile({
                     style={{ cursor: resolvedTileCursor }}
                 >
                     <Icon
-                        className={cn('size-7', visibleImageUrl && 'hidden')}
+                        className={cn('size-7', !showFallbackIcon && 'hidden')}
                         style={{
-                            color: visualConfig.foregroundColor ?? '#ccfbf1',
+                            color:
+                                withOpacity(
+                                    visualConfig.foregroundColor ?? '#ccfbf1',
+                                    visualConfig.foregroundOpacity,
+                                ) ?? '#ccfbf1',
                             cursor: resolvedTileCursor,
                         }}
                     />
@@ -433,7 +446,11 @@ const HexTile = memo(function HexTile({
                     <span
                         className="text-xs leading-tight font-medium"
                         style={{
-                            color: visualConfig.labelColor ?? '#ffffff',
+                            color:
+                                withOpacity(
+                                    visualConfig.labelColor ?? '#ffffff',
+                                    visualConfig.labelOpacity,
+                                ) ?? '#ffffff',
                             cursor: resolvedTileCursor,
                         }}
                     >
@@ -443,11 +460,13 @@ const HexTile = memo(function HexTile({
             </span>
             {isLocked ? (
                 <span
-                    className="pointer-events-none absolute inset-0 bg-black/32"
+                    className="pointer-events-none absolute inset-0 z-20 grid place-items-center"
                     style={{
                         clipPath: HEX_TILE_CLIP_PATH,
                     }}
-                />
+                >
+                    <LockKeyhole className="size-11 text-slate-950/42 drop-shadow-[0_2px_10px_rgba(255,255,255,0.55)] dark:text-white/45 dark:drop-shadow-[0_2px_10px_rgba(0,0,0,0.55)]" />
+                </span>
             ) : null}
         </button>
     );

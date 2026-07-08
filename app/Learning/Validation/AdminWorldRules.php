@@ -169,6 +169,10 @@ class AdminWorldRules
             $rules["visual_config.{$mode}.labelColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.highlightColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.imageUrl"] = ['nullable', 'string', 'max:2048'];
+
+            foreach (['tileOpacity', 'foregroundOpacity', 'labelOpacity', 'highlightOpacity'] as $field) {
+                $rules["visual_config.{$mode}.{$field}"] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            }
         }
 
         return $rules;
