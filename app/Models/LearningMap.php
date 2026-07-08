@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
+/**
+ * @property array<string, mixed>|null $background_config
+ * @property array<string, mixed>|null $grid_config
+ */
 #[Fillable([
     'learning_world_id',
     'slug',

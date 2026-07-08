@@ -17,10 +17,13 @@ class HandleAppearance
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $browserAppearance = $request->cookie('appearance');
+        $browserAppearance = is_string($browserAppearance) ? $browserAppearance : null;
+
         $appearance = $request->user()
             ? Appearance::forAuthenticatedUser(
                 $request->user()->preference?->appearance,
-                $request->cookie('appearance'),
+                $browserAppearance,
             )
             : Appearance::forGuest();
 
