@@ -110,7 +110,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
         <>
             <Head title={`${node.title} activities`} />
             <main
-                className="flex min-h-svh flex-col bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
+                className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
             >
                 <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-950/80">
@@ -128,7 +128,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                     </div>
                 </header>
 
-                <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col p-4 md:p-6">
+                <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-28">
                     {activeActivity ? (
                         <ActivityPlayer
                             activity={activeActivity}
