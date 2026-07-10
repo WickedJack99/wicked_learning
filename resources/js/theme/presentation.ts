@@ -12,6 +12,13 @@ type BackgroundImageSettings = {
     light?: string | null;
 };
 
+export type CursorImageSettings = {
+    fallback?: string | null;
+    hotspotX?: number | null;
+    hotspotY?: number | null;
+    image?: string | null;
+};
+
 export type PublicPresentationSettings = {
     auth: {
         backgroundImages: {
@@ -19,6 +26,11 @@ export type PublicPresentationSettings = {
             register: BackgroundImageSettings;
             welcome: BackgroundImageSettings;
         };
+    };
+    cursors: {
+        action: CursorImageSettings;
+        default: CursorImageSettings;
+        grab: CursorImageSettings;
     };
     welcome: {
         pages: WelcomePageSettings[];

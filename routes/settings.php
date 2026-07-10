@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PlatformInfoPageController;
+use App\Http\Controllers\Settings\AdminAccessController;
 use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminNpcDialogueController;
@@ -48,24 +49,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('settings.registration-tokens.store');
 });
 
-Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
+Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::get('settings/worlds', [AdminWorldController::class, 'index'])
         ->name('settings.worlds.index');
-
-    Route::get('settings/assets', [AdminAssetController::class, 'index'])
-        ->name('settings.assets.index');
-
-    Route::get('settings/assets/tools', [AdminAssetController::class, 'tools'])
-        ->name('settings.assets.tools');
-
-    Route::post('settings/assets/tools', [AdminAssetController::class, 'storeTool'])
-        ->name('settings.assets.tools.store');
-
-    Route::patch('settings/assets/tools/{tool}', [AdminAssetController::class, 'updateTool'])
-        ->name('settings.assets.tools.update');
-
-    Route::post('settings/assets/tool-media', [AdminAssetController::class, 'uploadToolMedia'])
-        ->name('settings.assets.tool-media.store');
 
     Route::post('settings/worlds/maps', [AdminWorldController::class, 'storeMap'])
         ->name('settings.worlds.maps.store');
@@ -144,7 +130,65 @@ Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
 
     Route::delete('settings/worlds/activity-transitions/{transition}', [AdminActivityController::class, 'destroyTransition'])
         ->name('settings.worlds.activity-transitions.destroy');
+});
 
+Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {
+    Route::get('settings/assets', [AdminAssetController::class, 'index'])
+        ->name('settings.assets.index');
+
+    Route::get('settings/assets/tools', [AdminAssetController::class, 'tools'])
+        ->name('settings.assets.tools');
+
+    Route::get('settings/assets/media', [AdminAssetController::class, 'media'])
+        ->name('settings.assets.media');
+
+    Route::get('settings/assets/reusable-images', [AdminAssetController::class, 'reusableImages'])
+        ->name('settings.assets.reusable-images');
+
+    Route::post('settings/assets/tools', [AdminAssetController::class, 'storeTool'])
+        ->name('settings.assets.tools.store');
+
+    Route::patch('settings/assets/tools/{tool}', [AdminAssetController::class, 'updateTool'])
+        ->name('settings.assets.tools.update');
+
+    Route::post('settings/assets/tool-media', [AdminAssetController::class, 'uploadToolMedia'])
+        ->name('settings.assets.tool-media.store');
+
+    Route::post('settings/assets/media', [AdminAssetController::class, 'storeMedia'])
+        ->name('settings.assets.media.store');
+
+    Route::post('settings/assets/media/replace', [AdminAssetController::class, 'replaceMedia'])
+        ->name('settings.assets.media.replace');
+
+    Route::delete('settings/assets/media', [AdminAssetController::class, 'destroyMedia'])
+        ->name('settings.assets.media.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'can:sounds.ro'])->group(function () {
+    Route::get('settings/assets/sounds', [AdminAssetController::class, 'sounds'])
+        ->name('settings.assets.sounds');
+
+    Route::get('settings/assets/reusable-sounds', [AdminAssetController::class, 'reusableSounds'])
+        ->name('settings.assets.reusable-sounds');
+});
+
+Route::middleware(['auth', 'verified', 'can:sounds.ru'])->group(function () {
+    Route::post('settings/assets/sounds', [AdminAssetController::class, 'storeSound'])
+        ->name('settings.assets.sounds.store');
+
+    Route::patch('settings/assets/sounds/{sound}', [AdminAssetController::class, 'updateSound'])
+        ->name('settings.assets.sounds.update');
+
+    Route::post('settings/assets/sound-media', [AdminAssetController::class, 'uploadSoundMedia'])
+        ->name('settings.assets.sound-media.store');
+});
+
+Route::middleware(['auth', 'verified', 'can:sounds.rud'])->group(function () {
+    Route::delete('settings/assets/sounds/{sound}', [AdminAssetController::class, 'destroySound'])
+        ->name('settings.assets.sounds.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'can:presentation.ru'])->group(function () {
     Route::patch('settings/presentation', [PresentationController::class, 'update'])
         ->name('settings.presentation.update');
 
@@ -153,12 +197,29 @@ Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
 
     Route::patch('settings/info-pages/{page}', [PlatformInfoPageController::class, 'update'])
         ->name('settings.info-pages.update');
+});
 
+Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
     Route::patch('settings/admin/users/{user}/access', [AdminUserController::class, 'updateAccess'])
         ->name('settings.admin.users.access.update');
+});
 
+Route::middleware(['auth', 'verified', 'can:users.rud'])->group(function () {
     Route::delete('settings/admin/users/{user}', [AdminUserController::class, 'destroy'])
         ->name('settings.admin.users.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'can:roles.ru'])->group(function () {
+    Route::post('settings/admin/roles', [AdminAccessController::class, 'storeRole'])
+        ->name('settings.admin.roles.store');
+
+    Route::patch('settings/admin/roles/{role}', [AdminAccessController::class, 'updateRole'])
+        ->name('settings.admin.roles.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:roles.rud'])->group(function () {
+    Route::delete('settings/admin/roles/{role}', [AdminAccessController::class, 'destroyRole'])
+        ->name('settings.admin.roles.destroy');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {

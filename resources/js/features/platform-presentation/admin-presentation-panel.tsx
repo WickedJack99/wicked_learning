@@ -3,6 +3,8 @@ import {
     Download,
     FileText,
     Image,
+    Images,
+    MousePointer2,
     Plus,
     Save,
     Trash2,
@@ -10,12 +12,14 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { platformInfoPages } from '@/features/platform-info/content';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
 import type {
+    CursorImageSettings,
     PublicPresentationSettings,
     WelcomePageSettings,
 } from '@/theme/presentation';
@@ -39,6 +43,7 @@ type Props = {
 };
 
 type AuthBackgroundPage = 'login' | 'register' | 'welcome';
+type CursorKey = 'action' | 'default' | 'grab';
 type ThemeMode = 'dark' | 'light';
 
 const authBackgroundPages: Array<{
@@ -67,6 +72,28 @@ const infoPageKeys: PlatformInfoPageKey[] = [
     'about',
     'imprint',
     'data-protection',
+];
+
+const cursorOptions: Array<{
+    description: string;
+    key: CursorKey;
+    label: string;
+}> = [
+    {
+        key: 'default',
+        label: 'Normal cursor',
+        description: 'Used on passive surfaces and normal map areas.',
+    },
+    {
+        key: 'action',
+        label: 'Action pointer',
+        description: 'Used on buttons, links and other clickable controls.',
+    },
+    {
+        key: 'grab',
+        label: 'Grab cursor',
+        description: 'Used while dragging maps and graph surfaces.',
+    },
 ];
 
 const blankWelcomePage: WelcomePageSettings = {
@@ -138,12 +165,47 @@ export function AdminPresentationPanel({
         }));
     };
 
+    const updateCursor = (
+        key: CursorKey,
+        field: keyof CursorImageSettings,
+        value: number | string,
+    ) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            cursors: {
+                ...current.cursors,
+                [key]: {
+                    ...current.cursors[key],
+                    [field]: value,
+                },
+            },
+        }));
+    };
+
+    const uploadCursorImage = async (key: CursorKey, file: File) => {
+        const fieldKey = `cursor.${key}`;
+
+        await uploadPresentationImage(fieldKey, file, (url) =>
+            updateCursor(key, 'image', url),
+        );
+    };
+
     const uploadBackgroundImage = async (
         page: AuthBackgroundPage,
         mode: ThemeMode,
         file: File,
     ) => {
         const fieldKey = `${page}.${mode}`;
+        await uploadPresentationImage(fieldKey, file, (url) =>
+            updateBackgroundImage(page, mode, url),
+        );
+    };
+
+    const uploadPresentationImage = async (
+        fieldKey: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => {
         const formData = new FormData();
         const csrfToken = document
             .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
@@ -184,7 +246,7 @@ export function AdminPresentationPanel({
                 return;
             }
 
-            updateBackgroundImage(page, mode, payload.url);
+            onUploaded(payload.url);
         } catch {
             setUploadErrors((current) => ({
                 ...current,
@@ -363,6 +425,40 @@ export function AdminPresentationPanel({
                                 />
                             </div>
                         </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className="mt-5 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <div className="mb-4">
+                    <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                        <MousePointer2 className="size-4 text-cyan-700 dark:text-teal-200" />
+                        Cursor images
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Configure the platform cursor set. Tool cursors still
+                        override these while a learner equips a tool.
+                    </p>
+                </div>
+                <div className="grid gap-4">
+                    {cursorOptions.map((cursor) => (
+                        <CursorImageInput
+                            cursor={presentationDraft.cursors[cursor.key]}
+                            description={cursor.description}
+                            errorPrefix={`cursors.${cursor.key}`}
+                            errors={presentationErrors}
+                            key={cursor.key}
+                            label={cursor.label}
+                            onChange={(field, value) =>
+                                updateCursor(cursor.key, field, value)
+                            }
+                            onUpload={(file) =>
+                                void uploadCursorImage(cursor.key, file)
+                            }
+                            uploading={
+                                uploadingImage === `cursor.${cursor.key}`
+                            }
+                        />
                     ))}
                 </div>
             </section>
@@ -573,6 +669,7 @@ function BackgroundInput({
     value: string;
 }) {
     const uploadId = `${fieldId}-upload`;
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
 
     return (
         <div className="grid gap-2">
@@ -607,12 +704,107 @@ function BackgroundInput({
                     }}
                     type="file"
                 />
+                <Button
+                    onClick={() => setIsPickerOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                >
+                    <Images className="size-4" />
+                    Select existing
+                </Button>
                 <Button asChild disabled={!value} size="sm" variant="ghost">
                     <a download href={value || '#'} rel="noreferrer">
                         <Download className="size-4" />
                         Download
                     </a>
                 </Button>
+            </div>
+            {isPickerOpen ? (
+                <ReusableImagePicker
+                    currentValue={value}
+                    onClear={() => {
+                        onChange('');
+                        setIsPickerOpen(false);
+                    }}
+                    onClose={() => setIsPickerOpen(false)}
+                    onSelect={(url) => {
+                        onChange(url);
+                        setIsPickerOpen(false);
+                    }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function CursorImageInput({
+    cursor,
+    description,
+    errorPrefix,
+    errors,
+    label,
+    onChange,
+    onUpload,
+    uploading,
+}: {
+    cursor: CursorImageSettings;
+    description: string;
+    errorPrefix: string;
+    errors: Record<string, string>;
+    label: string;
+    onChange: (
+        field: keyof CursorImageSettings,
+        value: number | string,
+    ) => void;
+    onUpload: (file: File) => void;
+    uploading: boolean;
+}) {
+    const inputId = label.toLowerCase().replaceAll(' ', '-');
+
+    return (
+        <div className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-medium text-slate-950 dark:text-white">
+                    {label}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {description}
+                </p>
+            </div>
+            <BackgroundInput
+                error={errors[`${errorPrefix}.image`]}
+                fieldId={`${inputId}-image`}
+                label="Image"
+                onChange={(value) => onChange('image', value)}
+                onUpload={onUpload}
+                placeholder="/images/cursors/example.svg"
+                uploading={uploading}
+                value={cursor.image ?? ''}
+            />
+            <div className="grid gap-3 md:grid-cols-3">
+                <TextInput
+                    error={errors[`${errorPrefix}.hotspotX`]}
+                    label="Hotspot X"
+                    onChange={(value) =>
+                        onChange('hotspotX', Number.parseInt(value, 10) || 0)
+                    }
+                    value={(cursor.hotspotX ?? 0).toString()}
+                />
+                <TextInput
+                    error={errors[`${errorPrefix}.hotspotY`]}
+                    label="Hotspot Y"
+                    onChange={(value) =>
+                        onChange('hotspotY', Number.parseInt(value, 10) || 0)
+                    }
+                    value={(cursor.hotspotY ?? 0).toString()}
+                />
+                <TextInput
+                    error={errors[`${errorPrefix}.fallback`]}
+                    label="Fallback"
+                    onChange={(value) => onChange('fallback', value)}
+                    value={cursor.fallback ?? ''}
+                />
             </div>
         </div>
     );

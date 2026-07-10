@@ -2,7 +2,7 @@
     "auth": {
         "default": {
             "backgroundColor": "#07111f",
-            "backgroundImage": "/images/themes/cyber-map-background.svg",
+            "backgroundImage": "",
             "backgroundOverlay": "linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))",
             "panelBackground": "rgba(7, 17, 31, 0.82)",
             "borderLineColor": "rgba(94, 234, 212, 0.24)",
@@ -39,13 +39,13 @@
         },
         "pages": {
             "login": {
-                "backgroundImage": "/images/themes/mentor-calm.svg"
+                "backgroundImage": ""
             },
             "register": {
-                "backgroundImage": "/images/themes/mentor-hint.svg"
+                "backgroundImage": ""
             },
             "welcome": {
-                "backgroundImage": "/images/themes/cyber-map-background.svg",
+                "backgroundImage": "",
                 "panelBackground": "transparent",
                 "borderLineColor": "transparent"
             }

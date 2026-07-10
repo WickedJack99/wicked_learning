@@ -51,8 +51,8 @@ export default function AdminAssetsIndex() {
                         </h1>
                     </header>
 
-                    <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                        <div className="grid gap-3 md:grid-cols-3">
+                    <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+                        <div className="flex h-full flex-col gap-3 overflow-y-auto p-4">
                             {sections.map((section) => (
                                 <AssetSectionButton
                                     key={section.label}

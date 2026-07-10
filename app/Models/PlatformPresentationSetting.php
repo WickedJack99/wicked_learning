@@ -75,17 +75,37 @@ class PlatformPresentationSetting extends Model
             'auth' => [
                 'backgroundImages' => [
                     'login' => [
-                        'dark' => '/images/themes/mentor-calm.svg',
+                        'dark' => '',
                         'light' => '',
                     ],
                     'register' => [
-                        'dark' => '/images/themes/mentor-hint.svg',
+                        'dark' => '',
                         'light' => '',
                     ],
                     'welcome' => [
-                        'dark' => '/images/themes/cyber-map-background.svg',
+                        'dark' => '',
                         'light' => '',
                     ],
+                ],
+            ],
+            'cursors' => [
+                'default' => [
+                    'image' => '/images/cursors/cyber-cursor.svg',
+                    'hotspotX' => 4,
+                    'hotspotY' => 4,
+                    'fallback' => 'default',
+                ],
+                'action' => [
+                    'image' => '/images/cursors/cyber-pointer.svg',
+                    'hotspotX' => 12,
+                    'hotspotY' => 4,
+                    'fallback' => 'pointer',
+                ],
+                'grab' => [
+                    'image' => '/images/cursors/cyber-hand.svg',
+                    'hotspotX' => 12,
+                    'hotspotY' => 10,
+                    'fallback' => 'grab',
                 ],
             ],
             'welcome' => [

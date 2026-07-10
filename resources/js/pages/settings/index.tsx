@@ -10,9 +10,9 @@ import {
     Info,
     KeyRound,
     Map,
+    Music,
     Plus,
     Shield,
-    SlidersHorizontal,
     Trash2,
     User,
     Users,
@@ -39,7 +39,7 @@ import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { User as AuthUser } from '@/types';
 
 type SettingsPanelKey =
-    | 'admin-defaults'
+    | 'admin-access'
     | 'admin-presentation'
     | 'admin-users'
     | 'admin-world'
@@ -54,7 +54,31 @@ type UserReference = {
     name: string;
 };
 
-type UserRole = 'admin' | 'user';
+type UserRole = string;
+
+type PermissionLevel = 'none' | 'ro' | 'ru' | 'rud';
+
+type AccessCapability = {
+    delete: boolean;
+    read: boolean;
+    update: boolean;
+};
+
+type PermissionResource = {
+    description: string;
+    key: string;
+    label: string;
+};
+
+type AccessRoleSummary = {
+    description: string | null;
+    id: number;
+    is_system: boolean;
+    level: number;
+    name: string;
+    permissions: Record<string, PermissionLevel>;
+    slug: string;
+};
 
 type RegistrationTokenSummary = {
     created_at: string | null;
@@ -84,13 +108,17 @@ type AdminUser = {
 };
 
 type SettingsIndexProps = {
+    accessCapabilities: Record<string, AccessCapability>;
+    adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
+    canAccessAdministration: boolean;
     canManageUsers: boolean;
     createdRegistrationToken?: string | null;
     platformInfoPages: Partial<
         Record<PlatformInfoPageKey, PlatformInfoContent>
     >;
+    permissionResources: PermissionResource[];
     publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
 };
@@ -108,6 +136,14 @@ type AccessFormState = {
     roles: UserRole[];
 };
 
+type RoleFormState = {
+    description: string;
+    level: string;
+    name: string;
+    permissions: Record<string, PermissionLevel>;
+    slug: string;
+};
+
 type SettingsListItem = {
     description: string;
     href?: string;
@@ -115,6 +151,7 @@ type SettingsListItem = {
     key: string;
     label: string;
     panel?: SettingsPanelKey;
+    resources?: string[];
 };
 
 const personalSettings: SettingsListItem[] = [
@@ -161,6 +198,7 @@ const adminSettings: SettingsListItem[] = [
         description: 'Maps, nodes, activities and portal links.',
         icon: Map,
         href: '/settings/worlds',
+        resources: ['worlds'],
     },
     {
         key: 'admin-assets',
@@ -168,24 +206,37 @@ const adminSettings: SettingsListItem[] = [
         description: 'Reusable capabilities and future inventory concepts.',
         icon: Database,
         href: '/settings/assets',
+        resources: ['assets'],
     },
     {
-        key: 'admin-users',
-        label: 'Users',
-        description: 'Registration tokens, roles and account access.',
-        icon: Users,
+        key: 'admin-access',
+        label: 'Access management',
+        description: 'Users, roles and permissions.',
+        icon: Shield,
+        resources: ['users', 'roles'],
     },
     {
         key: 'admin-presentation',
         label: 'Public presentation',
         description: 'Welcome, auth backgrounds and public information pages.',
         icon: Image,
+        resources: ['presentation'],
     },
     {
-        key: 'admin-defaults',
-        label: 'Defaults',
-        description: 'Theme, learning policy and platform defaults.',
-        icon: SlidersHorizontal,
+        key: 'admin-visuals',
+        label: 'Visuals',
+        description: 'Reusable images, backgrounds and animations.',
+        icon: Image,
+        href: '/settings/assets/media',
+        resources: ['assets'],
+    },
+    {
+        key: 'admin-sounds',
+        label: 'Sounds',
+        description: 'Reusable music, ambience, voices and sound effects.',
+        icon: Music,
+        href: '/settings/assets/sounds',
+        resources: ['sounds'],
     },
 ] satisfies SettingsListItem[];
 
@@ -222,14 +273,14 @@ const panelContent: Partial<
         title: 'Public presentation',
         body: 'Admin controls for public-facing content and authentication visuals.',
     },
-    'admin-defaults': {
-        title: 'Defaults',
-        body: 'Platform defaults can define theme assets, hover colors, map behavior and learning-design policies.',
+    'admin-access': {
+        title: 'Access management',
+        body: 'Manage users and configurable access roles.',
     },
 };
 
 const settingsPanelKeys: SettingsPanelKey[] = [
-    'admin-defaults',
+    'admin-access',
     'admin-presentation',
     'admin-users',
     'admin-world',
@@ -245,19 +296,24 @@ function isSettingsPanelKey(value: string | null): value is SettingsPanelKey {
 
 function canOpenPanel(
     panel: SettingsPanelKey,
-    canManageUsers: boolean,
+    canAccessAdministration: boolean,
 ): boolean {
-    return canManageUsers || !panel.startsWith('admin-');
+    return canAccessAdministration || !panel.startsWith('admin-');
 }
 
-function readPanelFromUrl(canManageUsers: boolean): SettingsPanelKey | null {
+function readPanelFromUrl(
+    canAccessAdministration: boolean,
+): SettingsPanelKey | null {
     if (typeof window === 'undefined') {
         return null;
     }
 
     const panel = new URL(window.location.href).searchParams.get('panel');
 
-    if (!isSettingsPanelKey(panel) || !canOpenPanel(panel, canManageUsers)) {
+    if (
+        !isSettingsPanelKey(panel) ||
+        !canOpenPanel(panel, canAccessAdministration)
+    ) {
         return null;
     }
 
@@ -281,16 +337,19 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
 }
 
 export default function SettingsIndex({
+    accessCapabilities,
+    adminRoles,
     adminUsers,
     assignableRegistrationRoles,
-    canManageUsers,
+    canAccessAdministration,
     createdRegistrationToken = null,
     platformInfoPages,
+    permissionResources,
     publicPresentation,
     registrationTokens,
 }: SettingsIndexProps) {
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
-        () => readPanelFromUrl(canManageUsers),
+        () => readPanelFromUrl(canAccessAdministration),
     );
     const selectPanel = useCallback((panel: SettingsPanelKey) => {
         setSelectedPanel(panel);
@@ -303,7 +362,7 @@ export default function SettingsIndex({
 
     useEffect(() => {
         const syncPanelFromHistory = () => {
-            setSelectedPanel(readPanelFromUrl(canManageUsers));
+            setSelectedPanel(readPanelFromUrl(canAccessAdministration));
         };
 
         window.addEventListener('popstate', syncPanelFromHistory);
@@ -311,7 +370,7 @@ export default function SettingsIndex({
         return () => {
             window.removeEventListener('popstate', syncPanelFromHistory);
         };
-    }, [canManageUsers]);
+    }, [canAccessAdministration]);
 
     return (
         <>
@@ -330,13 +389,15 @@ export default function SettingsIndex({
                     <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
                         {selectedPanel ? (
                             <SettingsDetail
+                                accessCapabilities={accessCapabilities}
+                                adminRoles={adminRoles}
                                 adminUsers={adminUsers}
-                                canManageUsers={canManageUsers}
                                 createdRegistrationToken={
                                     createdRegistrationToken
                                 }
                                 onBack={clearPanel}
                                 platformInfoPages={platformInfoPages}
+                                permissionResources={permissionResources}
                                 publicPresentation={publicPresentation}
                                 assignableRegistrationRoles={
                                     assignableRegistrationRoles
@@ -346,7 +407,10 @@ export default function SettingsIndex({
                             />
                         ) : (
                             <SettingsList
-                                canManageUsers={canManageUsers}
+                                accessCapabilities={accessCapabilities}
+                                canAccessAdministration={
+                                    canAccessAdministration
+                                }
                                 onSelect={selectPanel}
                             />
                         )}
@@ -367,10 +431,12 @@ SettingsIndex.layout = {
 };
 
 function SettingsList({
-    canManageUsers,
+    accessCapabilities,
+    canAccessAdministration,
     onSelect,
 }: {
-    canManageUsers: boolean;
+    accessCapabilities: Record<string, AccessCapability>;
+    canAccessAdministration: boolean;
     onSelect: (panel: SettingsPanelKey) => void;
 }) {
     const sections = [
@@ -382,11 +448,13 @@ function SettingsList({
             label: 'Information',
             items: informationSettings,
         },
-        ...(canManageUsers
+        ...(canAccessAdministration
             ? [
                   {
                       label: 'Administration',
-                      items: adminSettings,
+                      items: adminSettings.filter((item) =>
+                          canSeeAdminItem(item, accessCapabilities),
+                      ),
                   },
               ]
             : []),
@@ -442,25 +510,42 @@ function SettingsList({
     );
 }
 
+function canSeeAdminItem(
+    item: SettingsListItem,
+    accessCapabilities: Record<string, AccessCapability>,
+): boolean {
+    if (!item.resources) {
+        return true;
+    }
+
+    return item.resources.some(
+        (resource) => accessCapabilities[resource]?.read,
+    );
+}
+
 function SettingsDetail({
+    accessCapabilities,
+    adminRoles,
     adminUsers,
     assignableRegistrationRoles,
-    canManageUsers,
     createdRegistrationToken,
     onBack,
     platformInfoPages,
+    permissionResources,
     publicPresentation,
     registrationTokens,
     selectedPanel,
 }: {
+    accessCapabilities: Record<string, AccessCapability>;
+    adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
-    canManageUsers: boolean;
     createdRegistrationToken: string | null;
     onBack: () => void;
     platformInfoPages: Partial<
         Record<PlatformInfoPageKey, PlatformInfoContent>
     >;
+    permissionResources: PermissionResource[];
     publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
     selectedPanel: SettingsPanelKey;
@@ -474,14 +559,21 @@ function SettingsDetail({
                 Settings
             </Button>
 
-            {selectedPanel === 'admin-users' && canManageUsers ? (
-                <AdminUsersPanel
+            {(selectedPanel === 'admin-access' ||
+                selectedPanel === 'admin-users') &&
+            (accessCapabilities.users?.read ||
+                accessCapabilities.roles?.read) ? (
+                <AccessManagementPanel
+                    accessCapabilities={accessCapabilities}
+                    roles={adminRoles}
                     assignableRegistrationRoles={assignableRegistrationRoles}
                     createdRegistrationToken={createdRegistrationToken}
+                    permissionResources={permissionResources}
                     registrationTokens={registrationTokens}
                     users={adminUsers}
                 />
-            ) : selectedPanel === 'admin-presentation' && canManageUsers ? (
+            ) : selectedPanel === 'admin-presentation' &&
+              accessCapabilities.presentation?.read ? (
                 <AdminPresentationPanel
                     platformInfoContent={platformInfoPages}
                     presentation={publicPresentation}
@@ -490,6 +582,107 @@ function SettingsDetail({
                 <PlaceholderPanel content={content} panel={selectedPanel} />
             ) : null}
         </div>
+    );
+}
+
+function AccessManagementPanel({
+    accessCapabilities,
+    assignableRegistrationRoles,
+    createdRegistrationToken,
+    permissionResources,
+    registrationTokens,
+    roles,
+    users,
+}: {
+    accessCapabilities: Record<string, AccessCapability>;
+    assignableRegistrationRoles: UserRole[];
+    createdRegistrationToken: string | null;
+    permissionResources: PermissionResource[];
+    registrationTokens: RegistrationTokenSummary[];
+    roles: AccessRoleSummary[];
+    users: AdminUser[];
+}) {
+    const [section, setSection] = useState<'roles' | 'users'>('users');
+
+    return (
+        <div className="grid gap-5">
+            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+                <div>
+                    <div className="mb-3 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
+                        <Shield className="size-5" />
+                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                            Access management
+                        </h2>
+                    </div>
+                    <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Configure who can read, update or delete administration
+                        areas. Default roles stay available.
+                    </p>
+                </div>
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-sm font-medium dark:border-white/10 dark:bg-slate-950/70">
+                    {accessCapabilities.users?.read ? (
+                        <AccessSectionButton
+                            active={section === 'users'}
+                            label="User management"
+                            onClick={() => setSection('users')}
+                        />
+                    ) : null}
+                    {accessCapabilities.roles?.read ? (
+                        <AccessSectionButton
+                            active={section === 'roles'}
+                            label="Role management"
+                            onClick={() => setSection('roles')}
+                        />
+                    ) : null}
+                </div>
+            </div>
+
+            {section === 'users' && accessCapabilities.users?.read ? (
+                <AdminUsersPanel
+                    assignableRegistrationRoles={assignableRegistrationRoles}
+                    createdRegistrationToken={createdRegistrationToken}
+                    registrationTokens={registrationTokens}
+                    roles={roles}
+                    users={users}
+                    canDeleteUsers={accessCapabilities.users?.delete ?? false}
+                    canUpdateUsers={accessCapabilities.users?.update ?? false}
+                />
+            ) : null}
+
+            {section === 'roles' && accessCapabilities.roles?.read ? (
+                <RoleManagementPanel
+                    canDeleteRoles={accessCapabilities.roles?.delete ?? false}
+                    canUpdateRoles={accessCapabilities.roles?.update ?? false}
+                    permissionResources={permissionResources}
+                    roles={roles}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function AccessSectionButton({
+    active,
+    label,
+    onClick,
+}: {
+    active: boolean;
+    label: string;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            className={cn(
+                'rounded-md px-3 py-2 transition',
+                active
+                    ? 'bg-white text-slate-950 shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                    : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
+            )}
+            onClick={onClick}
+            type="button"
+        >
+            {label}
+        </button>
     );
 }
 
@@ -527,13 +720,19 @@ function PlaceholderPanel({
 
 function AdminUsersPanel({
     assignableRegistrationRoles,
+    canDeleteUsers,
+    canUpdateUsers,
     createdRegistrationToken,
     registrationTokens,
+    roles,
     users,
 }: {
     assignableRegistrationRoles: UserRole[];
+    canDeleteUsers: boolean;
+    canUpdateUsers: boolean;
     createdRegistrationToken: string | null;
     registrationTokens: RegistrationTokenSummary[];
+    roles: AccessRoleSummary[];
     users: AdminUser[];
 }) {
     const { props } = usePage();
@@ -706,6 +905,7 @@ function AdminUsersPanel({
                             idPrefix="token"
                             onChange={setTokenRoles}
                             roleToAdd={tokenRoleToAdd}
+                            roleOptions={roles}
                             roles={tokenRoles}
                             setRoleToAdd={setTokenRoleToAdd}
                         />
@@ -804,11 +1004,12 @@ function AdminUsersPanel({
                                     assignableRoles={
                                         assignableRegistrationRoles
                                     }
-                                    disabled={isCurrentUser}
+                                    disabled={isCurrentUser || !canUpdateUsers}
                                     idPrefix={`user-${user.id}`}
                                     onChange={(roles) =>
                                         updateForm(user.id, { roles })
                                     }
+                                    roleOptions={roles}
                                     roleToAdd={
                                         firstAddableRole(
                                             assignableRegistrationRoles,
@@ -856,7 +1057,9 @@ function AdminUsersPanel({
 
                                 <div className="flex flex-wrap gap-2">
                                     <Button
-                                        disabled={isCurrentUser}
+                                        disabled={
+                                            isCurrentUser || !canUpdateUsers
+                                        }
                                         onClick={() => saveAccess(user)}
                                         size="sm"
                                         variant="secondary"
@@ -864,7 +1067,9 @@ function AdminUsersPanel({
                                         Save
                                     </Button>
                                     <Button
-                                        disabled={isCurrentUser}
+                                        disabled={
+                                            isCurrentUser || !canDeleteUsers
+                                        }
                                         onClick={() => deleteUser(user)}
                                         size="sm"
                                         variant="destructive"
@@ -900,7 +1105,10 @@ function AdminUsersPanel({
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <RoleBadges roles={token.roles} />
+                                <RoleBadges
+                                    roleOptions={roles}
+                                    roles={token.roles}
+                                />
                                 <Badge
                                     variant={
                                         token.is_expired
@@ -935,7 +1143,10 @@ function AdminUsersPanel({
             >
                 <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
                     {selectedUser ? (
-                        <UserDetailsDialog user={selectedUser} />
+                        <UserDetailsDialog
+                            roleOptions={roles}
+                            user={selectedUser}
+                        />
                     ) : null}
                 </DialogContent>
             </Dialog>
@@ -962,6 +1173,7 @@ function RoleEditor({
     idPrefix,
     onChange,
     roleToAdd,
+    roleOptions,
     roles,
     setRoleToAdd,
 }: {
@@ -970,6 +1182,7 @@ function RoleEditor({
     idPrefix: string;
     onChange: (roles: UserRole[]) => void;
     roleToAdd?: UserRole;
+    roleOptions: AccessRoleSummary[];
     roles: UserRole[];
     setRoleToAdd?: (role: UserRole) => void;
 }) {
@@ -1011,10 +1224,10 @@ function RoleEditor({
                         className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100"
                         key={role}
                     >
-                        {roleLabel(role)}
+                        {roleLabel(role, roleOptions)}
                         {!disabled && roles.length > 1 ? (
                             <button
-                                aria-label={`Remove ${roleLabel(role)} role`}
+                                aria-label={`Remove ${roleLabel(role, roleOptions)} role`}
                                 className="rounded text-slate-500 transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:hover:text-red-300 dark:focus-visible:ring-teal-200"
                                 onClick={() => removeRole(role)}
                                 type="button"
@@ -1044,7 +1257,7 @@ function RoleEditor({
                                 key={role}
                                 value={role}
                             >
-                                {roleLabel(role)}
+                                {roleLabel(role, roleOptions)}
                             </option>
                         ))}
                     </select>
@@ -1098,7 +1311,13 @@ function LoginToggle({
     );
 }
 
-function UserDetailsDialog({ user }: { user: AdminUser }) {
+function UserDetailsDialog({
+    roleOptions,
+    user,
+}: {
+    roleOptions: AccessRoleSummary[];
+    user: AdminUser;
+}) {
     const token = user.registration_token;
 
     return (
@@ -1112,7 +1331,10 @@ function UserDetailsDialog({ user }: { user: AdminUser }) {
 
             <div className="grid gap-4 text-sm">
                 <DetailRow label="Email" value={user.email} />
-                <DetailRow label="Roles" value={roleListLabel(user.roles)} />
+                <DetailRow
+                    label="Roles"
+                    value={roleListLabel(user.roles, roleOptions)}
+                />
                 <DetailRow
                     label="Registered"
                     value={formatDate(user.created_at)}
@@ -1143,7 +1365,7 @@ function UserDetailsDialog({ user }: { user: AdminUser }) {
                             />
                             <DetailRow
                                 label="Token roles"
-                                value={roleListLabel(token.roles)}
+                                value={roleListLabel(token.roles, roleOptions)}
                             />
                             <DetailRow
                                 label="Token expires"
@@ -1173,6 +1395,305 @@ function UserDetailsDialog({ user }: { user: AdminUser }) {
     );
 }
 
+function RoleManagementPanel({
+    canDeleteRoles,
+    canUpdateRoles,
+    permissionResources,
+    roles,
+}: {
+    canDeleteRoles: boolean;
+    canUpdateRoles: boolean;
+    permissionResources: PermissionResource[];
+    roles: AccessRoleSummary[];
+}) {
+    const [selectedRoleId, setSelectedRoleId] = useState<number | 'new'>(
+        roles[0]?.id ?? 'new',
+    );
+    const selectedRole =
+        selectedRoleId === 'new'
+            ? null
+            : (roles.find((role) => role.id === selectedRoleId) ?? null);
+    const [form, setForm] = useState<RoleFormState>(() =>
+        roleFormFromRole(selectedRole, permissionResources),
+    );
+
+    const selectRole = (role: AccessRoleSummary) => {
+        setSelectedRoleId(role.id);
+        setForm(roleFormFromRole(role, permissionResources));
+    };
+    const startCreate = () => {
+        setSelectedRoleId('new');
+        setForm(roleFormFromRole(null, permissionResources));
+    };
+    const saveRole = () => {
+        const payload = {
+            ...form,
+            level: Number(form.level || 10),
+        };
+
+        if (selectedRole) {
+            router.patch(`/settings/admin/roles/${selectedRole.id}`, payload, {
+                preserveScroll: true,
+                preserveState: true,
+            });
+
+            return;
+        }
+
+        router.post('/settings/admin/roles', payload, {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    };
+    const deleteRole = () => {
+        if (!selectedRole) {
+            return;
+        }
+
+        if (!window.confirm(`Delete role ${selectedRole.name}?`)) {
+            return;
+        }
+
+        router.delete(`/settings/admin/roles/${selectedRole.id}`, {
+            preserveScroll: true,
+        });
+    };
+    const setPermission = (resource: string, level: PermissionLevel) => {
+        setForm((current) => ({
+            ...current,
+            permissions: {
+                ...current.permissions,
+                [resource]: level,
+            },
+        }));
+    };
+
+    return (
+        <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <aside className="flex min-h-0 flex-col rounded-lg border border-slate-200 dark:border-white/10">
+                <div className="flex items-center justify-between border-b border-slate-200 p-3 dark:border-white/10">
+                    <div>
+                        <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                            Roles
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Select a role to inspect or edit.
+                        </p>
+                    </div>
+                    {canUpdateRoles ? (
+                        <Button onClick={startCreate} size="sm">
+                            <Plus className="size-4" />
+                        </Button>
+                    ) : null}
+                </div>
+                <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                    {roles.map((role) => (
+                        <button
+                            className={cn(
+                                'mb-2 w-full rounded-lg border p-3 text-left transition',
+                                selectedRoleId === role.id
+                                    ? 'border-cyan-500 bg-cyan-50 text-cyan-950 dark:border-teal-200 dark:bg-teal-300/10 dark:text-teal-50'
+                                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-cyan-500/40 dark:border-white/10 dark:bg-white/5 dark:text-slate-100',
+                            )}
+                            key={role.id}
+                            onClick={() => selectRole(role)}
+                            type="button"
+                        >
+                            <span className="block text-sm font-medium">
+                                {role.name}
+                            </span>
+                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                {role.slug}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </aside>
+
+            <section className="min-h-0 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            {selectedRole ? 'Role' : 'New role'}
+                        </p>
+                        <h3 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
+                            {selectedRole ? selectedRole.name : 'Create role'}
+                        </h3>
+                    </div>
+                    <div className="flex gap-2">
+                        {canUpdateRoles ? (
+                            <Button onClick={saveRole}>
+                                {selectedRole ? 'Save' : 'Create'}
+                            </Button>
+                        ) : (
+                            <Button disabled variant="secondary">
+                                Read only
+                            </Button>
+                        )}
+                        {selectedRole && canDeleteRoles ? (
+                            <Button
+                                disabled={selectedRole.is_system}
+                                onClick={deleteRole}
+                                variant="destructive"
+                            >
+                                <Trash2 className="size-4" />
+                            </Button>
+                        ) : null}
+                    </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1">
+                        <Label htmlFor="role-name">Name</Label>
+                        <Input
+                            disabled={!canUpdateRoles}
+                            id="role-name"
+                            onChange={(event) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    name: event.currentTarget.value,
+                                }))
+                            }
+                            value={form.name}
+                        />
+                    </div>
+                    <div className="grid gap-1">
+                        <Label htmlFor="role-slug">Slug</Label>
+                        <Input
+                            disabled={!canUpdateRoles || Boolean(selectedRole)}
+                            id="role-slug"
+                            onChange={(event) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    slug: event.currentTarget.value,
+                                }))
+                            }
+                            value={form.slug}
+                        />
+                    </div>
+                    <div className="grid gap-1 sm:col-span-2">
+                        <Label htmlFor="role-description">Description</Label>
+                        <Input
+                            disabled={!canUpdateRoles}
+                            id="role-description"
+                            onChange={(event) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    description: event.currentTarget.value,
+                                }))
+                            }
+                            value={form.description}
+                        />
+                    </div>
+                    <div className="grid gap-1">
+                        <Label htmlFor="role-level">Assignment level</Label>
+                        <Input
+                            disabled={!canUpdateRoles}
+                            id="role-level"
+                            max="100"
+                            min="1"
+                            onChange={(event) =>
+                                setForm((current) => ({
+                                    ...current,
+                                    level: event.currentTarget.value,
+                                }))
+                            }
+                            type="number"
+                            value={form.level}
+                        />
+                    </div>
+                </div>
+
+                <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
+                    <div className="grid grid-cols-[minmax(12rem,1fr)_22rem] bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                        <span>Area</span>
+                        <span>Permission level</span>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                        {permissionResources.map((resource) => (
+                            <div
+                                className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[minmax(12rem,1fr)_22rem] sm:items-center dark:border-white/10"
+                                key={resource.key}
+                            >
+                                <div>
+                                    <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                        {resource.label}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {resource.description}
+                                    </p>
+                                </div>
+                                <PermissionButtonGroup
+                                    disabled={!canUpdateRoles}
+                                    level={
+                                        form.permissions[resource.key] ?? 'none'
+                                    }
+                                    onChange={(level) =>
+                                        setPermission(resource.key, level)
+                                    }
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                    <p>
+                        <strong>RO</strong>: read only. The role may inspect the
+                        area but not save changes.
+                    </p>
+                    <p>
+                        <strong>RU</strong>: read and update. The role may edit
+                        existing content and create new content.
+                    </p>
+                    <p>
+                        <strong>RUD</strong>: read, update and delete. The role
+                        may remove records where the feature supports deletion.
+                    </p>
+                </div>
+            </section>
+        </div>
+    );
+}
+
+function PermissionButtonGroup({
+    disabled,
+    level,
+    onChange,
+}: {
+    disabled: boolean;
+    level: PermissionLevel;
+    onChange: (level: PermissionLevel) => void;
+}) {
+    const options: { label: string; value: PermissionLevel }[] = [
+        { label: 'No', value: 'none' },
+        { label: 'RO', value: 'ro' },
+        { label: 'RU', value: 'ru' },
+        { label: 'RUD', value: 'rud' },
+    ];
+
+    return (
+        <div className="inline-grid grid-cols-4 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium dark:border-white/10 dark:bg-slate-950/70">
+            {options.map((option) => (
+                <button
+                    className={cn(
+                        'rounded-md px-3 py-2 transition',
+                        level === option.value
+                            ? 'bg-white text-slate-950 shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                            : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
+                    )}
+                    disabled={disabled}
+                    key={option.value}
+                    onClick={() => onChange(option.value)}
+                    type="button"
+                >
+                    {option.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="grid gap-1 sm:grid-cols-[160px_minmax(0,1fr)] sm:gap-4">
@@ -1186,7 +1707,13 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-function RoleBadges({ roles }: { roles: UserRole[] }) {
+function RoleBadges({
+    roleOptions,
+    roles,
+}: {
+    roleOptions: AccessRoleSummary[];
+    roles: UserRole[];
+}) {
     return (
         <div className="flex flex-wrap gap-1">
             {roles.map((role) => (
@@ -1194,19 +1721,29 @@ function RoleBadges({ roles }: { roles: UserRole[] }) {
                     key={role}
                     variant={role === 'admin' ? 'default' : 'outline'}
                 >
-                    {roleLabel(role)}
+                    {roleLabel(role, roleOptions)}
                 </Badge>
             ))}
         </div>
     );
 }
 
-function roleLabel(role: UserRole): string {
-    return role === 'admin' ? 'Admin' : 'User';
+function roleLabel(role: UserRole, roleOptions: AccessRoleSummary[]): string {
+    return (
+        roleOptions.find((option) => option.slug === role)?.name ??
+        role
+            .split('-')
+            .filter(Boolean)
+            .map((part) => part[0]?.toUpperCase() + part.slice(1))
+            .join(' ')
+    );
 }
 
-function roleListLabel(roles: UserRole[]): string {
-    return roles.map((role) => roleLabel(role)).join(', ');
+function roleListLabel(
+    roles: UserRole[],
+    roleOptions: AccessRoleSummary[],
+): string {
+    return roles.map((role) => roleLabel(role, roleOptions)).join(', ');
 }
 
 function firstAddableRole(
@@ -1214,6 +1751,36 @@ function firstAddableRole(
     currentRoles: UserRole[],
 ): UserRole | null {
     return assignableRoles.find((role) => !currentRoles.includes(role)) ?? null;
+}
+
+function roleFormFromRole(
+    role: AccessRoleSummary | null,
+    resources: PermissionResource[],
+): RoleFormState {
+    const emptyPermissions = Object.fromEntries(
+        resources.map((resource) => [resource.key, 'none']),
+    ) as Record<string, PermissionLevel>;
+
+    if (!role) {
+        return {
+            description: '',
+            level: '10',
+            name: '',
+            permissions: emptyPermissions,
+            slug: '',
+        };
+    }
+
+    return {
+        description: role.description ?? '',
+        level: role.level.toString(),
+        name: role.name,
+        permissions: {
+            ...emptyPermissions,
+            ...role.permissions,
+        },
+        slug: role.slug,
+    };
 }
 
 function StatusBadges({ user }: { user: AdminUser }) {

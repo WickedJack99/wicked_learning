@@ -51,7 +51,7 @@ export type ThemeStyle = CSSProperties & Record<`--${string}`, string>;
 
 const fallbackAuthTheme: AuthTheme = {
     backgroundColor: '#07111f',
-    backgroundImage: '/images/themes/cyber-map-background.svg',
+    backgroundImage: '',
     backgroundOverlay:
         'linear-gradient(120deg, rgba(7, 17, 31, 0.94), rgba(7, 17, 31, 0.76), rgba(7, 17, 31, 0.42))',
     borderLineColor: 'rgba(94, 234, 212, 0.24)',
@@ -96,7 +96,9 @@ export function getAuthTheme(page: AuthThemePage, mode: ThemeMode): AuthTheme {
 export function getAuthThemeStyle(theme: AuthTheme): ThemeStyle {
     return {
         '--auth-background-color': theme.backgroundColor,
-        '--auth-background-image': `url(${theme.backgroundImage})`,
+        '--auth-background-image': theme.backgroundImage
+            ? `url(${theme.backgroundImage})`
+            : 'none',
         '--auth-background-overlay': theme.backgroundOverlay,
         '--auth-border-line-color': theme.borderLineColor,
         '--auth-button-background': theme.buttonBackground,

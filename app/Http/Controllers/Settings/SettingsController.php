@@ -2,7 +2,12 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
+use App\Access\Queries\LoadAccessRoles;
+use App\Access\Serializers\AccessRoleSerializer;
 use App\Http\Controllers\Controller;
+use App\Models\AccessRole;
 use App\Models\PlatformInfoPage;
 use App\Models\RegistrationToken;
 use App\Models\User;
@@ -13,19 +18,87 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
+    public function __construct(
+        private readonly LoadAccessRoles $loadAccessRoles,
+        private readonly AccessRoleSerializer $roleSerializer,
+    ) {}
+
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $canManageUsers = $user->can('manage-users');
+        $accessCapabilities = $this->accessCapabilities($user);
+        $canManageUsers = $user->can(PermissionCatalog::ability(PermissionCatalog::USERS, AccessLevel::READ));
+        $canManageRoles = $user->can(PermissionCatalog::ability(PermissionCatalog::ROLES, AccessLevel::READ));
+        $canManagePresentation = $user->can(PermissionCatalog::ability(PermissionCatalog::PRESENTATION, AccessLevel::READ));
 
         return Inertia::render('settings/index', [
             'canManageUsers' => $canManageUsers,
+            'canAccessAdministration' => $this->canAccessAdministration($accessCapabilities),
+            'accessCapabilities' => $accessCapabilities,
             'assignableRegistrationRoles' => $user->assignableRoles(),
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
-            'platformInfoPages' => $canManageUsers ? $this->platformInfoPages() : [],
+            'adminRoles' => $canManageRoles ? $this->accessRoles() : [],
+            'permissionResources' => $this->permissionResources(),
+            'platformInfoPages' => $canManagePresentation ? $this->platformInfoPages() : [],
             'createdRegistrationToken' => $request->session()->get('created_registration_token'),
         ]);
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     */
+    private function canAccessAdministration(array $capabilities): bool
+    {
+        foreach ($capabilities as $resource) {
+            if ($resource['read']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, array{read: bool, update: bool, delete: bool}>
+     */
+    private function accessCapabilities(User $user): array
+    {
+        return collect(PermissionCatalog::resourceKeys())
+            ->mapWithKeys(fn (string $resource): array => [
+                $resource => [
+                    'read' => $user->can(PermissionCatalog::ability($resource, AccessLevel::READ)),
+                    'update' => $user->can(PermissionCatalog::ability($resource, AccessLevel::UPDATE)),
+                    'delete' => $user->can(PermissionCatalog::ability($resource, AccessLevel::DELETE)),
+                ],
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function accessRoles(): array
+    {
+        return $this->loadAccessRoles
+            ->handle()
+            ->map(fn (AccessRole $role): array => $this->roleSerializer->serialize($role))
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{key: string, label: string, description: string}>
+     */
+    private function permissionResources(): array
+    {
+        return collect(PermissionCatalog::resources())
+            ->map(fn (array $resource, string $key): array => [
+                'key' => $key,
+                'label' => $resource['label'],
+                'description' => $resource['description'],
+            ])
+            ->values()
+            ->all();
     }
 
     /**

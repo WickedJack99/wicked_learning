@@ -1,5 +1,8 @@
 <?php
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
+use App\Models\AccessRole;
 use App\Models\RegistrationToken;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
@@ -147,4 +150,76 @@ test('admins can delete another user', function () {
         ->assertRedirect(route('settings.index'));
 
     expect(User::query()->whereKey($learner->id)->exists())->toBeFalse();
+});
+
+test('admins can create and update configurable roles', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.admin.roles.store'), [
+            'slug' => 'editor',
+            'name' => 'Editor',
+            'description' => 'Can prepare learning content.',
+            'level' => 50,
+            'permissions' => [
+                PermissionCatalog::USERS => AccessLevel::READ,
+                PermissionCatalog::ROLES => AccessLevel::READ,
+                PermissionCatalog::WORLDS => AccessLevel::UPDATE,
+                PermissionCatalog::ASSETS => AccessLevel::UPDATE,
+                PermissionCatalog::SOUNDS => AccessLevel::UPDATE,
+                PermissionCatalog::PRESENTATION => AccessLevel::READ,
+            ],
+        ])
+        ->assertRedirect(route('settings.index', ['panel' => 'admin-access']));
+
+    $role = AccessRole::query()->where('slug', 'editor')->firstOrFail();
+
+    expect($role->permissionMap()[PermissionCatalog::WORLDS])
+        ->toBe(AccessLevel::UPDATE);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.admin.roles.update', $role), [
+            'name' => 'Content editor',
+            'description' => 'Can prepare and remove learning content.',
+            'level' => 60,
+            'permissions' => [
+                PermissionCatalog::USERS => AccessLevel::READ,
+                PermissionCatalog::ROLES => AccessLevel::READ,
+                PermissionCatalog::WORLDS => AccessLevel::DELETE,
+                PermissionCatalog::ASSETS => AccessLevel::UPDATE,
+                PermissionCatalog::SOUNDS => AccessLevel::UPDATE,
+                PermissionCatalog::PRESENTATION => AccessLevel::READ,
+            ],
+        ])
+        ->assertRedirect(route('settings.index', ['panel' => 'admin-access']));
+
+    expect($role->refresh()->name)
+        ->toBe('Content editor')
+        ->and($role->permissionMap()[PermissionCatalog::WORLDS])
+        ->toBe(AccessLevel::DELETE);
+});
+
+test('users without role update permission cannot create roles', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post(route('settings.admin.roles.store'), [
+            'slug' => 'blocked',
+            'name' => 'Blocked',
+            'description' => null,
+            'level' => 10,
+            'permissions' => [
+                PermissionCatalog::USERS => AccessLevel::READ,
+                PermissionCatalog::ROLES => AccessLevel::READ,
+                PermissionCatalog::WORLDS => AccessLevel::READ,
+                PermissionCatalog::ASSETS => AccessLevel::READ,
+                PermissionCatalog::SOUNDS => AccessLevel::READ,
+                PermissionCatalog::PRESENTATION => AccessLevel::READ,
+            ],
+        ])
+        ->assertForbidden();
+
+    expect(AccessRole::query()->where('slug', 'blocked')->exists())->toBeFalse();
 });

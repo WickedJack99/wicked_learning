@@ -22,6 +22,7 @@ export type LearningMap = {
         cardBackground?: string;
         cardBorderColor?: string;
         cardTextColor?: string;
+        completedDimOpacity?: string;
         imageUrl?: string;
         overlay?: string;
         cursor?: string;
@@ -79,6 +80,12 @@ export type LearningNode = {
         hideEmptySpace?: boolean;
         hideImage?: boolean;
         hideLabel?: boolean;
+        reveal?: {
+            enabled?: boolean;
+            isDiscoverable?: boolean;
+            isDiscovered?: boolean;
+            toolId?: string;
+        };
         tooltip?: string;
         imageUrl?: string;
     }>;
@@ -145,6 +152,17 @@ export type LearningTool = {
     title: string;
 };
 
+export type LearningSound = {
+    icon: 'ambience' | 'music' | 'sfx' | 'ui' | 'voice' | string;
+    id: number;
+    loop: boolean;
+    name: string;
+    playSeconds: number | null;
+    slug: string;
+    url: string;
+    volume: number;
+};
+
 export type NpcDialogueNode = {
     body: string | null;
     config: Record<
@@ -206,7 +224,14 @@ export type ActivityTransition = {
 };
 
 export type LearningProgress = {
-    activities: Record<number, { status: string; completedAt: string | null }>;
+    activities: Record<
+        number,
+        {
+            status: string;
+            completedAt: string | null;
+            metadata?: Record<string, unknown>;
+        }
+    >;
     answers: Record<number, QuestionAnswerProgress>;
 };
 

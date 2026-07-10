@@ -49,6 +49,8 @@ class CreateNewUser implements CreatesNewUsers
                 'role' => $registrationToken->role,
                 'roles' => $registrationToken->grantedRoles(),
             ]);
+            $user->setAssignedRoles($registrationToken->grantedRoles());
+            $user->save();
 
             $user->preference()->create([
                 'appearance' => $input['appearance'] ?? 'light',

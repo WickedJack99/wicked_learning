@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -13,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -52,6 +55,13 @@ class User extends Authenticatable implements PasskeyUser
      */
     public static function roleLevels(): array
     {
+        if (Schema::hasTable('access_roles')) {
+            return AccessRole::query()
+                ->pluck('level', 'slug')
+                ->map(fn (int|string $level): int => (int) $level)
+                ->all();
+        }
+
         return [
             self::ROLE_USER => 10,
             self::ROLE_ADMIN => 20,
@@ -85,7 +95,8 @@ class User extends Authenticatable implements PasskeyUser
 
     public function isAdmin(): bool
     {
-        return $this->hasRole(self::ROLE_ADMIN);
+        return $this->hasAccess(PermissionCatalog::USERS, AccessLevel::READ)
+            || $this->hasRole(self::ROLE_ADMIN);
     }
 
     public function hasRole(string $role): bool
@@ -98,7 +109,24 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function assignedRoles(): array
     {
+        $roleSlugs = [];
+
+        if ($this->relationLoaded('accessRoles')) {
+            $roleSlugs = $this->accessRoles
+                ->pluck('slug')
+                ->filter()
+                ->values()
+                ->all();
+        } elseif ($this->exists && Schema::hasTable('access_role_user')) {
+            $roleSlugs = $this->accessRoles()
+                ->pluck('slug')
+                ->filter()
+                ->values()
+                ->all();
+        }
+
         return self::normalizeRoles([
+            ...$roleSlugs,
             ...($this->roles ?? []),
             $this->role,
         ]);
@@ -118,6 +146,30 @@ class User extends Authenticatable implements PasskeyUser
     public function canAssignRole(string $role): bool
     {
         return $this->roleLevel($role) <= $this->highestRoleLevel();
+    }
+
+    public function hasAccess(string $resource, string $requiredLevel): bool
+    {
+        return AccessLevel::allows(
+            $this->accessLevelFor($resource),
+            $requiredLevel,
+        );
+    }
+
+    public function accessLevelFor(string $resource): string
+    {
+        $highest = AccessLevel::NONE;
+
+        foreach ($this->assignedRoles() as $roleSlug) {
+            $role = $this->accessRoleForSlug($roleSlug);
+            $level = $role?->permissionMap()[$resource] ?? AccessLevel::NONE;
+
+            if (AccessLevel::allows($level, $highest)) {
+                $highest = $level;
+            }
+        }
+
+        return $highest;
     }
 
     /**
@@ -145,6 +197,15 @@ class User extends Authenticatable implements PasskeyUser
             'role' => $this->primaryRole($normalizedRoles),
             'roles' => $normalizedRoles,
         ]);
+
+        if ($this->exists && Schema::hasTable('access_roles')) {
+            $roleIds = AccessRole::query()
+                ->whereIn('slug', $normalizedRoles)
+                ->pluck('id')
+                ->all();
+
+            $this->accessRoles()->sync($roleIds);
+        }
     }
 
     public function canLogIn(): bool
@@ -172,6 +233,12 @@ class User extends Authenticatable implements PasskeyUser
 
     private function roleLevel(string $role): int
     {
+        if (Schema::hasTable('access_roles')) {
+            return (int) (AccessRole::query()
+                ->where('slug', $role)
+                ->value('level') ?? 0);
+        }
+
         return self::roleLevels()[$role] ?? 0;
     }
 
@@ -198,6 +265,29 @@ class User extends Authenticatable implements PasskeyUser
                 : $highestRole,
             self::ROLE_USER,
         );
+    }
+
+    private function accessRoleForSlug(string $slug): ?AccessRole
+    {
+        if (! Schema::hasTable('access_roles')) {
+            return null;
+        }
+
+        return AccessRole::query()
+            ->with('permissions')
+            ->where('slug', $slug)
+            ->first();
+    }
+
+    /**
+     * Dynamic roles assigned to this account.
+     *
+     * @return BelongsToMany<AccessRole, $this>
+     */
+    public function accessRoles(): BelongsToMany
+    {
+        return $this->belongsToMany(AccessRole::class, 'access_role_user')
+            ->withTimestamps();
     }
 
     /**
@@ -238,6 +328,16 @@ class User extends Authenticatable implements PasskeyUser
     public function learningNodeBookmarks(): HasMany
     {
         return $this->hasMany(LearningNodeBookmark::class);
+    }
+
+    /**
+     * Hidden world-map nodes this learner has found.
+     *
+     * @return HasMany<LearnerNodeDiscovery, $this>
+     */
+    public function learningNodeDiscoveries(): HasMany
+    {
+        return $this->hasMany(LearnerNodeDiscovery::class);
     }
 
     /**

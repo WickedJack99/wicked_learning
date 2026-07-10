@@ -17,12 +17,14 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
+        $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'role' => User::ROLE_ADMIN,
             'roles' => [User::ROLE_ADMIN],
         ]);
+        $user->setAssignedRoles([User::ROLE_ADMIN]);
+        $user->save();
 
         $this->call(DemoLearningWorldSeeder::class);
     }
