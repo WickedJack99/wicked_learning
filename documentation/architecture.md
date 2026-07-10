@@ -20,6 +20,8 @@ Learner and account models:
 - `User`
 - `UserPreference`
 - `RegistrationToken`
+- `AccessRole`
+- `AccessRolePermission`
 
 Public presentation models:
 
@@ -32,6 +34,7 @@ World models:
 - `LearningMap`
 - `LearningNode`
 - `LearningNodeBookmark`
+- `LearnerNodeDiscovery`
 
 Activity models:
 
@@ -44,6 +47,8 @@ Activity models:
 - `LearningQuestionOption`
 - `LearnerActivityProgress`
 - `LearnerQuestionAnswer`
+- `LearningTool`
+- `LearningSound`
 
 ## Frontend areas
 
@@ -57,7 +62,12 @@ Important React areas:
 - `resources/js/pages/settings/worlds/index.tsx` - admin world graph
 - `resources/js/pages/settings/worlds/edit-map.tsx` - admin map editor
 - `resources/js/pages/settings/worlds/edit-node-activities.tsx` - admin activity graph editor
+- `resources/js/pages/settings/assets/tools.tsx` - admin tool editor
+- `resources/js/pages/settings/assets/media.tsx` - reusable visual asset library
+- `resources/js/pages/settings/assets/sounds.tsx` - reusable sound library
 - `resources/js/features/world` - shared world and activity-panel pieces
+- `resources/js/features/tools` - equipped-tool state, cursor overlays and tool visual sizing
+- `resources/js/features/sounds` - layered browser audio playback
 - `resources/js/theme` - appearance and presentation helpers
 
 ## Theme and visuals
@@ -68,8 +78,14 @@ Theme data is split between:
 - frontend helpers for resolving light or dark mode consistently
 - database-backed presentation settings for public/auth page visuals
 - map and node configuration for world-specific visuals
+- reusable media records for uploaded images, animations and sounds
+- cursor settings for default cursor, pointer cursor and drag cursor
 
-World visuals are intended to be configurable per deployment. Current node visuals support dark and light full-tile images, colors, label visibility and image visibility.
+World visuals are intended to be configurable per deployment. Current node visuals support dark and light full-tile images, colors, transparency, label visibility, image visibility, lock state, hover text and completed-node dimming.
+
+Reusable visual asset inputs should use the shared image picker pattern: upload, download, select existing and clear field. Clearing a field should remove the reference from the current form only; it should not delete the reusable asset.
+
+Reusable sounds are stored separately from visual assets. The frontend sound player is intentionally layered, so later activities can play ambience, voice, effects and UI sounds at the same time without replacing one another by default.
 
 ## Activity graph model
 
@@ -84,6 +100,12 @@ This lets one map node offer several learning paths, such as:
 
 Portal activities are special because they can connect activity playback to another node or map through `LearningPortalLink`.
 
+NPC dialogue activities have a nested graph. The nested graph can branch through question and answer nodes and expose one parent activity Exit connector per nested End node.
+
+Tool-grant activities and NPC dialogue tool-grant nodes add tools to the learner. If the learner already owns the tool, the activity can continue without presenting it as a fresh acquisition.
+
+Obstacle activities validate tool use through backend progress services. They can either reappear every replay or stay cleared for a learner until the admin changes the activity configuration in a way that should take priority over the stored learner-cleared state.
+
 ## Admin boundaries
 
 Admin editing is intentionally placed in settings and separate edit pages. The learner map should stay focused on learning and exploration, even for admins.
@@ -92,6 +114,14 @@ The rule of thumb:
 
 - learner-facing map: explore, focus, bookmark, search and start routes
 - admin settings: create users, configure presentation, edit worlds and wire activities
+
+Administration is split by responsibility:
+
+- Access management: users, roles and permissions.
+- Public presentation: welcome/auth/legal content and global cursor visuals.
+- Visuals: reusable uploaded images and animations.
+- Sounds: reusable uploaded sound assets.
+- Tools, items and currencies: world objects, with tools implemented first.
 
 ## Implementation boundaries
 
@@ -108,6 +138,14 @@ Preferred backend homes:
 - Validation classes or Form Requests when validation starts making controllers noisy.
 
 React pages should compose smaller feature components and hooks. Map math, graph editing rules, form transformations and API state should not accumulate directly in page components. Pure logic, such as hex-grid geometry, should live in feature modules that can be reused and tested independently.
+
+Current examples of these boundaries:
+
+- access permissions live in `app/Access`
+- reusable media handling lives in `LearningMediaUploadService`, `ReusableMediaAssetManager` and related upload services
+- tool visuals and cursor overlays live in `resources/js/features/tools`
+- sound playback lives in `resources/js/features/sounds`
+- world/node payload shaping lives in learning serializers rather than controller arrays
 
 As rough size guides:
 

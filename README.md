@@ -21,7 +21,7 @@ This repository is no longer only a concept archive. It contains a working verti
 - public welcome, about, imprint and data protection pages
 - configurable light and dark appearance
 - Laravel authentication with registration tokens
-- user roles for `admin` and `user`
+- configurable access roles seeded with `admin` and `user`
 - admin user management with role assignment, bans, disabled login and deletion
 - a draggable hex-based world map
 - focus panels for map nodes
@@ -29,11 +29,16 @@ This repository is no longer only a concept archive. It contains a working verti
 - server-side map and node search
 - editable worlds, maps and map nodes
 - dark and light node visuals, including full-tile images
+- discoverable hidden nodes that can be revealed with tools
 - editable public presentation content and auth page backgrounds
+- reusable visual and sound libraries for uploaded assets
+- configurable cursor images for default, pointer and drag states
 - graph-based activity editing with multiple route starts per node
 - route cards with optional light and dark images
 - activity playback on a separate page
 - portal activities that can move learners between nodes and maps
+- NPC dialogue, tool-grant and obstacle activity prototypes
+- a learner tool bar for selecting acquired tools and using them in maps or activities
 
 The prototype intentionally avoids point totals, streak pressure and ranking loops. The interaction goal is exploration first, reward-chasing last.
 
@@ -116,6 +121,8 @@ composer run ci:check
 Important areas:
 
 - `app/Models` - learning worlds, maps, nodes, activities, bookmarks, users and preferences
+- `app/Access` - configurable role and permission-level support
+- `app/Learning` - actions, queries, serializers, services and validation for learning features
 - `app/Http/Controllers` - learner views, admin world editing, settings and public pages
 - `database/migrations` - schema changes for the evolving prototype
 - `database/seeders` - demo admin user and demo learning world

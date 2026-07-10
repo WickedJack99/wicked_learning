@@ -22,6 +22,8 @@ Current map behavior includes:
 - locked or empty nodes
 - node labels that can be hidden per node
 - full-tile node images for dark and light mode
+- completed-node dimming instead of badge-like check marks on the tile image
+- hidden nodes that can be revealed by using a configured tool on the map
 
 ### Search
 
@@ -37,15 +39,28 @@ A node can have multiple start routes. The learner chooses a route from the node
 
 Supported prototype activity ideas include:
 
-- dialogue stages
-- questions with answer options
+- nested NPC dialogue graphs
+- question and answer dialogue nodes with private correctness tracking
 - reflection-style content
 - placeholder activities
 - portal activities
+- tool-grant activities
+- obstacle activities
 
 ### Portals
 
 Portal activities can move the learner to another node or map. Portal activities support Entry and Exit modes, configurable portal visuals and timing, and linked portal edges in the admin world graph.
+
+### Tools
+
+Learners can acquire tools through activities. A floating side action bar opens the current tool selection, and an equipped tool follows the cursor until it is used or cancelled.
+
+Tools can be used:
+
+- inside obstacle activities
+- on the world map to reveal configured hidden nodes
+
+The prototype treats tools as capabilities, not rewards. They should open possibilities in the environment rather than become status markers.
 
 ## Auth and user settings
 
@@ -66,9 +81,18 @@ Admins can:
 - create one-use registration tokens
 - choose token roles and expiration date
 - assign multiple roles to users
+- create and edit configurable roles
+- grant roles permission levels per administrative resource
 - disable login
 - ban users until a date
 - delete users
+
+Permission levels currently use:
+
+- `No`: no access to the resource
+- `RO`: read-only
+- `RU`: read and update
+- `RUD`: read, update and delete
 
 ### Presentation editing
 
@@ -80,6 +104,31 @@ Admins can edit public-facing content and visuals:
 - welcome-page sections
 - login and registration backgrounds
 - upload and download presentation files
+- default cursor, pointer and drag cursor images
+
+### Reusable media
+
+Admins can manage reusable media separately from world objects:
+
+- uploaded images and animations can be selected again in image fields
+- image inputs support upload, download, selecting an existing asset and clearing a field without deleting the asset
+- reusable sounds can be named, categorized with an icon, previewed and configured with volume, looping and optional playback duration
+- a layered sound player can play multiple sounds at once, so later activities can combine ambience with interaction sounds
+
+The media library is an abstraction layer. Tools, nodes, presentation pages and activities should reference reusable assets instead of forcing admins to upload duplicate files.
+
+### Tools, items and currencies
+
+The tools/items/currencies area is reserved for world objects. Only tools are implemented for now.
+
+Tool editing currently supports:
+
+- unique name and slug
+- dark and light tool images
+- dark and light animation images or GIFs
+- separate display widths for the resting image and animation
+- animation duration
+- a preview area where the admin can see cursor and click animation behavior
 
 ### World editing
 
@@ -97,8 +146,12 @@ The current world editor includes:
 - empty-space nodes
 - hidden empty-space nodes
 - node image upload and download
+- selecting existing reusable images
 - dark and light node images and colors
 - tile label visibility controls
+- node-image visibility controls
+- node lock state and editable hover text
+- completed-node dimming levels per light and dark mode
 - node swapping and insertion helpers
 
 ### Activity graph editing
@@ -116,6 +169,11 @@ The current activity editor includes:
 - route-card image configuration
 - route button and border color configuration
 - portal activity settings in accordion sections
+- NPC dialogue graph editing
+- obstacle activity configuration with allowed tool selection
+- tool-grant activity configuration
+
+Obstacle activities can persist per learner. Admins can choose whether a solved obstacle reappears on replay or stays cleared for the learner. If it stays cleared, a separate revisit state can show its own background, cleared obstacle image and text bubble.
 
 ## Intentional non-goals
 

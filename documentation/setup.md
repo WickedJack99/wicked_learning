@@ -51,6 +51,12 @@ Then run migrations and seed demo data:
 php artisan migrate --seed
 ```
 
+If you want uploaded presentation, world, tool, sound or activity assets to be served from Laravel's public disk, create the storage symlink:
+
+```bash
+php artisan storage:link
+```
+
 The development seeder creates:
 
 - admin email: `test@example.com`
@@ -96,5 +102,5 @@ composer run ci:check
 
 - Run `php artisan migrate --seed` after pulling schema or demo-content changes.
 - The demo data is intentionally small and should remain easy to reset.
-- Uploaded or generated visual assets currently live below `public/images`.
+- Uploaded reusable media is usually referenced through `/storage/...`; generated demo assets may also live below `public/images` or `public/sounds`.
 - Public pages and auth-page presentation can be edited by admins inside settings.

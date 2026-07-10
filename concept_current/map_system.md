@@ -13,17 +13,21 @@ Current behavior:
 - Node images are intended to be full-tile artwork, not only small symbols. Later domains can use these images to form a landscape across the map.
 - Node images can be hidden without deleting the configured dark/light image paths.
 - Tile labels can be hidden while still appearing in the side panel.
-- Locked and hinted states are represented visually but not yet resolved through rules.
-- Locked tiles show their locked state without hover lift/highlight behavior.
+- Tile labels that are hidden in the normal image view still appear while hovered or selected, so image-first maps remain readable on intent.
+- Locked nodes can be configured in the map editor. Locked tiles show their lock state without hover lift/highlight behavior.
+- Completed nodes are dimmed rather than marked with a check badge on the tile image, keeping full-tile artwork cleaner.
+- Hidden nodes can be revealed per learner by using the configured tool at the node position.
 - Clicking a tile focuses its node and opens the node/activity panel.
 - Clicking empty map space or closing the panel clears node focus and URL focus state.
 - The active activity return button can navigate back to the related map and focus the related node.
 - The top-left map panel describes the current map, not the selected node.
 - The right-side detail panel describes the focused node and shows available activity routes.
+- The right-side detail panel can show completed state and bookmark controls without polluting the node tile artwork.
 - The right-side detail panel does not play activities directly anymore; route playback happens on a separate page.
 - On mobile, the focused-node panel uses the full screen and can be closed explicitly.
 - Users can bookmark nodes. Bookmarked nodes appear on a personal bookmark map in a simple spiral layout. Selecting a bookmark opens the same node detail panel with a `Go to node` action.
 - The map has server-side search. Results can include visible nodes from other maps and jump to the relevant map/node.
+- Equipped tools can be used on the map. A successful configured tool use can reveal a hidden node; unsuccessful tool use only plays the tool animation and then clears the equipped cursor.
 
 Rendering note:
 
@@ -53,7 +57,10 @@ Current admin editing slice:
 - The tile create/edit overlay uses accordion sections so activity editing, basic metadata, display options and dark/light visuals are separated.
 - Existing tiles expose `Edit activities` at the top of the overlay.
 - Tile image editing is now mode-specific: dark and light images are the main source. The older fallback-image field was removed.
+- Tile image fields can upload, download, select an existing reusable image and clear the current reference.
 - Fallback tile color controls were removed from the editor. New nodes receive default dark/light color sets instead.
+- Node lock state, hover text, image visibility, label visibility and hidden-node reveal configuration belong in the node overlay.
+- Map visuals include completed-node dimming settings for dark and light mode.
 - Existing tiles show directional arrow controls; clicking an arrow swaps the tile with the neighboring tile in that direction.
 - Adjacent occupied tiles show a compact line button between their facing edges; inserting there pushes the neighbor chain outward and creates a real hex coordinate for the new node.
 - The graph view is implemented with React Flow so future activity tags can drive grouping and layout behavior.

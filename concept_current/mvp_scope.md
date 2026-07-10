@@ -19,25 +19,33 @@ Implemented now:
 - Authenticated users can switch between light and dark mode in settings.
 - Unauthenticated pages can use a local light/dark preference before login.
 - Admins can manage users, registration tokens, roles and access restrictions.
+- Admins can create configurable roles and set permission levels per admin resource.
 - Registration can require a one-use registration token.
 - Platform About, Imprint and Data Protection pages exist for public and authenticated use.
 - Admins can edit platform information pages with Markdown.
 - Admins can edit public presentation settings for welcome pages and authentication backgrounds.
 - Admins can upload public presentation background images and download them again.
+- Admins can manage reusable visual assets and choose existing images from upload fields.
+- Admins can manage reusable sound assets with volume, loop and playback-duration settings.
+- Admins can configure themed cursor images.
 - Admins can open a separate world-editing workbench from Settings.
 - Admins can see maps as graph nodes and portal links as graph edges.
-- Admins can open a map editor and add a basic tile through an overlay.
+- Admins can open a map editor and add or edit tiles through an overlay.
+- Admins can configure dark/light node images, transparency, lock state, hover text, image visibility and label visibility.
 - Admins can open an activity graph editor for a tile.
 - Admins can create generic activity nodes, set the start activity, connect activity connectors and remove transitions.
+- Admins can configure NPC dialogue, portal, tool-grant and obstacle activity prototypes.
+- Learners can acquire tools and use them on obstacles or map-hidden nodes.
+- Learner-specific obstacle and hidden-node progress is stored.
 
 Not in the first slice:
 
 - AI generation.
-- Multi-map portals.
+- Full portal-polish beyond the current linked portal activity prototype.
 - Multiplayer or group activities.
 - Browser extension.
 - Full analytics dashboards.
-- Full specialized content authoring UI for dialogue stages, questions, portal targets and reflection storage.
-- Fine-grained role and permission editor beyond `admin` and `user`.
-- Full media library with image browsing, deletion and reuse workflows.
-- Full world/map/node editing beyond basic tile creation.
+- Full specialized content authoring UI for reflection storage and richer learning analytics.
+- Complete item and currency systems.
+- Full sound integration into every activity type.
+- Rich media-library lifecycle controls beyond the current reusable picker and admin screens.

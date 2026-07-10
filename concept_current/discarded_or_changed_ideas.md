@@ -56,12 +56,36 @@ Reason: the fallback image concept came from the early icon-based tile prototype
 
 ## Icon key as the main tile visual
 
-Changed to image-first tile visuals with icon fallback.
+Changed to image-first tile visuals.
 
-Reason: icon keys are still useful as a safe fallback when no image is configured or image loading fails, but the long-term platform direction is configurable landscape/map artwork rather than small symbols.
+Reason: the long-term platform direction is configurable landscape/map artwork rather than small symbols. If an admin hides a node image, the map should not quietly replace it with an unrelated default icon.
+
+## Static admin/user-only permission model
+
+Changed to configurable roles with resource permission levels.
+
+Reason: the project quickly grew beyond a single admin switch. User management, role management, world editing, assets, sounds and presentation need separate access decisions. New features should add permission resources and use gates instead of hard-coding role names.
+
+## Visuals inside tools/items/currencies
+
+Changed to separate administration areas.
+
+Reason: tools, items and currencies are world objects. Images, animations and sounds are reusable media layers that can be referenced by many world objects and activities. Keeping them separate prevents the object menu from becoming a generic file cabinet.
+
+## Re-uploading the same image everywhere
+
+Changed to reusable media selection.
+
+Reason: admins will often reuse backgrounds, portraits, node art and animations. Upload fields should offer upload, download, select existing and clear current reference so assets can be reused without duplication.
 
 ## Playing activities inside the map side panel
 
 Changed to a separate node-play page.
 
 Reason: keeping the full map active while playing activities adds visual and browser complexity. The map side panel now describes the node and offers route starts; the activity player runs on a separate page.
+
+## Obstacle activity as one-time skipped activity after clearing
+
+Changed to configurable replay behavior.
+
+Reason: some obstacles should reappear for practice, while others should remain cleared for learner continuity. When an obstacle stays cleared, the learner should still see an authored revisit state instead of silently skipping context.

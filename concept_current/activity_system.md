@@ -33,6 +33,7 @@ NPC dialogue activities now use the same graph idea at a nested level:
 - Runtime playback happens on the separate node-play route, not as an overlay on the world map.
 - Runtime NPC dialogue playback follows the nested dialogue graph from its Start node through interaction nodes to End nodes. End nodes complete the NPC dialogue activity and use the matching activity-level Exit connector to continue the parent activity route.
 - NPC interaction nodes can now be configured as either monologue or question interactions.
+- NPC interaction graphs can also grant tools, using the same learner-owned tool model as standalone tool-grant activities.
 - Question interactions do not embed answer text or feedback in the question config anymore. A question only defines how many answer outputs it exposes.
 - Answers are first-class dialogue graph nodes. Each answer node stores its answer text, display label and whether the answer is considered correct for private learning analytics.
 - Question-to-answer edge order controls the display order of answer possibilities during playback.
@@ -65,6 +66,7 @@ Current UI behavior:
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
 - Admins edit activity graphs from the map editor by opening an existing tile and selecting `Edit activities`.
+- Activity playback pages reserve space for the bottom navigation instead of letting activity controls disappear behind it.
 
 Route visual notes:
 
@@ -79,7 +81,30 @@ Obstacle activity direction:
 - The activity displays a configurable dark/light background, a configurable dark/light obstacle image and an optional speech bubble that can be hidden by the learner.
 - The speech bubble uses the same typewriter-style text reveal as NPC dialogue bubbles. Its dark/light inner color, border color, opacity and typing speed should be configurable.
 - The obstacle remains present until the learner equips and uses a tool that the admin configured as valid for that obstacle.
+- The required tool is selected from available tools instead of entered as a raw id.
+- Obstacle placement is configurable by x/y percentage and image-width percentage, so it can be a wall, a small rock or another localized blocker inside a larger background.
+- Tool-click animation should play first. The obstacle only transitions to solved when the click lands on the obstacle target and the equipped tool is valid.
+- If the click misses the obstacle, the tool animation can still play, but the activity state should not advance.
 - Tools are generic learner-owned capabilities. They can be acquired in activity routes and later used against obstacles, without becoming badges, points or status markers.
 - A floating player/tool-belt control can show acquired tools in acquisition order and lets the learner equip one tool at a time.
 - Tool visuals support dark/light images. For the first implementation, uploaded animated GIF/WebP assets are preferred over a custom frame-node timeline editor because they are easier for admins to understand and keep the runtime simple. The data model should remain open to richer frame-sequence animation later.
+- Tool visuals also support configurable image and animation widths. Runtime preview, map usage and obstacle usage should share the same sizing helper.
 - After a valid tool is used, the obstacle can play a configurable success animation and display a second optional speech bubble using the same color settings as the first bubble.
+- Obstacle activities can either reappear on every replay or stay cleared for the learner.
+- If an obstacle stays cleared, revisiting the activity should show a third configured state instead of skipping the activity completely. That state can use its own background, cleared obstacle image and text bubble while inheriting shared bubble styling.
+- If an admin changes the obstacle to reappear, the admin configuration must take priority over the learner's old cleared state.
+- Cleared-state images replace the obstacle image. They are not an overlay that should move to a different position.
+
+Tool-grant activity direction:
+
+- Tool-grant activities give the learner a selected existing tool.
+- The activity can show a configurable dark/light background, place the tool image by x/y percentage, and use NPC-like slide/fade timing.
+- The activity can include a typewriter-style text bubble with dark/light colors, border and opacity.
+- If the learner already owns the tool, the activity should continue without presenting it as a fresh acquisition.
+
+Sound direction:
+
+- Sounds should be reusable assets rather than one-off file paths inside each activity.
+- A sound can have an icon category, display name, volume, loop flag and optional play-only-first-n-seconds setting.
+- Runtime audio should support layering. Background ambience, dialogue effects and interaction sounds may play together.
+- Future activity editors should use the reusable sound picker instead of duplicating upload/download/select behavior.
