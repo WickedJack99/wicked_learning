@@ -10,7 +10,9 @@ use App\Learning\Actions\SwapLearningNode;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableMap;
+use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadEditableWorldGraph;
+use App\Learning\Serializers\AdminToolSerializer;
 use App\Learning\Serializers\AdminWorldGraphSerializer;
 use App\Learning\Serializers\EditableMapSerializer;
 use App\Learning\Services\NodeImageUploadService;
@@ -19,6 +21,7 @@ use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningTool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,8 +33,10 @@ class AdminWorldController extends Controller
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
         private readonly LoadEditableMap $loadEditableMap,
+        private readonly LoadEditableTools $loadEditableTools,
         private readonly AdminWorldGraphSerializer $worldGraphSerializer,
         private readonly EditableMapSerializer $editableMapSerializer,
+        private readonly AdminToolSerializer $toolSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
         private readonly UpdateLearningMapVisuals $updateLearningMapVisuals,
@@ -58,6 +63,11 @@ class AdminWorldController extends Controller
             'editableMap' => $this->editableMapSerializer->serialize(
                 $this->loadEditableMap->handle($map),
             ),
+            'tools' => $this->loadEditableTools
+                ->handle()
+                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                ->values()
+                ->all(),
         ]);
     }
 

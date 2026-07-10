@@ -88,4 +88,12 @@ class LearningNode extends Model
     {
         return $this->hasMany(LearningNodeBookmark::class);
     }
+
+    /**
+     * @return HasMany<LearnerNodeDiscovery, $this>
+     */
+    public function discoveries(): HasMany
+    {
+        return $this->hasMany(LearnerNodeDiscovery::class);
+    }
 }

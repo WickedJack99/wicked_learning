@@ -24,6 +24,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.nodes.bookmark.store');
     Route::delete('learning/nodes/{node}/bookmark', [LearningBookmarkController::class, 'destroy'])
         ->name('learning.nodes.bookmark.destroy');
+    Route::post('learning/nodes/{node}/reveal-tool', [LearningWorldController::class, 'revealNodeWithTool'])
+        ->name('learning.nodes.reveal-tool');
     Route::get('learning/search', [LearningWorldController::class, 'search'])
         ->name('learning.search');
     Route::get('learning/nodes/{node}/play', [LearningWorldController::class, 'play'])

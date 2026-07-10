@@ -1,21 +1,25 @@
 import {
     BookOpen,
-    CheckCircle2,
     LockKeyhole,
     Map as MapIcon,
     Orbit,
     RadioTower,
 } from 'lucide-react';
 import { memo, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ElementType } from 'react';
-import { cn } from '@/lib/utils';
-import type { LearningMap, LearningNode, LearningProgress } from '@/types';
+import type { CSSProperties, ElementType, PointerEvent } from 'react';
 import {
-    HEX_TILE_CLIP_PATH,
-    normalizeCursorValue,
-    resolveThemeVariant,
-    withOpacity,
-} from './theme';
+    toolAnimationUrl,
+    toolAnimationWidthPercent,
+    toolAnimationWidthStyle,
+} from '@/features/tools/tool-visuals';
+import { cn } from '@/lib/utils';
+import type {
+    LearningMap,
+    LearningNode,
+    LearningProgress,
+    LearningTool,
+} from '@/types';
+import { HEX_TILE_CLIP_PATH, resolveThemeVariant, withOpacity } from './theme';
 import type { ResolvedAppearance, TileStyle } from './types';
 
 const nodeIcons: Record<string, ElementType> = {
@@ -31,8 +35,11 @@ export function WorldMap({
     map,
     mode,
     onClearFocus,
+    onClearEquippedTool,
     onSelectNode,
+    onUseToolOnHiddenNode,
     selectedNode,
+    selectedTool,
 }: {
     activityProgress: LearningProgress['activities'];
     allowLockedSelection?: boolean;
@@ -40,9 +47,15 @@ export function WorldMap({
     mode: ResolvedAppearance;
     onClearFocus: () => void;
     onSelectNode: (node: LearningNode) => void;
+    onClearEquippedTool?: () => void;
+    onUseToolOnHiddenNode: (node: LearningNode) => Promise<void> | void;
     selectedNode: LearningNode | null;
+    selectedTool: LearningTool | null;
 }) {
     const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [toolAnimation, setToolAnimation] = useState<ToolUseAnimation | null>(
+        null,
+    );
     const [drag, setDrag] = useState<{
         hasMoved: boolean;
         pointerId: number;
@@ -99,14 +112,44 @@ export function WorldMap({
         ],
     );
     const mapTheme = resolveThemeVariant(map.backgroundConfig, mode);
-    const mapCursor = drag
-        ? normalizeCursorValue(mapTheme.draggingCursor ?? 'default')
-        : normalizeCursorValue(mapTheme.cursor ?? 'default');
+    const completedDimOpacity = percentConfig(
+        mapTheme.completedDimOpacity,
+        mode === 'light' ? 12 : 18,
+    );
+    const mapCursor = selectedTool
+        ? 'var(--platform-cursor)'
+        : drag
+          ? 'var(--platform-grab-cursor)'
+          : 'var(--platform-cursor)';
+
+    const handleSelectedToolAtPointer = (
+        event: PointerEvent<HTMLDivElement>,
+        node: LearningNode | null,
+    ) => {
+        if (!selectedTool) {
+            return false;
+        }
+
+        const animation = toolUseAnimationFor(selectedTool, mode, event);
+
+        showToolAnimation(animation, setToolAnimation);
+        onClearEquippedTool?.();
+
+        if (node && canUseToolOnHiddenNode(node, selectedTool)) {
+            void wait(animation.durationMs).then(() =>
+                onUseToolOnHiddenNode(node),
+            );
+        }
+
+        return true;
+    };
 
     return (
         <div
             className="relative h-full min-h-[56vh] touch-none overflow-hidden select-none"
             data-map-appearance={mode}
+            data-draggable-surface="true"
+            data-dragging={drag?.hasMoved ? 'true' : undefined}
             onPointerDown={(event) => {
                 if (event.button !== 0) {
                     return;
@@ -181,15 +224,33 @@ export function WorldMap({
                     event.currentTarget.releasePointerCapture(event.pointerId);
                 }
 
+                const node =
+                    drag && !drag.hasMoved && drag.startedNodeId
+                        ? (map.nodes.find(
+                              (candidate) =>
+                                  candidate.id === drag.startedNodeId,
+                          ) ?? null)
+                        : null;
+
+                if (
+                    drag &&
+                    !drag.hasMoved &&
+                    handleSelectedToolAtPointer(event, node)
+                ) {
+                    suppressTileClick.current = true;
+                    setDrag(null);
+                    window.setTimeout(() => {
+                        suppressTileClick.current = false;
+                    }, 0);
+
+                    return;
+                }
+
                 if (drag && !drag.hasMoved && !drag.startedOnTile) {
                     onClearFocus();
                 }
 
-                if (drag && !drag.hasMoved && drag.startedNodeId) {
-                    const node = map.nodes.find(
-                        (candidate) => candidate.id === drag.startedNodeId,
-                    );
-
+                if (drag && !drag.hasMoved && node) {
                     if (node) {
                         onSelectNode(node);
                     }
@@ -278,17 +339,21 @@ export function WorldMap({
                             mode={mode}
                             node={node}
                             onSelectNode={onSelectNode}
+                            onUseToolOnHiddenNode={onUseToolOnHiddenNode}
                             shouldSuppressClick={() =>
                                 suppressTileClick.current
                             }
                             style={style}
-                            tileCursor={normalizeCursorValue(
-                                mapTheme.tileCursor ?? 'pointer',
-                            )}
+                            completedDimOpacity={completedDimOpacity}
+                            selectedTool={selectedTool}
+                            tileCursor="var(--platform-action-cursor)"
                         />
                     );
                 })}
             </div>
+            {toolAnimation ? (
+                <ToolUseAnimation animation={toolAnimation} />
+            ) : null}
         </div>
     );
 }
@@ -299,16 +364,22 @@ const HexTile = memo(function HexTile({
     allowLockedSelection,
     node,
     onSelectNode,
+    onUseToolOnHiddenNode,
+    selectedTool,
     shouldSuppressClick,
     style,
+    completedDimOpacity,
     tileCursor,
     mode,
 }: {
     allowLockedSelection: boolean;
+    completedDimOpacity: number;
     isCompleted: boolean;
     isSelected: boolean;
     node: LearningNode;
     onSelectNode: (node: LearningNode) => void;
+    onUseToolOnHiddenNode: (node: LearningNode) => void;
+    selectedTool: LearningTool | null;
     shouldSuppressClick: () => boolean;
     style: CSSProperties;
     tileCursor: string;
@@ -326,24 +397,45 @@ const HexTile = memo(function HexTile({
             visualConfig.tileColor ?? '#12343b',
             visualConfig.tileOpacity,
         ) ?? '#12343b';
+    const label = visualConfig.label ?? node.title;
     const isLocked = node.state === 'locked';
     const isHiddenSpace = node.state === 'hidden';
+    const isConcealedReveal =
+        isHiddenSpace &&
+        visualConfig.reveal?.isDiscoverable === true &&
+        visualConfig.reveal?.isDiscovered === false;
     const hideEmptySpace =
-        isHiddenSpace && visualConfig.hideEmptySpace !== false;
+        isHiddenSpace &&
+        !isConcealedReveal &&
+        visualConfig.hideEmptySpace !== false;
     const hideImage = visualConfig.hideImage === true;
     const imageUrl = visualConfig.imageUrl ?? '';
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const visibleImageUrl =
         !hideImage && imageUrl && failedImageUrl !== imageUrl ? imageUrl : '';
     const showFallbackIcon = !hideImage && !visibleImageUrl;
+    const canRevealWithTool = canUseToolOnHiddenNode(node, selectedTool);
     const canInteract =
-        node.state !== 'hidden' && (allowLockedSelection || !isLocked);
-    const resolvedTileCursor = canInteract ? tileCursor : 'default';
+        canRevealWithTool ||
+        (node.state !== 'hidden' && (allowLockedSelection || !isLocked));
+    const resolvedTileCursor = selectedTool
+        ? 'var(--platform-cursor)'
+        : canRevealWithTool
+          ? 'var(--platform-cursor)'
+          : canInteract
+            ? tileCursor
+            : 'default';
     const highlightClass = cn(
         'pointer-events-none absolute opacity-0 transition-opacity duration-150 group-hover:opacity-100',
         isSelected && canInteract && 'opacity-100',
         hideEmptySpace && 'hidden',
     );
+    const imageStateClass = cn(isLocked && 'opacity-35 grayscale');
+    const dimOverlayOpacity = isLocked
+        ? 52
+        : isCompleted
+          ? completedDimOpacity
+          : 0;
     const tileStyle: TileStyle = {
         ...style,
         clipPath: HEX_TILE_CLIP_PATH,
@@ -359,6 +451,8 @@ const HexTile = memo(function HexTile({
                 canInteract && 'hover:z-20 hover:-translate-y-1',
                 isSelected && canInteract && 'z-10 -translate-y-1',
                 isHiddenSpace && 'opacity-45',
+                isConcealedReveal && 'opacity-0',
+                isConcealedReveal && !selectedTool && 'pointer-events-none',
                 hideEmptySpace && 'invisible',
             )}
             data-hex-tile
@@ -371,13 +465,17 @@ const HexTile = memo(function HexTile({
                     return;
                 }
 
-                onSelectNode(node);
+                if (canRevealWithTool) {
+                    onUseToolOnHiddenNode(node);
+                } else {
+                    onSelectNode(node);
+                }
             }}
             style={tileStyle}
             type="button"
         >
             <span
-                className="absolute inset-0"
+                className={cn('absolute inset-0', imageStateClass)}
                 style={{
                     background: tileColor,
                     clipPath: HEX_TILE_CLIP_PATH,
@@ -385,7 +483,10 @@ const HexTile = memo(function HexTile({
                 }}
             />
             <span
-                className="absolute inset-[7px] bg-black/14"
+                className={cn(
+                    'absolute inset-[7px] bg-black/14',
+                    imageStateClass,
+                )}
                 style={{
                     clipPath: HEX_TILE_CLIP_PATH,
                     cursor: resolvedTileCursor,
@@ -394,7 +495,10 @@ const HexTile = memo(function HexTile({
             {visibleImageUrl ? (
                 <img
                     alt=""
-                    className="absolute inset-[7px] size-[calc(100%-14px)] object-cover"
+                    className={cn(
+                        'absolute inset-[7px] size-[calc(100%-14px)] object-cover',
+                        imageStateClass,
+                    )}
                     draggable={false}
                     onError={() => setFailedImageUrl(visibleImageUrl)}
                     src={visibleImageUrl}
@@ -404,6 +508,14 @@ const HexTile = memo(function HexTile({
                     }}
                 />
             ) : null}
+            <span
+                className="pointer-events-none absolute inset-[7px] transition-opacity duration-150"
+                style={{
+                    background: 'rgb(15, 23, 42)',
+                    clipPath: HEX_TILE_CLIP_PATH,
+                    opacity: dimOverlayOpacity / 100,
+                }}
+            />
             <span
                 className={cn(highlightClass, 'inset-0')}
                 style={{
@@ -428,7 +540,11 @@ const HexTile = memo(function HexTile({
                     style={{ cursor: resolvedTileCursor }}
                 >
                     <Icon
-                        className={cn('size-7', !showFallbackIcon && 'hidden')}
+                        className={cn(
+                            'size-7',
+                            !showFallbackIcon && 'hidden',
+                            imageStateClass,
+                        )}
                         style={{
                             color:
                                 withOpacity(
@@ -438,25 +554,25 @@ const HexTile = memo(function HexTile({
                             cursor: resolvedTileCursor,
                         }}
                     />
-                    {isCompleted ? (
-                        <CheckCircle2 className="absolute -top-2 -right-3 size-4 text-emerald-300" />
-                    ) : null}
                 </span>
-                {!visualConfig.hideLabel ? (
-                    <span
-                        className="text-xs leading-tight font-medium"
-                        style={{
-                            color:
-                                withOpacity(
-                                    visualConfig.labelColor ?? '#ffffff',
-                                    visualConfig.labelOpacity,
-                                ) ?? '#ffffff',
-                            cursor: resolvedTileCursor,
-                        }}
-                    >
-                        {visualConfig.label ?? node.title}
-                    </span>
-                ) : null}
+                <span
+                    className={cn(
+                        'text-xs leading-tight font-medium transition-opacity duration-150',
+                        visualConfig.hideLabel &&
+                            'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+                        visualConfig.hideLabel && isSelected && 'opacity-100',
+                    )}
+                    style={{
+                        color:
+                            withOpacity(
+                                visualConfig.labelColor ?? '#ffffff',
+                                visualConfig.labelOpacity,
+                            ) ?? '#ffffff',
+                        cursor: resolvedTileCursor,
+                    }}
+                >
+                    {label}
+                </span>
             </span>
             {isLocked ? (
                 <span
@@ -471,3 +587,99 @@ const HexTile = memo(function HexTile({
         </button>
     );
 });
+
+function canUseToolOnHiddenNode(
+    node: LearningNode,
+    selectedTool: LearningTool | null,
+): boolean {
+    return (
+        Boolean(selectedTool) &&
+        node.state === 'hidden' &&
+        node.visualConfig.reveal?.isDiscoverable === true &&
+        node.visualConfig.reveal?.isDiscovered === false
+    );
+}
+
+type ToolUseAnimation = {
+    durationMs: number;
+    id: number;
+    imageUrl: string;
+    widthPercent: number;
+    x: number;
+    y: number;
+};
+
+function ToolUseAnimation({ animation }: { animation: ToolUseAnimation }) {
+    if (!animation.imageUrl) {
+        return null;
+    }
+
+    return (
+        <img
+            alt=""
+            className="pointer-events-none absolute z-40 h-auto max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+            draggable={false}
+            key={animation.id}
+            src={cacheBustedUrl(animation.imageUrl, animation.id)}
+            style={{
+                left: animation.x,
+                top: animation.y,
+                width: toolAnimationWidthStyle(animation.widthPercent),
+            }}
+        />
+    );
+}
+
+function toolUseAnimationFor(
+    tool: LearningTool,
+    mode: ResolvedAppearance,
+    event: PointerEvent<HTMLDivElement>,
+): ToolUseAnimation {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const imageUrl = toolAnimationUrl(tool, mode);
+    const durationSeconds = numericConfig(
+        tool.config.animationDurationSeconds,
+        imageUrl ? 0.75 : 0,
+    );
+
+    return {
+        durationMs: Math.max(0, durationSeconds * 1000),
+        id: Date.now(),
+        imageUrl,
+        widthPercent: toolAnimationWidthPercent(tool),
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+    };
+}
+
+function showToolAnimation(
+    animation: ToolUseAnimation,
+    setToolAnimation: (animation: ToolUseAnimation | null) => void,
+) {
+    setToolAnimation(animation);
+
+    window.setTimeout(
+        () => setToolAnimation(null),
+        Math.max(animation.durationMs, 120),
+    );
+}
+
+function wait(durationMs: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, durationMs));
+}
+
+function cacheBustedUrl(url: string, id: number): string {
+    const separator = url.includes('?') ? '&' : '?';
+
+    return `${url}${separator}map_tool_use=${id}`;
+}
+
+function numericConfig(value: unknown, fallback: number): number {
+    const numeric = typeof value === 'number' ? value : Number(value);
+
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function percentConfig(value: unknown, fallback: number): number {
+    return Math.min(Math.max(numericConfig(value, fallback), 0), 100);
+}

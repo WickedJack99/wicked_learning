@@ -12,6 +12,7 @@ use App\Learning\Serializers\LearningWorldSerializer;
 use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearningBookmarkService;
 use App\Learning\Services\LearningToolGrantService;
+use App\Learning\Services\NodeRevealService;
 use App\Learning\Services\NpcDialogueAnswerService;
 use App\Learning\Services\ObstacleToolService;
 use App\Learning\Services\QuestionAnswerService;
@@ -40,16 +41,17 @@ class LearningWorldController extends Controller
         private readonly ObstacleToolService $obstacleToolService,
         private readonly LearningToolGrantService $toolGrantService,
         private readonly LearningBookmarkService $bookmarkService,
+        private readonly NodeRevealService $nodeRevealService,
     ) {}
 
     public function show(Request $request): Response
     {
         $userId = $request->user()->id;
-        $world = $this->loadLearningWorld->forMapView();
+        $world = $this->loadLearningWorld->forMapView($userId);
 
         return Inertia::render('world', [
             'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($userId),
-            'world' => $world ? $this->worldSerializer->serialize($world) : null,
+            'world' => $world ? $this->worldSerializer->serialize($world, $userId) : null,
             'progress' => $this->progressSerializer->forUser($userId),
         ]);
     }
@@ -59,7 +61,7 @@ class LearningWorldController extends Controller
         $userId = $request->user()->id;
 
         return Inertia::render('learning/node-play', [
-            'node' => $this->nodeSerializer->serialize($this->loadPlayableNode->handle($node)),
+            'node' => $this->nodeSerializer->serialize($this->loadPlayableNode->handle($node), $userId),
             'progress' => $this->progressSerializer->forUser($userId),
         ]);
     }
@@ -121,6 +123,21 @@ class LearningWorldController extends Controller
             'result' => $this->obstacleToolService->useTool(
                 $request->user(),
                 $activity,
+                (int) $data['tool_id'],
+            ),
+        ]);
+    }
+
+    public function revealNodeWithTool(Request $request, LearningNode $node): JsonResponse
+    {
+        $data = $request->validate([
+            'tool_id' => ['required', 'integer'],
+        ]);
+
+        return response()->json([
+            'result' => $this->nodeRevealService->useTool(
+                $request->user(),
+                $node,
                 (int) $data['tool_id'],
             ),
         ]);

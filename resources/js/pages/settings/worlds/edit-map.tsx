@@ -2,14 +2,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ChevronRight,
-    Download,
     GitBranch,
-    Image,
     LockKeyhole,
     Map as MapIcon,
     Palette,
     Save,
-    Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { Dispatch, PointerEvent, SetStateAction } from 'react';
@@ -41,6 +38,8 @@ import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
+import type { LearningTool } from '@/types';
+import { ConfigImageInput as NodeImageInput } from './activity-config-fields';
 
 type EditableWorld = {
     description: string | null;
@@ -99,6 +98,7 @@ type NodeVisualThemeFields = {
 
 type MapVisualThemeFields = {
     accentColor: string;
+    completedDimOpacity: string;
     imageUrl: string;
     overlay: string;
     pageBackground: string;
@@ -148,6 +148,10 @@ type NodeForm = {
         hideLabel: boolean;
         label: string;
         light: NodeVisualThemeFields;
+        reveal: {
+            enabled: boolean;
+            toolId: string;
+        };
         tooltip: string;
     };
 };
@@ -159,8 +163,10 @@ type MapVisualForm = MapVisualThemeFields & {
 
 export default function EditWorldMap({
     editableMap,
+    tools,
 }: {
     editableMap: EditableMapPayload;
+    tools: LearningTool[];
 }) {
     const { map, world } = editableMap;
     const { resolvedAppearance } = useAppearance();
@@ -189,6 +195,7 @@ export default function EditWorldMap({
     const [insertionContext, setInsertionContext] =
         useState<InsertionContext | null>(null);
     const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [isDraggingSurface, setIsDraggingSurface] = useState(false);
     const suppressClickRef = useRef(false);
     const dragRef = useRef<{
         moved: boolean;
@@ -434,6 +441,7 @@ export default function EditWorldMap({
 
         if (!drag.moved) {
             drag.moved = true;
+            setIsDraggingSurface(true);
             suppressClickRef.current = true;
             window.getSelection()?.removeAllRanges();
         }
@@ -452,6 +460,7 @@ export default function EditWorldMap({
         }
 
         dragRef.current = null;
+        setIsDraggingSurface(false);
 
         if (drag.moved) {
             window.setTimeout(() => {
@@ -523,6 +532,8 @@ export default function EditWorldMap({
 
                     <section
                         className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.14),rgba(255,255,255,0.88)_64%)] shadow-2xl select-none dark:border-white/10 dark:bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.16),rgba(17,24,32,0.94)_66%)]"
+                        data-draggable-surface="true"
+                        data-dragging={isDraggingSurface ? 'true' : undefined}
                         onPointerCancel={stopDrag}
                         onPointerDown={startDrag}
                         onPointerMove={moveDrag}
@@ -846,6 +857,59 @@ export default function EditWorldMap({
                                         }
                                     />
                                 ) : null}
+                            </div>
+                        </SettingsAccordionSection>
+
+                        <SettingsAccordionSection
+                            description="Hide this node until a learner uses a configured tool at its map position."
+                            title="Discovery"
+                        >
+                            <div className="grid gap-3">
+                                <CheckboxField
+                                    checked={form.visual_config.reveal.enabled}
+                                    description="The node keeps its coordinates, but learners only reveal it by equipping the chosen tool and clicking its hidden map position."
+                                    id="reveal-with-tool"
+                                    label="Hide until revealed with a tool"
+                                    onCheckedChange={(checked) =>
+                                        setRevealEnabled(setForm, checked)
+                                    }
+                                />
+                                <div className="grid gap-1">
+                                    <Label htmlFor="reveal-tool">
+                                        Reveal tool
+                                    </Label>
+                                    <select
+                                        className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                        disabled={
+                                            !form.visual_config.reveal.enabled
+                                        }
+                                        id="reveal-tool"
+                                        onChange={(event) =>
+                                            setRevealToolId(
+                                                setForm,
+                                                event.currentTarget.value,
+                                            )
+                                        }
+                                        value={form.visual_config.reveal.toolId}
+                                    >
+                                        <option value="">Select a tool</option>
+                                        {tools.map((tool) => (
+                                            <option
+                                                key={tool.id}
+                                                value={tool.id}
+                                            >
+                                                {tool.title}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError
+                                        message={
+                                            errors[
+                                                'visual_config.reveal.toolId'
+                                            ]
+                                        }
+                                    />
+                                </div>
                             </div>
                         </SettingsAccordionSection>
 
@@ -1321,19 +1385,32 @@ const nodeVisualFields: {
 ];
 
 const mapVisualFields: {
-    key: keyof Omit<MapVisualThemeFields, 'imageUrl'>;
+    colorPicker?: boolean;
+    key: keyof Omit<MapVisualThemeFields, 'completedDimOpacity' | 'imageUrl'>;
     label: string;
 }[] = [
     { key: 'overlay', label: 'Overlay background' },
     { key: 'pageBackground', label: 'Page background' },
     { key: 'panelBackground', label: 'Map panel background' },
-    { key: 'panelTextColor', label: 'Map panel text' },
-    { key: 'panelMutedTextColor', label: 'Map panel muted text' },
-    { key: 'accentColor', label: 'Accent color' },
+    { colorPicker: true, key: 'panelTextColor', label: 'Map panel text' },
+    {
+        colorPicker: true,
+        key: 'panelMutedTextColor',
+        label: 'Map panel muted text',
+    },
+    { colorPicker: true, key: 'accentColor', label: 'Accent color' },
     { key: 'sidePanelBackground', label: 'Side panel background' },
-    { key: 'sidePanelBorderColor', label: 'Side panel border' },
-    { key: 'sidePanelTextColor', label: 'Side panel text' },
-    { key: 'sidePanelMutedTextColor', label: 'Side panel muted text' },
+    {
+        colorPicker: true,
+        key: 'sidePanelBorderColor',
+        label: 'Side panel border',
+    },
+    { colorPicker: true, key: 'sidePanelTextColor', label: 'Side panel text' },
+    {
+        colorPicker: true,
+        key: 'sidePanelMutedTextColor',
+        label: 'Side panel muted text',
+    },
 ];
 
 function NodeVisualModeFields({
@@ -1456,10 +1533,25 @@ function MapVisualModeFields({
                                 value,
                             )
                         }
+                        colorPicker={field.colorPicker}
                         value={values[field.key]}
                     />
                 ))}
             </div>
+            <DimmingField
+                error={errors[`background_config.${mode}.completedDimOpacity`]}
+                label={`${labelPrefix} completed tile dimming`}
+                onChange={(value) =>
+                    setMapVisualThemeTextConfig(
+                        setForm,
+                        mode,
+                        'completedDimOpacity',
+                        value,
+                    )
+                }
+                placeholder={mode === 'light' ? '12' : '18'}
+                value={values.completedDimOpacity}
+            />
             <NodeImageInput
                 description={`${labelPrefix} background image override for this map.`}
                 error={
@@ -1480,96 +1572,6 @@ function MapVisualModeFields({
                 value={values.imageUrl}
             />
         </SettingsAccordionSection>
-    );
-}
-
-function NodeImageInput({
-    description,
-    error,
-    id,
-    label,
-    onChange,
-    onUpload,
-    uploading,
-    value,
-}: {
-    description: string;
-    error?: string;
-    id: string;
-    label: string;
-    onChange: (value: string) => void;
-    onUpload: (file: File) => void;
-    uploading: boolean;
-    value: string;
-}) {
-    const uploadId = `${id}-upload`;
-
-    return (
-        <div className="grid gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-            <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
-                    <Image className="size-4" />
-                </span>
-                <div>
-                    <Label htmlFor={id}>{label}</Label>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {description}
-                    </p>
-                </div>
-            </div>
-
-            <Input
-                id={id}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder="/storage/learning/nodes/example.svg"
-                value={value}
-            />
-            <InputError message={error} />
-
-            {value ? (
-                <div className="flex items-center gap-3 rounded-md bg-slate-50 p-2 dark:bg-white/5">
-                    <img
-                        alt=""
-                        className="size-12 rounded object-contain"
-                        src={value}
-                    />
-                    <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {value}
-                    </span>
-                </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" type="button" variant="secondary">
-                    <label htmlFor={uploadId}>
-                        <Upload className="size-4" />
-                        {uploading ? 'Uploading...' : 'Upload'}
-                    </label>
-                </Button>
-                <input
-                    accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
-                    className="sr-only"
-                    disabled={uploading}
-                    id={uploadId}
-                    onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-
-                        if (file) {
-                            onUpload(file);
-                        }
-
-                        event.currentTarget.value = '';
-                    }}
-                    type="file"
-                />
-                <Button asChild disabled={!value} size="sm" variant="ghost">
-                    <a download href={value || '#'} rel="noreferrer">
-                        <Download className="size-4" />
-                        Download
-                    </a>
-                </Button>
-            </div>
-        </div>
     );
 }
 
@@ -1599,6 +1601,56 @@ function CheckboxField({
                     {description}
                 </p>
             </div>
+        </div>
+    );
+}
+
+function DimmingField({
+    error,
+    label,
+    onChange,
+    placeholder,
+    value,
+}: {
+    error?: string;
+    label: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    value: string;
+}) {
+    const id = label.toLowerCase().replaceAll(' ', '-');
+    const sliderValue = value || placeholder;
+
+    return (
+        <div className="grid gap-1">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+                <Input
+                    id={id}
+                    max="100"
+                    min="0"
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    placeholder={placeholder}
+                    type="number"
+                    value={value}
+                />
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                    %
+                </span>
+            </div>
+            <Input
+                aria-label={`${label} slider`}
+                max="100"
+                min="0"
+                onChange={(event) => onChange(event.currentTarget.value)}
+                type="range"
+                value={sliderValue}
+            />
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Completed tiles keep their colors and receive only this dim
+                overlay.
+            </p>
+            <InputError message={error} />
         </div>
     );
 }
@@ -1645,6 +1697,46 @@ function setVisualBooleanConfig(
         visual_config: {
             ...current.visual_config,
             [key]: value,
+        },
+    }));
+}
+
+function setRevealEnabled(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    enabled: boolean,
+) {
+    setForm((current) => ({
+        ...current,
+        state: enabled
+            ? 'hidden'
+            : current.state === 'hidden'
+              ? 'available'
+              : current.state,
+        visual_config: {
+            ...current.visual_config,
+            hideEmptySpace: enabled
+                ? true
+                : current.visual_config.hideEmptySpace,
+            reveal: {
+                ...current.visual_config.reveal,
+                enabled,
+            },
+        },
+    }));
+}
+
+function setRevealToolId(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    toolId: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            reveal: {
+                ...current.visual_config.reveal,
+                toolId,
+            },
         },
     }));
 }
@@ -1719,6 +1811,7 @@ function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
 function emptyMapVisualThemeFields(): MapVisualThemeFields {
     return {
         accentColor: '',
+        completedDimOpacity: '',
         imageUrl: '',
         overlay: '',
         pageBackground: '',
@@ -1747,6 +1840,10 @@ function emptyNodeForm(q: number, r: number): NodeForm {
             hideImage: false,
             hideLabel: false,
             light: defaultNodeVisualThemeFields('light'),
+            reveal: {
+                enabled: false,
+                toolId: '',
+            },
             tooltip: '',
         },
     };
@@ -1800,6 +1897,10 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
                 labelOpacity: '100',
                 tileColor: '#f8fafc',
                 tileOpacity: '100',
+            },
+            reveal: {
+                enabled: false,
+                toolId: '',
             },
             tooltip: 'Empty editor-only space.',
         },
@@ -1855,8 +1956,21 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
                 node.visualConfig.light,
                 defaultNodeVisualThemeFields('light'),
             ),
+            reveal: revealConfigFromNode(node.visualConfig.reveal),
             tooltip: stringConfig(node.visualConfig.tooltip, ''),
         },
+    };
+}
+
+function revealConfigFromNode(config: VisualConfigValue): {
+    enabled: boolean;
+    toolId: string;
+} {
+    const reveal = isVisualConfig(config) ? config : {};
+
+    return {
+        enabled: booleanConfig(reveal.enabled, false),
+        toolId: inputStringConfig(reveal.toolId, ''),
     };
 }
 
@@ -1923,6 +2037,10 @@ function mapVisualThemeFieldsFromConfig(
     return {
         ...fallback,
         accentColor: stringConfig(config?.accentColor, fallback.accentColor),
+        completedDimOpacity: inputStringConfig(
+            config?.completedDimOpacity,
+            fallback.completedDimOpacity,
+        ),
         imageUrl: stringConfig(config?.imageUrl, fallback.imageUrl),
         overlay: stringConfig(config?.overlay, fallback.overlay),
         pageBackground: stringConfig(
@@ -1972,6 +2090,14 @@ function stringConfig(value: unknown, fallback: string) {
     return typeof value === 'string' ? value : fallback;
 }
 
+function inputStringConfig(value: unknown, fallback: string) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value.toString();
+    }
+
+    return stringConfig(value, fallback);
+}
+
 function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
     if (!override) {
         return form;
@@ -1990,6 +2116,10 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
             light: {
                 ...form.visual_config.light,
                 ...override.visual_config?.light,
+            },
+            reveal: {
+                ...form.visual_config.reveal,
+                ...override.visual_config?.reveal,
             },
         },
     };

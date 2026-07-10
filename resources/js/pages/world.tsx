@@ -3,6 +3,10 @@ import { Map as MapIcon, MapPin, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    selectLearningTool,
+    useSelectedLearningTool,
+} from '@/features/tools/tool-selection';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPanel } from '@/features/world/activity-panel';
 import { deleteJson, getJson, postJson } from '@/features/world/api';
@@ -64,6 +68,7 @@ export default function World({
 }: WorldProps) {
     const { url } = usePage();
     const { resolvedAppearance } = useAppearance();
+    const selectedTool = useSelectedLearningTool();
     const mapSlug = useMemo(
         () => new URL(url, 'http://learning.local').searchParams.get('map'),
         [url],
@@ -117,6 +122,9 @@ export default function World({
 
         return map.nodes.find((node) => node.id === selectedNodeId) ?? null;
     }, [map, selectedNodeId]);
+    const selectedNodeIsCompleted = selectedNode
+        ? nodeHasCompletedActivity(selectedNode, activityProgress)
+        : false;
     useEffect(() => {
         const query = searchTerm.trim();
 
@@ -186,6 +194,26 @@ export default function World({
 
         setSelectedNodeId(node.id);
     }, []);
+    const useToolOnHiddenNode = useCallback(
+        async (node: LearningNode) => {
+            if (!selectedTool) {
+                return;
+            }
+
+            const response = await postJson<{
+                result: { discovered: boolean; isUseful: boolean };
+            }>(`/learning/nodes/${node.id}/reveal-tool`, {
+                tool_id: selectedTool.id,
+            });
+
+            if (response.result.discovered) {
+                router.reload({
+                    only: ['world'],
+                });
+            }
+        },
+        [selectedTool],
+    );
     const focusNode = useCallback(
         (node: LearningNode, targetMap: LearningMap) => {
             setCurrentMapId(targetMap.id);
@@ -327,7 +355,10 @@ export default function World({
                         selectedNode={selectedNode}
                         activityProgress={activityProgress}
                         onClearFocus={clearNodeFocus}
+                        onClearEquippedTool={() => selectLearningTool(null)}
                         onSelectNode={openNode}
+                        onUseToolOnHiddenNode={useToolOnHiddenNode}
+                        selectedTool={selectedTool}
                     />
                 </section>
 
@@ -342,7 +373,7 @@ export default function World({
 
                 <aside
                     className={cn(
-                        'absolute inset-0 z-30 w-full touch-pan-y border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
+                        'absolute inset-0 z-50 w-full touch-pan-y border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
                         selectedNode
                             ? 'translate-x-0'
                             : 'pointer-events-none translate-x-full',
@@ -421,6 +452,7 @@ export default function World({
                                 ? bookmarkedNodeIds.includes(selectedNode.id)
                                 : false
                         }
+                        isCompleted={selectedNodeIsCompleted}
                         node={selectedNode}
                         onClose={clearNodeFocus}
                         onStart={startNode}
@@ -453,6 +485,15 @@ function findMap(
         world.maps.find(
             (map) => map.slug === mapSlug || map.id.toString() === mapSlug,
         ) ?? null
+    );
+}
+
+function nodeHasCompletedActivity(
+    node: LearningNode,
+    activityProgress: LearningProgress['activities'],
+): boolean {
+    return node.activities.some(
+        (activity) => activityProgress[activity.id]?.status === 'completed',
     );
 }
 

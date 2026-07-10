@@ -57,8 +57,11 @@ export default function Bookmarks({ bookmarkMap }: BookmarksProps) {
                             map={map}
                             mode={resolvedAppearance}
                             onClearFocus={() => setSelectedNodeId(null)}
+                            onClearEquippedTool={() => undefined}
                             onSelectNode={(node) => setSelectedNodeId(node.id)}
+                            onUseToolOnHiddenNode={() => undefined}
                             selectedNode={selectedNode}
+                            selectedTool={null}
                         />
                     ) : (
                         <EmptyBookmarksState />
@@ -67,7 +70,7 @@ export default function Bookmarks({ bookmarkMap }: BookmarksProps) {
 
                 <aside
                     className={cn(
-                        'absolute inset-0 z-30 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
+                        'absolute inset-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
                         selectedNode
                             ? 'translate-x-0'
                             : 'pointer-events-none translate-x-full',

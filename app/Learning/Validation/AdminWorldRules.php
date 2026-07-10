@@ -114,6 +114,7 @@ class AdminWorldRules
             }
 
             $rules["background_config.{$prefix}imageUrl"] = ['nullable', 'string', 'max:2048'];
+            $rules["background_config.{$prefix}completedDimOpacity"] = ['nullable', 'numeric', 'min:0', 'max:100'];
         }
 
         return $rules;
@@ -160,6 +161,8 @@ class AdminWorldRules
             'visual_config.hideEmptySpace' => ['nullable', 'boolean'],
             'visual_config.hideImage' => ['nullable', 'boolean'],
             'visual_config.hideLabel' => ['nullable', 'boolean'],
+            'visual_config.reveal.enabled' => ['nullable', 'boolean'],
+            'visual_config.reveal.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
             'visual_config.tooltip' => ['nullable', 'string', 'max:255'],
         ];
 

@@ -9,7 +9,7 @@ class LoadLearningWorld
 {
     public function __construct(private readonly CurrentWorldResolver $worldResolver) {}
 
-    public function forMapView(): ?LearningWorld
+    public function forMapView(?int $userId = null): ?LearningWorld
     {
         return $this->worldResolver
             ->query()
@@ -18,6 +18,9 @@ class LoadLearningWorld
                 'maps.nodes.activities.question.options',
                 'maps.nodes.activities.transitions',
                 'maps.nodes.activityStarts.activity',
+                'maps.nodes.discoveries' => fn ($query) => $userId
+                    ? $query->where('user_id', $userId)
+                    : $query,
                 'maps.nodes.outgoingPortalLinks.targetNode.map',
             ])
             ->first();

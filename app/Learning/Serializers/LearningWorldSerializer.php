@@ -13,7 +13,7 @@ class LearningWorldSerializer
     /**
      * @return array<string, mixed>
      */
-    public function serialize(LearningWorld $world): array
+    public function serialize(LearningWorld $world, ?int $userId = null): array
     {
         return [
             'id' => $world->id,
@@ -22,7 +22,7 @@ class LearningWorldSerializer
             'description' => $world->description,
             'themeConfig' => $world->theme_config ?? [],
             'maps' => $world->maps
-                ->map(fn (LearningMap $map): array => $this->map($map))
+                ->map(fn (LearningMap $map): array => $this->map($map, $userId))
                 ->values(),
         ];
     }
@@ -30,7 +30,7 @@ class LearningWorldSerializer
     /**
      * @return array<string, mixed>
      */
-    private function map(LearningMap $map): array
+    private function map(LearningMap $map, ?int $userId): array
     {
         return [
             'id' => $map->id,
@@ -42,7 +42,7 @@ class LearningWorldSerializer
             'nodes' => $map->nodes
                 ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
                 ->values()
-                ->map(fn (LearningNode $node): array => $this->nodeSerializer->serialize($node))
+                ->map(fn (LearningNode $node): array => $this->nodeSerializer->serialize($node, $userId))
                 ->values(),
         ];
     }

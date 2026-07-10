@@ -3,6 +3,7 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityRouteEligibility;
+use App\Learning\Services\NodeRevealService;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
@@ -16,17 +17,25 @@ class LearningNodeSerializer
         private readonly LearningActivitySerializer $activitySerializer,
         private readonly LearningActivityStartSerializer $startSerializer,
         private readonly LearningPortalLinkSerializer $portalLinkSerializer,
+        private readonly NodeRevealService $nodeRevealService,
     ) {}
 
     /**
      * @return array<string, mixed>
      */
-    public function serialize(LearningNode $node): array
+    public function serialize(LearningNode $node, ?int $userId = null): array
     {
         $this->loadRelations($node);
 
+        if ($this->nodeRevealService->isConcealedForUser($node, $userId)) {
+            return $this->concealedNode($node);
+        }
+
         return [
-            ...$this->baseNode($node),
+            ...$this->baseNode($node, null, [
+                'isDiscoverable' => $this->nodeRevealService->isDiscoverable($node),
+                'isDiscovered' => true,
+            ], $this->nodeRevealService->isDiscoverable($node) ? 'available' : null),
             'outgoingPortalLinks' => $node->outgoingPortalLinks
                 ->map(fn (LearningPortalLink $link): array => $this->portalLinkSerializer->serialize($link))
                 ->values(),
@@ -64,16 +73,31 @@ class LearningNodeSerializer
             'activities.npcDialogueTransitions',
             'activities.question.options',
             'activities.transitions',
+            'discoveries',
             'outgoingPortalLinks.targetNode.map',
         ]);
     }
 
     /**
      * @param  array{q: int, r: int}|null  $position
+     * @param  array<string, mixed>|null  $reveal
      * @return array<string, mixed>
      */
-    private function baseNode(LearningNode $node, ?array $position = null): array
-    {
+    private function baseNode(
+        LearningNode $node,
+        ?array $position = null,
+        ?array $reveal = null,
+        ?string $state = null,
+    ): array {
+        $visualConfig = $node->visual_config ?? [];
+
+        if ($reveal !== null) {
+            $visualConfig['reveal'] = [
+                ...(is_array($visualConfig['reveal'] ?? null) ? $visualConfig['reveal'] : []),
+                ...$reveal,
+            ];
+        }
+
         return [
             'id' => $node->id,
             'mapId' => $node->map->id,
@@ -86,8 +110,34 @@ class LearningNodeSerializer
                 'q' => $node->position_q,
                 'r' => $node->position_r,
             ],
-            'state' => $node->state,
-            'visualConfig' => $node->visual_config ?? [],
+            'state' => $state ?? $node->state,
+            'visualConfig' => $visualConfig,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function concealedNode(LearningNode $node): array
+    {
+        return [
+            ...$this->baseNode($node, null, [
+                'isDiscoverable' => true,
+                'isDiscovered' => false,
+            ]),
+            'title' => 'Undiscovered place',
+            'description' => null,
+            'visualConfig' => [
+                'hideEmptySpace' => true,
+                'reveal' => [
+                    'isDiscoverable' => true,
+                    'isDiscovered' => false,
+                ],
+            ],
+            'outgoingPortalLinks' => [],
+            'startActivityId' => null,
+            'startRoutes' => [],
+            'activities' => [],
         ];
     }
 

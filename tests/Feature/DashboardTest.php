@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
+use App\Models\LearningTool;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Inertia\Testing\AssertableInertia;
@@ -125,6 +127,62 @@ test('world map serializes outgoing portal links for learner travel', function (
             ->where('world.maps.0.nodes.0.startRoutes.0.imageDark', '/images/routes/portal-route-dark.svg')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetMapSlug', 'signal-archive')
             ->where('world.maps.0.nodes.0.outgoingPortalLinks.0.targetNodeSlug', 'return-gate')
+        );
+});
+
+test('learners can reveal a hidden node with an owned configured tool', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $tool = LearningTool::query()->create([
+        'slug' => 'scanner',
+        'title' => 'Scanner',
+    ]);
+    $learner->learningTools()->attach($tool, ['acquired_at' => now()]);
+
+    $node = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $node->forceFill([
+        'state' => 'hidden',
+        'visual_config' => [
+            ...($node->visual_config ?? []),
+            'reveal' => [
+                'enabled' => true,
+                'toolId' => $tool->id,
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps.0.nodes.2.title', 'Undiscovered place')
+            ->where('world.maps.0.nodes.2.state', 'hidden')
+            ->where('world.maps.0.nodes.2.visualConfig.reveal.isDiscovered', false)
+        );
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.nodes.reveal-tool', $node), [
+            'tool_id' => $tool->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('result.discovered', true)
+        ->assertJsonPath('result.isUseful', true);
+
+    expect(LearnerNodeDiscovery::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_node_id', $node->id)
+        ->exists())->toBeTrue();
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps.0.nodes.2.slug', 'quiet-archive')
+            ->where('world.maps.0.nodes.2.state', 'available')
+            ->where('world.maps.0.nodes.2.visualConfig.reveal.isDiscovered', true)
         );
 });
 

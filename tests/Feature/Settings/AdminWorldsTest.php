@@ -5,6 +5,7 @@ use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningTool;
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -211,6 +212,46 @@ test('admin users configure portal destinations from portal activities', functio
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('activityGraph.portalCandidates')
         );
+});
+
+test('admin users can update obstacle activity images', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('slug', 'clear-the-static-gate')
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'obstacle_background_dark' => '/storage/learning/nodes/mineshaft-dark.svg',
+            'obstacle_background_light' => '/storage/learning/nodes/mineshaft-light.svg',
+            'obstacle_image_dark' => '/storage/learning/nodes/rock-wall-dark.svg',
+            'obstacle_image_light' => '/storage/learning/nodes/rock-wall-light.svg',
+            'obstacle_x' => 23,
+            'obstacle_y' => 64,
+            'obstacle_width' => 12,
+            'obstacle_revisit_background_dark' => '/storage/learning/nodes/cleared-mineshaft-dark.svg',
+            'obstacle_revisit_background_light' => '/storage/learning/nodes/cleared-mineshaft-light.svg',
+            'obstacle_revisit_image_dark' => '/storage/learning/nodes/cleared-rock-dark.svg',
+            'obstacle_revisit_image_light' => '/storage/learning/nodes/cleared-rock-light.svg',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
+
+    $activity->refresh();
+
+    expect($activity->config['backgroundDark'])->toBe('/storage/learning/nodes/mineshaft-dark.svg')
+        ->and($activity->config['backgroundLight'])->toBe('/storage/learning/nodes/mineshaft-light.svg')
+        ->and($activity->config['obstacleImageDark'])->toBe('/storage/learning/nodes/rock-wall-dark.svg')
+        ->and($activity->config['obstacleImageLight'])->toBe('/storage/learning/nodes/rock-wall-light.svg')
+        ->and($activity->config['obstacleX'])->toBe(23)
+        ->and($activity->config['obstacleY'])->toBe(64)
+        ->and($activity->config['obstacleWidth'])->toBe(12)
+        ->and($activity->config['revisitBackgroundDark'])->toBe('/storage/learning/nodes/cleared-mineshaft-dark.svg')
+        ->and($activity->config['revisitBackgroundLight'])->toBe('/storage/learning/nodes/cleared-mineshaft-light.svg')
+        ->and($activity->config['revisitImageDark'])->toBe('/storage/learning/nodes/cleared-rock-dark.svg')
+        ->and($activity->config['revisitImageLight'])->toBe('/storage/learning/nodes/cleared-rock-light.svg');
 });
 
 test('admin users can create and connect activity graph nodes', function () {
@@ -725,6 +766,54 @@ test('admin users can edit an existing tile', function () {
         ->and($node->visual_config['tooltip'])->toBe('Edited tile.')
         ->and($node->visual_config['dark']['imageUrl'])->toBe('/storage/learning/nodes/dark.svg')
         ->and($node->visual_config['light']['tileColor'])->toBe('#e0f2fe');
+});
+
+test('admin users can configure a tile to be revealed by a tool', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $tool = LearningTool::query()->create([
+        'slug' => 'survey-scanner',
+        'title' => 'Survey scanner',
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'hidden',
+            'visual_config' => [
+                'label' => 'Signal Gate',
+                'reveal' => [
+                    'enabled' => true,
+                    'toolId' => $tool->id,
+                ],
+                'dark' => [
+                    'tileColor' => '#082f49',
+                    'foregroundColor' => '#bae6fd',
+                    'labelColor' => '#ffffff',
+                    'highlightColor' => '#38bdf8',
+                ],
+                'light' => [
+                    'tileColor' => '#e0f2fe',
+                    'foregroundColor' => '#0369a1',
+                    'labelColor' => '#0f172a',
+                    'highlightColor' => '#0284c7',
+                ],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $node->map));
+
+    $node->refresh();
+
+    expect($node->state)->toBe('hidden')
+        ->and($node->visual_config['reveal']['enabled'])->toBeTrue()
+        ->and((int) $node->visual_config['reveal']['toolId'])->toBe($tool->id);
 });
 
 test('admin users can edit map visual theme variants', function () {
