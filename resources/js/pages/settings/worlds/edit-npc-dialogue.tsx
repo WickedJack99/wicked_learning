@@ -13,14 +13,11 @@ import {
 import type { Connection, Edge, Node } from '@xyflow/react';
 import {
     ArrowLeft,
-    Download,
-    Image,
     MessageCircle,
     Plus,
     Play,
     Save,
     Trash2,
-    Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -46,6 +43,7 @@ import {
 } from '@/components/ui/select';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
+import { ConfigImageInput } from './activity-config-fields';
 
 type DialogueConnector = {
     color: string;
@@ -1410,98 +1408,6 @@ function ConfigNumberField({
                     <span className="text-xs text-slate-500 dark:text-slate-400">
                         {suffix}
                     </span>
-                ) : null}
-            </div>
-        </div>
-    );
-}
-
-function ConfigImageInput({
-    description,
-    error,
-    id,
-    label,
-    onChange,
-    onUpload,
-    uploading,
-    value,
-}: {
-    description: string;
-    error?: string;
-    id: string;
-    label: string;
-    onChange: (value: string) => void;
-    onUpload: (file: File) => void;
-    uploading: boolean;
-    value: string;
-}) {
-    const uploadId = `${id}-upload`;
-
-    return (
-        <div className="grid gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-            <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
-                    <Image className="size-4" />
-                </span>
-                <div>
-                    <Label htmlFor={id}>{label}</Label>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {description}
-                    </p>
-                </div>
-            </div>
-
-            <Input
-                id={id}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder="/storage/learning/nodes/example.svg"
-                value={value}
-            />
-            <InputError message={error} />
-
-            {value ? (
-                <div className="flex items-center gap-3 rounded-md bg-slate-50 p-2 dark:bg-white/5">
-                    <img
-                        alt=""
-                        className="size-12 rounded object-cover"
-                        src={value}
-                    />
-                    <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {value}
-                    </span>
-                </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" type="button" variant="secondary">
-                    <label htmlFor={uploadId}>
-                        <Upload className="size-4" />
-                        {uploading ? 'Uploading...' : 'Upload'}
-                    </label>
-                </Button>
-                <input
-                    accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
-                    className="sr-only"
-                    disabled={uploading}
-                    id={uploadId}
-                    onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-
-                        if (file) {
-                            onUpload(file);
-                        }
-
-                        event.currentTarget.value = '';
-                    }}
-                    type="file"
-                />
-                {value ? (
-                    <Button asChild size="sm" type="button" variant="outline">
-                        <a download href={value}>
-                            <Download className="size-4" />
-                            Download
-                        </a>
-                    </Button>
                 ) : null}
             </div>
         </div>

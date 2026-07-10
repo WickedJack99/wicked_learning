@@ -156,6 +156,7 @@ export function ActivityFormFields({
                         imageUploadErrors={imageUploadErrors}
                         onChange={onChange}
                         onUpload={onUploadPortalImage}
+                        tools={tools}
                         uploadingImageKey={uploadingImageKey}
                     />
                 </SettingsAccordionSection>

@@ -38,6 +38,9 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
         initialActivity?.id ?? null,
     );
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
+    const [activityProgress, setActivityProgress] = useState(
+        progress.activities,
+    );
     const activeActivity = useMemo(
         () => getActivityById(node, activeActivityId),
         [activeActivityId, node],
@@ -62,15 +65,22 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
     }, [node.mapSlug, node.slug]);
 
     const markCompleted = useCallback(async (activity: LearningActivity) => {
-        await postJson<{
-            progress: {
+        const response = await postJson<{
+            progress: LearningProgress['activities'][number] & {
                 activityId: number;
-                completedAt: string | null;
-                status: string;
             };
         }>(`/learning/activities/${activity.id}/progress`, {
             status: 'completed',
         });
+
+        setActivityProgress((current) => ({
+            ...current,
+            [response.progress.activityId]: {
+                completedAt: response.progress.completedAt,
+                metadata: response.progress.metadata,
+                status: response.progress.status,
+            },
+        }));
     }, []);
 
     const moveToActivity = useCallback(
@@ -132,6 +142,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                     {activeActivity ? (
                         <ActivityPlayer
                             activity={activeActivity}
+                            activityProgress={activityProgress}
                             answerProgress={answerProgress}
                             node={node}
                             onAnswer={updateAnswer}

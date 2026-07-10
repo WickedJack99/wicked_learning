@@ -9,6 +9,8 @@ use Illuminate\Validation\ValidationException;
 
 class ObstacleToolService
 {
+    public function __construct(private readonly LearnerProgressService $progressService) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -27,9 +29,13 @@ class ObstacleToolService
         }
 
         $isUseful = in_array($tool->id, $this->allowedToolIds($activity), true);
+        $progress = $isUseful && $this->persistsAfterSolved($activity)
+            ? $this->progressService->markObstacleDestroyed($user->id, $activity)
+            : null;
 
         return [
             'isUseful' => $isUseful,
+            'progress' => $progress?->metadata,
             'toolId' => $tool->id,
         ];
     }
@@ -46,5 +52,12 @@ class ObstacleToolService
             array_map(fn (mixed $id): int => (int) $id, $rawIds),
             fn (int $id): bool => $id > 0,
         ));
+    }
+
+    private function persistsAfterSolved(LearningActivity $activity): bool
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return filter_var($config['persistAfterSolved'] ?? true, FILTER_VALIDATE_BOOLEAN);
     }
 }

@@ -1,8 +1,13 @@
+import { usePage } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
-import { addGrantedLearningTool } from '@/features/tools/tool-selection';
+import {
+    addGrantedLearningTool,
+    learningToolIsAvailable,
+    useAvailableLearningTools,
+} from '@/features/tools/tool-selection';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type { LearningActivity, LearningTool, NpcDialogueNode } from '@/types';
@@ -34,6 +39,7 @@ export function NpcDialogueActivity({
     onComplete,
     onMoveToActivity,
 }: NpcDialogueActivityProps) {
+    const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
     const [history, setHistory] = useState<number[]>([]);
     const [currentNodeId, setCurrentNodeId] = useState<number | null>(() =>
@@ -48,6 +54,7 @@ export function NpcDialogueActivity({
         nodeId: number;
         title: string;
     } | null>(null);
+    const availableTools = useAvailableLearningTools(props.auth.tools);
     const currentNode = currentNodeId
         ? npcDialogueNodeById(activity, currentNodeId)
         : null;
@@ -57,37 +64,6 @@ export function NpcDialogueActivity({
     const canGoBack = history.length > 0;
     const displayedText = currentNode?.body ?? '';
     const typingSpeed = numericConfig(currentNode?.config.typingSpeed, 28);
-
-    useEffect(() => {
-        if (!currentNode || !currentNode.config.toolId) {
-            return;
-        }
-
-        if (grantedNodeIds.current.has(currentNode.id)) {
-            return;
-        }
-
-        grantedNodeIds.current.add(currentNode.id);
-
-        const grant = async () => {
-            try {
-                const response = await postJson<{ tool: LearningTool }>(
-                    `/learning/npc-dialogue-nodes/${currentNode.id}/grant-tool`,
-                    {},
-                );
-
-                addGrantedLearningTool(response.tool);
-                setGrantedTool({
-                    nodeId: currentNode.id,
-                    title: response.tool.title,
-                });
-            } catch {
-                setGrantedTool(null);
-            }
-        };
-
-        void grant();
-    }, [currentNode]);
 
     const moveToNode = useCallback(
         async (nextNodeId: number | null, rememberCurrent = true) => {
@@ -120,6 +96,52 @@ export function NpcDialogueActivity({
         },
         [activity, currentNode, onComplete, onMoveToActivity],
     );
+
+    useEffect(() => {
+        if (!currentNode) {
+            return;
+        }
+
+        const toolId = numericConfig(currentNode.config.toolId, 0);
+
+        if (toolId <= 0) {
+            return;
+        }
+
+        if (grantedNodeIds.current.has(currentNode.id)) {
+            return;
+        }
+
+        grantedNodeIds.current.add(currentNode.id);
+
+        if (learningToolIsAvailable(availableTools, toolId)) {
+            const nextNodeId = nextDialogueNodeId(activity, currentNode.id);
+            const frame = window.requestAnimationFrame(() => {
+                void moveToNode(nextNodeId, false);
+            });
+
+            return () => window.cancelAnimationFrame(frame);
+        }
+
+        const grant = async () => {
+            try {
+                const response = await postJson<{ tool: LearningTool }>(
+                    `/learning/npc-dialogue-nodes/${currentNode.id}/grant-tool`,
+                    {},
+                );
+
+                addGrantedLearningTool(response.tool);
+                setGrantedTool({
+                    nodeId: currentNode.id,
+                    title: response.tool.title,
+                });
+            } catch {
+                setGrantedTool(null);
+            }
+        };
+
+        void grant();
+    }, [activity, availableTools, currentNode, moveToNode]);
 
     const moveForward = useCallback(() => {
         if (!currentNode || isQuestion) {

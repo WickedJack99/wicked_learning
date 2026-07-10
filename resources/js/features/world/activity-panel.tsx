@@ -1,4 +1,11 @@
-import { ArrowLeft, ArrowRight, Bookmark, PlayCircle, X } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Bookmark,
+    CheckCircle2,
+    PlayCircle,
+    X,
+} from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -22,6 +29,7 @@ import {
 import { ToolGrantActivity } from './tool-grant-activity';
 
 export function ActivityPanel({
+    isCompleted,
     node,
     onClose,
     onStart,
@@ -29,6 +37,7 @@ export function ActivityPanel({
     isBookmarked,
 }: {
     isBookmarked: boolean;
+    isCompleted: boolean;
     node: LearningNode | null;
     onClose: () => void;
     onStart: (node: LearningNode, activityId: number | null) => void;
@@ -43,8 +52,9 @@ export function ActivityPanel({
             <PanelShell
                 eyebrow="Location"
                 headerAction={
-                    <BookmarkButton
+                    <PanelNodeActions
                         isBookmarked={isBookmarked}
+                        isCompleted={isCompleted}
                         node={node}
                         onToggleBookmark={onToggleBookmark}
                     />
@@ -62,8 +72,9 @@ export function ActivityPanel({
         <PanelShell
             eyebrow="Location"
             headerAction={
-                <BookmarkButton
+                <PanelNodeActions
                     isBookmarked={isBookmarked}
+                    isCompleted={isCompleted}
                     node={node}
                     onToggleBookmark={onToggleBookmark}
                 />
@@ -223,6 +234,7 @@ function RouteStartOption({
 
 export function ActivityPlayer({
     activity,
+    activityProgress,
     answerProgress,
     node,
     onAnswer,
@@ -231,6 +243,7 @@ export function ActivityPlayer({
     onTravel,
 }: {
     activity: LearningActivity | null;
+    activityProgress: LearningProgress['activities'];
     answerProgress: LearningProgress['answers'];
     node: LearningNode;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
@@ -291,6 +304,7 @@ export function ActivityPlayer({
             {activity.type === 'obstacle' ? (
                 <ObstacleActivity
                     activity={activity}
+                    progress={activityProgress[activity.id]}
                     onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
@@ -466,5 +480,36 @@ function BookmarkButton({
                 )}
             />
         </Button>
+    );
+}
+
+function PanelNodeActions({
+    isBookmarked,
+    isCompleted,
+    node,
+    onToggleBookmark,
+}: {
+    isBookmarked: boolean;
+    isCompleted: boolean;
+    node: LearningNode;
+    onToggleBookmark: (node: LearningNode) => void;
+}) {
+    return (
+        <div className="flex shrink-0 items-center gap-1">
+            {isCompleted ? (
+                <span
+                    aria-label="Node completed"
+                    className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300"
+                    title="Completed"
+                >
+                    <CheckCircle2 className="size-4" />
+                </span>
+            ) : null}
+            <BookmarkButton
+                isBookmarked={isBookmarked}
+                node={node}
+                onToggleBookmark={onToggleBookmark}
+            />
+        </div>
     );
 }

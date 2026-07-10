@@ -1,7 +1,17 @@
+import { usePage } from '@inertiajs/react';
 import { ArrowRight, MessageCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { addGrantedLearningTool } from '@/features/tools/tool-selection';
+import {
+    addGrantedLearningTool,
+    learningToolIsAvailable,
+    useAvailableLearningTools,
+} from '@/features/tools/tool-selection';
+import {
+    toolImageUrl,
+    toolImageWidthPercent,
+    toolImageWidthStyle,
+} from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
 import type {
     ActivityTransition,
@@ -29,22 +39,26 @@ export function ToolGrantActivity({
     onMoveToActivity: (activityId: number | null) => void;
     transition: ActivityTransition | null;
 }) {
+    const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
     const [isGranting, setIsGranting] = useState(false);
     const [isGranted, setIsGranted] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isBubbleHidden, setIsBubbleHidden] = useState(false);
+    const skippedOwnedActivityId = useRef<number | null>(null);
+    const availableTools = useAvailableLearningTools(props.auth.tools);
     const configuredTool = activity.configuredTool;
+    const configuredToolId =
+        configuredTool?.id ?? numericConfig(activity.config.toolId, 0);
+    const alreadyOwnsConfiguredTool =
+        configuredToolId > 0 &&
+        learningToolIsAvailable(availableTools, configuredToolId);
     const backgroundImage = themedConfig(
         activity.config.backgroundDark,
         activity.config.backgroundLight,
         resolvedAppearance,
     );
-    const toolImage = themedConfig(
-        configuredTool?.imageDark,
-        configuredTool?.imageLight,
-        resolvedAppearance,
-    );
+    const toolImage = toolImageUrl(configuredTool, resolvedAppearance);
     const toolX = numericConfig(activity.config.toolX, 50);
     const toolY = numericConfig(activity.config.toolY, 50);
     const text = stringValue(
@@ -54,6 +68,27 @@ export function ToolGrantActivity({
             : 'A tool should be configured here.',
     );
     const typingSpeed = numericConfig(activity.config.typingSpeed, 24);
+
+    useEffect(() => {
+        if (
+            !alreadyOwnsConfiguredTool ||
+            skippedOwnedActivityId.current === activity.id
+        ) {
+            return;
+        }
+
+        skippedOwnedActivityId.current = activity.id;
+
+        void onComplete(activity).then(() =>
+            onMoveToActivity(transition?.toActivityId ?? null),
+        );
+    }, [
+        activity,
+        alreadyOwnsConfiguredTool,
+        onComplete,
+        onMoveToActivity,
+        transition,
+    ]);
 
     const grantTool = async () => {
         if (isGranting || isGranted || !configuredTool) {
@@ -80,6 +115,14 @@ export function ToolGrantActivity({
         }
     };
 
+    if (alreadyOwnsConfiguredTool) {
+        return (
+            <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                This tool is already available. Continuing...
+            </div>
+        );
+    }
+
     return (
         <div className="relative isolate flex min-h-[28rem] flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/6">
             {backgroundImage ? (
@@ -96,6 +139,7 @@ export function ToolGrantActivity({
                 imageUrl={toolImage}
                 mode={resolvedAppearance}
                 title={configuredTool?.title ?? 'Configured tool'}
+                widthPercent={toolImageWidthPercent(configuredTool)}
                 x={toolX}
                 y={toolY}
             />
@@ -160,6 +204,7 @@ function ToolGrantVisual({
     imageUrl,
     mode,
     title,
+    widthPercent,
     x,
     y,
 }: {
@@ -167,6 +212,7 @@ function ToolGrantVisual({
     imageUrl: string;
     mode: 'dark' | 'light';
     title: string;
+    widthPercent: number;
     x: number;
     y: number;
 }) {
@@ -174,7 +220,11 @@ function ToolGrantVisual({
         return (
             <div
                 className="absolute z-10 grid min-h-32 min-w-44 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-xl border border-dashed border-cyan-500/40 bg-cyan-950/10 p-6 text-sm font-semibold text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100"
-                style={{ left: `${x}%`, top: `${y}%` }}
+                style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: toolImageWidthStyle(widthPercent),
+                }}
             >
                 {title}
             </div>
@@ -202,6 +252,7 @@ function ToolGrantVisual({
                 activity.config.slideDurationSeconds,
                 0.6,
             )}
+            widthPercent={widthPercent}
             x={x}
             y={y}
         />
@@ -213,6 +264,7 @@ function AnimatedToolGrantImage({
     imageUrl,
     slideDirection,
     slideDuration,
+    widthPercent,
     x,
     y,
 }: {
@@ -220,6 +272,7 @@ function AnimatedToolGrantImage({
     imageUrl: string;
     slideDirection: unknown;
     slideDuration: number;
+    widthPercent: number;
     x: number;
     y: number;
 }) {
@@ -242,7 +295,7 @@ function AnimatedToolGrantImage({
     return (
         <img
             alt=""
-            className="absolute z-10 max-h-[52%] max-w-[48%] object-contain"
+            className="absolute z-10 max-h-[52%] object-contain"
             draggable={false}
             src={imageUrl}
             style={{
@@ -256,6 +309,7 @@ function AnimatedToolGrantImage({
                 transitionProperty: 'transform, opacity',
                 transitionTimingFunction:
                     'cubic-bezier(0.16, 1, 0.3, 1), ease-out',
+                width: toolImageWidthStyle(widthPercent),
             }}
         />
     );

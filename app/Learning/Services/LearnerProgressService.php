@@ -32,4 +32,18 @@ class LearnerProgressService
 
         return $progress;
     }
+
+    public function markObstacleDestroyed(int $userId, LearningActivity $activity): LearnerActivityProgress
+    {
+        $progress = $this->mark($userId, $activity, 'reached');
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $obstacle = is_array($metadata['obstacle'] ?? null) ? $metadata['obstacle'] : [];
+
+        $obstacle['destroyedAt'] ??= Carbon::now()->toIso8601String();
+        $metadata['obstacle'] = $obstacle;
+        $progress->metadata = $metadata;
+        $progress->save();
+
+        return $progress;
+    }
 }

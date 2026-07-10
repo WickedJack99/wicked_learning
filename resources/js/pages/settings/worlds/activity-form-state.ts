@@ -17,7 +17,16 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         obstacle_bubble_opacity_light: '94',
         obstacle_image_dark: '',
         obstacle_image_light: '',
+        obstacle_persist_after_solved: true,
         obstacle_prompt_text: '',
+        obstacle_width: '28',
+        obstacle_x: '50',
+        obstacle_y: '50',
+        obstacle_revisit_background_dark: '',
+        obstacle_revisit_background_light: '',
+        obstacle_revisit_image_dark: '',
+        obstacle_revisit_image_light: '',
+        obstacle_revisit_text: '',
         obstacle_success_animation: 'zoom',
         obstacle_success_text: '',
         obstacle_typing_speed: '24',
@@ -94,7 +103,27 @@ export function activityFormFromActivity(
         ),
         obstacle_image_dark: stringConfig(activity.config.obstacleImageDark),
         obstacle_image_light: stringConfig(activity.config.obstacleImageLight),
+        obstacle_persist_after_solved: booleanConfig(
+            activity.config.persistAfterSolved,
+            true,
+        ),
         obstacle_prompt_text: stringConfig(activity.config.promptText),
+        obstacle_width: stringConfig(activity.config.obstacleWidth, '28'),
+        obstacle_x: stringConfig(activity.config.obstacleX, '50'),
+        obstacle_y: stringConfig(activity.config.obstacleY, '50'),
+        obstacle_revisit_background_dark: stringConfig(
+            activity.config.revisitBackgroundDark,
+        ),
+        obstacle_revisit_background_light: stringConfig(
+            activity.config.revisitBackgroundLight,
+        ),
+        obstacle_revisit_image_dark: stringConfig(
+            activity.config.revisitImageDark,
+        ),
+        obstacle_revisit_image_light: stringConfig(
+            activity.config.revisitImageLight,
+        ),
+        obstacle_revisit_text: stringConfig(activity.config.revisitText),
         obstacle_success_animation: stringConfig(
             activity.config.successAnimation,
             'zoom',
@@ -192,6 +221,30 @@ function stringConfig(value: unknown, fallback = ''): string {
 
     if (typeof value === 'string') {
         return value;
+    }
+
+    return fallback;
+}
+
+function booleanConfig(value: unknown, fallback: boolean): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+
+        if (['false', '0', 'no', 'off'].includes(normalized)) {
+            return false;
+        }
+
+        if (['true', '1', 'yes', 'on'].includes(normalized)) {
+            return true;
+        }
     }
 
     return fallback;

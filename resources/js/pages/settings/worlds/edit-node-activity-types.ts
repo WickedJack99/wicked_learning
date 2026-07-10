@@ -159,7 +159,16 @@ export type CreateActivityForm = {
     obstacle_bubble_opacity_light: string;
     obstacle_image_dark: string;
     obstacle_image_light: string;
+    obstacle_persist_after_solved: boolean;
     obstacle_prompt_text: string;
+    obstacle_width: string;
+    obstacle_x: string;
+    obstacle_y: string;
+    obstacle_revisit_background_dark: string;
+    obstacle_revisit_background_light: string;
+    obstacle_revisit_image_dark: string;
+    obstacle_revisit_image_light: string;
+    obstacle_revisit_text: string;
     obstacle_success_animation: string;
     obstacle_success_text: string;
     obstacle_typing_speed: string;

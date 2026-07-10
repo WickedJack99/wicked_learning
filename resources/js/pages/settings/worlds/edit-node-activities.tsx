@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ConfigImageInput } from './activity-config-fields';
 import { ActivityFormFields } from './activity-form-fields';
+import { activityFormPayload } from './activity-form-payload';
 import {
     activityFormFromActivity,
     emptyCreateForm,
@@ -226,7 +227,7 @@ export default function EditNodeActivities({
 
         router.post(
             `/settings/worlds/nodes/${activityGraph.node.id}/activities`,
-            form,
+            activityFormPayload(form),
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setErrors(nextErrors),
@@ -245,7 +246,7 @@ export default function EditNodeActivities({
 
         router.patch(
             `/settings/worlds/activities/${editingActivity.id}`,
-            editForm,
+            activityFormPayload(editForm),
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setEditErrors(nextErrors),

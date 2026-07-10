@@ -1,5 +1,7 @@
-import { Download, Image, Upload } from 'lucide-react';
+import { Download, Image, Images, Upload } from 'lucide-react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -99,14 +101,15 @@ export function ConfigImageInput({
     value: string;
 }) {
     const uploadId = `${id}-upload`;
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
 
     return (
-        <div className="grid gap-2 rounded-md bg-slate-50 p-3 dark:bg-white/5">
+        <div className="grid min-w-0 gap-2 overflow-hidden rounded-md bg-slate-50 p-3 dark:bg-white/5">
             <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
                     <Image className="size-4" />
                 </span>
-                <div>
+                <div className="min-w-0">
                     <Label htmlFor={id}>{label}</Label>
                     <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                         {description}
@@ -115,6 +118,7 @@ export function ConfigImageInput({
             </div>
 
             <Input
+                className="min-w-0"
                 id={id}
                 onChange={(event) => onChange(event.currentTarget.value)}
                 placeholder="/storage/learning/nodes/example.svg"
@@ -123,13 +127,13 @@ export function ConfigImageInput({
             <InputError message={error} />
 
             {value ? (
-                <div className="flex items-center gap-3 rounded-md bg-white p-2 dark:bg-slate-950/70">
+                <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-md bg-white p-2 dark:bg-slate-950/70">
                     <img
                         alt=""
                         className="size-12 rounded object-contain"
                         src={value}
                     />
-                    <span className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    <span className="min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
                         {value}
                     </span>
                 </div>
@@ -158,6 +162,15 @@ export function ConfigImageInput({
                     }}
                     type="file"
                 />
+                <Button
+                    onClick={() => setIsPickerOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                >
+                    <Images className="size-4" />
+                    Select existing
+                </Button>
                 <Button asChild disabled={!value} size="sm" variant="ghost">
                     <a download href={value || '#'} rel="noreferrer">
                         <Download className="size-4" />
@@ -165,6 +178,21 @@ export function ConfigImageInput({
                     </a>
                 </Button>
             </div>
+
+            {isPickerOpen ? (
+                <ReusableImagePicker
+                    currentValue={value}
+                    onClear={() => {
+                        onChange('');
+                        setIsPickerOpen(false);
+                    }}
+                    onClose={() => setIsPickerOpen(false)}
+                    onSelect={(url) => {
+                        onChange(url);
+                        setIsPickerOpen(false);
+                    }}
+                />
+            ) : null}
         </div>
     );
 }

@@ -25,7 +25,16 @@ class ObstacleActivityConfiguration
             'bubbleOpacityLight' => $this->number($data, 'obstacle_bubble_opacity_light', $existing['bubbleOpacityLight'] ?? 94),
             'obstacleImageDark' => $this->string($data, 'obstacle_image_dark', $existing['obstacleImageDark'] ?? ''),
             'obstacleImageLight' => $this->string($data, 'obstacle_image_light', $existing['obstacleImageLight'] ?? ''),
+            'persistAfterSolved' => $this->boolean($data, 'obstacle_persist_after_solved', $existing['persistAfterSolved'] ?? true),
             'promptText' => $this->string($data, 'obstacle_prompt_text', $existing['promptText'] ?? ''),
+            'obstacleX' => $this->number($data, 'obstacle_x', $existing['obstacleX'] ?? 50),
+            'obstacleY' => $this->number($data, 'obstacle_y', $existing['obstacleY'] ?? 50),
+            'obstacleWidth' => $this->number($data, 'obstacle_width', $existing['obstacleWidth'] ?? 28),
+            'revisitBackgroundDark' => $this->string($data, 'obstacle_revisit_background_dark', $existing['revisitBackgroundDark'] ?? ''),
+            'revisitBackgroundLight' => $this->string($data, 'obstacle_revisit_background_light', $existing['revisitBackgroundLight'] ?? ''),
+            'revisitImageDark' => $this->string($data, 'obstacle_revisit_image_dark', $existing['revisitImageDark'] ?? ''),
+            'revisitImageLight' => $this->string($data, 'obstacle_revisit_image_light', $existing['revisitImageLight'] ?? ''),
+            'revisitText' => $this->string($data, 'obstacle_revisit_text', $existing['revisitText'] ?? ''),
             'successAnimation' => $this->string($data, 'obstacle_success_animation', $existing['successAnimation'] ?? 'zoom'),
             'successText' => $this->string($data, 'obstacle_success_text', $existing['successText'] ?? ''),
             'typingSpeed' => $this->number($data, 'obstacle_typing_speed', $existing['typingSpeed'] ?? 24),
@@ -54,7 +63,16 @@ class ObstacleActivityConfiguration
             'obstacle_bubble_opacity_light',
             'obstacle_image_dark',
             'obstacle_image_light',
+            'obstacle_persist_after_solved',
             'obstacle_prompt_text',
+            'obstacle_x',
+            'obstacle_y',
+            'obstacle_width',
+            'obstacle_revisit_background_dark',
+            'obstacle_revisit_background_light',
+            'obstacle_revisit_image_dark',
+            'obstacle_revisit_image_light',
+            'obstacle_revisit_text',
             'obstacle_success_animation',
             'obstacle_success_text',
             'obstacle_typing_speed',
@@ -78,7 +96,16 @@ class ObstacleActivityConfiguration
             'bubbleOpacityLight' => 94,
             'obstacleImageDark' => '',
             'obstacleImageLight' => '',
+            'persistAfterSolved' => true,
             'promptText' => '',
+            'obstacleX' => 50,
+            'obstacleY' => 50,
+            'obstacleWidth' => 28,
+            'revisitBackgroundDark' => '',
+            'revisitBackgroundLight' => '',
+            'revisitImageDark' => '',
+            'revisitImageLight' => '',
+            'revisitText' => '',
             'successAnimation' => 'zoom',
             'successText' => '',
             'typingSpeed' => 24,
@@ -116,5 +143,17 @@ class ObstacleActivityConfiguration
         }
 
         return is_numeric($data[$key] ?? null) ? (float) $data[$key] : 0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function boolean(array $data, string $key, mixed $fallback): bool
+    {
+        if (! array_key_exists($key, $data)) {
+            return filter_var($fallback, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return filter_var($data[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 }

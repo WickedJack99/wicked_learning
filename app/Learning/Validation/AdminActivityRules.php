@@ -140,21 +140,41 @@ class AdminActivityRules
     {
         return [
             'obstacle_allowed_tool_ids' => [$modifier],
-            'obstacle_background_dark' => [$modifier, 'string', 'max:2048'],
-            'obstacle_background_light' => [$modifier, 'string', 'max:2048'],
-            'obstacle_bubble_border_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'obstacle_bubble_border_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'obstacle_bubble_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'obstacle_bubble_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
-            'obstacle_bubble_opacity_dark' => [$modifier, 'numeric', 'min:0', 'max:100'],
-            'obstacle_bubble_opacity_light' => [$modifier, 'numeric', 'min:0', 'max:100'],
-            'obstacle_image_dark' => [$modifier, 'string', 'max:2048'],
-            'obstacle_image_light' => [$modifier, 'string', 'max:2048'],
-            'obstacle_prompt_text' => [$modifier, 'string', 'max:2000'],
-            'obstacle_success_animation' => [$modifier, 'string', Rule::in(['none', 'zoom', 'shake', 'rotate'])],
-            'obstacle_success_text' => [$modifier, 'string', 'max:2000'],
-            'obstacle_typing_speed' => [$modifier, 'numeric', 'min:1', 'max:250'],
+            'obstacle_background_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_background_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_bubble_border_color_dark' => $this->optional($modifier, ['string', 'regex:/^#[0-9a-fA-F]{6}$/']),
+            'obstacle_bubble_border_color_light' => $this->optional($modifier, ['string', 'regex:/^#[0-9a-fA-F]{6}$/']),
+            'obstacle_bubble_color_dark' => $this->optional($modifier, ['string', 'regex:/^#[0-9a-fA-F]{6}$/']),
+            'obstacle_bubble_color_light' => $this->optional($modifier, ['string', 'regex:/^#[0-9a-fA-F]{6}$/']),
+            'obstacle_bubble_opacity_dark' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'obstacle_bubble_opacity_light' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'obstacle_image_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_image_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_persist_after_solved' => [$modifier, 'boolean'],
+            'obstacle_prompt_text' => $this->optional($modifier, ['string', 'max:2000']),
+            'obstacle_x' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'obstacle_y' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'obstacle_width' => $this->optional($modifier, ['numeric', 'min:1', 'max:100']),
+            'obstacle_revisit_background_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_revisit_background_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_revisit_image_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_revisit_image_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'obstacle_revisit_text' => $this->optional($modifier, ['string', 'max:2000']),
+            'obstacle_success_animation' => $this->optional($modifier, ['string', Rule::in(['none', 'zoom', 'shake', 'rotate'])]),
+            'obstacle_success_text' => $this->optional($modifier, ['string', 'max:2000']),
+            'obstacle_typing_speed' => $this->optional($modifier, ['numeric', 'min:1', 'max:250']),
         ];
+    }
+
+    /**
+     * @param  list<mixed>  $rules
+     * @return list<mixed>
+     */
+    private function optional(string $modifier, array $rules): array
+    {
+        return $modifier === 'sometimes'
+            ? [$modifier, 'nullable', ...$rules]
+            : [$modifier, ...$rules];
     }
 
     /**

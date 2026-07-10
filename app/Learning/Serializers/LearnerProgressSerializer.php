@@ -29,6 +29,7 @@ class LearnerProgressSerializer
             'activityId' => $progress->learning_activity_id,
             'status' => $progress->status,
             'completedAt' => $this->dateTimeString($progress->completed_at),
+            'metadata' => $progress->metadata ?? [],
         ];
     }
 
@@ -44,6 +45,7 @@ class LearnerProgressSerializer
                 $progress->learning_activity_id => [
                     'status' => $progress->status,
                     'completedAt' => $this->dateTimeString($progress->completed_at),
+                    'metadata' => $progress->metadata ?? [],
                 ],
             ])
             ->all();

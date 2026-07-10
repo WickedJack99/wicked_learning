@@ -1,5 +1,7 @@
 <?php
 
+use App\Learning\Services\ObstacleActivityConfiguration;
+use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
 use App\Models\LearningTool;
@@ -26,6 +28,13 @@ test('learners can resolve an obstacle with an owned configured tool', function 
         ->assertOk()
         ->assertJsonPath('result.isUseful', true)
         ->assertJsonPath('result.toolId', $tool->id);
+
+    $progress = LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    expect($progress->metadata['obstacle']['destroyedAt'] ?? null)->toBeString();
 });
 
 test('owned tools only resolve obstacles when the obstacle allows them', function () {
@@ -52,6 +61,51 @@ test('owned tools only resolve obstacles when the obstacle allows them', functio
         ->assertOk()
         ->assertJsonPath('result.isUseful', false)
         ->assertJsonPath('result.toolId', $wrongTool->id);
+
+    expect(LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->exists())->toBeFalse();
+});
+
+test('reappearing obstacles do not store destroyed learner state', function () {
+    $learner = User::factory()->create([
+        'email' => 'test@example.com',
+    ]);
+
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'clear-the-static-gate')
+        ->firstOrFail();
+    $activity->forceFill([
+        'config' => [
+            ...$activity->config,
+            'persistAfterSolved' => false,
+        ],
+    ])->save();
+    $tool = LearningTool::query()->where('slug', 'signal-lens')->firstOrFail();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.obstacle-tool', $activity), [
+            'tool_id' => $tool->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('result.isUseful', true)
+        ->assertJsonPath('result.progress', null);
+
+    expect(LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->exists())->toBeFalse();
+});
+
+test('obstacle configuration treats string false values as reappearing', function () {
+    $configuration = app(ObstacleActivityConfiguration::class)->fromData([
+        'obstacle_persist_after_solved' => '0',
+    ]);
+
+    expect($configuration['persistAfterSolved'])->toBeFalse();
 });
 
 test('learners can receive a tool from a grant tool activity', function () {
