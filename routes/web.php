@@ -34,6 +34,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.questions.answer');
     Route::post('learning/npc-dialogue-nodes/{node}/answer', [LearningWorldController::class, 'answerNpcDialogue'])
         ->name('learning.npc-dialogue-nodes.answer');
+    Route::post('learning/npc-dialogue-nodes/{node}/grant-tool', [LearningWorldController::class, 'grantNpcDialogueTool'])
+        ->name('learning.npc-dialogue-nodes.grant-tool');
+    Route::post('learning/activities/{activity}/obstacle-tool', [LearningWorldController::class, 'useObstacleTool'])
+        ->name('learning.activities.obstacle-tool');
+    Route::post('learning/activities/{activity}/grant-tool', [LearningWorldController::class, 'grantActivityTool'])
+        ->name('learning.activities.grant-tool');
 });
 
 require __DIR__.'/settings.php';

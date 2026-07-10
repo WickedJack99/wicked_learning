@@ -43,16 +43,14 @@ class NpcDialogueConfiguration
      */
     public function configFor(string $type, array $data, array $existing = [], ?int $endIndex = null): array
     {
-        if ($type === 'end') {
-            return [
-                ...$this->endConfig($endIndex ?? 0),
-                ...$existing,
-                ...$this->configArray($data),
-            ];
-        }
+        $defaults = match ($type) {
+            'answer' => $this->answerConfig(),
+            'end' => $this->endConfig($endIndex ?? 0),
+            default => $this->interactionConfig(),
+        };
 
         return [
-            ...$this->interactionConfig(),
+            ...$defaults,
             ...$existing,
             ...$this->configArray($data),
         ];
@@ -105,6 +103,8 @@ class NpcDialogueConfiguration
             'fadeDurationSeconds' => 0.4,
             'npcX' => 50,
             'npcY' => 50,
+            'toolId' => null,
+            'questionOutputCount' => 2,
             'typingSpeed' => 28,
             'bubbleColorDark' => '#0f172a',
             'bubbleBorderColorDark' => '#2dd4bf',
@@ -112,6 +112,17 @@ class NpcDialogueConfiguration
             'bubbleColorLight' => '#ffffff',
             'bubbleBorderColorLight' => '#0891b2',
             'bubbleOpacityLight' => 94,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function answerConfig(): array
+    {
+        return [
+            'answerLabel' => '',
+            'isCorrect' => false,
         ];
     }
 

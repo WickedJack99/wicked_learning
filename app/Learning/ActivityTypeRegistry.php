@@ -52,6 +52,20 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],
             [
+                'key' => 'obstacle',
+                'label' => 'Obstacle',
+                'description' => 'A tool-resolved obstacle that continues after the learner uses a configured tool.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
+                'key' => 'tool_grant',
+                'label' => 'Grant tool',
+                'description' => 'A focused scene that gives the learner an existing tool.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
                 'key' => 'placeholder',
                 'label' => 'Placeholder',
                 'description' => 'A simple activity shell for content that will be designed later.',

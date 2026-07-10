@@ -3,8 +3,10 @@
 namespace App\Learning\Actions;
 
 use App\Learning\Services\NpcDialogueConfiguration;
+use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
+use App\Learning\Services\ToolGrantActivityConfiguration;
 use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
 
@@ -12,6 +14,8 @@ class UpdateLearningActivity
 {
     public function __construct(
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
+        private readonly ObstacleActivityConfiguration $obstacleConfig,
+        private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
@@ -40,12 +44,31 @@ class UpdateLearningActivity
         $updates = $this->basicUpdates($activity, $data);
         $type = (string) ($updates['type'] ?? $activity->type);
 
-        if ($this->portalConfig->shouldUpdate($data, $updates)) {
+        if (
+            $this->portalConfig->shouldUpdate($data, $updates)
+            || $this->obstacleConfig->shouldUpdate($data, $updates)
+            || $this->toolGrantConfig->shouldUpdate($data, $updates)
+        ) {
             $config = is_array($activity->config) ? $activity->config : [];
-            $updates['config'] = $type === 'portal' ? $this->portalConfig->fromData($data, $config) : [];
+            $updates['config'] = $this->configFor($type, $data, $config);
         }
 
         return $updates;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $existing
+     * @return array<string, mixed>
+     */
+    private function configFor(string $type, array $data, array $existing): array
+    {
+        return match ($type) {
+            'obstacle' => $this->obstacleConfig->fromData($data, $existing),
+            'portal' => $this->portalConfig->fromData($data, $existing),
+            'tool_grant' => $this->toolGrantConfig->fromData($data, $existing),
+            default => [],
+        };
     }
 
     /**

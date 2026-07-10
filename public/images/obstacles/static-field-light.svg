@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" role="img" aria-labelledby="title">
+  <title id="title">Light static field</title>
+  <rect width="960" height="540" fill="#ecfeff"/>
+  <path d="M0 360c120-72 220-72 340 0s220 72 340 0 180-72 280 0" fill="none" stroke="#bae6fd" stroke-width="24" stroke-linecap="round" opacity=".86"/>
+  <path d="M0 160c140-56 250-56 390 0s250 56 390 0 140-56 180 0" fill="none" stroke="#67e8f9" stroke-width="12" stroke-linecap="round" opacity=".46"/>
+  <g fill="#0891b2" opacity=".34">
+    <circle cx="168" cy="116" r="8"/>
+    <circle cx="420" cy="248" r="5"/>
+    <circle cx="726" cy="112" r="7"/>
+    <circle cx="820" cy="398" r="9"/>
+  </g>
+  <g stroke="#0e7490" stroke-linecap="round" opacity=".22">
+    <path d="M92 72h72"/>
+    <path d="M660 450h98"/>
+    <path d="M250 448h54"/>
+  </g>
+</svg>

@@ -9,13 +9,16 @@ use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Queries\LoadEditableActivityGraph;
+use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Serializers\AdminActivityGraphSerializer;
+use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Validation\AdminActivityRules;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
+use App\Models\LearningTool;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,7 +28,9 @@ class AdminActivityController extends Controller
 {
     public function __construct(
         private readonly LoadEditableActivityGraph $loadEditableActivityGraph,
+        private readonly LoadEditableTools $loadEditableTools,
         private readonly AdminActivityGraphSerializer $activityGraphSerializer,
+        private readonly LearningToolSerializer $toolSerializer,
         private readonly AdminActivityRules $rules,
         private readonly CreateLearningActivity $createLearningActivity,
         private readonly UpdateLearningActivity $updateLearningActivity,
@@ -41,6 +46,10 @@ class AdminActivityController extends Controller
             'activityGraph' => $this->activityGraphSerializer->serialize(
                 $this->loadEditableActivityGraph->handle($node),
             ),
+            'tools' => $this->loadEditableTools
+                ->handle()
+                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                ->all(),
         ]);
     }
 

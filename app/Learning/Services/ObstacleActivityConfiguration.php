@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Learning\Services;
+
+class ObstacleActivityConfiguration
+{
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $existing
+     * @return array<string, mixed>
+     */
+    public function fromData(array $data, array $existing = []): array
+    {
+        return [
+            ...$this->defaults(),
+            ...$existing,
+            'allowedToolIds' => $this->toolIdsFrom($data['obstacle_allowed_tool_ids'] ?? $existing['allowedToolIds'] ?? []),
+            'backgroundDark' => $this->string($data, 'obstacle_background_dark', $existing['backgroundDark'] ?? ''),
+            'backgroundLight' => $this->string($data, 'obstacle_background_light', $existing['backgroundLight'] ?? ''),
+            'bubbleBorderColorDark' => $this->string($data, 'obstacle_bubble_border_color_dark', $existing['bubbleBorderColorDark'] ?? '#2dd4bf'),
+            'bubbleBorderColorLight' => $this->string($data, 'obstacle_bubble_border_color_light', $existing['bubbleBorderColorLight'] ?? '#0891b2'),
+            'bubbleColorDark' => $this->string($data, 'obstacle_bubble_color_dark', $existing['bubbleColorDark'] ?? '#0f172a'),
+            'bubbleColorLight' => $this->string($data, 'obstacle_bubble_color_light', $existing['bubbleColorLight'] ?? '#ffffff'),
+            'bubbleOpacityDark' => $this->number($data, 'obstacle_bubble_opacity_dark', $existing['bubbleOpacityDark'] ?? 92),
+            'bubbleOpacityLight' => $this->number($data, 'obstacle_bubble_opacity_light', $existing['bubbleOpacityLight'] ?? 94),
+            'obstacleImageDark' => $this->string($data, 'obstacle_image_dark', $existing['obstacleImageDark'] ?? ''),
+            'obstacleImageLight' => $this->string($data, 'obstacle_image_light', $existing['obstacleImageLight'] ?? ''),
+            'promptText' => $this->string($data, 'obstacle_prompt_text', $existing['promptText'] ?? ''),
+            'successAnimation' => $this->string($data, 'obstacle_success_animation', $existing['successAnimation'] ?? 'zoom'),
+            'successText' => $this->string($data, 'obstacle_success_text', $existing['successText'] ?? ''),
+            'typingSpeed' => $this->number($data, 'obstacle_typing_speed', $existing['typingSpeed'] ?? 24),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $updates
+     */
+    public function shouldUpdate(array $data, array $updates): bool
+    {
+        if (($updates['type'] ?? null) === 'obstacle') {
+            return true;
+        }
+
+        return array_intersect_key($data, array_flip([
+            'obstacle_allowed_tool_ids',
+            'obstacle_background_dark',
+            'obstacle_background_light',
+            'obstacle_bubble_border_color_dark',
+            'obstacle_bubble_border_color_light',
+            'obstacle_bubble_color_dark',
+            'obstacle_bubble_color_light',
+            'obstacle_bubble_opacity_dark',
+            'obstacle_bubble_opacity_light',
+            'obstacle_image_dark',
+            'obstacle_image_light',
+            'obstacle_prompt_text',
+            'obstacle_success_animation',
+            'obstacle_success_text',
+            'obstacle_typing_speed',
+        ])) !== [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaults(): array
+    {
+        return [
+            'allowedToolIds' => [],
+            'backgroundDark' => '',
+            'backgroundLight' => '',
+            'bubbleBorderColorDark' => '#2dd4bf',
+            'bubbleBorderColorLight' => '#0891b2',
+            'bubbleColorDark' => '#0f172a',
+            'bubbleColorLight' => '#ffffff',
+            'bubbleOpacityDark' => 92,
+            'bubbleOpacityLight' => 94,
+            'obstacleImageDark' => '',
+            'obstacleImageLight' => '',
+            'promptText' => '',
+            'successAnimation' => 'zoom',
+            'successText' => '',
+            'typingSpeed' => 24,
+        ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function toolIdsFrom(mixed $value): array
+    {
+        $items = is_array($value) ? $value : explode(',', (string) $value);
+
+        return array_values(array_unique(array_filter(
+            array_map(fn (mixed $item): int => (int) trim((string) $item), $items),
+            fn (int $id): bool => $id > 0,
+        )));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function string(array $data, string $key, mixed $fallback): string
+    {
+        return array_key_exists($key, $data) ? (string) ($data[$key] ?? '') : (string) $fallback;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function number(array $data, string $key, mixed $fallback): float|int
+    {
+        if (! array_key_exists($key, $data)) {
+            return is_numeric($fallback) ? (float) $fallback : 0;
+        }
+
+        return is_numeric($data[$key] ?? null) ? (float) $data[$key] : 0;
+    }
+}

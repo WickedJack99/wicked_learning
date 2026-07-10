@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminActivityController;
+use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminNpcDialogueController;
 use App\Http\Controllers\Settings\AdminUserController;
 use App\Http\Controllers\Settings\AdminWorldController;
@@ -50,6 +51,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'can:manage-users'])->group(function () {
     Route::get('settings/worlds', [AdminWorldController::class, 'index'])
         ->name('settings.worlds.index');
+
+    Route::get('settings/assets', [AdminAssetController::class, 'index'])
+        ->name('settings.assets.index');
+
+    Route::get('settings/assets/tools', [AdminAssetController::class, 'tools'])
+        ->name('settings.assets.tools');
+
+    Route::post('settings/assets/tools', [AdminAssetController::class, 'storeTool'])
+        ->name('settings.assets.tools.store');
+
+    Route::patch('settings/assets/tools/{tool}', [AdminAssetController::class, 'updateTool'])
+        ->name('settings.assets.tools.update');
+
+    Route::post('settings/assets/tool-media', [AdminAssetController::class, 'uploadToolMedia'])
+        ->name('settings.assets.tool-media.store');
 
     Route::post('settings/worlds/maps', [AdminWorldController::class, 'storeMap'])
         ->name('settings.worlds.maps.store');

@@ -163,6 +163,13 @@ const adminSettings: SettingsListItem[] = [
         href: '/settings/worlds',
     },
     {
+        key: 'admin-assets',
+        label: 'Edit tools, items and currencies',
+        description: 'Reusable capabilities and future inventory concepts.',
+        icon: Database,
+        href: '/settings/assets',
+    },
+    {
         key: 'admin-users',
         label: 'Users',
         description: 'Registration tokens, roles and account access.',

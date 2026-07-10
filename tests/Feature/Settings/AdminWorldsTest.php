@@ -153,10 +153,10 @@ test('admin users can open the activity graph editor', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/worlds/edit-node-activities')
             ->where('activityGraph.node.slug', 'signal-gate')
-            ->has('activityGraph.activities', 5)
+            ->has('activityGraph.activities', 6)
             ->where('activityGraph.activities.1.slug', 'guided-signal-dialogue')
             ->where('activityGraph.activities.1.type', 'npc_dialogue')
-            ->has('activityGraph.transitions', 5)
+            ->has('activityGraph.transitions', 6)
             ->has('activityGraph.portalCandidates')
             ->has('activityGraph.activityTypes')
         );
@@ -387,39 +387,59 @@ test('learners can answer npc dialogue questions', function () {
         'body' => 'Which observation is useful?',
         'config' => [
             'interactionMode' => 'question',
-            'answers' => [
-                [
-                    'key' => 'guess',
-                    'label' => 'A',
-                    'body' => 'A dramatic guess.',
-                    'isCorrect' => false,
-                    'feedback' => 'Look for observable evidence first.',
-                ],
-                [
-                    'key' => 'pattern',
-                    'label' => 'B',
-                    'body' => 'A repeated event pattern.',
-                    'isCorrect' => true,
-                    'feedback' => 'Yes, repeated observations are useful.',
-                ],
-            ],
+            'questionOutputCount' => 2,
         ],
+    ]);
+    $guessAnswer = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'answer',
+        'title' => 'Guess',
+        'body' => 'A dramatic guess.',
+        'config' => [
+            'answerLabel' => 'A',
+            'isCorrect' => false,
+        ],
+    ]);
+    $patternAnswer = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'answer',
+        'title' => 'Pattern',
+        'body' => 'A repeated event pattern.',
+        'config' => [
+            'answerLabel' => 'B',
+            'isCorrect' => true,
+        ],
+    ]);
+    NpcDialogueTransition::query()->create([
+        'learning_activity_id' => $activity->id,
+        'from_dialogue_node_id' => $questionNode->id,
+        'to_dialogue_node_id' => $guessAnswer->id,
+        'from_connector' => 'answer-1',
+        'to_connector' => 'in',
+    ]);
+    NpcDialogueTransition::query()->create([
+        'learning_activity_id' => $activity->id,
+        'from_dialogue_node_id' => $questionNode->id,
+        'to_dialogue_node_id' => $patternAnswer->id,
+        'from_connector' => 'answer-2',
+        'to_connector' => 'in',
     ]);
 
     $this->actingAs($learner)
         ->postJson(route('learning.npc-dialogue-nodes.answer', $questionNode), [
-            'answer_key' => 'pattern',
+            'answer_key' => (string) $patternAnswer->id,
         ])
         ->assertOk()
-        ->assertJsonPath('answer.answerKey', 'pattern')
+        ->assertJsonPath('answer.answerKey', (string) $patternAnswer->id)
+        ->assertJsonPath('answer.answerNodeId', $patternAnswer->id)
         ->assertJsonPath('answer.isCorrect', true)
-        ->assertJsonPath('answer.feedback', 'Yes, repeated observations are useful.');
+        ->assertJsonPath('answer.feedback', null);
 
     expect(NpcDialogueAnswer::query()
         ->where('user_id', $learner->id)
         ->where('learning_activity_id', $activity->id)
         ->where('npc_dialogue_node_id', $questionNode->id)
-        ->where('answer_key', 'pattern')
+        ->where('answer_key', (string) $patternAnswer->id)
         ->where('is_correct', true)
         ->exists())->toBeTrue();
 });

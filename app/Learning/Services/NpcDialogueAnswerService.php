@@ -4,6 +4,7 @@ namespace App\Learning\Services;
 
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 use Illuminate\Validation\ValidationException;
 
 class NpcDialogueAnswerService
@@ -14,41 +15,52 @@ class NpcDialogueAnswerService
     public function answer(int $userId, NpcDialogueNode $node, string $answerKey): array
     {
         $node->loadMissing('activity');
-        $answer = $this->answerOption($node, $answerKey);
+        $answer = $this->answerNode($node, $answerKey);
+        $config = is_array($answer->config) ? $answer->config : [];
+        $label = (string) ($config['answerLabel'] ?? $answer->title);
+        $isCorrect = (bool) ($config['isCorrect'] ?? false);
 
         NpcDialogueAnswer::query()->create([
-            'answer_key' => $answerKey,
-            'answer_label' => $answer['label'] ?? null,
-            'feedback' => $answer['feedback'] ?? null,
-            'is_correct' => (bool) ($answer['isCorrect'] ?? false),
+            'answer_key' => (string) $answer->id,
+            'answer_label' => $label,
+            'feedback' => null,
+            'is_correct' => $isCorrect,
             'learning_activity_id' => $node->activity->id,
             'npc_dialogue_node_id' => $node->id,
             'user_id' => $userId,
         ]);
 
         return [
-            'answerKey' => $answerKey,
-            'feedback' => $answer['feedback'] ?? null,
-            'isCorrect' => (bool) ($answer['isCorrect'] ?? false),
+            'answerKey' => (string) $answer->id,
+            'answerNodeId' => $answer->id,
+            'feedback' => null,
+            'isCorrect' => $isCorrect,
         ];
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function answerOption(NpcDialogueNode $node, string $answerKey): array
+    private function answerNode(NpcDialogueNode $question, string $answerKey): NpcDialogueNode
     {
-        $config = is_array($node->config) ? $node->config : [];
-        $answers = is_array($config['answers'] ?? null) ? $config['answers'] : [];
+        $answer = NpcDialogueNode::query()
+            ->where('learning_activity_id', $question->learning_activity_id)
+            ->where('type', 'answer')
+            ->whereKey((int) $answerKey)
+            ->first();
 
-        foreach ($answers as $answer) {
-            if (is_array($answer) && ($answer['key'] ?? null) === $answerKey) {
-                return $answer;
-            }
+        if ($answer && $this->isConnectedAnswer($question, $answer)) {
+            return $answer;
         }
 
         throw ValidationException::withMessages([
             'answer_key' => 'The selected answer does not exist for this dialogue node.',
         ]);
+    }
+
+    private function isConnectedAnswer(NpcDialogueNode $question, NpcDialogueNode $answer): bool
+    {
+        return NpcDialogueTransition::query()
+            ->where('learning_activity_id', $question->learning_activity_id)
+            ->where('from_dialogue_node_id', $question->id)
+            ->where('to_dialogue_node_id', $answer->id)
+            ->exists();
     }
 }

@@ -6,11 +6,14 @@ use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningQuestionOption;
+use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 
 class LearningActivitySerializer
 {
+    public function __construct(private readonly LearningToolSerializer $toolSerializer) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -23,6 +26,7 @@ class LearningActivitySerializer
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $activity->config ?? [],
+            'configuredTool' => $this->configuredTool($activity),
             'dialogueStages' => $activity->dialogueStages
                 ->map(fn (DialogueStage $stage): array => $this->dialogueStage($stage))
                 ->values(),
@@ -37,6 +41,29 @@ class LearningActivitySerializer
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->values(),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function configuredTool(LearningActivity $activity): ?array
+    {
+        if ($activity->type !== 'tool_grant') {
+            return null;
+        }
+
+        $config = is_array($activity->config) ? $activity->config : [];
+        $toolId = is_numeric($config['toolId'] ?? null) ? (int) $config['toolId'] : 0;
+
+        if ($toolId <= 0) {
+            return null;
+        }
+
+        $tool = LearningTool::query()->find($toolId);
+
+        return $tool instanceof LearningTool
+            ? $this->toolSerializer->serialize($tool)
+            : null;
     }
 
     /**

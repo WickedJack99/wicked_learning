@@ -7,10 +7,13 @@ use App\Learning\Queries\LoadPlayableNode;
 use App\Learning\Queries\SearchLearningWorld;
 use App\Learning\Serializers\LearnerProgressSerializer;
 use App\Learning\Serializers\LearningNodeSerializer;
+use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Serializers\LearningWorldSerializer;
 use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearningBookmarkService;
+use App\Learning\Services\LearningToolGrantService;
 use App\Learning\Services\NpcDialogueAnswerService;
+use App\Learning\Services\ObstacleToolService;
 use App\Learning\Services\QuestionAnswerService;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
@@ -29,10 +32,13 @@ class LearningWorldController extends Controller
         private readonly SearchLearningWorld $searchLearningWorld,
         private readonly LearningWorldSerializer $worldSerializer,
         private readonly LearningNodeSerializer $nodeSerializer,
+        private readonly LearningToolSerializer $toolSerializer,
         private readonly LearnerProgressSerializer $progressSerializer,
         private readonly LearnerProgressService $progressService,
         private readonly QuestionAnswerService $questionAnswerService,
         private readonly NpcDialogueAnswerService $npcDialogueAnswerService,
+        private readonly ObstacleToolService $obstacleToolService,
+        private readonly LearningToolGrantService $toolGrantService,
         private readonly LearningBookmarkService $bookmarkService,
     ) {}
 
@@ -101,6 +107,39 @@ class LearningWorldController extends Controller
                 $request->user()->id,
                 $node,
                 (string) $data['answer_key'],
+            ),
+        ]);
+    }
+
+    public function useObstacleTool(Request $request, LearningActivity $activity): JsonResponse
+    {
+        $data = $request->validate([
+            'tool_id' => ['required', 'integer'],
+        ]);
+
+        return response()->json([
+            'result' => $this->obstacleToolService->useTool(
+                $request->user(),
+                $activity,
+                (int) $data['tool_id'],
+            ),
+        ]);
+    }
+
+    public function grantActivityTool(Request $request, LearningActivity $activity): JsonResponse
+    {
+        return response()->json([
+            'tool' => $this->toolSerializer->serialize(
+                $this->toolGrantService->grantFromActivity($request->user(), $activity),
+            ),
+        ]);
+    }
+
+    public function grantNpcDialogueTool(Request $request, NpcDialogueNode $node): JsonResponse
+    {
+        return response()->json([
+            'tool' => $this->toolSerializer->serialize(
+                $this->toolGrantService->grantFromNpcDialogueNode($request->user(), $node),
             ),
         ]);
     }

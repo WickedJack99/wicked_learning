@@ -54,16 +54,8 @@ type DialogueConnector = {
     symbol: string;
 };
 
-type DialogueAnswerDraft = {
-    body: string;
-    feedback: string;
-    isCorrect: boolean;
-    key: string;
-    label: string;
-};
-
 type DialogueConfigValue =
-    | DialogueAnswerDraft[]
+    | Array<Record<string, boolean | number | string | null>>
     | boolean
     | number
     | string
@@ -79,7 +71,7 @@ type DialogueNodeSummary = {
         y: number | null;
     };
     title: string;
-    type: 'end' | 'npc_interaction';
+    type: 'answer' | 'end' | 'npc_interaction';
 };
 
 type DialogueTransitionSummary = {
@@ -116,11 +108,19 @@ type DialogueGraphPayload = {
     };
 };
 
+type EditableTool = {
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    slug: string;
+    title: string;
+};
+
 type DialogueForm = {
     body: string;
     config: Record<string, DialogueConfigValue>;
     title: string;
-    type: 'end' | 'npc_interaction';
+    type: 'answer' | 'end' | 'npc_interaction';
 };
 
 type DialogueNodeData = {
@@ -154,8 +154,10 @@ const edgeStyle = {
 
 export default function EditNpcDialogue({
     dialogueGraph,
+    tools,
 }: {
     dialogueGraph: DialogueGraphPayload;
+    tools: EditableTool[];
 }) {
     const { resolvedAppearance } = useAppearance();
     const [addOpen, setAddOpen] = useState(false);
@@ -442,6 +444,7 @@ export default function EditNpcDialogue({
                 open={addOpen}
                 processing={processing}
                 title="Add dialogue node"
+                tools={tools}
                 uploadingImageKey={uploadingImageKey}
             />
 
@@ -456,6 +459,7 @@ export default function EditNpcDialogue({
                 open={editOpen}
                 processing={processing}
                 title="Edit dialogue node"
+                tools={tools}
                 uploadingImageKey={uploadingImageKey}
             />
 
@@ -538,7 +542,7 @@ function DialogueNodeCard({
             ))}
 
             <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
-                {node.type === 'end' ? 'End node' : 'NPC interaction'}
+                {dialogueNodeTypeLabel(node)}
             </p>
             <h2 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
                 {node.title}
@@ -553,6 +557,24 @@ function DialogueNodeCard({
                 >
                     {node.connector.symbol} output
                 </p>
+            ) : node.type === 'answer' ? (
+                <>
+                    <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {node.body || 'No answer text yet.'}
+                    </p>
+                    <p
+                        className={cn(
+                            'mt-3 inline-flex rounded-md px-2 py-1 text-xs font-semibold',
+                            node.config.isCorrect
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-300/10 dark:text-emerald-200'
+                                : 'bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300',
+                        )}
+                    >
+                        {node.config.isCorrect
+                            ? 'Correct answer'
+                            : 'Alternative answer'}
+                    </p>
+                </>
             ) : (
                 <>
                     <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -603,6 +625,20 @@ function DialogueNodeCard({
     );
 }
 
+function dialogueNodeTypeLabel(node: DialogueNodeSummary): string {
+    if (node.type === 'answer') {
+        return 'Answer';
+    }
+
+    if (node.type === 'end') {
+        return 'End node';
+    }
+
+    return node.config.interactionMode === 'question'
+        ? 'Question'
+        : 'NPC interaction';
+}
+
 function StartNode({ data }: { data: SpecialNodeData; selected: boolean }) {
     return (
         <div className="relative grid w-44 place-items-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-lg dark:border-white/10 dark:bg-slate-950">
@@ -634,6 +670,7 @@ function DialogueNodeDialog({
     open,
     processing,
     title,
+    tools,
     uploadingImageKey,
 }: {
     errors: Record<string, string>;
@@ -650,6 +687,7 @@ function DialogueNodeDialog({
     open: boolean;
     processing: boolean;
     title: string;
+    tools: EditableTool[];
     uploadingImageKey: string | null;
 }) {
     return (
@@ -691,10 +729,11 @@ function DialogueNodeDialog({
                                 <Label htmlFor="dialogue-node-type">Type</Label>
                                 <Select
                                     onValueChange={(value) =>
-                                        onChange((current) => ({
-                                            ...current,
-                                            type: value as DialogueForm['type'],
-                                        }))
+                                        onChange(
+                                            emptyDialogueForm(
+                                                value as DialogueForm['type'],
+                                            ),
+                                        )
                                     }
                                     value={form.type}
                                 >
@@ -704,6 +743,9 @@ function DialogueNodeDialog({
                                     <SelectContent>
                                         <SelectItem value="npc_interaction">
                                             NPC interaction
+                                        </SelectItem>
+                                        <SelectItem value="answer">
+                                            Answer
                                         </SelectItem>
                                         <SelectItem value="end">
                                             End node
@@ -715,7 +757,13 @@ function DialogueNodeDialog({
                         </div>
                     </SettingsAccordionSection>
 
-                    {form.type === 'end' ? (
+                    {form.type === 'answer' ? (
+                        <AnswerNodeFields
+                            errors={errors}
+                            form={form}
+                            onChange={onChange}
+                        />
+                    ) : form.type === 'end' ? (
                         <EndNodeFields
                             errors={errors}
                             form={form}
@@ -728,6 +776,7 @@ function DialogueNodeDialog({
                             imageUploadErrors={imageUploadErrors}
                             onChange={onChange}
                             onUpload={onUpload}
+                            tools={tools}
                             uploadingImageKey={uploadingImageKey}
                         />
                     )}
@@ -793,12 +842,72 @@ function EndNodeFields({
     );
 }
 
+function AnswerNodeFields({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: DialogueForm;
+    onChange: Dispatch<SetStateAction<DialogueForm>>;
+}) {
+    return (
+        <SettingsAccordionSection
+            defaultOpen
+            description="This answer appears below a connected question. Its outgoing edge decides what happens next."
+            title="Answer"
+        >
+            <div className="grid gap-4 md:grid-cols-2">
+                <ConfigTextField
+                    error={errors['config.answerLabel']}
+                    label="Answer label"
+                    onChange={(value) =>
+                        setConfigValue(onChange, 'answerLabel', value)
+                    }
+                    value={stringConfig(form.config.answerLabel, 'A')}
+                />
+                <label className="flex h-9 items-center gap-2 self-end text-sm">
+                    <input
+                        checked={Boolean(form.config.isCorrect)}
+                        className="size-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600 dark:border-white/20 dark:bg-slate-950 dark:text-teal-200 dark:focus:ring-teal-200"
+                        onChange={(event) =>
+                            setConfigValue(
+                                onChange,
+                                'isCorrect',
+                                event.target.checked,
+                            )
+                        }
+                        type="checkbox"
+                    />
+                    Correct answer
+                </label>
+            </div>
+            <div className="mt-4 grid gap-2">
+                <Label htmlFor="answer-body">Answer text</Label>
+                <textarea
+                    className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
+                    id="answer-body"
+                    onChange={(event) =>
+                        onChange((current) => ({
+                            ...current,
+                            body: event.target.value,
+                        }))
+                    }
+                    value={form.body}
+                />
+                <InputError message={errors.body} />
+            </div>
+        </SettingsAccordionSection>
+    );
+}
+
 function NpcInteractionFields({
     errors,
     form,
     imageUploadErrors,
     onChange,
     onUpload,
+    tools,
     uploadingImageKey,
 }: {
     errors: Record<string, string>;
@@ -810,6 +919,7 @@ function NpcInteractionFields({
         file: File,
         onUploaded: (url: string) => void,
     ) => void;
+    tools: EditableTool[];
     uploadingImageKey: string | null;
 }) {
     return (
@@ -871,12 +981,66 @@ function NpcInteractionFields({
             {form.config.interactionMode === 'question' ? (
                 <SettingsAccordionSection
                     defaultOpen
-                    description="Answers are shown together and each submission is stored for quiet learning analytics."
-                    title="Question answers"
+                    description="Create one Answer node per exit and connect each output to the matching answer. Connection order controls display order."
+                    title="Question outputs"
                 >
-                    <QuestionAnswersEditor form={form} onChange={onChange} />
+                    <ConfigNumberField
+                        label="Answer output count"
+                        max="12"
+                        min="1"
+                        onChange={(value) =>
+                            setConfigValue(
+                                onChange,
+                                'questionOutputCount',
+                                Number(value),
+                            )
+                        }
+                        value={stringConfig(
+                            form.config.questionOutputCount,
+                            '2',
+                        )}
+                    />
                 </SettingsAccordionSection>
             ) : null}
+
+            <SettingsAccordionSection
+                description="Optionally add a configured tool to the learner when this bubble is reached."
+                title="Tool grant"
+            >
+                <div className="grid gap-2">
+                    <Label htmlFor="npc-tool-grant">Tool to give</Label>
+                    <Select
+                        onValueChange={(value) =>
+                            setConfigValue(
+                                onChange,
+                                'toolId',
+                                value === 'none' ? null : Number(value),
+                            )
+                        }
+                        value={
+                            form.config.toolId
+                                ? String(form.config.toolId)
+                                : 'none'
+                        }
+                    >
+                        <SelectTrigger id="npc-tool-grant">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">No tool</SelectItem>
+                            {tools.map((tool) => (
+                                <SelectItem
+                                    key={tool.id}
+                                    value={tool.id.toString()}
+                                >
+                                    {tool.title}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors['config.toolId']} />
+                </div>
+            </SettingsAccordionSection>
 
             <SettingsAccordionSection
                 description="Theme-specific background and NPC images."
@@ -1148,150 +1312,6 @@ function NpcInteractionFields({
     );
 }
 
-function QuestionAnswersEditor({
-    form,
-    onChange,
-}: {
-    form: DialogueForm;
-    onChange: Dispatch<SetStateAction<DialogueForm>>;
-}) {
-    const answers = answerDrafts(form.config.answers);
-
-    return (
-        <div className="grid gap-4">
-            {answers.map((answer, index) => (
-                <div
-                    className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/45"
-                    key={answer.key}
-                >
-                    <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold">
-                            Answer {index + 1}
-                        </p>
-                        <Button
-                            aria-label={`Remove answer ${index + 1}`}
-                            onClick={() =>
-                                setAnswerDrafts(
-                                    onChange,
-                                    answers.filter(
-                                        (_, itemIndex) => itemIndex !== index,
-                                    ),
-                                )
-                            }
-                            size="icon"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <Trash2 className="size-4" />
-                        </Button>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <ConfigTextField
-                            label="Answer key"
-                            onChange={(value) =>
-                                updateAnswerDraft(
-                                    onChange,
-                                    answers,
-                                    index,
-                                    'key',
-                                    value,
-                                )
-                            }
-                            value={answer.key}
-                        />
-                        <ConfigTextField
-                            label="Answer label"
-                            onChange={(value) =>
-                                updateAnswerDraft(
-                                    onChange,
-                                    answers,
-                                    index,
-                                    'label',
-                                    value,
-                                )
-                            }
-                            value={answer.label}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor={`answer-body-${index}`}>
-                            Answer text
-                        </Label>
-                        <textarea
-                            className="min-h-20 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                            id={`answer-body-${index}`}
-                            onChange={(event) =>
-                                updateAnswerDraft(
-                                    onChange,
-                                    answers,
-                                    index,
-                                    'body',
-                                    event.target.value,
-                                )
-                            }
-                            value={answer.body}
-                        />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor={`answer-feedback-${index}`}>
-                            Feedback after selection
-                        </Label>
-                        <textarea
-                            className="min-h-20 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                            id={`answer-feedback-${index}`}
-                            onChange={(event) =>
-                                updateAnswerDraft(
-                                    onChange,
-                                    answers,
-                                    index,
-                                    'feedback',
-                                    event.target.value,
-                                )
-                            }
-                            value={answer.feedback}
-                        />
-                    </div>
-
-                    <label className="flex h-9 items-center gap-2 text-sm">
-                        <input
-                            checked={answer.isCorrect}
-                            className="size-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600 dark:border-white/20 dark:bg-slate-950 dark:text-teal-200 dark:focus:ring-teal-200"
-                            onChange={(event) =>
-                                updateAnswerDraft(
-                                    onChange,
-                                    answers,
-                                    index,
-                                    'isCorrect',
-                                    event.target.checked,
-                                )
-                            }
-                            type="checkbox"
-                        />
-                        Correct answer
-                    </label>
-                </div>
-            ))}
-
-            <Button
-                onClick={() =>
-                    setAnswerDrafts(onChange, [
-                        ...answers,
-                        newAnswerDraft(answers.length),
-                    ])
-                }
-                type="button"
-                variant="secondary"
-            >
-                <Plus className="size-4" />
-                Add answer
-            </Button>
-        </div>
-    );
-}
-
 function ConfigTextField({
     error,
     label,
@@ -1539,6 +1559,18 @@ function buildGraphEdges(payload: DialogueGraphPayload): DialogueGraphEdge[] {
 }
 
 function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
+    if (type === 'answer') {
+        return {
+            body: '',
+            config: {
+                answerLabel: 'A',
+                isCorrect: false,
+            },
+            title: 'Answer',
+            type,
+        };
+    }
+
     return {
         body: '',
         config:
@@ -1562,8 +1594,10 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                       npcImageLight: '',
                       npcX: 50,
                       npcY: 50,
+                      questionOutputCount: 2,
                       slideDirection: 'left',
                       slideDurationSeconds: 0.6,
+                      toolId: null,
                       typingSpeed: 28,
                   },
         title: type === 'end' ? 'End' : 'NPC interaction',
@@ -1594,64 +1628,20 @@ function setConfigValue(
     }));
 }
 
-function setAnswerDrafts(
-    setForm: Dispatch<SetStateAction<DialogueForm>>,
-    answers: DialogueAnswerDraft[],
-) {
-    setConfigValue(setForm, 'answers', answers);
-}
-
-function updateAnswerDraft<K extends keyof DialogueAnswerDraft>(
-    setForm: Dispatch<SetStateAction<DialogueForm>>,
-    answers: DialogueAnswerDraft[],
-    index: number,
-    key: K,
-    value: DialogueAnswerDraft[K],
-) {
-    setAnswerDrafts(
-        setForm,
-        answers.map((answer, itemIndex) =>
-            itemIndex === index ? { ...answer, [key]: value } : answer,
-        ),
-    );
-}
-
-function answerDrafts(value: unknown): DialogueAnswerDraft[] {
-    if (!Array.isArray(value)) {
-        return [newAnswerDraft(0), newAnswerDraft(1)];
-    }
-
-    return value
-        .filter(
-            (item): item is Partial<DialogueAnswerDraft> =>
-                Boolean(item) &&
-                typeof item === 'object' &&
-                !Array.isArray(item),
-        )
-        .map((item, index) => ({
-            body: stringConfig(item.body),
-            feedback: stringConfig(item.feedback),
-            isCorrect: Boolean(item.isCorrect),
-            key: stringConfig(item.key, `answer-${index + 1}`),
-            label: stringConfig(item.label, String.fromCharCode(65 + index)),
-        }));
-}
-
-function newAnswerDraft(index: number): DialogueAnswerDraft {
-    return {
-        body: '',
-        feedback: '',
-        isCorrect: index === 0,
-        key: `answer-${index + 1}`,
-        label: String.fromCharCode(65 + index),
-    };
-}
-
 function dialogueOutputConnectors(
     node: DialogueNodeSummary,
 ): DialogueConnector[] {
     if (node.type !== 'npc_interaction') {
-        return [];
+        return node.type === 'answer'
+            ? [
+                  {
+                      color: '#0ea5e9',
+                      id: 'out',
+                      label: 'Continue',
+                      symbol: '>',
+                  },
+              ]
+            : [];
     }
 
     if (node.config.interactionMode !== 'question') {
@@ -1665,13 +1655,13 @@ function dialogueOutputConnectors(
         ];
     }
 
-    const answers = answerDrafts(node.config.answers);
+    const outputCount = numericConfig(node.config.questionOutputCount, 2);
 
-    return answers.map((answer) => ({
-        color: answer.isCorrect ? '#22c55e' : '#0ea5e9',
-        id: answer.key,
-        label: `${answer.label}: ${answer.body || answer.key}`,
-        symbol: answer.label,
+    return Array.from({ length: Math.max(1, outputCount) }, (_, index) => ({
+        color: '#0ea5e9',
+        id: `answer-${index + 1}`,
+        label: `Answer ${index + 1}`,
+        symbol: String.fromCharCode(65 + index),
     }));
 }
 
@@ -1692,4 +1682,18 @@ function stringConfig(value: unknown, fallback = ''): string {
     }
 
     return typeof value === 'string' ? value : fallback;
+}
+
+function numericConfig(value: unknown, fallback: number): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value;
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    return fallback;
 }

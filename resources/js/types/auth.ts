@@ -1,3 +1,5 @@
+import type { LearningTool } from './learning';
+
 export type User = {
     id: number;
     name: string;
@@ -14,6 +16,7 @@ export type User = {
 };
 
 export type Auth = {
+    tools: LearningTool[];
     user: User | null;
 };
 

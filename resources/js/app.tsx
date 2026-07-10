@@ -29,6 +29,8 @@ createInertiaApp({
             case name === 'settings/imprint':
             case name === 'settings/data-protection':
                 return AppLayout;
+            case name.startsWith('settings/assets/'):
+                return AppLayout;
             case name.startsWith('settings/worlds/'):
                 return AppLayout;
             case name.startsWith('settings/'):

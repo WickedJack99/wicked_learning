@@ -12,10 +12,12 @@ class AdminNpcDialogueRules
     public function storeNode(): array
     {
         return [
-            'type' => ['required', 'string', Rule::in(['npc_interaction', 'end'])],
+            'type' => ['required', 'string', Rule::in(['answer', 'npc_interaction', 'end'])],
             'title' => ['required', 'string', 'max:120'],
             'body' => ['nullable', 'string', 'max:4000'],
             'config' => ['nullable', 'array'],
+            'config.*' => ['nullable'],
+            'config.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
         ];
@@ -30,6 +32,8 @@ class AdminNpcDialogueRules
             'title' => ['sometimes', 'required', 'string', 'max:120'],
             'body' => ['sometimes', 'nullable', 'string', 'max:4000'],
             'config' => ['sometimes', 'nullable', 'array'],
+            'config.*' => ['nullable'],
+            'config.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
         ];

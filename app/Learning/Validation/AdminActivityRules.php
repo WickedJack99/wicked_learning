@@ -18,7 +18,9 @@ class AdminActivityRules
     {
         return [
             ...$this->activityContentRules($node),
+            ...$this->obstacleRules(),
             ...$this->portalRules(),
+            ...$this->toolGrantRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
         ];
@@ -42,7 +44,9 @@ class AdminActivityRules
             ],
             'type' => ['sometimes', 'required', 'string', Rule::in($this->activityTypes->typeKeys())],
             'introduction' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            ...$this->obstacleRules('sometimes'),
             ...$this->portalRules('sometimes'),
+            ...$this->toolGrantRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
         ];
@@ -126,6 +130,55 @@ class AdminActivityRules
             'portal_foreground_y' => [$modifier, 'numeric', 'min:0', 'max:100'],
             'portal_swirl_enabled' => [$modifier, 'boolean'],
             'target_portal_activity_id' => [$modifier, 'integer'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function obstacleRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'obstacle_allowed_tool_ids' => [$modifier],
+            'obstacle_background_dark' => [$modifier, 'string', 'max:2048'],
+            'obstacle_background_light' => [$modifier, 'string', 'max:2048'],
+            'obstacle_bubble_border_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'obstacle_bubble_border_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'obstacle_bubble_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'obstacle_bubble_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'obstacle_bubble_opacity_dark' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'obstacle_bubble_opacity_light' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'obstacle_image_dark' => [$modifier, 'string', 'max:2048'],
+            'obstacle_image_light' => [$modifier, 'string', 'max:2048'],
+            'obstacle_prompt_text' => [$modifier, 'string', 'max:2000'],
+            'obstacle_success_animation' => [$modifier, 'string', Rule::in(['none', 'zoom', 'shake', 'rotate'])],
+            'obstacle_success_text' => [$modifier, 'string', 'max:2000'],
+            'obstacle_typing_speed' => [$modifier, 'numeric', 'min:1', 'max:250'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function toolGrantRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'tool_grant_background_dark' => [$modifier, 'string', 'max:2048'],
+            'tool_grant_background_light' => [$modifier, 'string', 'max:2048'],
+            'tool_grant_bubble_border_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'tool_grant_bubble_border_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'tool_grant_bubble_color_dark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'tool_grant_bubble_color_light' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'tool_grant_bubble_opacity_dark' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'tool_grant_bubble_opacity_light' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'tool_grant_fade_duration_seconds' => [$modifier, 'numeric', 'min:0', 'max:30'],
+            'tool_grant_slide_direction' => [$modifier, 'string', Rule::in(['left', 'right', 'top', 'bottom', 'none'])],
+            'tool_grant_slide_duration_seconds' => [$modifier, 'numeric', 'min:0', 'max:30'],
+            'tool_grant_text' => [$modifier, 'string', 'max:2000'],
+            'tool_grant_tool_id' => [$modifier, 'integer', 'exists:learning_tools,id'],
+            'tool_grant_tool_x' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'tool_grant_tool_y' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'tool_grant_typing_speed' => [$modifier, 'numeric', 'min:1', 'max:250'],
         ];
     }
 }

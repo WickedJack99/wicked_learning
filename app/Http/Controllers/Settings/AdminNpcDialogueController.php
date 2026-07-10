@@ -9,9 +9,12 @@ use App\Learning\Actions\DeleteNpcDialogueNode;
 use App\Learning\Actions\DeleteNpcDialogueTransition;
 use App\Learning\Actions\UpdateNpcDialogueNode;
 use App\Learning\Queries\LoadEditableNpcDialogueGraph;
+use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Serializers\AdminNpcDialogueGraphSerializer;
+use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Validation\AdminNpcDialogueRules;
 use App\Models\LearningActivity;
+use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +26,9 @@ class AdminNpcDialogueController extends Controller
 {
     public function __construct(
         private readonly LoadEditableNpcDialogueGraph $loadDialogueGraph,
+        private readonly LoadEditableTools $loadEditableTools,
         private readonly AdminNpcDialogueGraphSerializer $dialogueGraphSerializer,
+        private readonly LearningToolSerializer $toolSerializer,
         private readonly AdminNpcDialogueRules $rules,
         private readonly CreateNpcDialogueNode $createNode,
         private readonly UpdateNpcDialogueNode $updateNode,
@@ -38,6 +43,10 @@ class AdminNpcDialogueController extends Controller
             'dialogueGraph' => $this->dialogueGraphSerializer->serialize(
                 $this->loadDialogueGraph->handle($activity),
             ),
+            'tools' => $this->loadEditableTools
+                ->handle()
+                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                ->all(),
         ]);
     }
 

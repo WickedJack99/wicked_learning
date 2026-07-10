@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Signal lens tool</title>
+  <rect width="128" height="128" rx="26" fill="#0f172a"/>
+  <circle cx="54" cy="54" r="28" fill="#12343b" stroke="#5eead4" stroke-width="8"/>
+  <path d="m76 76 30 30" stroke="#a78bfa" stroke-width="12" stroke-linecap="round"/>
+  <path d="M40 54c8-10 20-10 28 0" fill="none" stroke="#e0f2fe" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="54" cy="54" r="8" fill="#2dd4bf"/>
+</svg>

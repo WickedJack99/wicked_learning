@@ -1,0 +1,197 @@
+import type { Edge, Node } from '@xyflow/react';
+
+export type Connector = {
+    color?: string;
+    id: string;
+    label: string;
+    symbol?: string;
+};
+
+export type ActivityTypeDefinition = {
+    description: string;
+    key: string;
+    label: string;
+    portalModes?: Array<{ key: string; label: string }>;
+};
+
+export type ActivitySummary = {
+    config: Record<
+        string,
+        Array<number | string> | string | number | boolean | null
+    >;
+    connectors: {
+        inputs: Connector[];
+        outputs: Connector[];
+    };
+    id: number;
+    introduction: string | null;
+    portalLink: PortalActivityLink | null;
+    position: {
+        x: number | null;
+        y: number | null;
+    };
+    slug: string;
+    title: string;
+    type: string;
+};
+
+export type PortalActivityLink = {
+    description: string | null;
+    id: number;
+    label: string | null;
+    targetActivity: {
+        id: number;
+        mapTitle: string;
+        nodeTitle: string;
+        title: string;
+    } | null;
+    targetNode: {
+        id: number;
+        mapTitle: string;
+        title: string;
+    };
+};
+
+export type PortalCandidate = {
+    id: number;
+    mapId: number;
+    mapTitle: string;
+    nodeId: number;
+    nodeTitle: string;
+    title: string;
+};
+
+export type ActivityTransitionSummary = {
+    fromActivityId: number;
+    fromConnector: string;
+    id: number;
+    label: string | null;
+    toActivityId: number | null;
+    toConnector: string;
+    trigger: string;
+};
+
+export type ActivityGraphPayload = {
+    activities: ActivitySummary[];
+    activityTypes: ActivityTypeDefinition[];
+    map: {
+        id: number;
+        slug: string;
+        title: string;
+    };
+    node: {
+        description: string | null;
+        id: number;
+        slug: string;
+        startActivityId: number | null;
+        startRoutes: ActivityStartRoute[];
+        title: string;
+    };
+    portalCandidates: PortalCandidate[];
+    transitions: ActivityTransitionSummary[];
+    world: {
+        id: number;
+        slug: string;
+        title: string;
+    };
+};
+
+export type EditableTool = {
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    slug: string;
+    title: string;
+};
+
+export type ActivityStartRoute = {
+    activityId: number;
+    buttonBorderColorDark: string | null;
+    buttonBorderColorLight: string | null;
+    buttonColorDark: string | null;
+    buttonColorLight: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    label: string;
+    sortOrder: number;
+};
+
+export type StartRouteForm = {
+    button_border_color_dark: string;
+    button_border_color_light: string;
+    button_color_dark: string;
+    button_color_light: string;
+    image_dark: string;
+    image_light: string;
+};
+
+export type ActivityNodeData = {
+    activity: ActivitySummary;
+    onDelete: (activity: ActivitySummary) => void;
+    onEdit: (activity: ActivitySummary) => void;
+};
+
+export type SpecialNodeData = {
+    description: string;
+    kind: 'start' | 'end';
+    title: string;
+};
+
+export type ActivityGraphNode =
+    | Node<ActivityNodeData, 'activity'>
+    | Node<SpecialNodeData, 'special'>;
+
+export type ActivityGraphEdge = Edge<
+    ActivityTransitionSummary | { start: true; startRouteId: number }
+>;
+
+export type CreateActivityForm = {
+    introduction: string;
+    obstacle_allowed_tool_ids: string;
+    obstacle_background_dark: string;
+    obstacle_background_light: string;
+    obstacle_bubble_border_color_dark: string;
+    obstacle_bubble_border_color_light: string;
+    obstacle_bubble_color_dark: string;
+    obstacle_bubble_color_light: string;
+    obstacle_bubble_opacity_dark: string;
+    obstacle_bubble_opacity_light: string;
+    obstacle_image_dark: string;
+    obstacle_image_light: string;
+    obstacle_prompt_text: string;
+    obstacle_success_animation: string;
+    obstacle_success_text: string;
+    obstacle_typing_speed: string;
+    portal_background_dark: string;
+    portal_background_light: string;
+    portal_duration_seconds: string;
+    portal_foreground_dark: string;
+    portal_foreground_light: string;
+    portal_foreground_x: string;
+    portal_foreground_y: string;
+    portal_mode: 'input' | 'output';
+    portal_swirl_enabled: boolean;
+    slug: string;
+    target_portal_activity_id: string;
+    title: string;
+    tool_grant_background_dark: string;
+    tool_grant_background_light: string;
+    tool_grant_bubble_border_color_dark: string;
+    tool_grant_bubble_border_color_light: string;
+    tool_grant_bubble_color_dark: string;
+    tool_grant_bubble_color_light: string;
+    tool_grant_bubble_opacity_dark: string;
+    tool_grant_bubble_opacity_light: string;
+    tool_grant_fade_duration_seconds: string;
+    tool_grant_slide_direction: string;
+    tool_grant_slide_duration_seconds: string;
+    tool_grant_text: string;
+    tool_grant_tool_id: string;
+    tool_grant_tool_x: string;
+    tool_grant_tool_y: string;
+    tool_grant_typing_speed: string;
+    type: string;
+};
+
+export type ActivityForm = CreateActivityForm;

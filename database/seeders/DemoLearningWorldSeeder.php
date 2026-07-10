@@ -11,9 +11,11 @@ use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
+use App\Models\LearningTool;
 use App\Models\LearningWorld;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DemoLearningWorldSeeder extends Seeder
@@ -274,6 +276,8 @@ class DemoLearningWorldSeeder extends Seeder
         ]);
 
         $this->seedNpcDialogueExample($signalGate, $reflection);
+        $signalLens = $this->seedToolBeltExample();
+        $this->seedObstacleRoute($signalGate, $reflection, $signalLens);
 
         $signalGate->update(['start_activity_id' => $mentorDialogue->id]);
 
@@ -306,7 +310,7 @@ class DemoLearningWorldSeeder extends Seeder
             'config' => [
                 ...$this->npcVisualConfig(),
                 'interactionMode' => 'question',
-                'answers' => [],
+                'questionOutputCount' => 3,
             ],
             'graph_position_x' => 480,
             'graph_position_y' => 20,
@@ -330,6 +334,42 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => 'Mira confirms the pattern',
         ]);
 
+        $sourceDistributionAnswer = $this->createNpcAnswer($npcDialogue, [
+            'body' => 'The attempts came from many source IP addresses.',
+            'config' => [
+                'answerLabel' => 'A',
+                'isCorrect' => true,
+            ],
+            'graph_position_x' => 760,
+            'graph_position_y' => -210,
+            'sort_order' => 25,
+            'title' => 'Source distribution',
+        ]);
+
+        $singleAccountAnswer = $this->createNpcAnswer($npcDialogue, [
+            'body' => 'Only one account was targeted, so it is probably one user mistyping.',
+            'config' => [
+                'answerLabel' => 'B',
+                'isCorrect' => false,
+            ],
+            'graph_position_x' => 760,
+            'graph_position_y' => 40,
+            'sort_order' => 26,
+            'title' => 'Single account',
+        ]);
+
+        $serverOfflineAnswer = $this->createNpcAnswer($npcDialogue, [
+            'body' => 'The server is probably offline because the attempts failed.',
+            'config' => [
+                'answerLabel' => 'C',
+                'isCorrect' => false,
+            ],
+            'graph_position_x' => 760,
+            'graph_position_y' => 260,
+            'sort_order' => 27,
+            'title' => 'Server offline',
+        ]);
+
         $end = NpcDialogueNode::query()->create([
             'learning_activity_id' => $npcDialogue->id,
             'type' => 'end',
@@ -343,40 +383,14 @@ class DemoLearningWorldSeeder extends Seeder
             'graph_position_y' => -80,
         ]);
 
-        $question->update([
-            'config' => [
-                ...$question->config,
-                'answers' => [
-                    [
-                        'key' => 'source-distribution',
-                        'label' => 'A',
-                        'body' => 'The attempts came from many source IP addresses.',
-                        'isCorrect' => true,
-                        'feedback' => 'Yes. The spread across sources changes the shape of the investigation.',
-                    ],
-                    [
-                        'key' => 'single-account',
-                        'label' => 'B',
-                        'body' => 'Only one account was targeted, so it is probably one user mistyping.',
-                        'isCorrect' => false,
-                        'feedback' => 'A single target matters, but it does not explain the distributed source pattern.',
-                    ],
-                    [
-                        'key' => 'server-offline',
-                        'label' => 'C',
-                        'body' => 'The server is probably offline because the attempts failed.',
-                        'isCorrect' => false,
-                        'feedback' => 'The failures alone do not show an outage. The source spread is the clearer clue here.',
-                    ],
-                ],
-            ],
-        ]);
-
         $this->connectNpcDialogue($npcDialogue, null, $intro);
         $this->connectNpcDialogue($npcDialogue, $intro, $question);
-        $this->connectNpcDialogue($npcDialogue, $question, $correct, 'source-distribution');
-        $this->connectNpcDialogue($npcDialogue, $question, $review, 'single-account');
-        $this->connectNpcDialogue($npcDialogue, $question, $review, 'server-offline');
+        $this->connectNpcDialogue($npcDialogue, $question, $sourceDistributionAnswer, 'answer-1');
+        $this->connectNpcDialogue($npcDialogue, $question, $singleAccountAnswer, 'answer-2');
+        $this->connectNpcDialogue($npcDialogue, $question, $serverOfflineAnswer, 'answer-3');
+        $this->connectNpcDialogue($npcDialogue, $sourceDistributionAnswer, $correct);
+        $this->connectNpcDialogue($npcDialogue, $singleAccountAnswer, $review);
+        $this->connectNpcDialogue($npcDialogue, $serverOfflineAnswer, $review);
         $this->connectNpcDialogue($npcDialogue, $review, $question);
         $this->connectNpcDialogue($npcDialogue, $correct, $end);
 
@@ -403,6 +417,90 @@ class DemoLearningWorldSeeder extends Seeder
         ]);
     }
 
+    private function seedToolBeltExample(): LearningTool
+    {
+        $tool = LearningTool::query()->updateOrCreate(
+            ['slug' => 'signal-lens'],
+            [
+                'title' => 'Signal lens',
+                'description' => 'A small diagnostic lens for resolving noisy signal barriers.',
+                'image_dark' => '/images/tools/signal-lens-dark.svg',
+                'image_light' => '/images/tools/signal-lens-light.svg',
+                'animation_dark' => null,
+                'animation_light' => null,
+                'config' => [
+                    'animationStrategy' => 'uploaded-asset',
+                    'futureFrameSequenceSupport' => true,
+                ],
+            ],
+        );
+
+        User::query()
+            ->where('email', 'test@example.com')
+            ->get()
+            ->each(function (User $user) use ($tool): void {
+                $user->learningTools()->syncWithoutDetaching([
+                    $tool->id => ['acquired_at' => now()],
+                ]);
+            });
+
+        return $tool;
+    }
+
+    private function seedObstacleRoute(
+        LearningNode $signalGate,
+        LearningActivity $reflection,
+        LearningTool $tool,
+    ): void {
+        $obstacle = LearningActivity::query()->create([
+            'learning_node_id' => $signalGate->id,
+            'slug' => 'clear-the-static-gate',
+            'type' => 'obstacle',
+            'title' => 'Clear the static gate',
+            'introduction' => 'Equip a tool and resolve a small blocker without any scoring pressure.',
+            'sort_order' => 25,
+            'config' => [
+                'allowedToolIds' => [$tool->id],
+                'backgroundDark' => '/images/obstacles/static-field-dark.svg',
+                'backgroundLight' => '/images/obstacles/static-field-light.svg',
+                'bubbleBorderColorDark' => '#2dd4bf',
+                'bubbleBorderColorLight' => '#0891b2',
+                'bubbleColorDark' => '#0f172a',
+                'bubbleColorLight' => '#ffffff',
+                'bubbleOpacityDark' => 92,
+                'bubbleOpacityLight' => 94,
+                'obstacleImageDark' => '/images/obstacles/static-gate-dark.svg',
+                'obstacleImageLight' => '/images/obstacles/static-gate-light.svg',
+                'promptText' => 'A static gate blocks the signal path. Try equipping a tool that can read through noise.',
+                'successAnimation' => 'shake',
+                'successText' => 'The signal lens resolves the interference. The path feels quieter now.',
+                'typingSpeed' => 20,
+            ],
+        ]);
+
+        ActivityTransition::query()->create([
+            'from_activity_id' => $obstacle->id,
+            'to_activity_id' => $reflection->id,
+            'from_connector' => 'completed',
+            'to_connector' => 'in',
+            'trigger' => 'completed',
+            'label' => 'Reflect on the cleared path',
+        ]);
+
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $signalGate->id,
+            'learning_activity_id' => $obstacle->id,
+            'label' => 'Clear static gate',
+            'image_dark' => '/images/routes/signal-route-dark.svg',
+            'image_light' => '/images/routes/signal-route-light.svg',
+            'button_color_dark' => '#0f172a',
+            'button_border_color_dark' => '#38bdf8',
+            'button_color_light' => '#ecfeff',
+            'button_border_color_light' => '#0891b2',
+            'sort_order' => 30,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -414,6 +512,23 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => $overrides['title'],
             'body' => $overrides['body'],
             'config' => $overrides['config'] ?? $this->npcVisualConfig(),
+            'sort_order' => $overrides['sort_order'],
+            'graph_position_x' => $overrides['graph_position_x'],
+            'graph_position_y' => $overrides['graph_position_y'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createNpcAnswer(LearningActivity $activity, array $overrides): NpcDialogueNode
+    {
+        return NpcDialogueNode::query()->create([
+            'learning_activity_id' => $activity->id,
+            'type' => 'answer',
+            'title' => $overrides['title'],
+            'body' => $overrides['body'],
+            'config' => $overrides['config'],
             'sort_order' => $overrides['sort_order'],
             'graph_position_x' => $overrides['graph_position_x'],
             'graph_position_y' => $overrides['graph_position_y'],

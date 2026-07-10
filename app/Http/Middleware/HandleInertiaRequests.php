@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Learning\Serializers\LearningToolSerializer;
+use App\Models\LearningTool;
 use App\Models\PlatformPresentationSetting;
 use App\Support\Appearance;
 use Illuminate\Http\Request;
@@ -9,6 +11,8 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private readonly LearningToolSerializer $toolSerializer) {}
+
     /**
      * The root template that's loaded on the first page visit.
      *
@@ -45,6 +49,14 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'tools' => $request->user()
+                    ? $request->user()
+                        ->learningTools()
+                        ->get()
+                        ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                        ->values()
+                        ->all()
+                    : [],
             ],
             'appearance' => $request->user()
                 ? Appearance::forAuthenticatedUser(

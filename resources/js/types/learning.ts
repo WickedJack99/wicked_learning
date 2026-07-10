@@ -121,12 +121,28 @@ export type LearningActivity = {
     type: 'dialogue' | 'question' | 'reflection' | string;
     title: string;
     introduction: string | null;
-    config: Record<string, string | boolean | number | null>;
+    config: Record<
+        string,
+        Array<number | string> | boolean | number | string | null
+    >;
+    configuredTool: LearningTool | null;
     dialogueStages: DialogueStage[];
     npcDialogueNodes: NpcDialogueNode[];
     npcDialogueTransitions: NpcDialogueTransition[];
     question: LearningQuestion | null;
     transitions: ActivityTransition[];
+};
+
+export type LearningTool = {
+    animationDark: string | null;
+    animationLight: string | null;
+    config: Record<string, boolean | number | string | null>;
+    description: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    slug: string;
+    title: string;
 };
 
 export type NpcDialogueNode = {

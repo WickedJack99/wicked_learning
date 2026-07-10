@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -237,5 +238,19 @@ class User extends Authenticatable implements PasskeyUser
     public function learningNodeBookmarks(): HasMany
     {
         return $this->hasMany(LearningNodeBookmark::class);
+    }
+
+    /**
+     * Tools this learner can equip during obstacle-style activities.
+     *
+     * @return BelongsToMany<LearningTool, $this>
+     */
+    public function learningTools(): BelongsToMany
+    {
+        return $this->belongsToMany(LearningTool::class, 'user_learning_tools')
+            ->withPivot('acquired_at')
+            ->withTimestamps()
+            ->orderByPivot('acquired_at')
+            ->orderBy('user_learning_tools.id');
     }
 }

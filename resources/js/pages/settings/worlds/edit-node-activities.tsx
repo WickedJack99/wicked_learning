@@ -10,26 +10,22 @@ import {
     useEdgesState,
     useNodesState,
 } from '@xyflow/react';
-import type { Connection, Edge, Node } from '@xyflow/react';
+import type { Connection } from '@xyflow/react';
 import {
     ArrowLeft,
     CircleStop,
-    Download,
     GitBranch,
-    Image,
     MessageCircle,
     Pencil,
     Plus,
     Play,
     Trash2,
-    Upload,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { CSSProperties, Dispatch, SetStateAction } from 'react';
+import type { CSSProperties } from 'react';
 import InputError from '@/components/input-error';
 import { SettingsAccordionSection } from '@/components/settings-accordion-section';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -40,169 +36,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
-
-type Connector = {
-    color?: string;
-    id: string;
-    label: string;
-    symbol?: string;
-};
-
-type ActivityTypeDefinition = {
-    description: string;
-    key: string;
-    label: string;
-    portalModes?: Array<{ key: string; label: string }>;
-};
-
-type ActivitySummary = {
-    config: Record<string, string | number | boolean | null>;
-    connectors: {
-        inputs: Connector[];
-        outputs: Connector[];
-    };
-    id: number;
-    introduction: string | null;
-    portalLink: PortalActivityLink | null;
-    position: {
-        x: number | null;
-        y: number | null;
-    };
-    slug: string;
-    title: string;
-    type: string;
-};
-
-type PortalActivityLink = {
-    description: string | null;
-    id: number;
-    label: string | null;
-    targetActivity: {
-        id: number;
-        mapTitle: string;
-        nodeTitle: string;
-        title: string;
-    } | null;
-    targetNode: {
-        id: number;
-        mapTitle: string;
-        title: string;
-    };
-};
-
-type PortalCandidate = {
-    id: number;
-    mapId: number;
-    mapTitle: string;
-    nodeId: number;
-    nodeTitle: string;
-    title: string;
-};
-
-type ActivityTransitionSummary = {
-    fromActivityId: number;
-    fromConnector: string;
-    id: number;
-    label: string | null;
-    toActivityId: number | null;
-    toConnector: string;
-    trigger: string;
-};
-
-type ActivityGraphPayload = {
-    activities: ActivitySummary[];
-    activityTypes: ActivityTypeDefinition[];
-    map: {
-        id: number;
-        slug: string;
-        title: string;
-    };
-    node: {
-        description: string | null;
-        id: number;
-        slug: string;
-        startActivityId: number | null;
-        startRoutes: ActivityStartRoute[];
-        title: string;
-    };
-    portalCandidates: PortalCandidate[];
-    transitions: ActivityTransitionSummary[];
-    world: {
-        id: number;
-        slug: string;
-        title: string;
-    };
-};
-
-type ActivityStartRoute = {
-    activityId: number;
-    buttonBorderColorDark: string | null;
-    buttonBorderColorLight: string | null;
-    buttonColorDark: string | null;
-    buttonColorLight: string | null;
-    id: number;
-    imageDark: string | null;
-    imageLight: string | null;
-    label: string;
-    sortOrder: number;
-};
-
-type StartRouteForm = {
-    button_border_color_dark: string;
-    button_border_color_light: string;
-    button_color_dark: string;
-    button_color_light: string;
-    image_dark: string;
-    image_light: string;
-};
-
-type ActivityNodeData = {
-    activity: ActivitySummary;
-    onDelete: (activity: ActivitySummary) => void;
-    onEdit: (activity: ActivitySummary) => void;
-};
-
-type SpecialNodeData = {
-    description: string;
-    kind: 'start' | 'end';
-    title: string;
-};
-
-type ActivityGraphNode =
-    | Node<ActivityNodeData, 'activity'>
-    | Node<SpecialNodeData, 'special'>;
-
-type ActivityGraphEdge = Edge<
-    ActivityTransitionSummary | { start: true; startRouteId: number }
->;
-
-type CreateActivityForm = {
-    introduction: string;
-    portal_background_dark: string;
-    portal_background_light: string;
-    portal_duration_seconds: string;
-    portal_foreground_dark: string;
-    portal_foreground_light: string;
-    portal_foreground_x: string;
-    portal_foreground_y: string;
-    portal_mode: 'input' | 'output';
-    portal_swirl_enabled: boolean;
-    slug: string;
-    target_portal_activity_id: string;
-    title: string;
-    type: string;
-};
-
-type ActivityForm = CreateActivityForm;
+import { ConfigImageInput } from './activity-config-fields';
+import { ActivityFormFields } from './activity-form-fields';
+import type {
+    ActivityForm,
+    ActivityGraphEdge,
+    ActivityGraphNode,
+    ActivityGraphPayload,
+    ActivityNodeData,
+    ActivityStartRoute,
+    ActivitySummary,
+    Connector,
+    CreateActivityForm,
+    EditableTool,
+    SpecialNodeData,
+    StartRouteForm,
+} from './edit-node-activity-types';
 
 const nodeTypes = {
     activity: ActivityGraphNodeCard,
@@ -216,8 +67,10 @@ const edgeStyle: CSSProperties = {
 
 export default function EditNodeActivities({
     activityGraph,
+    tools,
 }: {
     activityGraph: ActivityGraphPayload;
+    tools: EditableTool[];
 }) {
     const { resolvedAppearance } = useAppearance();
     const [createOpen, setCreateOpen] = useState(false);
@@ -712,6 +565,7 @@ export default function EditNodeActivities({
                             onUploadPortalImage={uploadPortalImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedType}
+                            tools={tools}
                             uploadingImageKey={uploadingImageKey}
                         />
 
@@ -752,6 +606,7 @@ export default function EditNodeActivities({
                         onUploadPortalImage={uploadPortalImage}
                         portalCandidates={activityGraph.portalCandidates}
                         selectedType={selectedEditType}
+                        tools={tools}
                         uploadingImageKey={uploadingImageKey}
                     />
 
@@ -1376,6 +1231,21 @@ function routeActivityTitle(
 function emptyCreateForm(type: string): CreateActivityForm {
     return {
         introduction: '',
+        obstacle_allowed_tool_ids: '',
+        obstacle_background_dark: '',
+        obstacle_background_light: '',
+        obstacle_bubble_border_color_dark: '#2dd4bf',
+        obstacle_bubble_border_color_light: '#0891b2',
+        obstacle_bubble_color_dark: '#0f172a',
+        obstacle_bubble_color_light: '#ffffff',
+        obstacle_bubble_opacity_dark: '92',
+        obstacle_bubble_opacity_light: '94',
+        obstacle_image_dark: '',
+        obstacle_image_light: '',
+        obstacle_prompt_text: '',
+        obstacle_success_animation: 'zoom',
+        obstacle_success_text: '',
+        obstacle_typing_speed: '24',
         portal_background_dark: '',
         portal_background_light: '',
         portal_duration_seconds: '1.5',
@@ -1388,6 +1258,22 @@ function emptyCreateForm(type: string): CreateActivityForm {
         slug: '',
         target_portal_activity_id: '',
         title: '',
+        tool_grant_background_dark: '',
+        tool_grant_background_light: '',
+        tool_grant_bubble_border_color_dark: '#2dd4bf',
+        tool_grant_bubble_border_color_light: '#0891b2',
+        tool_grant_bubble_color_dark: '#0f172a',
+        tool_grant_bubble_color_light: '#ffffff',
+        tool_grant_bubble_opacity_dark: '92',
+        tool_grant_bubble_opacity_light: '94',
+        tool_grant_fade_duration_seconds: '0.4',
+        tool_grant_slide_direction: 'left',
+        tool_grant_slide_duration_seconds: '0.6',
+        tool_grant_text: '',
+        tool_grant_tool_id: '',
+        tool_grant_tool_x: '50',
+        tool_grant_tool_y: '50',
+        tool_grant_typing_speed: '24',
         type,
     };
 }
@@ -1400,6 +1286,46 @@ function activityFormFromActivity(
 
     return {
         introduction: activity.introduction ?? '',
+        obstacle_allowed_tool_ids: arrayConfig(
+            activity.config.allowedToolIds,
+        ).join(', '),
+        obstacle_background_dark: stringConfig(activity.config.backgroundDark),
+        obstacle_background_light: stringConfig(
+            activity.config.backgroundLight,
+        ),
+        obstacle_bubble_border_color_dark: stringConfig(
+            activity.config.bubbleBorderColorDark,
+            '#2dd4bf',
+        ),
+        obstacle_bubble_border_color_light: stringConfig(
+            activity.config.bubbleBorderColorLight,
+            '#0891b2',
+        ),
+        obstacle_bubble_color_dark: stringConfig(
+            activity.config.bubbleColorDark,
+            '#0f172a',
+        ),
+        obstacle_bubble_color_light: stringConfig(
+            activity.config.bubbleColorLight,
+            '#ffffff',
+        ),
+        obstacle_bubble_opacity_dark: stringConfig(
+            activity.config.bubbleOpacityDark,
+            '92',
+        ),
+        obstacle_bubble_opacity_light: stringConfig(
+            activity.config.bubbleOpacityLight,
+            '94',
+        ),
+        obstacle_image_dark: stringConfig(activity.config.obstacleImageDark),
+        obstacle_image_light: stringConfig(activity.config.obstacleImageLight),
+        obstacle_prompt_text: stringConfig(activity.config.promptText),
+        obstacle_success_animation: stringConfig(
+            activity.config.successAnimation,
+            'zoom',
+        ),
+        obstacle_success_text: stringConfig(activity.config.successText),
+        obstacle_typing_speed: stringConfig(activity.config.typingSpeed, '24'),
         portal_background_dark: stringConfig(
             activity.config.portalBackgroundDark,
         ),
@@ -1430,525 +1356,58 @@ function activityFormFromActivity(
         target_portal_activity_id:
             activity.portalLink?.targetActivity?.id.toString() ?? '',
         title: activity.title,
+        tool_grant_background_dark: stringConfig(
+            activity.config.backgroundDark,
+        ),
+        tool_grant_background_light: stringConfig(
+            activity.config.backgroundLight,
+        ),
+        tool_grant_bubble_border_color_dark: stringConfig(
+            activity.config.bubbleBorderColorDark,
+            '#2dd4bf',
+        ),
+        tool_grant_bubble_border_color_light: stringConfig(
+            activity.config.bubbleBorderColorLight,
+            '#0891b2',
+        ),
+        tool_grant_bubble_color_dark: stringConfig(
+            activity.config.bubbleColorDark,
+            '#0f172a',
+        ),
+        tool_grant_bubble_color_light: stringConfig(
+            activity.config.bubbleColorLight,
+            '#ffffff',
+        ),
+        tool_grant_bubble_opacity_dark: stringConfig(
+            activity.config.bubbleOpacityDark,
+            '92',
+        ),
+        tool_grant_bubble_opacity_light: stringConfig(
+            activity.config.bubbleOpacityLight,
+            '94',
+        ),
+        tool_grant_fade_duration_seconds: stringConfig(
+            activity.config.fadeDurationSeconds,
+            '0.4',
+        ),
+        tool_grant_slide_direction: stringConfig(
+            activity.config.slideDirection,
+            'left',
+        ),
+        tool_grant_slide_duration_seconds: stringConfig(
+            activity.config.slideDurationSeconds,
+            '0.6',
+        ),
+        tool_grant_text: stringConfig(activity.config.text),
+        tool_grant_tool_id: stringConfig(activity.config.toolId),
+        tool_grant_tool_x: stringConfig(activity.config.toolX, '50'),
+        tool_grant_tool_y: stringConfig(activity.config.toolY, '50'),
+        tool_grant_typing_speed: stringConfig(
+            activity.config.typingSpeed,
+            '24',
+        ),
         type: activity.type || fallbackType,
     };
-}
-
-function ActivityFormFields({
-    activityTypes,
-    errors,
-    form,
-    imageUploadErrors,
-    onChange,
-    onUploadPortalImage,
-    portalCandidates,
-    selectedType,
-    uploadingImageKey,
-}: {
-    activityTypes: ActivityTypeDefinition[];
-    errors: Record<string, string>;
-    form: ActivityForm;
-    imageUploadErrors: Record<string, string>;
-    onChange: Dispatch<SetStateAction<ActivityForm>>;
-    onUploadPortalImage: (
-        key: string,
-        file: File,
-        onUploaded: (url: string) => void,
-    ) => void;
-    portalCandidates: PortalCandidate[];
-    selectedType: ActivityTypeDefinition | undefined;
-    uploadingImageKey: string | null;
-}) {
-    return (
-        <div className="grid gap-4">
-            <SettingsAccordionSection
-                defaultOpen
-                description="Name the activity and choose the renderer that will play it."
-                title="Core activity"
-            >
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="activity-title">Title</Label>
-                        <Input
-                            id="activity-title"
-                            onChange={(event) =>
-                                onChange((current) => ({
-                                    ...current,
-                                    title: event.target.value,
-                                }))
-                            }
-                            value={form.title}
-                        />
-                        <InputError message={errors.title} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="activity-type">Type</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                onChange((current) => ({
-                                    ...current,
-                                    type: value,
-                                }))
-                            }
-                            value={form.type}
-                        >
-                            <SelectTrigger
-                                className="w-full"
-                                id="activity-type"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {activityTypes.map((type) => (
-                                    <SelectItem key={type.key} value={type.key}>
-                                        {type.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <InputError message={errors.type} />
-                    </div>
-                </div>
-                {selectedType ? (
-                    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {selectedType.description}
-                    </p>
-                ) : null}
-            </SettingsAccordionSection>
-
-            {form.type === 'portal' ? (
-                <>
-                    <SettingsAccordionSection
-                        defaultOpen
-                        description="Choose whether this portal starts travel or receives a traveller."
-                        title="Portal route"
-                    >
-                        <PortalModeField
-                            errors={errors}
-                            form={form}
-                            onChange={onChange}
-                        />
-                        <PortalTargetField
-                            candidates={portalCandidates}
-                            errors={errors}
-                            form={form}
-                            onChange={onChange}
-                        />
-                    </SettingsAccordionSection>
-
-                    <SettingsAccordionSection
-                        description="Theme-specific portal images, timing and motion."
-                        title="Portal visuals"
-                    >
-                        <PortalVisualFields
-                            errors={errors}
-                            form={form}
-                            imageUploadErrors={imageUploadErrors}
-                            onChange={onChange}
-                            onUpload={onUploadPortalImage}
-                            uploadingImageKey={uploadingImageKey}
-                        />
-                    </SettingsAccordionSection>
-                </>
-            ) : null}
-
-            <SettingsAccordionSection
-                description="Optional text and stable URL-friendly naming."
-                title="Advanced details"
-            >
-                <div className="grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="activity-slug">Slug</Label>
-                        <Input
-                            id="activity-slug"
-                            onChange={(event) =>
-                                onChange((current) => ({
-                                    ...current,
-                                    slug: event.target.value,
-                                }))
-                            }
-                            placeholder="Generated from the title if empty"
-                            value={form.slug}
-                        />
-                        <InputError message={errors.slug} />
-                    </div>
-
-                    <div className="grid gap-2">
-                        <Label htmlFor="activity-introduction">
-                            Introduction
-                        </Label>
-                        <textarea
-                            className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                            id="activity-introduction"
-                            onChange={(event) =>
-                                onChange((current) => ({
-                                    ...current,
-                                    introduction: event.target.value,
-                                }))
-                            }
-                            value={form.introduction}
-                        />
-                        <InputError message={errors.introduction} />
-                    </div>
-                </div>
-            </SettingsAccordionSection>
-        </div>
-    );
-}
-
-function PortalModeField({
-    errors,
-    form,
-    onChange,
-}: {
-    errors: Record<string, string>;
-    form: ActivityForm;
-    onChange: Dispatch<SetStateAction<ActivityForm>>;
-}) {
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor="portal-mode">Portal direction</Label>
-            <Select
-                onValueChange={(value) =>
-                    onChange((current) => ({
-                        ...current,
-                        portal_mode: value as 'input' | 'output',
-                        target_portal_activity_id:
-                            value === 'input'
-                                ? ''
-                                : current.target_portal_activity_id,
-                    }))
-                }
-                value={form.portal_mode}
-            >
-                <SelectTrigger className="w-full" id="portal-mode">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="input">Exit portal</SelectItem>
-                    <SelectItem value="output">Entry portal</SelectItem>
-                </SelectContent>
-            </Select>
-            <InputError message={errors.portal_mode} />
-        </div>
-    );
-}
-
-function PortalTargetField({
-    candidates,
-    errors,
-    form,
-    onChange,
-}: {
-    candidates: PortalCandidate[];
-    errors: Record<string, string>;
-    form: ActivityForm;
-    onChange: Dispatch<SetStateAction<ActivityForm>>;
-}) {
-    if (form.type !== 'portal' || form.portal_mode !== 'output') {
-        return null;
-    }
-
-    return (
-        <div className="grid gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-            <Label htmlFor="portal-target">Travel target</Label>
-            <Select
-                onValueChange={(value) =>
-                    onChange((current) => ({
-                        ...current,
-                        target_portal_activity_id:
-                            value === 'none' ? '' : value,
-                    }))
-                }
-                value={form.target_portal_activity_id || 'none'}
-            >
-                <SelectTrigger className="w-full" id="portal-target">
-                    <SelectValue placeholder="Choose exit portal activity" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="none">No target yet</SelectItem>
-                    {candidates.map((candidate) => (
-                        <SelectItem
-                            key={candidate.id}
-                            value={candidate.id.toString()}
-                        >
-                            {candidate.mapTitle} / {candidate.nodeTitle} /{' '}
-                            {candidate.title}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                Entry portals end this activity path and move learners to the
-                selected exit portal.
-            </p>
-            <InputError message={errors.target_portal_activity_id} />
-        </div>
-    );
-}
-
-function PortalVisualFields({
-    errors,
-    form,
-    imageUploadErrors,
-    onChange,
-    onUpload,
-    uploadingImageKey,
-}: {
-    errors: Record<string, string>;
-    form: ActivityForm;
-    imageUploadErrors: Record<string, string>;
-    onChange: Dispatch<SetStateAction<ActivityForm>>;
-    onUpload: (
-        key: string,
-        file: File,
-        onUploaded: (url: string) => void,
-    ) => void;
-    uploadingImageKey: string | null;
-}) {
-    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
-        onChange((current) => ({
-            ...current,
-            [field]: value,
-        }));
-
-    const imageFields: Array<{
-        description: string;
-        field: keyof ActivityForm;
-        label: string;
-    }> = [
-        {
-            description:
-                'Displayed behind the portal effect when the learner uses dark mode.',
-            field: 'portal_background_dark',
-            label: 'Dark background image',
-        },
-        {
-            description:
-                'Optional light-mode override. If empty, the dark image is reused.',
-            field: 'portal_background_light',
-            label: 'Light background image',
-        },
-        {
-            description:
-                'Displayed in front of the background and can rotate around its center.',
-            field: 'portal_foreground_dark',
-            label: 'Dark foreground image',
-        },
-        {
-            description:
-                'Optional light-mode override. If empty, the dark foreground is reused.',
-            field: 'portal_foreground_light',
-            label: 'Light foreground image',
-        },
-    ];
-
-    return (
-        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-            <div>
-                <p className="text-sm font-medium text-slate-950 dark:text-white">
-                    Portal visuals
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    These settings control the full-screen portal moment before
-                    the learner arrives at the linked node.
-                </p>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-                {imageFields.map((imageField) => (
-                    <ConfigImageInput
-                        description={imageField.description}
-                        error={
-                            errors[imageField.field] ??
-                            imageUploadErrors[imageField.field]
-                        }
-                        id={imageField.field}
-                        key={imageField.field}
-                        label={imageField.label}
-                        onChange={(value) =>
-                            updateField(imageField.field, value)
-                        }
-                        onUpload={(file) =>
-                            onUpload(String(imageField.field), file, (url) =>
-                                updateField(imageField.field, url),
-                            )
-                        }
-                        uploading={uploadingImageKey === imageField.field}
-                        value={String(form[imageField.field] ?? '')}
-                    />
-                ))}
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-                <div className="grid gap-2">
-                    <Label htmlFor="portal-foreground-x">Foreground X</Label>
-                    <Input
-                        id="portal-foreground-x"
-                        max="100"
-                        min="0"
-                        onChange={(event) =>
-                            updateField(
-                                'portal_foreground_x',
-                                event.currentTarget.value,
-                            )
-                        }
-                        step="1"
-                        type="number"
-                        value={form.portal_foreground_x}
-                    />
-                    <InputError message={errors.portal_foreground_x} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="portal-foreground-y">Foreground Y</Label>
-                    <Input
-                        id="portal-foreground-y"
-                        max="100"
-                        min="0"
-                        onChange={(event) =>
-                            updateField(
-                                'portal_foreground_y',
-                                event.currentTarget.value,
-                            )
-                        }
-                        step="1"
-                        type="number"
-                        value={form.portal_foreground_y}
-                    />
-                    <InputError message={errors.portal_foreground_y} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="portal-duration">Duration in seconds</Label>
-                    <Input
-                        id="portal-duration"
-                        max="60"
-                        min="0.5"
-                        onChange={(event) =>
-                            updateField(
-                                'portal_duration_seconds',
-                                event.currentTarget.value,
-                            )
-                        }
-                        step="0.5"
-                        type="number"
-                        value={form.portal_duration_seconds}
-                    />
-                    <InputError message={errors.portal_duration_seconds} />
-                </div>
-            </div>
-
-            <label className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
-                <Checkbox
-                    checked={form.portal_swirl_enabled}
-                    className="mt-0.5"
-                    onCheckedChange={(checked) =>
-                        updateField('portal_swirl_enabled', checked === true)
-                    }
-                />
-                <span>
-                    <span className="block text-sm font-medium text-slate-950 dark:text-white">
-                        Rotate foreground image
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        Disable this when the configured image should stay
-                        still.
-                    </span>
-                </span>
-            </label>
-            <InputError message={errors.portal_swirl_enabled} />
-        </div>
-    );
-}
-
-function ConfigImageInput({
-    description,
-    error,
-    id,
-    label,
-    onChange,
-    onUpload,
-    uploading,
-    value,
-}: {
-    description: string;
-    error?: string;
-    id: string;
-    label: string;
-    onChange: (value: string) => void;
-    onUpload: (file: File) => void;
-    uploading: boolean;
-    value: string;
-}) {
-    const uploadId = `${id}-upload`;
-
-    return (
-        <div className="grid gap-2 rounded-md bg-slate-50 p-3 dark:bg-white/5">
-            <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
-                    <Image className="size-4" />
-                </span>
-                <div>
-                    <Label htmlFor={id}>{label}</Label>
-                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {description}
-                    </p>
-                </div>
-            </div>
-
-            <Input
-                id={id}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder="/storage/learning/nodes/example.svg"
-                value={value}
-            />
-            <InputError message={error} />
-
-            {value ? (
-                <div className="flex items-center gap-3 rounded-md bg-white p-2 dark:bg-slate-950/70">
-                    <img
-                        alt=""
-                        className="size-12 rounded object-contain"
-                        src={value}
-                    />
-                    <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {value}
-                    </span>
-                </div>
-            ) : null}
-
-            <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" type="button" variant="secondary">
-                    <label htmlFor={uploadId}>
-                        <Upload className="size-4" />
-                        {uploading ? 'Uploading...' : 'Upload'}
-                    </label>
-                </Button>
-                <input
-                    accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
-                    className="sr-only"
-                    disabled={uploading}
-                    id={uploadId}
-                    onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-
-                        if (file) {
-                            onUpload(file);
-                        }
-
-                        event.currentTarget.value = '';
-                    }}
-                    type="file"
-                />
-                <Button asChild disabled={!value} size="sm" variant="ghost">
-                    <a download href={value || '#'} rel="noreferrer">
-                        <Download className="size-4" />
-                        Download
-                    </a>
-                </Button>
-            </div>
-        </div>
-    );
 }
 
 function RouteColorInput({
@@ -2014,6 +1473,15 @@ function stringConfig(value: unknown, fallback = ''): string {
     }
 
     return fallback;
+}
+
+function arrayConfig(value: unknown): Array<number | string> {
+    return Array.isArray(value)
+        ? value.filter(
+              (item): item is number | string =>
+                  typeof item === 'number' || typeof item === 'string',
+          )
+        : [];
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {
