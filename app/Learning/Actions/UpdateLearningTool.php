@@ -35,13 +35,20 @@ class UpdateLearningTool
         return [
             ...($tool->config ?? []),
             'animationDurationSeconds' => $this->numericOrNull($data['animation_duration_seconds'] ?? null),
+            'animationWidthPercent' => $this->numericOrNull($data['animation_width_percent'] ?? null),
             'animationStrategy' => 'uploaded-asset',
             'futureFrameSequenceSupport' => true,
+            'imageWidthPercent' => $this->numericOrDefault($data['image_width_percent'] ?? null, 16),
         ];
     }
 
     private function numericOrNull(mixed $value): ?float
     {
         return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function numericOrDefault(mixed $value, float $fallback): float
+    {
+        return is_numeric($value) ? (float) $value : $fallback;
     }
 }

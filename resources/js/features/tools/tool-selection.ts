@@ -26,6 +26,13 @@ export function addGrantedLearningTool(tool: LearningTool): void {
     listeners.forEach((listener) => listener());
 }
 
+export function learningToolIsAvailable(
+    tools: LearningTool[],
+    toolId: number,
+): boolean {
+    return tools.some((tool) => tool.id === toolId);
+}
+
 export function useAvailableLearningTools(
     baseTools: LearningTool[],
 ): LearningTool[] {

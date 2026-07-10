@@ -55,6 +55,8 @@ class AdminToolRules
             'animation_dark' => ['nullable', 'string', 'max:2048'],
             'animation_light' => ['nullable', 'string', 'max:2048'],
             'animation_duration_seconds' => ['nullable', 'numeric', 'min:0', 'max:600'],
+            'animation_width_percent' => ['nullable', 'numeric', 'min:1', 'max:100'],
+            'image_width_percent' => ['nullable', 'numeric', 'min:1', 'max:100'],
         ];
     }
 }

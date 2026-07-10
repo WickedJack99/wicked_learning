@@ -23,8 +23,10 @@ class AdminToolSerializer
             'animationDark' => $tool->animation_dark,
             'animationLight' => $tool->animation_light,
             'animationDurationSeconds' => $config['animationDurationSeconds'] ?? null,
+            'animationWidthPercent' => $config['animationWidthPercent'] ?? null,
             'config' => $config,
             'createdAt' => $tool->created_at?->format(DATE_ATOM),
+            'imageWidthPercent' => $config['imageWidthPercent'] ?? 16,
             'updatedAt' => $tool->updated_at?->format(DATE_ATOM),
         ];
     }

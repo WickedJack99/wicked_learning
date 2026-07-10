@@ -176,11 +176,11 @@
 
     @keyframes obstacle-resolved-zoom {
         50% {
-            transform: translate(-50%, -50%) scale(1.12);
+            transform: scale(1.12);
         }
 
         100% {
-            transform: translate(-50%, -50%) scale(0.92);
+            transform: scale(0.92);
             opacity: 0.72;
         }
     }
@@ -188,29 +188,29 @@
     @keyframes obstacle-resolved-shake {
         0%,
         100% {
-            transform: translate(-50%, -50%);
+            transform: translateX(0);
         }
 
         20% {
-            transform: translate(calc(-50% - 10px), -50%);
+            transform: translateX(-10px);
         }
 
         40% {
-            transform: translate(calc(-50% + 10px), -50%);
+            transform: translateX(10px);
         }
 
         60% {
-            transform: translate(calc(-50% - 6px), -50%);
+            transform: translateX(-6px);
         }
 
         80% {
-            transform: translate(calc(-50% + 6px), -50%);
+            transform: translateX(6px);
         }
     }
 
     @keyframes obstacle-resolved-rotate {
         100% {
-            transform: translate(-50%, -50%) rotate(360deg) scale(0.92);
+            transform: rotate(360deg) scale(0.92);
             opacity: 0.76;
         }
     }
@@ -260,6 +260,24 @@
 
     .platform-shell {
         cursor: var(--platform-cursor, default);
+    }
+
+    .platform-shell
+        :is(
+            .react-flow__pane,
+            .react-flow__node,
+            [data-draggable-surface='true']
+        ) {
+        cursor: var(--platform-cursor, default);
+    }
+
+    .platform-shell
+        :is(
+            .react-flow__pane.dragging,
+            .react-flow__node.dragging,
+            [data-dragging='true']
+        ) {
+        cursor: var(--platform-grab-cursor, grab);
     }
 
     .platform-shell

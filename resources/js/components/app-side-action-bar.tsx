@@ -1,13 +1,14 @@
 import { usePage } from '@inertiajs/react';
 import { Backpack, Hammer, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     selectLearningTool,
     useAvailableLearningTools,
     useSelectedLearningTool,
 } from '@/features/tools/tool-selection';
+import { toolImageUrl } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type { LearningTool } from '@/types';
@@ -79,11 +80,18 @@ export function AppSideActionBar() {
                 <ActionButton
                     isActive={overlay === 'tools' || Boolean(selectedTool)}
                     label="Open tools"
-                    onClick={() =>
+                    onClick={() => {
+                        if (selectedTool) {
+                            selectLearningTool(null);
+                            setOverlay(null);
+
+                            return;
+                        }
+
                         setOverlay((current) =>
                             current === 'tools' ? null : 'tools',
-                        )
-                    }
+                        );
+                    }}
                 >
                     {selectedTool ? (
                         <ToolImage
@@ -206,7 +214,9 @@ function ToolGrid({
                     )}
                     key={tool.id}
                     onClick={() => {
-                        selectLearningTool(tool);
+                        selectLearningTool(
+                            selectedTool?.id === tool.id ? null : tool,
+                        );
                         onClose();
                     }}
                     title={tool.title}
@@ -231,10 +241,7 @@ function ToolImage({
     mode: 'dark' | 'light';
     tool: LearningTool;
 }) {
-    const image =
-        mode === 'light'
-            ? tool.imageLight || tool.imageDark
-            : tool.imageDark || tool.imageLight;
+    const image = toolImageUrl(tool, mode);
 
     if (!image) {
         return <Hammer className={cn('text-current', className)} />;
@@ -248,20 +255,4 @@ function ToolImage({
             src={image}
         />
     );
-}
-
-export function equippedToolCursor(
-    tool: LearningTool | null,
-    mode: 'dark' | 'light',
-): CSSProperties {
-    if (!tool) {
-        return {};
-    }
-
-    const image =
-        mode === 'light'
-            ? tool.imageLight || tool.imageDark
-            : tool.imageDark || tool.imageLight;
-
-    return image ? { cursor: `url("${image}") 12 12, pointer` } : {};
 }

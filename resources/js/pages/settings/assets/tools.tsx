@@ -4,6 +4,7 @@ import {
     Download,
     Hammer,
     Image,
+    Images,
     LoaderCircle,
     Plus,
     Save,
@@ -11,21 +12,28 @@ import {
     Upload,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import type { CSSProperties, MouseEvent } from 'react';
 import InputError from '@/components/input-error';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToolCursorImage } from '@/features/tools/tool-cursor-overlay';
+import { toolAnimationWidthStyle } from '@/features/tools/tool-visuals';
+import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
 type AdminTool = {
     animationDark: string | null;
     animationDurationSeconds: number | null;
     animationLight: string | null;
+    animationWidthPercent: number | null;
     createdAt: string | null;
     description: string | null;
     id: number;
     imageDark: string | null;
     imageLight: string | null;
+    imageWidthPercent: number | null;
     slug: string;
     title: string;
     updatedAt: string | null;
@@ -35,9 +43,11 @@ type ToolForm = {
     animation_dark: string;
     animation_duration_seconds: string;
     animation_light: string;
+    animation_width_percent: string;
     description: string;
     image_dark: string;
     image_light: string;
+    image_width_percent: string;
     slug: string;
     title: string;
 };
@@ -46,9 +56,11 @@ const emptyForm: ToolForm = {
     animation_dark: '',
     animation_duration_seconds: '',
     animation_light: '',
+    animation_width_percent: '',
     description: '',
     image_dark: '',
     image_light: '',
+    image_width_percent: '16',
     slug: '',
     title: '',
 };
@@ -146,6 +158,7 @@ function ToolFormPanel({
     const [uploadErrors, setUploadErrors] = useState<Record<string, string>>(
         {},
     );
+    const { resolvedAppearance } = useAppearance();
     const updateField = (field: keyof ToolForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
     };
@@ -357,6 +370,40 @@ function ToolFormPanel({
                             type="number"
                             value={form.animation_duration_seconds}
                         />
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <TextField
+                                error={errors.image_width_percent}
+                                id="tool-image-width"
+                                label="Tool image width"
+                                onChange={(value) =>
+                                    updateField('image_width_percent', value)
+                                }
+                                placeholder="16"
+                                suffix="%"
+                                type="number"
+                                value={form.image_width_percent}
+                            />
+                            <TextField
+                                error={errors.animation_width_percent}
+                                id="tool-animation-width"
+                                label="Animation width"
+                                onChange={(value) =>
+                                    updateField(
+                                        'animation_width_percent',
+                                        value,
+                                    )
+                                }
+                                placeholder="Defaults to image width"
+                                suffix="%"
+                                type="number"
+                                value={form.animation_width_percent}
+                            />
+                        </div>
+
+                        <ToolCursorPreview
+                            form={form}
+                            mode={resolvedAppearance}
+                        />
                     </div>
                 </div>
 
@@ -370,6 +417,140 @@ function ToolFormPanel({
                         {isNew ? 'Create tool' : 'Save tool'}
                     </Button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+type PreviewAnimation = {
+    durationMs: number;
+    id: number;
+    imageUrl: string;
+    widthPercent: number;
+    x: number;
+    y: number;
+};
+
+type PreviewCursorPosition = {
+    x: number;
+    y: number;
+};
+
+function ToolCursorPreview({
+    form,
+    mode,
+}: {
+    form: ToolForm;
+    mode: 'dark' | 'light';
+}) {
+    const [animation, setAnimation] = useState<PreviewAnimation | null>(null);
+    const [cursorPosition, setCursorPosition] =
+        useState<PreviewCursorPosition | null>(null);
+    const cursorImage = themedAsset(form.image_dark, form.image_light, mode);
+    const animationImage =
+        themedAsset(form.animation_dark, form.animation_light, mode) ||
+        cursorImage;
+    const imageWidth = clamp(
+        numericValue(form.image_width_percent, 16),
+        1,
+        100,
+    );
+    const durationMs = Math.max(
+        0,
+        numericValue(
+            form.animation_duration_seconds,
+            animationImage ? 0.75 : 0,
+        ) * 1000,
+    );
+    const animationWidth = clamp(
+        numericValue(form.animation_width_percent, imageWidth),
+        1,
+        100,
+    );
+    const cursorStyle = cursorImage ? 'none' : 'var(--platform-action-cursor)';
+
+    const playAnimation = (event: MouseEvent<HTMLDivElement>) => {
+        if (!animationImage) {
+            return;
+        }
+
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const nextAnimation = {
+            durationMs,
+            id: Date.now(),
+            imageUrl: animationImage,
+            widthPercent: animationWidth,
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+        };
+
+        setAnimation(nextAnimation);
+        window.setTimeout(
+            () => setAnimation(null),
+            Math.max(nextAnimation.durationMs, 120),
+        );
+    };
+
+    return (
+        <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Tool cursor preview
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Move inside the area to preview the cursor. Click anywhere
+                    inside to replay the configured animation.
+                </p>
+            </div>
+            <div
+                className="relative grid min-h-44 overflow-hidden rounded-lg border border-dashed border-cyan-500/35 bg-white text-center text-sm text-slate-500 select-none dark:border-teal-200/25 dark:bg-slate-950/70 dark:text-slate-400"
+                onClick={playAnimation}
+                onPointerLeave={() => setCursorPosition(null)}
+                onPointerMove={(event) =>
+                    setCursorPosition({
+                        x: event.nativeEvent.offsetX,
+                        y: event.nativeEvent.offsetY,
+                    })
+                }
+                style={{ cursor: cursorStyle }}
+            >
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,145,178,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_55%)]" />
+                <div className="pointer-events-none relative z-10 m-auto grid gap-1">
+                    <span>
+                        {cursorImage
+                            ? 'Hover here with the tool cursor'
+                            : 'Add a tool image to preview the cursor'}
+                    </span>
+                    <span className="text-xs">
+                        {animationImage
+                            ? 'Click to play the animation'
+                            : 'Add an animation or image to test playback'}
+                    </span>
+                </div>
+                {animation ? (
+                    <img
+                        alt=""
+                        className="pointer-events-none absolute z-20 h-auto max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+                        draggable={false}
+                        src={cacheBustedUrl(animation.imageUrl, animation.id)}
+                        style={
+                            {
+                                left: animation.x,
+                                top: animation.y,
+                                width: toolAnimationWidthStyle(
+                                    animation.widthPercent,
+                                ),
+                            } satisfies CSSProperties
+                        }
+                    />
+                ) : null}
+                {cursorImage && cursorPosition && !animation ? (
+                    <ToolCursorImage
+                        imageUrl={cursorImage}
+                        position={cursorPosition}
+                        widthPercent={imageWidth}
+                    />
+                ) : null}
             </div>
         </div>
     );
@@ -490,6 +671,7 @@ function TextField({
     label,
     onChange,
     placeholder,
+    suffix,
     type = 'text',
     value,
 }: {
@@ -498,21 +680,29 @@ function TextField({
     label: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    suffix?: string;
     type?: string;
     value: string;
 }) {
     return (
         <div className="grid gap-2">
             <Label htmlFor={id}>{label}</Label>
-            <Input
-                id={id}
-                min={type === 'number' ? 0 : undefined}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder={placeholder}
-                step={type === 'number' ? 0.1 : undefined}
-                type={type}
-                value={value}
-            />
+            <div className="grid grid-cols-[1fr_auto] items-center gap-2">
+                <Input
+                    id={id}
+                    min={type === 'number' ? 0 : undefined}
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    placeholder={placeholder}
+                    step={type === 'number' ? 0.1 : undefined}
+                    type={type}
+                    value={value}
+                />
+                {suffix ? (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {suffix}
+                    </span>
+                ) : null}
+            </div>
             <InputError message={error} />
         </div>
     );
@@ -535,6 +725,8 @@ function MediaField({
     uploading: boolean;
     value: string;
 }) {
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+
     return (
         <div className="grid gap-2">
             <Label htmlFor={field}>{label}</Label>
@@ -564,9 +756,19 @@ function MediaField({
 
                             event.currentTarget.value = '';
                         }}
+                        accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
                         type="file"
                     />
                 </label>
+                <Button
+                    aria-label={`Select existing ${label}`}
+                    onClick={() => setIsPickerOpen(true)}
+                    size="icon"
+                    type="button"
+                    variant="secondary"
+                >
+                    <Images className="size-4" />
+                </Button>
                 {value ? (
                     <Button asChild size="icon" variant="secondary">
                         <a download href={value}>
@@ -584,6 +786,20 @@ function MediaField({
                 </div>
             ) : null}
             <InputError message={error} />
+            {isPickerOpen ? (
+                <ReusableImagePicker
+                    currentValue={value}
+                    onClear={() => {
+                        onChange(field, '');
+                        setIsPickerOpen(false);
+                    }}
+                    onClose={() => setIsPickerOpen(false)}
+                    onSelect={(url) => {
+                        onChange(field, url);
+                        setIsPickerOpen(false);
+                    }}
+                />
+            ) : null}
         </div>
     );
 }
@@ -596,9 +812,17 @@ function formFromTool(tool: AdminTool): ToolForm {
                 ? ''
                 : String(tool.animationDurationSeconds),
         animation_light: tool.animationLight ?? '',
+        animation_width_percent:
+            tool.animationWidthPercent === null
+                ? ''
+                : String(tool.animationWidthPercent),
         description: tool.description ?? '',
         image_dark: tool.imageDark ?? '',
         image_light: tool.imageLight ?? '',
+        image_width_percent:
+            tool.imageWidthPercent === null
+                ? '16'
+                : String(tool.imageWidthPercent),
         slug: tool.slug,
         title: tool.title,
     };
@@ -621,4 +845,32 @@ function formatDate(value: string | null): string {
         dateStyle: 'medium',
         timeStyle: 'short',
     }).format(new Date(value));
+}
+
+function themedAsset(
+    darkAsset: string,
+    lightAsset: string,
+    mode: 'dark' | 'light',
+): string {
+    if (mode === 'light') {
+        return lightAsset || darkAsset;
+    }
+
+    return darkAsset || lightAsset;
+}
+
+function numericValue(value: string, fallback: number): number {
+    const numeric = Number(value);
+
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function cacheBustedUrl(url: string, id: number): string {
+    const separator = url.includes('?') ? '&' : '?';
+
+    return `${url}${separator}tool_preview=${id}`;
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
 }

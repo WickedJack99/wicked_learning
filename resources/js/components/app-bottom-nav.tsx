@@ -10,7 +10,6 @@ import type { ActiveActivity } from '@/features/world/active-activity';
 import { worldHref } from '@/features/world/types';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
-import { platformActionCursor, platformCursor } from '@/theme/cursors';
 
 type NavItem = {
     active: boolean;
@@ -168,7 +167,7 @@ export function AppBottomNav() {
             aria-label="Primary"
             className="fixed bottom-4 left-1/2 z-40 h-14 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/88 p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md transition-[width,background-color,border-color,box-shadow] duration-1000 ease-out dark:border-white/12 dark:bg-slate-950/82 dark:shadow-black/35"
             style={{
-                cursor: platformCursor,
+                cursor: 'var(--platform-cursor)',
                 width: navWidth,
             }}
         >
@@ -231,7 +230,7 @@ function FloatingNavLink({
             )}
             href={href}
             onClick={onClick}
-            style={{ cursor: platformActionCursor }}
+            style={{ cursor: 'var(--platform-action-cursor)' }}
         >
             {children}
         </Link>
