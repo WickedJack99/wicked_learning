@@ -4,7 +4,7 @@ An open-source experiment in building an explorable learning environment around 
 
 Learning Worlds is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, nodes, activities, media and public text while the core learning model stays reusable.
 
-The concept direction comes from WickedJack99. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
+The concept direction comes from the project creator. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
 
 ## Why this exists
 
@@ -117,6 +117,15 @@ The repository also contains a Composer shortcut:
 composer run ci:check
 ```
 
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 only.
+See [LICENSE](LICENSE) for the full license text and [NOTICE](NOTICE) for the
+generic project notice.
+
+Public network deployments should provide a visible Source link or equivalent
+route to the corresponding source code for the deployed version.
+
 ## Project structure
 
 Important areas:
@@ -156,6 +165,10 @@ Expect database structures, UI flows, activity types and admin tooling to change
 ## Contributions
 
 Ideas, criticism, research references, accessibility feedback and design critique are welcome. The project is especially interested in approaches that make learning feel more autonomous, clear, playful and humane without falling back to extrinsic reward loops.
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening larger changes.
+Community expectations are described in
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Motivation
 

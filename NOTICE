@@ -1,0 +1,20 @@
+This project
+A configurable platform for explorable, domain-agnostic learning environments.
+
+Copyright (C) 2026 project contributors
+
+This project is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3.
+
+This project is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along
+with this project. If not, see <https://www.gnu.org/licenses/>.
+
+Deployments that make this software available over a network should provide a
+clear Source link or equivalent route to the corresponding source code for the
+deployed version. This project includes a public Source page for that purpose;
+configure it with a link to the source code of the deployed version.
