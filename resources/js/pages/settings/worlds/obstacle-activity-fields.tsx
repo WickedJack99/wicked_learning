@@ -12,6 +12,7 @@ import {
 import {
     ConfigColorField,
     ConfigImageInput,
+    MirrorImageCheckbox,
     NumberField,
 } from './activity-config-fields';
 import {
@@ -51,7 +52,7 @@ export function ObstacleFlowFields({
     onChange,
     tools,
 }: Pick<ObstacleFieldProps, 'errors' | 'form' | 'onChange' | 'tools'>) {
-    const updateField = (field: keyof ActivityForm, value: string) =>
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
         onChange((current) => ({
             ...current,
             [field]: value,
@@ -182,7 +183,7 @@ export function ObstacleVisualFields({
 }: Omit<ObstacleFieldProps, 'tools'>) {
     const { resolvedAppearance } = useAppearance();
     const isLight = resolvedAppearance === 'light';
-    const updateField = (field: keyof ActivityForm, value: string) =>
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
         onChange((current) => ({
             ...current,
             [field]: value,
@@ -197,12 +198,16 @@ export function ObstacleVisualFields({
         form.obstacle_image_light,
         resolvedAppearance,
     );
+    const explicitClearedBackgroundImage = themedPreviewAsset(
+        form.obstacle_revisit_background_dark,
+        form.obstacle_revisit_background_light,
+        resolvedAppearance,
+    );
     const clearedBackgroundImage =
-        themedPreviewAsset(
-            form.obstacle_revisit_background_dark,
-            form.obstacle_revisit_background_light,
-            resolvedAppearance,
-        ) || backgroundImage;
+        explicitClearedBackgroundImage || backgroundImage;
+    const clearedBackgroundMirrored = explicitClearedBackgroundImage
+        ? form.obstacle_revisit_background_mirrored
+        : form.obstacle_background_mirrored;
     const clearedObstacleImage = themedPreviewAsset(
         form.obstacle_revisit_image_dark,
         form.obstacle_revisit_image_light,
@@ -279,12 +284,14 @@ export function ObstacleVisualFields({
             <div className="grid gap-4 lg:grid-cols-2">
                 <ActivityScenePreview
                     backgroundImage={backgroundImage}
+                    backgroundMirrored={form.obstacle_background_mirrored}
                     description="Uses the currently selected appearance mode."
                     title="Blocking preview"
                 >
                     <ScenePreviewImage
                         imageUrl={obstacleImage}
                         label="Obstacle image"
+                        mirrored={form.obstacle_image_mirrored}
                         width={form.obstacle_width}
                         x={form.obstacle_x}
                         y={form.obstacle_y}
@@ -302,12 +309,14 @@ export function ObstacleVisualFields({
 
                 <ActivityScenePreview
                     backgroundImage={clearedBackgroundImage}
+                    backgroundMirrored={clearedBackgroundMirrored}
                     description="Shows the configured cleared image and success text."
                     title="Cleared preview"
                 >
                     <ScenePreviewImage
                         imageUrl={clearedObstacleImage}
                         label="Cleared image"
+                        mirrored={form.obstacle_revisit_image_mirrored}
                         width={form.obstacle_width}
                         x={form.obstacle_x}
                         y={form.obstacle_y}
@@ -409,6 +418,23 @@ export function ObstacleVisualFields({
                 ))}
             </div>
 
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.obstacle_background_mirrored}
+                    label="Mirror background horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_background_mirrored', checked)
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.obstacle_image_mirrored}
+                    label="Mirror obstacle image horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_image_mirrored', checked)
+                    }
+                />
+            </div>
+
             <div className="grid gap-3 md:grid-cols-3">
                 <NumberField
                     label="Obstacle X position"
@@ -459,6 +485,26 @@ export function ObstacleVisualFields({
                         value={String(form[imageField.field] ?? '')}
                     />
                 ))}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.obstacle_revisit_background_mirrored}
+                    label="Mirror cleared background horizontally"
+                    onChange={(checked) =>
+                        updateField(
+                            'obstacle_revisit_background_mirrored',
+                            checked,
+                        )
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.obstacle_revisit_image_mirrored}
+                    label="Mirror cleared image horizontally"
+                    onChange={(checked) =>
+                        updateField('obstacle_revisit_image_mirrored', checked)
+                    }
+                />
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">

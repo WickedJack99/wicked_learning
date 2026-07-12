@@ -16,6 +16,7 @@ class ItemGrantActivityConfiguration
             ...$existing,
             'backgroundDark' => $data['item_grant_background_dark'] ?? $existing['backgroundDark'] ?? '',
             'backgroundLight' => $data['item_grant_background_light'] ?? $existing['backgroundLight'] ?? '',
+            'backgroundMirrored' => $this->boolean($data, 'item_grant_background_mirrored', $existing['backgroundMirrored'] ?? false),
             'items' => $this->itemsFrom($data['item_grant_items'] ?? $existing['items'] ?? []),
             'probabilityPercent' => $this->probability($data['item_grant_probability_percent'] ?? $existing['probabilityPercent'] ?? 100),
         ];
@@ -34,6 +35,7 @@ class ItemGrantActivityConfiguration
         return array_intersect_key($data, array_flip([
             'item_grant_background_dark',
             'item_grant_background_light',
+            'item_grant_background_mirrored',
             'item_grant_items',
             'item_grant_probability_percent',
         ])) !== [];
@@ -47,6 +49,7 @@ class ItemGrantActivityConfiguration
         return [
             'backgroundDark' => '',
             'backgroundLight' => '',
+            'backgroundMirrored' => false,
             'items' => [],
             'probabilityPercent' => 100.0,
         ];
@@ -73,5 +76,17 @@ class ItemGrantActivityConfiguration
         $probability = is_numeric($value) ? (float) $value : 100.0;
 
         return max(0.01, min(100.0, $probability));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function boolean(array $data, string $key, mixed $fallback): bool
+    {
+        if (! array_key_exists($key, $data)) {
+            return filter_var($fallback, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return filter_var($data[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 }

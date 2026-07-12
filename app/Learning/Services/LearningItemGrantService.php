@@ -15,11 +15,11 @@ class LearningItemGrantService
     /**
      * @return array<string, mixed>
      */
-    public function rollAndGrant(User $user, LearningActivity $activity): array
+    public function rollAndGrant(User $user, LearningActivity $activity, ?string $playRunId = null): array
     {
         abort_unless($activity->type === 'item_grant', 404);
 
-        return DB::transaction(function () use ($user, $activity): array {
+        return DB::transaction(function () use ($user, $activity, $playRunId): array {
             $progress = LearnerActivityProgress::query()
                 ->where('user_id', $user->id)
                 ->where('learning_activity_id', $activity->id)
@@ -40,9 +40,21 @@ class LearningItemGrantService
             }
 
             $metadata = is_array($progress->metadata) ? $progress->metadata : [];
-            $storedRoll = is_array($metadata['itemGrant'] ?? null) ? $metadata['itemGrant'] : null;
+            $storedRoll = $this->storedRoll($metadata, $playRunId);
 
             if ($storedRoll) {
+                if (! $playRunId && $this->shouldApplyStoredRoll($storedRoll)) {
+                    $config = is_array($activity->config) ? $activity->config : [];
+                    $items = $this->configuredItems($config);
+
+                    $this->inventory->grantMissingItems($user, $items);
+
+                    $storedRoll['inventoryAppliedAt'] = Carbon::now()->toIso8601String();
+                    $metadata['itemGrant'] = $storedRoll;
+                    $progress->metadata = $metadata;
+                    $progress->save();
+                }
+
                 return $storedRoll;
             }
 
@@ -58,14 +70,16 @@ class LearningItemGrantService
                 'roll' => $roll,
                 'chanceBasisPoints' => $chance,
                 'success' => $success,
+                'playRunId' => $playRunId,
                 'items' => array_map(fn (array $item): array => [
                     'itemId' => $item['itemId'],
                     'quantity' => $item['quantity'],
                 ], $items),
                 'grantedItemIds' => array_map(fn ($item): int => (int) $item->id, $granted),
+                'inventoryAppliedAt' => $success ? Carbon::now()->toIso8601String() : null,
             ];
 
-            $metadata['itemGrant'] = $result;
+            $metadata = $this->storeRoll($metadata, $result, $playRunId);
             $progress->metadata = $metadata;
             $progress->status = 'completed';
             $progress->reached_at ??= now();
@@ -99,5 +113,50 @@ class LearningItemGrantService
         $percent = max(0.01, min(100.0, $percent));
 
         return (int) round($percent * 100);
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array<string, mixed>|null
+     */
+    private function storedRoll(array $metadata, ?string $playRunId): ?array
+    {
+        if ($playRunId) {
+            $runs = is_array($metadata['itemGrantRuns'] ?? null) ? $metadata['itemGrantRuns'] : [];
+            $roll = $runs[$playRunId] ?? null;
+
+            return is_array($roll) ? $roll : null;
+        }
+
+        $roll = $metadata['itemGrant'] ?? null;
+
+        return is_array($roll) ? $roll : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function storeRoll(array $metadata, array $result, ?string $playRunId): array
+    {
+        $metadata['itemGrant'] = $result;
+
+        if ($playRunId) {
+            $runs = is_array($metadata['itemGrantRuns'] ?? null) ? $metadata['itemGrantRuns'] : [];
+            $runs[$playRunId] = $result;
+            $metadata['itemGrantRuns'] = array_slice($runs, -40, null, true);
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<string, mixed>  $storedRoll
+     */
+    private function shouldApplyStoredRoll(array $storedRoll): bool
+    {
+        return ($storedRoll['success'] ?? false) === true
+            && ! is_string($storedRoll['inventoryAppliedAt'] ?? null);
     }
 }

@@ -1,8 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ItemInventoryPanel } from '@/features/items/item-inventory-panel';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPlayer } from '@/features/world/activity-panel';
 import { postJson } from '@/features/world/api';
@@ -17,24 +16,27 @@ import type {
 
 type NodePlayProps = {
     node: LearningNode;
+    playActivityId: number | null;
+    playRouteId: number | null;
+    playRunId: string | null;
+    playState: Record<string, unknown>;
     progress: LearningProgress;
 };
 
-export default function NodePlay({ node, progress }: NodePlayProps) {
-    const { props, url } = usePage();
+export default function NodePlay({
+    node,
+    playActivityId,
+    playRouteId,
+    playRunId,
+    playState: initialPlayState,
+    progress,
+}: NodePlayProps) {
+    const { props } = usePage();
     const isAuthenticated = Boolean(props.auth.user);
     const { resolvedAppearance } = useAppearance();
-    const urlActivityId = useMemo(() => {
-        const raw = new URL(url, 'http://learning.local').searchParams.get(
-            'activity',
-        );
-        const parsed = raw ? Number(raw) : null;
-
-        return parsed && Number.isFinite(parsed) ? parsed : null;
-    }, [url]);
     const initialActivity = useMemo(
-        () => getActivityById(node, urlActivityId) ?? getStartActivity(node),
-        [node, urlActivityId],
+        () => getActivityById(node, playActivityId) ?? getStartActivity(node),
+        [node, playActivityId],
     );
     const [activeActivityId, setActiveActivityId] = useState<number | null>(
         initialActivity?.id ?? null,
@@ -42,6 +44,9 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
     const [activityProgress, setActivityProgress] = useState(
         progress.activities,
+    );
+    const [activityPlayState, setActivityPlayState] = useState(
+        initialPlayState,
     );
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
     const activeActivity = useMemo(
@@ -54,14 +59,19 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
             return;
         }
 
-        persistActiveActivity(node, activeActivity);
+        persistActiveActivity(node, activeActivity, { useCleanPlayHref: true });
+        replacePlayUrl(node.id);
 
         if (isAuthenticated) {
-            void postJson(`/learning/activities/${activeActivity.id}/progress`, {
-                status: 'reached',
-            }).catch(() => undefined);
+            void postJson(
+                `/learning/activities/${activeActivity.id}/progress`,
+                {
+                    play_run_id: playRunId,
+                    status: 'reached',
+                },
+            ).catch(() => undefined);
         }
-    }, [activeActivity, isAuthenticated, node]);
+    }, [activeActivity, isAuthenticated, node, playRunId]);
 
     const returnToMap = useCallback(() => {
         router.visit(
@@ -69,36 +79,63 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
         );
     }, [node.mapSlug, node.slug]);
 
-    const markCompleted = useCallback(async (activity: LearningActivity) => {
-        if (!isAuthenticated) {
+    const markCompleted = useCallback(
+        async (activity: LearningActivity) => {
+            if (!isAuthenticated) {
+                setActivityProgress((current) => ({
+                    ...current,
+                    [activity.id]: {
+                        completedAt: new Date().toISOString(),
+                        status: 'completed',
+                    },
+                }));
+                setActivityPlayState((current) =>
+                    withoutActivityPlayState(current, activity.id),
+                );
+
+                return;
+            }
+
+            const response = await postJson<{
+                progress: LearningProgress['activities'][number] & {
+                    activityId: number;
+                };
+            }>(`/learning/activities/${activity.id}/progress`, {
+                play_run_id: playRunId,
+                status: 'completed',
+            });
+
             setActivityProgress((current) => ({
                 ...current,
-                [activity.id]: {
-                    completedAt: new Date().toISOString(),
-                    status: 'completed',
+                [response.progress.activityId]: {
+                    completedAt: response.progress.completedAt,
+                    metadata: response.progress.metadata,
+                    status: response.progress.status,
                 },
             }));
+            setActivityPlayState((current) =>
+                withoutActivityPlayState(current, activity.id),
+            );
+        },
+        [isAuthenticated, playRunId],
+    );
 
-            return;
-        }
+    const markReached = useCallback(
+        (activity: LearningActivity) => {
+            persistActiveActivity(node, activity, { useCleanPlayHref: true });
+            replacePlayUrl(node.id);
 
-        const response = await postJson<{
-            progress: LearningProgress['activities'][number] & {
-                activityId: number;
-            };
-        }>(`/learning/activities/${activity.id}/progress`, {
-            status: 'completed',
-        });
+            if (!isAuthenticated) {
+                return;
+            }
 
-        setActivityProgress((current) => ({
-            ...current,
-            [response.progress.activityId]: {
-                completedAt: response.progress.completedAt,
-                metadata: response.progress.metadata,
-                status: response.progress.status,
-            },
-        }));
-    }, [isAuthenticated]);
+            void postJson(`/learning/activities/${activity.id}/progress`, {
+                play_run_id: playRunId,
+                status: 'reached',
+            }).catch(() => undefined);
+        },
+        [isAuthenticated, node, playRunId],
+    );
 
     const moveToActivity = useCallback(
         (activityId: number | null) => {
@@ -110,10 +147,31 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                 return;
             }
 
+            const nextActivity = getActivityById(node, activityId);
+
+            if (nextActivity) {
+                markReached(nextActivity);
+            }
+
             setActiveActivityId(activityId);
         },
-        [returnToMap],
+        [markReached, node, returnToMap],
     );
+
+    const restartFromBeginning = useCallback(async () => {
+        if (!playRouteId) {
+            setActiveActivityId(getStartActivity(node)?.id ?? null);
+
+            return;
+        }
+
+        const response = await postJson<{ url: string }>(
+            `/learning/activity-starts/${playRouteId}/restart`,
+            {},
+        );
+
+        router.visit(response.url);
+    }, [node, playRouteId]);
 
     const updateAnswer = useCallback(
         (questionId: number, answer: QuestionAnswerProgress) => {
@@ -162,6 +220,14 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                         <ArrowLeft className="size-4" />
                         Map
                     </Button>
+                    <Button
+                        onClick={() => void restartFromBeginning()}
+                        type="button"
+                        variant="ghost"
+                    >
+                        <RotateCcw className="size-4" />
+                        From beginning
+                    </Button>
                     <div className="min-w-0 text-right">
                         <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                             {node.mapTitle}
@@ -172,7 +238,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                     </div>
                 </header>
 
-                <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-28">
+                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-4 pt-4 pb-24 md:w-[75vw] md:px-6 md:pt-6 md:pb-28">
                     {travelBlockedMessage ? (
                         <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
                             {travelBlockedMessage}
@@ -188,6 +254,8 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                             onAnswer={updateAnswer}
                             onComplete={markCompleted}
                             onMoveToActivity={moveToActivity}
+                            playState={activityPlayState}
+                            playRunId={playRunId}
                             onTravel={travel}
                         />
                     ) : (
@@ -211,9 +279,32 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                         </div>
                     )}
                 </section>
-                <ItemInventoryPanel />
             </main>
         </>
+    );
+}
+
+function withoutActivityPlayState(
+    playState: Record<string, unknown>,
+    activityId: number,
+): Record<string, unknown> {
+    const key = activityId.toString();
+
+    if (!(key in playState)) {
+        return playState;
+    }
+
+    const nextPlayState = { ...playState };
+    delete nextPlayState[key];
+
+    return nextPlayState;
+}
+
+function replacePlayUrl(nodeId: number) {
+    window.history.replaceState(
+        window.history.state,
+        '',
+        `/learning/nodes/${nodeId}/play`,
     );
 }
 

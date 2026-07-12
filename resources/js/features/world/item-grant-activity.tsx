@@ -1,4 +1,5 @@
 import { ArrowRight, Package } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { setLearningItems } from '@/features/items/item-inventory';
@@ -10,7 +11,7 @@ import type {
     LearningActivity,
     LearningItem,
 } from '@/types';
-import { stringConfig, themedConfig } from './activity-utils';
+import { booleanConfig, stringConfig, themedConfig } from './activity-utils';
 import { postJson } from './api';
 
 type ItemGrantResult = {
@@ -28,11 +29,13 @@ export function ItemGrantActivity({
     activity,
     onComplete,
     onMoveToActivity,
+    playRunId,
     transition,
 }: {
     activity: LearningActivity;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    playRunId: string | null;
     transition: ActivityTransition | null;
 }) {
     const [result, setResult] = useState<ItemGrantResult | null>(null);
@@ -50,7 +53,9 @@ export function ItemGrantActivity({
 
         postJson<{ inventory: LearningItem[]; result: ItemGrantResult }>(
             `/learning/activities/${activity.id}/grant-items`,
-            {},
+            {
+                play_run_id: playRunId,
+            },
         )
             .then(async (response) => {
                 setLearningItems(response.inventory);
@@ -66,7 +71,7 @@ export function ItemGrantActivity({
                 setError('The item grant could not be resolved right now.');
             })
             .finally(() => setIsLoading(false));
-    }, [activity, onComplete, onMoveToActivity, transition]);
+    }, [activity, onComplete, onMoveToActivity, playRunId, transition]);
 
     if (isLoading) {
         return (
@@ -90,6 +95,10 @@ export function ItemGrantActivity({
         activity.config.backgroundLight,
         resolvedAppearance,
     );
+    const backgroundMirrored = booleanConfig(
+        activity.config.backgroundMirrored,
+        false,
+    );
 
     return (
         <div className="relative isolate grid min-h-[28rem] flex-1 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-white/10 dark:bg-white/6">
@@ -99,6 +108,11 @@ export function ItemGrantActivity({
                     className="absolute inset-0 size-full object-cover"
                     draggable={false}
                     src={backgroundImage}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : (
                 <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(8,145,178,0.14),rgba(255,255,255,0.74)),radial-gradient(circle_at_70%_30%,rgba(45,212,191,0.18),transparent_34%)] dark:bg-[linear-gradient(135deg,rgba(45,212,191,0.10),rgba(15,23,42,0.86)),radial-gradient(circle_at_70%_30%,rgba(45,212,191,0.14),transparent_34%)]" />
@@ -109,19 +123,13 @@ export function ItemGrantActivity({
                 <ItemGrantFlightItems items={grantedItems} />
             ) : null}
 
-            <div className="relative z-10 grid max-w-xl gap-5">
-                <div className="mx-auto grid size-14 place-items-center rounded-xl bg-cyan-100 text-cyan-700 shadow-sm dark:bg-teal-300/14 dark:text-teal-200">
-                    <Package className="size-6" />
-                </div>
-                <h4 className="mt-4 text-lg font-semibold">
-                    Items added to inventory
-                </h4>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    The configured consumables are now available from the
-                    inventory rail.
-                </p>
+            <div className="relative z-10 grid max-w-xl place-items-center gap-5">
+                <h4 className="text-lg font-semibold">Item received:</h4>
                 {grantedItems.length > 0 ? (
-                    <div className="mx-auto grid max-w-sm grid-cols-3 gap-3">
+                    <div
+                        className="mx-auto inline-grid justify-center gap-3"
+                        style={itemGrantGridStyle(grantedItems.length)}
+                    >
                         {grantedItems.map((display) => (
                             <GrantedItemTile
                                 display={display}
@@ -145,6 +153,14 @@ export function ItemGrantActivity({
             </div>
         </div>
     );
+}
+
+function itemGrantGridStyle(itemCount: number): CSSProperties {
+    const columns = Math.max(1, Math.min(itemCount, 3));
+
+    return {
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 5rem))`,
+    };
 }
 
 function GrantedItemTile({ display }: { display: GrantedItemDisplay }) {
@@ -174,12 +190,12 @@ function ItemGrantFlightItems({ items }: { items: GrantedItemDisplay[] }) {
             {items.slice(0, 9).map((display, index) => (
                 <div
                     className={cn(
-                        'animate-item-grant-fly absolute left-1/2 top-1/2 grid size-16 place-items-center rounded-xl border border-cyan-500/30 bg-white/90 p-2 shadow-lg dark:border-teal-200/30 dark:bg-slate-950/90',
+                        'animate-item-grant-fly absolute top-1/2 left-1/2 grid size-16 place-items-center rounded-xl border border-cyan-500/30 bg-white/90 p-2 shadow-lg dark:border-teal-200/30 dark:bg-slate-950/90',
                     )}
                     key={display.item.id}
                     style={{
                         animationDelay: `${index * 120}ms`,
-                        marginLeft: `${(index % 3 - 1) * 74}px`,
+                        marginLeft: `${((index % 3) - 1) * 74}px`,
                         marginTop: `${(Math.floor(index / 3) - 1) * 74}px`,
                     }}
                 >
@@ -247,7 +263,8 @@ function configuredItemConfig(
 
     const rawItemId = (value as { itemId?: unknown }).itemId;
     const rawQuantity = (value as { quantity?: unknown }).quantity;
-    const itemId = typeof rawItemId === 'number' ? rawItemId : Number(rawItemId);
+    const itemId =
+        typeof rawItemId === 'number' ? rawItemId : Number(rawItemId);
     const quantity =
         typeof rawQuantity === 'number' ? rawQuantity : Number(rawQuantity);
 

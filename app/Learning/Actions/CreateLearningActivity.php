@@ -2,9 +2,9 @@
 
 namespace App\Learning\Actions;
 
-use App\Learning\Services\MarkdownActivityConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
+use App\Learning\Services\MarkdownActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;

@@ -1,4 +1,5 @@
 import { Package, Plus, Trash2 } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import type {
 } from './edit-node-activity-types';
 import {
     ConfigImageInput,
+    MirrorImageCheckbox,
     NumberField,
 } from './activity-config-fields';
 import {
@@ -41,9 +43,8 @@ export function ItemGrantFlowFields({
     items,
     onChange,
 }: ItemFieldProps) {
-    const updateRows = (
-        rows: ActivityForm['item_grant_items'],
-    ) => onChange((current) => ({ ...current, item_grant_items: rows }));
+    const updateRows = (rows: ActivityForm['item_grant_items']) =>
+        onChange((current) => ({ ...current, item_grant_items: rows }));
 
     return (
         <div className="grid gap-4">
@@ -143,7 +144,11 @@ export function ItemGrantVisualFields({
     uploadingImageKey,
 }: ItemFieldProps & {
     imageUploadErrors: Record<string, string>;
-    onUpload: (key: string, file: File, onUploaded: (url: string) => void) => void;
+    onUpload: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
     uploadingImageKey: string | null;
 }) {
     const { resolvedAppearance } = useAppearance();
@@ -159,11 +164,17 @@ export function ItemGrantVisualFields({
         <div className="grid gap-5">
             <ActivityScenePreview
                 backgroundImage={backgroundImage}
+                backgroundMirrored={form.item_grant_background_mirrored}
                 description="Shows the grant scene and the configured item layout."
                 title="Item grant preview"
             >
                 <div className="absolute inset-0 z-10 grid place-items-center p-6">
-                    <div className="grid max-w-64 grid-cols-3 gap-3">
+                    <div
+                        className="inline-grid justify-center gap-3"
+                        style={itemGrantGridStyle(
+                            form.item_grant_items.length,
+                        )}
+                    >
                         {form.item_grant_items.map((row, index) => {
                             const item = itemForSlot(items, row.itemId);
 
@@ -208,6 +219,14 @@ export function ItemGrantVisualFields({
                     />
                 ))}
             </div>
+
+            <MirrorImageCheckbox
+                checked={form.item_grant_background_mirrored}
+                label="Mirror background horizontally"
+                onChange={(checked) =>
+                    updateField('item_grant_background_mirrored', checked)
+                }
+            />
         </div>
     );
 }
@@ -218,9 +237,8 @@ export function ItemObstacleFlowFields({
     items,
     onChange,
 }: ItemFieldProps) {
-    const updateSlots = (
-        slots: ActivityForm['item_obstacle_slots'],
-    ) => onChange((current) => ({ ...current, item_obstacle_slots: slots }));
+    const updateSlots = (slots: ActivityForm['item_obstacle_slots']) =>
+        onChange((current) => ({ ...current, item_obstacle_slots: slots }));
 
     return (
         <div className="grid gap-4">
@@ -263,9 +281,7 @@ export function ItemObstacleFlowFields({
                                 max={100}
                                 min={0}
                                 onChange={(event) => {
-                                    const next = [
-                                        ...form.item_obstacle_slots,
-                                    ];
+                                    const next = [...form.item_obstacle_slots];
                                     next[index] = {
                                         ...slot,
                                         [field]: event.currentTarget.value,
@@ -331,7 +347,11 @@ export function ItemObstacleVisualFields({
     imageUploadErrors: Record<string, string>;
     items: EditableItem[];
     onChange: Dispatch<SetStateAction<ActivityForm>>;
-    onUpload: (key: string, file: File, onUploaded: (url: string) => void) => void;
+    onUpload: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
     sounds: EditableSound[];
     uploadingImageKey: string | null;
 }) {
@@ -343,12 +363,15 @@ export function ItemObstacleVisualFields({
         form.item_obstacle_background_light,
         resolvedAppearance,
     );
-    const metBackgroundImage =
-        themedPreviewAsset(
-            form.item_obstacle_met_background_dark,
-            form.item_obstacle_met_background_light,
-            resolvedAppearance,
-        ) || backgroundImage;
+    const explicitMetBackgroundImage = themedPreviewAsset(
+        form.item_obstacle_met_background_dark,
+        form.item_obstacle_met_background_light,
+        resolvedAppearance,
+    );
+    const metBackgroundImage = explicitMetBackgroundImage || backgroundImage;
+    const metBackgroundMirrored = explicitMetBackgroundImage
+        ? form.item_obstacle_met_background_mirrored
+        : form.item_obstacle_background_mirrored;
     const overlayImage = themedPreviewAsset(
         form.item_obstacle_overlay_dark,
         form.item_obstacle_overlay_light,
@@ -360,6 +383,7 @@ export function ItemObstacleVisualFields({
             <div className="grid gap-4 lg:grid-cols-2">
                 <ActivityScenePreview
                     backgroundImage={backgroundImage}
+                    backgroundMirrored={form.item_obstacle_background_mirrored}
                     description="Shows the required item slots in this mode."
                     title="Required slots preview"
                 >
@@ -385,6 +409,7 @@ export function ItemObstacleVisualFields({
 
                 <ActivityScenePreview
                     backgroundImage={metBackgroundImage}
+                    backgroundMirrored={metBackgroundMirrored}
                     description="Shows the scene after all item conditions are met."
                     title="Conditions met preview"
                 >
@@ -409,6 +434,7 @@ export function ItemObstacleVisualFields({
                     <ScenePreviewImage
                         imageUrl={overlayImage}
                         label="Overlay image"
+                        mirrored={form.item_obstacle_overlay_mirrored}
                         width={form.item_obstacle_overlay_width}
                         x={form.item_obstacle_overlay_x}
                         y={form.item_obstacle_overlay_y}
@@ -420,17 +446,20 @@ export function ItemObstacleVisualFields({
                 {[
                     ['item_obstacle_background_dark', 'Dark background'],
                     ['item_obstacle_background_light', 'Light background'],
-                    ['item_obstacle_met_background_dark', 'Dark met background'],
-                    ['item_obstacle_met_background_light', 'Light met background'],
+                    [
+                        'item_obstacle_met_background_dark',
+                        'Dark met background',
+                    ],
+                    [
+                        'item_obstacle_met_background_light',
+                        'Light met background',
+                    ],
                     ['item_obstacle_overlay_dark', 'Dark overlay image'],
                     ['item_obstacle_overlay_light', 'Light overlay image'],
                 ].map(([field, label]) => (
                     <ConfigImageInput
                         description="Uploaded or reusable scene image."
-                        error={
-                            errors[field] ??
-                            imageUploadErrors[field]
-                        }
+                        error={errors[field] ?? imageUploadErrors[field]}
                         id={field}
                         key={field}
                         label={label}
@@ -446,6 +475,35 @@ export function ItemObstacleVisualFields({
                         value={String(form[field as keyof ActivityForm] ?? '')}
                     />
                 ))}
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+                <MirrorImageCheckbox
+                    checked={form.item_obstacle_background_mirrored}
+                    label="Mirror background horizontally"
+                    onChange={(checked) =>
+                        updateField(
+                            'item_obstacle_background_mirrored',
+                            checked,
+                        )
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.item_obstacle_met_background_mirrored}
+                    label="Mirror met background horizontally"
+                    onChange={(checked) =>
+                        updateField(
+                            'item_obstacle_met_background_mirrored',
+                            checked,
+                        )
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.item_obstacle_overlay_mirrored}
+                    label="Mirror overlay horizontally"
+                    onChange={(checked) =>
+                        updateField('item_obstacle_overlay_mirrored', checked)
+                    }
+                />
             </div>
             <div className="grid gap-3 md:grid-cols-3">
                 <NumberField
@@ -514,6 +572,14 @@ export function ItemObstacleVisualFields({
     );
 }
 
+function itemGrantGridStyle(itemCount: number): CSSProperties {
+    const columns = Math.max(1, Math.min(itemCount, 3));
+
+    return {
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 5rem))`,
+    };
+}
+
 function ItemGrantPreviewTile({
     imageUrl,
     quantity,
@@ -543,7 +609,10 @@ function ItemGrantPreviewTile({
     );
 }
 
-function itemForSlot(items: EditableItem[], value: string): EditableItem | null {
+function itemForSlot(
+    items: EditableItem[],
+    value: string,
+): EditableItem | null {
     const itemId = Number(value);
 
     if (!Number.isInteger(itemId)) {

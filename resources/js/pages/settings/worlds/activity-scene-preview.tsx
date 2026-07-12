@@ -6,12 +6,14 @@ type AppearanceMode = 'dark' | 'light';
 
 export function ActivityScenePreview({
     backgroundImage,
+    backgroundMirrored = false,
     children,
     className,
     description,
     title,
 }: {
     backgroundImage: string;
+    backgroundMirrored?: boolean;
     children?: ReactNode;
     className?: string;
     description?: string;
@@ -41,6 +43,11 @@ export function ActivityScenePreview({
                         className="absolute inset-0 size-full object-cover"
                         draggable={false}
                         src={backgroundImage}
+                        style={{
+                            transform: backgroundMirrored
+                                ? 'scaleX(-1)'
+                                : undefined,
+                        }}
                     />
                 ) : (
                     <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(8,145,178,0.14),rgba(15,23,42,0.04)),radial-gradient(circle_at_70%_30%,rgba(45,212,191,0.16),transparent_34%)] dark:bg-[linear-gradient(135deg,rgba(45,212,191,0.10),rgba(15,23,42,0.86)),radial-gradient(circle_at_70%_30%,rgba(45,212,191,0.14),transparent_34%)]" />
@@ -55,26 +62,32 @@ export function ActivityScenePreview({
 export function ScenePreviewImage({
     imageUrl,
     label,
+    mirrored = false,
     x,
     y,
+    zIndex,
     width,
 }: {
     imageUrl: string;
     label: string;
+    mirrored?: boolean;
     width: string | number;
     x: string | number;
     y: string | number;
+    zIndex?: number;
 }) {
     const style: CSSProperties = {
         left: `${boundedPercent(x, 50)}%`,
         top: `${boundedPercent(y, 50)}%`,
+        transform: imageTransform(mirrored),
         width: `${boundedPercent(width, 28, 1)}%`,
+        zIndex,
     };
 
     if (!imageUrl) {
         return (
             <div
-                className="absolute z-10 grid aspect-square -translate-x-1/2 -translate-y-1/2 place-items-center rounded-lg border border-dashed border-cyan-600/45 bg-cyan-100/45 px-3 text-center text-xs font-semibold text-cyan-800 dark:border-teal-200/35 dark:bg-teal-200/10 dark:text-teal-100"
+                className="absolute z-10 grid aspect-square place-items-center rounded-lg border border-dashed border-cyan-600/45 bg-cyan-100/45 px-3 text-center text-xs font-semibold text-cyan-800 dark:border-teal-200/35 dark:bg-teal-200/10 dark:text-teal-100"
                 style={style}
             >
                 {label}
@@ -85,7 +98,7 @@ export function ScenePreviewImage({
     return (
         <img
             alt=""
-            className="absolute z-10 max-h-[64%] -translate-x-1/2 -translate-y-1/2 object-contain"
+            className="absolute z-10 max-h-[64%] object-contain"
             draggable={false}
             src={imageUrl}
             style={style}
@@ -114,7 +127,7 @@ export function ScenePreviewBubble({
                 borderColor: borderColor || '#0891b2',
             }}
         >
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">
+            <p className="mb-1 text-xs font-semibold tracking-wide text-slate-700 uppercase dark:text-slate-200">
                 {label}
             </p>
             <p className="text-slate-800 dark:text-slate-100">
@@ -127,12 +140,14 @@ export function ScenePreviewBubble({
 export function ScenePreviewSlot({
     imageUrl,
     label,
+    mirrored = false,
     width,
     x,
     y,
 }: {
     imageUrl: string;
     label: string;
+    mirrored?: boolean;
     width: string | number;
     x: string | number;
     y: string | number;
@@ -153,6 +168,9 @@ export function ScenePreviewSlot({
                         className="size-full object-contain"
                         draggable={false}
                         src={imageUrl}
+                        style={{
+                            transform: mirrored ? 'scaleX(-1)' : undefined,
+                        }}
                     />
                 ) : (
                     label
@@ -160,6 +178,12 @@ export function ScenePreviewSlot({
             </div>
         </div>
     );
+}
+
+function imageTransform(mirrored: boolean): string {
+    return mirrored
+        ? 'translate(-50%, -50%) scaleX(-1)'
+        : 'translate(-50%, -50%)';
 }
 
 export function themedPreviewAsset(

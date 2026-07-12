@@ -210,6 +210,7 @@ export type CreateActivityForm = {
     introduction: string;
     item_grant_background_dark: string;
     item_grant_background_light: string;
+    item_grant_background_mirrored: boolean;
     item_grant_items: Array<{
         itemId: string;
         quantity: string;
@@ -217,11 +218,14 @@ export type CreateActivityForm = {
     item_grant_probability_percent: string;
     item_obstacle_background_dark: string;
     item_obstacle_background_light: string;
+    item_obstacle_background_mirrored: boolean;
     item_obstacle_lock_minutes: string;
     item_obstacle_met_background_dark: string;
     item_obstacle_met_background_light: string;
+    item_obstacle_met_background_mirrored: boolean;
     item_obstacle_overlay_dark: string;
     item_obstacle_overlay_light: string;
+    item_obstacle_overlay_mirrored: boolean;
     item_obstacle_overlay_width: string;
     item_obstacle_overlay_x: string;
     item_obstacle_overlay_y: string;
@@ -243,6 +247,7 @@ export type CreateActivityForm = {
     obstacle_allowed_tool_ids: string;
     obstacle_background_dark: string;
     obstacle_background_light: string;
+    obstacle_background_mirrored: boolean;
     obstacle_bubble_border_color_dark: string;
     obstacle_bubble_border_color_light: string;
     obstacle_bubble_color_dark: string;
@@ -251,6 +256,7 @@ export type CreateActivityForm = {
     obstacle_bubble_opacity_light: string;
     obstacle_image_dark: string;
     obstacle_image_light: string;
+    obstacle_image_mirrored: boolean;
     obstacle_persist_after_solved: boolean;
     obstacle_prompt_text: string;
     obstacle_width: string;
@@ -258,17 +264,21 @@ export type CreateActivityForm = {
     obstacle_y: string;
     obstacle_revisit_background_dark: string;
     obstacle_revisit_background_light: string;
+    obstacle_revisit_background_mirrored: boolean;
     obstacle_revisit_image_dark: string;
     obstacle_revisit_image_light: string;
+    obstacle_revisit_image_mirrored: boolean;
     obstacle_revisit_text: string;
     obstacle_success_animation: string;
     obstacle_success_text: string;
     obstacle_typing_speed: string;
     portal_background_dark: string;
     portal_background_light: string;
+    portal_background_mirrored: boolean;
     portal_duration_seconds: string;
     portal_foreground_dark: string;
     portal_foreground_light: string;
+    portal_foreground_mirrored: boolean;
     portal_foreground_width: string;
     portal_foreground_x: string;
     portal_foreground_y: string;
@@ -281,6 +291,7 @@ export type CreateActivityForm = {
     title: string;
     tool_grant_background_dark: string;
     tool_grant_background_light: string;
+    tool_grant_background_mirrored: boolean;
     tool_grant_bubble_border_color_dark: string;
     tool_grant_bubble_border_color_light: string;
     tool_grant_bubble_color_dark: string;
@@ -292,6 +303,7 @@ export type CreateActivityForm = {
     tool_grant_slide_duration_seconds: string;
     tool_grant_text: string;
     tool_grant_tool_id: string;
+    tool_grant_tool_mirrored: boolean;
     tool_grant_tool_x: string;
     tool_grant_tool_y: string;
     tool_grant_typing_speed: string;

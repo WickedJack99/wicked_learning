@@ -132,6 +132,22 @@ export function numericConfig(value: unknown, fallback: number): number {
     return fallback;
 }
 
+export function booleanConfig(value: unknown, fallback = false): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+        return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+    }
+
+    return fallback;
+}
+
 function colorWithOpacity(color: string, opacity: number): string {
     if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
         return color;

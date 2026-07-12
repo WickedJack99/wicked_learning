@@ -16,6 +16,7 @@ class ToolGrantActivityConfiguration
             ...$existing,
             'backgroundDark' => $this->string($data, 'tool_grant_background_dark', $existing['backgroundDark'] ?? ''),
             'backgroundLight' => $this->string($data, 'tool_grant_background_light', $existing['backgroundLight'] ?? ''),
+            'backgroundMirrored' => $this->boolean($data, 'tool_grant_background_mirrored', $existing['backgroundMirrored'] ?? false),
             'bubbleBorderColorDark' => $this->string($data, 'tool_grant_bubble_border_color_dark', $existing['bubbleBorderColorDark'] ?? '#2dd4bf'),
             'bubbleBorderColorLight' => $this->string($data, 'tool_grant_bubble_border_color_light', $existing['bubbleBorderColorLight'] ?? '#0891b2'),
             'bubbleColorDark' => $this->string($data, 'tool_grant_bubble_color_dark', $existing['bubbleColorDark'] ?? '#0f172a'),
@@ -27,6 +28,7 @@ class ToolGrantActivityConfiguration
             'slideDurationSeconds' => $this->number($data, 'tool_grant_slide_duration_seconds', $existing['slideDurationSeconds'] ?? 0.6),
             'text' => $this->string($data, 'tool_grant_text', $existing['text'] ?? ''),
             'toolId' => $this->nullableInt($data['tool_grant_tool_id'] ?? $existing['toolId'] ?? null),
+            'toolMirrored' => $this->boolean($data, 'tool_grant_tool_mirrored', $existing['toolMirrored'] ?? false),
             'toolX' => $this->number($data, 'tool_grant_tool_x', $existing['toolX'] ?? 50),
             'toolY' => $this->number($data, 'tool_grant_tool_y', $existing['toolY'] ?? 50),
             'typingSpeed' => $this->number($data, 'tool_grant_typing_speed', $existing['typingSpeed'] ?? 24),
@@ -46,6 +48,7 @@ class ToolGrantActivityConfiguration
         return array_intersect_key($data, array_flip([
             'tool_grant_background_dark',
             'tool_grant_background_light',
+            'tool_grant_background_mirrored',
             'tool_grant_bubble_border_color_dark',
             'tool_grant_bubble_border_color_light',
             'tool_grant_bubble_color_dark',
@@ -57,6 +60,7 @@ class ToolGrantActivityConfiguration
             'tool_grant_slide_duration_seconds',
             'tool_grant_text',
             'tool_grant_tool_id',
+            'tool_grant_tool_mirrored',
             'tool_grant_tool_x',
             'tool_grant_tool_y',
             'tool_grant_typing_speed',
@@ -71,6 +75,7 @@ class ToolGrantActivityConfiguration
         return [
             'backgroundDark' => '',
             'backgroundLight' => '',
+            'backgroundMirrored' => false,
             'bubbleBorderColorDark' => '#2dd4bf',
             'bubbleBorderColorLight' => '#0891b2',
             'bubbleColorDark' => '#0f172a',
@@ -82,6 +87,7 @@ class ToolGrantActivityConfiguration
             'slideDurationSeconds' => 0.6,
             'text' => '',
             'toolId' => null,
+            'toolMirrored' => false,
             'toolX' => 50,
             'toolY' => 50,
             'typingSpeed' => 24,
@@ -106,6 +112,18 @@ class ToolGrantActivityConfiguration
         }
 
         return is_numeric($data[$key] ?? null) ? (float) $data[$key] : 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function boolean(array $data, string $key, mixed $fallback): bool
+    {
+        if (! array_key_exists($key, $data)) {
+            return filter_var($fallback, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return filter_var($data[$key] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     private function nullableInt(mixed $value): ?int

@@ -11,6 +11,7 @@ import {
 import {
     ConfigColorField,
     ConfigImageInput,
+    MirrorImageCheckbox,
     NumberField,
 } from './activity-config-fields';
 import {
@@ -50,7 +51,7 @@ export function ToolGrantFlowFields({
     onChange,
     tools,
 }: Pick<ToolGrantFieldProps, 'errors' | 'form' | 'onChange' | 'tools'>) {
-    const updateField = (field: keyof ActivityForm, value: string) =>
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
         onChange((current) => ({
             ...current,
             [field]: value,
@@ -114,7 +115,7 @@ export function ToolGrantVisualFields({
     const bubbleOpacity = isLight
         ? form.tool_grant_bubble_opacity_light
         : form.tool_grant_bubble_opacity_dark;
-    const updateField = (field: keyof ActivityForm, value: string) =>
+    const updateField = (field: keyof ActivityForm, value: string | boolean) =>
         onChange((current) => ({
             ...current,
             [field]: value,
@@ -124,12 +125,14 @@ export function ToolGrantVisualFields({
         <div className="grid gap-5">
             <ActivityScenePreview
                 backgroundImage={backgroundImage}
+                backgroundMirrored={form.tool_grant_background_mirrored}
                 description="Uses the current appearance mode and selected tool."
                 title="Grant scene preview"
             >
                 <ScenePreviewImage
                     imageUrl={toolImage}
                     label={selectedTool?.title ?? 'Selected tool'}
+                    mirrored={form.tool_grant_tool_mirrored}
                     width={18}
                     x={form.tool_grant_tool_x}
                     y={form.tool_grant_tool_y}
@@ -216,6 +219,23 @@ export function ToolGrantVisualFields({
                         uploadingImageKey === 'tool_grant_background_light'
                     }
                     value={form.tool_grant_background_light}
+                />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.tool_grant_background_mirrored}
+                    label="Mirror background horizontally"
+                    onChange={(checked) =>
+                        updateField('tool_grant_background_mirrored', checked)
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.tool_grant_tool_mirrored}
+                    label="Mirror tool image horizontally"
+                    onChange={(checked) =>
+                        updateField('tool_grant_tool_mirrored', checked)
+                    }
                 />
             </div>
 

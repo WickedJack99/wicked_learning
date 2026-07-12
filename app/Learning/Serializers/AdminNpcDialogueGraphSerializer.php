@@ -24,6 +24,14 @@ class AdminNpcDialogueGraphSerializer
                 'slug' => $activity->node->map->world->slug,
                 'title' => $activity->node->map->world->title,
             ],
+            'worldNodes' => $activity->node->map->world->maps
+                ->flatMap(fn ($map) => $map->nodes->map(fn ($node): array => [
+                    'id' => $node->id,
+                    'mapTitle' => $map->title,
+                    'title' => $node->title,
+                ]))
+                ->values()
+                ->all(),
             'map' => [
                 'id' => $activity->node->map->id,
                 'slug' => $activity->node->map->slug,

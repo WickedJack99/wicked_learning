@@ -15,8 +15,10 @@ import { postJson } from './api';
 
 type NpcDialogueActivityProps = {
     activity: LearningActivity;
+    initialState: unknown;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    playRunId: string | null;
 };
 
 type NpcDialogueAnswerProgress = {
@@ -34,16 +36,37 @@ type NpcAnswerOption = {
     label: string;
 };
 
+type NpcDialogueSavedState = {
+    currentNodeId: number | null;
+    history: number[];
+};
+
+type DialogueSceneAsset = {
+    id: string;
+    imageUrl: string | null;
+    label: string;
+    layer: DialogueSceneAssetLayer;
+    mirrored: boolean;
+    width: number;
+    x: number;
+    y: number;
+};
+
+type DialogueSceneAssetLayer = 'behind_npc' | 'front' | 'bubble' | 'overlay';
+
 export function NpcDialogueActivity({
     activity,
+    initialState,
     onComplete,
     onMoveToActivity,
+    playRunId,
 }: NpcDialogueActivityProps) {
     const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
-    const [history, setHistory] = useState<number[]>([]);
-    const [currentNodeId, setCurrentNodeId] = useState<number | null>(() =>
-        firstNpcDialogueNodeId(activity),
+    const savedState = normalizeNpcDialogueState(activity, initialState);
+    const [history, setHistory] = useState<number[]>(savedState.history);
+    const [currentNodeId, setCurrentNodeId] = useState<number | null>(
+        () => savedState.currentNodeId ?? firstNpcDialogueNodeId(activity),
     );
     const [selectedAnswerKey, setSelectedAnswerKey] = useState<string | null>(
         null,
@@ -64,9 +87,30 @@ export function NpcDialogueActivity({
     const canGoBack = history.length > 0;
     const displayedText = currentNode?.body ?? '';
     const typingSpeed = numericConfig(currentNode?.config.typingSpeed, 28);
+    const persistDialogueState = useCallback(
+        (nextNodeId: number | null, nextHistory: number[]) => {
+            if (!playRunId) {
+                return;
+            }
+
+            void postJson(
+                `/learning/activities/${activity.id}/npc-dialogue-state`,
+                {
+                    current_node_id: nextNodeId,
+                    history: nextHistory,
+                    play_run_id: playRunId,
+                },
+            ).catch(() => undefined);
+        },
+        [activity.id, playRunId],
+    );
 
     const moveToNode = useCallback(
-        async (nextNodeId: number | null, rememberCurrent = true) => {
+        async (
+            nextNodeId: number | null,
+            rememberCurrent = true,
+            historyOverride: number[] | null = null,
+        ) => {
             if (!currentNode) {
                 return;
             }
@@ -87,14 +131,26 @@ export function NpcDialogueActivity({
                 return;
             }
 
+            const nextHistory =
+                historyOverride ??
+                (rememberCurrent ? [...history, currentNode.id] : history);
+
             if (rememberCurrent) {
-                setHistory((current) => [...current, currentNode.id]);
+                setHistory(nextHistory);
             }
 
             setCurrentNodeId(nextNodeId);
             setSelectedAnswerKey(null);
+            persistDialogueState(nextNodeId, nextHistory);
         },
-        [activity, currentNode, onComplete, onMoveToActivity],
+        [
+            activity,
+            currentNode,
+            history,
+            onComplete,
+            onMoveToActivity,
+            persistDialogueState,
+        ],
     );
 
     useEffect(() => {
@@ -160,10 +216,11 @@ export function NpcDialogueActivity({
             const nextHistory = [...current];
             const previous = nextHistory.pop() ?? null;
             setCurrentNodeId(previous);
+            persistDialogueState(previous, nextHistory);
 
             return nextHistory;
         });
-    }, [canGoBack]);
+    }, [canGoBack, persistDialogueState]);
 
     const submitAnswer = useCallback(async () => {
         if (!currentNode || !selectedAnswerKey || isSubmitting) {
@@ -183,6 +240,7 @@ export function NpcDialogueActivity({
             await moveToNode(
                 nextDialogueNodeId(activity, response.answer.answerNodeId),
                 false,
+                [],
             );
         } finally {
             setIsSubmitting(false);
@@ -250,6 +308,36 @@ export function NpcDialogueActivity({
     );
 }
 
+function normalizeNpcDialogueState(
+    activity: LearningActivity,
+    value: unknown,
+): NpcDialogueSavedState {
+    const state =
+        isRecord(value) && isRecord(value.npcDialogue)
+            ? value.npcDialogue
+            : null;
+
+    if (!state) {
+        return {
+            currentNodeId: null,
+            history: [],
+        };
+    }
+
+    const nodeIds = new Set(activity.npcDialogueNodes.map((node) => node.id));
+    const currentNodeId = numericConfig(state.currentNodeId, 0);
+    const history = Array.isArray(state.history)
+        ? state.history
+              .map((nodeId) => numericConfig(nodeId, 0))
+              .filter((nodeId) => nodeIds.has(nodeId))
+        : [];
+
+    return {
+        currentNodeId: nodeIds.has(currentNodeId) ? currentNodeId : null,
+        history,
+    };
+}
+
 function NpcDialogueScene({
     answers,
     canGoBack,
@@ -286,9 +374,21 @@ function NpcDialogueScene({
         currentNode.config.backgroundLight,
         mode,
     );
+    const backgroundMirrored = booleanConfig(
+        currentNode.config.backgroundMirrored,
+        false,
+    );
     const npcImage = themedImage(
         currentNode.config.npcImageDark,
         currentNode.config.npcImageLight,
+        mode,
+    );
+    const npcImageMirrored = booleanConfig(
+        currentNode.config.npcImageMirrored,
+        false,
+    );
+    const sceneAssets = dialogueSceneAssets(
+        currentNode.config.sceneAssets,
         mode,
     );
     const npcX = numericConfig(currentNode.config.npcX, 50);
@@ -301,12 +401,19 @@ function NpcDialogueScene({
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                     src={backgroundImage}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : null}
             <div className="absolute inset-0 bg-white/72 dark:bg-slate-950/62" />
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="behind_npc" />
             {npcImage ? (
                 <NpcCharacterImage
                     imageUrl={npcImage}
+                    mirrored={npcImageMirrored}
                     nodeId={currentNode.id}
                     slideDirection={currentNode.config.slideDirection}
                     slideDuration={numericConfig(
@@ -321,7 +428,9 @@ function NpcDialogueScene({
                     y={npcY}
                 />
             ) : null}
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="front" />
             <div className="relative z-20 mt-auto flex w-full flex-col gap-4 p-4">
+                <DialogueSceneAssetLayers assets={sceneAssets} layer="bubble" />
                 <div
                     className="rounded-2xl border p-4 backdrop-blur-md"
                     style={speechBubbleStyle(currentNode, mode)}
@@ -375,13 +484,58 @@ function NpcDialogueScene({
                     </Button>
                 </div>
             </div>
+            <DialogueSceneAssetLayers assets={sceneAssets} layer="overlay" />
         </div>
+    );
+}
+
+function DialogueSceneAssetLayers({
+    assets,
+    layer,
+}: {
+    assets: DialogueSceneAsset[];
+    layer: DialogueSceneAssetLayer;
+}) {
+    return (
+        <>
+            {assets
+                .filter((asset) => asset.layer === layer)
+                .map((asset) => (
+                    <DialogueSceneAssetImage asset={asset} key={asset.id} />
+                ))}
+        </>
+    );
+}
+
+function DialogueSceneAssetImage({ asset }: { asset: DialogueSceneAsset }) {
+    if (!asset.imageUrl) {
+        return null;
+    }
+
+    return (
+        <img
+            alt={asset.label}
+            className="pointer-events-none absolute z-[18] max-h-[95%] object-contain"
+            draggable={false}
+            src={asset.imageUrl}
+            style={{
+                left: `${asset.x}%`,
+                top: `${asset.y}%`,
+                transform: imageTransform(
+                    'translate(-50%, -50%)',
+                    asset.mirrored,
+                ),
+                width: `${asset.width}%`,
+                zIndex: dialogueSceneAssetZIndex(asset.layer),
+            }}
+        />
     );
 }
 
 function NpcCharacterImage({
     fadeDuration,
     imageUrl,
+    mirrored,
     nodeId,
     slideDirection,
     slideDuration,
@@ -390,6 +544,7 @@ function NpcCharacterImage({
 }: {
     fadeDuration: number;
     imageUrl: string;
+    mirrored: boolean;
     nodeId: number;
     slideDirection: unknown;
     slideDuration: number;
@@ -406,9 +561,11 @@ function NpcCharacterImage({
                 stringConfig(slideDirection, 'left'),
                 slideDuration,
                 fadeDuration,
+                mirrored,
                 x,
                 y,
             ].join(':')}
+            mirrored={mirrored}
             slideDirection={slideDirection}
             slideDuration={slideDuration}
             x={x}
@@ -420,6 +577,7 @@ function NpcCharacterImage({
 function AnimatedNpcCharacterImage({
     fadeDuration,
     imageUrl,
+    mirrored,
     slideDirection,
     slideDuration,
     x,
@@ -427,12 +585,17 @@ function AnimatedNpcCharacterImage({
 }: {
     fadeDuration: number;
     imageUrl: string;
+    mirrored: boolean;
     slideDirection: unknown;
     slideDuration: number;
     x: number;
     y: number;
 }) {
     const startTransform = npcEntranceTransform(slideDirection);
+    const endTransform = imageTransform(
+        'translate(-50%, -50%) translate3d(0, 0, 0)',
+        mirrored,
+    );
     const slideDurationMs = Math.max(0, slideDuration) * 1000;
     const fadeDurationMs = Math.max(0, fadeDuration) * 1000;
     const hasEntranceAnimation = slideDurationMs > 0 || fadeDurationMs > 0;
@@ -459,8 +622,8 @@ function AnimatedNpcCharacterImage({
                 opacity: isVisible ? 1 : 0,
                 top: `${y}%`,
                 transform: isVisible
-                    ? 'translate(-50%, -50%) translate3d(0, 0, 0)'
-                    : startTransform,
+                    ? endTransform
+                    : imageTransform(startTransform, mirrored),
                 transitionDuration: `${slideDurationMs}ms, ${fadeDurationMs}ms`,
                 transitionProperty: 'transform, opacity',
                 transitionTimingFunction:
@@ -689,6 +852,76 @@ function themedImage(
     return mode === 'light' ? (lightImage ?? darkImage) : darkImage;
 }
 
+function dialogueSceneAssets(
+    value: unknown,
+    mode: 'dark' | 'light',
+): DialogueSceneAsset[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(isRecord).map((asset, index) => ({
+        id: stringConfig(asset.id, `asset-${index + 1}`),
+        imageUrl: themedAssetImage(asset.imageDark, asset.imageLight, mode),
+        label: stringConfig(asset.label, `Scene asset ${index + 1}`),
+        layer: dialogueSceneAssetLayer(asset.layer),
+        mirrored: booleanConfig(asset.mirrored, false),
+        width: clampNumber(numericConfig(asset.width, 24), 1, 100),
+        x: clampNumber(numericConfig(asset.x, 50), 0, 100),
+        y: clampNumber(numericConfig(asset.y, 50), 0, 100),
+    }));
+}
+
+function themedAssetImage(
+    darkValue: unknown,
+    lightValue: unknown,
+    mode: 'dark' | 'light',
+): string | null {
+    const darkImage = nullableString(darkValue);
+    const lightImage = nullableString(lightValue);
+
+    return mode === 'light'
+        ? (lightImage ?? darkImage)
+        : (darkImage ?? lightImage);
+}
+
+function dialogueSceneAssetLayer(value: unknown): DialogueSceneAssetLayer {
+    if (
+        value === 'behind_npc' ||
+        value === 'front' ||
+        value === 'bubble' ||
+        value === 'overlay'
+    ) {
+        return value;
+    }
+
+    return 'front';
+}
+
+function dialogueSceneAssetZIndex(layer: DialogueSceneAssetLayer): number {
+    if (layer === 'behind_npc') {
+        return 8;
+    }
+
+    if (layer === 'front') {
+        return 18;
+    }
+
+    if (layer === 'bubble') {
+        return 22;
+    }
+
+    return 30;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
 function npcEntranceTransform(value: unknown): string {
     const direction = stringConfig(value, 'left');
     const offset = 48;
@@ -712,6 +945,10 @@ function npcEntranceTransform(value: unknown): string {
     return `translate(-50%, -50%) translate3d(-${offset}px, 0, 0)`;
 }
 
+function imageTransform(baseTransform: string, mirrored: boolean): string {
+    return mirrored ? `${baseTransform} scaleX(-1)` : baseTransform;
+}
+
 function numericConfig(value: unknown, fallback: number): number {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -728,6 +965,22 @@ function numericConfig(value: unknown, fallback: number): number {
 
 function stringConfig(value: unknown, fallback = ''): string {
     return typeof value === 'string' && value.trim() !== '' ? value : fallback;
+}
+
+function booleanConfig(value: unknown, fallback = false): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+        return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+    }
+
+    return fallback;
 }
 
 function nullableString(value: unknown): string | null {

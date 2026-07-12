@@ -5,15 +5,19 @@ namespace App\Learning\Services;
 use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
+use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class NpcDialogueAnswerService
 {
+    public function __construct(private readonly LearnerNodeAnswerEventService $answerEvents) {}
+
     /**
      * @return array<string, mixed>
      */
     public function answer(int $userId, NpcDialogueNode $node, string $answerKey): array
     {
+        $user = User::query()->findOrFail($userId);
         $node->loadMissing('activity');
         $answer = $this->answerNode($node, $answerKey);
         $config = is_array($answer->config) ? $answer->config : [];
@@ -29,6 +33,8 @@ class NpcDialogueAnswerService
             'npc_dialogue_node_id' => $node->id,
             'user_id' => $userId,
         ]);
+
+        $this->answerEvents->apply($user, $answer);
 
         return [
             'answerKey' => (string) $answer->id,

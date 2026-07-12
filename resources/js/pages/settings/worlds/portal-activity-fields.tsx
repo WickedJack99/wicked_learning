@@ -12,7 +12,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ConfigImageInput } from './activity-config-fields';
+import {
+    ConfigImageInput,
+    MirrorImageCheckbox,
+} from './activity-config-fields';
 import type { ActivityForm, PortalCandidate } from './edit-node-activity-types';
 export function PortalModeField({
     errors,
@@ -316,6 +319,25 @@ export function PortalVisualFields({
                 </div>
             </div>
 
+            <div className="grid gap-3 md:grid-cols-2">
+                <MirrorImageCheckbox
+                    checked={form.portal_background_mirrored}
+                    description="Useful when the portal background should face the other direction."
+                    label="Mirror background horizontally"
+                    onChange={(checked) =>
+                        updateField('portal_background_mirrored', checked)
+                    }
+                />
+                <MirrorImageCheckbox
+                    checked={form.portal_foreground_mirrored}
+                    description="Flip the foreground portal effect without editing the image file."
+                    label="Mirror foreground horizontally"
+                    onChange={(checked) =>
+                        updateField('portal_foreground_mirrored', checked)
+                    }
+                />
+            </div>
+
             <label className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
                 <Checkbox
                     checked={form.portal_swirl_enabled}
@@ -368,7 +390,9 @@ export function PortalVisualFields({
                 </div>
                 <PortalScene
                     backgroundImage={previewBackground}
+                    backgroundMirrored={form.portal_background_mirrored}
                     foregroundImage={previewForeground}
+                    foregroundMirrored={form.portal_foreground_mirrored}
                     foregroundWidth={foregroundWidth}
                     foregroundX={foregroundX}
                     foregroundY={foregroundY}

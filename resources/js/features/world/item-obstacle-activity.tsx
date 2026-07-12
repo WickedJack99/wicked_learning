@@ -11,7 +11,7 @@ import type {
     LearningItem,
     LearningProgress,
 } from '@/types';
-import { numericConfig, themedConfig } from './activity-utils';
+import { booleanConfig, numericConfig, themedConfig } from './activity-utils';
 import { postJson } from './api';
 
 type ItemObstacleState = {
@@ -57,6 +57,21 @@ export function ItemObstacleActivity({
             : activity.config.backgroundLight,
         resolvedAppearance,
     );
+    const normalBackgroundMirrored = booleanConfig(
+        activity.config.backgroundMirrored,
+        false,
+    );
+    const hasMetBackground = Boolean(
+        themedConfig(
+            activity.config.metBackgroundDark,
+            activity.config.metBackgroundLight,
+            resolvedAppearance,
+        ),
+    );
+    const backgroundMirrored =
+        state.conditionsMet && hasMetBackground
+            ? booleanConfig(activity.config.metBackgroundMirrored, false)
+            : normalBackgroundMirrored;
     const overlay = themedConfig(
         activity.config.overlayDark,
         activity.config.overlayLight,
@@ -143,13 +158,22 @@ export function ItemObstacleActivity({
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                     src={background}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : null}
             <div className="absolute inset-0 bg-white/72 dark:bg-slate-950/62" />
 
             {slots.map((slot, index) => (
                 <ItemSlot
-                    filledItem={filledItemFor(state, index, configuredItemsById)}
+                    filledItem={filledItemFor(
+                        state,
+                        index,
+                        configuredItemsById,
+                    )}
                     key={index}
                     mode={resolvedAppearance}
                     onDrop={(event) => void dropItem(event, index)}
@@ -166,6 +190,12 @@ export function ItemObstacleActivity({
                     style={{
                         left: `${numericConfig(activity.config.overlayX, 50)}%`,
                         top: `${numericConfig(activity.config.overlayY, 50)}%`,
+                        transform: booleanConfig(
+                            activity.config.overlayMirrored,
+                            false,
+                        )
+                            ? 'translate(-50%, -50%) scaleX(-1)'
+                            : undefined,
                         width: `${numericConfig(activity.config.overlayWidth, 30)}%`,
                     }}
                 />
@@ -274,7 +304,9 @@ function filledItemFor(
 ): LearningItem | null {
     const filledSlot = state.filledSlots[String(slotIndex)];
 
-    return filledSlot ? configuredItemsById.get(filledSlot.itemId) ?? null : null;
+    return filledSlot
+        ? (configuredItemsById.get(filledSlot.itemId) ?? null)
+        : null;
 }
 
 function initialState(
@@ -323,7 +355,9 @@ function playConfiguredSound(
     }
 
     const soundId = numericConfig(soundConfig.soundId, 0);
-    const sound = activity.configuredSounds.find((candidate) => candidate.id === soundId);
+    const sound = activity.configuredSounds.find(
+        (candidate) => candidate.id === soundId,
+    );
 
     if (!sound?.url) {
         return;

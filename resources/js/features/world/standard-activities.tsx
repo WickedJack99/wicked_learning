@@ -17,7 +17,7 @@ import type {
     LearningPortalLink,
     QuestionAnswerProgress,
 } from '@/types';
-import { numericConfig, stringConfig } from './activity-utils';
+import { booleanConfig, numericConfig, stringConfig } from './activity-utils';
 import { postJson } from './api';
 import { PortalScene } from './portal-scene';
 
@@ -89,6 +89,14 @@ export function PortalActivity({
     const foregroundWidth = numericConfig(
         activity.config.portalForegroundWidth,
         28,
+    );
+    const backgroundMirrored = booleanConfig(
+        activity.config.portalBackgroundMirrored,
+        false,
+    );
+    const foregroundMirrored = booleanConfig(
+        activity.config.portalForegroundMirrored,
+        false,
     );
     const backgroundImage =
         resolvedAppearance === 'light'
@@ -209,10 +217,13 @@ export function PortalActivity({
     }
 
     return (
-        <div className="flex min-h-0 flex-1 items-center">
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
             <PortalScene
                 backgroundImage={backgroundImage}
+                backgroundMirrored={backgroundMirrored}
+                className="max-h-full"
                 foregroundImage={foregroundImage}
+                foregroundMirrored={foregroundMirrored}
                 foregroundWidth={foregroundWidth}
                 foregroundX={foregroundX}
                 foregroundY={foregroundY}

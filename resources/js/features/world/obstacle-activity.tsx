@@ -21,6 +21,7 @@ import type {
 } from '@/types';
 import {
     activityBubbleStyle,
+    booleanConfig,
     numericConfig,
     stringValue,
     successAnimationClass,
@@ -91,13 +92,36 @@ export function ObstacleActivity({
         ['revisitImageLight', 'obstacle_revisit_image_light'],
         resolvedAppearance,
     );
+    const activeBackgroundMirrored = booleanConfig(
+        activity.config.backgroundMirrored,
+        false,
+    );
+    const activeObstacleMirrored = booleanConfig(
+        activity.config.obstacleImageMirrored,
+        false,
+    );
+    const revisitBackgroundMirrored = booleanConfig(
+        activity.config.revisitBackgroundMirrored,
+        false,
+    );
+    const revisitObstacleMirrored = booleanConfig(
+        activity.config.revisitImageMirrored,
+        false,
+    );
     const isShowingClearedVisual = isResolved || isClearedRevisit;
     const backgroundImage = isShowingClearedVisual
         ? revisitBackgroundImage || activeBackgroundImage
         : activeBackgroundImage;
+    const backgroundMirrored =
+        isShowingClearedVisual && revisitBackgroundImage
+            ? revisitBackgroundMirrored
+            : activeBackgroundMirrored;
     const obstacleImage = isShowingClearedVisual
         ? revisitObstacleImage
         : activeObstacleImage;
+    const obstacleMirrored = isShowingClearedVisual
+        ? revisitObstacleMirrored
+        : activeObstacleMirrored;
     const promptText = stringValue(
         activity.config.promptText,
         'Something blocks the way. Equip a suitable tool, then use it here.',
@@ -193,6 +217,11 @@ export function ObstacleActivity({
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                     src={backgroundImage}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : null}
             <div className="absolute inset-0 bg-white/72 dark:bg-slate-950/62" />
@@ -200,6 +229,7 @@ export function ObstacleActivity({
             {isClearedRevisit ? (
                 <ObstacleClearedVisual
                     imageUrl={obstacleImage}
+                    mirrored={obstacleMirrored}
                     style={obstaclePlacement}
                 />
             ) : (
@@ -207,6 +237,7 @@ export function ObstacleActivity({
                     imageUrl={obstacleImage}
                     isResolved={isResolved}
                     isResolving={isResolving}
+                    mirrored={obstacleMirrored}
                     successAnimation={successAnimation}
                     style={obstaclePlacement}
                 />
@@ -286,12 +317,14 @@ function ObstacleTargetVisual({
     imageUrl,
     isResolved,
     isResolving,
+    mirrored,
     style,
     successAnimation,
 }: {
     imageUrl: string;
     isResolved: boolean;
     isResolving: boolean;
+    mirrored: boolean;
     style: CSSProperties;
     successAnimation: string;
 }) {
@@ -322,6 +355,9 @@ function ObstacleTargetVisual({
                         className="w-full object-contain"
                         draggable={false}
                         src={imageUrl}
+                        style={{
+                            transform: mirrored ? 'scaleX(-1)' : undefined,
+                        }}
                     />
                 ) : (
                     <span className="text-sm font-semibold">
@@ -335,9 +371,11 @@ function ObstacleTargetVisual({
 
 function ObstacleClearedVisual({
     imageUrl,
+    mirrored,
     style,
 }: {
     imageUrl: string;
+    mirrored: boolean;
     style: CSSProperties;
 }) {
     if (!imageUrl) {
@@ -354,6 +392,9 @@ function ObstacleClearedVisual({
                 className="w-full object-contain"
                 draggable={false}
                 src={imageUrl}
+                style={{
+                    transform: mirrored ? 'scaleX(-1)' : undefined,
+                }}
             />
         </div>
     );
@@ -511,30 +552,6 @@ function obstacleDestroyedAt(
     return typeof obstacleMetadata.destroyedAt === 'string'
         ? obstacleMetadata.destroyedAt
         : null;
-}
-
-function booleanConfig(value: unknown, fallback: boolean): boolean {
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    if (typeof value === 'number') {
-        return value !== 0;
-    }
-
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-
-        if (['false', '0', 'no', 'off'].includes(normalized)) {
-            return false;
-        }
-
-        if (['true', '1', 'yes', 'on'].includes(normalized)) {
-            return true;
-        }
-    }
-
-    return fallback;
 }
 
 function ObstacleSpeechBubble({

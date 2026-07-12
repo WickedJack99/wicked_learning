@@ -17,8 +17,10 @@ import {
     embeddedPlatformCursors,
     platformActionCursor,
     platformCursor,
+    platformDeniedCursor,
+    platformGrabCursor,
+    platformTextCursor,
 } from '@/theme/cursors';
-import { platformGrabCursor } from '@/theme/cursors';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -49,7 +51,9 @@ export default function AppSidebarLayout({
     const [platformCursors, setPlatformCursors] = useState(() => ({
         action: platformActionCursor(presentation),
         default: platformCursor(presentation),
+        denied: platformDeniedCursor(presentation),
         grab: platformGrabCursor(presentation),
+        text: platformTextCursor(presentation),
     }));
     useEffect(() => {
         let isMounted = true;
@@ -57,7 +61,9 @@ export default function AppSidebarLayout({
         setPlatformCursors({
             action: platformActionCursor(presentation),
             default: platformCursor(presentation),
+            denied: platformDeniedCursor(presentation),
             grab: platformGrabCursor(presentation),
+            text: platformTextCursor(presentation),
         });
 
         void embeddedPlatformCursors(presentation).then((cursors) => {
@@ -86,6 +92,14 @@ export default function AppSidebarLayout({
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
             : platformCursors.grab;
+    const textCursorValue =
+        typeof toolCursor.cursor === 'string'
+            ? toolCursor.cursor
+            : platformCursors.text;
+    const deniedCursorValue =
+        typeof toolCursor.cursor === 'string'
+            ? toolCursor.cursor
+            : platformCursors.denied;
 
     return (
         <div
@@ -93,7 +107,9 @@ export default function AppSidebarLayout({
             style={
                 {
                     '--platform-action-cursor': actionCursorValue,
+                    '--platform-denied-cursor': deniedCursorValue,
                     '--platform-grab-cursor': grabCursorValue,
+                    '--platform-text-cursor': textCursorValue,
                     '--platform-cursor': platformCursorValue,
                     ...toolCursor,
                 } as CSSProperties

@@ -12,6 +12,7 @@ class LoadEditableNpcDialogueGraph
 
         $activity->loadMissing(
             'node.map.world',
+            'node.map.world.maps.nodes',
             'npcDialogueNodes',
             'npcDialogueTransitions.fromNode',
             'npcDialogueTransitions.toNode',

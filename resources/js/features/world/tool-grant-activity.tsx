@@ -20,6 +20,7 @@ import type {
 } from '@/types';
 import {
     activityBubbleStyle,
+    booleanConfig,
     entranceTransform,
     numericConfig,
     stringValue,
@@ -58,7 +59,12 @@ export function ToolGrantActivity({
         activity.config.backgroundLight,
         resolvedAppearance,
     );
+    const backgroundMirrored = booleanConfig(
+        activity.config.backgroundMirrored,
+        false,
+    );
     const toolImage = toolImageUrl(configuredTool, resolvedAppearance);
+    const toolMirrored = booleanConfig(activity.config.toolMirrored, false);
     const toolX = numericConfig(activity.config.toolX, 50);
     const toolY = numericConfig(activity.config.toolY, 50);
     const text = stringValue(
@@ -130,6 +136,11 @@ export function ToolGrantActivity({
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                     src={backgroundImage}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : null}
             <div className="absolute inset-0 bg-white/72 dark:bg-slate-950/62" />
@@ -137,6 +148,7 @@ export function ToolGrantActivity({
             <ToolGrantVisual
                 activity={activity}
                 imageUrl={toolImage}
+                mirrored={toolMirrored}
                 mode={resolvedAppearance}
                 title={configuredTool?.title ?? 'Configured tool'}
                 widthPercent={toolImageWidthPercent(configuredTool)}
@@ -202,6 +214,7 @@ export function ToolGrantActivity({
 function ToolGrantVisual({
     activity,
     imageUrl,
+    mirrored,
     mode,
     title,
     widthPercent,
@@ -210,6 +223,7 @@ function ToolGrantVisual({
 }: {
     activity: LearningActivity;
     imageUrl: string;
+    mirrored: boolean;
     mode: 'dark' | 'light';
     title: string;
     widthPercent: number;
@@ -246,7 +260,9 @@ function ToolGrantVisual({
                 activity.config.fadeDurationSeconds,
                 x,
                 y,
+                mirrored,
             ].join(':')}
+            mirrored={mirrored}
             slideDirection={activity.config.slideDirection}
             slideDuration={numericConfig(
                 activity.config.slideDurationSeconds,
@@ -262,6 +278,7 @@ function ToolGrantVisual({
 function AnimatedToolGrantImage({
     fadeDuration,
     imageUrl,
+    mirrored,
     slideDirection,
     slideDuration,
     widthPercent,
@@ -270,6 +287,7 @@ function AnimatedToolGrantImage({
 }: {
     fadeDuration: number;
     imageUrl: string;
+    mirrored: boolean;
     slideDirection: unknown;
     slideDuration: number;
     widthPercent: number;
@@ -277,6 +295,10 @@ function AnimatedToolGrantImage({
     y: number;
 }) {
     const startTransform = entranceTransform(slideDirection);
+    const endTransform = imageTransform(
+        'translate(-50%, -50%) translate3d(0, 0, 0)',
+        mirrored,
+    );
     const slideDurationMs = Math.max(0, slideDuration) * 1000;
     const fadeDurationMs = Math.max(0, fadeDuration) * 1000;
     const hasEntranceAnimation = slideDurationMs > 0 || fadeDurationMs > 0;
@@ -303,8 +325,8 @@ function AnimatedToolGrantImage({
                 opacity: isVisible ? 1 : 0,
                 top: `${y}%`,
                 transform: isVisible
-                    ? 'translate(-50%, -50%) translate3d(0, 0, 0)'
-                    : startTransform,
+                    ? endTransform
+                    : imageTransform(startTransform, mirrored),
                 transitionDuration: `${slideDurationMs}ms, ${fadeDurationMs}ms`,
                 transitionProperty: 'transform, opacity',
                 transitionTimingFunction:
@@ -313,4 +335,8 @@ function AnimatedToolGrantImage({
             }}
         />
     );
+}
+
+function imageTransform(baseTransform: string, mirrored: boolean): string {
+    return mirrored ? `${baseTransform} scaleX(-1)` : baseTransform;
 }

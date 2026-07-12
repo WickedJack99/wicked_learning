@@ -9,7 +9,13 @@ export type ActiveActivity = {
     mapSlug?: string;
     nodeSlug?: string;
     nodeTitle: string;
+    playHref?: string;
     worldHref?: string;
+};
+
+type ActiveActivityOptions = {
+    routeId?: number | null;
+    useCleanPlayHref?: boolean;
 };
 
 export function readPersistedActiveActivity(): ActiveActivity | null {
@@ -33,10 +39,15 @@ export function readPersistedActiveActivity(): ActiveActivity | null {
 export function persistActiveActivity(
     node: LearningNode,
     activity: LearningActivity | null,
+    options: ActiveActivityOptions = {},
 ): void {
     if (!activity || typeof window === 'undefined') {
         return;
     }
+
+    const playHref = options.useCleanPlayHref
+        ? `/learning/nodes/${node.id}/play`
+        : playHrefFor(node, activity, options.routeId);
 
     window.localStorage.setItem(
         activeActivityStorageKey,
@@ -46,6 +57,7 @@ export function persistActiveActivity(
             mapSlug: node.mapSlug,
             nodeSlug: node.slug,
             nodeTitle: node.title,
+            playHref,
             worldHref: `${worldHref}?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`,
         }),
     );
@@ -59,4 +71,20 @@ export function clearPersistedActiveActivity(): void {
 
     window.localStorage.removeItem(activeActivityStorageKey);
     window.dispatchEvent(new Event('learning:active-activity-changed'));
+}
+
+function playHrefFor(
+    node: LearningNode,
+    activity: LearningActivity,
+    routeId?: number | null,
+): string {
+    const query = new URLSearchParams({
+        activity: activity.id.toString(),
+    });
+
+    if (routeId) {
+        query.set('route', routeId.toString());
+    }
+
+    return `/learning/nodes/${node.id}/play?${query.toString()}`;
 }

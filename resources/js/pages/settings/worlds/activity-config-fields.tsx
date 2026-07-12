@@ -5,6 +5,7 @@ import InputError from '@/components/input-error';
 import { NumberField } from '@/components/number-field';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { normalizeMediaUrl } from '@/lib/media-url';
@@ -137,5 +138,35 @@ export function ConfigImageInput({
                 />
             ) : null}
         </div>
+    );
+}
+
+export function MirrorImageCheckbox({
+    checked,
+    description = 'Flip the image horizontally without changing the uploaded file.',
+    label = 'Mirror horizontally',
+    onChange,
+}: {
+    checked: boolean;
+    description?: string;
+    label?: string;
+    onChange: (checked: boolean) => void;
+}) {
+    return (
+        <label className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
+            <Checkbox
+                checked={checked}
+                className="mt-0.5"
+                onCheckedChange={(value) => onChange(value === true)}
+            />
+            <span>
+                <span className="block text-sm font-medium text-slate-950 dark:text-white">
+                    {label}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {description}
+                </span>
+            </span>
+        </label>
     );
 }

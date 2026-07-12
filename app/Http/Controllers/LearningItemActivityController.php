@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Services\ItemObstacleService;
 use App\Learning\Services\LearningItemGrantService;
+use App\Learning\Services\LearningPlayRunService;
 use App\Models\LearningActivity;
 use App\Models\LearningItem;
 use Illuminate\Http\JsonResponse;
@@ -16,11 +17,22 @@ class LearningItemActivityController extends Controller
         private readonly LearningItemGrantService $itemGrantService,
         private readonly ItemObstacleService $itemObstacleService,
         private readonly LearningItemSerializer $itemSerializer,
+        private readonly LearningPlayRunService $playRunService,
     ) {}
 
     public function grantItems(Request $request, LearningActivity $activity): JsonResponse
     {
-        $result = $this->itemGrantService->rollAndGrant($request->user(), $activity);
+        $data = $request->validate([
+            'play_run_id' => ['nullable', 'string', 'uuid'],
+        ]);
+        $playRunId = is_string($data['play_run_id'] ?? null) ? $data['play_run_id'] : null;
+
+        abort_unless(
+            ! $playRunId || $this->playRunService->canUseRun($request, $playRunId, $activity),
+            403,
+        );
+
+        $result = $this->itemGrantService->rollAndGrant($request->user(), $activity, $playRunId);
 
         return response()->json([
             'inventory' => $this->inventory($request),

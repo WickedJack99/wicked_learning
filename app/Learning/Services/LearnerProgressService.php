@@ -4,11 +4,17 @@ namespace App\Learning\Services;
 
 use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 
 class LearnerProgressService
 {
-    public function mark(int $userId, LearningActivity $activity, string $status): LearnerActivityProgress
+    public function __construct(
+        private readonly LearnerRouteProgressService $routeProgress,
+        private readonly LearnerActivityPlayStateService $activityPlayState,
+    ) {}
+
+    public function mark(int $userId, LearningActivity $activity, string $status, ?string $playRunId = null): LearnerActivityProgress
     {
         $progress = LearnerActivityProgress::query()->firstOrNew([
             'user_id' => $userId,
@@ -29,6 +35,22 @@ class LearnerProgressService
         }
 
         $progress->save();
+
+        if ($playRunId) {
+            $routeUser = User::query()->find($userId);
+
+            if ($routeUser) {
+                if ($status === 'reached') {
+                    $this->routeProgress->enterActivity($routeUser, $activity, $playRunId);
+                }
+
+                if ($status === 'completed') {
+                    $this->routeProgress->exitActivity($routeUser, $activity, $playRunId);
+                    $this->activityPlayState->clearActivityState($routeUser, $activity, $playRunId);
+                    $this->routeProgress->completeRouteIfTerminal($routeUser, $activity, $playRunId);
+                }
+            }
+        }
 
         return $progress;
     }

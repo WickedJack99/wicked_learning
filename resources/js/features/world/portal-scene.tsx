@@ -3,9 +3,11 @@ import { cn } from '@/lib/utils';
 
 export function PortalScene({
     backgroundImage,
+    backgroundMirrored = false,
     children,
     className,
     foregroundImage,
+    foregroundMirrored = false,
     foregroundWidth,
     foregroundX,
     foregroundY,
@@ -13,9 +15,11 @@ export function PortalScene({
     swirlEnabled,
 }: {
     backgroundImage: string;
+    backgroundMirrored?: boolean;
     children?: ReactNode;
     className?: string;
     foregroundImage: string;
+    foregroundMirrored?: boolean;
     foregroundWidth: number;
     foregroundX: number;
     foregroundY: number;
@@ -40,21 +44,39 @@ export function PortalScene({
                     alt=""
                     className="absolute inset-0 size-full object-cover"
                     src={backgroundImage}
+                    style={{
+                        transform: backgroundMirrored
+                            ? 'scaleX(-1)'
+                            : undefined,
+                    }}
                 />
             ) : (
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.28),rgba(15,23,42,0.92))]" />
             )}
             <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/50" />
             {foregroundImage ? (
-                <img
-                    alt=""
-                    className={cn(
-                        'absolute z-10 -translate-x-1/2 -translate-y-1/2 object-contain',
-                        swirlEnabled && 'animate-portal-swirl',
-                    )}
-                    src={foregroundImage}
+                <span
+                    className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
                     style={foregroundStyle}
-                />
+                >
+                    <span
+                        className="block w-full"
+                        style={{
+                            transform: foregroundMirrored
+                                ? 'scaleX(-1)'
+                                : undefined,
+                        }}
+                    >
+                        <img
+                            alt=""
+                            className={cn(
+                                'w-full object-contain',
+                                swirlEnabled && 'animate-portal-swirl',
+                            )}
+                            src={foregroundImage}
+                        />
+                    </span>
+                </span>
             ) : showForegroundPlaceholder ? (
                 <div
                     className="absolute z-10 grid aspect-square -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-cyan-300/70 bg-cyan-400/20 text-xs font-semibold text-cyan-900 dark:border-teal-200/50 dark:bg-teal-300/12 dark:text-teal-100"

@@ -96,8 +96,11 @@ class NpcDialogueConfiguration
         return [
             'backgroundDark' => '',
             'backgroundLight' => '',
+            'backgroundMirrored' => false,
+            'sceneAssets' => [],
             'npcImageDark' => '',
             'npcImageLight' => '',
+            'npcImageMirrored' => false,
             'slideDirection' => 'left',
             'slideDurationSeconds' => 0.6,
             'fadeDurationSeconds' => 0.4,

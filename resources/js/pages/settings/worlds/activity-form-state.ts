@@ -10,21 +10,23 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         introduction: '',
         item_grant_background_dark: '',
         item_grant_background_light: '',
+        item_grant_background_mirrored: false,
         item_grant_items: [{ itemId: '', quantity: '1' }],
         item_grant_probability_percent: '100',
         item_obstacle_background_dark: '',
         item_obstacle_background_light: '',
+        item_obstacle_background_mirrored: false,
         item_obstacle_lock_minutes: '0',
         item_obstacle_met_background_dark: '',
         item_obstacle_met_background_light: '',
+        item_obstacle_met_background_mirrored: false,
         item_obstacle_overlay_dark: '',
         item_obstacle_overlay_light: '',
+        item_obstacle_overlay_mirrored: false,
         item_obstacle_overlay_width: '30',
         item_obstacle_overlay_x: '50',
         item_obstacle_overlay_y: '50',
-        item_obstacle_slots: [
-            { itemId: '', x: '50', y: '50', width: '10' },
-        ],
+        item_obstacle_slots: [{ itemId: '', x: '50', y: '50', width: '10' }],
         item_obstacle_sound_met_enabled: false,
         item_obstacle_sound_met_id: '',
         item_obstacle_sound_not_met_enabled: false,
@@ -48,6 +50,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         obstacle_allowed_tool_ids: '',
         obstacle_background_dark: '',
         obstacle_background_light: '',
+        obstacle_background_mirrored: false,
         obstacle_bubble_border_color_dark: '#2dd4bf',
         obstacle_bubble_border_color_light: '#0891b2',
         obstacle_bubble_color_dark: '#0f172a',
@@ -56,6 +59,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         obstacle_bubble_opacity_light: '94',
         obstacle_image_dark: '',
         obstacle_image_light: '',
+        obstacle_image_mirrored: false,
         obstacle_persist_after_solved: true,
         obstacle_prompt_text: '',
         obstacle_width: '28',
@@ -63,17 +67,21 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         obstacle_y: '50',
         obstacle_revisit_background_dark: '',
         obstacle_revisit_background_light: '',
+        obstacle_revisit_background_mirrored: false,
         obstacle_revisit_image_dark: '',
         obstacle_revisit_image_light: '',
+        obstacle_revisit_image_mirrored: false,
         obstacle_revisit_text: '',
         obstacle_success_animation: 'zoom',
         obstacle_success_text: '',
         obstacle_typing_speed: '24',
         portal_background_dark: '',
         portal_background_light: '',
+        portal_background_mirrored: false,
         portal_duration_seconds: '1.5',
         portal_foreground_dark: '',
         portal_foreground_light: '',
+        portal_foreground_mirrored: false,
         portal_foreground_width: '28',
         portal_foreground_x: '50',
         portal_foreground_y: '50',
@@ -86,6 +94,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         title: '',
         tool_grant_background_dark: '',
         tool_grant_background_light: '',
+        tool_grant_background_mirrored: false,
         tool_grant_bubble_border_color_dark: '#2dd4bf',
         tool_grant_bubble_border_color_light: '#0891b2',
         tool_grant_bubble_color_dark: '#0f172a',
@@ -97,6 +106,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         tool_grant_slide_duration_seconds: '0.6',
         tool_grant_text: '',
         tool_grant_tool_id: '',
+        tool_grant_tool_mirrored: false,
         tool_grant_tool_x: '50',
         tool_grant_tool_y: '50',
         tool_grant_typing_speed: '24',
@@ -112,8 +122,16 @@ export function activityFormFromActivity(
 
     return {
         introduction: activity.introduction ?? '',
-        item_grant_background_dark: stringConfig(activity.config.backgroundDark),
-        item_grant_background_light: stringConfig(activity.config.backgroundLight),
+        item_grant_background_dark: stringConfig(
+            activity.config.backgroundDark,
+        ),
+        item_grant_background_light: stringConfig(
+            activity.config.backgroundLight,
+        ),
+        item_grant_background_mirrored: booleanConfig(
+            activity.config.backgroundMirrored,
+            false,
+        ),
         item_grant_items: itemGrantItems(activity.config.items),
         item_grant_probability_percent: stringConfig(
             activity.config.probabilityPercent,
@@ -125,6 +143,10 @@ export function activityFormFromActivity(
         item_obstacle_background_light: stringConfig(
             activity.config.backgroundLight,
         ),
+        item_obstacle_background_mirrored: booleanConfig(
+            activity.config.backgroundMirrored,
+            false,
+        ),
         item_obstacle_lock_minutes: stringConfig(
             activity.config.lockMinutes,
             '0',
@@ -135,9 +157,15 @@ export function activityFormFromActivity(
         item_obstacle_met_background_light: stringConfig(
             activity.config.metBackgroundLight,
         ),
+        item_obstacle_met_background_mirrored: booleanConfig(
+            activity.config.metBackgroundMirrored,
+            false,
+        ),
         item_obstacle_overlay_dark: stringConfig(activity.config.overlayDark),
-        item_obstacle_overlay_light: stringConfig(
-            activity.config.overlayLight,
+        item_obstacle_overlay_light: stringConfig(activity.config.overlayLight),
+        item_obstacle_overlay_mirrored: booleanConfig(
+            activity.config.overlayMirrored,
+            false,
         ),
         item_obstacle_overlay_width: stringConfig(
             activity.config.overlayWidth,
@@ -179,6 +207,10 @@ export function activityFormFromActivity(
         obstacle_background_light: stringConfig(
             activity.config.backgroundLight,
         ),
+        obstacle_background_mirrored: booleanConfig(
+            activity.config.backgroundMirrored,
+            false,
+        ),
         obstacle_bubble_border_color_dark: stringConfig(
             activity.config.bubbleBorderColorDark,
             '#2dd4bf',
@@ -205,6 +237,10 @@ export function activityFormFromActivity(
         ),
         obstacle_image_dark: stringConfig(activity.config.obstacleImageDark),
         obstacle_image_light: stringConfig(activity.config.obstacleImageLight),
+        obstacle_image_mirrored: booleanConfig(
+            activity.config.obstacleImageMirrored,
+            false,
+        ),
         obstacle_persist_after_solved: booleanConfig(
             activity.config.persistAfterSolved,
             true,
@@ -219,11 +255,19 @@ export function activityFormFromActivity(
         obstacle_revisit_background_light: stringConfig(
             activity.config.revisitBackgroundLight,
         ),
+        obstacle_revisit_background_mirrored: booleanConfig(
+            activity.config.revisitBackgroundMirrored,
+            false,
+        ),
         obstacle_revisit_image_dark: stringConfig(
             activity.config.revisitImageDark,
         ),
         obstacle_revisit_image_light: stringConfig(
             activity.config.revisitImageLight,
+        ),
+        obstacle_revisit_image_mirrored: booleanConfig(
+            activity.config.revisitImageMirrored,
+            false,
         ),
         obstacle_revisit_text: stringConfig(activity.config.revisitText),
         obstacle_success_animation: stringConfig(
@@ -238,6 +282,10 @@ export function activityFormFromActivity(
         portal_background_light: stringConfig(
             activity.config.portalBackgroundLight,
         ),
+        portal_background_mirrored: booleanConfig(
+            activity.config.portalBackgroundMirrored,
+            false,
+        ),
         portal_duration_seconds: stringConfig(
             activity.config.portalDurationSeconds,
             '1.5',
@@ -247,6 +295,10 @@ export function activityFormFromActivity(
         ),
         portal_foreground_light: stringConfig(
             activity.config.portalForegroundLight,
+        ),
+        portal_foreground_mirrored: booleanConfig(
+            activity.config.portalForegroundMirrored,
+            false,
         ),
         portal_foreground_width: stringConfig(
             activity.config.portalForegroundWidth,
@@ -279,6 +331,10 @@ export function activityFormFromActivity(
         ),
         tool_grant_background_light: stringConfig(
             activity.config.backgroundLight,
+        ),
+        tool_grant_background_mirrored: booleanConfig(
+            activity.config.backgroundMirrored,
+            false,
         ),
         tool_grant_bubble_border_color_dark: stringConfig(
             activity.config.bubbleBorderColorDark,
@@ -318,6 +374,10 @@ export function activityFormFromActivity(
         ),
         tool_grant_text: stringConfig(activity.config.text),
         tool_grant_tool_id: stringConfig(activity.config.toolId),
+        tool_grant_tool_mirrored: booleanConfig(
+            activity.config.toolMirrored,
+            false,
+        ),
         tool_grant_tool_x: stringConfig(activity.config.toolX, '50'),
         tool_grant_tool_y: stringConfig(activity.config.toolY, '50'),
         tool_grant_typing_speed: stringConfig(
@@ -462,9 +522,7 @@ function markdownTransitions(value: unknown): MarkdownTransitionForm[] {
         .filter((transition) => transition.from && transition.to);
 }
 
-function itemGrantItems(
-    value: unknown,
-): ActivityForm['item_grant_items'] {
+function itemGrantItems(value: unknown): ActivityForm['item_grant_items'] {
     if (!Array.isArray(value)) {
         return [{ itemId: '', quantity: '1' }];
     }
@@ -487,14 +545,12 @@ function itemObstacleSlots(
         return [{ itemId: '', x: '50', y: '50', width: '10' }];
     }
 
-    const slots = value
-        .filter(isRecord)
-        .map((slot) => ({
-            itemId: stringConfig(slot.itemId),
-            width: stringConfig(slot.width, '10'),
-            x: stringConfig(slot.x, '50'),
-            y: stringConfig(slot.y, '50'),
-        }));
+    const slots = value.filter(isRecord).map((slot) => ({
+        itemId: stringConfig(slot.itemId),
+        width: stringConfig(slot.width, '10'),
+        x: stringConfig(slot.x, '50'),
+        y: stringConfig(slot.y, '50'),
+    }));
 
     return slots.length > 0
         ? slots

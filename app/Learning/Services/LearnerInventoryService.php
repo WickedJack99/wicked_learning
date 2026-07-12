@@ -58,6 +58,43 @@ class LearnerInventoryService
         });
     }
 
+    /**
+     * Adds only the missing quantity for each item.
+     *
+     * This is used to reconcile older activity progress records that already
+     * stored a successful item roll before inventory application was tracked.
+     *
+     * @param  list<array{itemId: int, quantity: int}>  $items
+     * @return list<LearningItem>
+     */
+    public function grantMissingItems(User $user, array $items): array
+    {
+        return DB::transaction(function () use ($user, $items): array {
+            $missingItems = [];
+
+            foreach ($items as $item) {
+                $itemId = (int) $item['itemId'];
+                $quantity = max(1, (int) $item['quantity']);
+                $pivot = DB::table('user_learning_items')
+                    ->where('user_id', $user->id)
+                    ->where('learning_item_id', $itemId)
+                    ->lockForUpdate()
+                    ->first();
+                $currentQuantity = $pivot ? max(0, (int) $pivot->quantity) : 0;
+                $missingQuantity = max(0, $quantity - $currentQuantity);
+
+                if ($missingQuantity > 0) {
+                    $missingItems[] = [
+                        'itemId' => $itemId,
+                        'quantity' => $missingQuantity,
+                    ];
+                }
+            }
+
+            return $this->grantItems($user, $missingItems);
+        });
+    }
+
     public function consumeItem(User $user, int $itemId, int $quantity = 1): LearningItem
     {
         return DB::transaction(function () use ($user, $itemId, $quantity): LearningItem {

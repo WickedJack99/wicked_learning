@@ -1,4 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
+import type { FormDataConvertible } from '@inertiajs/core';
 import {
     Background,
     Controls,
@@ -50,7 +51,10 @@ import {
 } from '@/components/ui/select';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
-import { ConfigImageInput } from './activity-config-fields';
+import {
+    ConfigImageInput,
+    MirrorImageCheckbox,
+} from './activity-config-fields';
 import {
     ActivityScenePreview,
     ScenePreviewBubble,
@@ -65,12 +69,7 @@ type DialogueConnector = {
     symbol: string;
 };
 
-type DialogueConfigValue =
-    | Array<Record<string, boolean | number | string | null>>
-    | boolean
-    | number
-    | string
-    | null;
+type DialogueConfigValue = FormDataConvertible;
 
 type DialogueNodeSummary = {
     body: string | null;
@@ -116,11 +115,23 @@ type DialogueGraphPayload = {
         title: string;
     };
     transitions: DialogueTransitionSummary[];
+    worldNodes: DialogueTargetNode[];
     world: {
         id: number;
         slug: string;
         title: string;
     };
+};
+
+type DialogueTargetNode = {
+    id: number;
+    mapTitle: string;
+    title: string;
+};
+
+type AnswerEventsConfig = {
+    hideNodeIds: number[];
+    unlockNodeIds: number[];
 };
 
 type EditableTool = {
@@ -137,6 +148,20 @@ type DialogueForm = {
     title: string;
     type: DialogueNodeType;
 };
+
+type DialogueSceneAsset = {
+    id: string;
+    imageDark: string;
+    imageLight: string;
+    label: string;
+    layer: DialogueSceneAssetLayer;
+    mirrored: boolean;
+    width: number;
+    x: number;
+    y: number;
+};
+
+type DialogueSceneAssetLayer = 'behind_npc' | 'front' | 'bubble' | 'overlay';
 
 type DialogueNodeData = {
     dialogueNode: DialogueNodeSummary;
@@ -479,6 +504,7 @@ export default function EditNpcDialogue({
                 onUpload={uploadImage}
                 open={addOpen}
                 processing={processing}
+                targetNodes={dialogueGraph.worldNodes}
                 title="Add dialogue node"
                 tools={tools}
                 uploadingImageKey={uploadingImageKey}
@@ -494,6 +520,7 @@ export default function EditNpcDialogue({
                 onUpload={uploadImage}
                 open={editOpen}
                 processing={processing}
+                targetNodes={dialogueGraph.worldNodes}
                 title="Edit dialogue node"
                 tools={tools}
                 uploadingImageKey={uploadingImageKey}
@@ -705,6 +732,7 @@ function DialogueNodeDialog({
     onUpload,
     open,
     processing,
+    targetNodes,
     title,
     tools,
     uploadingImageKey,
@@ -722,6 +750,7 @@ function DialogueNodeDialog({
     ) => void;
     open: boolean;
     processing: boolean;
+    targetNodes: DialogueTargetNode[];
     title: string;
     tools: EditableTool[];
     uploadingImageKey: string | null;
@@ -767,6 +796,7 @@ function DialogueNodeDialog({
                             errors={errors}
                             form={form}
                             onChange={onChange}
+                            targetNodes={targetNodes}
                             tools={tools}
                         />
                     ) : null}
@@ -983,11 +1013,13 @@ function DialogueFlowFields({
     errors,
     form,
     onChange,
+    targetNodes,
     tools,
 }: {
     errors: Record<string, string>;
     form: DialogueForm;
     onChange: Dispatch<SetStateAction<DialogueForm>>;
+    targetNodes: DialogueTargetNode[];
     tools: EditableTool[];
 }) {
     const kind = formKind(form);
@@ -1025,10 +1057,29 @@ function DialogueFlowFields({
 
     if (kind === 'answer') {
         return (
-            <DialogueEmptySection
-                description="Answers use their graph edge to decide which node plays next."
-                title="No extra flow settings"
-            />
+            <SettingsAccordionSection
+                description="Optional learner-specific world events applied when this answer is chosen."
+                title="Answer events"
+            >
+                <div className="grid gap-4">
+                    <AnswerNodeEventPicker
+                        description="Selected nodes become hidden for the learner who chose this answer."
+                        eventKey="hideNodeIds"
+                        form={form}
+                        label="Hide nodes"
+                        onChange={onChange}
+                        targetNodes={targetNodes}
+                    />
+                    <AnswerNodeEventPicker
+                        description="Selected locked nodes become available for the learner who chose this answer."
+                        eventKey="unlockNodeIds"
+                        form={form}
+                        label="Unlock nodes"
+                        onChange={onChange}
+                        targetNodes={targetNodes}
+                    />
+                </div>
+            </SettingsAccordionSection>
         );
     }
 
@@ -1100,6 +1151,87 @@ function DialogueFlowFields({
     );
 }
 
+function AnswerNodeEventPicker({
+    description,
+    eventKey,
+    form,
+    label,
+    onChange,
+    targetNodes,
+}: {
+    description: string;
+    eventKey: 'hideNodeIds' | 'unlockNodeIds';
+    form: DialogueForm;
+    label: string;
+    onChange: Dispatch<SetStateAction<DialogueForm>>;
+    targetNodes: DialogueTargetNode[];
+}) {
+    const selectedNodeIds = answerEventNodeIds(form.config.events, eventKey);
+
+    return (
+        <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+                <Label>{label}</Label>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {description}
+                </p>
+            </div>
+            <Select
+                onValueChange={(value) =>
+                    addAnswerEventNode(onChange, eventKey, value)
+                }
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Add node" />
+                </SelectTrigger>
+                <SelectContent>
+                    {targetNodes.map((node) => (
+                        <SelectItem
+                            disabled={selectedNodeIds.includes(node.id)}
+                            key={node.id}
+                            value={node.id.toString()}
+                        >
+                            {node.title} - {node.mapTitle}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <div className="flex flex-wrap gap-2">
+                {selectedNodeIds.length === 0 ? (
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                        No nodes selected.
+                    </span>
+                ) : null}
+                {selectedNodeIds.map((nodeId) => {
+                    const node = targetNodes.find(
+                        (candidate) => candidate.id === nodeId,
+                    );
+
+                    return (
+                        <button
+                            className="rounded-full border border-cyan-500/25 bg-cyan-50 px-3 py-1 text-xs text-cyan-800 transition hover:border-cyan-600 dark:border-teal-200/20 dark:bg-teal-200/10 dark:text-teal-100"
+                            key={nodeId}
+                            onClick={() =>
+                                removeAnswerEventNode(
+                                    onChange,
+                                    eventKey,
+                                    nodeId,
+                                )
+                            }
+                            type="button"
+                        >
+                            {node
+                                ? `${node.title} - ${node.mapTitle}`
+                                : `Node ${nodeId}`}
+                            {' x'}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function DialogueVisualFields({
     errors,
     form,
@@ -1132,6 +1264,7 @@ function DialogueVisualFields({
         form.config.npcImageLight,
         resolvedAppearance,
     );
+    const sceneAssets = dialogueSceneAssets(form.config.sceneAssets);
     const bubbleColor = stringConfig(
         isLight ? form.config.bubbleColorLight : form.config.bubbleColorDark,
         isLight ? '#ffffff' : '#0f172a',
@@ -1143,7 +1276,9 @@ function DialogueVisualFields({
         isLight ? '#0891b2' : '#2dd4bf',
     );
     const bubbleOpacity = stringConfig(
-        isLight ? form.config.bubbleOpacityLight : form.config.bubbleOpacityDark,
+        isLight
+            ? form.config.bubbleOpacityLight
+            : form.config.bubbleOpacityDark,
         isLight ? '94' : '92',
     );
 
@@ -1160,17 +1295,40 @@ function DialogueVisualFields({
         <>
             <ActivityScenePreview
                 backgroundImage={backgroundImage}
+                backgroundMirrored={booleanConfig(
+                    form.config.backgroundMirrored,
+                    false,
+                )}
                 description="Uses this node's current theme images, placement and bubble style."
                 title="Dialogue scene preview"
             >
+                <DialogueSceneAssetPreviewLayers
+                    assets={sceneAssets}
+                    mode={resolvedAppearance}
+                    phase="behind_npc"
+                />
                 <ScenePreviewImage
                     imageUrl={npcImage}
                     label="NPC image"
+                    mirrored={booleanConfig(
+                        form.config.npcImageMirrored,
+                        false,
+                    )}
                     width={26}
                     x={stringConfig(form.config.npcX, '50')}
                     y={stringConfig(form.config.npcY, '48')}
                 />
+                <DialogueSceneAssetPreviewLayers
+                    assets={sceneAssets}
+                    mode={resolvedAppearance}
+                    phase="front"
+                />
                 <div className="absolute inset-x-3 bottom-3">
+                    <DialogueSceneAssetPreviewLayers
+                        assets={sceneAssets}
+                        mode={resolvedAppearance}
+                        phase="bubble"
+                    />
                     <ScenePreviewBubble
                         borderColor={bubbleBorderColor}
                         color={bubbleColor}
@@ -1179,6 +1337,11 @@ function DialogueVisualFields({
                         text={form.body ?? form.title}
                     />
                 </div>
+                <DialogueSceneAssetPreviewLayers
+                    assets={sceneAssets}
+                    mode={resolvedAppearance}
+                    phase="overlay"
+                />
             </ActivityScenePreview>
 
             <SettingsAccordionSection
@@ -1266,6 +1429,99 @@ function DialogueVisualFields({
                         uploading={uploadingImageKey === 'npcImageLight'}
                         value={stringConfig(form.config.npcImageLight)}
                     />
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <MirrorImageCheckbox
+                        checked={booleanConfig(
+                            form.config.backgroundMirrored,
+                            false,
+                        )}
+                        label="Mirror background horizontally"
+                        onChange={(checked) =>
+                            setConfigValue(
+                                onChange,
+                                'backgroundMirrored',
+                                checked,
+                            )
+                        }
+                    />
+                    <MirrorImageCheckbox
+                        checked={booleanConfig(
+                            form.config.npcImageMirrored,
+                            false,
+                        )}
+                        label="Mirror NPC image horizontally"
+                        onChange={(checked) =>
+                            setConfigValue(
+                                onChange,
+                                'npcImageMirrored',
+                                checked,
+                            )
+                        }
+                    />
+                </div>
+            </SettingsAccordionSection>
+
+            <SettingsAccordionSection
+                description="Optional layered images for props, masks, foreground details or custom bubble frames."
+                title="Additional scene assets"
+            >
+                <div className="grid gap-4">
+                    {sceneAssets.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                            No extra assets yet. Add one to layer props, scenery
+                            pieces or bubble decorations into this dialogue
+                            scene.
+                        </p>
+                    ) : null}
+
+                    {sceneAssets.map((asset, index) => (
+                        <DialogueSceneAssetEditor
+                            asset={asset}
+                            errors={errors}
+                            imageUploadErrors={imageUploadErrors}
+                            index={index}
+                            key={asset.id}
+                            onChange={(updatedAsset) =>
+                                setConfigValue(
+                                    onChange,
+                                    'sceneAssets',
+                                    sceneAssets.map((candidate) =>
+                                        candidate.id === asset.id
+                                            ? updatedAsset
+                                            : candidate,
+                                    ),
+                                )
+                            }
+                            onRemove={() =>
+                                setConfigValue(
+                                    onChange,
+                                    'sceneAssets',
+                                    sceneAssets.filter(
+                                        (candidate) =>
+                                            candidate.id !== asset.id,
+                                    ),
+                                )
+                            }
+                            onUpload={onUpload}
+                            uploadingImageKey={uploadingImageKey}
+                        />
+                    ))}
+
+                    <Button
+                        className="justify-self-start"
+                        onClick={() =>
+                            setConfigValue(onChange, 'sceneAssets', [
+                                ...sceneAssets,
+                                createDialogueSceneAsset(sceneAssets.length),
+                            ])
+                        }
+                        type="button"
+                        variant="secondary"
+                    >
+                        <Plus className="size-4" />
+                        Add asset
+                    </Button>
                 </div>
             </SettingsAccordionSection>
 
@@ -1447,6 +1703,225 @@ function DialogueVisualFields({
                     />
                 </div>
             </SettingsAccordionSection>
+        </>
+    );
+}
+
+function DialogueSceneAssetEditor({
+    asset,
+    errors,
+    imageUploadErrors,
+    index,
+    onChange,
+    onRemove,
+    onUpload,
+    uploadingImageKey,
+}: {
+    asset: DialogueSceneAsset;
+    errors: Record<string, string>;
+    imageUploadErrors: Record<string, string>;
+    index: number;
+    onChange: (asset: DialogueSceneAsset) => void;
+    onRemove: () => void;
+    onUpload: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
+    uploadingImageKey: string | null;
+}) {
+    const darkUploadKey = `sceneAssets.${asset.id}.imageDark`;
+    const lightUploadKey = `sceneAssets.${asset.id}.imageLight`;
+
+    return (
+        <div className="grid gap-4 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                        Asset {index + 1}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Layer an additional visual into this one dialogue scene.
+                    </p>
+                </div>
+                <Button
+                    aria-label={`Remove asset ${index + 1}`}
+                    onClick={onRemove}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                >
+                    <Trash2 className="size-4" />
+                    Remove
+                </Button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`scene-asset-label-${asset.id}`}>
+                        Label
+                    </Label>
+                    <Input
+                        id={`scene-asset-label-${asset.id}`}
+                        onChange={(event) =>
+                            onChange({
+                                ...asset,
+                                label: event.currentTarget.value,
+                            })
+                        }
+                        value={asset.label}
+                    />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor={`scene-asset-layer-${asset.id}`}>
+                        Layer
+                    </Label>
+                    <Select
+                        onValueChange={(value) =>
+                            onChange({
+                                ...asset,
+                                layer: value as DialogueSceneAssetLayer,
+                            })
+                        }
+                        value={asset.layer}
+                    >
+                        <SelectTrigger id={`scene-asset-layer-${asset.id}`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="behind_npc">
+                                Behind NPC
+                            </SelectItem>
+                            <SelectItem value="front">
+                                In front of NPC
+                            </SelectItem>
+                            <SelectItem value="bubble">
+                                Around speech bubble
+                            </SelectItem>
+                            <SelectItem value="overlay">
+                                Above everything
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+                <ConfigImageInput
+                    description="Displayed for this asset in dark mode."
+                    error={
+                        imageUploadErrors[darkUploadKey] ??
+                        errors[`config.sceneAssets.${index}.imageDark`]
+                    }
+                    id={`scene-asset-dark-${asset.id}`}
+                    label="Dark image"
+                    onChange={(value) =>
+                        onChange({ ...asset, imageDark: value })
+                    }
+                    onUpload={(file) =>
+                        onUpload(darkUploadKey, file, (url) =>
+                            onChange({ ...asset, imageDark: url }),
+                        )
+                    }
+                    uploading={uploadingImageKey === darkUploadKey}
+                    value={asset.imageDark}
+                />
+                <ConfigImageInput
+                    description="Optional light-mode override. If empty, the dark image is reused."
+                    error={
+                        imageUploadErrors[lightUploadKey] ??
+                        errors[`config.sceneAssets.${index}.imageLight`]
+                    }
+                    id={`scene-asset-light-${asset.id}`}
+                    label="Light image"
+                    onChange={(value) =>
+                        onChange({ ...asset, imageLight: value })
+                    }
+                    onUpload={(file) =>
+                        onUpload(lightUploadKey, file, (url) =>
+                            onChange({ ...asset, imageLight: url }),
+                        )
+                    }
+                    uploading={uploadingImageKey === lightUploadKey}
+                    value={asset.imageLight}
+                />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-4">
+                <ConfigNumberField
+                    label="X position"
+                    max="100"
+                    min="0"
+                    onChange={(value) =>
+                        onChange({ ...asset, x: numericConfig(value, 50) })
+                    }
+                    suffix="%"
+                    value={asset.x.toString()}
+                />
+                <ConfigNumberField
+                    label="Y position"
+                    max="100"
+                    min="0"
+                    onChange={(value) =>
+                        onChange({ ...asset, y: numericConfig(value, 50) })
+                    }
+                    suffix="%"
+                    value={asset.y.toString()}
+                />
+                <ConfigNumberField
+                    label="Width"
+                    max="100"
+                    min="1"
+                    onChange={(value) =>
+                        onChange({
+                            ...asset,
+                            width: numericConfig(value, 24),
+                        })
+                    }
+                    suffix="%"
+                    value={asset.width.toString()}
+                />
+                <MirrorImageCheckbox
+                    checked={asset.mirrored}
+                    label="Mirror horizontally"
+                    onChange={(checked) =>
+                        onChange({ ...asset, mirrored: checked })
+                    }
+                />
+            </div>
+        </div>
+    );
+}
+
+function DialogueSceneAssetPreviewLayers({
+    assets,
+    mode,
+    phase,
+}: {
+    assets: DialogueSceneAsset[];
+    mode: 'dark' | 'light';
+    phase: DialogueSceneAssetLayer;
+}) {
+    return (
+        <>
+            {assets
+                .filter((asset) => asset.layer === phase)
+                .map((asset) => (
+                    <ScenePreviewImage
+                        imageUrl={themedPreviewAsset(
+                            asset.imageDark,
+                            asset.imageLight,
+                            mode,
+                        )}
+                        key={asset.id}
+                        label={asset.label || 'Scene asset'}
+                        mirrored={asset.mirrored}
+                        width={asset.width}
+                        x={asset.x}
+                        y={asset.y}
+                        zIndex={dialogueSceneAssetZIndex(asset.layer)}
+                    />
+                ))}
         </>
     );
 }
@@ -1660,12 +2135,85 @@ function validSourceHandle(
         : (connectorIds[0] ?? connector);
 }
 
+function dialogueSceneAssets(value: unknown): DialogueSceneAsset[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(isRecord).map((asset, index) => ({
+        id: stringConfig(asset.id, `asset-${index + 1}`),
+        imageDark: stringConfig(asset.imageDark),
+        imageLight: stringConfig(asset.imageLight),
+        label: stringConfig(asset.label, `Asset ${index + 1}`),
+        layer: dialogueSceneAssetLayer(asset.layer),
+        mirrored: booleanConfig(asset.mirrored, false),
+        width: clampNumber(numericConfig(asset.width, 24), 1, 100),
+        x: clampNumber(numericConfig(asset.x, 50), 0, 100),
+        y: clampNumber(numericConfig(asset.y, 50), 0, 100),
+    }));
+}
+
+function createDialogueSceneAsset(index: number): DialogueSceneAsset {
+    return {
+        id: `asset-${Date.now()}-${index + 1}`,
+        imageDark: '',
+        imageLight: '',
+        label: `Asset ${index + 1}`,
+        layer: 'front',
+        mirrored: false,
+        width: 24,
+        x: 50,
+        y: 50,
+    };
+}
+
+function dialogueSceneAssetLayer(value: unknown): DialogueSceneAssetLayer {
+    if (
+        value === 'behind_npc' ||
+        value === 'front' ||
+        value === 'bubble' ||
+        value === 'overlay'
+    ) {
+        return value;
+    }
+
+    return 'front';
+}
+
+function dialogueSceneAssetZIndex(layer: DialogueSceneAssetLayer): number {
+    if (layer === 'behind_npc') {
+        return 8;
+    }
+
+    if (layer === 'front') {
+        return 18;
+    }
+
+    if (layer === 'bubble') {
+        return 22;
+    }
+
+    return 30;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+}
+
 function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
     if (type === 'answer') {
         return {
             body: '',
             config: {
                 answerLabel: 'A',
+                events: {
+                    hideNodeIds: [],
+                    unlockNodeIds: [],
+                },
                 isCorrect: false,
             },
             title: 'Answer',
@@ -1684,6 +2232,8 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                 : {
                       backgroundDark: '',
                       backgroundLight: '',
+                      backgroundMirrored: false,
+                      sceneAssets: [],
                       bubbleBorderColorDark: '#2dd4bf',
                       bubbleBorderColorLight: '#0891b2',
                       bubbleColorDark: '#0f172a',
@@ -1693,6 +2243,7 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                       fadeDurationSeconds: 0.4,
                       npcImageDark: '',
                       npcImageLight: '',
+                      npcImageMirrored: false,
                       npcX: 50,
                       npcY: 50,
                       questionOutputCount: 2,
@@ -1748,6 +2299,82 @@ function setConfigValue(
             [key]: value,
         },
     }));
+}
+
+function addAnswerEventNode(
+    setForm: Dispatch<SetStateAction<DialogueForm>>,
+    eventKey: 'hideNodeIds' | 'unlockNodeIds',
+    value: string,
+) {
+    const nodeId = Number(value);
+
+    if (!Number.isFinite(nodeId) || nodeId <= 0) {
+        return;
+    }
+
+    setForm((current) => {
+        const events = answerEventsConfig(current.config.events);
+        const nextNodeIds = Array.from(
+            new Set([...answerEventNodeIds(events, eventKey), nodeId]),
+        );
+
+        return {
+            ...current,
+            config: {
+                ...current.config,
+                events: {
+                    ...events,
+                    [eventKey]: nextNodeIds,
+                },
+            },
+        };
+    });
+}
+
+function removeAnswerEventNode(
+    setForm: Dispatch<SetStateAction<DialogueForm>>,
+    eventKey: 'hideNodeIds' | 'unlockNodeIds',
+    nodeId: number,
+) {
+    setForm((current) => {
+        const events = answerEventsConfig(current.config.events);
+
+        return {
+            ...current,
+            config: {
+                ...current.config,
+                events: {
+                    ...events,
+                    [eventKey]: answerEventNodeIds(events, eventKey).filter(
+                        (candidateId) => candidateId !== nodeId,
+                    ),
+                },
+            },
+        };
+    });
+}
+
+function answerEventsConfig(value: unknown): AnswerEventsConfig {
+    return {
+        hideNodeIds: answerEventNodeIds(value, 'hideNodeIds'),
+        unlockNodeIds: answerEventNodeIds(value, 'unlockNodeIds'),
+    };
+}
+
+function answerEventNodeIds(
+    eventsValue: unknown,
+    eventKey: 'hideNodeIds' | 'unlockNodeIds',
+): number[] {
+    const events = isRecord(eventsValue) ? eventsValue : {};
+    const value = events[eventKey];
+
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .map((nodeId) => numericConfig(nodeId, 0))
+        .filter((nodeId) => nodeId > 0);
 }
 
 function dialogueOutputConnectors(
@@ -1817,6 +2444,22 @@ function numericConfig(value: unknown, fallback: number): number {
         const parsed = Number(value);
 
         return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    return fallback;
+}
+
+function booleanConfig(value: unknown, fallback = false): boolean {
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
+    if (typeof value === 'string') {
+        return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
     }
 
     return fallback;
