@@ -70,7 +70,7 @@ Admins can configure activity type, order, repeatability, conditions, completion
 
 # Visual Configuration
 
-Activity visuals must be semantic and configurable. A `tool_requirement` could look like a firewall, magic barrier, force field or abstract lock depending on the world.
+Activity visuals must be semantic and configurable. A `tool_requirement` could look like a fallen tree, magic barrier, force field, missing tool part or abstract lock depending on the world.
 
 Configurable values include icon, animation token, particle effect, node override, panel layout, sound and transition.
 

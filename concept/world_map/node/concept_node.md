@@ -13,9 +13,10 @@ This allows the same system to support many visual themes and learning worlds.
 
 Examples:
 
-- Cyber world: firewall, server room, malware nest, SOC desk
 - Medieval world: gate, tower, merchant camp, cursed forest
 - Space world: station, planet, wormhole, satellite
+- Nature world: grove, bridge, lookout, river bend
+- Craft world: workshop, tool shelf, sketch table, kiln
 - Minimal world: abstract shapes, cards, portals
 
 ## Core Idea
@@ -72,8 +73,8 @@ The node should visually reflect its current state.
 Examples:
 
 ```text
-Firewall blocks the path
-Virus appears
+Barrier blocks the path
+New challenge appears
 Merchant is available
 Portal is active
 Challenge is completed

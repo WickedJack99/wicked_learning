@@ -25,7 +25,7 @@ Examples:
 
 ```text
 A merchant appears
-A firewall blocks the way
+A barrier blocks the way
 The learner must use a tool
 A scenario begins
 A lesson is shown
@@ -42,11 +42,11 @@ A node may contain a sequence of activities.
 Example:
 
 ```text
-1. Show firewall
-2. Require Firewall Remover tool
-3. Firewall disappears
-4. Malware appears
-5. Start incident investigation challenge
+1. Show barrier
+2. Require the matching tool
+3. Barrier disappears
+4. New scene appears
+5. Start scenario challenge
 6. Ask competence questions
 7. Award artifact
 8. Unlock connection
@@ -88,10 +88,10 @@ Example:
 ```yaml
 activity:
   type: tool_requirement
-  required_tool: firewall_remover
+  required_tool: barrier_tool
   visual_state:
-    icon: firewall
-    animation: firewall_pulse
+    icon: barrier
+    animation: barrier_pulse
     particle_effect: sparks
 ```
 
@@ -100,11 +100,11 @@ Next activity:
 ```yaml
 activity:
   type: scenario
-  title: Malware Outbreak
+  title: Garden Path Opens
   visual_state:
-    icon: virus
-    animation: virus_spread
-    particle_effect: red_glow
+    icon: path
+    animation: path_reveal
+    particle_effect: soft_glow
 ```
 
 ## Activity Completion
@@ -173,8 +173,8 @@ Activities should not assume a fixed genre.
 The same activity model should support:
 
 ```text
-Cyber world:
-Firewall blocks the path.
+Nature world:
+A fallen tree blocks the path.
 
 Medieval world:
 A magical barrier blocks the gate.

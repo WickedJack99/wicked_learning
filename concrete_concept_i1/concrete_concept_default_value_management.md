@@ -60,7 +60,7 @@ Admins can configure visual defaults, activity defaults, feedback defaults, AI g
 
 # Visual Configuration
 
-Defaults may include icons, colors, animation names, particle presets, tile states, sound tokens and theme classes. These must be tokenized and style-agnostic so a cyber world, medieval world or minimal world can use the same semantic state with different assets.
+Defaults may include icons, colors, animation names, particle presets, tile states, sound tokens and theme classes. These must be tokenized and style-agnostic so a nature world, medieval world, workshop world or minimal world can use the same semantic state with different assets.
 
 # API / Backend Responsibilities
 

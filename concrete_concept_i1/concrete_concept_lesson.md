@@ -60,7 +60,7 @@ Admins can configure block order, required interactions, estimated time, topic l
 
 # Visual Configuration
 
-Lessons should inherit world theme without assuming a format. A lesson may appear as terminal logs, manuscript pages, ship briefings or minimal panels. Visuals include block container, prompt treatment, media layout and completion state.
+Lessons should inherit world theme without assuming a format. A lesson may appear as field notes, manuscript pages, ship briefings, workshop cards or minimal panels. Visuals include block container, prompt treatment, media layout and completion state.
 
 # API / Backend Responsibilities
 

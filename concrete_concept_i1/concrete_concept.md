@@ -71,7 +71,7 @@ Admins can configure prompt frequency, passive-content limits, accepted activity
 
 # Visual Configuration
 
-This concept should not prescribe visuals. Any theme may represent interactive learning differently: scanner interruptions in a cyber world, campfire questions in fantasy, mission logs in space or clean inline cards in an abstract world.
+This concept should not prescribe visuals. Any theme may represent interactive learning differently: trail markers in a nature world, campfire questions in fantasy, mission logs in space, workbench prompts in a craft world or clean inline cards in an abstract world.
 
 Visual tokens should include prompt icon, activity status treatment, quality-warning state, completion state and refresh-needed state.
 

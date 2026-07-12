@@ -2,7 +2,7 @@
 
 Define merchant activities as configurable exchange or unlock interactions inside nodes.
 
-The source file is currently empty, so this proposal keeps the merchant semantic broad: any world can represent it as a vendor, archive, terminal, shrine, station or abstract exchange point.
+The source file is currently empty, so this proposal keeps the merchant semantic broad: any world can represent it as a vendor, archive, shrine, station, workshop desk or abstract exchange point.
 
 # Core Concepts
 

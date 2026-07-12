@@ -41,7 +41,7 @@ NPC dialogue activities now use the same graph idea at a nested level:
 - Feedback is authored as normal follow-up monologue/question nodes instead of appearing as a special feedback card. This keeps the conversation fluid and lets admins decide how correction, hints or confirmation should feel.
 - Question interactions block normal forward/back controls until an answer is selected. After the answer is confirmed, correctness is stored privately and the graph continues through the selected answer node.
 - Keyboard playback controls are part of runtime: left arrow moves back where allowed, right arrow or space continues, and enter confirms a question answer.
-- The demo seed includes a second Signal Gate route named `Guided signal dialogue`. It uses simple dark/light NPC and background SVG assets, a question interaction with multiple answer output connectors, answer nodes, correctness tracking, a review loop and a successful end connector.
+- The demo seed includes a second Pattern Gate route named `Guided pattern dialogue`. It uses simple dark/light NPC and background SVG assets, a question interaction with multiple answer output connectors, answer nodes, correctness tracking, a review loop and a successful end connector.
 
 Planned deeper dialogue layers:
 
@@ -108,3 +108,18 @@ Sound direction:
 - A sound can have an icon category, display name, volume, loop flag and optional play-only-first-n-seconds setting.
 - Runtime audio should support layering. Background ambience, dialogue effects and interaction sounds may play together.
 - Future activity editors should use the reusable sound picker instead of duplicating upload/download/select behavior.
+
+Item activity direction:
+
+- Items are consumable inventory objects, unlike reusable tools.
+- Grant-item activities can grant multiple item types and quantities after a server-side probability roll.
+- The grant roll and inventory write must stay backend-owned so a learner cannot repeatedly trigger only the browser request to farm items.
+- Item-obstacle activities display configurable item slots over a scene. Dragging the correct item into a slot consumes it and records the slot state.
+- Item obstacles can require several slots before continuing and can optionally lock retry attempts for a configured real-time duration.
+- The learner inventory appears in the side action bar as a compact grid with item counts.
+
+Markdown activity direction:
+
+- Markdown activities contain a nested page graph with Start, page and End nodes.
+- Page nodes store Markdown content, media embeds and theme-specific colors for page surface, text, border and headings.
+- Runtime navigation uses arrows, space and keyboard arrows while still fitting into the normal activity route flow.

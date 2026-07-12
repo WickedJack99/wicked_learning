@@ -1,4 +1,4 @@
-# AI-Based Competence Question Generation
+﻿# AI-Based Competence Question Generation
 
 ## Overview
 
@@ -26,7 +26,7 @@ The generated questions should help learners demonstrate understanding, reasonin
 
 # Question Design Philosophy
 
-AI-generated questions should focus on competence rather than memorization.
+AI-assisted questions should focus on competence rather than memorization.
 
 Questions should encourage learners to:
 
@@ -43,27 +43,27 @@ The platform should prefer scenario-based and problem-oriented questions.
 Examples:
 
 ```text
-A Fleet Server suddenly stops enrolling new agents. What would you check first?
+A group activity suddenly stops accepting new participants. What would you check first?
 ```
 
 ```text
-A Kibana detection rule produces too many alerts after a configuration change. How would you investigate and reduce noise?
+A practice exercise produces too many irrelevant prompts after a configuration change. How would you investigate and reduce noise?
 ```
 
 ```text
-A deployment becomes more expensive over time. Which data lifecycle settings would you review?
+A project becomes harder to maintain over time. Which lifecycle or cleanup settings would you review?
 ```
 
 ---
 
 # Question Types
 
-The system should support multiple AI-generated question types.
+The system should support multiple AI-assisted question types.
 
 Possible question types:
 
 * Scenario question
-* Troubleshooting question
+* Reflection question
 * Multiple-choice question
 * Open-ended explanation question
 * Decision-making question
@@ -86,8 +86,8 @@ It should explain what the learner demonstrated and what might still be missing.
 Example feedback:
 
 ```text
-Your answer correctly identifies Fleet Server health as a possible cause.
-However, you did not mention checking agent policy assignment or enrollment token validity.
+Your answer correctly identifies system health as a possible cause.
+However, you did not mention checking configuration, access rules or recent changes.
 ```
 
 Feedback should support competence development by being specific, informational and actionable.
@@ -174,7 +174,7 @@ A general instruction context used for requests made through this connection.
 Example:
 
 ```text
-Generate competence-oriented questions for cybersecurity learners.
+Generate competence-oriented questions for learners in this world.
 Prefer scenario-based questions.
 Avoid pure memorization questions unless necessary.
 ```
@@ -313,7 +313,7 @@ Possible values:
 
 ```text
 Scenario-based
-Troubleshooting
+Reflection
 Multiple-choice
 Open-ended
 Reflection
@@ -327,7 +327,7 @@ The style should guide the AI output but not fully restrict it.
 
 # Generated Output Structure
 
-AI-generated questions should be stored in a structured format.
+AI-assisted questions should be stored in a structured format.
 
 Example:
 
@@ -340,14 +340,14 @@ Example:
     "Check ingestion rate and indexing pressure",
     "Review resource usage of hot nodes",
     "Inspect shard count and index lifecycle settings",
-    "Check Kibana or Elasticsearch logs for bottlenecks"
+    "Check logs or system notes for bottlenecks"
   ],
   "feedback_correct": "Your answer shows a good understanding of operational troubleshooting.",
   "feedback_partial": "Your answer identifies one valid direction, but it misses other important investigation areas.",
   "feedback_incorrect": "Try to focus on resource usage, ingestion pressure and data lifecycle configuration.",
   "competencies": [
-    "Elastic Operations",
-    "Troubleshooting",
+    "World Operations",
+    "Reflection",
     "Resource Analysis"
   ]
 }
@@ -357,7 +357,7 @@ Example:
 
 # Review Workflow
 
-AI-generated questions should not automatically become active learning content.
+AI-assisted questions should not automatically become active learning content.
 
 A review step should exist.
 
@@ -365,13 +365,13 @@ Suggested workflow:
 
 ```text
 Generate questions
-↓
+â†“
 Admin reviews questions
-↓
+â†“
 Admin edits or rejects questions
-↓
+â†“
 Admin approves selected questions
-↓
+â†“
 Questions become available to learners
 ```
 

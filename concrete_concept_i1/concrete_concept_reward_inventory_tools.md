@@ -69,7 +69,7 @@ Admins can configure item type, quantity behavior, consumable behavior, grant so
 
 # Visual Configuration
 
-Inventory visuals must be configurable. A leather pouch is one possible theme, but cyber, space, fantasy and minimal worlds may use panels, cargo holds, spellbooks, utility belts or abstract grids.
+Inventory visuals must be configurable. A leather pouch is one possible theme, but space, fantasy, craft, nature and minimal worlds may use cargo holds, spellbooks, tool rolls, satchels or abstract grids.
 
 Configurable visuals include item icon, slot style, drag ghost, use animation, disabled state, target highlight and success effect.
 

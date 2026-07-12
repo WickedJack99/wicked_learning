@@ -2,7 +2,7 @@
 
 An open-source experiment in building an explorable learning environment around intrinsic motivation instead of points, streaks, badges or leaderboards.
 
-Learning Worlds is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform where admins can shape the visual theme, maps, nodes and activities for very different learning worlds: cybersecurity, medieval history, astronomy, language learning, or something stranger and more personal.
+Learning Worlds is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, nodes, activities, media and public text while the core learning model stays reusable.
 
 The concept direction comes from WickedJack99. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
 
@@ -30,6 +30,7 @@ This repository is no longer only a concept archive. It contains a working verti
 - editable worlds, maps and map nodes
 - dark and light node visuals, including full-tile images
 - discoverable hidden nodes that can be revealed with tools
+- locked nodes with configurable unlock conditions and optional tool unlocks
 - editable public presentation content and auth page backgrounds
 - reusable visual and sound libraries for uploaded assets
 - configurable cursor images for default, pointer and drag states
@@ -37,8 +38,8 @@ This repository is no longer only a concept archive. It contains a working verti
 - route cards with optional light and dark images
 - activity playback on a separate page
 - portal activities that can move learners between nodes and maps
-- NPC dialogue, tool-grant and obstacle activity prototypes
-- a learner tool bar for selecting acquired tools and using them in maps or activities
+- NPC dialogue, markdown, tool-grant, item-grant, obstacle and item-obstacle activity prototypes
+- learner tool and item side controls for selecting acquired tools and viewing consumable inventory
 
 The prototype intentionally avoids point totals, streak pressure and ranking loops. The interaction goal is exploration first, reward-chasing last.
 
@@ -50,7 +51,7 @@ Learners move through maps made of hexagonal nodes. A node can represent a topic
 
 ### Generic worlds
 
-The same structure should be themeable for different domains. A deployment could look like a cyber network, a medieval province, a star map or a quiet notebook. Images, colors, backgrounds, cursors and public text are intended to be configurable.
+The same structure is intended to work for any subject area. A deployment can configure its own visual language, story framing, map access, node artwork, activities, cursors, sounds and public text without changing the platform's learning logic.
 
 ### Activity routes
 
@@ -93,7 +94,7 @@ The development seeder creates:
 
 - an admin user: `test@example.com`
 - password: `password`
-- a demo world called `Signal Garden`
+- a demo world called `Learning Grove`
 
 The Composer `dev` script starts the Laravel server, queue listener and Vite together. You can also run the pieces separately with `php artisan serve`, `php artisan queue:listen` and `npm run dev`.
 

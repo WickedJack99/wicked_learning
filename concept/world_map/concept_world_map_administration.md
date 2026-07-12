@@ -1,4 +1,4 @@
-# World Builder Administration Interface
+﻿# World Builder Administration Interface
 
 The administration interface should provide two different views of the same world structure:
 
@@ -9,16 +9,16 @@ The structure view represents all worlds, maps and nodes as a directory tree sim
 Example:
 
 ```text
-Elastic World/
-├─ ECE Basics/
-│  ├─ Portal: Fleet & Agents
-│  ├─ Lesson: Data Tiers
-│  └─ Boss: Capacity Planning
-├─ Detection Engineering/
-│  ├─ Lesson: EQL Rules
-│  └─ Merchant: Rule Templates
-└─ Troubleshooting/
-   └─ Portal: JVM Memory Pressure
+Example World/
+â”œâ”€ Core Basics/
+â”‚  â”œâ”€ Portal: Practice Path
+â”‚  â”œâ”€ Lesson: Layered Concepts
+â”‚  â””â”€ Boss: Planning Challenge
+â”œâ”€ Pattern Practice/
+â”‚  â”œâ”€ Lesson: Rule Examples
+â”‚  â””â”€ Merchant: Template Library
+â””â”€ Reflection/
+   â””â”€ Portal: Memory Pressure
 ```
 
 Maps are represented as directories.

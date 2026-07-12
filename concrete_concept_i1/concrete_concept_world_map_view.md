@@ -69,7 +69,7 @@ Admins can configure map title, background, grid size, available nodes, portal l
 
 # Visual Configuration
 
-Visuals are configurable per world and map. The same map system must support cyber grids, medieval regions, fantasy realms, space sectors and minimal abstract layouts.
+Visuals are configurable per world and map. The same map system must support forest paths, medieval regions, fantasy realms, space sectors, workshops and minimal abstract layouts.
 
 Configurable assets include background images, tile shape treatment, node icons, connection lines, travel animation, particles, sounds and theme classes.
 

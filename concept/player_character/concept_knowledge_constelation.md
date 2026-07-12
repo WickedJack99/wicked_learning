@@ -1,4 +1,4 @@
-# Knowledge Constellation
+﻿# Knowledge Constellation
 
 ## Overview
 
@@ -52,12 +52,12 @@ Each star represents one topic or competency.
 
 Examples:
 
-* Fleet Management
-* ECE Architecture
-* Detection Engineering
-* Incident Response
-* Linux Basics
-* Networking
+* Meadow Systems
+* Craft Practice
+* Pattern Reading
+* Reflection
+* Language Basics
+* Collaboration
 
 Stars have three visual layers:
 
@@ -225,7 +225,7 @@ Direction may be represented through motion rather than arrows.
 Example:
 
 ```text
-Small particles move from Fleet Management toward ECE Architecture if the learner often studies Fleet before ECE.
+Small particles move from Meadow Systems toward Craft Practice if the learner often studies Meadow Systems before Craft Practice.
 ```
 
 ---

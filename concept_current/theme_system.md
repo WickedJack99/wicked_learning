@@ -13,6 +13,7 @@ Current configurable visual fields include:
 - Node foreground color.
 - Node hover highlight color.
 - Node tile image, with dark/light variants.
+- Node image position, width and rotation inside the runtime hex mask.
 - Node image visibility.
 - Node lock, completed and hidden/revealed visual states.
 - Dialogue portrait image per stage.
@@ -25,7 +26,9 @@ Current configurable visual fields include:
 - Admin-editable welcome page text blocks.
 - Route preview images and overlay button/frame colors per dark/light mode.
 - Tool images and tool animation images, with dark/light variants and configurable display widths.
+- Item images, with dark/light variants.
 - Obstacle activity backgrounds, obstacle images and cleared-state images, with dark/light variants.
+- Markdown page colors and embedded media.
 - Reusable visual assets that can be selected by multiple forms instead of uploaded repeatedly.
 - Reusable sound assets with icon, volume, loop and optional playback-duration metadata.
 
@@ -43,4 +46,4 @@ Appearance behavior:
 - Sounds are modeled separately from images because playback requires volume, loop and duration behavior.
 - Cursor settings are global presentation settings. Equipped tools are a special override and may temporarily replace the cursor with a tool image or animation.
 
-Future themes should be able to replace these with medieval, astronomy, biology, abstract or other visuals without changing the learning logic.
+Future deployments should be able to replace these with any domain-specific visual language without changing the learning logic.

@@ -21,4 +21,4 @@ The first implementation is intentionally small, but now contains more than the 
 - Admin registration-token and user-access management.
 - Editable platform information pages for About, Imprint and Data Protection.
 
-The platform should stay generic. A deployment about medieval history, astronomy, cybersecurity or biology should be able to change visuals and story framing without rewriting learning logic.
+The platform should stay generic and usable for any learning domain. A deployment should be able to change terminology, visuals, maps, characters, media and story framing without rewriting the core learning logic.

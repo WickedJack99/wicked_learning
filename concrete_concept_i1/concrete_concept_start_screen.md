@@ -56,7 +56,7 @@ Admins can configure credit labels, order, display duration, skip behavior, repe
 
 # Visual Configuration
 
-The intro must be themeable. It may use terminal boot, parchment reveal, starfield jump, abstract fade or any other configured presentation. The data model should only store assets and animation tokens.
+The intro must be themeable. It may use a trail opening, parchment reveal, starfield jump, abstract fade or any other configured presentation. The data model should only store assets and animation tokens.
 
 # API / Backend Responsibilities
 

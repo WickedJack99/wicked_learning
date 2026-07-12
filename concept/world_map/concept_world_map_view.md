@@ -1,4 +1,4 @@
-# Learning World Map Concept
+﻿# Learning World Map Concept
 
 ## Overview
 
@@ -14,11 +14,11 @@ A map represents a learning area.
 
 Examples:
 
-* Cybersecurity
-* Elastic Stack
+* Astronomy
+* Botany
 * Programming
-* Incident Response
-* Threat Hunting
+* History
+* Language practice
 
 Each map contains multiple nodes positioned on a hexagonal grid.
 
@@ -77,13 +77,13 @@ Inspired by world navigation systems found in exploration-based games, portals a
 Examples:
 
 ```text
-Elastic World
-  └── Portal
-        └── Fleet & Agents
+Astronomy World
+  â””â”€â”€ Portal
+        â””â”€â”€ Planetary Motion
 
-Fleet & Agents
-  └── Portal
-        └── Agent Troubleshooting
+Planetary Motion
+  â””â”€â”€ Portal
+        â””â”€â”€ Gravity Practice
 ```
 
 Portals may also connect unrelated learning areas when meaningful relationships exist.
@@ -91,9 +91,9 @@ Portals may also connect unrelated learning areas when meaningful relationships 
 Example:
 
 ```text
-Detection Engineering
-  └── Portal
-        └── Threat Intelligence
+Botany Basics
+  â””â”€â”€ Portal
+        â””â”€â”€ Soil and Water
 ```
 
 ## Dynamic World Progression

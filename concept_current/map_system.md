@@ -11,12 +11,14 @@ Current behavior:
 - Mobile dragging uses touch/pointer behavior instead of scroll.
 - Each tile has dark/light configurable colors, label, highlight color and tile image.
 - Node images are intended to be full-tile artwork, not only small symbols. Later domains can use these images to form a landscape across the map.
+- Generated source node/tile artwork should usually be square, high-detail, borderless scene imagery. The React hex tile component clips the image into the rendered hex shape, so future image generation should avoid baking a hex mask, border or rim into the source asset unless a standalone export explicitly needs that.
 - Node images can be hidden without deleting the configured dark/light image paths.
 - Tile labels can be hidden while still appearing in the side panel.
 - Tile labels that are hidden in the normal image view still appear while hovered or selected, so image-first maps remain readable on intent.
 - Locked nodes can be configured in the map editor. Locked tiles show their lock state without hover lift/highlight behavior.
 - Completed nodes are dimmed rather than marked with a check badge on the tile image, keeping full-tile artwork cleaner.
 - Hidden nodes can be revealed per learner by using the configured tool at the node position.
+- Locked nodes can define unlock conditions from completed nodes, tool use or chained rules. Admins can reset per-user unlock state with `Lock for all users`.
 - Clicking a tile focuses its node and opens the node/activity panel.
 - Clicking empty map space or closing the panel clears node focus and URL focus state.
 - The active activity return button can navigate back to the related map and focus the related node.
@@ -28,6 +30,7 @@ Current behavior:
 - Users can bookmark nodes. Bookmarked nodes appear on a personal bookmark map in a simple spiral layout. Selecting a bookmark opens the same node detail panel with a `Go to node` action.
 - The map has server-side search. Results can include visible nodes from other maps and jump to the relevant map/node.
 - Equipped tools can be used on the map. A successful configured tool use can reveal a hidden node; unsuccessful tool use only plays the tool animation and then clears the equipped cursor.
+- Map access can be limited by access roles. The current default is authenticated `user` and `admin`; a public role exists for later unauthenticated map access.
 
 Rendering note:
 
@@ -58,8 +61,10 @@ Current admin editing slice:
 - Existing tiles expose `Edit activities` at the top of the overlay.
 - Tile image editing is now mode-specific: dark and light images are the main source. The older fallback-image field was removed.
 - Tile image fields can upload, download, select an existing reusable image and clear the current reference.
+- Node image fields expose image visibility, position, width and rotation so square source art can be tuned inside the runtime hex mask.
 - Fallback tile color controls were removed from the editor. New nodes receive default dark/light color sets instead.
 - Node lock state, hover text, image visibility, label visibility and hidden-node reveal configuration belong in the node overlay.
+- Unlock condition configuration belongs in the node overlay and can combine completion requirements with tool-based unlocking.
 - Map visuals include completed-node dimming settings for dark and light mode.
 - Existing tiles show directional arrow controls; clicking an arrow swaps the tile with the neighboring tile in that direction.
 - Adjacent occupied tiles show a compact line button between their facing edges; inserting there pushes the neighbor chain outward and creates a real hex coordinate for the new node.

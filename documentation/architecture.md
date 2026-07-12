@@ -2,6 +2,8 @@
 
 Learning Worlds is a Laravel application with an Inertia/React frontend. The architecture is still evolving, but the current shape is stable enough to document.
 
+The application separates the reusable learning model from deployable domain content. Worlds, maps, nodes, activities, media, sounds, cursor assets and public pages are meant to be configured per deployment instead of hard-coded for one subject area.
+
 ## Request flow
 
 Laravel routes return Inertia pages. React receives page props and renders the current learner, settings or admin editing view.
@@ -121,7 +123,7 @@ Administration is split by responsibility:
 - Public presentation: welcome/auth/legal content and global cursor visuals.
 - Visuals: reusable uploaded images and animations.
 - Sounds: reusable uploaded sound assets.
-- Tools, items and currencies: world objects, with tools implemented first.
+- Tools, items and currencies: reusable world objects, with tools and consumable items implemented first.
 
 ## Implementation boundaries
 
@@ -144,6 +146,7 @@ Current examples of these boundaries:
 - access permissions live in `app/Access`
 - reusable media handling lives in `LearningMediaUploadService`, `ReusableMediaAssetManager` and related upload services
 - tool visuals and cursor overlays live in `resources/js/features/tools`
+- item inventory UI and placement behavior lives in `resources/js/features/items`
 - sound playback lives in `resources/js/features/sounds`
 - world/node payload shaping lives in learning serializers rather than controller arrays
 

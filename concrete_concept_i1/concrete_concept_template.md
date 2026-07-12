@@ -142,7 +142,7 @@ colors
 sound effects
 ```
 
-The system should support different world themes such as cyber, medieval, space or minimal.
+The system should support different world themes such as nature, medieval, space, workshop or minimal.
 
 ---
 

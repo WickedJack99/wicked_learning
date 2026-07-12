@@ -57,7 +57,7 @@ Admins can configure whether hints are enabled per world/map/node, who can post,
 
 # Visual Configuration
 
-Hint boards must be themeable. They may appear as message boards, terminals, camp notes, beacon logs, constellations of notes or minimal panels.
+Hint boards must be themeable. They may appear as message boards, camp notes, workshop slips, beacon logs, constellations of notes or minimal panels.
 
 Configurable assets include board icon, message card style, author display mode, report icon and helpful indicator.
 

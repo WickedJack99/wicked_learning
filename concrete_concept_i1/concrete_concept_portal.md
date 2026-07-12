@@ -55,7 +55,7 @@ Admins can configure source node, target node, bidirectionality, travel requirem
 
 # Visual Configuration
 
-Portals must be theme-neutral. They may appear as wormholes, doors, elevators, gateways, links, terminals or abstract transitions.
+Portals must be theme-neutral. They may appear as wormholes, doors, elevators, gateways, bridges, links or abstract transitions.
 
 Configurable fields include portal icon, idle animation, activation animation, travel overlay, sound and counterpart marker.
 

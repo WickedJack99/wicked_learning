@@ -16,7 +16,7 @@ Nodes answer where something happens. Activities answer what happens there. This
 
 ## Learner Experience
 
-Learners see nodes as places in the world: servers, gates, planets, abstract symbols or anything a theme defines. Entering a node opens its available activities.
+Learners see nodes as places in the world: groves, gates, planets, workshops, abstract symbols or anything a theme defines. Entering a node opens its available activities.
 
 ## Admin Experience
 
@@ -57,7 +57,7 @@ Admins can configure title, description, position, node kind, default visuals, a
 
 Node visuals include icon, background image, animation, particles, border, glow, sound and theme class. All fields should be optional and resolved through theme defaults when missing.
 
-No visual field should require a cyber, medieval, fantasy, space or minimal style.
+No visual field should require a specific genre such as medieval, fantasy, nature, space, workshop or minimal style.
 
 # API / Backend Responsibilities
 

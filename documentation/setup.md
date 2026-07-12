@@ -61,7 +61,7 @@ The development seeder creates:
 
 - admin email: `test@example.com`
 - admin password: `password`
-- demo world: `Signal Garden`
+- demo world: `Learning Grove`
 
 ## Start development servers
 

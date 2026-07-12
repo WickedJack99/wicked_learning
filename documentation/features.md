@@ -1,6 +1,6 @@
 # Feature Overview
 
-Learning Worlds is a prototype for explorable learning without points, streaks or leaderboards. The current app is small, but it already has the main shape of the intended platform.
+Learning Worlds is a generic prototype for explorable learning without points, streaks or leaderboards. The current app is small, but it already has the main shape of a platform that can be adapted to any learning domain through configurable maps, activities, visuals, media and public content.
 
 ## Learner experience
 
@@ -24,6 +24,7 @@ Current map behavior includes:
 - full-tile node images for dark and light mode
 - completed-node dimming instead of badge-like check marks on the tile image
 - hidden nodes that can be revealed by using a configured tool on the map
+- locked nodes that can be unlocked through configured completion rules, tool use or both
 
 ### Search
 
@@ -45,7 +46,10 @@ Supported prototype activity ideas include:
 - placeholder activities
 - portal activities
 - tool-grant activities
+- item-grant activities
 - obstacle activities
+- item-obstacle activities
+- markdown page activities
 
 ### Portals
 
@@ -115,11 +119,11 @@ Admins can manage reusable media separately from world objects:
 - reusable sounds can be named, categorized with an icon, previewed and configured with volume, looping and optional playback duration
 - a layered sound player can play multiple sounds at once, so later activities can combine ambience with interaction sounds
 
-The media library is an abstraction layer. Tools, nodes, presentation pages and activities should reference reusable assets instead of forcing admins to upload duplicate files.
+The media library is an abstraction layer. Tools, nodes, presentation pages and activities should reference reusable assets instead of forcing admins to upload duplicate files. This helps each deployment build a coherent domain-specific visual and audio language without coupling those assets to one fixed subject.
 
 ### Tools, items and currencies
 
-The tools/items/currencies area is reserved for world objects. Only tools are implemented for now.
+The tools/items/currencies area is reserved for reusable world objects. Tools and consumable items are implemented; currencies remain reserved for later.
 
 Tool editing currently supports:
 
@@ -129,6 +133,13 @@ Tool editing currently supports:
 - separate display widths for the resting image and animation
 - animation duration
 - a preview area where the admin can see cursor and click animation behavior
+
+Item editing currently supports:
+
+- unique name and slug
+- description
+- dark and light item images
+- reuse through grant-item and item-obstacle activities
 
 ### World editing
 
@@ -148,11 +159,14 @@ The current world editor includes:
 - node image upload and download
 - selecting existing reusable images
 - dark and light node images and colors
+- square node artwork convention: generated source tile images should be square, borderless scene artwork; the runtime hex component is responsible for clipping them to the map tile shape
 - tile label visibility controls
 - node-image visibility controls
 - node lock state and editable hover text
+- unlock conditions with completion rules, OR/AND grouping and optional tool unlock behavior
 - completed-node dimming levels per light and dark mode
 - node swapping and insertion helpers
+- map-level access roles, including public map access for later unauthenticated exploration modes
 
 ### Activity graph editing
 
@@ -172,8 +186,15 @@ The current activity editor includes:
 - NPC dialogue graph editing
 - obstacle activity configuration with allowed tool selection
 - tool-grant activity configuration
+- item-grant activity configuration with server-side probability rolls
+- item-obstacle activity configuration with item slots, sounds and optional retry lockouts
+- markdown page-graph editing with page colors, images and video embeds
 
 Obstacle activities can persist per learner. Admins can choose whether a solved obstacle reappears on replay or stays cleared for the learner. If it stays cleared, a separate revisit state can show its own background, cleared obstacle image and text bubble.
+
+Item-grant activities roll on the server and write to learner inventory through backend services so the frontend cannot repeatedly trigger a lucky grant by replaying only the browser action.
+
+Markdown activities use their own page graph. Each page can carry Markdown content, media embeds and theme-specific page colors while still fitting into the same parent activity-route graph.
 
 ## Intentional non-goals
 

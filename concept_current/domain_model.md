@@ -19,6 +19,8 @@
 - `learner_question_answers`: selected answers and feedback history.
 - `learning_tools`: reusable tools that learners can acquire and use.
 - `user_learning_tools`: learner-owned tool assignments.
+- `learning_items`: reusable consumable item definitions.
+- `user_learning_items`: learner-owned item quantities.
 - `learner_node_discoveries`: learner-specific hidden-node discovery state.
 - `learning_sounds`: reusable sound assets with playback metadata.
 - `user_preferences`: authenticated user preferences such as appearance.
@@ -46,7 +48,7 @@
 
 Nodes are places. Activities are what happens there.
 
-This keeps the system generic enough for different domains: cybersecurity nodes can be servers or signal gates, medieval nodes can be towers or camps, and astronomy nodes can be planets or stations without changing the core model.
+This keeps the system generic enough for any learning domain. Nodes, maps, tools, activities, media and presentation settings can take on the terminology and visual language of a deployment without changing the core model.
 
 Activity types are registered as data-shaped definitions with at least one input connector and one output connector. Dialogue, question, reflection, placeholder and portal activities share the same graph foundation even when their detailed configuration forms differ later.
 
@@ -57,5 +59,7 @@ Users are accounts. Roles are configurable permission bundles. Tokens are invita
 This keeps public registration intentional without turning access management into a separate learning incentive system.
 
 Tools are learner capabilities. They may be granted by activities or NPC dialogue nodes, then used against obstacles or hidden map nodes. Tool ownership should support exploration and competence, not public status.
+
+Items are consumables. They can be granted by activities and spent in item-obstacle interactions. Inventory mutation should stay server-side because quantities are part of learner state.
 
 Reusable media is split by behavior. Visual assets are selected through image/animation pickers, while sounds have their own model because volume, looping, previewing and layered playback are sound-specific concerns.

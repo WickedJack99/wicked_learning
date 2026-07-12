@@ -1,4 +1,4 @@
-# Rewards, Inventory and Exploration Tools
+﻿# Rewards, Inventory and Exploration Tools
 
 ## Design Philosophy
 
@@ -48,10 +48,10 @@ Knowledge artifacts represent mastery of concepts, competencies or learning mile
 
 Examples:
 
-* Fleet Keystone
-* Incident Response Seal
-* Detection Engineering Crystal
-* ECE Architect Fragment
+* Meadow Keystone
+* Reflection Seal
+* Pattern Crystal
+* Craft Fragment
 
 Artifacts may be collected, combined or inserted into special world objects.
 
@@ -61,9 +61,9 @@ Example:
 Ancient Gateway
 
 Required:
-✓ Fleet Keystone
-✓ ECE Keystone
-✗ Detection Engineering Keystone
+âœ“ Meadow Keystone
+âœ“ Craft Keystone
+âœ— Pattern Keystone
 ```
 
 When all required artifacts are present, the gateway unlocks.
@@ -114,9 +114,9 @@ Example:
 Engineering Toolkit
 
 Components:
-✓ Scanner Module
-✓ Analyzer Module
-✗ Diagnostic Module
+âœ“ Scanner Module
+âœ“ Analyzer Module
+âœ— Diagnostic Module
 ```
 
 When all components are discovered, the completed tool becomes available.
@@ -187,10 +187,10 @@ Mountain Navigation Competency
 or
 
 ```text
-ECE Keystone
+Craft Keystone
 
 Awarded when:
-ECE Architecture Competency reaches Advanced level.
+Craft Practice Competency reaches Advanced level.
 ```
 
 This ensures that world progression remains connected to learning progression.

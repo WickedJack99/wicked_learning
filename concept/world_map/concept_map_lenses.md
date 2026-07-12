@@ -101,12 +101,12 @@ Highlights suggested paths.
 
 Lens visuals should be fully configurable.
 
-A cyber world might show:
+A nature world might show:
 
 ```text
-scanner overlay
-neon outlines
-matrix particles
+leaf-vein overlay
+trail outlines
+drifting pollen particles
 ```
 
 A medieval world might show:
