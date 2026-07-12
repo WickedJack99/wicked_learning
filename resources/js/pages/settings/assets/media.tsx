@@ -81,7 +81,7 @@ export default function AdminMediaAssets({
     };
 
     const deleteSelectedAsset = () => {
-        if (!selectedAsset || !selectedAsset.canDelete) {
+        if (!selectedAsset) {
             return;
         }
 
@@ -262,7 +262,7 @@ function AssetDetails({
                             </a>
                         </Button>
                         <Button
-                            disabled={busy || !asset.canDelete}
+                            disabled={busy}
                             onClick={onDelete}
                             type="button"
                             variant="destructive"
@@ -272,12 +272,6 @@ function AssetDetails({
                         </Button>
                     </div>
                 </div>
-                {!asset.canDelete ? (
-                    <p className="mt-3 rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
-                        Built-in visuals are read-only. Use replace and keep to
-                        update references while preserving this file.
-                    </p>
-                ) : null}
             </div>
         </div>
     );

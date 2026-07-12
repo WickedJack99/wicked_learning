@@ -1,4 +1,5 @@
-﻿import type {
+import type { CSSProperties } from 'react';
+import type {
     CursorImageSettings,
     PublicPresentationSettings,
 } from '@/theme/presentation';
@@ -18,12 +19,26 @@ const defaultCursors = {
         size: 32,
         fallback: 'default',
     },
+    denied: {
+        image: '/images/cursors/fantasy-denied-cursor.png',
+        hotspotX: 12,
+        hotspotY: 10,
+        size: 40,
+        fallback: 'not-allowed',
+    },
     grab: {
         image: '/images/cursors/fantasy-grab-backhand.png',
         hotspotX: 12,
         hotspotY: 10,
         size: 40,
         fallback: 'grab',
+    },
+    text: {
+        image: '/images/cursors/fantasy-text-cursor.png',
+        hotspotX: 13,
+        hotspotY: 30,
+        size: 40,
+        fallback: 'text',
     },
 } satisfies PublicPresentationSettings['cursors'];
 
@@ -33,6 +48,14 @@ type ResolvedCursorSettings = {
     hotspotY: number;
     image: string;
     size: number;
+};
+
+type PlatformCursorSet = {
+    action: string;
+    default: string;
+    denied: string;
+    grab: string;
+    text: string;
 };
 
 export function platformCursor(
@@ -53,6 +76,30 @@ export function platformGrabCursor(
     return cursorValue(presentation?.cursors?.grab, defaultCursors.grab);
 }
 
+export function platformTextCursor(
+    presentation?: PublicPresentationSettings | null,
+): string {
+    return cursorValue(presentation?.cursors?.text, defaultCursors.text);
+}
+
+export function platformDeniedCursor(
+    presentation?: PublicPresentationSettings | null,
+): string {
+    return cursorValue(presentation?.cursors?.denied, defaultCursors.denied);
+}
+
+export function platformCursorStyle(
+    presentation?: PublicPresentationSettings | null,
+): CSSProperties {
+    return {
+        '--platform-action-cursor': platformActionCursor(presentation),
+        '--platform-cursor': platformCursor(presentation),
+        '--platform-denied-cursor': platformDeniedCursor(presentation),
+        '--platform-grab-cursor': platformGrabCursor(presentation),
+        '--platform-text-cursor': platformTextCursor(presentation),
+    } as CSSProperties;
+}
+
 export function cursorValue(
     settings: CursorImageSettings | undefined,
     fallbackSettings: ResolvedCursorSettings,
@@ -64,23 +111,37 @@ export function cursorValue(
 
 export async function embeddedPlatformCursors(
     presentation?: PublicPresentationSettings | null,
-): Promise<{ action: string; default: string; grab: string }> {
-    const [defaultCursor, actionCursor, grabCursor] = await Promise.all([
-        embeddedCursorValue(
-            presentation?.cursors?.default,
-            defaultCursors.default,
-        ),
-        embeddedCursorValue(
-            presentation?.cursors?.action,
-            defaultCursors.action,
-        ),
-        embeddedCursorValue(presentation?.cursors?.grab, defaultCursors.grab),
-    ]);
+): Promise<PlatformCursorSet> {
+    const [defaultCursor, actionCursor, grabCursor, textCursor, deniedCursor] =
+        await Promise.all([
+            embeddedCursorValue(
+                presentation?.cursors?.default,
+                defaultCursors.default,
+            ),
+            embeddedCursorValue(
+                presentation?.cursors?.action,
+                defaultCursors.action,
+            ),
+            embeddedCursorValue(
+                presentation?.cursors?.grab,
+                defaultCursors.grab,
+            ),
+            embeddedCursorValue(
+                presentation?.cursors?.text,
+                defaultCursors.text,
+            ),
+            embeddedCursorValue(
+                presentation?.cursors?.denied,
+                defaultCursors.denied,
+            ),
+        ]);
 
     return {
         action: actionCursor,
         default: defaultCursor,
+        denied: deniedCursor,
         grab: grabCursor,
+        text: textCursor,
     };
 }
 

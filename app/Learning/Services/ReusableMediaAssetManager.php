@@ -11,6 +11,7 @@ use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\PlatformPresentationSetting;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -41,16 +42,30 @@ class ReusableMediaAssetManager
 
     public function deleteUploadedAsset(string $url): int
     {
+        return $this->deleteAsset($url);
+    }
+
+    public function deleteAsset(string $url): int
+    {
         $path = $this->storagePathFromUrl($url);
+
+        if ($path) {
+            $referencesUpdated = $this->replaceReferences($url, '');
+            Storage::disk('public')->delete($path);
+
+            return $referencesUpdated;
+        }
+
+        $path = $this->publicImagePathFromUrl($url);
 
         if (! $path) {
             throw ValidationException::withMessages([
-                'url' => 'Only uploaded storage assets can be deleted.',
+                'url' => 'Only reusable image assets can be deleted.',
             ]);
         }
 
         $referencesUpdated = $this->replaceReferences($url, '');
-        Storage::disk('public')->delete($path);
+        File::delete($path);
 
         return $referencesUpdated;
     }
@@ -183,5 +198,37 @@ class ReusableMediaAssetManager
         }
 
         return ltrim(substr($path, strlen('/storage/')), '/');
+    }
+
+    private function publicImagePathFromUrl(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+
+        if (! is_string($path) || ! str_starts_with($path, '/images/')) {
+            return null;
+        }
+
+        $relativePath = ltrim(substr($path, strlen('/images/')), '/');
+
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
+
+        if (! in_array($extension, ['gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'], true)) {
+            return null;
+        }
+
+        $basePath = realpath(public_path('images'));
+        $assetPath = realpath(public_path('images/'.str_replace('/', DIRECTORY_SEPARATOR, $relativePath)));
+
+        if (! $basePath || ! $assetPath) {
+            return null;
+        }
+
+        $basePath = rtrim($basePath, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+        return str_starts_with($assetPath, $basePath) ? $assetPath : null;
     }
 }

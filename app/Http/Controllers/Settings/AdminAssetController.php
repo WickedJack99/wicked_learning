@@ -168,7 +168,7 @@ class AdminAssetController extends Controller
             'url' => ['required', 'string', 'max:2048'],
         ]);
 
-        $this->mediaAssetManager->deleteUploadedAsset($data['url']);
+        $this->mediaAssetManager->deleteAsset($data['url']);
 
         return redirect()->route('settings.assets.media');
     }

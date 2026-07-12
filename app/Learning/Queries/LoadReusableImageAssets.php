@@ -28,7 +28,7 @@ class LoadReusableImageAssets
                 ['url', 'asc'],
             ])
             ->map(fn (array $asset): array => [
-                'canDelete' => $asset['uploaded'],
+                'canDelete' => true,
                 'extension' => $asset['extension'],
                 'label' => $asset['label'],
                 'source' => $asset['source'],
