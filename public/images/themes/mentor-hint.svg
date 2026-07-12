@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
   <title id="title">Mira hint portrait</title>
-  <desc id="desc">A guide beside branching signal paths.</desc>
+  <desc id="desc">A guide beside branching learning paths.</desc>
   <rect width="420" height="520" rx="28" fill="#111827"/>
   <path d="M38 416 C118 342 302 342 382 416 V520 H38Z" fill="#1d4ed8"/>
   <circle cx="210" cy="186" r="92" fill="#f6d3b8"/>

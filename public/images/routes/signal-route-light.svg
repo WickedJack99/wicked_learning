@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
   <title id="title">Signal route light preview</title>
-  <desc id="desc">A light cyber route preview with a signal wave crossing a soft grid.</desc>
+  <desc id="desc">A light route preview with a flowing path crossing a soft grid.</desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0" stop-color="#ecfeff"/>

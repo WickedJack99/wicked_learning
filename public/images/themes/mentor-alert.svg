@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
   <title id="title">Mira alert portrait</title>
-  <desc id="desc">A focused guide reviewing alert signals.</desc>
+  <desc id="desc">A focused guide reviewing highlighted observations.</desc>
   <rect width="420" height="520" rx="28" fill="#18181b"/>
   <path d="M40 414 C120 350 300 350 380 414 V520 H40Z" fill="#7f1d1d"/>
   <circle cx="210" cy="188" r="92" fill="#f5d0b6"/>

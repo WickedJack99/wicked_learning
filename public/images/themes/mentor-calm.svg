@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 520" role="img" aria-labelledby="title desc">
   <title id="title">Mira calm portrait</title>
-  <desc id="desc">A calm guide in a teal lit terminal frame.</desc>
+  <desc id="desc">A calm guide in a softly lit frame.</desc>
   <rect width="420" height="520" rx="28" fill="#0f172a"/>
   <path d="M40 410 C120 350 300 350 380 410 V520 H40Z" fill="#134e4a"/>
   <circle cx="210" cy="190" r="94" fill="#f7d7bd"/>
