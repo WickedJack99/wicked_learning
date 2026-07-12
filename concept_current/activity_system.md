@@ -58,6 +58,8 @@ Portal activities are represented as one activity type with a portal direction i
 
 Portal links are configured on the portal activity itself, not separately on the map edge. The world graph can still display portal links as edges between maps for overview and debugging.
 
+Portal visual settings belong to the portal activity. They include dark/light background and foreground assets, optional mirroring, foreground x/y/width, duration, optional swirl rotation and optional click-to-enter behavior. Exit portals can also decide whether their arrival scene is shown or skipped. Exit portal settings must persist even though exit portals intentionally have no destination target.
+
 Current UI behavior:
 
 - The node detail panel shows route choices, not the activity player itself.
@@ -67,6 +69,9 @@ Current UI behavior:
 - Activity progress is personal orientation, not a public score.
 - Admins edit activity graphs from the map editor by opening an existing tile and selecting `Edit activities`.
 - Activity playback pages reserve space for the bottom navigation instead of letting activity controls disappear behind it.
+- Route playback stores learner-specific run state on the backend. Refreshing the browser should resume the current activity or current dialogue bubble instead of replaying the first activity by accident.
+- A learner can intentionally restart a route from the beginning. Restarting from inside a run should not duplicate grants already made in that run, while resetting from the node panel can create a fresh run according to the route rules.
+- The URL should stay as clean as practical. Backend run state is preferred over exposing activity internals in query parameters.
 
 Route visual notes:
 
@@ -114,6 +119,7 @@ Item activity direction:
 - Items are consumable inventory objects, unlike reusable tools.
 - Grant-item activities can grant multiple item types and quantities after a server-side probability roll.
 - The grant roll and inventory write must stay backend-owned so a learner cannot repeatedly trigger only the browser request to farm items.
+- Item-grant playback should show the received items directly, with the item display growing only as much as needed and wrapping at three items per row.
 - Item-obstacle activities display configurable item slots over a scene. Dragging the correct item into a slot consumes it and records the slot state.
 - Item obstacles can require several slots before continuing and can optionally lock retry attempts for a configured real-time duration.
 - The learner inventory appears in the side action bar as a compact grid with item counts.

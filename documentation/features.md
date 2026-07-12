@@ -8,6 +8,8 @@ Learning Worlds is a generic prototype for explorable learning without points, s
 
 Visitors can view the welcome screen, About, Imprint and Data Protection pages before logging in. The public appearance can use light or dark mode, and admins can edit public text and presentation assets.
 
+The public footer also exposes a source-code page. The default source points to the origin repository, and deployments can add their own source links so network users can find the corresponding source for the running version.
+
 ### World map
 
 Learners enter a draggable hex map. Each visible node can be focused to open a side panel with its description, route choices and actions.
@@ -38,6 +40,8 @@ Learners can bookmark nodes. Bookmarked nodes appear on a personal bookmark map 
 
 A node can have multiple start routes. The learner chooses a route from the node panel and then plays activities on a separate page, keeping the world map lighter.
 
+Route playback stores backend progress per learner and route run. This lets the application resume the current activity or dialogue position after refresh, while still allowing a learner to intentionally start the route from the beginning. Resetting a route from the node panel starts a fresh run and can allow grant activities to be earned again according to their rules.
+
 Supported prototype activity ideas include:
 
 - nested NPC dialogue graphs
@@ -53,7 +57,9 @@ Supported prototype activity ideas include:
 
 ### Portals
 
-Portal activities can move the learner to another node or map. Portal activities support Entry and Exit modes, configurable portal visuals and timing, and linked portal edges in the admin world graph.
+Portal activities can move the learner to another node or map. Portal activities support Entry and Exit modes, configurable portal visuals, mirrored foreground/background assets, optional click-to-enter behavior and linked portal edges in the admin world graph.
+
+Entry portals own the destination link. Exit portals are receiving activities and can choose whether their arrival scene is displayed or skipped.
 
 ### Tools
 
@@ -63,6 +69,7 @@ Tools can be used:
 
 - inside obstacle activities
 - on the world map to reveal configured hidden nodes
+- on locked map nodes when unlock rules allow a configured tool interaction
 
 The prototype treats tools as capabilities, not rewards. They should open possibilities in the environment rather than become status markers.
 
@@ -150,7 +157,7 @@ The current world editor includes:
 - graph view of maps
 - portal edges between maps
 - creation of new maps without requiring a portal first
-- map detail panel
+- separate map configuration page for map details, map visuals, access and deletion
 - full-screen map editing page
 - draggable hex editing surface
 - node creation and editing overlays
@@ -167,6 +174,9 @@ The current world editor includes:
 - completed-node dimming levels per light and dark mode
 - node swapping and insertion helpers
 - map-level access roles, including public map access for later unauthenticated exploration modes
+- map deletion with cleanup for related nodes, links, progress references and stale unlock rules
+
+Map visuals are moving away from small accordion dialogs toward larger configuration pages. The current configuration page separates map details, visuals, access and deletion. Visual editing can switch between dark and light configuration values without changing the admin page appearance itself, and preview panels show how each configured control will look.
 
 ### Activity graph editing
 
@@ -189,10 +199,13 @@ The current activity editor includes:
 - item-grant activity configuration with server-side probability rolls
 - item-obstacle activity configuration with item slots, sounds and optional retry lockouts
 - markdown page-graph editing with page colors, images and video embeds
+- route progress persistence with current activity and completion timestamps
 
 Obstacle activities can persist per learner. Admins can choose whether a solved obstacle reappears on replay or stays cleared for the learner. If it stays cleared, a separate revisit state can show its own background, cleared obstacle image and text bubble.
 
 Item-grant activities roll on the server and write to learner inventory through backend services so the frontend cannot repeatedly trigger a lucky grant by replaying only the browser action.
+
+Item-grant playback displays the granted items directly, grows the item display only as needed up to three columns, and then lets the learner continue.
 
 Markdown activities use their own page graph. Each page can carry Markdown content, media embeds and theme-specific page colors while still fitting into the same parent activity-route graph.
 

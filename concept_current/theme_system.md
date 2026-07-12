@@ -22,6 +22,7 @@ Current configurable visual fields include:
 - Separate cursor assets for default cursor, pointer cursor and drag/grab cursor states.
 - Authentication and welcome-page color treatment.
 - Admin-editable login, registration and welcome background image paths.
+- Admin-editable public welcome text colors, accent colors and button/link treatment.
 - Admin-uploaded background images stored through Laravel's public storage disk.
 - Admin-editable welcome page text blocks.
 - Route preview images and overlay button/frame colors per dark/light mode.
@@ -44,6 +45,8 @@ Appearance behavior:
 - Admin editing exposes dark/light node image fields directly and no longer exposes the older fallback node image field.
 - Image fields should support upload, download, selecting an existing asset and clearing the current reference.
 - Sounds are modeled separately from images because playback requires volume, loop and duration behavior.
-- Cursor settings are global presentation settings. Equipped tools are a special override and may temporarily replace the cursor with a tool image or animation.
+- Cursor settings are global presentation settings. They include default cursor, action pointer, text cursor, grab cursor and unavailable/denied cursor states with configurable image sizes and preview areas. Equipped tools are a special override and may temporarily replace the cursor with a tool image or animation.
+- Public pages should expose a subtle source-code link so AGPL network deployments can point visitors to the corresponding source.
+- Bundled default media can use a permissive public-domain dedication such as CC0, while the application code can remain AGPL. This keeps default demo assets reusable without weakening the network-copyleft license for the platform code.
 
 Future deployments should be able to replace these with any domain-specific visual language without changing the learning logic.

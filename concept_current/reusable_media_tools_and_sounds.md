@@ -17,6 +17,8 @@ Current behavior:
 - Image inputs should offer upload, download, select existing and clear.
 - Clearing a field removes the reference from that one configuration. It does not delete the uploaded asset.
 - Selecting existing media opens a searchable/scrollable library of already uploaded or generated assets.
+- Default bundled media is intended to be replaceable and deletable by deployments. The application should not rely on protected, non-removable demo images.
+- Bundled default media can be licensed separately from code, currently as CC0-style public-domain assets unless a file states otherwise.
 - Visual assets are administration-level resources, not learner rewards.
 
 Future direction:
@@ -35,6 +37,7 @@ Current behavior:
 - Tools can have dark/light animation images or GIFs.
 - Resting image width and animation width are configurable.
 - Animation duration is configurable.
+- Runtime map, obstacle and admin preview surfaces should share the same tool visual sizing logic so the cursor image and animation do not scale differently in each place.
 - A tool can be granted by a standalone tool-grant activity or by an NPC dialogue node.
 - A tool can be selected from the floating side action bar.
 - An equipped tool follows the cursor until used, cancelled with Escape, or toggled off.

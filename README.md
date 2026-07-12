@@ -34,9 +34,10 @@ This repository is no longer only a concept archive. It contains a working verti
 - editable public presentation content and auth page backgrounds
 - reusable visual and sound libraries for uploaded assets
 - configurable cursor images for default, pointer and drag states
+- public source-code links for AGPL network deployments
 - graph-based activity editing with multiple route starts per node
 - route cards with optional light and dark images
-- activity playback on a separate page
+- activity playback on a separate page with backend route progress
 - portal activities that can move learners between nodes and maps
 - NPC dialogue, markdown, tool-grant, item-grant, obstacle and item-obstacle activity prototypes
 - learner tool and item side controls for selecting acquired tools and viewing consumable inventory
@@ -123,6 +124,11 @@ This project is licensed under the GNU Affero General Public License v3.0 only.
 See [LICENSE](LICENSE) for the full license text and [NOTICE](NOTICE) for the
 generic project notice.
 
+Bundled default media assets under `public/images` and `public/sounds` are
+dedicated to the public domain under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/), unless a file
+states otherwise. See [ASSET_LICENSE.md](ASSET_LICENSE.md).
+
 Public network deployments should provide a visible Source link or equivalent
 route to the corresponding source code for the deployed version.
 
@@ -139,7 +145,8 @@ Important areas:
 - `resources/js/pages` - Inertia pages
 - `resources/js/features` - larger React feature areas
 - `resources/js/theme` - appearance and presentation configuration helpers
-- `public/images` - demo cursors, route images, node images and theme assets
+- `public/images` - CC0 demo cursors, route images, node images and theme assets
+- `public/sounds` - CC0 demo sound effects and background loops
 - `concept*` - concept notes and evolving project ideas
 - `conversations` - archived development conversations
 

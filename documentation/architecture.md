@@ -44,6 +44,7 @@ Activity models:
 - `LearningActivityStart`
 - `ActivityTransition`
 - `LearningPortalLink`
+- `LearnerRouteProgress`
 - `DialogueStage`
 - `LearningQuestion`
 - `LearningQuestionOption`
@@ -102,11 +103,15 @@ This lets one map node offer several learning paths, such as:
 
 Portal activities are special because they can connect activity playback to another node or map through `LearningPortalLink`.
 
+Route playback state is stored separately from the route graph. `LearnerRouteProgress` records the learner, node, start route, current activity, run key, completion counts and completion time. Activity-specific services can store finer-grained state, such as the current NPC dialogue node, without putting those internals into the URL.
+
 NPC dialogue activities have a nested graph. The nested graph can branch through question and answer nodes and expose one parent activity Exit connector per nested End node.
 
 Tool-grant activities and NPC dialogue tool-grant nodes add tools to the learner. If the learner already owns the tool, the activity can continue without presenting it as a fresh acquisition.
 
 Obstacle activities validate tool use through backend progress services. They can either reappear every replay or stay cleared for a learner until the admin changes the activity configuration in a way that should take priority over the stored learner-cleared state.
+
+Grant-item activities use backend roll and inventory services. The server decides whether the configured probability grants items for the current run, records inventory changes, and prevents browser-only replay tricks from minting more items inside the same run.
 
 ## Admin boundaries
 
@@ -124,6 +129,7 @@ Administration is split by responsibility:
 - Visuals: reusable uploaded images and animations.
 - Sounds: reusable uploaded sound assets.
 - Tools, items and currencies: reusable world objects, with tools and consumable items implemented first.
+- Source-code links: public network source availability links for the running deployment.
 
 ## Implementation boundaries
 
@@ -148,6 +154,7 @@ Current examples of these boundaries:
 - tool visuals and cursor overlays live in `resources/js/features/tools`
 - item inventory UI and placement behavior lives in `resources/js/features/items`
 - sound playback lives in `resources/js/features/sounds`
+- learner route/run progress lives in dedicated learning services instead of controller session state
 - world/node payload shaping lives in learning serializers rather than controller arrays
 
 As rough size guides:

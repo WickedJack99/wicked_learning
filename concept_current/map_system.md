@@ -22,6 +22,7 @@ Current behavior:
 - Clicking a tile focuses its node and opens the node/activity panel.
 - Clicking empty map space or closing the panel clears node focus and URL focus state.
 - The active activity return button can navigate back to the related map and focus the related node.
+- The map button can return the learner to the last map stored for them on the backend, so navigation through settings or activity pages does not erase their current world orientation.
 - The top-left map panel describes the current map, not the selected node.
 - The right-side detail panel describes the focused node and shows available activity routes.
 - The right-side detail panel can show completed state and bookmark controls without polluting the node tile artwork.
@@ -31,6 +32,7 @@ Current behavior:
 - The map has server-side search. Results can include visible nodes from other maps and jump to the relevant map/node.
 - Equipped tools can be used on the map. A successful configured tool use can reveal a hidden node; unsuccessful tool use only plays the tool animation and then clears the equipped cursor.
 - Map access can be limited by access roles. The current default is authenticated `user` and `admin`; a public role exists for later unauthenticated map access.
+- Maps can be deleted by admins. Deletion should clean related nodes, portal links, learner state references and stale unlock-rule references.
 
 Rendering note:
 
@@ -58,6 +60,10 @@ Current admin editing slice:
 - Clicking `+` opens an overlay panel for configuring a new tile or adding an editor-only empty-space node.
 - Clicking an existing tile opens the same overlay in edit mode.
 - The tile create/edit overlay uses accordion sections so activity editing, basic metadata, display options and dark/light visuals are separated.
+- Map-level configuration uses a larger dedicated configuration page instead of several small overlay buttons. The page separates map details, map visuals, access and deletion.
+- The map visual configuration page lets admins switch between editing dark and light values without changing the admin screen's own appearance.
+- Map visual configuration groups controls by rendered element, such as the title panel, node side panel, bottom nav, right control bar, background image and decorative map assets.
+- Map decorative assets can be added independently from nodes. They support image selection plus x/y placement, size and opacity so a map can have atmosphere without baking everything into one background.
 - Existing tiles expose `Edit activities` at the top of the overlay.
 - Tile image editing is now mode-specific: dark and light images are the main source. The older fallback-image field was removed.
 - Tile image fields can upload, download, select an existing reusable image and clear the current reference.
@@ -74,4 +80,4 @@ Current admin editing slice:
 Future admin editing:
 
 - Improve tile artwork ergonomics for landscape-style maps, including better crop/position controls.
-- Add map deletion and richer map lifecycle controls.
+- Continue moving dense overlay settings toward larger pages where previews and keyboard navigation have enough room.
