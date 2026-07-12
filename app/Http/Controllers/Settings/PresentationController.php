@@ -43,6 +43,23 @@ class PresentationController extends Controller
             'welcome.pages.*.title' => ['required', 'string', 'max:160'],
             'welcome.pages.*.body' => ['required', 'string', 'max:1200'],
             'welcome.pages.*.primaryLabel' => ['required', 'string', 'max:80'],
+            'publicPalette.dark.headingText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.dark.bodyText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.dark.mutedText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.dark.accentText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.dark.controlText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.dark.controlBorder' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.headingText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.bodyText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.mutedText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.accentText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.controlText' => ['nullable', 'string', 'max:64'],
+            'publicPalette.light.controlBorder' => ['nullable', 'string', 'max:64'],
+            'sourceLinks.origin.label' => ['required', 'string', 'max:80'],
+            'sourceLinks.origin.url' => ['required', 'url', 'max:2048'],
+            'sourceLinks.custom' => ['nullable', 'array', 'max:12'],
+            'sourceLinks.custom.*.label' => ['required', 'string', 'max:80'],
+            'sourceLinks.custom.*.url' => ['required', 'url', 'max:2048'],
         ]);
 
         PlatformPresentationSetting::updateCurrent($data, $request->user());

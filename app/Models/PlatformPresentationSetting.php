@@ -133,6 +133,31 @@ class PlatformPresentationSetting extends Model
                     ],
                 ],
             ],
+            'publicPalette' => [
+                'dark' => [
+                    'headingText' => '#f8fafc',
+                    'bodyText' => '#cbd5e1',
+                    'mutedText' => '#94a3b8',
+                    'accentText' => '#5eead4',
+                    'controlText' => '#ffffff',
+                    'controlBorder' => '#ffffff',
+                ],
+                'light' => [
+                    'headingText' => '#0f172a',
+                    'bodyText' => '#475569',
+                    'mutedText' => '#334155',
+                    'accentText' => '#0891b2',
+                    'controlText' => '#0f172a',
+                    'controlBorder' => '#0f172a',
+                ],
+            ],
+            'sourceLinks' => [
+                'origin' => [
+                    'label' => 'Origin',
+                    'url' => 'https://github.com/WickedJack99/wicked_learning',
+                ],
+                'custom' => [],
+            ],
         ];
     }
 

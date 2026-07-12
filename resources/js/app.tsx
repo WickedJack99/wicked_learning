@@ -1,4 +1,5 @@
 import { createInertiaApp } from '@inertiajs/react';
+import { SourceCodeLink } from '@/components/source-code-link';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
@@ -18,6 +19,8 @@ createInertiaApp({
     layout: (name) => {
         switch (true) {
             case name === 'welcome':
+                return null;
+            case name === 'source':
                 return null;
             case name.startsWith('info/'):
                 return null;
@@ -44,6 +47,7 @@ createInertiaApp({
         return (
             <TooltipProvider delayDuration={0}>
                 {app}
+                <SourceCodeLink />
                 <Toaster />
             </TooltipProvider>
         );

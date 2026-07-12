@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import type { AuthThemePage, ThemeMode } from '@/theme/platform-theme';
 
 export type WelcomePageSettings = {
@@ -20,6 +21,20 @@ export type CursorImageSettings = {
     size?: number | null;
 };
 
+export type PublicPaletteModeSettings = {
+    accentText: string;
+    bodyText: string;
+    controlBorder: string;
+    controlText: string;
+    headingText: string;
+    mutedText: string;
+};
+
+export type SourceLinkSettings = {
+    label: string;
+    url: string;
+};
+
 export type PublicPresentationSettings = {
     auth: {
         backgroundImages: {
@@ -35,6 +50,14 @@ export type PublicPresentationSettings = {
     };
     welcome: {
         pages: WelcomePageSettings[];
+    };
+    publicPalette: {
+        dark: PublicPaletteModeSettings;
+        light: PublicPaletteModeSettings;
+    };
+    sourceLinks: {
+        custom: SourceLinkSettings[];
+        origin: SourceLinkSettings;
     };
 };
 
@@ -84,3 +107,53 @@ export function getPresentationBackgroundImage(
 
     return images?.[mode] || images?.dark || null;
 }
+
+export function getPublicPresentationPalette(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): PublicPaletteModeSettings {
+    const fallback = defaultPublicPalette[mode];
+
+    return {
+        ...fallback,
+        ...(presentation?.publicPalette?.[mode] ?? {}),
+    };
+}
+
+export function getPublicPresentationStyle(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): CSSProperties {
+    const palette = getPublicPresentationPalette(presentation, mode);
+
+    return {
+        '--public-accent-text': palette.accentText,
+        '--public-body-text': palette.bodyText,
+        '--public-control-border': palette.controlBorder,
+        '--public-control-text': palette.controlText,
+        '--public-heading-text': palette.headingText,
+        '--public-muted-text': palette.mutedText,
+    } as CSSProperties;
+}
+
+export const defaultPublicPalette: Record<
+    ThemeMode,
+    PublicPaletteModeSettings
+> = {
+    dark: {
+        accentText: '#5eead4',
+        bodyText: '#cbd5e1',
+        controlBorder: '#ffffff',
+        controlText: '#ffffff',
+        headingText: '#f8fafc',
+        mutedText: '#94a3b8',
+    },
+    light: {
+        accentText: '#0891b2',
+        bodyText: '#475569',
+        controlBorder: '#0f172a',
+        controlText: '#0f172a',
+        headingText: '#0f172a',
+        mutedText: '#334155',
+    },
+};

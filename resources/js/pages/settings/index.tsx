@@ -378,6 +378,16 @@ export default function SettingsIndex({
             <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
                 <div className="mx-auto flex h-full max-w-5xl flex-col px-4 pt-6 pb-24">
                     <header className="shrink-0 pb-5">
+                        {selectedPanel ? (
+                            <Button
+                                className="mb-5"
+                                onClick={clearPanel}
+                                variant="ghost"
+                            >
+                                <ArrowLeft className="size-4" />
+                                Settings
+                            </Button>
+                        ) : null}
                         <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
                             Platform
                         </p>
@@ -395,7 +405,6 @@ export default function SettingsIndex({
                                 createdRegistrationToken={
                                     createdRegistrationToken
                                 }
-                                onBack={clearPanel}
                                 platformInfoPages={platformInfoPages}
                                 permissionResources={permissionResources}
                                 publicPresentation={publicPresentation}
@@ -529,7 +538,6 @@ function SettingsDetail({
     adminUsers,
     assignableRegistrationRoles,
     createdRegistrationToken,
-    onBack,
     platformInfoPages,
     permissionResources,
     publicPresentation,
@@ -541,7 +549,6 @@ function SettingsDetail({
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
     createdRegistrationToken: string | null;
-    onBack: () => void;
     platformInfoPages: Partial<
         Record<PlatformInfoPageKey, PlatformInfoContent>
     >;
@@ -553,12 +560,14 @@ function SettingsDetail({
     const content = panelContent[selectedPanel];
 
     return (
-        <div className="h-full overflow-y-auto bg-white p-4 dark:bg-[#111820]">
-            <Button className="mb-5" onClick={onBack} variant="ghost">
-                <ArrowLeft className="size-4" />
-                Settings
-            </Button>
-
+        <div
+            className={cn(
+                'h-full bg-white p-4 dark:bg-[#111820]',
+                selectedPanel === 'admin-presentation'
+                    ? 'overflow-hidden'
+                    : 'overflow-y-auto',
+            )}
+        >
             {(selectedPanel === 'admin-access' ||
                 selectedPanel === 'admin-users') &&
             (accessCapabilities.users?.read ||

@@ -4,6 +4,7 @@ use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningItemActivityController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\PlatformInfoPageController;
+use App\Http\Controllers\SourceCodePageController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -16,6 +17,7 @@ Route::get('imprint', [PlatformInfoPageController::class, 'show'])
 Route::get('data-protection', [PlatformInfoPageController::class, 'show'])
     ->defaults('page', 'data-protection')
     ->name('data-protection');
+Route::get('source', SourceCodePageController::class)->name('source');
 
 Route::get('world', [LearningWorldController::class, 'show'])->name('world');
 Route::get('learning/search', [LearningWorldController::class, 'search'])

@@ -12,7 +12,10 @@ import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
-import { getPresentationBackgroundImage } from '@/theme/presentation';
+import {
+    getPublicPresentationStyle,
+    getPresentationBackgroundImage,
+} from '@/theme/presentation';
 
 type PlatformInfoContent = {
     key: PlatformInfoPageKey;
@@ -129,7 +132,10 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
         ...getAuthTheme('welcome', resolvedAppearance),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
-    const themeStyle = getAuthThemeStyle(theme);
+    const themeStyle = {
+        ...getAuthThemeStyle(theme),
+        ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
+    };
 
     return (
         <>
@@ -162,11 +168,20 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
                         >
                             <Compass className="size-5" />
                         </span>
-                        <span style={{ color: 'var(--auth-title-text-color)' }}>
+                        <span style={{ color: 'var(--public-heading-text)' }}>
                             Learning Worlds
                         </span>
                     </Link>
                     <nav className="flex items-center gap-2">
+                        <Link
+                            className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
+                            href="/"
+                            style={{
+                                color: 'var(--public-control-text)',
+                            }}
+                        >
+                            Home
+                        </Link>
                         {platformInfoLinks.map((link) => (
                             <Link
                                 className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
@@ -175,8 +190,8 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
                                 style={{
                                     color:
                                         link.key === pageKey
-                                            ? 'var(--auth-eyebrow-text-color)'
-                                            : 'var(--auth-title-text-color)',
+                                            ? 'var(--public-accent-text)'
+                                            : 'var(--public-control-text)',
                                 }}
                             >
                                 {link.label}
@@ -224,14 +239,34 @@ function InfoArticle({
                 isEditing && 'flex flex-col',
             )}
         >
-            <p className="shrink-0 text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+            <p
+                className="shrink-0 text-xs font-medium tracking-[0.18em] uppercase"
+                style={
+                    variant === 'public'
+                        ? { color: 'var(--public-accent-text)' }
+                        : undefined
+                }
+            >
                 {page.eyebrow}
             </p>
             {isEditing ? (
                 children
             ) : (
                 <div className="mt-4">
-                    <MarkdownRenderer markdown={markdown} />
+                    <MarkdownRenderer
+                        headingColor={
+                            variant === 'public'
+                                ? 'var(--public-heading-text)'
+                                : undefined
+                        }
+                        inheritColor={variant === 'public'}
+                        markdown={markdown}
+                        style={
+                            variant === 'public'
+                                ? { color: 'var(--public-body-text)' }
+                                : undefined
+                        }
+                    />
                 </div>
             )}
         </article>

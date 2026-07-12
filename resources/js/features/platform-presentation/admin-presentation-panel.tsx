@@ -2,10 +2,12 @@ import { router } from '@inertiajs/react';
 import {
     Download,
     FileText,
+    Github,
     Image,
     Images,
     LayoutPanelTop,
     MousePointer2,
+    Palette,
     Plus,
     Save,
     Trash2,
@@ -13,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { ColorField } from '@/components/color-input';
 import InputError from '@/components/input-error';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
@@ -22,7 +25,9 @@ import { platformInfoPages } from '@/features/platform-info/content';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
 import type {
     CursorImageSettings,
+    PublicPaletteModeSettings,
     PublicPresentationSettings,
+    SourceLinkSettings,
     WelcomePageSettings,
 } from '@/theme/presentation';
 
@@ -46,8 +51,15 @@ type Props = {
 
 type AuthBackgroundPage = 'login' | 'register' | 'welcome';
 type CursorKey = 'action' | 'default' | 'grab';
-type PresentationSection = 'backgrounds' | 'cursors' | 'welcome' | 'info';
+type PresentationSection =
+    | 'backgrounds'
+    | 'cursors'
+    | 'palette'
+    | 'source'
+    | 'welcome'
+    | 'info';
 type ThemeMode = 'dark' | 'light';
+type PaletteField = keyof PublicPaletteModeSettings;
 
 const authBackgroundPages: Array<{
     description: string;
@@ -124,10 +136,22 @@ const presentationSections: {
         icon: LayoutPanelTop,
     },
     {
+        key: 'palette',
+        label: 'Public text colors',
+        description: 'Text and control colors for public pages.',
+        icon: Palette,
+    },
+    {
         key: 'info',
         label: 'Information pages',
         description: 'About, imprint and data protection markdown.',
         icon: FileText,
+    },
+    {
+        key: 'source',
+        label: 'Source links',
+        description: 'Public source code links for AGPL deployments.',
+        icon: Github,
     },
 ];
 
@@ -136,6 +160,11 @@ const blankWelcomePage: WelcomePageSettings = {
     title: 'New welcome page',
     body: 'Describe this part of the platform.',
     primaryLabel: 'Continue',
+};
+
+const blankSourceLink: SourceLinkSettings = {
+    label: 'Modified source',
+    url: 'https://github.com/example/example',
 };
 
 export function AdminPresentationPanel({
@@ -215,6 +244,77 @@ export function AdminPresentationPanel({
                     ...current.cursors[key],
                     [field]: value,
                 },
+            },
+        }));
+    };
+
+    const updatePalette = (
+        mode: ThemeMode,
+        field: PaletteField,
+        value: string,
+    ) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            publicPalette: {
+                ...current.publicPalette,
+                [mode]: {
+                    ...current.publicPalette[mode],
+                    [field]: value,
+                },
+            },
+        }));
+    };
+
+    const updateOriginSourceLink = (
+        field: keyof SourceLinkSettings,
+        value: string,
+    ) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            sourceLinks: {
+                ...current.sourceLinks,
+                origin: {
+                    ...current.sourceLinks.origin,
+                    [field]: value,
+                },
+            },
+        }));
+    };
+
+    const updateCustomSourceLink = (
+        index: number,
+        field: keyof SourceLinkSettings,
+        value: string,
+    ) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            sourceLinks: {
+                ...current.sourceLinks,
+                custom: current.sourceLinks.custom.map((link, linkIndex) =>
+                    linkIndex === index ? { ...link, [field]: value } : link,
+                ),
+            },
+        }));
+    };
+
+    const addCustomSourceLink = () => {
+        setPresentationDraft((current) => ({
+            ...current,
+            sourceLinks: {
+                ...current.sourceLinks,
+                custom: [...current.sourceLinks.custom, blankSourceLink],
+            },
+        }));
+    };
+
+    const removeCustomSourceLink = (index: number) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            sourceLinks: {
+                ...current.sourceLinks,
+                custom: current.sourceLinks.custom.filter(
+                    (_, linkIndex) => linkIndex !== index,
+                ),
             },
         }));
     };
@@ -362,7 +462,7 @@ export function AdminPresentationPanel({
     };
 
     return (
-        <div className="grid gap-5">
+        <div className="flex h-full min-h-0 flex-col gap-5">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
@@ -391,317 +491,601 @@ export function AdminPresentationPanel({
                 onChange={setActiveSection}
             />
 
-            {activeSection === 'backgrounds' ? (
-                <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                    <div className="mb-4">
-                        <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                            Authentication backgrounds
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Use a public asset path such as
-                            `/images/themes/mentor-calm.svg` or an external
-                            image URL.
-                        </p>
-                    </div>
-                    <div className="grid gap-4">
-                        {backgroundImageSummary.map((page) => (
-                            <div
-                                className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
-                                key={page.key}
-                            >
-                                <div>
-                                    <p className="text-sm font-medium text-slate-950 dark:text-white">
-                                        {page.label}
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                                        {page.description}
-                                    </p>
-                                </div>
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    <BackgroundInput
-                                        error={
-                                            uploadErrors[`${page.key}.dark`] ??
-                                            presentationErrors[
-                                                `auth.backgroundImages.${page.key}.dark`
-                                            ]
-                                        }
-                                        fieldId={`${page.key}-dark-background`}
-                                        label="Dark mode image"
-                                        onChange={(value) =>
-                                            updateBackgroundImage(
-                                                page.key,
-                                                'dark',
-                                                value,
-                                            )
-                                        }
-                                        onUpload={(file) =>
-                                            uploadBackgroundImage(
-                                                page.key,
-                                                'dark',
-                                                file,
-                                            )
-                                        }
-                                        uploading={
-                                            uploadingImage ===
-                                            `${page.key}.dark`
-                                        }
-                                        value={page.images.dark ?? ''}
-                                    />
-                                    <BackgroundInput
-                                        error={
-                                            uploadErrors[`${page.key}.light`] ??
-                                            presentationErrors[
-                                                `auth.backgroundImages.${page.key}.light`
-                                            ]
-                                        }
-                                        fieldId={`${page.key}-light-background`}
-                                        label="Light mode image"
-                                        onChange={(value) =>
-                                            updateBackgroundImage(
-                                                page.key,
-                                                'light',
-                                                value,
-                                            )
-                                        }
-                                        onUpload={(file) =>
-                                            uploadBackgroundImage(
-                                                page.key,
-                                                'light',
-                                                file,
-                                            )
-                                        }
-                                        placeholder="Optional fallback to dark image"
-                                        uploading={
-                                            uploadingImage ===
-                                            `${page.key}.light`
-                                        }
-                                        value={page.images.light ?? ''}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            ) : null}
-
-            {activeSection === 'cursors' ? (
-                <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                    <div className="mb-4">
-                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
-                            <MousePointer2 className="size-4 text-cyan-700 dark:text-teal-200" />
-                            Cursor images
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Configure the platform cursor set. Tool cursors
-                            still override these while a learner equips a tool.
-                        </p>
-                    </div>
-                    <div className="grid gap-4">
-                        {cursorOptions.map((cursor) => (
-                            <CursorImageInput
-                                cursor={presentationDraft.cursors[cursor.key]}
-                                description={cursor.description}
-                                errorPrefix={`cursors.${cursor.key}`}
-                                errors={presentationErrors}
-                                key={cursor.key}
-                                label={cursor.label}
-                                onChange={(field, value) =>
-                                    updateCursor(cursor.key, field, value)
-                                }
-                                onUpload={(file) =>
-                                    void uploadCursorImage(cursor.key, file)
-                                }
-                                uploading={
-                                    uploadingImage === `cursor.${cursor.key}`
-                                }
-                            />
-                        ))}
-                    </div>
-                </section>
-            ) : null}
-
-            {activeSection === 'welcome' ? (
-                <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
+            <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
+                {activeSection === 'backgrounds' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4">
                             <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                                Welcome pages
+                                Authentication backgrounds
                             </h3>
                             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                                These pages are shown in the full-screen welcome
-                                sequence.
+                                Use a public asset path such as
+                                `/images/themes/mentor-calm.svg` or an external
+                                image URL.
                             </p>
                         </div>
-                        <Button
-                            onClick={addWelcomePage}
-                            size="sm"
-                            variant="secondary"
-                        >
-                            <Plus className="size-4" />
-                            Add page
-                        </Button>
-                    </div>
-                    <div className="grid gap-4">
-                        {welcomePages.map((page, index) => (
-                            <div
-                                className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
-                                key={index}
-                            >
-                                <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-medium text-slate-950 dark:text-white">
-                                        Page {index + 1}
-                                    </p>
-                                    <Button
-                                        disabled={!canRemoveWelcomePage}
-                                        onClick={() => removeWelcomePage(index)}
-                                        size="sm"
-                                        type="button"
-                                        variant="ghost"
-                                    >
-                                        <Trash2 className="size-4" />
-                                        Remove
-                                    </Button>
-                                </div>
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    <TextInput
-                                        error={
-                                            presentationErrors[
-                                                `welcome.pages.${index}.eyebrow`
-                                            ]
-                                        }
-                                        label="Eyebrow"
-                                        onChange={(value) =>
-                                            updateWelcomePage(
-                                                index,
-                                                'eyebrow',
-                                                value,
-                                            )
-                                        }
-                                        value={page.eyebrow}
-                                    />
-                                    <TextInput
-                                        error={
-                                            presentationErrors[
-                                                `welcome.pages.${index}.title`
-                                            ]
-                                        }
-                                        label="Title"
-                                        onChange={(value) =>
-                                            updateWelcomePage(
-                                                index,
-                                                'title',
-                                                value,
-                                            )
-                                        }
-                                        value={page.title}
-                                    />
-                                    <TextInput
-                                        error={
-                                            presentationErrors[
-                                                `welcome.pages.${index}.primaryLabel`
-                                            ]
-                                        }
-                                        label="Primary button label"
-                                        onChange={(value) =>
-                                            updateWelcomePage(
-                                                index,
-                                                'primaryLabel',
-                                                value,
-                                            )
-                                        }
-                                        value={page.primaryLabel}
-                                    />
-                                </div>
-                                <div className="grid gap-1">
-                                    <Label htmlFor={`welcome-body-${index}`}>
-                                        Body
-                                    </Label>
-                                    <textarea
-                                        className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                        id={`welcome-body-${index}`}
-                                        onChange={(event) =>
-                                            updateWelcomePage(
-                                                index,
-                                                'body',
-                                                event.currentTarget.value,
-                                            )
-                                        }
-                                        value={page.body}
-                                    />
-                                    <InputError
-                                        message={
-                                            presentationErrors[
-                                                `welcome.pages.${index}.body`
-                                            ]
-                                        }
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            ) : null}
-
-            {activeSection === 'info' ? (
-                <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                    <div className="mb-4">
-                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
-                            <FileText className="size-4 text-cyan-700 dark:text-teal-200" />
-                            Platform information pages
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                            Markdown content for About, Imprint and Data
-                            Protection lives here now.
-                        </p>
-                    </div>
-                    <div className="grid gap-4">
-                        {infoPageKeys.map((key) => {
-                            const page = platformInfoPages[key];
-
-                            return (
+                        <div className="grid gap-4">
+                            {backgroundImageSummary.map((page) => (
                                 <div
                                     className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
-                                    key={key}
+                                    key={page.key}
                                 >
                                     <div>
                                         <p className="text-sm font-medium text-slate-950 dark:text-white">
-                                            {page.title}
+                                            {page.label}
                                         </p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                                            {platformInfoContent[key]
-                                                ?.updated_by
-                                                ? `Last edited by ${platformInfoContent[key]?.updated_by?.name}`
-                                                : 'Default content is currently used.'}
+                                            {page.description}
                                         </p>
                                     </div>
-                                    <textarea
-                                        className="max-h-[40svh] min-h-64 resize-y overflow-y-auto rounded-md border border-input bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                        onChange={(event) =>
-                                            setMarkdownDrafts((current) => ({
-                                                ...current,
-                                                [key]: event.currentTarget
-                                                    .value,
-                                            }))
-                                        }
-                                        value={markdownDrafts[key]}
-                                    />
-                                    <InputError message={infoErrors.markdown} />
-                                    <div className="flex justify-end">
-                                        <Button
-                                            disabled={savingInfoPage === key}
-                                            onClick={() => saveInfoPage(key)}
-                                            type="button"
-                                        >
-                                            <Save className="size-4" />
-                                            Save {page.title}
-                                        </Button>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <BackgroundInput
+                                            error={
+                                                uploadErrors[
+                                                    `${page.key}.dark`
+                                                ] ??
+                                                presentationErrors[
+                                                    `auth.backgroundImages.${page.key}.dark`
+                                                ]
+                                            }
+                                            fieldId={`${page.key}-dark-background`}
+                                            label="Dark mode image"
+                                            onChange={(value) =>
+                                                updateBackgroundImage(
+                                                    page.key,
+                                                    'dark',
+                                                    value,
+                                                )
+                                            }
+                                            onUpload={(file) =>
+                                                uploadBackgroundImage(
+                                                    page.key,
+                                                    'dark',
+                                                    file,
+                                                )
+                                            }
+                                            uploading={
+                                                uploadingImage ===
+                                                `${page.key}.dark`
+                                            }
+                                            value={page.images.dark ?? ''}
+                                        />
+                                        <BackgroundInput
+                                            error={
+                                                uploadErrors[
+                                                    `${page.key}.light`
+                                                ] ??
+                                                presentationErrors[
+                                                    `auth.backgroundImages.${page.key}.light`
+                                                ]
+                                            }
+                                            fieldId={`${page.key}-light-background`}
+                                            label="Light mode image"
+                                            onChange={(value) =>
+                                                updateBackgroundImage(
+                                                    page.key,
+                                                    'light',
+                                                    value,
+                                                )
+                                            }
+                                            onUpload={(file) =>
+                                                uploadBackgroundImage(
+                                                    page.key,
+                                                    'light',
+                                                    file,
+                                                )
+                                            }
+                                            placeholder="Optional fallback to dark image"
+                                            uploading={
+                                                uploadingImage ===
+                                                `${page.key}.light`
+                                            }
+                                            value={page.images.light ?? ''}
+                                        />
                                     </div>
                                 </div>
-                            );
-                        })}
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
+
+                {activeSection === 'palette' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4">
+                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                                <Palette className="size-4 text-cyan-700 dark:text-teal-200" />
+                                Public text colors
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                These colors are used on the welcome, About,
+                                Imprint and Data Protection pages. Button
+                                background colors still come from the main auth
+                                theme.
+                            </p>
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            <PaletteEditor
+                                errors={presentationErrors}
+                                mode="dark"
+                                onChange={updatePalette}
+                                palette={presentationDraft.publicPalette.dark}
+                                title="Dark mode public colors"
+                            />
+                            <PaletteEditor
+                                errors={presentationErrors}
+                                mode="light"
+                                onChange={updatePalette}
+                                palette={presentationDraft.publicPalette.light}
+                                title="Light mode public colors"
+                            />
+                        </div>
+                    </section>
+                ) : null}
+
+                {activeSection === 'cursors' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4">
+                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                                <MousePointer2 className="size-4 text-cyan-700 dark:text-teal-200" />
+                                Cursor images
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Configure the platform cursor set. Tool cursors
+                                still override these while a learner equips a
+                                tool.
+                            </p>
+                        </div>
+                        <div className="grid gap-4">
+                            {cursorOptions.map((cursor) => (
+                                <CursorImageInput
+                                    cursor={
+                                        presentationDraft.cursors[cursor.key]
+                                    }
+                                    description={cursor.description}
+                                    errorPrefix={`cursors.${cursor.key}`}
+                                    errors={presentationErrors}
+                                    key={cursor.key}
+                                    label={cursor.label}
+                                    onChange={(field, value) =>
+                                        updateCursor(cursor.key, field, value)
+                                    }
+                                    onUpload={(file) =>
+                                        void uploadCursorImage(cursor.key, file)
+                                    }
+                                    uploading={
+                                        uploadingImage ===
+                                        `cursor.${cursor.key}`
+                                    }
+                                />
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
+
+                {activeSection === 'welcome' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                                    Welcome pages
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                    These pages are shown in the full-screen
+                                    welcome sequence.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={addWelcomePage}
+                                size="sm"
+                                variant="secondary"
+                            >
+                                <Plus className="size-4" />
+                                Add page
+                            </Button>
+                        </div>
+                        <div className="grid gap-4">
+                            {welcomePages.map((page, index) => (
+                                <div
+                                    className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                    key={index}
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                            Page {index + 1}
+                                        </p>
+                                        <Button
+                                            disabled={!canRemoveWelcomePage}
+                                            onClick={() =>
+                                                removeWelcomePage(index)
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            <Trash2 className="size-4" />
+                                            Remove
+                                        </Button>
+                                    </div>
+                                    <div className="grid gap-3 md:grid-cols-2">
+                                        <TextInput
+                                            error={
+                                                presentationErrors[
+                                                    `welcome.pages.${index}.eyebrow`
+                                                ]
+                                            }
+                                            label="Eyebrow"
+                                            onChange={(value) =>
+                                                updateWelcomePage(
+                                                    index,
+                                                    'eyebrow',
+                                                    value,
+                                                )
+                                            }
+                                            value={page.eyebrow}
+                                        />
+                                        <TextInput
+                                            error={
+                                                presentationErrors[
+                                                    `welcome.pages.${index}.title`
+                                                ]
+                                            }
+                                            label="Title"
+                                            onChange={(value) =>
+                                                updateWelcomePage(
+                                                    index,
+                                                    'title',
+                                                    value,
+                                                )
+                                            }
+                                            value={page.title}
+                                        />
+                                        <TextInput
+                                            error={
+                                                presentationErrors[
+                                                    `welcome.pages.${index}.primaryLabel`
+                                                ]
+                                            }
+                                            label="Primary button label"
+                                            onChange={(value) =>
+                                                updateWelcomePage(
+                                                    index,
+                                                    'primaryLabel',
+                                                    value,
+                                                )
+                                            }
+                                            value={page.primaryLabel}
+                                        />
+                                    </div>
+                                    <div className="grid gap-1">
+                                        <Label
+                                            htmlFor={`welcome-body-${index}`}
+                                        >
+                                            Body
+                                        </Label>
+                                        <textarea
+                                            className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                            id={`welcome-body-${index}`}
+                                            onChange={(event) =>
+                                                updateWelcomePage(
+                                                    index,
+                                                    'body',
+                                                    event.currentTarget.value,
+                                                )
+                                            }
+                                            value={page.body}
+                                        />
+                                        <InputError
+                                            message={
+                                                presentationErrors[
+                                                    `welcome.pages.${index}.body`
+                                                ]
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
+
+                {activeSection === 'info' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4">
+                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                                <FileText className="size-4 text-cyan-700 dark:text-teal-200" />
+                                Platform information pages
+                            </div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Markdown content for About, Imprint and Data
+                                Protection lives here now.
+                            </p>
+                        </div>
+                        <div className="grid gap-4">
+                            {infoPageKeys.map((key) => {
+                                const page = platformInfoPages[key];
+
+                                return (
+                                    <div
+                                        className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                        key={key}
+                                    >
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                                {page.title}
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {platformInfoContent[key]
+                                                    ?.updated_by
+                                                    ? `Last edited by ${platformInfoContent[key]?.updated_by?.name}`
+                                                    : 'Default content is currently used.'}
+                                            </p>
+                                        </div>
+                                        <textarea
+                                            className="max-h-[40svh] min-h-64 resize-y overflow-y-auto rounded-md border border-input bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                            onChange={(event) =>
+                                                setMarkdownDrafts(
+                                                    (current) => ({
+                                                        ...current,
+                                                        [key]: event
+                                                            .currentTarget
+                                                            .value,
+                                                    }),
+                                                )
+                                            }
+                                            value={markdownDrafts[key]}
+                                        />
+                                        <InputError
+                                            message={infoErrors.markdown}
+                                        />
+                                        <div className="flex justify-end">
+                                            <Button
+                                                disabled={
+                                                    savingInfoPage === key
+                                                }
+                                                onClick={() =>
+                                                    saveInfoPage(key)
+                                                }
+                                                type="button"
+                                            >
+                                                <Save className="size-4" />
+                                                Save {page.title}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ) : null}
+
+                {activeSection === 'source' ? (
+                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                                    <Github className="size-4 text-cyan-700 dark:text-teal-200" />
+                                    Source code links
+                                </div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                    These links appear on the public source
+                                    page. Origin points to the upstream
+                                    repository; additional links can point to
+                                    deployment forks or modified source
+                                    archives.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={addCustomSourceLink}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                <Plus className="size-4" />
+                                Add source link
+                            </Button>
+                        </div>
+
+                        <div className="grid gap-4">
+                            <div className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                        Origin
+                                    </p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        The default upstream source location.
+                                    </p>
+                                </div>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    <TextInput
+                                        error={
+                                            presentationErrors[
+                                                'sourceLinks.origin.label'
+                                            ]
+                                        }
+                                        label="Button label"
+                                        onChange={(value) =>
+                                            updateOriginSourceLink(
+                                                'label',
+                                                value,
+                                            )
+                                        }
+                                        value={
+                                            presentationDraft.sourceLinks.origin
+                                                .label
+                                        }
+                                    />
+                                    <TextInput
+                                        error={
+                                            presentationErrors[
+                                                'sourceLinks.origin.url'
+                                            ]
+                                        }
+                                        label="Repository URL"
+                                        onChange={(value) =>
+                                            updateOriginSourceLink('url', value)
+                                        }
+                                        value={
+                                            presentationDraft.sourceLinks.origin
+                                                .url
+                                        }
+                                    />
+                                </div>
+                            </div>
+
+                            {presentationDraft.sourceLinks.custom.map(
+                                (link, index) => (
+                                    <div
+                                        className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                        key={index}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                                    Modified source {index + 1}
+                                                </p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                    Optional public source link
+                                                    for this deployment.
+                                                </p>
+                                            </div>
+                                            <Button
+                                                onClick={() =>
+                                                    removeCustomSourceLink(
+                                                        index,
+                                                    )
+                                                }
+                                                size="sm"
+                                                type="button"
+                                                variant="ghost"
+                                            >
+                                                <Trash2 className="size-4" />
+                                                Remove
+                                            </Button>
+                                        </div>
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            <TextInput
+                                                error={
+                                                    presentationErrors[
+                                                        `sourceLinks.custom.${index}.label`
+                                                    ]
+                                                }
+                                                label="Button label"
+                                                onChange={(value) =>
+                                                    updateCustomSourceLink(
+                                                        index,
+                                                        'label',
+                                                        value,
+                                                    )
+                                                }
+                                                value={link.label}
+                                            />
+                                            <TextInput
+                                                error={
+                                                    presentationErrors[
+                                                        `sourceLinks.custom.${index}.url`
+                                                    ]
+                                                }
+                                                label="Source URL"
+                                                onChange={(value) =>
+                                                    updateCustomSourceLink(
+                                                        index,
+                                                        'url',
+                                                        value,
+                                                    )
+                                                }
+                                                value={link.url}
+                                            />
+                                        </div>
+                                    </div>
+                                ),
+                            )}
+                        </div>
+                    </section>
+                ) : null}
+            </div>
+        </div>
+    );
+}
+
+const paletteFields: Array<{
+    field: PaletteField;
+    label: string;
+    purpose: string;
+}> = [
+    {
+        field: 'headingText',
+        label: 'Heading text',
+        purpose: 'Main public headings and brand text.',
+    },
+    {
+        field: 'bodyText',
+        label: 'Body text',
+        purpose: 'Welcome body copy and information page paragraphs.',
+    },
+    {
+        field: 'mutedText',
+        label: 'Muted text',
+        purpose: 'Secondary public text when a quieter tone is needed.',
+    },
+    {
+        field: 'accentText',
+        label: 'Accent text',
+        purpose: 'Eyebrows, active links and highlighted public labels.',
+    },
+    {
+        field: 'controlText',
+        label: 'Control text',
+        purpose: 'Login, register, footer and small public control text.',
+    },
+    {
+        field: 'controlBorder',
+        label: 'Control border',
+        purpose: 'Borders around public controls and footer links.',
+    },
+];
+
+function PaletteEditor({
+    errors,
+    mode,
+    onChange,
+    palette,
+    title,
+}: {
+    errors: Record<string, string>;
+    mode: ThemeMode;
+    onChange: (mode: ThemeMode, field: PaletteField, value: string) => void;
+    palette: PublicPaletteModeSettings;
+    title: string;
+}) {
+    return (
+        <div className="grid gap-4 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-medium text-slate-950 dark:text-white">
+                    {title}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Used whenever public pages resolve to {mode} mode.
+                </p>
+            </div>
+            <div className="grid gap-4">
+                {paletteFields.map((field) => (
+                    <div className="grid gap-1" key={field.field}>
+                        <ColorField
+                            error={
+                                errors[`publicPalette.${mode}.${field.field}`]
+                            }
+                            label={field.label}
+                            onChange={(value) =>
+                                onChange(mode, field.field, value)
+                            }
+                            value={palette[field.field]}
+                        />
+                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {field.purpose}
+                        </p>
                     </div>
-                </section>
-            ) : null}
+                ))}
+            </div>
         </div>
     );
 }

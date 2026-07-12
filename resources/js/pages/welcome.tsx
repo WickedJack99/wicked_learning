@@ -7,6 +7,7 @@ import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { login, register } from '@/routes';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
+    getPublicPresentationStyle,
     getPresentationBackgroundImage,
     getWelcomePages,
 } from '@/theme/presentation';
@@ -26,7 +27,10 @@ export default function Welcome() {
         ...getAuthTheme('welcome', resolvedAppearance),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
-    const themeStyle = getAuthThemeStyle(theme);
+    const themeStyle = {
+        ...getAuthThemeStyle(theme),
+        ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
+    };
     const welcomePages = getWelcomePages(publicPresentation);
     const pageCount = welcomePages.length;
     const [activePage, setActivePage] = useState(0);
@@ -78,13 +82,13 @@ export default function Welcome() {
                         <span
                             className="flex size-9 items-center justify-center rounded-md"
                             style={{
-                                background: 'var(--auth-logo-background)',
+                                background: 'var(--public-accent-text)',
                                 color: 'var(--auth-logo-color)',
                             }}
                         >
                             <Compass className="size-5" />
                         </span>
-                        <span style={{ color: 'var(--auth-title-text-color)' }}>
+                        <span style={{ color: 'var(--public-heading-text)' }}>
                             Learning Worlds
                         </span>
                     </div>
@@ -95,7 +99,7 @@ export default function Welcome() {
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
                                 href={worldHref}
                                 style={{
-                                    background: 'var(--auth-button-background)',
+                                    background: 'var(--public-accent-text)',
                                     color: 'var(--auth-button-text-color)',
                                 }}
                             >
@@ -105,22 +109,25 @@ export default function Welcome() {
                         ) : (
                             <>
                                 <AppearanceToggleTab
-                                    className="mr-2 shadow-lg"
+                                    className="mr-2 border-0 shadow-lg"
                                     variant="subtle"
                                 />
                                 <Link
-                                    className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-white/10"
+                                    className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-current/8"
                                     href={login()}
                                     style={{
-                                        color: 'var(--auth-title-text-color)',
+                                        color: 'var(--public-control-text)',
                                     }}
                                 >
                                     <LogIn className="size-4" />
                                     Log in
                                 </Link>
                                 <Link
-                                    className="inline-flex items-center gap-2 rounded-md border border-white/14 bg-white/7 px-4 py-2 text-sm font-medium text-white opacity-95 transition hover:bg-white/12 hover:opacity-100"
+                                    className="inline-flex items-center gap-2 rounded-md bg-transparent px-4 py-2 text-sm font-medium opacity-95 transition hover:bg-current/8 hover:opacity-100"
                                     href={register()}
+                                    style={{
+                                        color: 'var(--public-control-text)',
+                                    }}
                                 >
                                     Register
                                     <ArrowRight className="size-4" />
@@ -149,7 +156,7 @@ export default function Welcome() {
                             <p
                                 className="mb-4 text-sm font-medium tracking-[0.18em] uppercase"
                                 style={{
-                                    color: 'var(--auth-eyebrow-text-color)',
+                                    color: 'var(--public-accent-text)',
                                 }}
                             >
                                 {page.eyebrow}
@@ -157,7 +164,7 @@ export default function Welcome() {
                             <h1
                                 className="max-w-3xl text-5xl font-semibold tracking-normal md:text-7xl"
                                 style={{
-                                    color: 'var(--auth-title-text-color)',
+                                    color: 'var(--public-heading-text)',
                                 }}
                             >
                                 {page.title}
@@ -165,7 +172,7 @@ export default function Welcome() {
                             <p
                                 className="mt-6 max-w-2xl text-base leading-8 md:text-lg"
                                 style={{
-                                    color: 'var(--auth-description-text-color)',
+                                    color: 'var(--public-body-text)',
                                 }}
                             >
                                 {page.body}
@@ -181,8 +188,7 @@ export default function Welcome() {
                                               : register()
                                     }
                                     style={{
-                                        background:
-                                            'var(--auth-button-background)',
+                                        background: 'var(--public-accent-text)',
                                         color: 'var(--auth-button-text-color)',
                                     }}
                                 >
@@ -195,8 +201,8 @@ export default function Welcome() {
                                         href={login()}
                                         style={{
                                             borderColor:
-                                                'var(--auth-border-line-color)',
-                                            color: 'var(--auth-title-text-color)',
+                                                'var(--public-control-border)',
+                                            color: 'var(--public-control-text)',
                                         }}
                                     >
                                         Continue learning
@@ -221,13 +227,13 @@ export default function Welcome() {
                             style={{
                                 background:
                                     activePage === index
-                                        ? 'var(--auth-button-background)'
+                                        ? 'var(--public-accent-text)'
                                         : resolvedAppearance === 'light'
                                           ? 'rgba(255,255,255,0.82)'
                                           : 'rgba(15,23,42,0.82)',
                                 borderColor:
                                     activePage === index
-                                        ? 'var(--auth-button-background)'
+                                        ? 'var(--public-accent-text)'
                                         : 'var(--auth-border-line-color)',
                             }}
                             type="button"
@@ -243,15 +249,14 @@ export default function Welcome() {
 
 function PublicWelcomeFooter() {
     return (
-        <footer className="absolute right-0 bottom-0 left-0 z-20 flex flex-wrap items-center justify-center gap-2 px-6 py-5 md:justify-end md:px-10">
+        <footer className="absolute right-0 bottom-0 left-0 z-20 flex flex-wrap items-center justify-center gap-2 px-6 py-5 md:justify-end md:pr-20 md:pl-10">
             {platformInfoLinks.map((link) => (
                 <Link
-                    className="rounded-md border px-3 py-2 text-xs font-medium transition hover:bg-white/10"
+                    className="rounded-md px-3 py-2 text-xs font-medium transition hover:bg-white/10"
                     href={link.href}
                     key={link.key}
                     style={{
-                        borderColor: 'var(--auth-border-line-color)',
-                        color: 'var(--auth-title-text-color)',
+                        color: 'var(--public-control-text)',
                     }}
                 >
                     {link.label}

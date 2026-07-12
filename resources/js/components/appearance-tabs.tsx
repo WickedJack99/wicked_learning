@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 export default function AppearanceToggleTab({
     className = '',
     variant = 'default',
+    style,
     ...props
 }: HTMLAttributes<HTMLDivElement> & { variant?: 'default' | 'subtle' }) {
     const { resolvedAppearance, updateAppearance } = useAppearance();
@@ -22,10 +23,20 @@ export default function AppearanceToggleTab({
             className={cn(
                 'inline-flex gap-1 rounded-lg p-1',
                 variant === 'subtle'
-                    ? 'border border-white/18 bg-white/7 backdrop-blur-md'
+                    ? 'border bg-white/7 backdrop-blur-md'
                     : 'bg-neutral-100 dark:bg-neutral-800',
                 className,
             )}
+            style={
+                variant === 'subtle'
+                    ? {
+                          borderColor:
+                              'var(--public-control-border,rgba(255,255,255,0.18))',
+                          color: 'var(--public-control-text,#ffffff)',
+                          ...style,
+                      }
+                    : style
+            }
             {...props}
         >
             {tabs.map(({ value, icon: Icon, label }) => (
@@ -37,8 +48,8 @@ export default function AppearanceToggleTab({
                         'flex items-center rounded-md px-3.5 py-1.5 transition-colors',
                         variant === 'subtle'
                             ? resolvedAppearance === value
-                                ? 'bg-white/12 text-white shadow-xs'
-                                : 'text-white/72 hover:bg-white/8 hover:text-white'
+                                ? 'bg-current/12 shadow-xs'
+                                : 'opacity-70 hover:bg-current/8 hover:opacity-100'
                             : resolvedAppearance === value
                               ? 'bg-white shadow-xs dark:bg-neutral-700 dark:text-neutral-100'
                               : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
