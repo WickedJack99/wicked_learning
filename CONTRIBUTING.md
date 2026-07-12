@@ -85,3 +85,9 @@ should explain:
 
 By contributing, you agree that your contribution is provided under this
 project's AGPLv3 license. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+Bundled default media assets in `public/images` and `public/sounds` are handled
+separately under CC0 1.0. If you contribute media intended to ship as a default
+asset, make sure it can be dedicated under the terms described in
+[ASSET_LICENSE.md](ASSET_LICENSE.md), or clearly document the different license
+before it is added.

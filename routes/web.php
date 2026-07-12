@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningItemActivityController;
+use App\Http\Controllers\LearningRouteProgressController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\SourceCodePageController;
@@ -43,12 +44,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.npc-dialogue-nodes.answer');
     Route::post('learning/npc-dialogue-nodes/{node}/grant-tool', [LearningWorldController::class, 'grantNpcDialogueTool'])
         ->name('learning.npc-dialogue-nodes.grant-tool');
+    Route::post('learning/activities/{activity}/npc-dialogue-state', [LearningWorldController::class, 'updateNpcDialogueState'])
+        ->name('learning.activities.npc-dialogue-state');
     Route::post('learning/activities/{activity}/obstacle-tool', [LearningWorldController::class, 'useObstacleTool'])
         ->name('learning.activities.obstacle-tool');
     Route::post('learning/activities/{activity}/grant-tool', [LearningWorldController::class, 'grantActivityTool'])
         ->name('learning.activities.grant-tool');
     Route::post('learning/activities/{activity}/grant-items', [LearningItemActivityController::class, 'grantItems'])
         ->name('learning.activities.grant-items');
+    Route::post('learning/activity-starts/{start}/restart', [LearningRouteProgressController::class, 'restart'])
+        ->name('learning.activity-starts.restart');
+    Route::post('learning/activity-starts/{start}/reset', [LearningRouteProgressController::class, 'reset'])
+        ->name('learning.activity-starts.reset');
     Route::post('learning/activities/{activity}/item-obstacle-slot', [LearningItemActivityController::class, 'placeObstacleSlot'])
         ->name('learning.activities.item-obstacle-slot');
     Route::post('learning/activities/{activity}/item-obstacle-continue', [LearningItemActivityController::class, 'continueObstacle'])

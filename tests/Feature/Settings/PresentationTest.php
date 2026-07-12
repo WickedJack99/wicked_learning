@@ -76,6 +76,13 @@ test('admins can update public presentation settings', function () {
                     ],
                 ],
             ],
+            'sourceLinks' => [
+                'origin' => [
+                    'label' => 'Origin',
+                    'url' => 'https://github.com/WickedJack99/wicked_learning',
+                ],
+                'custom' => [],
+            ],
         ])
         ->assertRedirect(route('settings.index', ['panel' => 'admin-presentation']));
 

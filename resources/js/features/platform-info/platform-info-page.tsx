@@ -11,6 +11,7 @@ import type { PlatformInfoPageKey } from '@/features/platform-info/content';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
+import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
     getPublicPresentationStyle,
@@ -134,6 +135,7 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
     };
     const themeStyle = {
         ...getAuthThemeStyle(theme),
+        ...platformCursorStyle(publicPresentation),
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
 

@@ -14,6 +14,11 @@ PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along
 with this project. If not, see <https://www.gnu.org/licenses/>.
 
+Bundled default media assets under public/images and public/sounds are
+dedicated to the public domain under Creative Commons Zero 1.0 Universal
+(CC0 1.0), unless a specific file states otherwise. See ASSET_LICENSE.md for
+details.
+
 Deployments that make this software available over a network should provide a
 clear Source link or equivalent route to the corresponding source code for the
 deployed version. This project includes a public Source page for that purpose;

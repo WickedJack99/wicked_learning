@@ -110,6 +110,20 @@ class PlatformPresentationSetting extends Model
                     'size' => 40,
                     'fallback' => 'grab',
                 ],
+                'text' => [
+                    'image' => '/images/cursors/fantasy-text-cursor.png',
+                    'hotspotX' => 13,
+                    'hotspotY' => 30,
+                    'size' => 40,
+                    'fallback' => 'text',
+                ],
+                'denied' => [
+                    'image' => '/images/cursors/fantasy-denied-cursor.png',
+                    'hotspotX' => 12,
+                    'hotspotY' => 10,
+                    'size' => 40,
+                    'fallback' => 'not-allowed',
+                ],
             ],
             'welcome' => [
                 'pages' => [

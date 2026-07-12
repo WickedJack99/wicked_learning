@@ -46,7 +46,9 @@ export type PublicPresentationSettings = {
     cursors: {
         action: CursorImageSettings;
         default: CursorImageSettings;
+        denied: CursorImageSettings;
         grab: CursorImageSettings;
+        text: CursorImageSettings;
     };
     welcome: {
         pages: WelcomePageSettings[];

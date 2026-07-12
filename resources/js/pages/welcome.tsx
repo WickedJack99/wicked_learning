@@ -5,6 +5,7 @@ import AppearanceToggleTab from '@/components/appearance-tabs';
 import { platformInfoLinks } from '@/features/platform-info/content';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { login, register } from '@/routes';
+import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
     getPublicPresentationStyle,
@@ -29,6 +30,7 @@ export default function Welcome() {
     };
     const themeStyle = {
         ...getAuthThemeStyle(theme),
+        ...platformCursorStyle(publicPresentation),
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
     const welcomePages = getWelcomePages(publicPresentation);

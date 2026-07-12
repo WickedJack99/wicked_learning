@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, ExternalLink, Github } from 'lucide-react';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
+import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
     getPublicPresentationStyle,
@@ -29,6 +30,7 @@ export default function SourcePage() {
     };
     const themeStyle = {
         ...getAuthThemeStyle(theme),
+        ...platformCursorStyle(publicPresentation),
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
     const origin = publicPresentation.sourceLinks.origin;

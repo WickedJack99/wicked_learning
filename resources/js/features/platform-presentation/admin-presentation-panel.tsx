@@ -50,7 +50,7 @@ type Props = {
 };
 
 type AuthBackgroundPage = 'login' | 'register' | 'welcome';
-type CursorKey = 'action' | 'default' | 'grab';
+type CursorKey = 'action' | 'default' | 'denied' | 'grab' | 'text';
 type PresentationSection =
     | 'backgrounds'
     | 'cursors'
@@ -109,6 +109,16 @@ const cursorOptions: Array<{
         label: 'Grab cursor',
         description: 'Used while dragging maps and graph surfaces.',
     },
+    {
+        key: 'text',
+        label: 'Text input cursor',
+        description: 'Used when hovering editable input and text areas.',
+    },
+    {
+        key: 'denied',
+        label: 'Denied cursor',
+        description: 'Used on disabled controls and unavailable locked nodes.',
+    },
 ];
 
 const presentationSections: {
@@ -126,7 +136,7 @@ const presentationSections: {
     {
         key: 'cursors',
         label: 'Cursor images',
-        description: 'Normal, action and grab cursor images.',
+        description: 'Normal, action, grab, text and denied cursor images.',
         icon: MousePointer2,
     },
     {
@@ -500,7 +510,7 @@ export function AdminPresentationPanel({
                             </h3>
                             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                 Use a public asset path such as
-                                `/images/themes/mentor-calm.svg` or an external
+                                `/images/themes/mentor-calm.png` or an external
                                 image URL.
                             </p>
                         </div>

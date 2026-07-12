@@ -3,6 +3,7 @@ import AppLogoIcon from '@/components/app-logo-icon';
 import AppearanceToggleTab from '@/components/appearance-tabs';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { home } from '@/routes';
+import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import type { AuthThemePage } from '@/theme/platform-theme';
 import { getPresentationBackgroundImage } from '@/theme/presentation';
@@ -26,7 +27,10 @@ export default function AuthSimpleLayout({
         ...getAuthTheme(page, resolvedAppearance),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
-    const themeStyle = getAuthThemeStyle(theme);
+    const themeStyle = {
+        ...getAuthThemeStyle(theme),
+        ...platformCursorStyle(props.publicPresentation),
+    };
 
     return (
         <div
