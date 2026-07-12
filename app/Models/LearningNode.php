@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property array<string, mixed>|null $visual_config
+ * @property array<string, mixed>|null $activity_graph_layout
  */
 #[Fillable([
     'learning_map_id',
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'position_r',
     'state',
     'visual_config',
+    'activity_graph_layout',
     'start_activity_id',
 ])]
 class LearningNode extends Model
@@ -30,6 +32,7 @@ class LearningNode extends Model
     {
         return [
             'visual_config' => 'array',
+            'activity_graph_layout' => 'array',
         ];
     }
 

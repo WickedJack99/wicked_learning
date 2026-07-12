@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -26,7 +27,7 @@ test('admin users can see the world graph with portal links', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/worlds/index')
-            ->where('worldGraph.world.slug', 'demo-cybersecurity')
+            ->where('worldGraph.world.slug', 'demo-learning-world')
             ->has('worldGraph.maps', 2)
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
@@ -141,6 +142,46 @@ test('admin users can open the hex map editor', function () {
         );
 });
 
+test('admin users can manage map access permissions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.edit', $map))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('editableMap.map.accessRoles', [User::ROLE_USER, User::ROLE_ADMIN])
+            ->where('accessGroups.0.slug', 'public')
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.access.update', $map), [
+            'access_roles' => ['public', User::ROLE_ADMIN],
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $map));
+
+    $map->refresh();
+
+    expect($map->access_roles)->toBe(['public', User::ROLE_ADMIN]);
+
+    $this->app['auth']->forgetGuards();
+
+    $this->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->has('world.maps', 1)
+            ->where('world.maps.0.slug', 'first-sector')
+        );
+
+    $this->getJson(route('learning.search', ['query' => 'Quiet Library']))
+        ->assertOk()
+        ->assertJsonCount(0, 'results');
+});
+
 test('admin users can open the activity graph editor', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -163,6 +204,36 @@ test('admin users can open the activity graph editor', function () {
         );
 });
 
+test('admin users can persist activity graph special node positions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.activities.layout.update', $node), [
+            'node' => 'start',
+            'position' => ['x' => -360, 'y' => 140],
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $node->refresh();
+
+    expect($node->activity_graph_layout['start'])->toBe([
+        'x' => -360,
+        'y' => 140,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.nodes.activities.edit', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('activityGraph.node.graphLayout.start.x', -360)
+            ->where('activityGraph.node.graphLayout.start.y', 140)
+        );
+});
+
 test('admin users configure portal destinations from portal activities', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -181,9 +252,12 @@ test('admin users configure portal destinations from portal activities', functio
             'portal_duration_seconds' => 2.5,
             'portal_foreground_dark' => '/storage/learning/nodes/swirl-dark.svg',
             'portal_foreground_light' => '/storage/learning/nodes/swirl-light.svg',
+            'portal_foreground_width' => 36,
             'portal_foreground_x' => 42,
             'portal_foreground_y' => 58,
+            'portal_show_on_arrival' => true,
             'portal_swirl_enabled' => false,
+            'portal_wait_for_enter' => true,
             'target_portal_activity_id' => $targetActivity->id,
             'introduction' => 'Travel toward the archive.',
         ])
@@ -202,9 +276,23 @@ test('admin users configure portal destinations from portal activities', functio
         ->and($activity->config['portalDurationSeconds'])->toBe(2.5)
         ->and($activity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/swirl-dark.svg')
         ->and($activity->config['portalForegroundLight'])->toBe('/storage/learning/nodes/swirl-light.svg')
+        ->and((float) $activity->config['portalForegroundWidth'])->toBe(36.0)
         ->and($activity->config['portalForegroundX'])->toBe(42)
         ->and($activity->config['portalForegroundY'])->toBe(58)
-        ->and($activity->config['portalSwirlEnabled'])->toBeFalse();
+        ->and($activity->config['portalShowOnArrival'])->toBeTrue()
+        ->and($activity->config['portalSwirlEnabled'])->toBeFalse()
+        ->and($activity->config['portalWaitForEnter'])->toBeTrue();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $targetActivity), [
+            'portal_mode' => 'input',
+            'portal_show_on_arrival' => false,
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $targetActivity->node));
+
+    $targetActivity->refresh();
+
+    expect($targetActivity->config['portalShowOnArrival'])->toBeFalse();
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.nodes.activities.edit', $sourceNode))
@@ -220,7 +308,7 @@ test('admin users can update obstacle activity images', function () {
         'role' => User::ROLE_ADMIN,
     ]);
     $activity = LearningActivity::query()
-        ->where('slug', 'clear-the-static-gate')
+        ->where('slug', 'clear-the-noisy-gate')
         ->firstOrFail();
 
     $this->actingAs($admin)
@@ -252,6 +340,170 @@ test('admin users can update obstacle activity images', function () {
         ->and($activity->config['revisitBackgroundLight'])->toBe('/storage/learning/nodes/cleared-mineshaft-light.svg')
         ->and($activity->config['revisitImageDark'])->toBe('/storage/learning/nodes/cleared-rock-dark.svg')
         ->and($activity->config['revisitImageLight'])->toBe('/storage/learning/nodes/cleared-rock-light.svg');
+});
+
+test('admin users can create markdown page graph activities', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'title' => 'Read the briefing',
+            'type' => 'markdown',
+            'introduction' => 'A small page route.',
+            'markdown_pages' => [
+                [
+                    'id' => 'page-a',
+                    'title' => 'Briefing',
+                    'body' => "# Briefing\n\n![Diagram](/storage/learning/nodes/diagram.svg)",
+                    'position' => ['x' => 160, 'y' => 90],
+                    'visual' => [
+                        'pageColorDark' => '#0f172a',
+                        'pageColorLight' => '#ffffff',
+                        'borderColorDark' => '#2dd4bf',
+                        'borderColorLight' => '#0891b2',
+                        'headingColorDark' => '#67e8f9',
+                        'headingColorLight' => '#0e7490',
+                        'textColorDark' => '#f8fafc',
+                        'textColorLight' => '#0f172a',
+                    ],
+                ],
+            ],
+            'markdown_transitions' => [
+                ['id' => 'start-a', 'from' => 'start', 'to' => 'page-a'],
+                ['id' => 'a-end', 'from' => 'page-a', 'to' => 'end'],
+            ],
+            'markdown_graph_layout' => [
+                'start' => ['x' => -240, 'y' => 120],
+                'end' => ['x' => 620, 'y' => 130],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'read-the-briefing')
+        ->firstOrFail();
+
+    expect($activity->type)->toBe('markdown')
+        ->and($activity->config['markdownPages'][0]['title'])->toBe('Briefing')
+        ->and($activity->config['markdownPages'][0]['body'])->toContain('![Diagram]')
+        ->and($activity->config['markdownPages'][0]['visual']['borderColorDark'])->toBe('#2dd4bf')
+        ->and($activity->config['markdownPages'][0]['visual']['headingColorDark'])->toBe('#67e8f9')
+        ->and($activity->config['markdownTransitions'][0]['from'])->toBe('start')
+        ->and($activity->config['markdownTransitions'][1]['to'])->toBe('end')
+        ->and($activity->config['markdownGraphLayout']['start'])->toBe([
+            'x' => -240,
+            'y' => 120,
+        ]);
+});
+
+test('admin users can open and save the markdown page editor', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'markdown-route',
+        'title' => 'Markdown route',
+        'type' => 'markdown',
+        'config' => [
+            'markdownPages' => [
+                [
+                    'id' => 'page-a',
+                    'title' => 'Old page',
+                    'body' => 'Old text',
+                    'position' => ['x' => 100, 'y' => 80],
+                    'visual' => [
+                        'pageColorDark' => '#0f172a',
+                        'pageColorLight' => '#ffffff',
+                        'borderColorDark' => '#2dd4bf',
+                        'borderColorLight' => '#0891b2',
+                        'headingColorDark' => '#67e8f9',
+                        'headingColorLight' => '#0e7490',
+                        'textColorDark' => '#f8fafc',
+                        'textColorLight' => '#0f172a',
+                    ],
+                ],
+            ],
+            'markdownTransitions' => [
+                ['id' => 'start-a', 'from' => 'start', 'to' => 'page-a'],
+                ['id' => 'a-end', 'from' => 'page-a', 'to' => 'end'],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.activities.markdown.edit', $activity))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/worlds/edit-markdown-activity')
+            ->where('markdownActivity.node.slug', 'field-notes')
+            ->where('markdownActivity.activity.slug', 'markdown-route')
+            ->where('markdownActivity.activity.config.markdownPages.0.title', 'Old page')
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Markdown route',
+            'type' => 'markdown',
+            'return_to_markdown' => true,
+            'markdown_pages' => [
+                [
+                    'id' => 'page-a',
+                    'title' => 'Updated page',
+                    'body' => "# Updated\n\n![Video](/storage/learning/nodes/intro.webm)",
+                    'position' => ['x' => 140, 'y' => 120],
+                    'visual' => [
+                        'pageColorDark' => '#111827',
+                        'pageColorLight' => '#f8fafc',
+                        'borderColorDark' => '#22d3ee',
+                        'borderColorLight' => '#0284c7',
+                        'headingColorDark' => '#a5f3fc',
+                        'headingColorLight' => '#0369a1',
+                        'textColorDark' => '#f9fafb',
+                        'textColorLight' => '#111827',
+                    ],
+                ],
+            ],
+            'markdown_transitions' => [
+                ['id' => 'start-a', 'from' => 'start', 'to' => 'page-a'],
+                ['id' => 'a-end', 'from' => 'page-a', 'to' => 'end'],
+            ],
+            'markdown_graph_layout' => [
+                'start' => ['x' => -320, 'y' => 110],
+                'end' => ['x' => 680, 'y' => 110],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.activities.markdown.edit', $activity));
+
+    $activity->refresh();
+
+    expect($activity->config['markdownPages'][0]['title'])->toBe('Updated page')
+        ->and($activity->config['markdownPages'][0]['body'])->toContain('intro.webm')
+        ->and($activity->config['markdownPages'][0]['visual']['headingColorLight'])->toBe('#0369a1')
+        ->and($activity->config['markdownGraphLayout']['end'])->toBe([
+            'x' => 680,
+            'y' => 110,
+        ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.graph-layout.update', $activity), [
+            'node' => 'start',
+            'position' => ['x' => -420, 'y' => 160],
+        ])
+        ->assertRedirect(route('settings.worlds.activities.markdown.edit', $activity));
+
+    $activity->refresh();
+
+    expect($activity->config['markdownGraphLayout']['start'])->toBe([
+        'x' => -420,
+        'y' => 160,
+    ]);
 });
 
 test('admin users can create and connect activity graph nodes', function () {
@@ -349,13 +601,13 @@ test('admin users can author npc dialogue activity graphs', function () {
                 'typingSpeed' => 24,
             ],
             'title' => 'Archivist greeting',
-            'type' => 'npc_interaction',
+            'type' => 'npc_monologue',
         ])
         ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
 
     $interaction = NpcDialogueNode::query()
         ->where('learning_activity_id', $activity->id)
-        ->where('type', 'npc_interaction')
+        ->where('type', 'npc_monologue')
         ->firstOrFail();
 
     $this->actingAs($admin)
@@ -397,6 +649,20 @@ test('admin users can author npc dialogue activity graphs', function () {
         ->and($endNode->config['connectorSymbol'])->toBe('Z');
 
     $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.graph-layout.update', $activity), [
+            'node' => 'start',
+            'position' => ['x' => -300, 'y' => 140],
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    $activity->refresh();
+
+    expect($activity->config['dialogueGraphLayout']['start'])->toBe([
+        'x' => -300,
+        'y' => 140,
+    ]);
+
+    $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
             'from_activity_id' => $activity->id,
             'from_connector' => 'dialogue-end-'.$endNode->id,
@@ -423,11 +689,10 @@ test('learners can answer npc dialogue questions', function () {
     ]);
     $questionNode = NpcDialogueNode::query()->create([
         'learning_activity_id' => $activity->id,
-        'type' => 'npc_interaction',
+        'type' => 'npc_question',
         'title' => 'Mira',
         'body' => 'Which observation is useful?',
         'config' => [
-            'interactionMode' => 'question',
             'questionOutputCount' => 2,
         ],
     ]);
@@ -728,14 +993,14 @@ test('admin users can edit an existing tile', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.nodes.update', $node), [
-            'title' => 'Signal Gate Revised',
+            'title' => 'Pattern Gate Revised',
             'slug' => 'signal-gate',
             'description' => 'Updated from the admin editor.',
             'position_q' => $node->position_q,
             'position_r' => $node->position_r,
             'state' => 'available',
             'visual_config' => [
-                'label' => 'Signal Gate',
+                'label' => 'Pattern Gate',
                 'hideImage' => true,
                 'hideLabel' => true,
                 'tooltip' => 'Edited tile.',
@@ -759,7 +1024,7 @@ test('admin users can edit an existing tile', function () {
 
     $node->refresh();
 
-    expect($node->title)->toBe('Signal Gate Revised')
+    expect($node->title)->toBe('Pattern Gate Revised')
         ->and($node->description)->toBe('Updated from the admin editor.')
         ->and($node->visual_config['hideImage'])->toBeTrue()
         ->and($node->visual_config['hideLabel'])->toBeTrue()
@@ -788,7 +1053,7 @@ test('admin users can configure a tile to be revealed by a tool', function () {
             'position_r' => $node->position_r,
             'state' => 'hidden',
             'visual_config' => [
-                'label' => 'Signal Gate',
+                'label' => 'Pattern Gate',
                 'reveal' => [
                     'enabled' => true,
                     'toolId' => $tool->id,
@@ -816,6 +1081,59 @@ test('admin users can configure a tile to be revealed by a tool', function () {
         ->and((int) $node->visual_config['reveal']['toolId'])->toBe($tool->id);
 });
 
+test('admin users can reset node tool unlocks for all learners', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+
+    $discovery = LearnerNodeDiscovery::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'discovered_at' => now(),
+        'metadata' => [
+            'source' => 'test',
+            'unlock' => [
+                'source' => 'world-map-lock-tool',
+                'toolId' => 42,
+                'unlockedAt' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.unlocks.reset', $node))
+        ->assertRedirect(route('settings.worlds.maps.edit', $node->map));
+
+    $discovery->refresh();
+
+    expect($discovery->metadata)->toBe([
+        'source' => 'test',
+    ]);
+});
+
+test('admin users can edit map details', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'title' => 'First Clearing',
+            'description' => 'A quiet learning landscape for active practice.',
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $map));
+
+    $map->refresh();
+
+    expect($map->title)->toBe('First Clearing')
+        ->and($map->description)->toBe('A quiet learning landscape for active practice.');
+});
+
 test('admin users can edit map visual theme variants', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -826,21 +1144,29 @@ test('admin users can edit map visual theme variants', function () {
     $this->actingAs($admin)
         ->patch(route('settings.worlds.maps.update', $map), [
             'background_config' => [
-                'imageUrl' => '/storage/learning/maps/default.webp',
-                'overlay' => 'rgba(1, 8, 14, 0.72)',
-                'pageBackground' => '#08111a',
-                'panelBackground' => 'rgba(8, 17, 26, 0.78)',
-                'panelTextColor' => '#f8fafc',
-                'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
-                'accentColor' => '#99f6e4',
-                'sidePanelBackground' => '#111820',
-                'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
-                'sidePanelTextColor' => '#f8fafc',
-                'sidePanelMutedTextColor' => 'rgba(226, 232, 240, 0.72)',
                 'dark' => [
                     'imageUrl' => '/storage/learning/maps/dark.webp',
+                    'overlay' => 'rgba(1, 8, 14, 0.72)',
                     'pageBackground' => '#020617',
+                    'panelBackground' => 'rgba(8, 17, 26, 0.78)',
+                    'panelBorderColor' => 'rgba(226, 232, 240, 0.12)',
+                    'panelTextColor' => '#f8fafc',
+                    'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
                     'accentColor' => '#5eead4',
+                    'sidePanelBackground' => '#111820',
+                    'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
+                    'sidePanelTextColor' => '#f8fafc',
+                    'sidePanelMutedTextColor' => 'rgba(226, 232, 240, 0.72)',
+                    'bottomNavBackground' => 'rgba(8, 17, 26, 0.78)',
+                    'bottomNavBorderColor' => 'rgba(226, 232, 240, 0.12)',
+                    'bottomNavTextColor' => '#e2e8f0',
+                    'bottomNavActiveBackground' => '#5eead4',
+                    'bottomNavActiveTextColor' => '#020617',
+                    'sideControlBackground' => 'rgba(8, 17, 26, 0.78)',
+                    'sideControlBorderColor' => 'rgba(226, 232, 240, 0.12)',
+                    'sideControlTextColor' => '#e2e8f0',
+                    'sideControlActiveBackground' => '#5eead4',
+                    'sideControlActiveTextColor' => '#020617',
                 ],
                 'light' => [
                     'imageUrl' => '/storage/learning/maps/light.webp',
@@ -855,8 +1181,11 @@ test('admin users can edit map visual theme variants', function () {
 
     $map->refresh();
 
-    expect($map->background_config['imageUrl'])->toBe('/storage/learning/maps/default.webp')
+    expect($map->background_config)->not->toHaveKey('imageUrl')
         ->and($map->background_config['dark']['imageUrl'])->toBe('/storage/learning/maps/dark.webp')
+        ->and($map->background_config['dark']['panelBorderColor'])->toBe('rgba(226, 232, 240, 0.12)')
+        ->and($map->background_config['dark']['bottomNavBackground'])->toBe('rgba(8, 17, 26, 0.78)')
+        ->and($map->background_config['dark']['sideControlBackground'])->toBe('rgba(8, 17, 26, 0.78)')
         ->and($map->background_config['light']['pageBackground'])->toBe('#ecfeff');
 });
 

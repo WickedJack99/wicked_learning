@@ -16,15 +16,17 @@ class UpdateNpcDialogueNode
     {
         $updates = [];
 
-        foreach (['title', 'body', 'graph_position_x', 'graph_position_y'] as $field) {
+        foreach (['type', 'title', 'body', 'graph_position_x', 'graph_position_y'] as $field) {
             if (array_key_exists($field, $data)) {
                 $updates[$field] = $data[$field];
             }
         }
 
         if (array_key_exists('config', $data)) {
+            $type = (string) ($updates['type'] ?? $node->type);
+
             $updates['config'] = $this->configuration->configFor(
-                $node->type,
+                $type,
                 $data,
                 is_array($node->config) ? $node->config : [],
             );

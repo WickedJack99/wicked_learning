@@ -13,7 +13,7 @@ class NodeImageUploadService
     {
         if (! $image instanceof UploadedFile) {
             throw ValidationException::withMessages([
-                'image' => 'Please choose an image file.',
+                'image' => 'Please choose an image or video file.',
             ]);
         }
 
@@ -21,7 +21,7 @@ class NodeImageUploadService
 
         if (! in_array($extension, $this->allowedExtensions(), true)) {
             throw ValidationException::withMessages([
-                'image' => 'The image must be a GIF, JPG, PNG, SVG or WEBP file.',
+                'image' => 'The file must be a GIF, JPG, PNG, SVG, WEBP, MP4, OGG or WEBM file.',
             ]);
         }
 
@@ -36,6 +36,6 @@ class NodeImageUploadService
      */
     private function allowedExtensions(): array
     {
-        return ['gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'];
+        return ['gif', 'jpeg', 'jpg', 'm4v', 'mov', 'mp4', 'ogg', 'ogv', 'png', 'svg', 'webm', 'webp'];
     }
 }

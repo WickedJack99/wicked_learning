@@ -3,21 +3,25 @@
 namespace App\Learning\Queries;
 
 use App\Learning\CurrentWorldResolver;
+use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\User;
 
 class SearchLearningWorld
 {
+    public function __construct(private readonly LearningMapAccessService $mapAccess) {}
+
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function handle(string $query): array
+    public function handle(string $query, ?User $user = null): array
     {
         $term = trim($query);
 
         return [
-            ...$this->mapResults($term),
-            ...$this->nodeResults($term),
+            ...$this->mapResults($term, $user),
+            ...$this->nodeResults($term, $user),
         ];
     }
 
@@ -34,7 +38,7 @@ class SearchLearningWorld
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function mapResults(string $term): array
+    private function mapResults(string $term, ?User $user): array
     {
         $likeTerm = $this->likeTerm($term);
 
@@ -48,6 +52,7 @@ class SearchLearningWorld
             })
             ->limit(8)
             ->get()
+            ->filter(fn (LearningMap $map): bool => $this->mapAccess->canViewMap($map, $user))
             ->map(fn (LearningMap $map): array => [
                 'id' => "map:{$map->id}",
                 'kind' => 'map',
@@ -62,7 +67,7 @@ class SearchLearningWorld
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function nodeResults(string $term): array
+    private function nodeResults(string $term, ?User $user): array
     {
         $likeTerm = $this->likeTerm($term);
 
@@ -79,7 +84,8 @@ class SearchLearningWorld
             })
             ->limit(32)
             ->get()
-            ->filter(fn (LearningNode $node): bool => $this->isVisibleNode($node))
+            ->filter(fn (LearningNode $node): bool => $this->isVisibleNode($node)
+                && $this->mapAccess->canViewMap($node->map, $user))
             ->take(24)
             ->map(fn (LearningNode $node): array => [
                 'id' => "node:{$node->id}",

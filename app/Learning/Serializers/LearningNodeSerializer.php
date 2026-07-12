@@ -3,11 +3,15 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityRouteEligibility;
+use App\Learning\Services\LearningNodeStateResolver;
+use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\NodeRevealService;
+use App\Learning\Services\NodeUnlockService;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class LearningNodeSerializer
@@ -17,15 +21,19 @@ class LearningNodeSerializer
         private readonly LearningActivitySerializer $activitySerializer,
         private readonly LearningActivityStartSerializer $startSerializer,
         private readonly LearningPortalLinkSerializer $portalLinkSerializer,
+        private readonly LearningNodeStateResolver $nodeStateResolver,
+        private readonly LearningMapAccessService $mapAccess,
         private readonly NodeRevealService $nodeRevealService,
+        private readonly NodeUnlockService $nodeUnlockService,
     ) {}
 
     /**
      * @return array<string, mixed>
      */
-    public function serialize(LearningNode $node, ?int $userId = null): array
+    public function serialize(LearningNode $node, ?User $user = null): array
     {
         $this->loadRelations($node);
+        $userId = $user?->id;
 
         if ($this->nodeRevealService->isConcealedForUser($node, $userId)) {
             return $this->concealedNode($node);
@@ -35,9 +43,10 @@ class LearningNodeSerializer
             ...$this->baseNode($node, null, [
                 'isDiscoverable' => $this->nodeRevealService->isDiscoverable($node),
                 'isDiscovered' => true,
-            ], $this->nodeRevealService->isDiscoverable($node) ? 'available' : null),
+            ], $this->nodeStateResolver->stateForUser($node, $userId), $userId),
             'outgoingPortalLinks' => $node->outgoingPortalLinks
-                ->map(fn (LearningPortalLink $link): array => $this->portalLinkSerializer->serialize($link))
+                ->filter(fn (LearningPortalLink $link): bool => $this->mapAccess->canViewMap($link->targetNode->map, $user))
+                ->map(fn (LearningPortalLink $link): array => $this->portalLinkSerializer->serialize($link, $userId))
                 ->values(),
             'startActivityId' => $this->eligibleStartActivityId($node),
             'startRoutes' => $this->startRoutes($node),
@@ -74,6 +83,7 @@ class LearningNodeSerializer
             'activities.question.options',
             'activities.transitions',
             'discoveries',
+            'outgoingPortalLinks.targetNode.discoveries',
             'outgoingPortalLinks.targetNode.map',
         ]);
     }
@@ -88,6 +98,7 @@ class LearningNodeSerializer
         ?array $position = null,
         ?array $reveal = null,
         ?string $state = null,
+        ?int $userId = null,
     ): array {
         $visualConfig = $node->visual_config ?? [];
 
@@ -95,6 +106,14 @@ class LearningNodeSerializer
             $visualConfig['reveal'] = [
                 ...(is_array($visualConfig['reveal'] ?? null) ? $visualConfig['reveal'] : []),
                 ...$reveal,
+            ];
+        }
+
+        $unlock = $this->nodeUnlockService->unlockState($node, $userId);
+        if ($unlock['isUnlockable']) {
+            $visualConfig['unlock'] = [
+                ...(is_array($visualConfig['unlock'] ?? null) ? $visualConfig['unlock'] : []),
+                ...$unlock,
             ];
         }
 

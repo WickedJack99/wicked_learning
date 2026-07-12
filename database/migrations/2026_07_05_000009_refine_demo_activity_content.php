@@ -50,12 +50,12 @@ return new class extends Migration
                 'description' => 'A connected map for archived signal-reading practice.',
             ]);
 
-        $this->updateNodeTooltip('return-gate', 'Return toward the first sector.');
+        $this->updateNodeTooltip('return-gate', 'Return toward the first clearing.');
 
         DB::table('learning_portal_links')
-            ->where('label', 'First Sector to Signal Archive')
+            ->whereIn('label', ['First Clearing to Quiet Library', 'First Sector to Signal Archive'])
             ->update([
-                'description' => 'Portal pair connecting the first map to the signal archive.',
+                'description' => 'Portal pair connecting the first map to a related learning space.',
             ]);
 
         $this->updateTransitionConnectors();

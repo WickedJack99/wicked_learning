@@ -12,6 +12,17 @@ class LearnerProgressSerializer
     /**
      * @return array<string, mixed>
      */
+    public function empty(): array
+    {
+        return [
+            'activities' => [],
+            'answers' => [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function forUser(int $userId): array
     {
         return [

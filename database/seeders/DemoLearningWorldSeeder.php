@@ -25,36 +25,39 @@ class DemoLearningWorldSeeder extends Seeder
      */
     public function run(): void
     {
-        LearningWorld::query()->where('slug', 'demo-cybersecurity')->delete();
+        LearningWorld::query()->where('slug', 'demo-learning-world')->delete();
 
         $world = LearningWorld::query()->create([
-            'slug' => 'demo-cybersecurity',
-            'title' => 'Signal Garden',
+            'slug' => 'demo-learning-world',
+            'title' => 'Learning Grove',
             'description' => 'A small explorable world for practicing investigation habits without points, streaks or rankings.',
             'theme_config' => [
                 'accent' => '#36d399',
                 'surface' => '#101820',
                 'highlight' => '#7dd3fc',
-                'storyTone' => 'calm cyber exploration',
+                'storyTone' => 'calm exploration',
             ],
         ]);
 
         $map = LearningMap::query()->create([
             'learning_world_id' => $world->id,
             'slug' => 'first-sector',
-            'title' => 'First Sector',
-            'description' => 'A tiny network landscape where each node is a place for active learning.',
+            'title' => 'First Clearing',
+            'description' => 'A tiny learning landscape where each node is a place for active practice.',
+            'access_roles' => [User::ROLE_USER, User::ROLE_ADMIN],
             'background_config' => [
-                'imageUrl' => '/images/themes/cyber-map-background.svg',
-                'overlay' => 'rgba(7, 13, 18, 0.58)',
-                'pageBackground' => '#0b1117',
-                'panelBackground' => 'rgba(5, 15, 22, 0.72)',
-                'panelTextColor' => '#f8fafc',
-                'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
-                'sidePanelBackground' => '#111820',
-                'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
-                'sidePanelTextColor' => '#f8fafc',
-                'accentColor' => '#99f6e4',
+                'dark' => [
+                    'imageUrl' => '/images/themes/abstract-map-background.svg',
+                    'overlay' => 'rgba(7, 13, 18, 0.58)',
+                    'pageBackground' => '#0b1117',
+                    'panelBackground' => 'rgba(5, 15, 22, 0.72)',
+                    'panelTextColor' => '#f8fafc',
+                    'panelMutedTextColor' => 'rgba(226, 232, 240, 0.82)',
+                    'sidePanelBackground' => '#111820',
+                    'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
+                    'sidePanelTextColor' => '#f8fafc',
+                    'accentColor' => '#99f6e4',
+                ],
                 'light' => [
                     'overlay' => 'rgba(238, 251, 252, 0.72)',
                     'pageBackground' => '#e8f6f8',
@@ -78,14 +81,14 @@ class DemoLearningWorldSeeder extends Seeder
         $signalGate = LearningNode::query()->create([
             'learning_map_id' => $map->id,
             'slug' => 'signal-gate',
-            'title' => 'Signal Gate',
-            'description' => 'Meet the guide and practice reading an event pattern.',
+            'title' => 'Pattern Gate',
+            'description' => 'Meet the guide and practice noticing a meaningful pattern.',
             'position_q' => 0,
             'position_r' => 0,
             'state' => 'active',
             'visual_config' => [
                 'icon' => 'radioTower',
-                'label' => 'Signal Gate',
+                'label' => 'Pattern Gate',
                 'tooltip' => 'Start here: short dialogue, then a question.',
                 'dark' => [
                     'tileColor' => '#12343b',
@@ -120,10 +123,10 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_activity_id' => $mentorDialogue->id,
             'stage_key' => 'arrival',
             'speaker_name' => 'Mira',
-            'speaker_role' => 'Signal Keeper',
-            'body' => 'Welcome to the Signal Garden. Nothing here asks you to chase points. We look for patterns, test ideas, and keep what becomes useful.',
+            'speaker_role' => 'Learning Guide',
+            'body' => 'Welcome to the Learning Grove. Nothing here asks you to chase points. We look for patterns, test ideas, and keep what becomes useful.',
             'portrait_url' => '/images/themes/mentor-calm.svg',
-            'image_alt' => 'Mira, a calm guide with a glowing terminal frame.',
+            'image_alt' => 'Mira, a calm guide with a glowing frame.',
             'mood' => 'calm',
             'sort_order' => 10,
         ]);
@@ -132,10 +135,10 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_activity_id' => $mentorDialogue->id,
             'stage_key' => 'autonomy',
             'speaker_name' => 'Mira',
-            'speaker_role' => 'Signal Keeper',
+            'speaker_role' => 'Learning Guide',
             'body' => 'You can move through places in more than one way. If an answer is off, that is not a failure state. It is just information for the next attempt.',
             'portrait_url' => '/images/themes/mentor-hint.svg',
-            'image_alt' => 'Mira pointing toward branching signal paths.',
+            'image_alt' => 'Mira pointing toward branching learning paths.',
             'mood' => 'encouraging',
             'sort_order' => 20,
         ]);
@@ -144,8 +147,8 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_activity_id' => $mentorDialogue->id,
             'stage_key' => 'question-setup',
             'speaker_name' => 'Mira',
-            'speaker_role' => 'Signal Keeper',
-            'body' => 'A login alert just arrived. Read it like an investigator: what detail changes the story?',
+            'speaker_role' => 'Learning Guide',
+            'body' => 'A small observation just arrived. Read it like an explorer: what detail changes the story?',
             'portrait_url' => '/images/themes/mentor-alert.svg',
             'image_alt' => 'Mira reviewing a highlighted event stream.',
             'mood' => 'focused',
@@ -156,23 +159,23 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_node_id' => $signalGate->id,
             'slug' => 'read-the-first-signal',
             'type' => 'question',
-            'title' => 'Read the first signal',
-            'introduction' => 'Choose the clue that best explains the alert.',
+            'title' => 'Read the first pattern',
+            'introduction' => 'Choose the clue that best explains the observation.',
             'sort_order' => 20,
         ]);
 
         $question = LearningQuestion::query()->create([
             'learning_activity_id' => $signalQuestion->id,
-            'prompt' => 'A login alert shows 84 failed attempts against one account in 4 minutes. The attempts came from 51 source IP addresses. Which clue matters most for the next investigation step?',
-            'feedback_correct' => 'Correct. The many source IPs suggest a distributed pattern, so the next step should inspect source distribution and account exposure rather than treating this like one mistyped password.',
-            'feedback_incorrect' => 'Not quite. Look again at the source IP distribution. The pattern is broader than a single user or one failing device.',
-            'explanation' => 'The source distribution changes the hypothesis. One source may suggest a local system or user behavior; many sources can indicate credential stuffing, bot traffic or a distributed campaign.',
+            'prompt' => 'A practice log shows 84 repeated attempts in 4 minutes. The attempts came from 51 different starting points. Which clue matters most for the next observation step?',
+            'feedback_correct' => 'Correct. The many starting points suggest a distributed pattern, so the next step should inspect the spread instead of treating this like one repeated local mistake.',
+            'feedback_incorrect' => 'Not quite. Look again at the spread of starting points. The pattern is broader than one person or one place.',
+            'explanation' => 'The spread changes the hypothesis. One starting point may suggest a local behavior; many starting points can indicate a wider pattern.',
         ]);
 
         LearningQuestionOption::query()->create([
             'learning_question_id' => $question->id,
             'label' => 'A',
-            'body' => 'The failed attempts came from many different source IP addresses.',
+            'body' => 'The repeated attempts came from many different starting points.',
             'is_correct' => true,
             'outcome_key' => 'distributed-pattern',
             'feedback' => 'Good read. You noticed the clue that changes the investigation path.',
@@ -183,10 +186,10 @@ class DemoLearningWorldSeeder extends Seeder
         LearningQuestionOption::query()->create([
             'learning_question_id' => $question->id,
             'label' => 'B',
-            'body' => 'The attempts target one account, so it is probably just that user mistyping.',
+            'body' => 'The attempts focus on one place, so it is probably just one local mistake.',
             'is_correct' => false,
             'outcome_key' => 'review-source-distribution',
-            'feedback' => 'That would be plausible with one or a few sources. Here, 51 source IPs make the pattern more distributed.',
+            'feedback' => 'That would be plausible with one or a few starting points. Here, 51 starting points make the pattern more distributed.',
             'weights' => ['pattern_recognition' => 0.2, 'account_focus' => 0.6],
             'sort_order' => 20,
         ]);
@@ -194,10 +197,10 @@ class DemoLearningWorldSeeder extends Seeder
         LearningQuestionOption::query()->create([
             'learning_question_id' => $question->id,
             'label' => 'C',
-            'body' => 'The server is probably offline because many login attempts failed.',
+            'body' => 'The whole place is probably unavailable because many attempts failed.',
             'is_correct' => false,
             'outcome_key' => 'review-source-distribution',
-            'feedback' => 'A service outage could cause failures, but the source spread is the stronger clue in this alert.',
+            'feedback' => 'A general outage could cause failures, but the spread is the stronger clue in this observation.',
             'weights' => ['service_health' => 0.4, 'pattern_recognition' => 0.2],
             'sort_order' => 30,
         ]);
@@ -206,7 +209,7 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_node_id' => $signalGate->id,
             'slug' => 'review-source-distribution',
             'type' => 'dialogue',
-            'title' => 'Review the source pattern',
+            'title' => 'Review the pattern spread',
             'introduction' => 'A short loop that points back to the question.',
             'sort_order' => 30,
         ]);
@@ -215,8 +218,8 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_activity_id' => $sourceReview->id,
             'stage_key' => 'review',
             'speaker_name' => 'Mira',
-            'speaker_role' => 'Signal Keeper',
-            'body' => 'Try comparing the account clue with the source clue. One account tells us who was targeted; many sources tell us how the attempt behaved.',
+            'speaker_role' => 'Learning Guide',
+            'body' => 'Try comparing the focus clue with the spread clue. One focus point tells us where attention gathered; many starting points tell us how the pattern behaved.',
             'portrait_url' => '/images/themes/mentor-hint.svg',
             'image_alt' => 'Mira showing two highlighted evidence columns.',
             'mood' => 'supportive',
@@ -231,7 +234,7 @@ class DemoLearningWorldSeeder extends Seeder
             'introduction' => 'A small competence reflection rather than a reward screen.',
             'sort_order' => 40,
             'config' => [
-                'prompt' => 'In your own words, what did the source IP distribution help you understand?',
+                'prompt' => 'In your own words, what did the spread of starting points help you understand?',
                 'note' => 'This note is private orientation for your own thinking.',
             ],
         ]);
@@ -288,25 +291,24 @@ class DemoLearningWorldSeeder extends Seeder
             'learning_node_id' => $signalGate->id,
             'slug' => 'guided-signal-dialogue',
             'type' => 'npc_dialogue',
-            'title' => 'Guided signal dialogue',
+            'title' => 'Guided pattern dialogue',
             'introduction' => 'A graph-based NPC dialogue with a question, private feedback and a review loop.',
             'sort_order' => 15,
             'config' => [],
         ]);
 
-        $intro = $this->createNpcInteraction($npcDialogue, [
-            'body' => 'Let us inspect a small alert together. I will ask one question, then we will keep the useful clue.',
+        $intro = $this->createNpcMonologue($npcDialogue, [
+            'body' => 'Let us inspect a small observation together. I will ask one question, then we will keep the useful clue.',
             'graph_position_x' => 120,
             'graph_position_y' => 20,
             'sort_order' => 10,
-            'title' => 'Mira opens the trace',
+            'title' => 'Mira opens the observation',
         ]);
 
-        $question = $this->createNpcInteraction($npcDialogue, [
-            'body' => 'The alert shows 84 failed login attempts in 4 minutes, spread across 51 source IP addresses. What changes your next investigation step?',
+        $question = $this->createNpcQuestion($npcDialogue, [
+            'body' => 'The observation shows 84 repeated attempts in 4 minutes, spread across 51 starting points. What changes your next step?',
             'config' => [
                 ...$this->npcVisualConfig(),
-                'interactionMode' => 'question',
                 'questionOutputCount' => 3,
             ],
             'graph_position_x' => 480,
@@ -315,16 +317,16 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => 'Mira asks for the clue',
         ]);
 
-        $review = $this->createNpcInteraction($npcDialogue, [
-            'body' => 'One target account tells us who was under pressure. The 51 source IPs tell us the behavior is distributed. Try the clue again with that split in mind.',
+        $review = $this->createNpcMonologue($npcDialogue, [
+            'body' => 'One focus point tells us where attention gathered. The 51 starting points tell us the behavior is distributed. Try the clue again with that split in mind.',
             'graph_position_x' => 840,
             'graph_position_y' => 200,
             'sort_order' => 30,
             'title' => 'Mira reframes the evidence',
         ]);
 
-        $correct = $this->createNpcInteraction($npcDialogue, [
-            'body' => 'Exactly. Source distribution changes the hypothesis from one person mistyping to a wider pattern worth investigating.',
+        $correct = $this->createNpcMonologue($npcDialogue, [
+            'body' => 'Exactly. The spread changes the hypothesis from one local mistake to a wider pattern worth exploring.',
             'graph_position_x' => 840,
             'graph_position_y' => -120,
             'sort_order' => 40,
@@ -332,7 +334,7 @@ class DemoLearningWorldSeeder extends Seeder
         ]);
 
         $sourceDistributionAnswer = $this->createNpcAnswer($npcDialogue, [
-            'body' => 'The attempts came from many source IP addresses.',
+            'body' => 'The attempts came from many starting points.',
             'config' => [
                 'answerLabel' => 'A',
                 'isCorrect' => true,
@@ -340,11 +342,11 @@ class DemoLearningWorldSeeder extends Seeder
             'graph_position_x' => 760,
             'graph_position_y' => -210,
             'sort_order' => 25,
-            'title' => 'Source distribution',
+            'title' => 'Pattern spread',
         ]);
 
         $singleAccountAnswer = $this->createNpcAnswer($npcDialogue, [
-            'body' => 'Only one account was targeted, so it is probably one user mistyping.',
+            'body' => 'Only one place was affected, so it is probably one local mistake.',
             'config' => [
                 'answerLabel' => 'B',
                 'isCorrect' => false,
@@ -352,11 +354,11 @@ class DemoLearningWorldSeeder extends Seeder
             'graph_position_x' => 760,
             'graph_position_y' => 40,
             'sort_order' => 26,
-            'title' => 'Single account',
+            'title' => 'Single focus',
         ]);
 
         $serverOfflineAnswer = $this->createNpcAnswer($npcDialogue, [
-            'body' => 'The server is probably offline because the attempts failed.',
+            'body' => 'The whole place is probably unavailable because the attempts failed.',
             'config' => [
                 'answerLabel' => 'C',
                 'isCorrect' => false,
@@ -364,7 +366,7 @@ class DemoLearningWorldSeeder extends Seeder
             'graph_position_x' => 760,
             'graph_position_y' => 260,
             'sort_order' => 27,
-            'title' => 'Server offline',
+            'title' => 'Unavailable place',
         ]);
 
         $end = NpcDialogueNode::query()->create([
@@ -417,12 +419,12 @@ class DemoLearningWorldSeeder extends Seeder
     private function seedToolBeltExample(): LearningTool
     {
         $tool = LearningTool::query()->updateOrCreate(
-            ['slug' => 'signal-lens'],
+            ['slug' => 'pattern-lens'],
             [
-                'title' => 'Signal lens',
-                'description' => 'A small diagnostic lens for resolving noisy signal barriers.',
-                'image_dark' => '/images/tools/signal-lens-dark.svg',
-                'image_light' => '/images/tools/signal-lens-light.svg',
+                'title' => 'Pattern lens',
+                'description' => 'A small lens for resolving noisy learning barriers.',
+                'image_dark' => '/images/tools/pattern-lens-dark.svg',
+                'image_light' => '/images/tools/pattern-lens-light.svg',
                 'animation_dark' => null,
                 'animation_light' => null,
                 'config' => [
@@ -451,9 +453,9 @@ class DemoLearningWorldSeeder extends Seeder
     ): void {
         $obstacle = LearningActivity::query()->create([
             'learning_node_id' => $signalGate->id,
-            'slug' => 'clear-the-static-gate',
+            'slug' => 'clear-the-noisy-gate',
             'type' => 'obstacle',
-            'title' => 'Clear the static gate',
+            'title' => 'Clear the noisy gate',
             'introduction' => 'Equip a tool and resolve a small blocker without any scoring pressure.',
             'sort_order' => 25,
             'config' => [
@@ -466,11 +468,11 @@ class DemoLearningWorldSeeder extends Seeder
                 'bubbleColorLight' => '#ffffff',
                 'bubbleOpacityDark' => 92,
                 'bubbleOpacityLight' => 94,
-                'obstacleImageDark' => '/images/obstacles/static-gate-dark.svg',
-                'obstacleImageLight' => '/images/obstacles/static-gate-light.svg',
-                'promptText' => 'A static gate blocks the signal path. Try equipping a tool that can read through noise.',
+                'obstacleImageDark' => '/images/obstacles/noisy-gate-dark.svg',
+                'obstacleImageLight' => '/images/obstacles/noisy-gate-light.svg',
+                'promptText' => 'A noisy gate blocks the learning path. Try equipping a tool that can read through noise.',
                 'successAnimation' => 'shake',
-                'successText' => 'The signal lens resolves the interference. The path feels quieter now.',
+                'successText' => 'The pattern lens resolves the interference. The path feels quieter now.',
                 'typingSpeed' => 20,
             ],
         ]);
@@ -487,7 +489,7 @@ class DemoLearningWorldSeeder extends Seeder
         LearningActivityStart::query()->create([
             'learning_node_id' => $signalGate->id,
             'learning_activity_id' => $obstacle->id,
-            'label' => 'Clear static gate',
+            'label' => 'Clear noisy gate',
             'image_dark' => '/images/routes/signal-route-dark.svg',
             'image_light' => '/images/routes/signal-route-light.svg',
             'button_color_dark' => '#0f172a',
@@ -501,11 +503,27 @@ class DemoLearningWorldSeeder extends Seeder
     /**
      * @param  array<string, mixed>  $overrides
      */
-    private function createNpcInteraction(LearningActivity $activity, array $overrides): NpcDialogueNode
+    private function createNpcMonologue(LearningActivity $activity, array $overrides): NpcDialogueNode
+    {
+        return $this->createNpcSpeechNode($activity, 'npc_monologue', $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createNpcQuestion(LearningActivity $activity, array $overrides): NpcDialogueNode
+    {
+        return $this->createNpcSpeechNode($activity, 'npc_question', $overrides);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function createNpcSpeechNode(LearningActivity $activity, string $type, array $overrides): NpcDialogueNode
     {
         return NpcDialogueNode::query()->create([
             'learning_activity_id' => $activity->id,
-            'type' => 'npc_interaction',
+            'type' => $type,
             'title' => $overrides['title'],
             'body' => $overrides['body'],
             'config' => $overrides['config'] ?? $this->npcVisualConfig(),
@@ -562,7 +580,6 @@ class DemoLearningWorldSeeder extends Seeder
             'bubbleOpacityDark' => 92,
             'bubbleOpacityLight' => 94,
             'fadeDurationSeconds' => 0.4,
-            'interactionMode' => 'monologue',
             'npcImageDark' => '/images/themes/npc-mira-dark.svg',
             'npcImageLight' => '/images/themes/npc-mira-light.svg',
             'npcX' => 72,
@@ -686,6 +703,15 @@ class DemoLearningWorldSeeder extends Seeder
             'sort_order' => 10,
             'config' => [
                 'portalMode' => 'output',
+                'portalBackgroundDark' => '/images/portals/portal-travel-background.png',
+                'portalBackgroundLight' => '/images/portals/portal-travel-background-light.png',
+                'portalDurationSeconds' => 2.5,
+                'portalForegroundDark' => '/images/portals/portal-swirl.png',
+                'portalForegroundLight' => '/images/portals/portal-swirl.png',
+                'portalForegroundWidth' => 28,
+                'portalForegroundX' => 58,
+                'portalForegroundY' => 45,
+                'portalSwirlEnabled' => true,
             ],
         ]);
 
@@ -699,8 +725,9 @@ class DemoLearningWorldSeeder extends Seeder
         $targetMap = LearningMap::query()->create([
             'learning_world_id' => $world->id,
             'slug' => 'signal-archive',
-            'title' => 'Signal Archive',
-            'description' => 'A connected map for archived signal-reading practice.',
+            'title' => 'Quiet Library',
+            'description' => 'A connected map for calm pattern-practice.',
+            'access_roles' => [User::ROLE_USER, User::ROLE_ADMIN],
             'background_config' => $sourceMap->background_config,
             'grid_config' => $sourceMap->grid_config,
         ]);
@@ -708,15 +735,15 @@ class DemoLearningWorldSeeder extends Seeder
         $targetPortal = LearningNode::query()->create([
             'learning_map_id' => $targetMap->id,
             'slug' => 'return-gate',
-            'title' => 'Return Gate',
-            'description' => 'The sibling portal back toward the first sector.',
+            'title' => 'Return Path',
+            'description' => 'The sibling portal back toward the first clearing.',
             'position_q' => 0,
             'position_r' => 0,
             'state' => 'hinted',
             'visual_config' => [
                 'icon' => 'orbit',
-                'label' => 'Return Gate',
-                'tooltip' => 'Return toward the first sector.',
+                'label' => 'Return Path',
+                'tooltip' => 'Return toward the first clearing.',
                 'dark' => [
                     'tileColor' => '#19312b',
                     'foregroundColor' => '#bbf7d0',
@@ -743,6 +770,15 @@ class DemoLearningWorldSeeder extends Seeder
             'sort_order' => 10,
             'config' => [
                 'portalMode' => 'input',
+                'portalBackgroundDark' => '/images/portals/portal-travel-background.png',
+                'portalBackgroundLight' => '/images/portals/portal-travel-background-light.png',
+                'portalDurationSeconds' => 1.8,
+                'portalForegroundDark' => '/images/portals/portal-swirl.png',
+                'portalForegroundLight' => '/images/portals/portal-swirl.png',
+                'portalForegroundWidth' => 28,
+                'portalForegroundX' => 58,
+                'portalForegroundY' => 45,
+                'portalSwirlEnabled' => true,
             ],
         ]);
 
@@ -757,8 +793,8 @@ class DemoLearningWorldSeeder extends Seeder
                 ->where('slug', 'prepare-for-travel')
                 ->value('id'),
             'target_learning_activity_id' => $arrivalActivity->id,
-            'label' => 'First Sector to Signal Archive',
-            'description' => 'Portal pair connecting the first map to the signal archive.',
+            'label' => 'First Clearing to Quiet Library',
+            'description' => 'Portal pair connecting the first map to a related learning space.',
             'config' => ['travelMode' => 'portal'],
         ]);
 

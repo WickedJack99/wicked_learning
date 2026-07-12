@@ -2,12 +2,15 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 
 class AdminWorldSummarySerializer
 {
+    public function __construct(private readonly LearningMapAccessService $mapAccess) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -32,6 +35,7 @@ class AdminWorldSummarySerializer
             'title' => $map->title,
             'description' => $map->description,
             'nodeCount' => $map->nodes->count(),
+            'accessRoles' => $this->mapAccess->rolesForMap($map),
         ];
     }
 

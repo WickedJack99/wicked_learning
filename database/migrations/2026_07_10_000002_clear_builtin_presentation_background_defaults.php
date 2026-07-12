@@ -22,7 +22,7 @@ return new class extends Migration
         $defaults = [
             'login' => '/images/themes/mentor-calm.svg',
             'register' => '/images/themes/mentor-hint.svg',
-            'welcome' => '/images/themes/cyber-map-background.svg',
+            'welcome' => '/images/themes/abstract-map-background.svg',
         ];
 
         foreach ($defaults as $page => $defaultImage) {

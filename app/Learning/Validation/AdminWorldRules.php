@@ -5,6 +5,7 @@ namespace App\Learning\Validation;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
+use App\Models\AccessRole;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +46,7 @@ class AdminWorldRules
      */
     public function uploadNodeImage(): array
     {
-        return ['image' => ['required', 'file', 'max:5120']];
+        return ['image' => ['required', 'file', 'max:51200']];
     }
 
     /**
@@ -97,18 +98,29 @@ class AdminWorldRules
         $rules = [];
         $colorFields = [
             'accentColor',
+            'bottomNavActiveBackground',
+            'bottomNavActiveTextColor',
+            'bottomNavBackground',
+            'bottomNavBorderColor',
+            'bottomNavTextColor',
             'overlay',
             'pageBackground',
             'panelBackground',
+            'panelBorderColor',
             'panelMutedTextColor',
             'panelTextColor',
+            'sideControlActiveBackground',
+            'sideControlActiveTextColor',
+            'sideControlBackground',
+            'sideControlBorderColor',
+            'sideControlTextColor',
             'sidePanelBackground',
             'sidePanelBorderColor',
             'sidePanelMutedTextColor',
             'sidePanelTextColor',
         ];
 
-        foreach (['', 'dark.', 'light.'] as $prefix) {
+        foreach (['dark.', 'light.'] as $prefix) {
             foreach ($colorFields as $field) {
                 $rules["background_config.{$prefix}{$field}"] = ['nullable', 'string', 'max:255'];
             }
@@ -118,6 +130,34 @@ class AdminWorldRules
         }
 
         return $rules;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function mapDetails(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:120'],
+            'description' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function mapAccess(): array
+    {
+        return [
+            'access_roles' => ['required', 'array', 'min:1'],
+            'access_roles.*' => [
+                'string',
+                Rule::in([
+                    'public',
+                    ...AccessRole::query()->pluck('slug')->all(),
+                ]),
+            ],
+        ];
     }
 
     /**
@@ -164,7 +204,20 @@ class AdminWorldRules
             'visual_config.reveal.enabled' => ['nullable', 'boolean'],
             'visual_config.reveal.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
             'visual_config.tooltip' => ['nullable', 'string', 'max:255'],
+            'visual_config.unlock.enabled' => ['nullable', 'boolean'],
+            'visual_config.unlock.topOperator' => ['nullable', 'string', Rule::in(['and', 'or'])],
+            'visual_config.unlock.nodeOperator' => ['nullable', 'string', Rule::in(['and', 'or'])],
+            'visual_config.unlock.requiredNodeIds' => ['nullable', 'array'],
+            'visual_config.unlock.requiredNodeIds.*' => ['integer', 'exists:learning_nodes,id'],
+            'visual_config.unlock.tool.enabled' => ['nullable', 'boolean'],
+            'visual_config.unlock.tool.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
+            'visual_config.unlock.rules' => ['nullable', 'array'],
         ];
+
+        foreach (['mouseEnter', 'click', 'mouseLeave', 'unlock'] as $trigger) {
+            $rules["visual_config.sounds.{$trigger}.enabled"] = ['nullable', 'boolean'];
+            $rules["visual_config.sounds.{$trigger}.url"] = ['nullable', 'string', 'max:2048'];
+        }
 
         foreach (['dark', 'light'] as $mode) {
             $rules["visual_config.{$mode}.tileColor"] = ['nullable', 'string', 'max:40'];
@@ -172,6 +225,10 @@ class AdminWorldRules
             $rules["visual_config.{$mode}.labelColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.highlightColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.imageUrl"] = ['nullable', 'string', 'max:2048'];
+            $rules["visual_config.{$mode}.imageRotation"] = ['nullable', 'numeric', 'min:-360', 'max:360'];
+            $rules["visual_config.{$mode}.imageWidth"] = ['nullable', 'numeric', 'min:10', 'max:200'];
+            $rules["visual_config.{$mode}.imageX"] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules["visual_config.{$mode}.imageY"] = ['nullable', 'numeric', 'min:0', 'max:100'];
 
             foreach (['tileOpacity', 'foregroundOpacity', 'labelOpacity', 'highlightOpacity'] as $field) {
                 $rules["visual_config.{$mode}.{$field}"] = ['nullable', 'numeric', 'min:0', 'max:100'];

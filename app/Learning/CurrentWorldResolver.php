@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class CurrentWorldResolver
 {
-    public const DEFAULT_WORLD_SLUG = 'demo-cybersecurity';
+    public const DEFAULT_WORLD_SLUG = 'demo-learning-world';
 
     /**
      * Keep the current-world lookup in one place until multi-world routing exists.

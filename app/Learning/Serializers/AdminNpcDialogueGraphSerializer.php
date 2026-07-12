@@ -39,6 +39,7 @@ class AdminNpcDialogueGraphSerializer
                 'slug' => $activity->slug,
                 'title' => $activity->title,
                 'introduction' => $activity->introduction,
+                'graphLayout' => $this->graphLayout($activity),
             ],
             'dialogueNodes' => $activity->npcDialogueNodes
                 ->map(function (NpcDialogueNode $node) use (&$endIndex): array {
@@ -55,6 +56,18 @@ class AdminNpcDialogueGraphSerializer
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function graphLayout(LearningActivity $activity): array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return is_array($config['dialogueGraphLayout'] ?? null)
+            ? $config['dialogueGraphLayout']
+            : [];
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Learning\Support;
 
 use App\Models\LearningActivity;
+use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningTool;
@@ -54,6 +55,23 @@ class UniqueSlugGenerator
         while (LearningTool::query()
             ->where('slug', $slug)
             ->when($existingTool, fn ($query) => $query->whereKeyNot($existingTool->id))
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    public function forItem(string $title, ?LearningItem $existingItem = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'item';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (LearningItem::query()
+            ->where('slug', $slug)
+            ->when($existingItem, fn ($query) => $query->whereKeyNot($existingItem->id))
             ->exists()) {
             $slug = $baseSlug.'-'.$suffix;
             $suffix++;

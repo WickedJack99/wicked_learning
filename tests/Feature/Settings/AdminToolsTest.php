@@ -27,9 +27,9 @@ test('admin users can list tools', function () {
         'roles' => [User::ROLE_ADMIN],
     ]);
     LearningTool::query()->create([
-        'slug' => 'signal-lens',
-        'title' => 'Signal lens',
-        'image_dark' => '/images/tools/signal-lens-dark.svg',
+        'slug' => 'pattern-lens',
+        'title' => 'Pattern lens',
+        'image_dark' => '/images/tools/pattern-lens-dark.svg',
     ]);
 
     $this->actingAs($admin)
@@ -38,8 +38,8 @@ test('admin users can list tools', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/assets/tools')
             ->has('tools', 1)
-            ->where('tools.0.slug', 'signal-lens')
-            ->where('tools.0.imageDark', '/images/tools/signal-lens-dark.svg')
+            ->where('tools.0.slug', 'pattern-lens')
+            ->where('tools.0.imageDark', '/images/tools/pattern-lens-dark.svg')
         );
 });
 
@@ -51,10 +51,10 @@ test('admin users can create and update tools', function () {
 
     $this->actingAs($admin)
         ->post(route('settings.assets.tools.store'), [
-            'title' => 'Signal lens',
+            'title' => 'Pattern lens',
             'description' => 'A lens for clearing static.',
-            'image_dark' => '/images/tools/signal-lens-dark.svg',
-            'image_light' => '/images/tools/signal-lens-light.svg',
+            'image_dark' => '/images/tools/pattern-lens-dark.svg',
+            'image_light' => '/images/tools/pattern-lens-light.svg',
             'animation_dark' => '/storage/learning/tools/lens-dark.webp',
             'animation_light' => '/storage/learning/tools/lens-light.webp',
             'animation_duration_seconds' => 1.8,
@@ -63,20 +63,20 @@ test('admin users can create and update tools', function () {
         ])
         ->assertRedirect();
 
-    $tool = LearningTool::query()->where('slug', 'signal-lens')->firstOrFail();
+    $tool = LearningTool::query()->where('slug', 'pattern-lens')->firstOrFail();
 
-    expect($tool->title)->toBe('Signal lens')
+    expect($tool->title)->toBe('Pattern lens')
         ->and($tool->config['animationDurationSeconds'])->toBe(1.8)
         ->and($tool->config['animationWidthPercent'])->toBe(18)
         ->and($tool->config['imageWidthPercent'])->toBe(14);
 
     $this->actingAs($admin)
         ->patch(route('settings.assets.tools.update', $tool), [
-            'title' => 'Signal lens revised',
-            'slug' => 'signal-lens',
+            'title' => 'Pattern lens revised',
+            'slug' => 'pattern-lens',
             'description' => 'Updated tool.',
-            'image_dark' => '/images/tools/signal-lens-dark.svg',
-            'image_light' => '/images/tools/signal-lens-light.svg',
+            'image_dark' => '/images/tools/pattern-lens-dark.svg',
+            'image_light' => '/images/tools/pattern-lens-light.svg',
             'animation_duration_seconds' => 2.2,
             'animation_width_percent' => '',
             'image_width_percent' => 22,
@@ -85,7 +85,7 @@ test('admin users can create and update tools', function () {
 
     $tool->refresh();
 
-    expect($tool->title)->toBe('Signal lens revised')
+    expect($tool->title)->toBe('Pattern lens revised')
         ->and($tool->config['animationDurationSeconds'])->toBe(2.2)
         ->and($tool->config['animationWidthPercent'])->toBeNull()
         ->and($tool->config['imageWidthPercent'])->toBe(22);

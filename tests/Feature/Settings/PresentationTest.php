@@ -12,9 +12,10 @@ test('public pages receive presentation defaults', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('welcome')
             ->where('publicPresentation.auth.backgroundImages.login.dark', '')
-            ->where('publicPresentation.cursors.default.image', '/images/cursors/cyber-cursor.svg')
-            ->where('publicPresentation.cursors.action.image', '/images/cursors/cyber-pointer.svg')
-            ->where('publicPresentation.cursors.grab.image', '/images/cursors/cyber-hand.svg')
+            ->where('publicPresentation.cursors.default.image', '/images/cursors/default-cursor.svg')
+            ->where('publicPresentation.cursors.action.image', '/images/cursors/action-pointer.svg')
+            ->where('publicPresentation.cursors.grab.image', '/images/cursors/fantasy-grab-backhand.png')
+            ->where('publicPresentation.cursors.grab.size', 40)
             ->where('publicPresentation.welcome.pages.0.title', 'Learning Worlds')
         );
 });
@@ -47,18 +48,21 @@ test('admins can update public presentation settings', function () {
                     'image' => '/images/cursors/custom-cursor.svg',
                     'hotspotX' => 5,
                     'hotspotY' => 6,
+                    'size' => 36,
                     'fallback' => 'default',
                 ],
                 'action' => [
                     'image' => '/images/cursors/custom-pointer.svg',
                     'hotspotX' => 10,
                     'hotspotY' => 3,
+                    'size' => 42,
                     'fallback' => 'pointer',
                 ],
                 'grab' => [
                     'image' => '/images/cursors/custom-grab.svg',
                     'hotspotX' => 11,
                     'hotspotY' => 12,
+                    'size' => 48,
                     'fallback' => 'grab',
                 ],
             ],
@@ -83,6 +87,8 @@ test('admins can update public presentation settings', function () {
         ->toBe('/images/cursors/custom-pointer.svg')
         ->and($settings['cursors']['grab']['hotspotY'])
         ->toBe(12)
+        ->and($settings['cursors']['grab']['size'])
+        ->toBe(48)
         ->and($settings['welcome']['pages'][0]['title'])
         ->toBe('Custom Learning Worlds');
 });

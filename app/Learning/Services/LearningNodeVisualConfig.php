@@ -48,6 +48,10 @@ class LearningNodeVisualConfig
                 'labelOpacity' => '100',
                 'highlightColor' => '#7dd3fc',
                 'highlightOpacity' => '100',
+                'imageRotation' => '0',
+                'imageWidth' => '100',
+                'imageX' => '50',
+                'imageY' => '50',
             ],
             'light' => [
                 'tileColor' => '#dbeafe',
@@ -58,6 +62,10 @@ class LearningNodeVisualConfig
                 'labelOpacity' => '100',
                 'highlightColor' => '#2563eb',
                 'highlightOpacity' => '100',
+                'imageRotation' => '0',
+                'imageWidth' => '100',
+                'imageX' => '50',
+                'imageY' => '50',
             ],
         ];
     }

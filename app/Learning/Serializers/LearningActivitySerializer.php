@@ -5,14 +5,19 @@ namespace App\Learning\Serializers;
 use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
 use App\Models\LearningActivity;
+use App\Models\LearningItem;
 use App\Models\LearningQuestionOption;
+use App\Models\LearningSound;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 
 class LearningActivitySerializer
 {
-    public function __construct(private readonly LearningToolSerializer $toolSerializer) {}
+    public function __construct(
+        private readonly LearningToolSerializer $toolSerializer,
+        private readonly LearningItemSerializer $itemSerializer,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -26,6 +31,8 @@ class LearningActivitySerializer
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $activity->config ?? [],
+            'configuredItems' => $this->configuredItems($activity),
+            'configuredSounds' => $this->configuredSounds($activity),
             'configuredTool' => $this->configuredTool($activity),
             'dialogueStages' => $activity->dialogueStages
                 ->map(fn (DialogueStage $stage): array => $this->dialogueStage($stage))
@@ -41,6 +48,92 @@ class LearningActivitySerializer
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->values(),
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function configuredSounds(LearningActivity $activity): array
+    {
+        if ($activity->type !== 'item_obstacle') {
+            return [];
+        }
+
+        $config = is_array($activity->config) ? $activity->config : [];
+        $sounds = is_array($config['sounds'] ?? null) ? $config['sounds'] : [];
+        $ids = collect($sounds)
+            ->filter(fn (mixed $sound): bool => is_array($sound))
+            ->map(fn (mixed $sound): int => (int) ($sound['soundId'] ?? 0))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return LearningSound::query()
+            ->whereIn('id', $ids->all())
+            ->get()
+            ->map(fn (LearningSound $sound): array => [
+                'id' => $sound->id,
+                'name' => $sound->name,
+                'slug' => $sound->slug,
+                'icon' => $sound->icon,
+                'url' => $sound->url,
+                'volume' => $sound->volume,
+                'playSeconds' => $sound->play_seconds,
+                'loop' => $sound->loop,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function configuredItems(LearningActivity $activity): array
+    {
+        if (! in_array($activity->type, ['item_grant', 'item_obstacle'], true)) {
+            return [];
+        }
+
+        $ids = collect($this->configuredItemIds($activity))->unique()->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return LearningItem::query()
+            ->whereIn('id', $ids->all())
+            ->get()
+            ->map(fn (LearningItem $item): array => $this->itemSerializer->serialize($item))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function configuredItemIds(LearningActivity $activity): array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        if ($activity->type === 'item_grant') {
+            $items = is_array($config['items'] ?? null) ? $config['items'] : [];
+
+            return array_values(array_filter(array_map(
+                fn (mixed $item): int => is_array($item) ? (int) ($item['itemId'] ?? 0) : 0,
+                $items,
+            )));
+        }
+
+        $slots = is_array($config['slots'] ?? null) ? $config['slots'] : [];
+
+        return array_values(array_filter(array_map(
+            fn (mixed $slot): int => is_array($slot) ? (int) ($slot['itemId'] ?? 0) : 0,
+            $slots,
+        )));
     }
 
     /**
@@ -153,7 +246,7 @@ class LearningActivitySerializer
         return [
             'id' => $transition->id,
             'toActivityId' => $transition->to_activity_id,
-            'fromConnector' => $transition->from_connector ?? $transition->trigger,
+            'fromConnector' => $transition->from_connector ?? $transition->trigger ?? 'completed',
             'toConnector' => $transition->to_connector ?? 'in',
             'trigger' => $transition->trigger,
             'triggerValue' => $transition->trigger_value,

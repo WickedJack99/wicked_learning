@@ -20,6 +20,27 @@ class ActivityTypeRegistry
     {
         return [
             [
+                'key' => 'item_grant',
+                'label' => 'Grant Item(s)',
+                'description' => 'A server-rolled chance to grant one or more consumable inventory items.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
+                'key' => 'item_obstacle',
+                'label' => 'Item obstacle',
+                'description' => 'A slot-based obstacle that consumes configured items before it can continue.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
+                'key' => 'markdown',
+                'label' => 'Markdown',
+                'description' => 'A connected set of readable markdown pages with theme-specific page colors.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
                 'key' => 'npc_dialogue',
                 'label' => 'NPC dialogue',
                 'description' => 'A graph-based NPC conversation with one entry and exits defined by dialogue end nodes.',
@@ -176,14 +197,14 @@ class ActivityTypeRegistry
 
         if ($portalMode === 'input') {
             return [
-                'inputs' => [$this->connector('portal-entry', 'Exit')],
+                'inputs' => [],
                 'outputs' => [$this->connector('arrived', 'Arrived')],
             ];
         }
 
         return [
             'inputs' => [$this->connector('in', 'In')],
-            'outputs' => [$this->connector('travel', 'Travel')],
+            'outputs' => [],
         ];
     }
 

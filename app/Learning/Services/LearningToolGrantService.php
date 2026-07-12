@@ -21,7 +21,7 @@ class LearningToolGrantService
 
     public function grantFromNpcDialogueNode(User $user, NpcDialogueNode $node): LearningTool
     {
-        abort_unless($node->type === 'npc_interaction', 404);
+        abort_unless(in_array($node->type, ['npc_monologue', 'npc_question'], true), 404);
 
         $config = is_array($node->config) ? $node->config : [];
 

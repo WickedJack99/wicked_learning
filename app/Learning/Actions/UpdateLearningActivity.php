@@ -2,6 +2,9 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\MarkdownActivityConfiguration;
+use App\Learning\Services\ItemGrantActivityConfiguration;
+use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
@@ -14,6 +17,9 @@ class UpdateLearningActivity
 {
     public function __construct(
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
+        private readonly MarkdownActivityConfiguration $markdownConfig,
+        private readonly ItemGrantActivityConfiguration $itemGrantConfig,
+        private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
         private readonly ObstacleActivityConfiguration $obstacleConfig,
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly PortalActivityConfiguration $portalConfig,
@@ -46,6 +52,9 @@ class UpdateLearningActivity
 
         if (
             $this->portalConfig->shouldUpdate($data, $updates)
+            || $this->markdownConfig->shouldUpdate($data, $updates)
+            || $this->itemGrantConfig->shouldUpdate($data, $updates)
+            || $this->itemObstacleConfig->shouldUpdate($data, $updates)
             || $this->obstacleConfig->shouldUpdate($data, $updates)
             || $this->toolGrantConfig->shouldUpdate($data, $updates)
         ) {
@@ -64,6 +73,9 @@ class UpdateLearningActivity
     private function configFor(string $type, array $data, array $existing): array
     {
         return match ($type) {
+            'item_grant' => $this->itemGrantConfig->fromData($data, $existing),
+            'item_obstacle' => $this->itemObstacleConfig->fromData($data, $existing),
+            'markdown' => $this->markdownConfig->fromData($data, $existing),
             'obstacle' => $this->obstacleConfig->fromData($data, $existing),
             'portal' => $this->portalConfig->fromData($data, $existing),
             'tool_grant' => $this->toolGrantConfig->fromData($data, $existing),

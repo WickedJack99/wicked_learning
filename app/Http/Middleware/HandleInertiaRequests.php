@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
+use App\Models\LearningItem;
 use App\Models\LearningTool;
 use App\Models\PlatformPresentationSetting;
 use App\Support\Appearance;
@@ -11,7 +13,10 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    public function __construct(private readonly LearningToolSerializer $toolSerializer) {}
+    public function __construct(
+        private readonly LearningToolSerializer $toolSerializer,
+        private readonly LearningItemSerializer $itemSerializer,
+    ) {}
 
     /**
      * The root template that's loaded on the first page visit.
@@ -54,6 +59,14 @@ class HandleInertiaRequests extends Middleware
                         ->learningTools()
                         ->get()
                         ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                        ->values()
+                        ->all()
+                    : [],
+                'items' => $request->user()
+                    ? $request->user()
+                        ->learningItems()
+                        ->get()
+                        ->map(fn (LearningItem $item): array => $this->itemSerializer->serialize($item))
                         ->values()
                         ->all()
                     : [],

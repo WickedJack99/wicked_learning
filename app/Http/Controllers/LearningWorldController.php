@@ -13,6 +13,7 @@ use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearningBookmarkService;
 use App\Learning\Services\LearningToolGrantService;
 use App\Learning\Services\NodeRevealService;
+use App\Learning\Services\NodeUnlockService;
 use App\Learning\Services\NpcDialogueAnswerService;
 use App\Learning\Services\ObstacleToolService;
 use App\Learning\Services\QuestionAnswerService;
@@ -42,27 +43,32 @@ class LearningWorldController extends Controller
         private readonly LearningToolGrantService $toolGrantService,
         private readonly LearningBookmarkService $bookmarkService,
         private readonly NodeRevealService $nodeRevealService,
+        private readonly NodeUnlockService $nodeUnlockService,
     ) {}
 
     public function show(Request $request): Response
     {
-        $userId = $request->user()->id;
-        $world = $this->loadLearningWorld->forMapView($userId);
+        $user = $request->user();
+        $world = $this->loadLearningWorld->forMapView($user);
 
         return Inertia::render('world', [
-            'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($userId),
-            'world' => $world ? $this->worldSerializer->serialize($world, $userId) : null,
-            'progress' => $this->progressSerializer->forUser($userId),
+            'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user->id) : [],
+            'world' => $world ? $this->worldSerializer->serialize($world, $user) : null,
+            'progress' => $user
+                ? $this->progressSerializer->forUser($user->id)
+                : $this->progressSerializer->empty(),
         ]);
     }
 
     public function play(Request $request, LearningNode $node): Response
     {
-        $userId = $request->user()->id;
+        $user = $request->user();
 
         return Inertia::render('learning/node-play', [
-            'node' => $this->nodeSerializer->serialize($this->loadPlayableNode->handle($node), $userId),
-            'progress' => $this->progressSerializer->forUser($userId),
+            'node' => $this->nodeSerializer->serialize($this->loadPlayableNode->handle($node, $user), $user),
+            'progress' => $user
+                ? $this->progressSerializer->forUser($user->id)
+                : $this->progressSerializer->empty(),
         ]);
     }
 
@@ -143,6 +149,21 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function unlockNodeWithTool(Request $request, LearningNode $node): JsonResponse
+    {
+        $data = $request->validate([
+            'tool_id' => ['required', 'integer'],
+        ]);
+
+        return response()->json([
+            'result' => $this->nodeUnlockService->useTool(
+                $request->user(),
+                $node,
+                (int) $data['tool_id'],
+            ),
+        ]);
+    }
+
     public function grantActivityTool(Request $request, LearningActivity $activity): JsonResponse
     {
         return response()->json([
@@ -168,7 +189,7 @@ class LearningWorldController extends Controller
         ]);
 
         return response()->json([
-            'results' => $this->searchLearningWorld->handle((string) $data['query']),
+            'results' => $this->searchLearningWorld->handle((string) $data['query'], $request->user()),
         ]);
     }
 }

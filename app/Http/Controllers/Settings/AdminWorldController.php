@@ -6,9 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Learning\Actions\CreateLearningMap;
 use App\Learning\Actions\CreateLearningNode;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
+use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\SwapLearningNode;
+use App\Learning\Actions\UpdateLearningMapAccess;
+use App\Learning\Actions\UpdateLearningMapDetails;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
+use App\Learning\Queries\LoadLearningMapAccessGroups;
 use App\Learning\Queries\LoadEditableMap;
 use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadEditableWorldGraph;
@@ -39,13 +43,17 @@ class AdminWorldController extends Controller
         private readonly AdminToolSerializer $toolSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
+        private readonly UpdateLearningMapAccess $updateLearningMapAccess,
+        private readonly UpdateLearningMapDetails $updateLearningMapDetails,
         private readonly UpdateLearningMapVisuals $updateLearningMapVisuals,
         private readonly CreateLearningNode $createLearningNode,
         private readonly UpdateLearningNode $updateLearningNode,
         private readonly InsertLearningNodeIntoHexGrid $insertLearningNode,
         private readonly SwapLearningNode $swapLearningNode,
+        private readonly ResetLearningNodeUnlocks $resetLearningNodeUnlocks,
         private readonly WorldPortalLinkService $worldPortalLinks,
         private readonly NodeImageUploadService $nodeImages,
+        private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
     ) {}
 
     public function index(): Response
@@ -68,6 +76,7 @@ class AdminWorldController extends Controller
                 ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
                 ->values()
                 ->all(),
+            'accessGroups' => $this->loadMapAccessGroups->handle(),
         ]);
     }
 
@@ -131,6 +140,26 @@ class AdminWorldController extends Controller
         return $this->redirectToMap($map);
     }
 
+    public function updateMapDetails(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->updateLearningMapDetails->handle(
+            $map,
+            $request->validate($this->rules->mapDetails()),
+        );
+
+        return $this->redirectToMap($map);
+    }
+
+    public function updateMapAccess(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->updateLearningMapAccess->handle(
+            $map,
+            $request->validate($this->rules->mapAccess()),
+        );
+
+        return $this->redirectToMap($map);
+    }
+
     public function insertNode(Request $request, LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
@@ -160,6 +189,14 @@ class AdminWorldController extends Controller
             $node,
             $request->validate($this->rules->direction()),
         );
+
+        return $this->redirectToMap($node->map);
+    }
+
+    public function resetNodeUnlocks(LearningNode $node): RedirectResponse
+    {
+        $node->loadMissing('map');
+        $this->resetLearningNodeUnlocks->handle($node);
 
         return $this->redirectToMap($node->map);
     }

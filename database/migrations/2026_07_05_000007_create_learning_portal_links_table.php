@@ -37,7 +37,9 @@ return new class extends Migration
 
     private function seedDemoPortalLink(): void
     {
-        $world = DB::table('learning_worlds')->where('slug', 'demo-cybersecurity')->first();
+        $world = DB::table('learning_worlds')
+            ->whereIn('slug', ['demo-learning-world', 'demo-cybersecurity'])
+            ->first();
 
         if (! $world) {
             return;
@@ -62,7 +64,7 @@ return new class extends Migration
             $targetMapId = DB::table('learning_maps')->insertGetId([
                 'learning_world_id' => $world->id,
                 'slug' => 'signal-archive',
-                'title' => 'Signal Archive',
+                'title' => 'Quiet Library',
                 'description' => 'A second map used to prototype portal travel between learning spaces.',
                 'background_config' => json_encode($sourceMap->background_config ? json_decode($sourceMap->background_config, true) : []),
                 'grid_config' => json_encode($sourceMap->grid_config ? json_decode($sourceMap->grid_config, true) : []),
@@ -91,7 +93,7 @@ return new class extends Migration
                 'learning_map_id' => $targetMapId,
                 'slug' => 'return-gate',
                 'title' => 'Return Gate',
-                'description' => 'The sibling portal back toward the first sector.',
+                'description' => 'The sibling portal back toward the first clearing.',
                 'position_q' => 0,
                 'position_r' => 0,
                 'state' => 'hinted',
@@ -121,7 +123,7 @@ return new class extends Migration
                 'target_learning_node_id' => $targetNodeId,
             ],
             [
-                'label' => 'First Sector to Signal Archive',
+                'label' => 'First Clearing to Quiet Library',
                 'description' => 'Prototype portal pair connecting the first map to a second map.',
                 'config' => json_encode(['travelMode' => 'portal']),
                 'updated_at' => $now,

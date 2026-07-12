@@ -353,4 +353,19 @@ class User extends Authenticatable implements PasskeyUser
             ->orderByPivot('acquired_at')
             ->orderBy('user_learning_tools.id');
     }
+
+    /**
+     * Consumable items this learner currently carries.
+     *
+     * @return BelongsToMany<LearningItem, $this>
+     */
+    public function learningItems(): BelongsToMany
+    {
+        return $this->belongsToMany(LearningItem::class, 'user_learning_items')
+            ->withPivot('quantity', 'acquired_at')
+            ->withTimestamps()
+            ->wherePivot('quantity', '>', 0)
+            ->orderByPivot('acquired_at')
+            ->orderBy('user_learning_items.id');
+    }
 }

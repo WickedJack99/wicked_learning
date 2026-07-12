@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 /**
  * @property array<string, mixed>|null $background_config
  * @property array<string, mixed>|null $grid_config
+ * @property array<int, string>|null $access_roles
  */
 #[Fillable([
     'learning_world_id',
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'description',
     'background_config',
     'grid_config',
+    'access_roles',
     'time_background_enabled',
 ])]
 class LearningMap extends Model
@@ -31,6 +33,7 @@ class LearningMap extends Model
         return [
             'background_config' => 'array',
             'grid_config' => 'array',
+            'access_roles' => 'array',
             'time_background_enabled' => 'boolean',
         ];
     }

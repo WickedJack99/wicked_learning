@@ -17,9 +17,9 @@ test('learners can resolve an obstacle with an owned configured tool', function 
     $this->seed(DemoLearningWorldSeeder::class);
 
     $activity = LearningActivity::query()
-        ->where('slug', 'clear-the-static-gate')
+        ->where('slug', 'clear-the-noisy-gate')
         ->firstOrFail();
-    $tool = LearningTool::query()->where('slug', 'signal-lens')->firstOrFail();
+    $tool = LearningTool::query()->where('slug', 'pattern-lens')->firstOrFail();
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.obstacle-tool', $activity), [
@@ -45,7 +45,7 @@ test('owned tools only resolve obstacles when the obstacle allows them', functio
     $this->seed(DemoLearningWorldSeeder::class);
 
     $activity = LearningActivity::query()
-        ->where('slug', 'clear-the-static-gate')
+        ->where('slug', 'clear-the-noisy-gate')
         ->firstOrFail();
     $wrongTool = LearningTool::query()->create([
         'slug' => 'quiet-wrench',
@@ -76,7 +76,7 @@ test('reappearing obstacles do not store destroyed learner state', function () {
     $this->seed(DemoLearningWorldSeeder::class);
 
     $activity = LearningActivity::query()
-        ->where('slug', 'clear-the-static-gate')
+        ->where('slug', 'clear-the-noisy-gate')
         ->firstOrFail();
     $activity->forceFill([
         'config' => [
@@ -84,7 +84,7 @@ test('reappearing obstacles do not store destroyed learner state', function () {
             'persistAfterSolved' => false,
         ],
     ])->save();
-    $tool = LearningTool::query()->where('slug', 'signal-lens')->firstOrFail();
+    $tool = LearningTool::query()->where('slug', 'pattern-lens')->firstOrFail();
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.obstacle-tool', $activity), [
@@ -160,7 +160,7 @@ test('learners can receive a tool from an npc dialogue node', function () {
     ]);
     $dialogueNode = NpcDialogueNode::query()->create([
         'learning_activity_id' => $activity->id,
-        'type' => 'npc_interaction',
+        'type' => 'npc_monologue',
         'title' => 'Toolkeeper',
         'body' => 'Take this. It may help later.',
         'config' => ['toolId' => $tool->id],

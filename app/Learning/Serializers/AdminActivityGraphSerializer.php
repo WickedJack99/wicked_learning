@@ -76,6 +76,7 @@ class AdminActivityGraphSerializer
             'slug' => $node->slug,
             'title' => $node->title,
             'description' => $node->description,
+            'graphLayout' => $node->activity_graph_layout ?? [],
             'startActivityId' => $this->eligibleStartActivityId($node),
             'startRoutes' => $this->startRoutes($node),
         ];
@@ -141,7 +142,7 @@ class AdminActivityGraphSerializer
             'id' => $transition->id,
             'fromActivityId' => $transition->from_activity_id,
             'toActivityId' => $transition->to_activity_id,
-            'fromConnector' => $transition->from_connector ?? $transition->trigger,
+            'fromConnector' => $transition->from_connector ?? $transition->trigger ?? 'completed',
             'toConnector' => $transition->to_connector ?? 'in',
             'trigger' => $transition->trigger,
             'triggerValue' => $transition->trigger_value,

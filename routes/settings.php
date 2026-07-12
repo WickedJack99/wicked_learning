@@ -4,6 +4,7 @@ use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminAccessController;
 use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAssetController;
+use App\Http\Controllers\Settings\AdminItemController;
 use App\Http\Controllers\Settings\AdminNpcDialogueController;
 use App\Http\Controllers\Settings\AdminUserController;
 use App\Http\Controllers\Settings\AdminWorldController;
@@ -71,6 +72,12 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::patch('settings/worlds/maps/{map}', [AdminWorldController::class, 'updateMap'])
         ->name('settings.worlds.maps.update');
 
+    Route::patch('settings/worlds/maps/{map}/details', [AdminWorldController::class, 'updateMapDetails'])
+        ->name('settings.worlds.maps.details.update');
+
+    Route::patch('settings/worlds/maps/{map}/access', [AdminWorldController::class, 'updateMapAccess'])
+        ->name('settings.worlds.maps.access.update');
+
     Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
         ->name('settings.worlds.maps.nodes.store');
 
@@ -83,6 +90,9 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::patch('settings/worlds/nodes/{node}/swap', [AdminWorldController::class, 'swapNode'])
         ->name('settings.worlds.nodes.swap');
 
+    Route::post('settings/worlds/nodes/{node}/reset-unlocks', [AdminWorldController::class, 'resetNodeUnlocks'])
+        ->name('settings.worlds.nodes.unlocks.reset');
+
     Route::get('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'edit'])
         ->name('settings.worlds.nodes.activities.edit');
 
@@ -92,8 +102,14 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
         ->name('settings.worlds.activities.update');
 
+    Route::patch('settings/worlds/activities/{activity}/graph-layout', [AdminActivityController::class, 'updateActivityGraphLayout'])
+        ->name('settings.worlds.activities.graph-layout.update');
+
     Route::delete('settings/worlds/activities/{activity}', [AdminActivityController::class, 'destroy'])
         ->name('settings.worlds.activities.destroy');
+
+    Route::get('settings/worlds/activities/{activity}/markdown', [AdminActivityController::class, 'editMarkdown'])
+        ->name('settings.worlds.activities.markdown.edit');
 
     Route::get('settings/worlds/activities/{activity}/npc-dialogue', [AdminNpcDialogueController::class, 'edit'])
         ->name('settings.worlds.activities.npc-dialogue.edit');
@@ -115,6 +131,9 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
 
     Route::post('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'updateStart'])
         ->name('settings.worlds.nodes.activities.start.update');
+
+    Route::patch('settings/worlds/nodes/{node}/activities/layout', [AdminActivityController::class, 'updateNodeGraphLayout'])
+        ->name('settings.worlds.nodes.activities.layout.update');
 
     Route::delete('settings/worlds/nodes/{node}/activities/start', [AdminActivityController::class, 'destroyStart'])
         ->name('settings.worlds.nodes.activities.start.destroy');
@@ -139,6 +158,9 @@ Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {
     Route::get('settings/assets/tools', [AdminAssetController::class, 'tools'])
         ->name('settings.assets.tools');
 
+    Route::get('settings/assets/items', [AdminItemController::class, 'index'])
+        ->name('settings.assets.items');
+
     Route::get('settings/assets/media', [AdminAssetController::class, 'media'])
         ->name('settings.assets.media');
 
@@ -148,11 +170,20 @@ Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {
     Route::post('settings/assets/tools', [AdminAssetController::class, 'storeTool'])
         ->name('settings.assets.tools.store');
 
+    Route::post('settings/assets/items', [AdminItemController::class, 'store'])
+        ->name('settings.assets.items.store');
+
     Route::patch('settings/assets/tools/{tool}', [AdminAssetController::class, 'updateTool'])
         ->name('settings.assets.tools.update');
 
+    Route::patch('settings/assets/items/{item}', [AdminItemController::class, 'update'])
+        ->name('settings.assets.items.update');
+
     Route::post('settings/assets/tool-media', [AdminAssetController::class, 'uploadToolMedia'])
         ->name('settings.assets.tool-media.store');
+
+    Route::post('settings/assets/item-media', [AdminItemController::class, 'uploadMedia'])
+        ->name('settings.assets.item-media.store');
 
     Route::post('settings/assets/media', [AdminAssetController::class, 'storeMedia'])
         ->name('settings.assets.media.store');

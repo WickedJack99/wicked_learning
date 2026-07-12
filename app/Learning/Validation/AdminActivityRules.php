@@ -18,6 +18,9 @@ class AdminActivityRules
     {
         return [
             ...$this->activityContentRules($node),
+            ...$this->itemGrantRules(),
+            ...$this->itemObstacleRules(),
+            ...$this->markdownRules(),
             ...$this->obstacleRules(),
             ...$this->portalRules(),
             ...$this->toolGrantRules(),
@@ -44,11 +47,28 @@ class AdminActivityRules
             ],
             'type' => ['sometimes', 'required', 'string', Rule::in($this->activityTypes->typeKeys())],
             'introduction' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            ...$this->itemGrantRules('sometimes'),
+            ...$this->itemObstacleRules('sometimes'),
+            ...$this->markdownRules('sometimes'),
             ...$this->obstacleRules('sometimes'),
             ...$this->portalRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
+            'return_to_markdown' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function specialGraphNodeLayout(): array
+    {
+        return [
+            'node' => ['required', 'string', Rule::in(['start', 'end'])],
+            'position' => ['required', 'array'],
+            'position.x' => ['required', 'numeric'],
+            'position.y' => ['required', 'numeric'],
         ];
     }
 
@@ -126,10 +146,92 @@ class AdminActivityRules
             'portal_duration_seconds' => [$modifier, 'numeric', 'min:0.5', 'max:60'],
             'portal_foreground_dark' => [$modifier, 'string', 'max:2048'],
             'portal_foreground_light' => [$modifier, 'string', 'max:2048'],
+            'portal_foreground_width' => [$modifier, 'numeric', 'min:1', 'max:100'],
             'portal_foreground_x' => [$modifier, 'numeric', 'min:0', 'max:100'],
             'portal_foreground_y' => [$modifier, 'numeric', 'min:0', 'max:100'],
+            'portal_show_on_arrival' => [$modifier, 'boolean'],
             'portal_swirl_enabled' => [$modifier, 'boolean'],
+            'portal_wait_for_enter' => [$modifier, 'boolean'],
             'target_portal_activity_id' => [$modifier, 'integer'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function itemGrantRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'item_grant_background_dark' => [$modifier, 'nullable', 'string', 'max:2048'],
+            'item_grant_background_light' => [$modifier, 'nullable', 'string', 'max:2048'],
+            'item_grant_items' => [$modifier, 'array'],
+            'item_grant_items.*.itemId' => $this->optional($modifier, ['integer', 'exists:learning_items,id']),
+            'item_grant_items.*.quantity' => $this->optional($modifier, ['integer', 'min:1', 'max:999']),
+            'item_grant_probability_percent' => [$modifier, 'numeric', 'min:0.01', 'max:100'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function itemObstacleRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'item_obstacle_background_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_background_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_met_background_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_met_background_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_overlay_dark' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_overlay_light' => $this->optional($modifier, ['string', 'max:2048']),
+            'item_obstacle_overlay_x' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'item_obstacle_overlay_y' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'item_obstacle_overlay_width' => $this->optional($modifier, ['numeric', 'min:1', 'max:100']),
+            'item_obstacle_slots' => [$modifier, 'array', 'max:10'],
+            'item_obstacle_slots.*.itemId' => $this->optional($modifier, ['integer', 'exists:learning_items,id']),
+            'item_obstacle_slots.*.x' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'item_obstacle_slots.*.y' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'item_obstacle_slots.*.width' => $this->optional($modifier, ['numeric', 'min:1', 'max:100']),
+            'item_obstacle_lock_minutes' => [$modifier, 'integer', 'min:0', 'max:10080'],
+            'item_obstacle_sound_not_met_enabled' => [$modifier, 'boolean'],
+            'item_obstacle_sound_not_met_id' => [$modifier, 'nullable', 'integer', 'exists:learning_sounds,id'],
+            'item_obstacle_sound_met_enabled' => [$modifier, 'boolean'],
+            'item_obstacle_sound_met_id' => [$modifier, 'nullable', 'integer', 'exists:learning_sounds,id'],
+            'item_obstacle_sound_transition_enabled' => [$modifier, 'boolean'],
+            'item_obstacle_sound_transition_id' => [$modifier, 'nullable', 'integer', 'exists:learning_sounds,id'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function markdownRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'markdown_pages' => [$modifier, 'array'],
+            'markdown_pages.*.id' => [$modifier, 'string', 'max:100'],
+            'markdown_pages.*.title' => [$modifier, 'string', 'max:160'],
+            'markdown_pages.*.body' => [$modifier, 'nullable', 'string', 'max:20000'],
+            'markdown_pages.*.position.x' => [$modifier, 'numeric'],
+            'markdown_pages.*.position.y' => [$modifier, 'numeric'],
+            'markdown_pages.*.visual.pageColorDark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.pageColorLight' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.borderColorDark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.borderColorLight' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.headingColorDark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.headingColorLight' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.textColorDark' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_pages.*.visual.textColorLight' => [$modifier, 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'markdown_transitions' => [$modifier, 'array'],
+            'markdown_transitions.*.id' => [$modifier, 'string', 'max:140'],
+            'markdown_transitions.*.from' => [$modifier, 'string', 'max:100'],
+            'markdown_transitions.*.to' => [$modifier, 'string', 'max:100'],
+            'markdown_graph_layout' => [$modifier, 'array'],
+            'markdown_graph_layout.start' => ['sometimes', 'array'],
+            'markdown_graph_layout.start.x' => ['sometimes', 'numeric'],
+            'markdown_graph_layout.start.y' => ['sometimes', 'numeric'],
+            'markdown_graph_layout.end' => ['sometimes', 'array'],
+            'markdown_graph_layout.end.x' => ['sometimes', 'numeric'],
+            'markdown_graph_layout.end.y' => ['sometimes', 'numeric'],
         ];
     }
 
