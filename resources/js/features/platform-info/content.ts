@@ -29,7 +29,7 @@ Self-Determination Theory describes three basic psychological needs: autonomy, c
 
 ## The current concept
 
-The project explores world maps, nodes, activities, dialogue, questions, reflection and configurable visual themes. A deployment should be able to tell a cyber, fantasy, astronomy or completely abstract story without changing the underlying learning model.
+The project explores world maps, nodes, activities, dialogue, questions, reflection and configurable visual themes. A deployment should be able to tell a historical, fantasy, astronomy, craft-practice or completely abstract story without changing the underlying learning model.
 
 ## What this is not
 
@@ -41,7 +41,7 @@ The goal is not to recreate a course catalogue with badges attached. The goal is
                 },
                 {
                     title: 'The current concept',
-                    body: 'The project explores world maps, nodes, activities, dialogue, questions, reflection and configurable visual themes. A deployment should be able to tell a cyber, fantasy, astronomy or completely abstract story without changing the underlying learning model.',
+                    body: 'The project explores world maps, nodes, activities, dialogue, questions, reflection and configurable visual themes. A deployment should be able to tell a historical, fantasy, astronomy, craft-practice or completely abstract story without changing the underlying learning model.',
                 },
                 {
                     title: 'What this is not',

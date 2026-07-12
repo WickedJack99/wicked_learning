@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { normalizeMediaUrl } from '@/lib/media-url';
+import { cn } from '@/lib/utils';
 
 function safeHref(href: string): string {
     if (
@@ -14,7 +16,31 @@ function safeHref(href: string): string {
     return '#';
 }
 
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
+function safeMediaSrc(src: string): string {
+    const normalized = normalizeMediaUrl(src);
+
+    if (
+        normalized.startsWith('/') ||
+        normalized.startsWith('https://') ||
+        normalized.startsWith('http://')
+    ) {
+        return normalized;
+    }
+
+    return '';
+}
+
+function mediaKind(src: string): 'image' | 'video' {
+    const path = src.split('?')[0]?.split('#')[0]?.toLowerCase() ?? '';
+
+    return /\.(mp4|ogg|ogv|webm|mov|m4v)$/.test(path) ? 'video' : 'image';
+}
+
+function renderInline(
+    text: string,
+    keyPrefix: string,
+    inheritColor: boolean,
+): ReactNode[] {
     const parts = text.split(
         /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|\*[^*]+\*)/g,
     );
@@ -28,7 +54,10 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
             if (linkMatch) {
                 return (
                     <a
-                        className="font-medium text-cyan-700 underline underline-offset-4 dark:text-teal-200"
+                        className={cn(
+                            'font-medium underline underline-offset-4',
+                            !inheritColor && 'text-cyan-700 dark:text-teal-200',
+                        )}
                         href={safeHref(linkMatch[2])}
                         key={key}
                     >
@@ -48,7 +77,12 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
             if (part.startsWith('`') && part.endsWith('`')) {
                 return (
                     <code
-                        className="rounded bg-slate-100 px-1.5 py-0.5 text-sm text-slate-900 dark:bg-slate-950 dark:text-slate-100"
+                        className={cn(
+                            'rounded px-1.5 py-0.5 text-sm',
+                            inheritColor
+                                ? 'bg-current/10'
+                                : 'bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100',
+                        )}
                         key={key}
                     >
                         {part.slice(1, -1)}
@@ -60,7 +94,19 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
         });
 }
 
-export function MarkdownRenderer({ markdown }: { markdown: string }) {
+export function MarkdownRenderer({
+    className,
+    headingColor,
+    inheritColor = false,
+    markdown,
+    style,
+}: {
+    className?: string;
+    headingColor?: string;
+    inheritColor?: boolean;
+    markdown: string;
+    style?: CSSProperties;
+}) {
     const lines = markdown.replace(/\r\n/g, '\n').split('\n');
     const blocks: ReactNode[] = [];
     let listItems: string[] = [];
@@ -74,12 +120,19 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
 
         blocks.push(
             <ul
-                className="my-4 list-disc space-y-2 pl-6 text-sm leading-7 text-slate-600 dark:text-slate-300"
+                className={cn(
+                    'my-4 list-disc space-y-2 pl-6 text-sm leading-7',
+                    !inheritColor && 'text-slate-600 dark:text-slate-300',
+                )}
                 key={`list-${blockIndex}`}
             >
                 {listItems.map((item, index) => (
                     <li key={`${blockIndex}-${index}`}>
-                        {renderInline(item, `${blockIndex}-${index}`)}
+                        {renderInline(
+                            item,
+                            `${blockIndex}-${index}`,
+                            inheritColor,
+                        )}
                     </li>
                 ))}
             </ul>,
@@ -106,13 +159,52 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
 
         flushList();
 
+        const imageMatch = trimmedLine.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+
+        if (imageMatch) {
+            const src = safeMediaSrc(imageMatch[2]);
+
+            if (src) {
+                blocks.push(
+                    mediaKind(src) === 'video' ? (
+                        <video
+                            className="my-5 max-h-96 w-full rounded-lg"
+                            controls
+                            key={index}
+                            preload="metadata"
+                            src={src}
+                        >
+                            {imageMatch[1]}
+                        </video>
+                    ) : (
+                        <img
+                            alt={imageMatch[1]}
+                            className="my-5 max-h-80 w-full rounded-lg object-contain"
+                            key={index}
+                            src={src}
+                        />
+                    ),
+                );
+            }
+
+            return;
+        }
+
         if (trimmedLine.startsWith('### ')) {
             blocks.push(
                 <h3
-                    className="mt-6 text-base font-semibold text-slate-950 dark:text-white"
+                    className={cn(
+                        'mt-6 text-base font-semibold',
+                        !inheritColor && 'text-slate-950 dark:text-white',
+                    )}
                     key={index}
+                    style={headingColor ? { color: headingColor } : undefined}
                 >
-                    {renderInline(trimmedLine.slice(4), `${index}`)}
+                    {renderInline(
+                        trimmedLine.slice(4),
+                        `${index}`,
+                        inheritColor,
+                    )}
                 </h3>,
             );
 
@@ -122,10 +214,18 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
         if (trimmedLine.startsWith('## ')) {
             blocks.push(
                 <h2
-                    className="mt-7 text-lg font-semibold text-slate-950 dark:text-white"
+                    className={cn(
+                        'mt-7 text-lg font-semibold',
+                        !inheritColor && 'text-slate-950 dark:text-white',
+                    )}
                     key={index}
+                    style={headingColor ? { color: headingColor } : undefined}
                 >
-                    {renderInline(trimmedLine.slice(3), `${index}`)}
+                    {renderInline(
+                        trimmedLine.slice(3),
+                        `${index}`,
+                        inheritColor,
+                    )}
                 </h2>,
             );
 
@@ -135,10 +235,18 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
         if (trimmedLine.startsWith('# ')) {
             blocks.push(
                 <h1
-                    className="text-3xl font-semibold tracking-normal text-slate-950 md:text-5xl dark:text-white"
+                    className={cn(
+                        'text-3xl font-semibold tracking-normal md:text-5xl',
+                        !inheritColor && 'text-slate-950 dark:text-white',
+                    )}
                     key={index}
+                    style={headingColor ? { color: headingColor } : undefined}
                 >
-                    {renderInline(trimmedLine.slice(2), `${index}`)}
+                    {renderInline(
+                        trimmedLine.slice(2),
+                        `${index}`,
+                        inheritColor,
+                    )}
                 </h1>,
             );
 
@@ -147,15 +255,22 @@ export function MarkdownRenderer({ markdown }: { markdown: string }) {
 
         blocks.push(
             <p
-                className="text-sm leading-7 text-slate-600 dark:text-slate-300"
+                className={cn(
+                    'text-sm leading-7',
+                    !inheritColor && 'text-slate-600 dark:text-slate-300',
+                )}
                 key={index}
             >
-                {renderInline(trimmedLine, `${index}`)}
+                {renderInline(trimmedLine, `${index}`, inheritColor)}
             </p>,
         );
     });
 
     flushList();
 
-    return <div className="space-y-4">{blocks}</div>;
+    return (
+        <div className={cn('space-y-4', className)} style={style}>
+            {blocks}
+        </div>
+    );
 }

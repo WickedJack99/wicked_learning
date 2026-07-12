@@ -58,7 +58,7 @@ export function NpcDialogueActivity({
     const currentNode = currentNodeId
         ? npcDialogueNodeById(activity, currentNodeId)
         : null;
-    const isQuestion = currentNode?.config.interactionMode === 'question';
+    const isQuestion = currentNode ? isQuestionNode(currentNode) : false;
     const answers =
         currentNode && isQuestion ? answerOptions(activity, currentNode) : [];
     const canGoBack = history.length > 0;
@@ -559,6 +559,10 @@ function firstNpcDialogueNodeId(activity: LearningActivity): number | null {
         )?.id ??
         null
     );
+}
+
+function isQuestionNode(node: NpcDialogueNode): boolean {
+    return node.type === 'npc_question';
 }
 
 function npcDialogueNodeById(

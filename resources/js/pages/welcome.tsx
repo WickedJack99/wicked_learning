@@ -90,15 +90,6 @@ export default function Welcome() {
                     </div>
 
                     <nav className="flex items-center gap-2">
-                        <Link
-                            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-white/10"
-                            href="/about"
-                            style={{
-                                color: 'var(--auth-title-text-color)',
-                            }}
-                        >
-                            About
-                        </Link>
                         {auth.user ? (
                             <Link
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
@@ -113,7 +104,10 @@ export default function Welcome() {
                             </Link>
                         ) : (
                             <>
-                                <AppearanceToggleTab className="mr-2 shadow-lg" />
+                                <AppearanceToggleTab
+                                    className="mr-2 shadow-lg"
+                                    variant="subtle"
+                                />
                                 <Link
                                     className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition hover:bg-white/10"
                                     href={login()}
@@ -125,13 +119,8 @@ export default function Welcome() {
                                     Log in
                                 </Link>
                                 <Link
-                                    className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
+                                    className="inline-flex items-center gap-2 rounded-md border border-white/14 bg-white/7 px-4 py-2 text-sm font-medium text-white opacity-95 transition hover:bg-white/12 hover:opacity-100"
                                     href={register()}
-                                    style={{
-                                        background:
-                                            'var(--auth-button-background)',
-                                        color: 'var(--auth-button-text-color)',
-                                    }}
                                 >
                                     Register
                                     <ArrowRight className="size-4" />

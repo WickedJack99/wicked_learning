@@ -65,7 +65,15 @@ export function AppSideActionBar() {
                 </SideOverlay>
             ) : null}
 
-            <nav className="grid gap-1.5 rounded-2xl border border-slate-200 bg-white/88 p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:border-white/12 dark:bg-slate-950/82 dark:shadow-black/35">
+            <nav
+                className="grid gap-1.5 rounded-2xl border border-slate-200 bg-white/88 p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:border-white/12 dark:bg-slate-950/82 dark:shadow-black/35"
+                style={{
+                    background: 'var(--map-side-control-background)',
+                    borderColor: 'var(--map-side-control-border-color)',
+                    color: 'var(--map-side-control-text-color)',
+                    cursor: 'var(--platform-cursor)',
+                }}
+            >
                 <ActionButton
                     isActive={overlay === 'inventory'}
                     label="Open inventory"
@@ -140,6 +148,17 @@ function ActionButton({
             )}
             disabled={disabled}
             onClick={onClick}
+            style={{
+                background: isActive
+                    ? 'var(--map-side-control-active-background)'
+                    : undefined,
+                color: isActive
+                    ? 'var(--map-side-control-active-text-color)'
+                    : 'var(--map-side-control-text-color)',
+                cursor: disabled
+                    ? 'not-allowed'
+                    : 'var(--platform-action-cursor)',
+            }}
             title={label}
             type="button"
         >

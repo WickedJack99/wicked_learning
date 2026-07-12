@@ -11,12 +11,16 @@ import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
+    ActivityTransition,
     LearningActivity,
     LearningNode,
     LearningPortalLink,
     LearningProgress,
     QuestionAnswerProgress,
 } from '@/types';
+import { MarkdownActivity } from './markdown-activity';
+import { ItemGrantActivity } from './item-grant-activity';
+import { ItemObstacleActivity } from './item-obstacle-activity';
 import { NpcDialogueActivity } from './npc-dialogue-player';
 import { ObstacleActivity } from './obstacle-activity';
 import {
@@ -29,6 +33,7 @@ import {
 import { ToolGrantActivity } from './tool-grant-activity';
 
 export function ActivityPanel({
+    canBookmark,
     isCompleted,
     node,
     onClose,
@@ -36,6 +41,7 @@ export function ActivityPanel({
     onToggleBookmark,
     isBookmarked,
 }: {
+    canBookmark: boolean;
     isBookmarked: boolean;
     isCompleted: boolean;
     node: LearningNode | null;
@@ -54,6 +60,7 @@ export function ActivityPanel({
                 headerAction={
                     <PanelNodeActions
                         isBookmarked={isBookmarked}
+                        canBookmark={canBookmark}
                         isCompleted={isCompleted}
                         node={node}
                         onToggleBookmark={onToggleBookmark}
@@ -74,6 +81,7 @@ export function ActivityPanel({
             headerAction={
                 <PanelNodeActions
                     isBookmarked={isBookmarked}
+                    canBookmark={canBookmark}
                     isCompleted={isCompleted}
                     node={node}
                     onToggleBookmark={onToggleBookmark}
@@ -255,14 +263,7 @@ export function ActivityPlayer({
         return <EmptyActivityState />;
     }
 
-    const completedTransition =
-        activity.transitions.find(
-            (transition) => transition.trigger === 'completed',
-        ) ??
-        activity.transitions.find(
-            (transition) => transition.trigger === 'arrived',
-        ) ??
-        null;
+    const completedTransition = completionTransitionFor(activity);
 
     return (
         <ActivityFrame activity={activity}>
@@ -292,6 +293,16 @@ export function ActivityPlayer({
                 />
             ) : null}
 
+            {activity.type === 'markdown' ? (
+                <MarkdownActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={onComplete}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
             {activity.type === 'reflection' ? (
                 <ReflectionActivity
                     activity={activity}
@@ -307,6 +318,25 @@ export function ActivityPlayer({
                     progress={activityProgress[activity.id]}
                     onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'item_grant' ? (
+                <ItemGrantActivity
+                    activity={activity}
+                    onComplete={onComplete}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'item_obstacle' ? (
+                <ItemObstacleActivity
+                    activity={activity}
+                    onComplete={onComplete}
+                    onMoveToActivity={onMoveToActivity}
+                    progress={activityProgress[activity.id]}
                     transition={completedTransition}
                 />
             ) : null}
@@ -340,6 +370,29 @@ export function ActivityPlayer({
                 />
             ) : null}
         </ActivityFrame>
+    );
+}
+
+function completionTransitionFor(
+    activity: LearningActivity,
+): ActivityTransition | null {
+    return (
+        transitionFromConnectorOrTrigger(activity, 'completed') ??
+        transitionFromConnectorOrTrigger(activity, 'arrived') ??
+        null
+    );
+}
+
+function transitionFromConnectorOrTrigger(
+    activity: LearningActivity,
+    connector: string,
+): ActivityTransition | null {
+    return (
+        activity.transitions.find(
+            (transition) =>
+                transition.fromConnector === connector ||
+                transition.trigger === connector,
+        ) ?? null
     );
 }
 
@@ -484,11 +537,13 @@ function BookmarkButton({
 }
 
 function PanelNodeActions({
+    canBookmark,
     isBookmarked,
     isCompleted,
     node,
     onToggleBookmark,
 }: {
+    canBookmark: boolean;
     isBookmarked: boolean;
     isCompleted: boolean;
     node: LearningNode;
@@ -505,11 +560,13 @@ function PanelNodeActions({
                     <CheckCircle2 className="size-4" />
                 </span>
             ) : null}
-            <BookmarkButton
-                isBookmarked={isBookmarked}
-                node={node}
-                onToggleBookmark={onToggleBookmark}
-            />
+            {canBookmark ? (
+                <BookmarkButton
+                    isBookmarked={isBookmarked}
+                    node={node}
+                    onToggleBookmark={onToggleBookmark}
+                />
+            ) : null}
         </div>
     );
 }

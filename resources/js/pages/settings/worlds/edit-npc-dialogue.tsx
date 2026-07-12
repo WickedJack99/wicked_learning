@@ -13,15 +13,22 @@ import {
 import type { Connection, Edge, Node } from '@xyflow/react';
 import {
     ArrowLeft,
+    FileText,
+    GitBranch,
+    Info,
     MessageCircle,
+    Palette,
     Plus,
     Play,
     Save,
     Trash2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
+import { ColorField as ConfigColorField } from '@/components/color-input';
 import InputError from '@/components/input-error';
+import { NumberField as ConfigNumberField } from '@/components/number-field';
 import { SettingsAccordionSection } from '@/components/settings-accordion-section';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +51,12 @@ import {
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import { ConfigImageInput } from './activity-config-fields';
+import {
+    ActivityScenePreview,
+    ScenePreviewBubble,
+    ScenePreviewImage,
+    themedPreviewAsset,
+} from './activity-scene-preview';
 
 type DialogueConnector = {
     color: string;
@@ -69,7 +82,7 @@ type DialogueNodeSummary = {
         y: number | null;
     };
     title: string;
-    type: 'answer' | 'end' | 'npc_interaction';
+    type: DialogueNodeType;
 };
 
 type DialogueTransitionSummary = {
@@ -82,6 +95,10 @@ type DialogueTransitionSummary = {
 
 type DialogueGraphPayload = {
     activity: {
+        graphLayout: {
+            end?: { x: number; y: number };
+            start?: { x: number; y: number };
+        };
         id: number;
         introduction: string | null;
         slug: string;
@@ -118,7 +135,7 @@ type DialogueForm = {
     body: string;
     config: Record<string, DialogueConfigValue>;
     title: string;
-    type: 'answer' | 'end' | 'npc_interaction';
+    type: DialogueNodeType;
 };
 
 type DialogueNodeData = {
@@ -126,6 +143,12 @@ type DialogueNodeData = {
     onDelete: (node: DialogueNodeSummary) => void;
     onEdit: (node: DialogueNodeSummary) => void;
 };
+
+type DialogueNodeType = 'answer' | 'end' | 'npc_monologue' | 'npc_question';
+
+type DialogueNodeKind = 'answer' | 'end' | 'monologue' | 'question';
+
+type DialogueSettingsSection = 'basics' | 'content' | 'flow' | 'visuals';
 
 type SpecialNodeData = {
     description: string;
@@ -161,7 +184,7 @@ export default function EditNpcDialogue({
     const [addOpen, setAddOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [form, setForm] = useState<DialogueForm>(() =>
-        emptyDialogueForm('npc_interaction'),
+        emptyDialogueForm('npc_monologue'),
     );
     const [editingNode, setEditingNode] = useState<DialogueNodeSummary | null>(
         null,
@@ -205,7 +228,7 @@ export default function EditNpcDialogue({
     useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
 
     const openCreate = () => {
-        setForm(emptyDialogueForm('npc_interaction'));
+        setForm(emptyDialogueForm('npc_monologue'));
         setErrors({});
         setImageUploadErrors({});
         setAddOpen(true);
@@ -239,6 +262,7 @@ export default function EditNpcDialogue({
                 body: form.body,
                 config: form.config,
                 title: form.title,
+                type: form.type,
             },
             {
                 preserveScroll: true,
@@ -310,15 +334,29 @@ export default function EditNpcDialogue({
     };
 
     const savePosition = (node: DialogueGraphNode) => {
-        if (node.type !== 'dialogueNode') {
+        const position = {
+            x: Math.round(node.position.x),
+            y: Math.round(node.position.y),
+        };
+
+        if (node.type === 'special') {
+            router.patch(
+                `/settings/worlds/activities/${dialogueGraph.activity.id}/graph-layout`,
+                {
+                    node: node.id,
+                    position,
+                },
+                { preserveScroll: true },
+            );
+
             return;
         }
 
         router.patch(
             `/settings/worlds/npc-dialogue-nodes/${node.data.dialogueNode.id}`,
             {
-                graph_position_x: Math.round(node.position.x),
-                graph_position_y: Math.round(node.position.y),
+                graph_position_x: position.x,
+                graph_position_y: position.y,
             },
             { preserveScroll: true },
         );
@@ -624,17 +662,17 @@ function DialogueNodeCard({
 }
 
 function dialogueNodeTypeLabel(node: DialogueNodeSummary): string {
-    if (node.type === 'answer') {
+    const kind = dialogueNodeKind(node);
+
+    if (kind === 'answer') {
         return 'Answer';
     }
 
-    if (node.type === 'end') {
+    if (kind === 'end') {
         return 'End node';
     }
 
-    return node.config.interactionMode === 'question'
-        ? 'Question'
-        : 'NPC interaction';
+    return kind === 'question' ? 'Question' : 'NPC monologue';
 }
 
 function StartNode({ data }: { data: SpecialNodeData; selected: boolean }) {
@@ -688,96 +726,61 @@ function DialogueNodeDialog({
     tools: EditableTool[];
     uploadingImageKey: string | null;
 }) {
+    const [activeSection, setActiveSection] =
+        useState<DialogueSettingsSection>('basics');
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
                     <DialogDescription>
-                        Add an NPC interaction step or an End node that becomes
-                        an activity-level exit connector.
+                        Add a monologue, question, answer or end node to this
+                        dialogue graph.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4">
-                    <SettingsAccordionSection
-                        defaultOpen
-                        description="Choose what this dialogue graph node represents."
-                        title="Core node"
-                    >
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div className="grid gap-2">
-                                <Label htmlFor="dialogue-node-title">
-                                    Title
-                                </Label>
-                                <Input
-                                    id="dialogue-node-title"
-                                    onChange={(event) =>
-                                        onChange((current) => ({
-                                            ...current,
-                                            title: event.target.value,
-                                        }))
-                                    }
-                                    value={form.title}
-                                />
-                                <InputError message={errors.title} />
-                            </div>
+                    <DialogueSettingsSwitcher
+                        activeSection={activeSection}
+                        onChange={setActiveSection}
+                    />
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="dialogue-node-type">Type</Label>
-                                <Select
-                                    onValueChange={(value) =>
-                                        onChange(
-                                            emptyDialogueForm(
-                                                value as DialogueForm['type'],
-                                            ),
-                                        )
-                                    }
-                                    value={form.type}
-                                >
-                                    <SelectTrigger id="dialogue-node-type">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="npc_interaction">
-                                            NPC interaction
-                                        </SelectItem>
-                                        <SelectItem value="answer">
-                                            Answer
-                                        </SelectItem>
-                                        <SelectItem value="end">
-                                            End node
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.type} />
-                            </div>
-                        </div>
-                    </SettingsAccordionSection>
-
-                    {form.type === 'answer' ? (
-                        <AnswerNodeFields
+                    {activeSection === 'basics' ? (
+                        <DialogueBasicsFields
                             errors={errors}
                             form={form}
                             onChange={onChange}
                         />
-                    ) : form.type === 'end' ? (
-                        <EndNodeFields
+                    ) : null}
+
+                    {activeSection === 'content' ? (
+                        <DialogueContentFields
                             errors={errors}
                             form={form}
                             onChange={onChange}
                         />
-                    ) : (
-                        <NpcInteractionFields
+                    ) : null}
+
+                    {activeSection === 'flow' ? (
+                        <DialogueFlowFields
+                            errors={errors}
+                            form={form}
+                            onChange={onChange}
+                            tools={tools}
+                        />
+                    ) : null}
+
+                    {activeSection === 'visuals' ? (
+                        <DialogueVisualFields
                             errors={errors}
                             form={form}
                             imageUploadErrors={imageUploadErrors}
                             onChange={onChange}
                             onUpload={onUpload}
-                            tools={tools}
                             uploadingImageKey={uploadingImageKey}
                         />
-                    )}
+                    ) : null}
                 </div>
 
                 <DialogFooter>
@@ -803,7 +806,7 @@ function DialogueNodeDialog({
     );
 }
 
-function EndNodeFields({
+function DialogueBasicsFields({
     errors,
     form,
     onChange,
@@ -814,171 +817,225 @@ function EndNodeFields({
 }) {
     return (
         <SettingsAccordionSection
-            defaultOpen
-            description="These values identify the matching activity-level exit connector."
-            title="Exit connector"
+            description="Choose what this dialogue graph node represents."
+            title="Core node"
         >
             <div className="grid gap-4 md:grid-cols-2">
-                <ConfigTextField
-                    error={errors['config.connectorSymbol']}
-                    label="Letter or number"
-                    onChange={(value) =>
-                        setConfigValue(onChange, 'connectorSymbol', value)
-                    }
-                    value={stringConfig(form.config.connectorSymbol, 'A')}
-                />
-                <ConfigColorField
-                    error={errors['config.connectorColor']}
-                    label="Connector color"
-                    onChange={(value) =>
-                        setConfigValue(onChange, 'connectorColor', value)
-                    }
-                    value={stringConfig(form.config.connectorColor, '#0ea5e9')}
-                />
-            </div>
-        </SettingsAccordionSection>
-    );
-}
-
-function AnswerNodeFields({
-    errors,
-    form,
-    onChange,
-}: {
-    errors: Record<string, string>;
-    form: DialogueForm;
-    onChange: Dispatch<SetStateAction<DialogueForm>>;
-}) {
-    return (
-        <SettingsAccordionSection
-            defaultOpen
-            description="This answer appears below a connected question. Its outgoing edge decides what happens next."
-            title="Answer"
-        >
-            <div className="grid gap-4 md:grid-cols-2">
-                <ConfigTextField
-                    error={errors['config.answerLabel']}
-                    label="Answer label"
-                    onChange={(value) =>
-                        setConfigValue(onChange, 'answerLabel', value)
-                    }
-                    value={stringConfig(form.config.answerLabel, 'A')}
-                />
-                <label className="flex h-9 items-center gap-2 self-end text-sm">
-                    <input
-                        checked={Boolean(form.config.isCorrect)}
-                        className="size-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600 dark:border-white/20 dark:bg-slate-950 dark:text-teal-200 dark:focus:ring-teal-200"
-                        onChange={(event) =>
-                            setConfigValue(
-                                onChange,
-                                'isCorrect',
-                                event.target.checked,
-                            )
-                        }
-                        type="checkbox"
-                    />
-                    Correct answer
-                </label>
-            </div>
-            <div className="mt-4 grid gap-2">
-                <Label htmlFor="answer-body">Answer text</Label>
-                <textarea
-                    className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                    id="answer-body"
-                    onChange={(event) =>
-                        onChange((current) => ({
-                            ...current,
-                            body: event.target.value,
-                        }))
-                    }
-                    value={form.body}
-                />
-                <InputError message={errors.body} />
-            </div>
-        </SettingsAccordionSection>
-    );
-}
-
-function NpcInteractionFields({
-    errors,
-    form,
-    imageUploadErrors,
-    onChange,
-    onUpload,
-    tools,
-    uploadingImageKey,
-}: {
-    errors: Record<string, string>;
-    form: DialogueForm;
-    imageUploadErrors: Record<string, string>;
-    onChange: Dispatch<SetStateAction<DialogueForm>>;
-    onUpload: (
-        key: string,
-        file: File,
-        onUploaded: (url: string) => void,
-    ) => void;
-    tools: EditableTool[];
-    uploadingImageKey: string | null;
-}) {
-    return (
-        <>
-            <SettingsAccordionSection
-                defaultOpen
-                description="The first speech bubble text for this interaction node."
-                title="Speech"
-            >
                 <div className="grid gap-2">
-                    <Label htmlFor="interaction-mode">Interaction mode</Label>
-                    <Select
-                        onValueChange={(value) =>
-                            setConfigValue(onChange, 'interactionMode', value)
-                        }
-                        value={stringConfig(
-                            form.config.interactionMode,
-                            'monologue',
-                        )}
-                    >
-                        <SelectTrigger id="interaction-mode">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="monologue">
-                                NPC monologue
-                            </SelectItem>
-                            <SelectItem value="question">Question</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="dialogue-body">Speech bubble text</Label>
-                    <textarea
-                        className="min-h-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
-                        id="dialogue-body"
+                    <Label htmlFor="dialogue-node-title">Title</Label>
+                    <Input
+                        id="dialogue-node-title"
                         onChange={(event) =>
                             onChange((current) => ({
                                 ...current,
-                                body: event.target.value,
+                                title: event.target.value,
+                            }))
+                        }
+                        value={form.title}
+                    />
+                    <InputError message={errors.title} />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="dialogue-node-type">Type</Label>
+                    <Select
+                        onValueChange={(value) =>
+                            onChange(
+                                emptyDialogueForm(
+                                    value as DialogueForm['type'],
+                                ),
+                            )
+                        }
+                        value={form.type}
+                    >
+                        <SelectTrigger id="dialogue-node-type">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="npc_monologue">
+                                NPC monologue
+                            </SelectItem>
+                            <SelectItem value="npc_question">
+                                Question
+                            </SelectItem>
+                            <SelectItem value="answer">Answer</SelectItem>
+                            <SelectItem value="end">End node</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError message={errors.type} />
+                </div>
+            </div>
+        </SettingsAccordionSection>
+    );
+}
+
+function DialogueContentFields({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: DialogueForm;
+    onChange: Dispatch<SetStateAction<DialogueForm>>;
+}) {
+    const kind = formKind(form);
+
+    if (kind === 'end') {
+        return (
+            <DialogueEmptySection
+                description="End nodes only shape where the activity can leave this dialogue graph."
+                title="No content settings"
+            />
+        );
+    }
+
+    if (kind === 'answer') {
+        return (
+            <SettingsAccordionSection
+                description="This answer appears below a connected question. Its outgoing edge decides what happens next."
+                title="Answer content"
+            >
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ConfigTextField
+                        error={errors['config.answerLabel']}
+                        label="Answer label"
+                        onChange={(value) =>
+                            setConfigValue(onChange, 'answerLabel', value)
+                        }
+                        value={stringConfig(form.config.answerLabel, 'A')}
+                    />
+                    <label className="flex h-9 items-center gap-2 self-end text-sm">
+                        <input
+                            checked={Boolean(form.config.isCorrect)}
+                            className="size-4 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600 dark:border-white/20 dark:bg-slate-950 dark:text-teal-200 dark:focus:ring-teal-200"
+                            onChange={(event) =>
+                                setConfigValue(
+                                    onChange,
+                                    'isCorrect',
+                                    event.target.checked,
+                                )
+                            }
+                            type="checkbox"
+                        />
+                        Correct answer
+                    </label>
+                </div>
+                <div className="mt-4 grid gap-2">
+                    <Label htmlFor="answer-body">Answer text</Label>
+                    <DialogueTextArea
+                        id="answer-body"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                body: value,
                             }))
                         }
                         value={form.body}
                     />
                     <InputError message={errors.body} />
                 </div>
-                <ConfigNumberField
-                    label="Typing speed"
-                    max="250"
-                    min="1"
-                    onChange={(value) =>
-                        setConfigValue(onChange, 'typingSpeed', Number(value))
-                    }
-                    suffix="ms per character"
-                    value={stringConfig(form.config.typingSpeed, '28')}
-                />
             </SettingsAccordionSection>
+        );
+    }
 
-            {form.config.interactionMode === 'question' ? (
+    return (
+        <SettingsAccordionSection
+            description={
+                kind === 'question'
+                    ? 'The question text shown before the learner chooses one connected answer.'
+                    : 'The speech bubble text shown for this monologue.'
+            }
+            title={kind === 'question' ? 'Question text' : 'Speech'}
+        >
+            <div className="grid gap-2">
+                <Label htmlFor="dialogue-body">
+                    {kind === 'question'
+                        ? 'Question bubble text'
+                        : 'Speech bubble text'}
+                </Label>
+                <DialogueTextArea
+                    id="dialogue-body"
+                    onChange={(value) =>
+                        onChange((current) => ({
+                            ...current,
+                            body: value,
+                        }))
+                    }
+                    value={form.body}
+                />
+                <InputError message={errors.body} />
+            </div>
+            <ConfigNumberField
+                label="Typing speed"
+                max="250"
+                min="1"
+                onChange={(value) =>
+                    setConfigValue(onChange, 'typingSpeed', Number(value))
+                }
+                suffix="ms per character"
+                value={stringConfig(form.config.typingSpeed, '28')}
+            />
+        </SettingsAccordionSection>
+    );
+}
+
+function DialogueFlowFields({
+    errors,
+    form,
+    onChange,
+    tools,
+}: {
+    errors: Record<string, string>;
+    form: DialogueForm;
+    onChange: Dispatch<SetStateAction<DialogueForm>>;
+    tools: EditableTool[];
+}) {
+    const kind = formKind(form);
+
+    if (kind === 'end') {
+        return (
+            <SettingsAccordionSection
+                description="These values identify the matching activity-level exit connector."
+                title="Exit connector"
+            >
+                <div className="grid gap-4 md:grid-cols-2">
+                    <ConfigTextField
+                        error={errors['config.connectorSymbol']}
+                        label="Letter or number"
+                        onChange={(value) =>
+                            setConfigValue(onChange, 'connectorSymbol', value)
+                        }
+                        value={stringConfig(form.config.connectorSymbol, 'A')}
+                    />
+                    <ConfigColorField
+                        error={errors['config.connectorColor']}
+                        label="Connector color"
+                        onChange={(value) =>
+                            setConfigValue(onChange, 'connectorColor', value)
+                        }
+                        value={stringConfig(
+                            form.config.connectorColor,
+                            '#0ea5e9',
+                        )}
+                    />
+                </div>
+            </SettingsAccordionSection>
+        );
+    }
+
+    if (kind === 'answer') {
+        return (
+            <DialogueEmptySection
+                description="Answers use their graph edge to decide which node plays next."
+                title="No extra flow settings"
+            />
+        );
+    }
+
+    return (
+        <>
+            {kind === 'question' ? (
                 <SettingsAccordionSection
-                    defaultOpen
                     description="Create one Answer node per exit and connect each output to the matching answer. Connection order controls display order."
                     title="Question outputs"
                 >
@@ -1002,7 +1059,7 @@ function NpcInteractionFields({
             ) : null}
 
             <SettingsAccordionSection
-                description="Optionally add a configured tool to the learner when this bubble is reached."
+                description="Optionally add a configured tool to the learner when this dialogue node is reached."
                 title="Tool grant"
             >
                 <div className="grid gap-2">
@@ -1039,6 +1096,90 @@ function NpcInteractionFields({
                     <InputError message={errors['config.toolId']} />
                 </div>
             </SettingsAccordionSection>
+        </>
+    );
+}
+
+function DialogueVisualFields({
+    errors,
+    form,
+    imageUploadErrors,
+    onChange,
+    onUpload,
+    uploadingImageKey,
+}: {
+    errors: Record<string, string>;
+    form: DialogueForm;
+    imageUploadErrors: Record<string, string>;
+    onChange: Dispatch<SetStateAction<DialogueForm>>;
+    onUpload: (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => void;
+    uploadingImageKey: string | null;
+}) {
+    const kind = formKind(form);
+    const { resolvedAppearance } = useAppearance();
+    const isLight = resolvedAppearance === 'light';
+    const backgroundImage = themedPreviewAsset(
+        form.config.backgroundDark,
+        form.config.backgroundLight,
+        resolvedAppearance,
+    );
+    const npcImage = themedPreviewAsset(
+        form.config.npcImageDark,
+        form.config.npcImageLight,
+        resolvedAppearance,
+    );
+    const bubbleColor = stringConfig(
+        isLight ? form.config.bubbleColorLight : form.config.bubbleColorDark,
+        isLight ? '#ffffff' : '#0f172a',
+    );
+    const bubbleBorderColor = stringConfig(
+        isLight
+            ? form.config.bubbleBorderColorLight
+            : form.config.bubbleBorderColorDark,
+        isLight ? '#0891b2' : '#2dd4bf',
+    );
+    const bubbleOpacity = stringConfig(
+        isLight ? form.config.bubbleOpacityLight : form.config.bubbleOpacityDark,
+        isLight ? '94' : '92',
+    );
+
+    if (kind === 'answer' || kind === 'end') {
+        return (
+            <DialogueEmptySection
+                description="This node type has no scene visuals of its own."
+                title="No visual settings"
+            />
+        );
+    }
+
+    return (
+        <>
+            <ActivityScenePreview
+                backgroundImage={backgroundImage}
+                description="Uses this node's current theme images, placement and bubble style."
+                title="Dialogue scene preview"
+            >
+                <ScenePreviewImage
+                    imageUrl={npcImage}
+                    label="NPC image"
+                    width={26}
+                    x={stringConfig(form.config.npcX, '50')}
+                    y={stringConfig(form.config.npcY, '48')}
+                />
+                <div className="absolute inset-x-3 bottom-3">
+                    <ScenePreviewBubble
+                        borderColor={bubbleBorderColor}
+                        color={bubbleColor}
+                        label={kind === 'question' ? 'Question' : 'NPC'}
+                        opacity={bubbleOpacity}
+                        text={form.body ?? form.title}
+                    />
+                </div>
+            </ActivityScenePreview>
 
             <SettingsAccordionSection
                 description="Theme-specific background and NPC images."
@@ -1046,7 +1187,7 @@ function NpcInteractionFields({
             >
                 <div className="grid gap-4 md:grid-cols-2">
                     <ConfigImageInput
-                        description="Displayed behind the interaction in dark mode."
+                        description="Displayed behind the dialogue in dark mode."
                         error={
                             imageUploadErrors.backgroundDark ??
                             errors['config.backgroundDark']
@@ -1065,7 +1206,7 @@ function NpcInteractionFields({
                         value={stringConfig(form.config.backgroundDark)}
                     />
                     <ConfigImageInput
-                        description="Displayed behind the interaction in light mode."
+                        description="Displayed behind the dialogue in light mode."
                         error={
                             imageUploadErrors.backgroundLight ??
                             errors['config.backgroundLight']
@@ -1310,6 +1451,115 @@ function NpcInteractionFields({
     );
 }
 
+const dialogueSettingsSections: {
+    description: string;
+    icon: LucideIcon;
+    key: DialogueSettingsSection;
+    label: string;
+}[] = [
+    {
+        description: 'Title and visible graph node type.',
+        icon: Info,
+        key: 'basics',
+        label: 'Basics',
+    },
+    {
+        description: 'Speech, question or answer text.',
+        icon: FileText,
+        key: 'content',
+        label: 'Content',
+    },
+    {
+        description: 'Connectors, answer exits and tool grants.',
+        icon: GitBranch,
+        key: 'flow',
+        label: 'Flow',
+    },
+    {
+        description: 'Images, motion and bubble styling.',
+        icon: Palette,
+        key: 'visuals',
+        label: 'Visuals',
+    },
+];
+
+function DialogueSettingsSwitcher({
+    activeSection,
+    onChange,
+}: {
+    activeSection: DialogueSettingsSection;
+    onChange: (section: DialogueSettingsSection) => void;
+}) {
+    return (
+        <div
+            aria-label="Dialogue node settings sections"
+            className="mx-auto flex w-fit items-center gap-1 rounded-2xl border border-slate-200 bg-white/88 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/82"
+            role="tablist"
+        >
+            {dialogueSettingsSections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.key;
+
+                return (
+                    <button
+                        aria-label={section.label}
+                        aria-selected={isActive}
+                        className={
+                            isActive
+                                ? 'grid size-10 place-items-center rounded-xl bg-cyan-600 text-white shadow-sm transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:bg-teal-300 dark:text-slate-950 dark:focus-visible:ring-teal-200'
+                                : 'grid size-10 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-teal-200'
+                        }
+                        key={section.key}
+                        onClick={() => onChange(section.key)}
+                        title={`${section.label} - ${section.description}`}
+                        type="button"
+                    >
+                        <Icon className="size-4" />
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function DialogueEmptySection({
+    description,
+    title,
+}: {
+    description: string;
+    title: string;
+}) {
+    return (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                {title}
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {description}
+            </p>
+        </div>
+    );
+}
+
+function DialogueTextArea({
+    id,
+    onChange,
+    value,
+}: {
+    id: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <textarea
+            className="min-h-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
+            id={id}
+            onChange={(event) => onChange(event.target.value)}
+            value={value}
+        />
+    );
+}
+
 function ConfigTextField({
     error,
     label,
@@ -1332,84 +1582,6 @@ function ConfigTextField({
                 value={value}
             />
             <InputError message={error} />
-        </div>
-    );
-}
-
-function ConfigColorField({
-    error,
-    label,
-    onChange,
-    value,
-}: {
-    error?: string;
-    label: string;
-    onChange: (value: string) => void;
-    value: string;
-}) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-    const pickerValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000';
-
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="grid grid-cols-[auto_1fr] gap-2">
-                <Input
-                    aria-label={`${label} picker`}
-                    className="h-9 w-12 cursor-pointer p-1"
-                    onChange={(event) => onChange(event.target.value)}
-                    type="color"
-                    value={pickerValue}
-                />
-                <Input
-                    id={id}
-                    onChange={(event) => onChange(event.target.value)}
-                    value={value}
-                />
-            </div>
-            <InputError message={error} />
-        </div>
-    );
-}
-
-function ConfigNumberField({
-    label,
-    max,
-    min,
-    onChange,
-    step,
-    suffix,
-    value,
-}: {
-    label: string;
-    max?: string;
-    min?: string;
-    onChange: (value: string) => void;
-    step?: string;
-    suffix?: string;
-    value: string;
-}) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-                <Input
-                    id={id}
-                    max={max}
-                    min={min}
-                    onChange={(event) => onChange(event.target.value)}
-                    step={step}
-                    type="number"
-                    value={value}
-                />
-                {suffix ? (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {suffix}
-                    </span>
-                ) : null}
-            </div>
         </div>
     );
 }
@@ -1443,18 +1615,25 @@ function buildGraphNodes(
                 description: 'Connect this to the first interaction node.',
                 title: 'Start',
             },
-            position: { x: -220, y: 40 },
+            position: payload.activity.graphLayout.start ?? { x: -220, y: 40 },
         },
         ...dialogueNodes,
     ];
 }
 
 function buildGraphEdges(payload: DialogueGraphPayload): DialogueGraphEdge[] {
+    const nodeById = new Map(
+        payload.dialogueNodes.map((node) => [node.id, node]),
+    );
+
     return payload.transitions.map((transition) => ({
         id: `dialogue-transition:${transition.id}`,
         source: transition.fromNodeId?.toString() ?? 'start',
         sourceHandle: transition.fromNodeId
-            ? transition.fromConnector
+            ? validSourceHandle(
+                  nodeById.get(transition.fromNodeId),
+                  transition.fromConnector,
+              )
             : 'start',
         target: transition.toNodeId.toString(),
         targetHandle: transition.toConnector,
@@ -1462,6 +1641,23 @@ function buildGraphEdges(payload: DialogueGraphPayload): DialogueGraphEdge[] {
         style: edgeStyle,
         data: transition,
     }));
+}
+
+function validSourceHandle(
+    node: DialogueNodeSummary | undefined,
+    connector: string,
+): string {
+    if (!node) {
+        return connector;
+    }
+
+    const connectorIds = dialogueOutputConnectors(node).map(
+        (output) => output.id,
+    );
+
+    return connectorIds.includes(connector)
+        ? connector
+        : (connectorIds[0] ?? connector);
 }
 
 function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
@@ -1495,7 +1691,6 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                       bubbleOpacityDark: 92,
                       bubbleOpacityLight: 94,
                       fadeDurationSeconds: 0.4,
-                      interactionMode: 'monologue',
                       npcImageDark: '',
                       npcImageLight: '',
                       npcX: 50,
@@ -1506,7 +1701,12 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                       toolId: null,
                       typingSpeed: 28,
                   },
-        title: type === 'end' ? 'End' : 'NPC interaction',
+        title:
+            type === 'end'
+                ? 'End'
+                : type === 'npc_question'
+                  ? 'Question'
+                  : 'NPC monologue',
         type,
     };
 }
@@ -1518,6 +1718,22 @@ function formFromNode(node: DialogueNodeSummary): DialogueForm {
         title: node.title,
         type: node.type,
     };
+}
+
+function formKind(form: DialogueForm): DialogueNodeKind {
+    if (form.type === 'answer' || form.type === 'end') {
+        return form.type;
+    }
+
+    return form.type === 'npc_question' ? 'question' : 'monologue';
+}
+
+function dialogueNodeKind(node: DialogueNodeSummary): DialogueNodeKind {
+    if (node.type === 'answer' || node.type === 'end') {
+        return node.type;
+    }
+
+    return node.type === 'npc_question' ? 'question' : 'monologue';
 }
 
 function setConfigValue(
@@ -1537,8 +1753,10 @@ function setConfigValue(
 function dialogueOutputConnectors(
     node: DialogueNodeSummary,
 ): DialogueConnector[] {
-    if (node.type !== 'npc_interaction') {
-        return node.type === 'answer'
+    const kind = dialogueNodeKind(node);
+
+    if (kind !== 'monologue' && kind !== 'question') {
+        return kind === 'answer'
             ? [
                   {
                       color: '#0ea5e9',
@@ -1550,7 +1768,7 @@ function dialogueOutputConnectors(
             : [];
     }
 
-    if (node.config.interactionMode !== 'question') {
+    if (kind !== 'question') {
         return [
             {
                 color: '#0ea5e9',

@@ -8,9 +8,9 @@ import {
     useNodesState,
 } from '@xyflow/react';
 import type { Connection } from '@xyflow/react';
-import { ArrowLeft, GitBranch, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, GitBranch, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import InputError from '@/components/input-error';
+import { ColorField } from '@/components/color-input';
 import { SettingsAccordionSection } from '@/components/settings-accordion-section';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,10 +21,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ConfigImageInput } from './activity-config-fields';
+import { themedPreviewAsset } from './activity-scene-preview';
 import { ActivityFormFields } from './activity-form-fields';
 import { activityFormPayload } from './activity-form-payload';
 import {
@@ -45,15 +44,22 @@ import type {
     ActivityNodeData,
     ActivityStartRoute,
     ActivitySummary,
+    EditableItem,
+    EditableSound,
     EditableTool,
     StartRouteForm,
 } from './edit-node-activity-types';
+import { useNodeImageUpload } from './use-node-image-upload';
 
 export default function EditNodeActivities({
     activityGraph,
+    items,
+    sounds,
     tools,
 }: {
     activityGraph: ActivityGraphPayload;
+    items: EditableItem[];
+    sounds: EditableSound[];
     tools: EditableTool[];
 }) {
     const { resolvedAppearance } = useAppearance();
@@ -95,22 +101,22 @@ export default function EditNodeActivities({
     const [pendingDeleteStartRoute, setPendingDeleteStartRoute] =
         useState<ActivityStartRoute | null>(null);
     const [deletingStartRoute, setDeletingStartRoute] = useState(false);
-    const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
-        null,
-    );
-    const [imageUploadErrors, setImageUploadErrors] = useState<
-        Record<string, string>
-    >({});
+    const {
+        imageUploadErrors,
+        resetImageUploadErrors,
+        uploadNodeImage,
+        uploadingImageKey,
+    } = useNodeImageUpload();
 
     const openEdit = useCallback(
         (activity: ActivitySummary) => {
             setEditingActivity(activity);
             setEditForm(activityFormFromActivity(activity, firstType));
             setEditErrors({});
-            setImageUploadErrors({});
+            resetImageUploadErrors();
             setEditOpen(true);
         },
-        [firstType],
+        [firstType, resetImageUploadErrors],
     );
 
     const requestDelete = useCallback((activity: ActivitySummary) => {
@@ -165,61 +171,8 @@ export default function EditNodeActivities({
     const openCreate = () => {
         setForm(emptyCreateForm(firstType));
         setErrors({});
-        setImageUploadErrors({});
+        resetImageUploadErrors();
         setCreateOpen(true);
-    };
-
-    const uploadPortalImage = async (
-        key: string,
-        file: File,
-        onUploaded: (url: string) => void,
-    ) => {
-        const formData = new FormData();
-        const csrfToken = document
-            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        formData.append('image', file);
-        setUploadingImageKey(key);
-        setImageUploadErrors((current) => ({ ...current, [key]: '' }));
-
-        try {
-            const response = await fetch('/settings/worlds/node-images', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
-            });
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setImageUploadErrors((current) => ({
-                    ...current,
-                    [key]:
-                        payload.errors?.image?.[0] ??
-                        payload.message ??
-                        'The image could not be uploaded.',
-                }));
-
-                return;
-            }
-
-            onUploaded(payload.url);
-        } catch {
-            setImageUploadErrors((current) => ({
-                ...current,
-                [key]: 'The image could not be uploaded.',
-            }));
-        } finally {
-            setUploadingImageKey(null);
-        }
     };
 
     const createActivity = () => {
@@ -305,7 +258,7 @@ export default function EditNodeActivities({
             image_light: route.imageLight ?? '',
         });
         setStartRouteErrors({});
-        setImageUploadErrors({});
+        resetImageUploadErrors();
     };
 
     const updateStartRoute = () => {
@@ -417,15 +370,29 @@ export default function EditNodeActivities({
     };
 
     const savePosition = (node: ActivityGraphNode) => {
-        if (node.type !== 'activity') {
+        const position = {
+            x: Math.round(node.position.x),
+            y: Math.round(node.position.y),
+        };
+
+        if (node.type === 'special') {
+            router.patch(
+                `/settings/worlds/nodes/${activityGraph.node.id}/activities/layout`,
+                {
+                    node: node.id,
+                    position,
+                },
+                { preserveScroll: true },
+            );
+
             return;
         }
 
         router.patch(
             `/settings/worlds/activities/${node.data.activity.id}`,
             {
-                graph_position_x: Math.round(node.position.x),
-                graph_position_y: Math.round(node.position.y),
+                graph_position_x: position.x,
+                graph_position_y: position.y,
             },
             { preserveScroll: true },
         );
@@ -542,13 +509,16 @@ export default function EditNodeActivities({
                     >
                         <ActivityFormFields
                             activityTypes={activityGraph.activityTypes}
+                            editingActivityId={null}
                             errors={errors}
                             form={form}
                             imageUploadErrors={imageUploadErrors}
                             onChange={setForm}
-                            onUploadPortalImage={uploadPortalImage}
+                            onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedType}
+                            items={items}
+                            sounds={sounds}
                             tools={tools}
                             uploadingImageKey={uploadingImageKey}
                         />
@@ -583,13 +553,16 @@ export default function EditNodeActivities({
 
                     <ActivityFormFields
                         activityTypes={activityGraph.activityTypes}
+                        editingActivityId={editingActivity?.id ?? null}
                         errors={editErrors}
                         form={editForm}
                         imageUploadErrors={imageUploadErrors}
                         onChange={setEditForm}
-                        onUploadPortalImage={uploadPortalImage}
+                        onUploadPortalImage={uploadNodeImage}
                         portalCandidates={activityGraph.portalCandidates}
                         selectedType={selectedEditType}
+                        items={items}
+                        sounds={sounds}
                         tools={tools}
                         uploadingImageKey={uploadingImageKey}
                     />
@@ -645,8 +618,16 @@ export default function EditNodeActivities({
                                 </p>
                             </div>
 
+                            <RouteVisualPreview
+                                form={startRouteForm}
+                                mode={resolvedAppearance}
+                                title={routeActivityTitle(
+                                    activityGraph.activities,
+                                    selectedStartRoute,
+                                )}
+                            />
+
                             <SettingsAccordionSection
-                                defaultOpen
                                 description="Optional images shown as the route card background."
                                 title="Route images"
                             >
@@ -666,7 +647,7 @@ export default function EditNodeActivities({
                                             }))
                                         }
                                         onUpload={(file) =>
-                                            void uploadPortalImage(
+                                            void uploadNodeImage(
                                                 'route_image_dark',
                                                 file,
                                                 (url) =>
@@ -699,7 +680,7 @@ export default function EditNodeActivities({
                                             }))
                                         }
                                         onUpload={(file) =>
-                                            void uploadPortalImage(
+                                            void uploadNodeImage(
                                                 'route_image_light',
                                                 file,
                                                 (url) =>
@@ -909,6 +890,64 @@ export default function EditNodeActivities({
     );
 }
 
+function RouteVisualPreview({
+    form,
+    mode,
+    title,
+}: {
+    form: StartRouteForm;
+    mode: 'dark' | 'light';
+    title: string;
+}) {
+    const isLight = mode === 'light';
+    const image = themedPreviewAsset(form.image_dark, form.image_light, mode);
+    const buttonColor =
+        (isLight ? form.button_color_light : form.button_color_dark) ||
+        (isLight ? '#ffffff' : '#0f172a');
+    const borderColor =
+        (isLight
+            ? form.button_border_color_light
+            : form.button_border_color_dark) || (isLight ? '#e2e8f0' : '#334155');
+
+    return (
+        <div className="grid gap-2">
+            <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Route card preview
+                </p>
+                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Uses the current appearance mode.
+                </p>
+            </div>
+            <button
+                className="group grid overflow-hidden rounded-xl border text-left transition hover:-translate-y-0.5"
+                style={{ borderColor }}
+                type="button"
+            >
+                <span
+                    className="flex items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-semibold"
+                    style={{
+                        backgroundColor: buttonColor,
+                        borderColor,
+                        color: isLight ? '#0f172a' : '#f8fafc',
+                    }}
+                >
+                    {title}
+                    <ArrowRight className="size-4" />
+                </span>
+                {image ? (
+                    <img
+                        alt=""
+                        className="aspect-[3/1] w-full object-cover"
+                        draggable={false}
+                        src={image}
+                    />
+                ) : null}
+            </button>
+        </div>
+    );
+}
+
 function RouteColorInput({
     error,
     fallback,
@@ -924,42 +963,20 @@ function RouteColorInput({
     onChange: (value: string) => void;
     value: string;
 }) {
-    const pickerValue = isHexColor(value) ? value : fallback;
-
     return (
-        <div className="grid gap-2 rounded-md bg-slate-50 p-3 dark:bg-white/5">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="flex gap-2">
-                <Input
-                    aria-label={`${label} picker`}
-                    className="h-10 w-12 shrink-0 cursor-pointer p-1"
-                    id={id}
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    type="color"
-                    value={pickerValue}
-                />
-                <Input
-                    className="font-mono text-sm"
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    placeholder={fallback}
-                    value={value}
-                />
-                <Button
-                    onClick={() => onChange('')}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                >
-                    Clear
-                </Button>
-            </div>
-            <InputError message={error} />
-        </div>
+        <ColorField
+            className="rounded-md bg-slate-50 p-3 dark:bg-white/5"
+            error={error}
+            fallback={fallback}
+            id={id}
+            inputClassName="font-mono text-sm"
+            label={label}
+            onChange={onChange}
+            pickerClassName="h-10"
+            showClear
+            value={value}
+        />
     );
-}
-
-function isHexColor(value: string): boolean {
-    return /^#[0-9a-fA-F]{6}$/.test(value);
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

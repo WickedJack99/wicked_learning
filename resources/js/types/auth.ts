@@ -1,4 +1,4 @@
-import type { LearningTool } from './learning';
+import type { LearningItem, LearningTool } from './learning';
 
 export type User = {
     id: number;
@@ -16,6 +16,7 @@ export type User = {
 };
 
 export type Auth = {
+    items: LearningItem[];
     tools: LearningTool[];
     user: User | null;
 };

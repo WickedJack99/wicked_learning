@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AppBottomNav } from '@/components/app-bottom-nav';
 import { AppSideActionBar } from '@/components/app-side-action-bar';
@@ -13,7 +13,11 @@ import {
 } from '@/features/tools/tool-selection';
 import { useAppearancePageSync } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
-import { platformActionCursor, platformCursor } from '@/theme/cursors';
+import {
+    embeddedPlatformCursors,
+    platformActionCursor,
+    platformCursor,
+} from '@/theme/cursors';
 import { platformGrabCursor } from '@/theme/cursors';
 import type { AppLayoutProps } from '@/types';
 
@@ -42,6 +46,30 @@ export default function AppSidebarLayout({
     }, [selectedTool]);
     void breadcrumbs;
     const presentation = props.publicPresentation;
+    const [platformCursors, setPlatformCursors] = useState(() => ({
+        action: platformActionCursor(presentation),
+        default: platformCursor(presentation),
+        grab: platformGrabCursor(presentation),
+    }));
+    useEffect(() => {
+        let isMounted = true;
+
+        setPlatformCursors({
+            action: platformActionCursor(presentation),
+            default: platformCursor(presentation),
+            grab: platformGrabCursor(presentation),
+        });
+
+        void embeddedPlatformCursors(presentation).then((cursors) => {
+            if (isMounted) {
+                setPlatformCursors(cursors);
+            }
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [presentation]);
     const toolCursor = equippedToolCursorStyle(
         selectedTool,
         resolvedAppearance,
@@ -49,15 +77,15 @@ export default function AppSidebarLayout({
     const platformCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursor(presentation);
+            : platformCursors.default;
     const actionCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformActionCursor(presentation);
+            : platformCursors.action;
     const grabCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformGrabCursor(presentation);
+            : platformCursors.grab;
 
     return (
         <div

@@ -2,6 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ItemInventoryPanel } from '@/features/items/item-inventory-panel';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPlayer } from '@/features/world/activity-panel';
 import { postJson } from '@/features/world/api';
@@ -20,7 +21,8 @@ type NodePlayProps = {
 };
 
 export default function NodePlay({ node, progress }: NodePlayProps) {
-    const { url } = usePage();
+    const { props, url } = usePage();
+    const isAuthenticated = Boolean(props.auth.user);
     const { resolvedAppearance } = useAppearance();
     const urlActivityId = useMemo(() => {
         const raw = new URL(url, 'http://learning.local').searchParams.get(
@@ -41,6 +43,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
     const [activityProgress, setActivityProgress] = useState(
         progress.activities,
     );
+    const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
     const activeActivity = useMemo(
         () => getActivityById(node, activeActivityId),
         [activeActivityId, node],
@@ -53,10 +56,12 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
 
         persistActiveActivity(node, activeActivity);
 
-        void postJson(`/learning/activities/${activeActivity.id}/progress`, {
-            status: 'reached',
-        }).catch(() => undefined);
-    }, [activeActivity, node]);
+        if (isAuthenticated) {
+            void postJson(`/learning/activities/${activeActivity.id}/progress`, {
+                status: 'reached',
+            }).catch(() => undefined);
+        }
+    }, [activeActivity, isAuthenticated, node]);
 
     const returnToMap = useCallback(() => {
         router.visit(
@@ -65,6 +70,18 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
     }, [node.mapSlug, node.slug]);
 
     const markCompleted = useCallback(async (activity: LearningActivity) => {
+        if (!isAuthenticated) {
+            setActivityProgress((current) => ({
+                ...current,
+                [activity.id]: {
+                    completedAt: new Date().toISOString(),
+                    status: 'completed',
+                },
+            }));
+
+            return;
+        }
+
         const response = await postJson<{
             progress: LearningProgress['activities'][number] & {
                 activityId: number;
@@ -81,10 +98,12 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                 status: response.progress.status,
             },
         }));
-    }, []);
+    }, [isAuthenticated]);
 
     const moveToActivity = useCallback(
         (activityId: number | null) => {
+            setTravelBlockedMessage('');
+
             if (!activityId) {
                 returnToMap();
 
@@ -107,6 +126,21 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
     );
 
     const travel = useCallback((portalLink: LearningPortalLink) => {
+        if (
+            portalLink.targetNodeState === 'locked' ||
+            portalLink.targetNodeState === 'hidden'
+        ) {
+            setTravelBlockedMessage(
+                portalLink.targetNodeState === 'locked'
+                    ? `${portalLink.targetNodeTitle} is still locked.`
+                    : `${portalLink.targetNodeTitle} has not been discovered yet.`,
+            );
+
+            return;
+        }
+
+        setTravelBlockedMessage('');
+
         const activityQuery = portalLink.targetActivityId
             ? `?activity=${portalLink.targetActivityId}`
             : '';
@@ -139,6 +173,12 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                 </header>
 
                 <section className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-4 pt-4 pb-24 md:px-6 md:pt-6 md:pb-28">
+                    {travelBlockedMessage ? (
+                        <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                            {travelBlockedMessage}
+                        </p>
+                    ) : null}
+
                     {activeActivity ? (
                         <ActivityPlayer
                             activity={activeActivity}
@@ -171,6 +211,7 @@ export default function NodePlay({ node, progress }: NodePlayProps) {
                         </div>
                     )}
                 </section>
+                <ItemInventoryPanel />
             </main>
         </>
     );

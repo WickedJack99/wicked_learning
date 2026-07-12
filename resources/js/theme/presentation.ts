@@ -17,6 +17,7 @@ export type CursorImageSettings = {
     hotspotX?: number | null;
     hotspotY?: number | null;
     image?: string | null;
+    size?: number | null;
 };
 
 export type PublicPresentationSettings = {
@@ -53,7 +54,7 @@ export const defaultWelcomePages: WelcomePageSettings[] = [
     {
         eyebrow: 'Configurable worlds',
         title: 'One learning model, many stories',
-        body: 'A world can look like a cyber network, a medieval map, an astronomy field or something quiet and abstract. Themes change the story, while maps, nodes and activities keep the learning structure coherent.',
+        body: 'A world can look like a forest path, a medieval map, an astronomy field, a workshop or something quiet and abstract. Themes change the story, while maps, nodes and activities keep the learning structure coherent.',
         primaryLabel: 'Explore the first map',
     },
 ];

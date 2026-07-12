@@ -18,8 +18,8 @@ const sections: AssetSection[] = [
     },
     {
         label: 'Items',
-        description: 'Future inventory objects that are not active tools.',
-        href: null,
+        description: 'Create consumable inventory objects for item-based activities.',
+        href: '/settings/assets/items',
         icon: Package,
     },
     {

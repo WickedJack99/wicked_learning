@@ -1,8 +1,11 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { Map as MapIcon, MapPin, Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ItemInventoryPanel } from '@/features/items/item-inventory-panel';
+import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
 import {
     selectLearningTool,
     useSelectedLearningTool,
@@ -12,7 +15,7 @@ import { ActivityPanel } from '@/features/world/activity-panel';
 import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { resolveThemeVariant } from '@/features/world/theme';
 import { worldHref } from '@/features/world/types';
-import { WorldMap } from '@/features/world/world-map';
+import { soundFromNode, WorldMap } from '@/features/world/world-map';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
@@ -61,14 +64,19 @@ type SearchResponse = {
     results: SearchResult[];
 };
 
+type MapControlCssVars = CSSProperties &
+    Record<`--map-${string}`, string | undefined>;
+
 export default function World({
     bookmarkedNodeIds: initialBookmarkedNodeIds,
     world,
     progress,
 }: WorldProps) {
-    const { url } = usePage();
+    const { props, url } = usePage();
+    const isAuthenticated = Boolean(props.auth.user);
     const { resolvedAppearance } = useAppearance();
     const selectedTool = useSelectedLearningTool();
+    const soundPlayer = useLayeredSoundPlayer();
     const mapSlug = useMemo(
         () => new URL(url, 'http://learning.local').searchParams.get('map'),
         [url],
@@ -85,9 +93,85 @@ export default function World({
             null,
         [currentMapId, urlMap, world],
     );
-    const mapTheme = map
-        ? resolveThemeVariant(map.backgroundConfig, resolvedAppearance)
-        : null;
+    const mapTheme = useMemo(
+        () =>
+            map
+                ? resolveThemeVariant(map.backgroundConfig, resolvedAppearance)
+                : null,
+        [map, resolvedAppearance],
+    );
+    const mapControlVariables = useMemo<MapControlCssVars>(() => {
+        const sharedBackground = configuredCssValue(mapTheme?.panelBackground);
+        const sharedBorder =
+            configuredCssValue(mapTheme?.panelBorderColor) ??
+            configuredCssValue(mapTheme?.cardBorderColor) ??
+            configuredCssValue(mapTheme?.sidePanelBorderColor);
+        const sharedText = configuredCssValue(mapTheme?.panelTextColor);
+        const sharedMutedText =
+            configuredCssValue(mapTheme?.panelMutedTextColor) ?? sharedText;
+        const sharedAccent = configuredCssValue(mapTheme?.accentColor);
+
+        return {
+            '--map-floating-accent-color': sharedAccent,
+            '--map-floating-background': sharedBackground,
+            '--map-floating-border-color': sharedBorder,
+            '--map-floating-muted-text-color': sharedMutedText,
+            '--map-floating-text-color': sharedText,
+            '--map-bottom-nav-active-background': configuredCssValue(
+                mapTheme?.bottomNavActiveBackground,
+            ),
+            '--map-bottom-nav-active-text-color': configuredCssValue(
+                mapTheme?.bottomNavActiveTextColor,
+            ),
+            '--map-bottom-nav-background':
+                configuredCssValue(mapTheme?.bottomNavBackground) ??
+                sharedBackground,
+            '--map-bottom-nav-border-color':
+                configuredCssValue(mapTheme?.bottomNavBorderColor) ??
+                sharedBorder,
+            '--map-bottom-nav-text-color':
+                configuredCssValue(mapTheme?.bottomNavTextColor) ?? sharedText,
+            '--map-side-control-active-background': configuredCssValue(
+                mapTheme?.sideControlActiveBackground,
+            ),
+            '--map-side-control-active-text-color': configuredCssValue(
+                mapTheme?.sideControlActiveTextColor,
+            ),
+            '--map-side-control-background':
+                configuredCssValue(mapTheme?.sideControlBackground) ??
+                sharedBackground,
+            '--map-side-control-border-color':
+                configuredCssValue(mapTheme?.sideControlBorderColor) ??
+                sharedBorder,
+            '--map-side-control-text-color':
+                configuredCssValue(mapTheme?.sideControlTextColor) ??
+                sharedText,
+        };
+    }, [mapTheme]);
+    const mapShellStyle: MapControlCssVars = {
+        background: mapTheme?.pageBackground,
+        color: mapTheme?.sidePanelTextColor,
+        ...mapControlVariables,
+    };
+
+    useEffect(() => {
+        const root = document.documentElement;
+        const variables = mapControlVariables;
+
+        for (const [name, value] of Object.entries(variables)) {
+            if (value) {
+                root.style.setProperty(name, value);
+            } else {
+                root.style.removeProperty(name);
+            }
+        }
+
+        return () => {
+            for (const name of Object.keys(variables)) {
+                root.style.removeProperty(name);
+            }
+        };
+    }, [mapControlVariables]);
     const focusedNodeSlug = useMemo(
         () => new URL(url, 'http://learning.local').searchParams.get('focused'),
         [url],
@@ -194,25 +278,41 @@ export default function World({
 
         setSelectedNodeId(node.id);
     }, []);
-    const useToolOnHiddenNode = useCallback(
+    const useToolOnMapNode = useCallback(
         async (node: LearningNode) => {
             if (!selectedTool) {
                 return;
             }
 
+            const endpoint =
+                node.state === 'locked'
+                    ? `/learning/nodes/${node.id}/unlock-tool`
+                    : `/learning/nodes/${node.id}/reveal-tool`;
             const response = await postJson<{
-                result: { discovered: boolean; isUseful: boolean };
-            }>(`/learning/nodes/${node.id}/reveal-tool`, {
+                result: {
+                    discovered?: boolean;
+                    isUnlocked?: boolean;
+                    isUseful: boolean;
+                };
+            }>(endpoint, {
                 tool_id: selectedTool.id,
             });
 
-            if (response.result.discovered) {
+            if (response.result.discovered || response.result.isUnlocked) {
+                if (response.result.isUnlocked) {
+                    const unlockSound = soundFromNode(node, 'unlock');
+
+                    if (unlockSound) {
+                        soundPlayer.play(unlockSound, `node-${node.id}-unlock`);
+                    }
+                }
+
                 router.reload({
                     only: ['world'],
                 });
             }
         },
-        [selectedTool],
+        [selectedTool, soundPlayer],
     );
     const focusNode = useCallback(
         (node: LearningNode, targetMap: LearningMap) => {
@@ -279,6 +379,10 @@ export default function World({
 
     const toggleBookmark = useCallback(
         async (node: LearningNode) => {
+            if (!isAuthenticated) {
+                return;
+            }
+
             const isBookmarked = bookmarkedNodeIds.includes(node.id);
             const response = isBookmarked
                 ? await deleteJson<{ bookmarkedNodeIds: number[] }>(
@@ -291,7 +395,7 @@ export default function World({
 
             setBookmarkedNodeIds(response.bookmarkedNodeIds);
         },
-        [bookmarkedNodeIds],
+        [bookmarkedNodeIds, isAuthenticated],
     );
 
     const updateSearchTerm = useCallback((value: string) => {
@@ -305,6 +409,10 @@ export default function World({
 
     const startNode = useCallback(
         (node: LearningNode, activityId: number | null) => {
+            if (node.state === 'locked' || node.state === 'hidden') {
+                return;
+            }
+
             const firstActivity =
                 getActivityById(node, activityId) ?? getStartActivity(node);
 
@@ -343,10 +451,7 @@ export default function World({
             <main
                 className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
-                style={{
-                    background: mapTheme?.pageBackground,
-                    color: mapTheme?.sidePanelTextColor,
-                }}
+                style={mapShellStyle}
             >
                 <section className="absolute inset-0 overflow-hidden">
                     <WorldMap
@@ -357,7 +462,7 @@ export default function World({
                         onClearFocus={clearNodeFocus}
                         onClearEquippedTool={() => selectLearningTool(null)}
                         onSelectNode={openNode}
-                        onUseToolOnHiddenNode={useToolOnHiddenNode}
+                        onUseToolOnNode={useToolOnMapNode}
                         selectedTool={selectedTool}
                     />
                 </section>
@@ -447,6 +552,7 @@ export default function World({
                     }}
                 >
                     <ActivityPanel
+                        canBookmark={isAuthenticated}
                         isBookmarked={
                             selectedNode
                                 ? bookmarkedNodeIds.includes(selectedNode.id)
@@ -459,6 +565,7 @@ export default function World({
                         onToggleBookmark={(node) => void toggleBookmark(node)}
                     />
                 </aside>
+                <ItemInventoryPanel />
             </main>
         </>
     );
@@ -517,9 +624,21 @@ function WorldSearch({
     return (
         <div className="absolute bottom-5 left-4 z-20 w-[min(24rem,calc(100%-2rem))] md:left-5">
             {hasSearch ? (
-                <div className="mb-2 max-h-[42svh] overflow-y-auto rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86">
+                <div
+                    className="mb-2 max-h-[42svh] overflow-y-auto rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86"
+                    style={{
+                        background: 'var(--map-floating-background)',
+                        borderColor: 'var(--map-floating-border-color)',
+                        color: 'var(--map-floating-text-color)',
+                    }}
+                >
                     {isLoading ? (
-                        <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                        <p
+                            className="px-3 py-4 text-sm"
+                            style={{
+                                color: 'var(--map-floating-muted-text-color)',
+                            }}
+                        >
                             Searching...
                         </p>
                     ) : results.length > 0 ? (
@@ -529,9 +648,17 @@ function WorldSearch({
                                     className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
                                     key={result.id}
                                     onClick={() => onSelectResult(result)}
+                                    style={{
+                                        cursor: 'var(--platform-action-cursor)',
+                                    }}
                                     type="button"
                                 >
-                                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/12 dark:text-teal-200">
+                                    <span
+                                        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/12 dark:text-teal-200"
+                                        style={{
+                                            color: 'var(--map-floating-accent-color)',
+                                        }}
+                                    >
                                         {result.kind === 'map' ? (
                                             <MapIcon className="size-4" />
                                         ) : (
@@ -539,10 +666,20 @@ function WorldSearch({
                                         )}
                                     </span>
                                     <span className="min-w-0">
-                                        <span className="block truncate text-sm font-semibold text-slate-950 dark:text-white">
+                                        <span
+                                            className="block truncate text-sm font-semibold"
+                                            style={{
+                                                color: 'var(--map-floating-text-color)',
+                                            }}
+                                        >
                                             {result.title}
                                         </span>
-                                        <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+                                        <span
+                                            className="mt-0.5 block truncate text-xs"
+                                            style={{
+                                                color: 'var(--map-floating-muted-text-color)',
+                                            }}
+                                        >
                                             {result.subtitle}
                                         </span>
                                     </span>
@@ -550,22 +687,38 @@ function WorldSearch({
                             ))}
                         </div>
                     ) : (
-                        <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">
+                        <p
+                            className="px-3 py-4 text-sm"
+                            style={{
+                                color: 'var(--map-floating-muted-text-color)',
+                            }}
+                        >
                             No visible maps or tiles found.
                         </p>
                     )}
                 </div>
             ) : null}
 
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86">
-                <Search className="ml-2 size-4 shrink-0 text-slate-500 dark:text-slate-400" />
+            <div
+                className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86"
+                style={{
+                    background: 'var(--map-floating-background)',
+                    borderColor: 'var(--map-floating-border-color)',
+                    color: 'var(--map-floating-text-color)',
+                }}
+            >
+                <Search
+                    className="ml-2 size-4 shrink-0"
+                    style={{ color: 'var(--map-floating-muted-text-color)' }}
+                />
                 <Input
                     aria-label="Search maps and tiles"
-                    className="h-9 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
+                    className="h-9 border-0 bg-transparent px-1 text-current shadow-none placeholder:text-current/60 focus-visible:ring-0"
                     onChange={(event) =>
                         onSearchTermChange(event.currentTarget.value)
                     }
                     placeholder="Search maps and tiles"
+                    style={{ cursor: 'var(--platform-action-cursor)' }}
                     value={searchTerm}
                 />
                 {hasSearch ? (
@@ -606,6 +759,12 @@ function getActivityById(
     return (
         node.activities.find((activity) => activity.id === activityId) ?? null
     );
+}
+
+function configuredCssValue(value: string | undefined): string | undefined {
+    const trimmedValue = value?.trim();
+
+    return trimmedValue ? trimmedValue : undefined;
 }
 
 function replaceWorldQuery(params: { focused?: string; map?: string }): void {

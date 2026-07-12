@@ -95,6 +95,21 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.87 0 0);
+    --map-bottom-nav-active-background: #0891b2;
+    --map-bottom-nav-active-text-color: #ffffff;
+    --map-bottom-nav-background: rgba(255, 255, 255, 0.88);
+    --map-bottom-nav-border-color: rgb(226, 232, 240);
+    --map-bottom-nav-text-color: rgb(71, 85, 105);
+    --map-floating-accent-color: #0e7490;
+    --map-floating-background: rgba(255, 255, 255, 0.88);
+    --map-floating-border-color: rgb(226, 232, 240);
+    --map-floating-muted-text-color: rgb(100, 116, 139);
+    --map-floating-text-color: rgb(15, 23, 42);
+    --map-side-control-active-background: #06b6d4;
+    --map-side-control-active-text-color: #020617;
+    --map-side-control-background: rgba(255, 255, 255, 0.88);
+    --map-side-control-border-color: rgb(226, 232, 240);
+    --map-side-control-text-color: rgb(71, 85, 105);
 }
 
 .dark {
@@ -130,6 +145,21 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+    --map-bottom-nav-active-background: #5eead4;
+    --map-bottom-nav-active-text-color: #020617;
+    --map-bottom-nav-background: rgba(2, 6, 23, 0.82);
+    --map-bottom-nav-border-color: rgba(255, 255, 255, 0.12);
+    --map-bottom-nav-text-color: rgb(203, 213, 225);
+    --map-floating-accent-color: #ccfbf1;
+    --map-floating-background: rgba(2, 6, 23, 0.82);
+    --map-floating-border-color: rgba(255, 255, 255, 0.12);
+    --map-floating-muted-text-color: rgb(203, 213, 225);
+    --map-floating-text-color: rgb(248, 250, 252);
+    --map-side-control-active-background: #5eead4;
+    --map-side-control-active-text-color: #020617;
+    --map-side-control-background: rgba(2, 6, 23, 0.82);
+    --map-side-control-border-color: rgba(255, 255, 255, 0.12);
+    --map-side-control-text-color: rgb(203, 213, 225);
 }
 
 @layer base {
@@ -215,8 +245,33 @@
         }
     }
 
+    @keyframes item-grant-fly {
+        0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.92);
+        }
+
+        12% {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        78% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(calc(50vw - 4.5rem), -50%) scale(0.16);
+        }
+    }
+
     .animate-map-surface-in {
         animation: map-surface-in 500ms ease-out both;
+    }
+
+    .animate-item-grant-fly {
+        animation: item-grant-fly 1250ms cubic-bezier(0.2, 0.78, 0.2, 1) both;
     }
 
     .animate-nav-inserted-item {
@@ -300,6 +355,7 @@
 
     @media (prefers-reduced-motion: reduce) {
         .animate-map-surface-in,
+        .animate-item-grant-fly,
         .animate-nav-inserted-item,
         .animate-obstacle-resolved-rotate,
         .animate-obstacle-resolved-shake,

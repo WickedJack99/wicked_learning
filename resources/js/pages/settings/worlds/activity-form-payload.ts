@@ -36,16 +36,52 @@ const obstacleFields: Array<keyof ActivityForm> = [
     'obstacle_typing_speed',
 ];
 
+const itemGrantFields: Array<keyof ActivityForm> = [
+    'item_grant_background_dark',
+    'item_grant_background_light',
+    'item_grant_items',
+    'item_grant_probability_percent',
+];
+
+const itemObstacleFields: Array<keyof ActivityForm> = [
+    'item_obstacle_background_dark',
+    'item_obstacle_background_light',
+    'item_obstacle_lock_minutes',
+    'item_obstacle_met_background_dark',
+    'item_obstacle_met_background_light',
+    'item_obstacle_overlay_dark',
+    'item_obstacle_overlay_light',
+    'item_obstacle_overlay_width',
+    'item_obstacle_overlay_x',
+    'item_obstacle_overlay_y',
+    'item_obstacle_slots',
+    'item_obstacle_sound_met_enabled',
+    'item_obstacle_sound_met_id',
+    'item_obstacle_sound_not_met_enabled',
+    'item_obstacle_sound_not_met_id',
+    'item_obstacle_sound_transition_enabled',
+    'item_obstacle_sound_transition_id',
+];
+
+const markdownFields: Array<keyof ActivityForm> = [
+    'markdown_graph_layout',
+    'markdown_pages',
+    'markdown_transitions',
+];
+
 const portalFields: Array<keyof ActivityForm> = [
     'portal_background_dark',
     'portal_background_light',
     'portal_duration_seconds',
     'portal_foreground_dark',
     'portal_foreground_light',
+    'portal_foreground_width',
     'portal_foreground_x',
     'portal_foreground_y',
     'portal_mode',
+    'portal_show_on_arrival',
     'portal_swirl_enabled',
+    'portal_wait_for_enter',
     'target_portal_activity_id',
 ];
 
@@ -73,8 +109,20 @@ export function activityFormPayload(form: ActivityForm): ActivityFormPayload {
 }
 
 function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
+    if (type === 'item_grant') {
+        return itemGrantFields;
+    }
+
+    if (type === 'item_obstacle') {
+        return itemObstacleFields;
+    }
+
     if (type === 'obstacle') {
         return obstacleFields;
+    }
+
+    if (type === 'markdown') {
+        return markdownFields;
     }
 
     if (type === 'portal') {

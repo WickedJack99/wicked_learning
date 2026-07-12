@@ -1,10 +1,15 @@
 import { Download, Image, Images, Upload } from 'lucide-react';
 import { useState } from 'react';
+import { ColorField } from '@/components/color-input';
 import InputError from '@/components/input-error';
+import { NumberField } from '@/components/number-field';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { normalizeMediaUrl } from '@/lib/media-url';
+
+export { NumberField };
 
 export function ConfigColorField({
     label,
@@ -15,70 +20,7 @@ export function ConfigColorField({
     onChange: (value: string) => void;
     value: string;
 }) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-    const pickerValue = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000';
-
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="grid grid-cols-[auto_1fr] gap-2">
-                <Input
-                    aria-label={`${label} picker`}
-                    className="h-9 w-12 cursor-pointer p-1"
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    type="color"
-                    value={pickerValue}
-                />
-                <Input
-                    id={id}
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    value={value}
-                />
-            </div>
-        </div>
-    );
-}
-
-export function NumberField({
-    label,
-    max,
-    min,
-    onChange,
-    step,
-    suffix,
-    value,
-}: {
-    label: string;
-    max?: string;
-    min?: string;
-    onChange: (value: string) => void;
-    step?: string;
-    suffix?: string;
-    value: string;
-}) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-                <Input
-                    id={id}
-                    max={max}
-                    min={min}
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    step={step}
-                    type="number"
-                    value={value}
-                />
-                {suffix ? (
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {suffix}
-                    </span>
-                ) : null}
-            </div>
-        </div>
-    );
+    return <ColorField label={label} onChange={onChange} value={value} />;
 }
 
 export function ConfigImageInput({
@@ -102,6 +44,7 @@ export function ConfigImageInput({
 }) {
     const uploadId = `${id}-upload`;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const previewUrl = normalizeMediaUrl(value);
 
     return (
         <div className="grid min-w-0 gap-2 overflow-hidden rounded-md bg-slate-50 p-3 dark:bg-white/5">
@@ -126,12 +69,12 @@ export function ConfigImageInput({
             />
             <InputError message={error} />
 
-            {value ? (
+            {previewUrl ? (
                 <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-md bg-white p-2 dark:bg-slate-950/70">
                     <img
                         alt=""
                         className="size-12 rounded object-contain"
-                        src={value}
+                        src={previewUrl}
                     />
                     <span className="min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
                         {value}
@@ -172,7 +115,7 @@ export function ConfigImageInput({
                     Select existing
                 </Button>
                 <Button asChild disabled={!value} size="sm" variant="ghost">
-                    <a download href={value || '#'} rel="noreferrer">
+                    <a download href={previewUrl || '#'} rel="noreferrer">
                         <Download className="size-4" />
                         Download
                     </a>
@@ -188,7 +131,7 @@ export function ConfigImageInput({
                     }}
                     onClose={() => setIsPickerOpen(false)}
                     onSelect={(url) => {
-                        onChange(url);
+                        onChange(normalizeMediaUrl(url));
                         setIsPickerOpen(false);
                     }}
                 />

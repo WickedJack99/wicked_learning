@@ -2,6 +2,7 @@ import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { normalizeMediaUrl } from '@/lib/media-url';
 
 type ReusableImageAsset = {
     extension: string;
@@ -161,12 +162,15 @@ export function ReusableImagePicker({
                                 <button
                                     className={[
                                         'group grid min-w-0 gap-3 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200',
-                                        currentValue === asset.url
+                                        normalizeMediaUrl(currentValue) ===
+                                        normalizeMediaUrl(asset.url)
                                             ? 'border-cyan-600 bg-cyan-50 dark:border-teal-200 dark:bg-teal-200/10'
                                             : 'border-slate-200 bg-slate-50 hover:border-cyan-500/40 hover:bg-cyan-50/70 dark:border-white/10 dark:bg-white/5 dark:hover:border-teal-200/40 dark:hover:bg-teal-200/10',
                                     ].join(' ')}
                                     key={asset.url}
-                                    onClick={() => onSelect(asset.url)}
+                                    onClick={() =>
+                                        onSelect(normalizeMediaUrl(asset.url))
+                                    }
                                     type="button"
                                 >
                                     <span className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
@@ -174,7 +178,7 @@ export function ReusableImagePicker({
                                             alt=""
                                             className="max-h-full max-w-full object-contain transition group-hover:scale-[1.02]"
                                             draggable={false}
-                                            src={asset.url}
+                                            src={normalizeMediaUrl(asset.url)}
                                         />
                                     </span>
                                     <span className="min-w-0">

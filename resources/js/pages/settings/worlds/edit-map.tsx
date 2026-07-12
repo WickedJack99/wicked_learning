@@ -2,16 +2,23 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ChevronRight,
+    Eye,
     GitBranch,
     LockKeyhole,
     Map as MapIcon,
     Palette,
+    PanelRight,
     Save,
+    ShieldCheck,
+    Volume2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { Dispatch, PointerEvent, SetStateAction } from 'react';
+import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import InputError from '@/components/input-error';
 import { SettingsAccordionSection } from '@/components/settings-accordion-section';
+import { SoundAssetInput } from '@/components/sound-asset-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -62,6 +69,7 @@ type EditableNode = {
 };
 
 type EditableMap = {
+    accessRoles: string[];
     backgroundConfig: MapVisualConfig;
     description: string | null;
     gridConfig: {
@@ -76,9 +84,25 @@ type EditableMap = {
     title: string;
 };
 
-type NestedVisualConfig = Record<string, boolean | string | undefined>;
+interface NestedVisualConfig {
+    [key: string]:
+        | boolean
+        | number
+        | string
+        | string[]
+        | NestedVisualConfig
+        | NestedVisualConfig[]
+        | undefined;
+}
 
-type VisualConfigValue = boolean | string | NestedVisualConfig | undefined;
+type VisualConfigValue =
+    | boolean
+    | number
+    | string
+    | string[]
+    | NestedVisualConfig
+    | NestedVisualConfig[]
+    | undefined;
 
 type VisualConfig = Record<string, VisualConfigValue>;
 
@@ -89,29 +113,70 @@ type NodeVisualThemeFields = {
     foregroundOpacity: string;
     highlightColor: string;
     highlightOpacity: string;
+    imageRotation: string;
     imageUrl: string;
+    imageWidth: string;
+    imageX: string;
+    imageY: string;
     labelColor: string;
     labelOpacity: string;
     tileColor: string;
     tileOpacity: string;
 };
 
+type NodeSoundTriggerConfig = {
+    enabled: boolean;
+    url: string;
+};
+
+type NodeSoundFields = {
+    click: NodeSoundTriggerConfig;
+    mouseEnter: NodeSoundTriggerConfig;
+    mouseLeave: NodeSoundTriggerConfig;
+    unlock: NodeSoundTriggerConfig;
+};
+
+type UnlockRule =
+    | {
+          nodeId: number;
+          type: 'node_completed';
+      }
+    | {
+          operator: 'and' | 'or';
+          rules: UnlockRule[];
+          type: 'group';
+      }
+    | {
+          type: 'tool_used';
+      };
+
 type MapVisualThemeFields = {
     accentColor: string;
+    bottomNavActiveBackground: string;
+    bottomNavActiveTextColor: string;
+    bottomNavBackground: string;
+    bottomNavBorderColor: string;
+    bottomNavTextColor: string;
     completedDimOpacity: string;
     imageUrl: string;
     overlay: string;
     pageBackground: string;
     panelBackground: string;
+    panelBorderColor: string;
     panelMutedTextColor: string;
     panelTextColor: string;
+    sideControlActiveBackground: string;
+    sideControlActiveTextColor: string;
+    sideControlBackground: string;
+    sideControlBorderColor: string;
+    sideControlTextColor: string;
     sidePanelBackground: string;
     sidePanelBorderColor: string;
     sidePanelMutedTextColor: string;
     sidePanelTextColor: string;
 };
 
-type MapVisualConfig = Partial<MapVisualThemeFields> & {
+type MapVisualConfig = {
     dark?: Partial<MapVisualThemeFields>;
     light?: Partial<MapVisualThemeFields>;
 };
@@ -119,6 +184,12 @@ type MapVisualConfig = Partial<MapVisualThemeFields> & {
 type EditableMapPayload = {
     map: EditableMap;
     world: EditableWorld;
+};
+
+type AccessGroup = {
+    description: string | null;
+    label: string;
+    slug: string;
 };
 
 type GridCell = {
@@ -152,19 +223,44 @@ type NodeForm = {
             enabled: boolean;
             toolId: string;
         };
+        sounds: NodeSoundFields;
         tooltip: string;
+        unlock: {
+            enabled: boolean;
+            nodeOperator: 'and' | 'or';
+            requiredNodeIds: string[];
+            tool: {
+                enabled: boolean;
+                toolId: string;
+            };
+            topOperator: 'and' | 'or';
+            rules?: UnlockRule;
+        };
     };
 };
 
-type MapVisualForm = MapVisualThemeFields & {
+type MapVisualForm = {
     dark: MapVisualThemeFields;
     light: MapVisualThemeFields;
 };
 
+type MapDetailsForm = {
+    description: string;
+    title: string;
+};
+
+type NodeSettingsSection =
+    | 'right-panel'
+    | 'availability'
+    | 'visuals'
+    | 'sounds';
+
 export default function EditWorldMap({
+    accessGroups,
     editableMap,
     tools,
 }: {
+    accessGroups: AccessGroup[];
     editableMap: EditableMapPayload;
     tools: LearningTool[];
 }) {
@@ -178,7 +274,26 @@ export default function EditWorldMap({
     const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [mapAccessOpen, setMapAccessOpen] = useState(false);
+    const [mapAccessRoles, setMapAccessRoles] = useState<string[]>(() =>
+        map.accessRoles.length > 0 ? map.accessRoles : ['user', 'admin'],
+    );
+    const [mapAccessErrors, setMapAccessErrors] = useState<
+        Record<string, string>
+    >({});
+    const [mapDetailsOpen, setMapDetailsOpen] = useState(false);
+    const [mapDetailsForm, setMapDetailsForm] = useState<MapDetailsForm>(
+        () => ({
+            description: map.description ?? '',
+            title: map.title,
+        }),
+    );
+    const [mapDetailsErrors, setMapDetailsErrors] = useState<
+        Record<string, string>
+    >({});
     const [mapVisualOpen, setMapVisualOpen] = useState(false);
+    const [activeNodeSettingsSection, setActiveNodeSettingsSection] =
+        useState<NodeSettingsSection>('right-panel');
     const [mapVisualForm, setMapVisualForm] = useState<MapVisualForm>(() =>
         mapVisualFormFromConfig(map.backgroundConfig),
     );
@@ -188,7 +303,13 @@ export default function EditWorldMap({
     const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
         null,
     );
+    const [uploadingSoundKey, setUploadingSoundKey] = useState<string | null>(
+        null,
+    );
     const [imageUploadErrors, setImageUploadErrors] = useState<
+        Record<string, string>
+    >({});
+    const [soundUploadErrors, setSoundUploadErrors] = useState<
         Record<string, string>
     >({});
     const [form, setForm] = useState<NodeForm>(() => emptyNodeForm(0, 0));
@@ -222,6 +343,8 @@ export default function EditWorldMap({
         setInsertionContext(null);
         setErrors({});
         setImageUploadErrors({});
+        setSoundUploadErrors({});
+        setActiveNodeSettingsSection('right-panel');
         setForm(
             map.nodes.length === 0
                 ? firstNodeForm(cell.q, cell.r)
@@ -254,6 +377,8 @@ export default function EditWorldMap({
         });
         setErrors({});
         setImageUploadErrors({});
+        setSoundUploadErrors({});
+        setActiveNodeSettingsSection('right-panel');
         setForm(emptyNodeForm(position.q, position.r));
     };
 
@@ -267,6 +392,8 @@ export default function EditWorldMap({
         setInsertionContext(null);
         setErrors({});
         setImageUploadErrors({});
+        setSoundUploadErrors({});
+        setActiveNodeSettingsSection('right-panel');
         setForm(nodeFormFromNode(node));
     };
 
@@ -279,7 +406,7 @@ export default function EditWorldMap({
     const saveNode = (override?: Partial<NodeForm>) => {
         setProcessing(true);
 
-        const payload = mergeNodeForm(form, override);
+        const payload = nodePayload(mergeNodeForm(form, override));
         const request = selectedNode
             ? router.patch(
                   `/settings/worlds/nodes/${selectedNode.id}`,
@@ -320,6 +447,31 @@ export default function EditWorldMap({
         saveNode(emptySpaceOverride(form.position_q, form.position_r));
     };
 
+    const resetNodeUnlocksForAllUsers = () => {
+        if (!selectedNode) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `Lock "${selectedNode.title}" for all users again? This resets learner-specific tool unlocks for this node.`,
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        setProcessing(true);
+
+        router.post(
+            `/settings/worlds/nodes/${selectedNode.id}/reset-unlocks`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
     const saveMapVisuals = () => {
         setProcessing(true);
 
@@ -338,6 +490,58 @@ export default function EditWorldMap({
                 onFinish: () => setProcessing(false),
             },
         );
+    };
+
+    const saveMapDetails = () => {
+        setProcessing(true);
+
+        router.patch(
+            `/settings/worlds/maps/${map.id}/details`,
+            mapDetailsForm,
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setMapDetailsErrors(nextErrors),
+                onSuccess: () => {
+                    setMapDetailsOpen(false);
+                    setMapDetailsErrors({});
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    const saveMapAccess = () => {
+        setProcessing(true);
+
+        router.patch(
+            `/settings/worlds/maps/${map.id}/access`,
+            {
+                access_roles: mapAccessRoles,
+            },
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setMapAccessErrors(nextErrors),
+                onSuccess: () => {
+                    setMapAccessOpen(false);
+                    setMapAccessErrors({});
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    const toggleMapAccessRole = (role: string, enabled: boolean) => {
+        setMapAccessRoles((current) => {
+            if (enabled) {
+                return current.includes(role) ? current : [...current, role];
+            }
+
+            const nextRoles = current.filter(
+                (currentRole) => currentRole !== role,
+            );
+
+            return nextRoles.length > 0 ? nextRoles : current;
+        });
     };
 
     const uploadWorldImage = async (
@@ -390,6 +594,59 @@ export default function EditWorldMap({
             }));
         } finally {
             setUploadingImageKey(null);
+        }
+    };
+
+    const uploadWorldSound = async (
+        key: string,
+        file: File,
+        onUploaded: (url: string) => void,
+    ) => {
+        const formData = new FormData();
+        const csrfToken = document
+            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.getAttribute('content');
+
+        formData.append('file', file);
+        setUploadingSoundKey(key);
+        setSoundUploadErrors((current) => ({ ...current, [key]: '' }));
+
+        try {
+            const response = await fetch('/settings/assets/sound-media', {
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                },
+                method: 'POST',
+            });
+            const payload = (await response.json()) as {
+                errors?: Record<string, string[]>;
+                message?: string;
+                url?: string;
+            };
+
+            if (!response.ok || !payload.url) {
+                setSoundUploadErrors((current) => ({
+                    ...current,
+                    [key]:
+                        payload.errors?.file?.[0] ??
+                        payload.message ??
+                        'The sound could not be uploaded.',
+                }));
+
+                return;
+            }
+
+            onUploaded(payload.url);
+        } catch {
+            setSoundUploadErrors((current) => ({
+                ...current,
+                [key]: 'The sound could not be uploaded.',
+            }));
+        } finally {
+            setUploadingSoundKey(null);
         }
     };
 
@@ -506,6 +763,22 @@ export default function EditWorldMap({
                                 </h1>
                                 <Button
                                     onClick={() => {
+                                        setMapDetailsForm({
+                                            description: map.description ?? '',
+                                            title: map.title,
+                                        });
+                                        setMapDetailsErrors({});
+                                        setMapDetailsOpen(true);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <PanelRight className="size-4" />
+                                    Map details
+                                </Button>
+                                <Button
+                                    onClick={() => {
                                         setMapVisualForm(
                                             mapVisualFormFromConfig(
                                                 map.backgroundConfig,
@@ -520,6 +793,23 @@ export default function EditWorldMap({
                                 >
                                     <Palette className="size-4" />
                                     Map visuals
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setMapAccessRoles(
+                                            map.accessRoles.length > 0
+                                                ? map.accessRoles
+                                                : ['user', 'admin'],
+                                        );
+                                        setMapAccessErrors({});
+                                        setMapAccessOpen(true);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <ShieldCheck className="size-4" />
+                                    Access
                                 </Button>
                             </div>
                         </div>
@@ -553,14 +843,52 @@ export default function EditWorldMap({
                                 background: previewMapTheme.overlay,
                             }}
                         />
-                        <div className="absolute top-4 left-4 z-30 rounded-xl border border-slate-200 bg-white/82 p-3 text-sm shadow-lg backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
+                        <div
+                            className="absolute top-4 left-4 z-30 max-w-sm rounded-xl border p-3 text-sm shadow-lg backdrop-blur"
+                            style={{
+                                background:
+                                    previewMapTheme.panelBackground ??
+                                    (resolvedAppearance === 'light'
+                                        ? 'rgba(255, 255, 255, 0.82)'
+                                        : 'rgba(15, 23, 42, 0.7)'),
+                                borderColor:
+                                    previewMapTheme.panelBorderColor ??
+                                    (resolvedAppearance === 'light'
+                                        ? 'rgba(226, 232, 240, 0.82)'
+                                        : 'rgba(255, 255, 255, 0.1)'),
+                                color:
+                                    previewMapTheme.panelTextColor ??
+                                    (resolvedAppearance === 'light'
+                                        ? '#0f172a'
+                                        : '#ffffff'),
+                            }}
+                        >
                             <div className="flex items-center gap-2 font-semibold">
-                                <MapIcon className="size-4 text-cyan-700 dark:text-teal-200" />
+                                <MapIcon
+                                    className="size-4"
+                                    style={{
+                                        color:
+                                            previewMapTheme.accentColor ??
+                                            (resolvedAppearance === 'light'
+                                                ? '#0e7490'
+                                                : '#ccfbf1'),
+                                    }}
+                                />
                                 {map.title}
                             </div>
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                {map.nodes.length} configured tile
-                                {map.nodes.length === 1 ? '' : 's'}
+                            <p
+                                className="mt-1 text-xs leading-5"
+                                style={{
+                                    color:
+                                        previewMapTheme.panelMutedTextColor ??
+                                        previewMapTheme.panelTextColor,
+                                }}
+                            >
+                                {map.description
+                                    ? map.description
+                                    : `${map.nodes.length} configured tile${
+                                          map.nodes.length === 1 ? '' : 's'
+                                      }`}
                             </p>
                         </div>
 
@@ -609,6 +937,67 @@ export default function EditWorldMap({
                     </section>
                 </div>
             </main>
+
+            <Dialog onOpenChange={setMapDetailsOpen} open={mapDetailsOpen}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Map details</DialogTitle>
+                        <DialogDescription>
+                            Edit the title and description shown in the top-left
+                            map panel.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-4">
+                        <TextField
+                            error={mapDetailsErrors.title}
+                            label="Title"
+                            onChange={(value) =>
+                                setMapDetailsForm((current) => ({
+                                    ...current,
+                                    title: value,
+                                }))
+                            }
+                            value={mapDetailsForm.title}
+                        />
+                        <div className="grid gap-1">
+                            <Label htmlFor="map-description">Description</Label>
+                            <textarea
+                                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-600/20 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus-visible:border-teal-200 dark:focus-visible:ring-teal-200/20"
+                                id="map-description"
+                                onChange={(event) =>
+                                    setMapDetailsForm((current) => ({
+                                        ...current,
+                                        description: event.currentTarget.value,
+                                    }))
+                                }
+                                value={mapDetailsForm.description}
+                            />
+                            <InputError
+                                message={mapDetailsErrors.description}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setMapDetailsOpen(false)}
+                            type="button"
+                            variant="secondary"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={processing}
+                            onClick={saveMapDetails}
+                            type="button"
+                        >
+                            <Save className="size-4" />
+                            Save details
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog onOpenChange={setMapVisualOpen} open={mapVisualOpen}>
                 <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
@@ -680,6 +1069,80 @@ export default function EditWorldMap({
                 </DialogContent>
             </Dialog>
 
+            <Dialog onOpenChange={setMapAccessOpen} open={mapAccessOpen}>
+                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Access permissions</DialogTitle>
+                        <DialogDescription>
+                            Choose which groups may visit this map and the tiles
+                            inside it. Configuration remains restricted to
+                            authorized admins.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-3">
+                        {accessGroups.map((group) => (
+                            <label
+                                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm dark:border-white/10 dark:bg-white/5"
+                                key={group.slug}
+                            >
+                                <Checkbox
+                                    checked={mapAccessRoles.includes(
+                                        group.slug,
+                                    )}
+                                    onCheckedChange={(checked) =>
+                                        toggleMapAccessRole(
+                                            group.slug,
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                <span className="grid gap-1">
+                                    <span className="font-semibold text-slate-950 dark:text-white">
+                                        {group.label}
+                                    </span>
+                                    {group.description ? (
+                                        <span className="leading-5 text-slate-600 dark:text-slate-300">
+                                            {group.description}
+                                        </span>
+                                    ) : null}
+                                </span>
+                            </label>
+                        ))}
+                        <InputError
+                            message={
+                                mapAccessErrors.access_roles ??
+                                mapAccessErrors['access_roles.0']
+                            }
+                        />
+                    </div>
+
+                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-sm leading-6 text-cyan-950 dark:border-teal-200/20 dark:bg-teal-300/10 dark:text-teal-50">
+                        Public maps can be opened without an account. Guest
+                        progress, tools and items are not stored on the server;
+                        server-side learning state starts after login.
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setMapAccessOpen(false)}
+                            type="button"
+                            variant="secondary"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={processing}
+                            onClick={saveMapAccess}
+                            type="button"
+                        >
+                            <Save className="size-4" />
+                            Save access
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog
                 onOpenChange={(open) => {
                     if (!open) {
@@ -703,7 +1166,6 @@ export default function EditWorldMap({
                     <div className="grid gap-4">
                         {selectedNode ? (
                             <SettingsAccordionSection
-                                defaultOpen
                                 description="Open the activity graph for this tile."
                                 title="Activities"
                             >
@@ -718,258 +1180,706 @@ export default function EditWorldMap({
                             </SettingsAccordionSection>
                         ) : null}
 
-                        <SettingsAccordionSection
-                            defaultOpen
-                            description="Name, URL slug and learner-facing summary."
-                            title="Basics"
-                        >
-                            <div className="grid gap-3 sm:grid-cols-2">
-                                <TextField
-                                    error={errors.title}
-                                    label="Title"
-                                    onChange={(value) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            title: value,
-                                            visual_config: {
-                                                ...current.visual_config,
-                                                label:
-                                                    current.visual_config
-                                                        .label || value,
-                                            },
-                                        }))
-                                    }
-                                    value={form.title}
-                                />
-                                <TextField
-                                    error={errors.slug}
-                                    label="Slug"
-                                    onChange={(value) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            slug: value,
-                                        }))
-                                    }
-                                    placeholder="Optional, generated if empty"
-                                    value={form.slug}
-                                />
-                            </div>
+                        <NodeSettingsSwitcher
+                            activeSection={activeNodeSettingsSection}
+                            onChange={setActiveNodeSettingsSection}
+                        />
 
-                            <div className="grid gap-1">
-                                <Label htmlFor="tile-description">
-                                    Description
-                                </Label>
-                                <textarea
-                                    className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                    id="tile-description"
-                                    onChange={(event) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            description:
-                                                event.currentTarget.value,
-                                        }))
-                                    }
-                                    value={form.description}
-                                />
-                                <InputError message={errors.description} />
-                            </div>
-                        </SettingsAccordionSection>
-
-                        <SettingsAccordionSection
-                            defaultOpen
-                            description="Learner-facing label and visibility behavior for the tile."
-                            title="Tile display"
-                        >
-                            <TextField
-                                error={errors['visual_config.label']}
-                                label="Tile label"
-                                onChange={(value) =>
-                                    setVisualTextConfig(setForm, 'label', value)
-                                }
-                                value={form.visual_config.label}
-                            />
-                            <TextField
-                                error={errors['visual_config.tooltip']}
-                                label="Hover text"
-                                onChange={(value) =>
-                                    setVisualTextConfig(
-                                        setForm,
-                                        'tooltip',
-                                        value,
-                                    )
-                                }
-                                placeholder="Shown when learners hover the tile"
-                                value={form.visual_config.tooltip}
-                            />
-
-                            <div className="grid gap-3">
-                                {form.state !== 'hidden' ? (
-                                    <CheckboxField
-                                        checked={form.state === 'locked'}
-                                        description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
-                                        id="lock-node"
-                                        label="Lock node for learners"
-                                        onCheckedChange={(checked) =>
-                                            setLockedState(setForm, checked)
+                        {activeNodeSettingsSection === 'right-panel' ? (
+                            <SettingsAccordionSection
+                                description="Name, URL slug and learner-facing summary."
+                                title="Right panel"
+                            >
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <TextField
+                                        error={errors.title}
+                                        label="Title"
+                                        onChange={(value) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                title: value,
+                                                visual_config: {
+                                                    ...current.visual_config,
+                                                    label:
+                                                        current.visual_config
+                                                            .label || value,
+                                                },
+                                            }))
                                         }
+                                        value={form.title}
                                     />
-                                ) : null}
-                                <CheckboxField
-                                    checked={form.visual_config.hideLabel}
-                                    description="The title still appears in the side panel after the tile is selected."
-                                    id="hide-label"
-                                    label="Hide tile label on world map"
-                                    onCheckedChange={(checked) =>
-                                        setVisualBooleanConfig(
-                                            setForm,
-                                            'hideLabel',
-                                            checked,
-                                        )
-                                    }
-                                />
-                                <CheckboxField
-                                    checked={form.visual_config.hideImage}
-                                    description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
-                                    id="hide-image"
-                                    label="Hide node image on world map"
-                                    onCheckedChange={(checked) =>
-                                        setVisualBooleanConfig(
-                                            setForm,
-                                            'hideImage',
-                                            checked,
-                                        )
-                                    }
-                                />
-                                {form.state === 'hidden' ? (
-                                    <CheckboxField
-                                        checked={
-                                            form.visual_config.hideEmptySpace
+                                    <TextField
+                                        error={errors.slug}
+                                        label="Slug"
+                                        onChange={(value) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                slug: value,
+                                            }))
                                         }
-                                        description="The tile keeps its coordinate and spacing, but learners do not see or click it."
-                                        id="hide-empty-space"
-                                        label="Hide this empty space on learner map"
-                                        onCheckedChange={(checked) =>
-                                            setVisualBooleanConfig(
-                                                setForm,
-                                                'hideEmptySpace',
-                                                checked,
-                                            )
-                                        }
-                                    />
-                                ) : null}
-                            </div>
-                        </SettingsAccordionSection>
-
-                        <SettingsAccordionSection
-                            description="Hide this node until a learner uses a configured tool at its map position."
-                            title="Discovery"
-                        >
-                            <div className="grid gap-3">
-                                <CheckboxField
-                                    checked={form.visual_config.reveal.enabled}
-                                    description="The node keeps its coordinates, but learners only reveal it by equipping the chosen tool and clicking its hidden map position."
-                                    id="reveal-with-tool"
-                                    label="Hide until revealed with a tool"
-                                    onCheckedChange={(checked) =>
-                                        setRevealEnabled(setForm, checked)
-                                    }
-                                />
-                                <div className="grid gap-1">
-                                    <Label htmlFor="reveal-tool">
-                                        Reveal tool
-                                    </Label>
-                                    <select
-                                        className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                        disabled={
-                                            !form.visual_config.reveal.enabled
-                                        }
-                                        id="reveal-tool"
-                                        onChange={(event) =>
-                                            setRevealToolId(
-                                                setForm,
-                                                event.currentTarget.value,
-                                            )
-                                        }
-                                        value={form.visual_config.reveal.toolId}
-                                    >
-                                        <option value="">Select a tool</option>
-                                        {tools.map((tool) => (
-                                            <option
-                                                key={tool.id}
-                                                value={tool.id}
-                                            >
-                                                {tool.title}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <InputError
-                                        message={
-                                            errors[
-                                                'visual_config.reveal.toolId'
-                                            ]
-                                        }
+                                        placeholder="Optional, generated if empty"
+                                        value={form.slug}
                                     />
                                 </div>
-                            </div>
-                        </SettingsAccordionSection>
 
-                        <SettingsAccordionSection
-                            description="Dark mode colors and the image displayed on the world map."
-                            title="Dark mode visuals"
-                        >
-                            <NodeVisualModeFields
-                                errors={errors}
-                                imageError={imageUploadErrors.nodeDark}
-                                mode="dark"
-                                onImageUpload={(file) =>
-                                    void uploadWorldImage(
-                                        'nodeDark',
-                                        file,
-                                        (url) =>
-                                            setVisualThemeTextConfig(
-                                                setForm,
-                                                'dark',
-                                                'imageUrl',
-                                                url,
-                                            ),
-                                    )
-                                }
-                                setForm={setForm}
-                                uploadingImage={
-                                    uploadingImageKey === 'nodeDark'
-                                }
-                                values={form.visual_config.dark}
-                            />
-                        </SettingsAccordionSection>
+                                <div className="grid gap-1">
+                                    <Label htmlFor="tile-description">
+                                        Description
+                                    </Label>
+                                    <textarea
+                                        className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                        id="tile-description"
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                description:
+                                                    event.currentTarget.value,
+                                            }))
+                                        }
+                                        value={form.description}
+                                    />
+                                    <InputError message={errors.description} />
+                                </div>
+                            </SettingsAccordionSection>
+                        ) : null}
 
-                        <SettingsAccordionSection
-                            description="Light mode colors and the image displayed on the world map."
-                            title="Light mode visuals"
-                        >
-                            <NodeVisualModeFields
-                                errors={errors}
-                                imageError={imageUploadErrors.nodeLight}
-                                mode="light"
-                                onImageUpload={(file) =>
-                                    void uploadWorldImage(
-                                        'nodeLight',
-                                        file,
-                                        (url) =>
-                                            setVisualThemeTextConfig(
+                        {activeNodeSettingsSection === 'availability' ? (
+                            <>
+                                <SettingsAccordionSection
+                                    description="Learner-facing label and visibility behavior for the tile."
+                                    title="Tile display and text"
+                                >
+                                    <TextField
+                                        error={errors['visual_config.label']}
+                                        label="Tile label"
+                                        onChange={(value) =>
+                                            setVisualTextConfig(
                                                 setForm,
-                                                'light',
-                                                'imageUrl',
-                                                url,
-                                            ),
-                                    )
-                                }
-                                setForm={setForm}
-                                uploadingImage={
-                                    uploadingImageKey === 'nodeLight'
-                                }
-                                values={form.visual_config.light}
-                            />
-                        </SettingsAccordionSection>
+                                                'label',
+                                                value,
+                                            )
+                                        }
+                                        value={form.visual_config.label}
+                                    />
+                                    <TextField
+                                        error={errors['visual_config.tooltip']}
+                                        label="Hover text"
+                                        onChange={(value) =>
+                                            setVisualTextConfig(
+                                                setForm,
+                                                'tooltip',
+                                                value,
+                                            )
+                                        }
+                                        placeholder="Shown when learners hover the tile"
+                                        value={form.visual_config.tooltip}
+                                    />
+
+                                    <div className="grid gap-3">
+                                        {form.state !== 'hidden' ? (
+                                            <CheckboxField
+                                                checked={
+                                                    form.state === 'locked'
+                                                }
+                                                description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
+                                                id="lock-node"
+                                                label="Lock node for learners"
+                                                onCheckedChange={(checked) =>
+                                                    setLockedState(
+                                                        setForm,
+                                                        checked,
+                                                    )
+                                                }
+                                            />
+                                        ) : null}
+                                        <CheckboxField
+                                            checked={
+                                                form.visual_config.hideLabel
+                                            }
+                                            description="The title still appears in the side panel after the tile is selected."
+                                            id="hide-label"
+                                            label="Hide tile label on world map"
+                                            onCheckedChange={(checked) =>
+                                                setVisualBooleanConfig(
+                                                    setForm,
+                                                    'hideLabel',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <CheckboxField
+                                            checked={
+                                                form.visual_config.hideImage
+                                            }
+                                            description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
+                                            id="hide-image"
+                                            label="Hide node image on world map"
+                                            onCheckedChange={(checked) =>
+                                                setVisualBooleanConfig(
+                                                    setForm,
+                                                    'hideImage',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        {form.state === 'hidden' ? (
+                                            <CheckboxField
+                                                checked={
+                                                    form.visual_config
+                                                        .hideEmptySpace
+                                                }
+                                                description="The tile keeps its coordinate and spacing, but learners do not see or click it."
+                                                id="hide-empty-space"
+                                                label="Hide this empty space on learner map"
+                                                onCheckedChange={(checked) =>
+                                                    setVisualBooleanConfig(
+                                                        setForm,
+                                                        'hideEmptySpace',
+                                                        checked,
+                                                    )
+                                                }
+                                            />
+                                        ) : null}
+                                    </div>
+                                </SettingsAccordionSection>
+
+                                <SettingsAccordionSection
+                                    description="Hide this node until a learner uses a configured tool at its map position."
+                                    title="Discovery"
+                                >
+                                    <div className="grid gap-3">
+                                        <CheckboxField
+                                            checked={
+                                                form.visual_config.reveal
+                                                    .enabled
+                                            }
+                                            description="The node keeps its coordinates, but learners only reveal it by equipping the chosen tool and clicking its hidden map position."
+                                            id="reveal-with-tool"
+                                            label="Hide until revealed with a tool"
+                                            onCheckedChange={(checked) =>
+                                                setRevealEnabled(
+                                                    setForm,
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <div className="grid gap-1">
+                                            <Label htmlFor="reveal-tool">
+                                                Reveal tool
+                                            </Label>
+                                            <select
+                                                className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                disabled={
+                                                    !form.visual_config.reveal
+                                                        .enabled
+                                                }
+                                                id="reveal-tool"
+                                                onChange={(event) =>
+                                                    setRevealToolId(
+                                                        setForm,
+                                                        event.currentTarget
+                                                            .value,
+                                                    )
+                                                }
+                                                value={
+                                                    form.visual_config.reveal
+                                                        .toolId
+                                                }
+                                            >
+                                                <option value="">
+                                                    Select a tool
+                                                </option>
+                                                {tools.map((tool) => (
+                                                    <option
+                                                        key={tool.id}
+                                                        value={tool.id}
+                                                    >
+                                                        {tool.title}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <InputError
+                                                message={
+                                                    errors[
+                                                        'visual_config.reveal.toolId'
+                                                    ]
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </SettingsAccordionSection>
+
+                                <SettingsAccordionSection
+                                    description="Keep this visible node locked until completion rules and optional tool use allow access."
+                                    title="Unlocking"
+                                >
+                                    <div className="grid gap-3">
+                                        <CheckboxField
+                                            checked={
+                                                form.visual_config.unlock
+                                                    .enabled
+                                            }
+                                            description="Learners cannot open this node until the configured rule evaluates to true."
+                                            id="unlock-rules-enabled"
+                                            label="Use unlock rules for this node"
+                                            onCheckedChange={(checked) =>
+                                                setUnlockEnabled(
+                                                    setForm,
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <div className="grid gap-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="unlock-top-operator">
+                                                    Combine node and tool rules
+                                                    with
+                                                </Label>
+                                                <select
+                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                    disabled={
+                                                        !form.visual_config
+                                                            .unlock.enabled
+                                                    }
+                                                    id="unlock-top-operator"
+                                                    onChange={(event) =>
+                                                        setUnlockOperator(
+                                                            setForm,
+                                                            'topOperator',
+                                                            event.currentTarget
+                                                                .value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .unlock.topOperator
+                                                    }
+                                                >
+                                                    <option value="and">
+                                                        AND - all groups must
+                                                        pass
+                                                    </option>
+                                                    <option value="or">
+                                                        OR - any group can pass
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="unlock-node-operator">
+                                                    Completed-node rule
+                                                </Label>
+                                                <select
+                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                    disabled={
+                                                        !form.visual_config
+                                                            .unlock.enabled
+                                                    }
+                                                    id="unlock-node-operator"
+                                                    onChange={(event) =>
+                                                        setUnlockOperator(
+                                                            setForm,
+                                                            'nodeOperator',
+                                                            event.currentTarget
+                                                                .value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .unlock.nodeOperator
+                                                    }
+                                                >
+                                                    <option value="and">
+                                                        All selected nodes
+                                                        completed
+                                                    </option>
+                                                    <option value="or">
+                                                        Any selected node
+                                                        completed
+                                                    </option>
+                                                </select>
+                                                <select
+                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                    disabled={
+                                                        !form.visual_config
+                                                            .unlock.enabled
+                                                    }
+                                                    onChange={(event) => {
+                                                        addUnlockRequiredNode(
+                                                            setForm,
+                                                            event.currentTarget
+                                                                .value,
+                                                        );
+                                                        event.currentTarget.value =
+                                                            '';
+                                                    }}
+                                                    value=""
+                                                >
+                                                    <option value="">
+                                                        Add completed-node
+                                                        condition
+                                                    </option>
+                                                    {map.nodes
+                                                        .filter(
+                                                            (node) =>
+                                                                node.id !==
+                                                                selectedNode?.id,
+                                                        )
+                                                        .map((node) => (
+                                                            <option
+                                                                disabled={form.visual_config.unlock.requiredNodeIds.includes(
+                                                                    node.id.toString(),
+                                                                )}
+                                                                key={node.id}
+                                                                value={node.id}
+                                                            >
+                                                                {node.title}
+                                                            </option>
+                                                        ))}
+                                                </select>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {form.visual_config.unlock
+                                                        .requiredNodeIds
+                                                        .length === 0 ? (
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                            No completed-node
+                                                            conditions yet.
+                                                        </span>
+                                                    ) : null}
+                                                    {form.visual_config.unlock.requiredNodeIds.map(
+                                                        (nodeId) => {
+                                                            const node =
+                                                                map.nodes.find(
+                                                                    (
+                                                                        candidate,
+                                                                    ) =>
+                                                                        candidate.id.toString() ===
+                                                                        nodeId,
+                                                                );
+
+                                                            return (
+                                                                <button
+                                                                    className="rounded-full border border-cyan-500/25 bg-cyan-50 px-3 py-1 text-xs text-cyan-800 transition hover:border-cyan-600 dark:border-teal-200/20 dark:bg-teal-200/10 dark:text-teal-100"
+                                                                    key={nodeId}
+                                                                    onClick={() =>
+                                                                        removeUnlockRequiredNode(
+                                                                            setForm,
+                                                                            nodeId,
+                                                                        )
+                                                                    }
+                                                                    type="button"
+                                                                >
+                                                                    {node?.title ??
+                                                                        `Node ${nodeId}`}
+                                                                    {' x'}
+                                                                </button>
+                                                            );
+                                                        },
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <CheckboxField
+                                                checked={
+                                                    form.visual_config.unlock
+                                                        .tool.enabled
+                                                }
+                                                description="Learners must use the selected tool on this locked node."
+                                                id="unlock-tool-enabled"
+                                                label="Require tool use"
+                                                onCheckedChange={(checked) =>
+                                                    setUnlockToolEnabled(
+                                                        setForm,
+                                                        checked,
+                                                    )
+                                                }
+                                            />
+                                            <div className="grid gap-1">
+                                                <Label htmlFor="unlock-tool">
+                                                    Unlock tool
+                                                </Label>
+                                                <select
+                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                    disabled={
+                                                        !form.visual_config
+                                                            .unlock.enabled ||
+                                                        !form.visual_config
+                                                            .unlock.tool.enabled
+                                                    }
+                                                    id="unlock-tool"
+                                                    onChange={(event) =>
+                                                        setUnlockToolId(
+                                                            setForm,
+                                                            event.currentTarget
+                                                                .value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .unlock.tool.toolId
+                                                    }
+                                                >
+                                                    <option value="">
+                                                        Select a tool
+                                                    </option>
+                                                    {tools.map((tool) => (
+                                                        <option
+                                                            key={tool.id}
+                                                            value={tool.id}
+                                                        >
+                                                            {tool.title}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            'visual_config.unlock.tool.toolId'
+                                                        ]
+                                                    }
+                                                />
+                                            </div>
+                                            <div className="rounded-md border border-amber-500/25 bg-amber-50 p-3 dark:border-amber-300/20 dark:bg-amber-300/10">
+                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                    <div className="grid gap-1 text-sm">
+                                                        <p className="font-medium text-amber-950 dark:text-amber-50">
+                                                            Reset learner unlock
+                                                            state
+                                                        </p>
+                                                        <p className="text-xs text-amber-800 dark:text-amber-100/75">
+                                                            Lock this node again
+                                                            for every learner by
+                                                            removing saved
+                                                            tool-unlock
+                                                            progress.
+                                                        </p>
+                                                    </div>
+                                                    <Button
+                                                        className="shrink-0 border-amber-500/40 text-amber-950 hover:bg-amber-100 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15"
+                                                        disabled={
+                                                            !selectedNode ||
+                                                            processing
+                                                        }
+                                                        onClick={
+                                                            resetNodeUnlocksForAllUsers
+                                                        }
+                                                        type="button"
+                                                        variant="outline"
+                                                    >
+                                                        <LockKeyhole className="size-4" />
+                                                        Lock for all users
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </SettingsAccordionSection>
+                            </>
+                        ) : null}
+
+                        {activeNodeSettingsSection === 'visuals' ? (
+                            <>
+                                <SettingsAccordionSection
+                                    description="Dark mode colors and the image displayed on the world map."
+                                    title="Dark mode visuals"
+                                >
+                                    <NodeVisualModeFields
+                                        errors={errors}
+                                        imageError={imageUploadErrors.nodeDark}
+                                        mode="dark"
+                                        onImageUpload={(file) =>
+                                            void uploadWorldImage(
+                                                'nodeDark',
+                                                file,
+                                                (url) =>
+                                                    setVisualThemeTextConfig(
+                                                        setForm,
+                                                        'dark',
+                                                        'imageUrl',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        uploadingImage={
+                                            uploadingImageKey === 'nodeDark'
+                                        }
+                                        values={form.visual_config.dark}
+                                    />
+                                </SettingsAccordionSection>
+
+                                <SettingsAccordionSection
+                                    description="Light mode colors and the image displayed on the world map."
+                                    title="Light mode visuals"
+                                >
+                                    <NodeVisualModeFields
+                                        errors={errors}
+                                        imageError={imageUploadErrors.nodeLight}
+                                        mode="light"
+                                        onImageUpload={(file) =>
+                                            void uploadWorldImage(
+                                                'nodeLight',
+                                                file,
+                                                (url) =>
+                                                    setVisualThemeTextConfig(
+                                                        setForm,
+                                                        'light',
+                                                        'imageUrl',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        uploadingImage={
+                                            uploadingImageKey === 'nodeLight'
+                                        }
+                                        values={form.visual_config.light}
+                                    />
+                                </SettingsAccordionSection>
+                            </>
+                        ) : null}
+
+                        {activeNodeSettingsSection === 'sounds' ? (
+                            <SettingsAccordionSection
+                                description="Optional learner-map sounds for pointer and unlock interactions."
+                                title="Node sounds"
+                            >
+                                <div className="grid gap-4">
+                                    <NodeSoundTriggerField
+                                        description="Played when the pointer enters this tile."
+                                        error={
+                                            errors[
+                                                'visual_config.sounds.mouseEnter.url'
+                                            ]
+                                        }
+                                        id="node-sound-mouse-enter"
+                                        label="Mouse enter"
+                                        onUpload={(file) =>
+                                            void uploadWorldSound(
+                                                'nodeSoundMouseEnter',
+                                                file,
+                                                (url) =>
+                                                    setNodeSoundUrl(
+                                                        setForm,
+                                                        'mouseEnter',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        trigger="mouseEnter"
+                                        uploadError={
+                                            soundUploadErrors.nodeSoundMouseEnter
+                                        }
+                                        uploading={
+                                            uploadingSoundKey ===
+                                            'nodeSoundMouseEnter'
+                                        }
+                                        value={
+                                            form.visual_config.sounds.mouseEnter
+                                        }
+                                    />
+                                    <NodeSoundTriggerField
+                                        description="Played when learners click or tap this tile."
+                                        error={
+                                            errors[
+                                                'visual_config.sounds.click.url'
+                                            ]
+                                        }
+                                        id="node-sound-click"
+                                        label="Click"
+                                        onUpload={(file) =>
+                                            void uploadWorldSound(
+                                                'nodeSoundClick',
+                                                file,
+                                                (url) =>
+                                                    setNodeSoundUrl(
+                                                        setForm,
+                                                        'click',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        trigger="click"
+                                        uploadError={
+                                            soundUploadErrors.nodeSoundClick
+                                        }
+                                        uploading={
+                                            uploadingSoundKey ===
+                                            'nodeSoundClick'
+                                        }
+                                        value={form.visual_config.sounds.click}
+                                    />
+                                    <NodeSoundTriggerField
+                                        description="Played when the pointer leaves this tile."
+                                        error={
+                                            errors[
+                                                'visual_config.sounds.mouseLeave.url'
+                                            ]
+                                        }
+                                        id="node-sound-mouse-leave"
+                                        label="Mouse leave"
+                                        onUpload={(file) =>
+                                            void uploadWorldSound(
+                                                'nodeSoundMouseLeave',
+                                                file,
+                                                (url) =>
+                                                    setNodeSoundUrl(
+                                                        setForm,
+                                                        'mouseLeave',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        trigger="mouseLeave"
+                                        uploadError={
+                                            soundUploadErrors.nodeSoundMouseLeave
+                                        }
+                                        uploading={
+                                            uploadingSoundKey ===
+                                            'nodeSoundMouseLeave'
+                                        }
+                                        value={
+                                            form.visual_config.sounds.mouseLeave
+                                        }
+                                    />
+                                    <NodeSoundTriggerField
+                                        description="Played after the backend confirms this node was unlocked."
+                                        error={
+                                            errors[
+                                                'visual_config.sounds.unlock.url'
+                                            ]
+                                        }
+                                        id="node-sound-unlock"
+                                        label="Unlock"
+                                        onUpload={(file) =>
+                                            void uploadWorldSound(
+                                                'nodeSoundUnlock',
+                                                file,
+                                                (url) =>
+                                                    setNodeSoundUrl(
+                                                        setForm,
+                                                        'unlock',
+                                                        url,
+                                                    ),
+                                            )
+                                        }
+                                        setForm={setForm}
+                                        trigger="unlock"
+                                        uploadError={
+                                            soundUploadErrors.nodeSoundUnlock
+                                        }
+                                        uploading={
+                                            uploadingSoundKey ===
+                                            'nodeSoundUnlock'
+                                        }
+                                        value={form.visual_config.sounds.unlock}
+                                    />
+                                </div>
+                            </SettingsAccordionSection>
+                        ) : null}
                     </div>
 
                     <DialogFooter>
@@ -1005,6 +1915,78 @@ export default function EditWorldMap({
     );
 }
 
+const nodeSettingsSections: {
+    description: string;
+    icon: LucideIcon;
+    key: NodeSettingsSection;
+    label: string;
+}[] = [
+    {
+        description: 'Title, slug and description shown in the side panel.',
+        icon: PanelRight,
+        key: 'right-panel',
+        label: 'Right panel',
+    },
+    {
+        description: 'Locking, discovery and tile display text.',
+        icon: Eye,
+        key: 'availability',
+        label: 'Rules',
+    },
+    {
+        description: 'Colors and dark/light tile images.',
+        icon: Palette,
+        key: 'visuals',
+        label: 'Visuals',
+    },
+    {
+        description: 'Mouse and unlock sounds.',
+        icon: Volume2,
+        key: 'sounds',
+        label: 'Sounds',
+    },
+];
+
+function NodeSettingsSwitcher({
+    activeSection,
+    onChange,
+}: {
+    activeSection: NodeSettingsSection;
+    onChange: (section: NodeSettingsSection) => void;
+}) {
+    return (
+        <div
+            aria-label="Node settings sections"
+            className="mx-auto flex w-fit items-center gap-1 rounded-2xl border border-slate-200 bg-white/88 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/82"
+            role="tablist"
+        >
+            {nodeSettingsSections.map((section) => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.key;
+
+                return (
+                    <button
+                        aria-label={section.label}
+                        aria-selected={isActive}
+                        className={cn(
+                            'group grid size-10 place-items-center rounded-xl text-slate-500 transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:focus-visible:ring-teal-200',
+                            isActive
+                                ? 'bg-cyan-600 text-white shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                                : 'hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white',
+                        )}
+                        key={section.key}
+                        onClick={() => onChange(section.key)}
+                        title={`${section.label} - ${section.description}`}
+                        type="button"
+                    >
+                        <Icon className="size-4" />
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 function HexGridCell({
     cell,
     neighboringNode,
@@ -1027,6 +2009,10 @@ function HexGridCell({
     const isEmptySpace = node?.state === 'hidden';
     const isLocked = node?.state === 'locked';
     const imageUrl = typeof visual.imageUrl === 'string' ? visual.imageUrl : '';
+    const imageRotation = rotationConfig(visual.imageRotation);
+    const imageWidth = percentConfig(visual.imageWidth, 100, 10, 200);
+    const imageX = percentConfig(visual.imageX, 50);
+    const imageY = percentConfig(visual.imageY, 50);
     const hideImage = visual.hideImage === true;
     const hideLabel = visual.hideLabel === true;
     const hideEmptySpace = isEmptySpace && visual.hideEmptySpace !== false;
@@ -1080,16 +2066,24 @@ function HexGridCell({
                         type="button"
                     >
                         {imageUrl && !hideImage ? (
-                            <img
-                                alt=""
-                                className="absolute inset-[7px] size-[calc(100%-14px)] object-cover"
-                                draggable={false}
-                                src={imageUrl}
+                            <span
+                                className="absolute inset-[7px] overflow-hidden"
                                 style={{
                                     clipPath:
                                         'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
                                 }}
-                            />
+                            >
+                                <img
+                                    alt=""
+                                    className="absolute inset-0 size-full object-cover"
+                                    draggable={false}
+                                    src={imageUrl}
+                                    style={{
+                                        objectPosition: `${imageX}% ${imageY}%`,
+                                        transform: `scale(${imageWidth / 100}) rotate(${imageRotation}deg)`,
+                                    }}
+                                />
+                            </span>
                         ) : null}
                         {!hideLabel || isEmptySpace ? (
                             <span className="relative z-10">
@@ -1276,81 +2270,93 @@ function TextField({
     );
 }
 
-function ColorOpacityField({
-    colorError,
-    colorValue,
+function MapVisualColorField({
+    error,
     label,
-    onColorChange,
-    onOpacityChange,
-    opacityError,
-    opacityValue,
+    onChange,
+    value,
 }: {
-    colorError?: string;
-    colorValue: string;
+    error?: string;
     label: string;
-    onColorChange: (value: string) => void;
-    onOpacityChange: (value: string) => void;
-    opacityError?: string;
-    opacityValue: string;
+    onChange: (value: string) => void;
+    value: string;
 }) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
-    const colorPickerValue = isHexColor(colorValue) ? colorValue : '#000000';
-    const resolvedOpacity = opacityValue || '100';
+    const color = parseEditableCssColor(value);
 
     return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="grid gap-2 sm:grid-cols-[auto_1fr_7rem]">
-                <Input
-                    aria-label={`${label} picker`}
-                    className="h-9 w-12 cursor-pointer p-1"
-                    onChange={(event) =>
-                        onColorChange(event.currentTarget.value)
-                    }
-                    type="color"
-                    value={colorPickerValue}
-                />
-                <Input
-                    id={id}
-                    onChange={(event) =>
-                        onColorChange(event.currentTarget.value)
-                    }
-                    value={colorValue}
-                />
-                <div className="grid gap-1">
-                    <Label
-                        className="text-[0.68rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
-                        htmlFor={`${id}-opacity`}
-                    >
-                        Opacity %
-                    </Label>
-                    <Input
-                        id={`${id}-opacity`}
-                        max="100"
-                        min="0"
-                        onChange={(event) =>
-                            onOpacityChange(event.currentTarget.value)
-                        }
-                        type="number"
-                        value={resolvedOpacity}
-                    />
-                </div>
-            </div>
-            <Input
-                aria-label={`${label} opacity slider`}
-                max="100"
-                min="0"
-                onChange={(event) => onOpacityChange(event.currentTarget.value)}
-                type="range"
-                value={resolvedOpacity}
-            />
-            <InputError message={colorError || opacityError} />
-        </div>
+        <ColorOpacityField
+            colorError={error}
+            colorValue={color.hex}
+            label={label}
+            onColorChange={(nextColor) =>
+                onChange(cssColorFromPicker(nextColor, color.opacity))
+            }
+            onOpacityChange={(nextOpacity) =>
+                onChange(
+                    color.hex === ''
+                        ? value
+                        : cssColorFromPicker(color.hex, nextOpacity),
+                )
+            }
+            opacityValue={color.opacity}
+        />
     );
 }
 
-function isHexColor(value: string): boolean {
-    return /^#[0-9a-fA-F]{6}$/.test(value);
+function NodeSoundTriggerField({
+    description,
+    error,
+    id,
+    label,
+    onUpload,
+    setForm,
+    trigger,
+    uploadError,
+    uploading,
+    value,
+}: {
+    description: string;
+    error?: string;
+    id: string;
+    label: string;
+    onUpload: (file: File) => void;
+    setForm: Dispatch<SetStateAction<NodeForm>>;
+    trigger: keyof NodeSoundFields;
+    uploadError?: string;
+    uploading: boolean;
+    value: NodeSoundTriggerConfig;
+}) {
+    return (
+        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
+                <Checkbox
+                    checked={value.enabled}
+                    id={`${id}-enabled`}
+                    onCheckedChange={(checked) =>
+                        setNodeSoundEnabled(setForm, trigger, checked === true)
+                    }
+                />
+                <div className="grid gap-1">
+                    <Label htmlFor={`${id}-enabled`}>
+                        Enable {label.toLowerCase()} sound
+                    </Label>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {description}
+                    </p>
+                </div>
+            </div>
+            <SoundAssetInput
+                description="Upload a sound file or select one from the reusable sound library."
+                id={id}
+                label={label}
+                onChange={(url) => setNodeSoundUrl(setForm, trigger, url)}
+                onUpload={onUpload}
+                uploading={uploading}
+                value={value.url}
+            />
+            <InputError message={error ?? uploadError} />
+        </div>
+    );
 }
 
 type NodeVisualColorKey =
@@ -1385,31 +2391,38 @@ const nodeVisualFields: {
 ];
 
 const mapVisualFields: {
-    colorPicker?: boolean;
     key: keyof Omit<MapVisualThemeFields, 'completedDimOpacity' | 'imageUrl'>;
     label: string;
 }[] = [
     { key: 'overlay', label: 'Overlay background' },
     { key: 'pageBackground', label: 'Page background' },
-    { key: 'panelBackground', label: 'Map panel background' },
-    { colorPicker: true, key: 'panelTextColor', label: 'Map panel text' },
+    { key: 'panelBackground', label: 'Top-left panel background' },
+    { key: 'panelBorderColor', label: 'Top-left panel border' },
+    { key: 'panelTextColor', label: 'Top-left panel text' },
+    { key: 'panelMutedTextColor', label: 'Top-left panel muted text' },
+    { key: 'accentColor', label: 'Accent color' },
+    { key: 'sidePanelBackground', label: 'Node side panel background' },
+    { key: 'sidePanelBorderColor', label: 'Node side panel border' },
+    { key: 'sidePanelTextColor', label: 'Node side panel text' },
+    { key: 'sidePanelMutedTextColor', label: 'Node side panel muted text' },
+    { key: 'bottomNavBackground', label: 'Bottom nav background' },
+    { key: 'bottomNavBorderColor', label: 'Bottom nav border' },
+    { key: 'bottomNavTextColor', label: 'Bottom nav icon/text' },
     {
-        colorPicker: true,
-        key: 'panelMutedTextColor',
-        label: 'Map panel muted text',
+        key: 'bottomNavActiveBackground',
+        label: 'Bottom nav active background',
     },
-    { colorPicker: true, key: 'accentColor', label: 'Accent color' },
-    { key: 'sidePanelBackground', label: 'Side panel background' },
+    { key: 'bottomNavActiveTextColor', label: 'Bottom nav active icon/text' },
+    { key: 'sideControlBackground', label: 'Right control background' },
+    { key: 'sideControlBorderColor', label: 'Right control border' },
+    { key: 'sideControlTextColor', label: 'Right control icon/text' },
     {
-        colorPicker: true,
-        key: 'sidePanelBorderColor',
-        label: 'Side panel border',
+        key: 'sideControlActiveBackground',
+        label: 'Right control active background',
     },
-    { colorPicker: true, key: 'sidePanelTextColor', label: 'Side panel text' },
     {
-        colorPicker: true,
-        key: 'sidePanelMutedTextColor',
-        label: 'Side panel muted text',
+        key: 'sideControlActiveTextColor',
+        label: 'Right control active icon/text',
     },
 ];
 
@@ -1484,6 +2497,107 @@ function NodeVisualModeFields({
                 uploading={uploadingImage}
                 value={values.imageUrl}
             />
+            <div className="grid gap-3 sm:grid-cols-4">
+                <NodeImageNumberField
+                    error={errors[`visual_config.${mode}.imageX`]}
+                    id={`node-${mode}-image-x`}
+                    label={`${labelPrefix} image X`}
+                    max={100}
+                    min={0}
+                    onChange={(value) =>
+                        setVisualThemeTextConfig(setForm, mode, 'imageX', value)
+                    }
+                    suffix="%"
+                    value={values.imageX}
+                />
+                <NodeImageNumberField
+                    error={errors[`visual_config.${mode}.imageY`]}
+                    id={`node-${mode}-image-y`}
+                    label={`${labelPrefix} image Y`}
+                    max={100}
+                    min={0}
+                    onChange={(value) =>
+                        setVisualThemeTextConfig(setForm, mode, 'imageY', value)
+                    }
+                    suffix="%"
+                    value={values.imageY}
+                />
+                <NodeImageNumberField
+                    error={errors[`visual_config.${mode}.imageWidth`]}
+                    id={`node-${mode}-image-width`}
+                    label={`${labelPrefix} image width`}
+                    max={200}
+                    min={10}
+                    onChange={(value) =>
+                        setVisualThemeTextConfig(
+                            setForm,
+                            mode,
+                            'imageWidth',
+                            value,
+                        )
+                    }
+                    suffix="%"
+                    value={values.imageWidth}
+                />
+                <NodeImageNumberField
+                    error={errors[`visual_config.${mode}.imageRotation`]}
+                    id={`node-${mode}-image-rotation`}
+                    label={`${labelPrefix} rotation`}
+                    max={360}
+                    min={-360}
+                    onChange={(value) =>
+                        setVisualThemeTextConfig(
+                            setForm,
+                            mode,
+                            'imageRotation',
+                            value,
+                        )
+                    }
+                    suffix="deg"
+                    value={values.imageRotation}
+                />
+            </div>
+        </div>
+    );
+}
+
+function NodeImageNumberField({
+    error,
+    id,
+    label,
+    max,
+    min,
+    onChange,
+    suffix,
+    value,
+}: {
+    error?: string;
+    id: string;
+    label: string;
+    max: number;
+    min: number;
+    onChange: (value: string) => void;
+    suffix: string;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <div className="flex items-center gap-2">
+                <Input
+                    id={id}
+                    max={max}
+                    min={min}
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    step={1}
+                    type="number"
+                    value={value}
+                />
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                    {suffix}
+                </span>
+            </div>
+            <InputError message={error} />
         </div>
     );
 }
@@ -1521,7 +2635,7 @@ function MapVisualModeFields({
         >
             <div className="grid gap-3 sm:grid-cols-2">
                 {mapVisualFields.map((field) => (
-                    <TextField
+                    <MapVisualColorField
                         error={errors[`background_config.${mode}.${field.key}`]}
                         key={field.key}
                         label={`${labelPrefix} ${field.label}`}
@@ -1533,7 +2647,6 @@ function MapVisualModeFields({
                                 value,
                             )
                         }
-                        colorPicker={field.colorPicker}
                         value={values[field.key]}
                     />
                 ))}
@@ -1741,6 +2854,129 @@ function setRevealToolId(
     }));
 }
 
+function setUnlockEnabled(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    enabled: boolean,
+) {
+    setForm((current) => ({
+        ...current,
+        state: enabled
+            ? 'locked'
+            : current.state === 'locked'
+              ? 'available'
+              : current.state,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                enabled,
+            },
+        },
+    }));
+}
+
+function setUnlockOperator(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    key: 'nodeOperator' | 'topOperator',
+    value: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                [key]: value === 'or' ? 'or' : 'and',
+            },
+        },
+    }));
+}
+
+function addUnlockRequiredNode(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    nodeId: string,
+) {
+    if (!nodeId) {
+        return;
+    }
+
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                requiredNodeIds:
+                    current.visual_config.unlock.requiredNodeIds.includes(
+                        nodeId,
+                    )
+                        ? current.visual_config.unlock.requiredNodeIds
+                        : [
+                              ...current.visual_config.unlock.requiredNodeIds,
+                              nodeId,
+                          ],
+            },
+        },
+    }));
+}
+
+function removeUnlockRequiredNode(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    nodeId: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                requiredNodeIds:
+                    current.visual_config.unlock.requiredNodeIds.filter(
+                        (currentNodeId) => currentNodeId !== nodeId,
+                    ),
+            },
+        },
+    }));
+}
+
+function setUnlockToolEnabled(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    enabled: boolean,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                tool: {
+                    ...current.visual_config.unlock.tool,
+                    enabled,
+                },
+            },
+        },
+    }));
+}
+
+function setUnlockToolId(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    toolId: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                tool: {
+                    ...current.visual_config.unlock.tool,
+                    toolId,
+                },
+            },
+        },
+    }));
+}
+
 function setLockedState(
     setForm: Dispatch<SetStateAction<NodeForm>>,
     locked: boolean,
@@ -1748,6 +2984,46 @@ function setLockedState(
     setForm((current) => ({
         ...current,
         state: locked ? 'locked' : 'available',
+    }));
+}
+
+function setNodeSoundEnabled(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    trigger: keyof NodeSoundFields,
+    enabled: boolean,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            sounds: {
+                ...current.visual_config.sounds,
+                [trigger]: {
+                    ...current.visual_config.sounds[trigger],
+                    enabled,
+                },
+            },
+        },
+    }));
+}
+
+function setNodeSoundUrl(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    trigger: keyof NodeSoundFields,
+    url: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            sounds: {
+                ...current.visual_config.sounds,
+                [trigger]: {
+                    ...current.visual_config.sounds[trigger],
+                    url,
+                },
+            },
+        },
     }));
 }
 
@@ -1773,7 +3049,11 @@ function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
             foregroundOpacity: '100',
             highlightColor: '#2563eb',
             highlightOpacity: '100',
+            imageRotation: '0',
             imageUrl: '',
+            imageWidth: '100',
+            imageX: '50',
+            imageY: '50',
             labelColor: '#0f172a',
             labelOpacity: '100',
             tileColor: '#dbeafe',
@@ -1786,7 +3066,11 @@ function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
         foregroundOpacity: '100',
         highlightColor: '#7dd3fc',
         highlightOpacity: '100',
+        imageRotation: '0',
         imageUrl: '',
+        imageWidth: '100',
+        imageX: '50',
+        imageY: '50',
         labelColor: '#ffffff',
         labelOpacity: '100',
         tileColor: '#253047',
@@ -1800,7 +3084,11 @@ function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
         foregroundOpacity: '',
         highlightColor: '',
         highlightOpacity: '',
+        imageRotation: '0',
         imageUrl: '',
+        imageWidth: '100',
+        imageX: '50',
+        imageY: '50',
         labelColor: '',
         labelOpacity: '',
         tileColor: '',
@@ -1808,16 +3096,43 @@ function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
     };
 }
 
+function emptyNodeSoundFields(): NodeSoundFields {
+    return {
+        click: emptyNodeSoundTrigger(),
+        mouseEnter: emptyNodeSoundTrigger(),
+        mouseLeave: emptyNodeSoundTrigger(),
+        unlock: emptyNodeSoundTrigger(),
+    };
+}
+
+function emptyNodeSoundTrigger(): NodeSoundTriggerConfig {
+    return {
+        enabled: false,
+        url: '',
+    };
+}
+
 function emptyMapVisualThemeFields(): MapVisualThemeFields {
     return {
         accentColor: '',
+        bottomNavActiveBackground: '',
+        bottomNavActiveTextColor: '',
+        bottomNavBackground: '',
+        bottomNavBorderColor: '',
+        bottomNavTextColor: '',
         completedDimOpacity: '',
         imageUrl: '',
         overlay: '',
         pageBackground: '',
         panelBackground: '',
+        panelBorderColor: '',
         panelMutedTextColor: '',
         panelTextColor: '',
+        sideControlActiveBackground: '',
+        sideControlActiveTextColor: '',
+        sideControlBackground: '',
+        sideControlBorderColor: '',
+        sideControlTextColor: '',
         sidePanelBackground: '',
         sidePanelBorderColor: '',
         sidePanelMutedTextColor: '',
@@ -1844,6 +3159,8 @@ function emptyNodeForm(q: number, r: number): NodeForm {
                 enabled: false,
                 toolId: '',
             },
+            sounds: emptyNodeSoundFields(),
+            unlock: emptyUnlockConfig(),
             tooltip: '',
         },
     };
@@ -1877,7 +3194,11 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
                 foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
                 highlightOpacity: '100',
+                imageRotation: '0',
                 imageUrl: '',
+                imageWidth: '100',
+                imageX: '50',
+                imageY: '50',
                 labelColor: '#64748b',
                 labelOpacity: '100',
                 tileColor: '#f8fafc',
@@ -1892,7 +3213,11 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
                 foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
                 highlightOpacity: '100',
+                imageRotation: '0',
                 imageUrl: '',
+                imageWidth: '100',
+                imageX: '50',
+                imageY: '50',
                 labelColor: '#64748b',
                 labelOpacity: '100',
                 tileColor: '#f8fafc',
@@ -1902,6 +3227,8 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
                 enabled: false,
                 toolId: '',
             },
+            sounds: emptyNodeSoundFields(),
+            unlock: emptyUnlockConfig(),
             tooltip: 'Empty editor-only space.',
         },
     };
@@ -1916,35 +3243,10 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
         position_r: node.position.r,
         state: node.state,
         visual_config: {
-            dark: nodeVisualThemeFieldsFromConfig(node.visualConfig.dark, {
-                foregroundColor: stringConfig(
-                    node.visualConfig.foregroundColor,
-                    '#bfdbfe',
-                ),
-                foregroundOpacity: stringConfig(
-                    node.visualConfig.foregroundOpacity,
-                    '100',
-                ),
-                highlightColor: stringConfig(
-                    node.visualConfig.highlightColor,
-                    '#7dd3fc',
-                ),
-                highlightOpacity: stringConfig(
-                    node.visualConfig.highlightOpacity,
-                    '100',
-                ),
-                imageUrl: stringConfig(node.visualConfig.imageUrl, ''),
-                labelColor: stringConfig(
-                    node.visualConfig.labelColor,
-                    '#ffffff',
-                ),
-                labelOpacity: stringConfig(
-                    node.visualConfig.labelOpacity,
-                    '100',
-                ),
-                tileColor: stringConfig(node.visualConfig.tileColor, '#253047'),
-                tileOpacity: stringConfig(node.visualConfig.tileOpacity, '100'),
-            }),
+            dark: nodeVisualThemeFieldsFromConfig(
+                node.visualConfig.dark,
+                defaultNodeVisualThemeFields('dark'),
+            ),
             label: stringConfig(node.visualConfig.label, node.title),
             hideEmptySpace: booleanConfig(
                 node.visualConfig.hideEmptySpace,
@@ -1957,7 +3259,9 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
                 defaultNodeVisualThemeFields('light'),
             ),
             reveal: revealConfigFromNode(node.visualConfig.reveal),
+            sounds: nodeSoundFieldsFromConfig(node.visualConfig.sounds),
             tooltip: stringConfig(node.visualConfig.tooltip, ''),
+            unlock: unlockConfigFromNode(node.visualConfig.unlock),
         },
     };
 }
@@ -1974,20 +3278,75 @@ function revealConfigFromNode(config: VisualConfigValue): {
     };
 }
 
-function mapVisualFormFromConfig(config: MapVisualConfig): MapVisualForm {
-    const legacyFallback = mapVisualThemeFieldsFromConfig(config);
-    const dark = mapVisualThemeFieldsFromConfig(config.dark, legacyFallback);
+function nodeSoundFieldsFromConfig(config: VisualConfigValue): NodeSoundFields {
+    const sounds = isVisualConfig(config) ? config : {};
 
     return {
-        ...dark,
-        dark,
+        click: nodeSoundTriggerFromConfig(sounds.click),
+        mouseEnter: nodeSoundTriggerFromConfig(sounds.mouseEnter),
+        mouseLeave: nodeSoundTriggerFromConfig(sounds.mouseLeave),
+        unlock: nodeSoundTriggerFromConfig(sounds.unlock),
+    };
+}
+
+function nodeSoundTriggerFromConfig(
+    config: VisualConfigValue,
+): NodeSoundTriggerConfig {
+    const trigger = isVisualConfig(config) ? config : {};
+
+    return {
+        enabled: booleanConfig(trigger.enabled, false),
+        url: stringConfig(trigger.url, ''),
+    };
+}
+
+function emptyUnlockConfig(): NodeForm['visual_config']['unlock'] {
+    return {
+        enabled: false,
+        nodeOperator: 'and',
+        requiredNodeIds: [],
+        tool: {
+            enabled: false,
+            toolId: '',
+        },
+        topOperator: 'and',
+    };
+}
+
+function unlockConfigFromNode(
+    config: VisualConfigValue,
+): NodeForm['visual_config']['unlock'] {
+    const unlock = isVisualConfig(config) ? config : {};
+    const tool = isVisualConfig(unlock.tool) ? unlock.tool : {};
+    const requiredNodeIds = Array.isArray(unlock.requiredNodeIds)
+        ? unlock.requiredNodeIds
+              .map((value: VisualConfigValue) => inputStringConfig(value, ''))
+              .filter(Boolean)
+        : [];
+
+    return {
+        enabled: booleanConfig(unlock.enabled, false),
+        nodeOperator:
+            stringConfig(unlock.nodeOperator, 'and') === 'or' ? 'or' : 'and',
+        requiredNodeIds,
+        tool: {
+            enabled: booleanConfig(tool.enabled, false),
+            toolId: inputStringConfig(tool.toolId, ''),
+        },
+        topOperator:
+            stringConfig(unlock.topOperator, 'and') === 'or' ? 'or' : 'and',
+    };
+}
+
+function mapVisualFormFromConfig(config: MapVisualConfig): MapVisualForm {
+    return {
+        dark: mapVisualThemeFieldsFromConfig(config.dark),
         light: mapVisualThemeFieldsFromConfig(config.light),
     };
 }
 
-function mapVisualPayload(form: MapVisualForm): MapVisualForm {
+function mapVisualPayload(form: MapVisualForm): MapVisualConfig {
     return {
-        ...form.dark,
         dark: form.dark,
         light: form.light,
     };
@@ -2016,7 +3375,17 @@ function nodeVisualThemeFieldsFromConfig(
             themeConfig.highlightOpacity,
             fallback.highlightOpacity,
         ),
+        imageRotation: stringConfig(
+            themeConfig.imageRotation,
+            fallback.imageRotation,
+        ),
         imageUrl: stringConfig(themeConfig.imageUrl, fallback.imageUrl),
+        imageWidth: inputStringConfig(
+            themeConfig.imageWidth,
+            fallback.imageWidth,
+        ),
+        imageX: inputStringConfig(themeConfig.imageX, fallback.imageX),
+        imageY: inputStringConfig(themeConfig.imageY, fallback.imageY),
         labelColor: stringConfig(themeConfig.labelColor, fallback.labelColor),
         labelOpacity: stringConfig(
             themeConfig.labelOpacity,
@@ -2037,6 +3406,26 @@ function mapVisualThemeFieldsFromConfig(
     return {
         ...fallback,
         accentColor: stringConfig(config?.accentColor, fallback.accentColor),
+        bottomNavActiveBackground: stringConfig(
+            config?.bottomNavActiveBackground,
+            fallback.bottomNavActiveBackground,
+        ),
+        bottomNavActiveTextColor: stringConfig(
+            config?.bottomNavActiveTextColor,
+            fallback.bottomNavActiveTextColor,
+        ),
+        bottomNavBackground: stringConfig(
+            config?.bottomNavBackground,
+            fallback.bottomNavBackground,
+        ),
+        bottomNavBorderColor: stringConfig(
+            config?.bottomNavBorderColor,
+            fallback.bottomNavBorderColor,
+        ),
+        bottomNavTextColor: stringConfig(
+            config?.bottomNavTextColor,
+            fallback.bottomNavTextColor,
+        ),
         completedDimOpacity: inputStringConfig(
             config?.completedDimOpacity,
             fallback.completedDimOpacity,
@@ -2051,6 +3440,10 @@ function mapVisualThemeFieldsFromConfig(
             config?.panelBackground,
             fallback.panelBackground,
         ),
+        panelBorderColor: stringConfig(
+            config?.panelBorderColor,
+            fallback.panelBorderColor,
+        ),
         panelMutedTextColor: stringConfig(
             config?.panelMutedTextColor,
             fallback.panelMutedTextColor,
@@ -2058,6 +3451,26 @@ function mapVisualThemeFieldsFromConfig(
         panelTextColor: stringConfig(
             config?.panelTextColor,
             fallback.panelTextColor,
+        ),
+        sideControlActiveBackground: stringConfig(
+            config?.sideControlActiveBackground,
+            fallback.sideControlActiveBackground,
+        ),
+        sideControlActiveTextColor: stringConfig(
+            config?.sideControlActiveTextColor,
+            fallback.sideControlActiveTextColor,
+        ),
+        sideControlBackground: stringConfig(
+            config?.sideControlBackground,
+            fallback.sideControlBackground,
+        ),
+        sideControlBorderColor: stringConfig(
+            config?.sideControlBorderColor,
+            fallback.sideControlBorderColor,
+        ),
+        sideControlTextColor: stringConfig(
+            config?.sideControlTextColor,
+            fallback.sideControlTextColor,
         ),
         sidePanelBackground: stringConfig(
             config?.sidePanelBackground,
@@ -2078,6 +3491,78 @@ function mapVisualThemeFieldsFromConfig(
     };
 }
 
+function parseEditableCssColor(value: string): {
+    hex: string;
+    opacity: string;
+} {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue === '') {
+        return {
+            hex: '',
+            opacity: '100',
+        };
+    }
+
+    if (isHexColor(trimmedValue)) {
+        return {
+            hex: trimmedValue,
+            opacity: '100',
+        };
+    }
+
+    const rgbaMatch = trimmedValue.match(
+        /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*([0-9.]+)\s*)?\)$/i,
+    );
+
+    if (!rgbaMatch) {
+        return {
+            hex: '#000000',
+            opacity: '100',
+        };
+    }
+
+    const red = clampColorChannel(Number(rgbaMatch[1]));
+    const green = clampColorChannel(Number(rgbaMatch[2]));
+    const blue = clampColorChannel(Number(rgbaMatch[3]));
+    const alpha = rgbaMatch[4] === undefined ? 1 : Number(rgbaMatch[4]);
+
+    return {
+        hex: rgbToHex(red, green, blue),
+        opacity: Math.round(Math.min(1, Math.max(0, alpha)) * 100).toString(),
+    };
+}
+
+function cssColorFromPicker(hexColor: string, opacity: string): string {
+    const safeHex = isHexColor(hexColor) ? hexColor : '#000000';
+    const numericOpacity = percentConfig(opacity, 100);
+
+    if (numericOpacity >= 100) {
+        return safeHex;
+    }
+
+    const red = Number.parseInt(safeHex.slice(1, 3), 16);
+    const green = Number.parseInt(safeHex.slice(3, 5), 16);
+    const blue = Number.parseInt(safeHex.slice(5, 7), 16);
+    const alpha = Number((numericOpacity / 100).toFixed(2));
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function clampColorChannel(value: number): number {
+    if (!Number.isFinite(value)) {
+        return 0;
+    }
+
+    return Math.min(255, Math.max(0, Math.round(value)));
+}
+
+function rgbToHex(red: number, green: number, blue: number): string {
+    return `#${[red, green, blue]
+        .map((value) => value.toString(16).padStart(2, '0'))
+        .join('')}`;
+}
+
 function isVisualConfig(value: VisualConfigValue): value is NestedVisualConfig {
     return typeof value === 'object' && value !== null;
 }
@@ -2088,6 +3573,25 @@ function booleanConfig(value: VisualConfigValue, fallback: boolean) {
 
 function stringConfig(value: unknown, fallback: string) {
     return typeof value === 'string' ? value : fallback;
+}
+
+function rotationConfig(value: unknown): number {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    const numeric = Number.isFinite(parsed) ? parsed : 0;
+
+    return Math.min(360, Math.max(-360, numeric));
+}
+
+function percentConfig(
+    value: unknown,
+    fallback: number,
+    min = 0,
+    max = 100,
+): number {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    const numeric = Number.isFinite(parsed) ? parsed : fallback;
+
+    return Math.min(max, Math.max(min, numeric));
 }
 
 function inputStringConfig(value: unknown, fallback: string) {
@@ -2121,7 +3625,91 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
                 ...form.visual_config.reveal,
                 ...override.visual_config?.reveal,
             },
+            sounds: {
+                ...form.visual_config.sounds,
+                ...override.visual_config?.sounds,
+                click: {
+                    ...form.visual_config.sounds.click,
+                    ...override.visual_config?.sounds?.click,
+                },
+                mouseEnter: {
+                    ...form.visual_config.sounds.mouseEnter,
+                    ...override.visual_config?.sounds?.mouseEnter,
+                },
+                mouseLeave: {
+                    ...form.visual_config.sounds.mouseLeave,
+                    ...override.visual_config?.sounds?.mouseLeave,
+                },
+                unlock: {
+                    ...form.visual_config.sounds.unlock,
+                    ...override.visual_config?.sounds?.unlock,
+                },
+            },
+            unlock: {
+                ...form.visual_config.unlock,
+                ...override.visual_config?.unlock,
+                tool: {
+                    ...form.visual_config.unlock.tool,
+                    ...override.visual_config?.unlock?.tool,
+                },
+            },
         },
+    };
+}
+
+function nodePayload(form: NodeForm): NodeForm {
+    const rules = buildUnlockRules(form.visual_config.unlock);
+
+    return {
+        ...form,
+        visual_config: {
+            ...form.visual_config,
+            unlock: {
+                ...form.visual_config.unlock,
+                rules,
+            },
+        },
+    };
+}
+
+function buildUnlockRules(
+    unlock: NodeForm['visual_config']['unlock'],
+): UnlockRule | undefined {
+    const rules: UnlockRule[] = [];
+    const nodeRules = unlock.requiredNodeIds
+        .map((nodeId) => Number(nodeId))
+        .filter((nodeId) => Number.isFinite(nodeId) && nodeId > 0)
+        .map<UnlockRule>((nodeId) => ({
+            nodeId,
+            type: 'node_completed',
+        }));
+
+    if (nodeRules.length > 0) {
+        rules.push({
+            operator: unlock.nodeOperator,
+            rules: nodeRules,
+            type: 'group',
+        });
+    }
+
+    if (unlock.tool.enabled && unlock.tool.toolId) {
+        rules.push({
+            type: 'tool_used',
+        });
+    }
+
+    if (!unlock.enabled || rules.length === 0) {
+        return undefined;
+    }
+
+    if (rules.length === 1) {
+        return rules[0];
+    }
+
+    return {
+        operator: unlock.topOperator,
+        rules,
+        type: 'group',
     };
 }
 

@@ -59,7 +59,7 @@ export default function Bookmarks({ bookmarkMap }: BookmarksProps) {
                             onClearFocus={() => setSelectedNodeId(null)}
                             onClearEquippedTool={() => undefined}
                             onSelectNode={(node) => setSelectedNodeId(node.id)}
-                            onUseToolOnHiddenNode={() => undefined}
+                            onUseToolOnNode={() => undefined}
                             selectedNode={selectedNode}
                             selectedTool={null}
                         />

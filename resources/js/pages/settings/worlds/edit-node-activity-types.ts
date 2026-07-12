@@ -17,12 +17,19 @@ export type ActivityTypeDefinition = {
 export type ActivitySummary = {
     config: Record<
         string,
-        Array<number | string> | string | number | boolean | null
+        | Array<MarkdownPageForm | MarkdownTransitionForm | number | string>
+        | GraphLayout
+        | Record<string, unknown>
+        | string
+        | number
+        | boolean
+        | null
     >;
     connectors: {
         inputs: Connector[];
         outputs: Connector[];
     };
+    graphLayout?: GraphLayout;
     id: number;
     introduction: string | null;
     portalLink: PortalActivityLink | null;
@@ -81,6 +88,7 @@ export type ActivityGraphPayload = {
     };
     node: {
         description: string | null;
+        graphLayout: GraphLayout;
         id: number;
         slug: string;
         startActivityId: number | null;
@@ -96,12 +104,38 @@ export type ActivityGraphPayload = {
     };
 };
 
+export type GraphLayout = {
+    end?: GraphPosition;
+    start?: GraphPosition;
+};
+
+export type GraphPosition = {
+    x: number;
+    y: number;
+};
+
 export type EditableTool = {
     id: number;
     imageDark: string | null;
     imageLight: string | null;
     slug: string;
     title: string;
+};
+
+export type EditableItem = {
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    quantity?: number;
+    slug: string;
+    title: string;
+};
+
+export type EditableSound = {
+    id: number;
+    name: string;
+    slug: string;
+    url: string;
 };
 
 export type ActivityStartRoute = {
@@ -126,6 +160,32 @@ export type StartRouteForm = {
     image_light: string;
 };
 
+export type MarkdownPageForm = {
+    body: string;
+    id: string;
+    position: {
+        x: number;
+        y: number;
+    };
+    title: string;
+    visual: {
+        borderColorDark: string;
+        borderColorLight: string;
+        headingColorDark: string;
+        headingColorLight: string;
+        pageColorDark: string;
+        pageColorLight: string;
+        textColorDark: string;
+        textColorLight: string;
+    };
+};
+
+export type MarkdownTransitionForm = {
+    from: string;
+    id: string;
+    to: string;
+};
+
 export type ActivityNodeData = {
     activity: ActivitySummary;
     onDelete: (activity: ActivitySummary) => void;
@@ -148,6 +208,38 @@ export type ActivityGraphEdge = Edge<
 
 export type CreateActivityForm = {
     introduction: string;
+    item_grant_background_dark: string;
+    item_grant_background_light: string;
+    item_grant_items: Array<{
+        itemId: string;
+        quantity: string;
+    }>;
+    item_grant_probability_percent: string;
+    item_obstacle_background_dark: string;
+    item_obstacle_background_light: string;
+    item_obstacle_lock_minutes: string;
+    item_obstacle_met_background_dark: string;
+    item_obstacle_met_background_light: string;
+    item_obstacle_overlay_dark: string;
+    item_obstacle_overlay_light: string;
+    item_obstacle_overlay_width: string;
+    item_obstacle_overlay_x: string;
+    item_obstacle_overlay_y: string;
+    item_obstacle_slots: Array<{
+        itemId: string;
+        width: string;
+        x: string;
+        y: string;
+    }>;
+    item_obstacle_sound_met_enabled: boolean;
+    item_obstacle_sound_met_id: string;
+    item_obstacle_sound_not_met_enabled: boolean;
+    item_obstacle_sound_not_met_id: string;
+    item_obstacle_sound_transition_enabled: boolean;
+    item_obstacle_sound_transition_id: string;
+    markdown_pages: MarkdownPageForm[];
+    markdown_graph_layout: GraphLayout;
+    markdown_transitions: MarkdownTransitionForm[];
     obstacle_allowed_tool_ids: string;
     obstacle_background_dark: string;
     obstacle_background_light: string;
@@ -177,10 +269,13 @@ export type CreateActivityForm = {
     portal_duration_seconds: string;
     portal_foreground_dark: string;
     portal_foreground_light: string;
+    portal_foreground_width: string;
     portal_foreground_x: string;
     portal_foreground_y: string;
     portal_mode: 'input' | 'output';
+    portal_show_on_arrival: boolean;
     portal_swirl_enabled: boolean;
+    portal_wait_for_enter: boolean;
     slug: string;
     target_portal_activity_id: string;
     title: string;

@@ -1,6 +1,13 @@
 import { Link } from '@inertiajs/react';
 import { Handle, MarkerType, Position } from '@xyflow/react';
-import { CircleStop, MessageCircle, Pencil, Play, Trash2 } from 'lucide-react';
+import {
+    CircleStop,
+    FileText,
+    MessageCircle,
+    Pencil,
+    Play,
+    Trash2,
+} from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -110,6 +117,22 @@ function ActivityGraphNodeCard({
                         >
                             <MessageCircle className="size-3.5" />
                             Edit dialogue
+                        </Link>
+                    </Button>
+                ) : null}
+                {activity.type === 'markdown' ? (
+                    <Button
+                        asChild
+                        className="h-8 px-3 text-xs"
+                        onClick={(event) => event.stopPropagation()}
+                        type="button"
+                        variant="secondary"
+                    >
+                        <Link
+                            href={`/settings/worlds/activities/${activity.id}/markdown`}
+                        >
+                            <FileText className="size-3.5" />
+                            Edit pages
                         </Link>
                     </Button>
                 ) : null}
@@ -231,7 +254,8 @@ export function buildGraphNodes(
                   },
     }));
 
-    const endX = Math.max(520, activities.length * 300 + 160);
+    const fallbackEndX = Math.max(520, activities.length * 300 + 160);
+    const graphLayout = payload.node.graphLayout ?? {};
 
     return [
         {
@@ -242,7 +266,7 @@ export function buildGraphNodes(
                 kind: 'start',
                 title: 'Start',
             },
-            position: { x: -220, y: 40 },
+            position: graphLayout.start ?? { x: -220, y: 40 },
         },
         ...activities,
         {
@@ -253,7 +277,7 @@ export function buildGraphNodes(
                 kind: 'end',
                 title: 'End',
             },
-            position: { x: endX, y: 40 },
+            position: graphLayout.end ?? { x: fallbackEndX, y: 40 },
         },
     ];
 }
@@ -284,6 +308,12 @@ export function buildGraphEdges(
               : [];
 
     startRoutes.forEach((startRoute) => {
+        const targetActivity = findActivity(payload, startRoute.activityId);
+
+        if (!targetActivity || !hasInputConnector(targetActivity, 'in')) {
+            return;
+        }
+
         edges.push({
             id: `start:${startRoute.id}:${startRoute.activityId}`,
             source: 'start',
@@ -301,6 +331,26 @@ export function buildGraphEdges(
     });
 
     payload.transitions.forEach((transition) => {
+        const sourceActivity = findActivity(payload, transition.fromActivityId);
+        const targetActivity = transition.toActivityId
+            ? findActivity(payload, transition.toActivityId)
+            : null;
+
+        if (
+            !sourceActivity ||
+            !hasOutputConnector(sourceActivity, transition.fromConnector)
+        ) {
+            return;
+        }
+
+        if (
+            transition.toActivityId &&
+            (!targetActivity ||
+                !hasInputConnector(targetActivity, transition.toConnector))
+        ) {
+            return;
+        }
+
         edges.push({
             id: `transition:${transition.id}`,
             source: transition.fromActivityId.toString(),
@@ -317,6 +367,31 @@ export function buildGraphEdges(
     });
 
     return edges;
+}
+
+function findActivity(
+    payload: ActivityGraphPayload,
+    activityId: number,
+): ActivitySummary | undefined {
+    return payload.activities.find((activity) => activity.id === activityId);
+}
+
+function hasInputConnector(
+    activity: ActivitySummary,
+    connectorId: string,
+): boolean {
+    return activity.connectors.inputs.some(
+        (connector) => connector.id === connectorId,
+    );
+}
+
+function hasOutputConnector(
+    activity: ActivitySummary,
+    connectorId: string,
+): boolean {
+    return activity.connectors.outputs.some(
+        (connector) => connector.id === connectorId,
+    );
 }
 
 export function routeActivityTitle(

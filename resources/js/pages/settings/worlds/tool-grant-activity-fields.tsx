@@ -13,16 +13,15 @@ import {
     ConfigImageInput,
     NumberField,
 } from './activity-config-fields';
+import {
+    ActivityScenePreview,
+    ScenePreviewBubble,
+    ScenePreviewImage,
+    themedPreviewAsset,
+} from './activity-scene-preview';
 import type { ActivityForm, EditableTool } from './edit-node-activity-types';
-export function ToolGrantActivityFields({
-    errors,
-    form,
-    imageUploadErrors,
-    onChange,
-    onUpload,
-    tools,
-    uploadingImageKey,
-}: {
+import { useAppearance } from '@/hooks/use-appearance';
+type ToolGrantFieldProps = {
     errors: Record<string, string>;
     form: ActivityForm;
     imageUploadErrors: Record<string, string>;
@@ -34,7 +33,87 @@ export function ToolGrantActivityFields({
     ) => void;
     tools: EditableTool[];
     uploadingImageKey: string | null;
-}) {
+};
+
+export function ToolGrantActivityFields(props: ToolGrantFieldProps) {
+    return (
+        <div className="grid gap-5">
+            <ToolGrantFlowFields {...props} />
+            <ToolGrantVisualFields {...props} />
+        </div>
+    );
+}
+
+export function ToolGrantFlowFields({
+    errors,
+    form,
+    onChange,
+    tools,
+}: Pick<ToolGrantFieldProps, 'errors' | 'form' | 'onChange' | 'tools'>) {
+    const updateField = (field: keyof ActivityForm, value: string) =>
+        onChange((current) => ({
+            ...current,
+            [field]: value,
+        }));
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="tool-grant-tool">Tool to give</Label>
+            <Select
+                onValueChange={(value) =>
+                    updateField('tool_grant_tool_id', value)
+                }
+                value={form.tool_grant_tool_id}
+            >
+                <SelectTrigger className="w-full" id="tool-grant-tool">
+                    <SelectValue placeholder="Select a tool" />
+                </SelectTrigger>
+                <SelectContent>
+                    {tools.map((tool) => (
+                        <SelectItem key={tool.id} value={tool.id.toString()}>
+                            {tool.title}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <InputError message={errors.tool_grant_tool_id} />
+        </div>
+    );
+}
+
+export function ToolGrantVisualFields({
+    errors,
+    form,
+    imageUploadErrors,
+    onChange,
+    onUpload,
+    tools,
+    uploadingImageKey,
+}: ToolGrantFieldProps) {
+    const { resolvedAppearance } = useAppearance();
+    const selectedTool = tools.find(
+        (tool) => tool.id.toString() === form.tool_grant_tool_id,
+    );
+    const isLight = resolvedAppearance === 'light';
+    const backgroundImage = themedPreviewAsset(
+        form.tool_grant_background_dark,
+        form.tool_grant_background_light,
+        resolvedAppearance,
+    );
+    const toolImage = themedPreviewAsset(
+        selectedTool?.imageDark,
+        selectedTool?.imageLight,
+        resolvedAppearance,
+    );
+    const bubbleColor = isLight
+        ? form.tool_grant_bubble_color_light
+        : form.tool_grant_bubble_color_dark;
+    const bubbleBorderColor = isLight
+        ? form.tool_grant_bubble_border_color_light
+        : form.tool_grant_bubble_border_color_dark;
+    const bubbleOpacity = isLight
+        ? form.tool_grant_bubble_opacity_light
+        : form.tool_grant_bubble_opacity_dark;
     const updateField = (field: keyof ActivityForm, value: string) =>
         onChange((current) => ({
             ...current,
@@ -43,31 +122,30 @@ export function ToolGrantActivityFields({
 
     return (
         <div className="grid gap-5">
-            <div className="grid gap-3 md:grid-cols-2">
-                <div className="grid gap-2">
-                    <Label htmlFor="tool-grant-tool">Tool to give</Label>
-                    <Select
-                        onValueChange={(value) =>
-                            updateField('tool_grant_tool_id', value)
-                        }
-                        value={form.tool_grant_tool_id}
-                    >
-                        <SelectTrigger className="w-full" id="tool-grant-tool">
-                            <SelectValue placeholder="Select a tool" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {tools.map((tool) => (
-                                <SelectItem
-                                    key={tool.id}
-                                    value={tool.id.toString()}
-                                >
-                                    {tool.title}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError message={errors.tool_grant_tool_id} />
+            <ActivityScenePreview
+                backgroundImage={backgroundImage}
+                description="Uses the current appearance mode and selected tool."
+                title="Grant scene preview"
+            >
+                <ScenePreviewImage
+                    imageUrl={toolImage}
+                    label={selectedTool?.title ?? 'Selected tool'}
+                    width={18}
+                    x={form.tool_grant_tool_x}
+                    y={form.tool_grant_tool_y}
+                />
+                <div className="absolute inset-x-3 bottom-3">
+                    <ScenePreviewBubble
+                        borderColor={bubbleBorderColor}
+                        color={bubbleColor}
+                        label={selectedTool?.title ?? 'Tool'}
+                        opacity={bubbleOpacity}
+                        text={form.tool_grant_text}
+                    />
                 </div>
+            </ActivityScenePreview>
+
+            <div className="grid gap-3 md:grid-cols-2">
                 <NumberField
                     label="Typing speed"
                     max="250"

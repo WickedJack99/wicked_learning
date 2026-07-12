@@ -13,12 +13,18 @@ type ThemeVariant<T> = T & {
 };
 
 export type LearningMap = {
+    accessRoles: string[];
     id: number;
     slug: string;
     title: string;
     description: string | null;
     backgroundConfig: ThemeVariant<{
         accentColor?: string;
+        bottomNavActiveBackground?: string;
+        bottomNavActiveTextColor?: string;
+        bottomNavBackground?: string;
+        bottomNavBorderColor?: string;
+        bottomNavTextColor?: string;
         cardBackground?: string;
         cardBorderColor?: string;
         cardTextColor?: string;
@@ -29,9 +35,15 @@ export type LearningMap = {
         draggingCursor?: string;
         tileCursor?: string;
         panelBackground?: string;
+        panelBorderColor?: string;
         panelMutedTextColor?: string;
         panelTextColor?: string;
         pageBackground?: string;
+        sideControlActiveBackground?: string;
+        sideControlActiveTextColor?: string;
+        sideControlBackground?: string;
+        sideControlBorderColor?: string;
+        sideControlTextColor?: string;
         sidePanelBackground?: string;
         sidePanelBorderColor?: string;
         sidePanelMutedTextColor?: string;
@@ -77,6 +89,10 @@ export type LearningNode = {
         foregroundOpacity?: string;
         highlightColor?: string;
         highlightOpacity?: string;
+        imageRotation?: string;
+        imageWidth?: string;
+        imageX?: string;
+        imageY?: string;
         hideEmptySpace?: boolean;
         hideImage?: boolean;
         hideLabel?: boolean;
@@ -85,6 +101,39 @@ export type LearningNode = {
             isDiscoverable?: boolean;
             isDiscovered?: boolean;
             toolId?: string;
+        };
+        sounds?: {
+            click?: {
+                enabled?: boolean;
+                url?: string;
+            };
+            mouseEnter?: {
+                enabled?: boolean;
+                url?: string;
+            };
+            mouseLeave?: {
+                enabled?: boolean;
+                url?: string;
+            };
+            unlock?: {
+                enabled?: boolean;
+                url?: string;
+            };
+        };
+        unlock?: {
+            enabled?: boolean;
+            isToolUnlockable?: boolean;
+            isUnlockable?: boolean;
+            isUnlocked?: boolean;
+            nodeOperator?: 'and' | 'or';
+            requiredNodeIds?: string[];
+            rules?: Record<string, unknown>;
+            tool?: {
+                enabled?: boolean;
+                toolId?: string;
+            };
+            toolUsed?: boolean;
+            topOperator?: 'and' | 'or';
         };
         tooltip?: string;
         imageUrl?: string;
@@ -119,6 +168,7 @@ export type LearningPortalLink = {
     targetMapTitle: string;
     targetNodeId: number;
     targetNodeSlug: string;
+    targetNodeState: LearningNode['state'];
     targetNodeTitle: string;
 };
 
@@ -130,8 +180,14 @@ export type LearningActivity = {
     introduction: string | null;
     config: Record<
         string,
-        Array<number | string> | boolean | number | string | null
+        | Array<Record<string, unknown> | number | string>
+        | boolean
+        | number
+        | string
+        | null
     >;
+    configuredItems: LearningItem[];
+    configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
     dialogueStages: DialogueStage[];
     npcDialogueNodes: NpcDialogueNode[];
@@ -148,6 +204,17 @@ export type LearningTool = {
     id: number;
     imageDark: string | null;
     imageLight: string | null;
+    slug: string;
+    title: string;
+};
+
+export type LearningItem = {
+    config: Record<string, boolean | number | string | null>;
+    description: string | null;
+    id: number;
+    imageDark: string | null;
+    imageLight: string | null;
+    quantity: number;
     slug: string;
     title: string;
 };
@@ -175,7 +242,7 @@ export type NpcDialogueNode = {
     >;
     id: number;
     title: string;
-    type: 'end' | 'npc_interaction' | string;
+    type: 'answer' | 'end' | 'npc_monologue' | 'npc_question' | string;
 };
 
 export type NpcDialogueTransition = {

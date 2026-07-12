@@ -27,7 +27,8 @@ const navItemGap = 4;
 const navPadding = 12;
 
 export function AppBottomNav() {
-    const { url } = usePage();
+    const { props, url } = usePage();
+    const isAuthenticated = Boolean(props.auth.user);
     const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(
         () => readPersistedActiveActivity(),
     );
@@ -89,10 +90,7 @@ export function AppBottomNav() {
         router.flushAll();
     }, []);
 
-    const isMapActive = useMemo(
-        () => url.startsWith('/world') || url.startsWith('/dashboard'),
-        [url],
-    );
+    const isMapActive = useMemo(() => url.startsWith('/world'), [url]);
     const isBookmarksActive = useMemo(
         () => url.startsWith('/bookmarks'),
         [url],
@@ -107,31 +105,35 @@ export function AppBottomNav() {
                 id: 'map',
                 label: 'Map',
             },
-            {
-                active: isBookmarksActive,
-                href: '/bookmarks',
-                icon: <Bookmark className="size-5" />,
-                id: 'bookmarks',
-                label: 'Bookmarks',
-            },
-            {
-                active: isSettingsActive,
-                href: '/settings',
-                icon: <Cog className="size-5" />,
-                id: 'settings',
-                label: 'Settings',
-            },
-            {
-                active: false,
-                asButton: true,
-                href: logout(),
-                icon: (
-                    <DoorOpen className="size-5 text-red-600 dark:text-red-400" />
-                ),
-                id: 'logout',
-                label: 'Log out',
-                onClick: handleLogout,
-            },
+            ...(isAuthenticated
+                ? [
+                      {
+                          active: isBookmarksActive,
+                          href: '/bookmarks',
+                          icon: <Bookmark className="size-5" />,
+                          id: 'bookmarks',
+                          label: 'Bookmarks',
+                      },
+                      {
+                          active: isSettingsActive,
+                          href: '/settings',
+                          icon: <Cog className="size-5" />,
+                          id: 'settings',
+                          label: 'Settings',
+                      },
+                      {
+                          active: false,
+                          asButton: true,
+                          href: logout(),
+                          icon: (
+                              <DoorOpen className="size-5 text-red-600 dark:text-red-400" />
+                          ),
+                          id: 'logout',
+                          label: 'Log out',
+                          onClick: handleLogout,
+                      },
+                  ]
+                : []),
         ];
 
         if (!activeActivity) {
@@ -155,6 +157,7 @@ export function AppBottomNav() {
         isMapActive,
         isSettingsActive,
         handleLogout,
+        isAuthenticated,
         shouldAnimateActiveActivity,
     ]);
     const navWidth =
@@ -167,6 +170,9 @@ export function AppBottomNav() {
             aria-label="Primary"
             className="fixed bottom-4 left-1/2 z-40 h-14 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white/88 p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md transition-[width,background-color,border-color,box-shadow] duration-1000 ease-out dark:border-white/12 dark:bg-slate-950/82 dark:shadow-black/35"
             style={{
+                background: 'var(--map-bottom-nav-background)',
+                borderColor: 'var(--map-bottom-nav-border-color)',
+                color: 'var(--map-bottom-nav-text-color)',
                 cursor: 'var(--platform-cursor)',
                 width: navWidth,
             }}
@@ -230,7 +236,15 @@ function FloatingNavLink({
             )}
             href={href}
             onClick={onClick}
-            style={{ cursor: 'var(--platform-action-cursor)' }}
+            style={{
+                background: active
+                    ? 'var(--map-bottom-nav-active-background)'
+                    : undefined,
+                color: active
+                    ? 'var(--map-bottom-nav-active-text-color)'
+                    : 'var(--map-bottom-nav-text-color)',
+                cursor: 'var(--platform-action-cursor)',
+            }}
         >
             {children}
         </Link>

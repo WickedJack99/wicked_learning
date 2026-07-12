@@ -3,6 +3,8 @@ import InputError from '@/components/input-error';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PortalScene } from '@/features/world/portal-scene';
+import { useAppearance } from '@/hooks/use-appearance';
 import {
     Select,
     SelectContent,
@@ -46,6 +48,30 @@ export function PortalModeField({
                 </SelectContent>
             </Select>
             <InputError message={errors.portal_mode} />
+            {form.portal_mode === 'input' ? (
+                <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10">
+                    <Checkbox
+                        checked={form.portal_show_on_arrival}
+                        onCheckedChange={(checked) =>
+                            onChange((current) => ({
+                                ...current,
+                                portal_show_on_arrival: checked === true,
+                            }))
+                        }
+                    />
+                    <span className="grid gap-1">
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                            Show this exit portal when arriving
+                        </span>
+                        <span className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            Disable this when the arrival should complete
+                            silently and continue to the next connected
+                            activity.
+                        </span>
+                    </span>
+                </label>
+            ) : null}
+            <InputError message={errors.portal_show_on_arrival} />
         </div>
     );
 }
@@ -122,11 +148,28 @@ export function PortalVisualFields({
     ) => void;
     uploadingImageKey: string | null;
 }) {
+    const { resolvedAppearance } = useAppearance();
     const updateField = (field: keyof ActivityForm, value: string | boolean) =>
         onChange((current) => ({
             ...current,
             [field]: value,
         }));
+    const previewBackground =
+        resolvedAppearance === 'light'
+            ? form.portal_background_light || form.portal_background_dark
+            : form.portal_background_dark || form.portal_background_light;
+    const previewForeground =
+        resolvedAppearance === 'light'
+            ? form.portal_foreground_light || form.portal_foreground_dark
+            : form.portal_foreground_dark || form.portal_foreground_light;
+    const foregroundX = boundedNumber(form.portal_foreground_x, 50, 0, 100);
+    const foregroundY = boundedNumber(form.portal_foreground_y, 50, 0, 100);
+    const foregroundWidth = boundedNumber(
+        form.portal_foreground_width,
+        28,
+        1,
+        100,
+    );
 
     const imageFields: Array<{
         description: string;
@@ -196,7 +239,7 @@ export function PortalVisualFields({
                 ))}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
                 <div className="grid gap-2">
                     <Label htmlFor="portal-foreground-x">Foreground X</Label>
                     <Input
@@ -232,6 +275,26 @@ export function PortalVisualFields({
                         value={form.portal_foreground_y}
                     />
                     <InputError message={errors.portal_foreground_y} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="portal-foreground-width">
+                        Foreground width
+                    </Label>
+                    <Input
+                        id="portal-foreground-width"
+                        max="100"
+                        min="1"
+                        onChange={(event) =>
+                            updateField(
+                                'portal_foreground_width',
+                                event.currentTarget.value,
+                            )
+                        }
+                        step="1"
+                        type="number"
+                        value={form.portal_foreground_width}
+                    />
+                    <InputError message={errors.portal_foreground_width} />
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="portal-duration">Duration in seconds</Label>
@@ -272,6 +335,62 @@ export function PortalVisualFields({
                 </span>
             </label>
             <InputError message={errors.portal_swirl_enabled} />
+
+            <label className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
+                <Checkbox
+                    checked={form.portal_wait_for_enter}
+                    className="mt-0.5"
+                    onCheckedChange={(checked) =>
+                        updateField('portal_wait_for_enter', checked === true)
+                    }
+                />
+                <span>
+                    <span className="block text-sm font-medium text-slate-950 dark:text-white">
+                        Wait for player to enter portal
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Ignore the duration timer and keep the portal animation
+                        visible until the player clicks the enter button.
+                    </span>
+                </span>
+            </label>
+            <InputError message={errors.portal_wait_for_enter} />
+
+            <div className="grid gap-2">
+                <div>
+                    <p className="text-sm font-medium text-slate-950 dark:text-white">
+                        Preview
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Uses the current appearance mode and falls back to the
+                        other mode if one image is not configured.
+                    </p>
+                </div>
+                <PortalScene
+                    backgroundImage={previewBackground}
+                    foregroundImage={previewForeground}
+                    foregroundWidth={foregroundWidth}
+                    foregroundX={foregroundX}
+                    foregroundY={foregroundY}
+                    showForegroundPlaceholder
+                    swirlEnabled={form.portal_swirl_enabled}
+                />
+            </div>
         </div>
     );
+}
+
+function boundedNumber(
+    value: string,
+    fallback: number,
+    min: number,
+    max: number,
+): number {
+    const parsed = Number(value);
+
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+
+    return Math.max(min, Math.min(max, parsed));
 }

@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { memo, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ElementType, PointerEvent } from 'react';
+import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
+import type { PlayableSound } from '@/features/sounds/sound-player';
 import {
     toolAnimationUrl,
     toolAnimationWidthPercent,
@@ -37,7 +39,7 @@ export function WorldMap({
     onClearFocus,
     onClearEquippedTool,
     onSelectNode,
-    onUseToolOnHiddenNode,
+    onUseToolOnNode,
     selectedNode,
     selectedTool,
 }: {
@@ -48,7 +50,7 @@ export function WorldMap({
     onClearFocus: () => void;
     onSelectNode: (node: LearningNode) => void;
     onClearEquippedTool?: () => void;
-    onUseToolOnHiddenNode: (node: LearningNode) => Promise<void> | void;
+    onUseToolOnNode: (node: LearningNode) => Promise<void> | void;
     selectedNode: LearningNode | null;
     selectedTool: LearningTool | null;
 }) {
@@ -67,6 +69,7 @@ export function WorldMap({
         y: number;
     } | null>(null);
     const suppressTileClick = useRef(false);
+    const soundPlayer = useLayeredSoundPlayer();
     const tileWidth = map.gridConfig.tileWidth ?? 132;
     const tileHeight = map.gridConfig.tileHeight ?? 116;
     const gap = map.gridConfig.gap ?? 12;
@@ -135,10 +138,8 @@ export function WorldMap({
         showToolAnimation(animation, setToolAnimation);
         onClearEquippedTool?.();
 
-        if (node && canUseToolOnHiddenNode(node, selectedTool)) {
-            void wait(animation.durationMs).then(() =>
-                onUseToolOnHiddenNode(node),
-            );
+        if (node && canUseToolOnNode(node, selectedTool)) {
+            void wait(animation.durationMs).then(() => onUseToolOnNode(node));
         }
 
         return true;
@@ -250,10 +251,13 @@ export function WorldMap({
                     onClearFocus();
                 }
 
-                if (drag && !drag.hasMoved && node) {
-                    if (node) {
-                        onSelectNode(node);
-                    }
+                if (
+                    drag &&
+                    !drag.hasMoved &&
+                    node &&
+                    canSelectNode(node, allowLockedSelection)
+                ) {
+                    onSelectNode(node);
                 }
 
                 setDrag(null);
@@ -282,7 +286,8 @@ export function WorldMap({
                 style={{
                     background:
                         mapTheme.panelBackground ?? 'rgba(5, 15, 22, 0.72)',
-                    borderColor: mapTheme.cardBorderColor,
+                    borderColor:
+                        mapTheme.panelBorderColor ?? mapTheme.cardBorderColor,
                     color: mapTheme.panelTextColor,
                 }}
             >
@@ -339,7 +344,14 @@ export function WorldMap({
                             mode={mode}
                             node={node}
                             onSelectNode={onSelectNode}
-                            onUseToolOnHiddenNode={onUseToolOnHiddenNode}
+                            onPlayNodeSound={(node, trigger) =>
+                                playNodeInteractionSound(
+                                    soundPlayer,
+                                    node,
+                                    trigger,
+                                )
+                            }
+                            onUseToolOnNode={onUseToolOnNode}
                             shouldSuppressClick={() =>
                                 suppressTileClick.current
                             }
@@ -364,7 +376,8 @@ const HexTile = memo(function HexTile({
     allowLockedSelection,
     node,
     onSelectNode,
-    onUseToolOnHiddenNode,
+    onPlayNodeSound,
+    onUseToolOnNode,
     selectedTool,
     shouldSuppressClick,
     style,
@@ -378,7 +391,11 @@ const HexTile = memo(function HexTile({
     isSelected: boolean;
     node: LearningNode;
     onSelectNode: (node: LearningNode) => void;
-    onUseToolOnHiddenNode: (node: LearningNode) => void;
+    onPlayNodeSound: (
+        node: LearningNode,
+        trigger: keyof NonNullable<LearningNode['visualConfig']['sounds']>,
+    ) => void;
+    onUseToolOnNode: (node: LearningNode) => void;
     selectedTool: LearningTool | null;
     shouldSuppressClick: () => boolean;
     style: CSSProperties;
@@ -410,23 +427,27 @@ const HexTile = memo(function HexTile({
         visualConfig.hideEmptySpace !== false;
     const hideImage = visualConfig.hideImage === true;
     const imageUrl = visualConfig.imageUrl ?? '';
+    const imageRotation = rotationConfig(visualConfig.imageRotation);
+    const imageWidth = percentConfig(visualConfig.imageWidth, 100, 10, 200);
+    const imageX = percentConfig(visualConfig.imageX, 50);
+    const imageY = percentConfig(visualConfig.imageY, 50);
     const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
     const visibleImageUrl =
         !hideImage && imageUrl && failedImageUrl !== imageUrl ? imageUrl : '';
     const showFallbackIcon = !hideImage && !visibleImageUrl;
-    const canRevealWithTool = canUseToolOnHiddenNode(node, selectedTool);
-    const canInteract =
-        canRevealWithTool ||
-        (node.state !== 'hidden' && (allowLockedSelection || !isLocked));
+    const canUseWithTool = canUseToolOnNode(node, selectedTool);
+    const canSelect = canSelectNode(node, allowLockedSelection);
+    const canInteract = canUseWithTool || canSelect;
     const resolvedTileCursor = selectedTool
         ? 'var(--platform-cursor)'
-        : canRevealWithTool
+        : canUseWithTool
           ? 'var(--platform-cursor)'
           : canInteract
             ? tileCursor
             : 'default';
     const highlightClass = cn(
-        'pointer-events-none absolute opacity-0 transition-opacity duration-150 group-hover:opacity-100',
+        'pointer-events-none absolute opacity-0',
+        canInteract && 'group-hover:opacity-100 group-focus:opacity-100',
         isSelected && canInteract && 'opacity-100',
         hideEmptySpace && 'hidden',
     );
@@ -457,7 +478,7 @@ const HexTile = memo(function HexTile({
             )}
             data-hex-tile
             data-hex-tile-id={node.id}
-            title={visualConfig.tooltip}
+            title={visualConfig.tooltip ?? node.title}
             onClick={(event) => {
                 event.stopPropagation();
 
@@ -465,10 +486,22 @@ const HexTile = memo(function HexTile({
                     return;
                 }
 
-                if (canRevealWithTool) {
-                    onUseToolOnHiddenNode(node);
+                onPlayNodeSound(node, 'click');
+
+                if (canUseWithTool) {
+                    onUseToolOnNode(node);
                 } else {
                     onSelectNode(node);
+                }
+            }}
+            onMouseEnter={() => {
+                if (canInteract) {
+                    onPlayNodeSound(node, 'mouseEnter');
+                }
+            }}
+            onMouseLeave={() => {
+                if (canInteract) {
+                    onPlayNodeSound(node, 'mouseLeave');
                 }
             }}
             style={tileStyle}
@@ -493,20 +526,26 @@ const HexTile = memo(function HexTile({
                 }}
             />
             {visibleImageUrl ? (
-                <img
-                    alt=""
-                    className={cn(
-                        'absolute inset-[7px] size-[calc(100%-14px)] object-cover',
-                        imageStateClass,
-                    )}
-                    draggable={false}
-                    onError={() => setFailedImageUrl(visibleImageUrl)}
-                    src={visibleImageUrl}
+                <span
+                    className={cn('absolute inset-[7px]', imageStateClass)}
                     style={{
                         clipPath: HEX_TILE_CLIP_PATH,
                         cursor: resolvedTileCursor,
                     }}
-                />
+                >
+                    <img
+                        alt=""
+                        className="absolute inset-0 size-full object-cover"
+                        draggable={false}
+                        onError={() => setFailedImageUrl(visibleImageUrl)}
+                        src={visibleImageUrl}
+                        style={{
+                            cursor: resolvedTileCursor,
+                            objectPosition: `${imageX}% ${imageY}%`,
+                            transform: `scale(${imageWidth / 100}) rotate(${imageRotation}deg)`,
+                        }}
+                    />
+                </span>
             ) : null}
             <span
                 className="pointer-events-none absolute inset-[7px] transition-opacity duration-150"
@@ -532,19 +571,15 @@ const HexTile = memo(function HexTile({
                 }}
             />
             <span
-                className="relative z-10 flex flex-col items-center gap-2 px-5 text-center"
+                className={cn(
+                    'relative z-10 flex flex-col items-center justify-center px-5 text-center',
+                    showFallbackIcon && 'gap-2',
+                )}
                 style={{ cursor: resolvedTileCursor }}
             >
-                <span
-                    className="relative"
-                    style={{ cursor: resolvedTileCursor }}
-                >
+                {showFallbackIcon ? (
                     <Icon
-                        className={cn(
-                            'size-7',
-                            !showFallbackIcon && 'hidden',
-                            imageStateClass,
-                        )}
+                        className={cn('size-7', imageStateClass)}
                         style={{
                             color:
                                 withOpacity(
@@ -554,12 +589,12 @@ const HexTile = memo(function HexTile({
                             cursor: resolvedTileCursor,
                         }}
                     />
-                </span>
+                ) : null}
                 <span
                     className={cn(
-                        'text-xs leading-tight font-medium transition-opacity duration-150',
+                        'text-xs leading-tight font-medium',
                         visualConfig.hideLabel &&
-                            'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+                            'opacity-0 group-hover:opacity-100 group-focus:opacity-100 group-focus-visible:opacity-100',
                         visualConfig.hideLabel && isSelected && 'opacity-100',
                     )}
                     style={{
@@ -588,16 +623,68 @@ const HexTile = memo(function HexTile({
     );
 });
 
-function canUseToolOnHiddenNode(
+function canUseToolOnNode(
     node: LearningNode,
     selectedTool: LearningTool | null,
 ): boolean {
-    return (
-        Boolean(selectedTool) &&
+    if (!selectedTool) {
+        return false;
+    }
+
+    if (
         node.state === 'hidden' &&
         node.visualConfig.reveal?.isDiscoverable === true &&
         node.visualConfig.reveal?.isDiscovered === false
+    ) {
+        return true;
+    }
+
+    return (
+        node.state === 'locked' &&
+        node.visualConfig.unlock?.isToolUnlockable === true &&
+        node.visualConfig.unlock?.isUnlocked !== true
     );
+}
+
+function canSelectNode(
+    node: LearningNode,
+    allowLockedSelection: boolean,
+): boolean {
+    return (
+        node.state !== 'hidden' &&
+        (allowLockedSelection || node.state !== 'locked')
+    );
+}
+
+export function soundFromNode(
+    node: LearningNode,
+    trigger: keyof NonNullable<LearningNode['visualConfig']['sounds']>,
+): PlayableSound | null {
+    const sound = node.visualConfig.sounds?.[trigger];
+
+    if (!sound?.enabled || !sound.url) {
+        return null;
+    }
+
+    return {
+        id: `node-${node.id}-${trigger}-${sound.url}`,
+        loop: false,
+        playSeconds: null,
+        url: sound.url,
+        volume: 70,
+    };
+}
+
+function playNodeInteractionSound(
+    soundPlayer: ReturnType<typeof useLayeredSoundPlayer>,
+    node: LearningNode,
+    trigger: keyof NonNullable<LearningNode['visualConfig']['sounds']>,
+) {
+    const sound = soundFromNode(node, trigger);
+
+    if (sound) {
+        soundPlayer.play(sound, `node-${node.id}-${trigger}`);
+    }
 }
 
 type ToolUseAnimation = {
@@ -680,6 +767,15 @@ function numericConfig(value: unknown, fallback: number): number {
     return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function percentConfig(value: unknown, fallback: number): number {
-    return Math.min(Math.max(numericConfig(value, fallback), 0), 100);
+function percentConfig(
+    value: unknown,
+    fallback: number,
+    min = 0,
+    max = 100,
+): number {
+    return Math.min(Math.max(numericConfig(value, fallback), min), max);
+}
+
+function rotationConfig(value: unknown): number {
+    return Math.min(Math.max(numericConfig(value, 0), -360), 360);
 }

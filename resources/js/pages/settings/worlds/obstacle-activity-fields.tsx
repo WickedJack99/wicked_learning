@@ -14,16 +14,15 @@ import {
     ConfigImageInput,
     NumberField,
 } from './activity-config-fields';
+import {
+    ActivityScenePreview,
+    ScenePreviewBubble,
+    ScenePreviewImage,
+    themedPreviewAsset,
+} from './activity-scene-preview';
 import type { ActivityForm, EditableTool } from './edit-node-activity-types';
-export function ObstacleActivityFields({
-    errors,
-    form,
-    imageUploadErrors,
-    onChange,
-    onUpload,
-    tools,
-    uploadingImageKey,
-}: {
+import { useAppearance } from '@/hooks/use-appearance';
+type ObstacleFieldProps = {
     errors: Record<string, string>;
     form: ActivityForm;
     imageUploadErrors: Record<string, string>;
@@ -35,7 +34,23 @@ export function ObstacleActivityFields({
     ) => void;
     tools: EditableTool[];
     uploadingImageKey: string | null;
-}) {
+};
+
+export function ObstacleActivityFields(props: ObstacleFieldProps) {
+    return (
+        <div className="grid gap-5">
+            <ObstacleFlowFields {...props} />
+            <ObstacleVisualFields {...props} />
+        </div>
+    );
+}
+
+export function ObstacleFlowFields({
+    errors,
+    form,
+    onChange,
+    tools,
+}: Pick<ObstacleFieldProps, 'errors' | 'form' | 'onChange' | 'tools'>) {
     const updateField = (field: keyof ActivityForm, value: string) =>
         onChange((current) => ({
             ...current,
@@ -66,6 +81,142 @@ export function ObstacleActivityFields({
     };
     const removeTool = (toolId: number) =>
         updateToolIds(selectedToolIds.filter((current) => current !== toolId));
+
+    return (
+        <div className="grid gap-3">
+            <div className="grid gap-2">
+                <Label htmlFor="obstacle-tools">Tools that work here</Label>
+                <Select
+                    key={selectedToolIds.join('-') || 'empty'}
+                    onValueChange={addTool}
+                >
+                    <SelectTrigger className="w-full" id="obstacle-tools">
+                        <SelectValue placeholder="Add a tool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {unselectedTools.length > 0 ? (
+                            unselectedTools.map((tool) => (
+                                <SelectItem
+                                    key={tool.id}
+                                    value={tool.id.toString()}
+                                >
+                                    {tool.title}
+                                </SelectItem>
+                            ))
+                        ) : (
+                            <SelectItem disabled value="all-tools-added">
+                                All tools are already selected
+                            </SelectItem>
+                        )}
+                    </SelectContent>
+                </Select>
+                {selectedTools.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                        {selectedTools.map((tool) => (
+                            <Button
+                                key={tool.id}
+                                onClick={() => removeTool(tool.id)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                {tool.title}
+                                <span aria-hidden="true">x</span>
+                            </Button>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Add at least one tool if this obstacle should be
+                        removable.
+                    </p>
+                )}
+                <InputError message={errors.obstacle_allowed_tool_ids} />
+            </div>
+
+            <div className="grid gap-2">
+                <Label htmlFor="obstacle-persist-after-solved">
+                    After the correct tool is used
+                </Label>
+                <Select
+                    onValueChange={(value) =>
+                        updateBooleanField(
+                            'obstacle_persist_after_solved',
+                            value === 'yes',
+                        )
+                    }
+                    value={form.obstacle_persist_after_solved ? 'yes' : 'no'}
+                >
+                    <SelectTrigger
+                        className="w-full"
+                        id="obstacle-persist-after-solved"
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="yes">
+                            Stay cleared for learner
+                        </SelectItem>
+                        <SelectItem value="no">
+                            Reappear on each replay
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    Persistent obstacles remember that each learner solved them
+                    and show the cleared revisit scene next time.
+                </p>
+                <InputError message={errors.obstacle_persist_after_solved} />
+            </div>
+        </div>
+    );
+}
+
+export function ObstacleVisualFields({
+    errors,
+    form,
+    imageUploadErrors,
+    onChange,
+    onUpload,
+    uploadingImageKey,
+}: Omit<ObstacleFieldProps, 'tools'>) {
+    const { resolvedAppearance } = useAppearance();
+    const isLight = resolvedAppearance === 'light';
+    const updateField = (field: keyof ActivityForm, value: string) =>
+        onChange((current) => ({
+            ...current,
+            [field]: value,
+        }));
+    const backgroundImage = themedPreviewAsset(
+        form.obstacle_background_dark,
+        form.obstacle_background_light,
+        resolvedAppearance,
+    );
+    const obstacleImage = themedPreviewAsset(
+        form.obstacle_image_dark,
+        form.obstacle_image_light,
+        resolvedAppearance,
+    );
+    const clearedBackgroundImage =
+        themedPreviewAsset(
+            form.obstacle_revisit_background_dark,
+            form.obstacle_revisit_background_light,
+            resolvedAppearance,
+        ) || backgroundImage;
+    const clearedObstacleImage = themedPreviewAsset(
+        form.obstacle_revisit_image_dark,
+        form.obstacle_revisit_image_light,
+        resolvedAppearance,
+    );
+    const bubbleColor = isLight
+        ? form.obstacle_bubble_color_light
+        : form.obstacle_bubble_color_dark;
+    const bubbleBorderColor = isLight
+        ? form.obstacle_bubble_border_color_light
+        : form.obstacle_bubble_border_color_dark;
+    const bubbleOpacity = isLight
+        ? form.obstacle_bubble_opacity_light
+        : form.obstacle_bubble_opacity_dark;
 
     const imageFields: Array<{
         description: string;
@@ -125,96 +276,58 @@ export function ObstacleActivityFields({
 
     return (
         <div className="grid gap-5">
-            <div className="grid gap-3">
-                <div className="grid gap-2">
-                    <Label htmlFor="obstacle-tools">Tools that work here</Label>
-                    <Select
-                        key={selectedToolIds.join('-') || 'empty'}
-                        onValueChange={addTool}
-                    >
-                        <SelectTrigger className="w-full" id="obstacle-tools">
-                            <SelectValue placeholder="Add a tool" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {unselectedTools.length > 0 ? (
-                                unselectedTools.map((tool) => (
-                                    <SelectItem
-                                        key={tool.id}
-                                        value={tool.id.toString()}
-                                    >
-                                        {tool.title}
-                                    </SelectItem>
-                                ))
-                            ) : (
-                                <SelectItem disabled value="all-tools-added">
-                                    All tools are already selected
-                                </SelectItem>
-                            )}
-                        </SelectContent>
-                    </Select>
-                    {selectedTools.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                            {selectedTools.map((tool) => (
-                                <Button
-                                    key={tool.id}
-                                    onClick={() => removeTool(tool.id)}
-                                    size="sm"
-                                    type="button"
-                                    variant="secondary"
-                                >
-                                    {tool.title}
-                                    <span aria-hidden="true">x</span>
-                                </Button>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            Add at least one tool if this obstacle should be
-                            removable.
-                        </p>
-                    )}
-                    <InputError message={errors.obstacle_allowed_tool_ids} />
-                </div>
-
-                <div className="grid gap-2">
-                    <Label htmlFor="obstacle-persist-after-solved">
-                        After the correct tool is used
-                    </Label>
-                    <Select
-                        onValueChange={(value) =>
-                            updateBooleanField(
-                                'obstacle_persist_after_solved',
-                                value === 'yes',
-                            )
-                        }
-                        value={
-                            form.obstacle_persist_after_solved ? 'yes' : 'no'
-                        }
-                    >
-                        <SelectTrigger
-                            className="w-full"
-                            id="obstacle-persist-after-solved"
-                        >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="yes">
-                                Stay cleared for learner
-                            </SelectItem>
-                            <SelectItem value="no">
-                                Reappear on each replay
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        Persistent obstacles remember that each learner solved
-                        them and show the cleared revisit scene next time.
-                    </p>
-                    <InputError
-                        message={errors.obstacle_persist_after_solved}
+            <div className="grid gap-4 lg:grid-cols-2">
+                <ActivityScenePreview
+                    backgroundImage={backgroundImage}
+                    description="Uses the currently selected appearance mode."
+                    title="Blocking preview"
+                >
+                    <ScenePreviewImage
+                        imageUrl={obstacleImage}
+                        label="Obstacle image"
+                        width={form.obstacle_width}
+                        x={form.obstacle_x}
+                        y={form.obstacle_y}
                     />
-                </div>
+                    <div className="absolute inset-x-3 bottom-3">
+                        <ScenePreviewBubble
+                            borderColor={bubbleBorderColor}
+                            color={bubbleColor}
+                            label="Prompt"
+                            opacity={bubbleOpacity}
+                            text={form.obstacle_prompt_text}
+                        />
+                    </div>
+                </ActivityScenePreview>
 
+                <ActivityScenePreview
+                    backgroundImage={clearedBackgroundImage}
+                    description="Shows the configured cleared image and success text."
+                    title="Cleared preview"
+                >
+                    <ScenePreviewImage
+                        imageUrl={clearedObstacleImage}
+                        label="Cleared image"
+                        width={form.obstacle_width}
+                        x={form.obstacle_x}
+                        y={form.obstacle_y}
+                    />
+                    <div className="absolute inset-x-3 bottom-3">
+                        <ScenePreviewBubble
+                            borderColor={bubbleBorderColor}
+                            color={bubbleColor}
+                            label="Success"
+                            opacity={bubbleOpacity}
+                            text={
+                                form.obstacle_success_text ||
+                                form.obstacle_revisit_text
+                            }
+                        />
+                    </div>
+                </ActivityScenePreview>
+            </div>
+
+            <div className="grid gap-3">
                 <div className="grid gap-2">
                     <Label htmlFor="obstacle-prompt">Prompt bubble</Label>
                     <textarea
