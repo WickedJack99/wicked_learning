@@ -1,14 +1,19 @@
 <?php
 
+use App\Learning\Services\LearningNodeStateResolver;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTool;
+use App\Models\NpcDialogueNode;
+use App\Models\NpcDialogueTransition;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
 test('guests can visit the public world route', function () {
@@ -25,6 +30,41 @@ test('authenticated users can visit the world map', function () {
 
     $response = $this->get(route('world'));
     $response->assertOk();
+});
+
+test('authenticated users return to the last world map stored on their account', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $targetMap = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('world', ['map' => $targetMap->slug]))
+        ->assertOk();
+
+    expect($user->refresh()->preference?->settings['learning']['lastMapSlug'] ?? null)
+        ->toBe('signal-archive')
+        ->and($user->preference?->settings['learning']['lastMapId'] ?? null)
+        ->toBe($targetMap->id);
+
+    $this->actingAs($user)
+        ->get(route('world'))
+        ->assertRedirect(route('world', ['map' => 'signal-archive']));
+});
+
+test('playing a node records that node map as the learner location', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'return-gate')->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('node.mapSlug', 'signal-archive'));
+
+    expect($user->refresh()->preference?->settings['learning']['lastMapSlug'] ?? null)
+        ->toBe('signal-archive');
 });
 
 test('authenticated users can visit their bookmark map', function () {
@@ -281,6 +321,108 @@ test('learners unlock locked nodes only after configured rules pass', function (
             ->where('world.maps.0.nodes.2.state', 'available')
             ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', true)
         );
+});
+
+test('npc dialogue answers can hide and unlock nodes for the learner', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $sourceNode = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $hiddenTarget = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $unlockedTarget = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $unlockedTarget->forceFill(['state' => 'locked'])->save();
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $sourceNode->id,
+        'slug' => 'answer-events',
+        'type' => 'npc_dialogue',
+        'title' => 'Answer Events',
+        'sort_order' => 50,
+        'config' => [],
+    ]);
+    $questionNode = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'npc_question',
+        'title' => 'Choice',
+        'body' => 'Choose an effect.',
+        'config' => ['questionOutputCount' => 1],
+    ]);
+    $answerNode = NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'answer',
+        'title' => 'Reveal consequence',
+        'body' => 'Apply the configured world event.',
+        'config' => [
+            'answerLabel' => 'A',
+            'events' => [
+                'hideNodeIds' => [$hiddenTarget->id],
+                'unlockNodeIds' => [$unlockedTarget->id],
+            ],
+            'isCorrect' => true,
+        ],
+    ]);
+
+    NpcDialogueTransition::query()->create([
+        'learning_activity_id' => $activity->id,
+        'from_dialogue_node_id' => $questionNode->id,
+        'to_dialogue_node_id' => $answerNode->id,
+        'from_connector' => 'answer-1',
+        'to_connector' => 'in',
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.npc-dialogue-nodes.answer', $questionNode), [
+            'answer_key' => (string) $answerNode->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.answerNodeId', $answerNode->id);
+
+    $stateResolver = app(LearningNodeStateResolver::class);
+
+    expect($stateResolver->stateForUser($hiddenTarget->refresh(), $learner->id))->toBe('hidden')
+        ->and($stateResolver->stateForUser($unlockedTarget->refresh(), $learner->id))->toBe('available');
+});
+
+test('node schedules can unlock and lock nodes based on the current time', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    Carbon::setTestNow(Carbon::parse('2026-07-12 12:00:00'));
+
+    $learner = User::factory()->create();
+    $scheduledUnlock = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $scheduledLock = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $scheduledUnlock->forceFill([
+        'state' => 'locked',
+        'visual_config' => [
+            ...($scheduledUnlock->visual_config ?? []),
+            'schedule' => [
+                'unlockAt' => '2026-07-12T11:50',
+            ],
+            'unlock' => [
+                'enabled' => true,
+                'topOperator' => 'and',
+                'rules' => [
+                    'type' => 'time_after',
+                ],
+            ],
+        ],
+    ])->save();
+
+    $scheduledLock->forceFill([
+        'state' => 'available',
+        'visual_config' => [
+            ...($scheduledLock->visual_config ?? []),
+            'schedule' => [
+                'lockAt' => '2026-07-12T11:50',
+            ],
+        ],
+    ])->save();
+
+    $stateResolver = app(LearningNodeStateResolver::class);
+
+    expect($stateResolver->stateForUser($scheduledUnlock->refresh(), $learner->id))->toBe('available')
+        ->and($stateResolver->stateForUser($scheduledLock->refresh(), $learner->id))->toBe('locked');
+
+    Carbon::setTestNow();
 });
 
 test('authenticated users can play a node activity graph outside the map', function () {

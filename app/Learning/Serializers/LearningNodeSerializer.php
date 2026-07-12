@@ -3,8 +3,8 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityRouteEligibility;
-use App\Learning\Services\LearningNodeStateResolver;
 use App\Learning\Services\LearningMapAccessService;
+use App\Learning\Services\LearningNodeStateResolver;
 use App\Learning\Services\NodeRevealService;
 use App\Learning\Services\NodeUnlockService;
 use App\Models\LearningActivity;
@@ -34,8 +34,9 @@ class LearningNodeSerializer
     {
         $this->loadRelations($node);
         $userId = $user?->id;
+        $state = $this->nodeStateResolver->stateForUser($node, $userId);
 
-        if ($this->nodeRevealService->isConcealedForUser($node, $userId)) {
+        if ($state === 'hidden') {
             return $this->concealedNode($node);
         }
 
@@ -43,13 +44,13 @@ class LearningNodeSerializer
             ...$this->baseNode($node, null, [
                 'isDiscoverable' => $this->nodeRevealService->isDiscoverable($node),
                 'isDiscovered' => true,
-            ], $this->nodeStateResolver->stateForUser($node, $userId), $userId),
+            ], $state, $userId),
             'outgoingPortalLinks' => $node->outgoingPortalLinks
                 ->filter(fn (LearningPortalLink $link): bool => $this->mapAccess->canViewMap($link->targetNode->map, $user))
                 ->map(fn (LearningPortalLink $link): array => $this->portalLinkSerializer->serialize($link, $userId))
                 ->values(),
             'startActivityId' => $this->eligibleStartActivityId($node),
-            'startRoutes' => $this->startRoutes($node),
+            'startRoutes' => $this->startRoutes($node, $user),
             'activities' => $node->activities
                 ->map(fn (LearningActivity $activity): array => $this->activitySerializer->serialize($activity))
                 ->values(),
@@ -143,7 +144,7 @@ class LearningNodeSerializer
             ...$this->baseNode($node, null, [
                 'isDiscoverable' => true,
                 'isDiscovered' => false,
-            ]),
+            ], 'hidden'),
             'title' => 'Undiscovered place',
             'description' => null,
             'visualConfig' => [
@@ -173,11 +174,11 @@ class LearningNodeSerializer
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function startRoutes(LearningNode $node): Collection
+    private function startRoutes(LearningNode $node, ?User $user): Collection
     {
         return $node->activityStarts
             ->filter(fn (LearningActivityStart $start): bool => $this->routeEligibility->canStart($start->activity))
-            ->map(fn (LearningActivityStart $start): array => $this->startSerializer->serialize($start))
+            ->map(fn (LearningActivityStart $start): array => $this->startSerializer->serialize($start, $user))
             ->values();
     }
 }

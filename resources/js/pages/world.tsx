@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ItemInventoryPanel } from '@/features/items/item-inventory-panel';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
 import {
     selectLearningTool,
@@ -120,6 +119,9 @@ export default function World({
             '--map-bottom-nav-active-background': configuredCssValue(
                 mapTheme?.bottomNavActiveBackground,
             ),
+            '--map-bottom-nav-active-icon-color':
+                configuredCssValue(mapTheme?.bottomNavActiveIconColor) ??
+                configuredCssValue(mapTheme?.bottomNavActiveTextColor),
             '--map-bottom-nav-active-text-color': configuredCssValue(
                 mapTheme?.bottomNavActiveTextColor,
             ),
@@ -129,11 +131,21 @@ export default function World({
             '--map-bottom-nav-border-color':
                 configuredCssValue(mapTheme?.bottomNavBorderColor) ??
                 sharedBorder,
+            '--map-bottom-nav-exit-icon-color':
+                configuredCssValue(mapTheme?.bottomNavExitIconColor) ??
+                '#ef4444',
+            '--map-bottom-nav-icon-color':
+                configuredCssValue(mapTheme?.bottomNavIconColor) ??
+                configuredCssValue(mapTheme?.bottomNavTextColor) ??
+                sharedText,
             '--map-bottom-nav-text-color':
                 configuredCssValue(mapTheme?.bottomNavTextColor) ?? sharedText,
             '--map-side-control-active-background': configuredCssValue(
                 mapTheme?.sideControlActiveBackground,
             ),
+            '--map-side-control-active-icon-color':
+                configuredCssValue(mapTheme?.sideControlActiveIconColor) ??
+                configuredCssValue(mapTheme?.sideControlActiveTextColor),
             '--map-side-control-active-text-color': configuredCssValue(
                 mapTheme?.sideControlActiveTextColor,
             ),
@@ -143,6 +155,10 @@ export default function World({
             '--map-side-control-border-color':
                 configuredCssValue(mapTheme?.sideControlBorderColor) ??
                 sharedBorder,
+            '--map-side-control-icon-color':
+                configuredCssValue(mapTheme?.sideControlIconColor) ??
+                configuredCssValue(mapTheme?.sideControlTextColor) ??
+                sharedText,
             '--map-side-control-text-color':
                 configuredCssValue(mapTheme?.sideControlTextColor) ??
                 sharedText,
@@ -408,7 +424,11 @@ export default function World({
     }, []);
 
     const startNode = useCallback(
-        (node: LearningNode, activityId: number | null) => {
+        (
+            node: LearningNode,
+            activityId: number | null,
+            routeId?: number | null,
+        ) => {
             if (node.state === 'locked' || node.state === 'hidden') {
                 return;
             }
@@ -417,14 +437,22 @@ export default function World({
                 getActivityById(node, activityId) ?? getStartActivity(node);
 
             if (firstActivity) {
-                persistActiveActivity(node, firstActivity);
+                persistActiveActivity(node, firstActivity, { routeId });
             }
 
-            const activityQuery = firstActivity
-                ? `?activity=${firstActivity.id}`
-                : '';
+            const query = new URLSearchParams();
 
-            router.visit(`/learning/nodes/${node.id}/play${activityQuery}`);
+            if (firstActivity) {
+                query.set('activity', firstActivity.id.toString());
+            }
+
+            if (routeId) {
+                query.set('route', routeId.toString());
+            }
+
+            router.visit(
+                `/learning/nodes/${node.id}/play${query.toString() ? `?${query.toString()}` : ''}`,
+            );
         },
         [],
     );
@@ -565,7 +593,6 @@ export default function World({
                         onToggleBookmark={(node) => void toggleBookmark(node)}
                     />
                 </aside>
-                <ItemInventoryPanel />
             </main>
         </>
     );

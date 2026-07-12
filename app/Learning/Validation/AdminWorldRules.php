@@ -2,10 +2,10 @@
 
 namespace App\Learning\Validation;
 
+use App\Models\AccessRole;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
-use App\Models\AccessRole;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -99,9 +99,12 @@ class AdminWorldRules
         $colorFields = [
             'accentColor',
             'bottomNavActiveBackground',
+            'bottomNavActiveIconColor',
             'bottomNavActiveTextColor',
             'bottomNavBackground',
             'bottomNavBorderColor',
+            'bottomNavExitIconColor',
+            'bottomNavIconColor',
             'bottomNavTextColor',
             'overlay',
             'pageBackground',
@@ -110,9 +113,11 @@ class AdminWorldRules
             'panelMutedTextColor',
             'panelTextColor',
             'sideControlActiveBackground',
+            'sideControlActiveIconColor',
             'sideControlActiveTextColor',
             'sideControlBackground',
             'sideControlBorderColor',
+            'sideControlIconColor',
             'sideControlTextColor',
             'sidePanelBackground',
             'sidePanelBorderColor',
@@ -127,6 +132,13 @@ class AdminWorldRules
 
             $rules["background_config.{$prefix}imageUrl"] = ['nullable', 'string', 'max:2048'];
             $rules["background_config.{$prefix}completedDimOpacity"] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules["background_config.{$prefix}assets"] = ['nullable', 'array'];
+            $rules["background_config.{$prefix}assets.*.id"] = ['nullable', 'string', 'max:80'];
+            $rules["background_config.{$prefix}assets.*.imageUrl"] = ['nullable', 'string', 'max:2048'];
+            $rules["background_config.{$prefix}assets.*.x"] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules["background_config.{$prefix}assets.*.y"] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules["background_config.{$prefix}assets.*.width"] = ['nullable', 'numeric', 'min:1', 'max:200'];
+            $rules["background_config.{$prefix}assets.*.opacity"] = ['nullable', 'numeric', 'min:0', 'max:100'];
         }
 
         return $rules;
@@ -204,6 +216,8 @@ class AdminWorldRules
             'visual_config.reveal.enabled' => ['nullable', 'boolean'],
             'visual_config.reveal.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
             'visual_config.tooltip' => ['nullable', 'string', 'max:255'],
+            'visual_config.schedule.unlockAt' => ['nullable', 'date'],
+            'visual_config.schedule.lockAt' => ['nullable', 'date'],
             'visual_config.unlock.enabled' => ['nullable', 'boolean'],
             'visual_config.unlock.topOperator' => ['nullable', 'string', Rule::in(['and', 'or'])],
             'visual_config.unlock.nodeOperator' => ['nullable', 'string', Rule::in(['and', 'or'])],

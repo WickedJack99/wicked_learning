@@ -14,10 +14,20 @@ class UpdateLearningMapVisuals
      */
     public function handle(LearningMap $map, array $data): void
     {
+        $incoming = $this->configArray($data['background_config'] ?? null);
+        $existing = $map->background_config ?? [];
+
+        foreach (['dark', 'light'] as $mode) {
+            if (array_key_exists('assets', $incoming[$mode] ?? [])) {
+                $existing[$mode]['assets'] = $incoming[$mode]['assets'];
+                unset($incoming[$mode]['assets']);
+            }
+        }
+
         $map->forceFill([
             'background_config' => $this->configMerger->merge(
-                $map->background_config ?? [],
-                $this->configArray($data['background_config'] ?? null),
+                $existing,
+                $incoming,
             ),
         ])->save();
     }

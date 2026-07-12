@@ -7,7 +7,7 @@ use App\Models\LearningMap;
 class UpdateLearningMapDetails
 {
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function handle(LearningMap $map, array $data): void
     {

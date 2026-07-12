@@ -10,6 +10,8 @@ import {
     PanelRight,
     Save,
     ShieldCheck,
+    SlidersHorizontal,
+    Trash2,
     Volume2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -142,6 +144,9 @@ type UnlockRule =
           type: 'node_completed';
       }
     | {
+          type: 'time_after';
+      }
+    | {
           operator: 'and' | 'or';
           rules: UnlockRule[];
           type: 'group';
@@ -223,6 +228,10 @@ type NodeForm = {
             enabled: boolean;
             toolId: string;
         };
+        schedule: {
+            lockAt: string;
+            unlockAt: string;
+        };
         sounds: NodeSoundFields;
         tooltip: string;
         unlock: {
@@ -274,6 +283,8 @@ export default function EditWorldMap({
     const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
+    const [pendingDeleteNode, setPendingDeleteNode] =
+        useState<EditableNode | null>(null);
     const [mapAccessOpen, setMapAccessOpen] = useState(false);
     const [mapAccessRoles, setMapAccessRoles] = useState<string[]>(() =>
         map.accessRoles.length > 0 ? map.accessRoles : ['user', 'admin'],
@@ -470,6 +481,23 @@ export default function EditWorldMap({
                 onFinish: () => setProcessing(false),
             },
         );
+    };
+
+    const deleteSelectedNode = () => {
+        if (!pendingDeleteNode) {
+            return;
+        }
+
+        setProcessing(true);
+
+        router.delete(`/settings/worlds/nodes/${pendingDeleteNode.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setPendingDeleteNode(null);
+                closeDialog();
+            },
+            onFinish: () => setProcessing(false),
+        });
     };
 
     const saveMapVisuals = () => {
@@ -761,55 +789,13 @@ export default function EditWorldMap({
                                 <h1 className="truncate text-2xl font-semibold tracking-normal">
                                     Edit {map.title}
                                 </h1>
-                                <Button
-                                    onClick={() => {
-                                        setMapDetailsForm({
-                                            description: map.description ?? '',
-                                            title: map.title,
-                                        });
-                                        setMapDetailsErrors({});
-                                        setMapDetailsOpen(true);
-                                    }}
-                                    size="sm"
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    <PanelRight className="size-4" />
-                                    Map details
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        setMapVisualForm(
-                                            mapVisualFormFromConfig(
-                                                map.backgroundConfig,
-                                            ),
-                                        );
-                                        setMapVisualErrors({});
-                                        setMapVisualOpen(true);
-                                    }}
-                                    size="sm"
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    <Palette className="size-4" />
-                                    Map visuals
-                                </Button>
-                                <Button
-                                    onClick={() => {
-                                        setMapAccessRoles(
-                                            map.accessRoles.length > 0
-                                                ? map.accessRoles
-                                                : ['user', 'admin'],
-                                        );
-                                        setMapAccessErrors({});
-                                        setMapAccessOpen(true);
-                                    }}
-                                    size="sm"
-                                    type="button"
-                                    variant="outline"
-                                >
-                                    <ShieldCheck className="size-4" />
-                                    Access
+                                <Button asChild size="sm" variant="outline">
+                                    <Link
+                                        href={`/settings/worlds/maps/${map.id}/configure`}
+                                    >
+                                        <SlidersHorizontal className="size-4" />
+                                        Map configuration
+                                    </Link>
                                 </Button>
                             </div>
                         </div>
@@ -965,12 +951,15 @@ export default function EditWorldMap({
                             <textarea
                                 className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-600/20 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus-visible:border-teal-200 dark:focus-visible:ring-teal-200/20"
                                 id="map-description"
-                                onChange={(event) =>
+                                onChange={(event) => {
+                                    const description =
+                                        event.currentTarget.value;
+
                                     setMapDetailsForm((current) => ({
                                         ...current,
-                                        description: event.currentTarget.value,
-                                    }))
-                                }
+                                        description,
+                                    }));
+                                }}
                                 value={mapDetailsForm.description}
                             />
                             <InputError
@@ -1229,13 +1218,15 @@ export default function EditWorldMap({
                                     <textarea
                                         className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
                                         id="tile-description"
-                                        onChange={(event) =>
+                                        onChange={(event) => {
+                                            const description =
+                                                event.currentTarget.value;
+
                                             setForm((current) => ({
                                                 ...current,
-                                                description:
-                                                    event.currentTarget.value,
-                                            }))
-                                        }
+                                                description,
+                                            }));
+                                        }}
                                         value={form.description}
                                     />
                                     <InputError message={errors.description} />
@@ -1639,6 +1630,53 @@ export default function EditWorldMap({
                                                     }
                                                 />
                                             </div>
+
+                                            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/60 sm:grid-cols-2">
+                                                <DateTimeField
+                                                    description="Optional unlock condition. The rule passes when the current time is the same or later."
+                                                    disabled={
+                                                        !form.visual_config
+                                                            .unlock.enabled
+                                                    }
+                                                    error={
+                                                        errors[
+                                                            'visual_config.schedule.unlockAt'
+                                                        ]
+                                                    }
+                                                    label="Unlock not before"
+                                                    onChange={(value) =>
+                                                        setScheduleValue(
+                                                            setForm,
+                                                            'unlockAt',
+                                                            value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .schedule.unlockAt
+                                                    }
+                                                />
+                                                <DateTimeField
+                                                    description="Optional hard lock. Once this time is reached, the node is locked again."
+                                                    error={
+                                                        errors[
+                                                            'visual_config.schedule.lockAt'
+                                                        ]
+                                                    }
+                                                    label="Lock after"
+                                                    onChange={(value) =>
+                                                        setScheduleValue(
+                                                            setForm,
+                                                            'lockAt',
+                                                            value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .schedule.lockAt
+                                                    }
+                                                />
+                                            </div>
                                             <div className="rounded-md border border-amber-500/25 bg-amber-50 p-3 dark:border-amber-300/20 dark:bg-amber-300/10">
                                                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                     <div className="grid gap-1 text-sm">
@@ -1880,6 +1918,44 @@ export default function EditWorldMap({
                                 </div>
                             </SettingsAccordionSection>
                         ) : null}
+
+                        {selectedNode ? (
+                            <SettingsAccordionSection
+                                description="Remove this tile and its activities from the map."
+                                title="Danger zone"
+                            >
+                                <div className="rounded-md border border-red-500/25 bg-red-50 p-3 dark:border-red-300/20 dark:bg-red-500/10">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="grid gap-1 text-sm">
+                                            <p className="font-medium text-red-950 dark:text-red-50">
+                                                Delete this tile
+                                            </p>
+                                            <p className="text-xs text-red-800 dark:text-red-100/75">
+                                                This removes the tile, its
+                                                activities, route buttons,
+                                                portal links, bookmarks and
+                                                learner progress. This cannot be
+                                                undone.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            className="shrink-0 border-red-500/40 text-red-700 hover:bg-red-100 dark:border-red-200/35 dark:text-red-200 dark:hover:bg-red-200/15"
+                                            disabled={processing}
+                                            onClick={() =>
+                                                setPendingDeleteNode(
+                                                    selectedNode,
+                                                )
+                                            }
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            <Trash2 className="size-4" />
+                                            Delete tile
+                                        </Button>
+                                    </div>
+                                </div>
+                            </SettingsAccordionSection>
+                        ) : null}
                     </div>
 
                     <DialogFooter>
@@ -1907,6 +1983,44 @@ export default function EditWorldMap({
                         >
                             <Save className="size-4" />
                             Save tile
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setPendingDeleteNode(null);
+                    }
+                }}
+                open={Boolean(pendingDeleteNode)}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Delete tile?</DialogTitle>
+                        <DialogDescription>
+                            {pendingDeleteNode
+                                ? `This removes "${pendingDeleteNode.title}" from the map, including its activities and connected learner progress. This cannot be undone.`
+                                : 'This tile will be removed.'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setPendingDeleteNode(null)}
+                            type="button"
+                            variant="secondary"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={processing}
+                            onClick={deleteSelectedNode}
+                            type="button"
+                            variant="destructive"
+                        >
+                            <Trash2 className="size-4" />
+                            Delete tile
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2268,6 +2382,59 @@ function TextField({
             <InputError message={error} />
         </div>
     );
+}
+
+function DateTimeField({
+    description,
+    disabled = false,
+    error,
+    label,
+    onChange,
+    value,
+}: {
+    description: string;
+    disabled?: boolean;
+    error?: string;
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    const id = label.toLowerCase().replaceAll(' ', '-');
+
+    return (
+        <div className="grid gap-1">
+            <Label htmlFor={id}>{label}</Label>
+            <Input
+                disabled={disabled}
+                id={id}
+                onChange={(event) => onChange(event.currentTarget.value)}
+                step={600}
+                type="datetime-local"
+                value={value}
+            />
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {description}
+            </p>
+            <InputError message={error} />
+        </div>
+    );
+}
+
+function setScheduleValue(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    key: keyof NodeForm['visual_config']['schedule'],
+    value: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            schedule: {
+                ...current.visual_config.schedule,
+                [key]: value,
+            },
+        },
+    }));
 }
 
 function MapVisualColorField({
@@ -3159,6 +3326,7 @@ function emptyNodeForm(q: number, r: number): NodeForm {
                 enabled: false,
                 toolId: '',
             },
+            schedule: emptyScheduleConfig(),
             sounds: emptyNodeSoundFields(),
             unlock: emptyUnlockConfig(),
             tooltip: '',
@@ -3227,6 +3395,7 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
                 enabled: false,
                 toolId: '',
             },
+            schedule: emptyScheduleConfig(),
             sounds: emptyNodeSoundFields(),
             unlock: emptyUnlockConfig(),
             tooltip: 'Empty editor-only space.',
@@ -3259,6 +3428,7 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
                 defaultNodeVisualThemeFields('light'),
             ),
             reveal: revealConfigFromNode(node.visualConfig.reveal),
+            schedule: scheduleConfigFromNode(node.visualConfig.schedule),
             sounds: nodeSoundFieldsFromConfig(node.visualConfig.sounds),
             tooltip: stringConfig(node.visualConfig.tooltip, ''),
             unlock: unlockConfigFromNode(node.visualConfig.unlock),
@@ -3313,6 +3483,13 @@ function emptyUnlockConfig(): NodeForm['visual_config']['unlock'] {
     };
 }
 
+function emptyScheduleConfig(): NodeForm['visual_config']['schedule'] {
+    return {
+        lockAt: '',
+        unlockAt: '',
+    };
+}
+
 function unlockConfigFromNode(
     config: VisualConfigValue,
 ): NodeForm['visual_config']['unlock'] {
@@ -3335,6 +3512,17 @@ function unlockConfigFromNode(
         },
         topOperator:
             stringConfig(unlock.topOperator, 'and') === 'or' ? 'or' : 'and',
+    };
+}
+
+function scheduleConfigFromNode(
+    config: VisualConfigValue,
+): NodeForm['visual_config']['schedule'] {
+    const schedule = isVisualConfig(config) ? config : {};
+
+    return {
+        lockAt: inputStringConfig(schedule.lockAt, ''),
+        unlockAt: inputStringConfig(schedule.unlockAt, ''),
     };
 }
 
@@ -3625,6 +3813,10 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
                 ...form.visual_config.reveal,
                 ...override.visual_config?.reveal,
             },
+            schedule: {
+                ...form.visual_config.schedule,
+                ...override.visual_config?.schedule,
+            },
             sounds: {
                 ...form.visual_config.sounds,
                 ...override.visual_config?.sounds,
@@ -3658,7 +3850,10 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
 }
 
 function nodePayload(form: NodeForm): NodeForm {
-    const rules = buildUnlockRules(form.visual_config.unlock);
+    const rules = buildUnlockRules(
+        form.visual_config.unlock,
+        form.visual_config.schedule,
+    );
 
     return {
         ...form,
@@ -3674,6 +3869,7 @@ function nodePayload(form: NodeForm): NodeForm {
 
 function buildUnlockRules(
     unlock: NodeForm['visual_config']['unlock'],
+    schedule: NodeForm['visual_config']['schedule'],
 ): UnlockRule | undefined {
     const rules: UnlockRule[] = [];
     const nodeRules = unlock.requiredNodeIds
@@ -3695,6 +3891,12 @@ function buildUnlockRules(
     if (unlock.tool.enabled && unlock.tool.toolId) {
         rules.push({
             type: 'tool_used',
+        });
+    }
+
+    if (schedule.unlockAt) {
+        rules.push({
+            type: 'time_after',
         });
     }
 

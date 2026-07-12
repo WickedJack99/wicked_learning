@@ -3,6 +3,7 @@ import { Backpack, Hammer, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { useAvailableLearningItems } from '@/features/items/item-inventory';
 import {
     selectLearningTool,
     useAvailableLearningTools,
@@ -10,8 +11,9 @@ import {
 } from '@/features/tools/tool-selection';
 import { toolImageUrl } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
+import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
-import type { LearningTool } from '@/types';
+import type { LearningItem, LearningTool } from '@/types';
 
 type OverlayMode = 'inventory' | 'tools' | null;
 
@@ -20,6 +22,7 @@ export function AppSideActionBar() {
     const { resolvedAppearance } = useAppearance();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
     const selectedTool = useSelectedLearningTool();
+    const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
     const shouldShow = useMemo(
         () =>
@@ -45,9 +48,7 @@ export function AppSideActionBar() {
                     onClose={() => setOverlay(null)}
                     title="Items"
                 >
-                    <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400">
-                        No items acquired yet.
-                    </p>
+                    <ItemGrid items={items} mode={resolvedAppearance} />
                 </SideOverlay>
             ) : null}
             {overlay === 'tools' ? (
@@ -123,6 +124,78 @@ export function AppSideActionBar() {
     );
 }
 
+function ItemGrid({
+    items,
+    mode,
+}: {
+    items: LearningItem[];
+    mode: 'dark' | 'light';
+}) {
+    if (items.length === 0) {
+        return (
+            <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400">
+                No items acquired yet.
+            </p>
+        );
+    }
+
+    return (
+        <div className="max-h-80 overflow-y-auto pr-1">
+            <div className="grid grid-cols-3 gap-2">
+                {items.map((item) => (
+                    <ItemTile item={item} key={item.id} mode={mode} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function ItemTile({
+    item,
+    mode,
+}: {
+    item: LearningItem;
+    mode: 'dark' | 'light';
+}) {
+    const image = normalizeMediaUrl(
+        mode === 'light'
+            ? item.imageLight || item.imageDark
+            : item.imageDark || item.imageLight,
+    );
+
+    return (
+        <button
+            className="relative grid aspect-square place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1 text-slate-700 transition hover:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:focus-visible:ring-teal-200"
+            draggable
+            onDragStart={(event) => {
+                event.dataTransfer.setData(
+                    'application/learning-item-id',
+                    item.id.toString(),
+                );
+                event.dataTransfer.effectAllowed = 'move';
+            }}
+            style={{ cursor: 'var(--platform-action-cursor)' }}
+            title={item.title}
+            type="button"
+        >
+            {image ? (
+                <img
+                    alt=""
+                    className="h-full w-full object-contain"
+                    draggable={false}
+                    src={image}
+                />
+            ) : (
+                <Backpack className="size-6" />
+            )}
+            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-slate-950/82 px-1 text-center text-[0.65rem] font-semibold text-white dark:bg-teal-300 dark:text-slate-950">
+                {item.quantity}
+            </span>
+            <span className="sr-only">{item.title}</span>
+        </button>
+    );
+}
+
 function ActionButton({
     children,
     disabled = false,
@@ -153,10 +226,10 @@ function ActionButton({
                     ? 'var(--map-side-control-active-background)'
                     : undefined,
                 color: isActive
-                    ? 'var(--map-side-control-active-text-color)'
-                    : 'var(--map-side-control-text-color)',
+                    ? 'var(--map-side-control-active-icon-color, var(--map-side-control-active-text-color))'
+                    : 'var(--map-side-control-icon-color, var(--map-side-control-text-color))',
                 cursor: disabled
-                    ? 'not-allowed'
+                    ? 'var(--platform-denied-cursor)'
                     : 'var(--platform-action-cursor)',
             }}
             title={label}

@@ -14,6 +14,7 @@ import { logout } from '@/routes';
 type NavItem = {
     active: boolean;
     asButton?: boolean;
+    danger?: boolean;
     href: string | ReturnType<typeof logout>;
     icon: ReactNode;
     id: string;
@@ -125,12 +126,11 @@ export function AppBottomNav() {
                           active: false,
                           asButton: true,
                           href: logout(),
-                          icon: (
-                              <DoorOpen className="size-5 text-red-600 dark:text-red-400" />
-                          ),
+                          icon: <DoorOpen className="size-5" />,
                           id: 'logout',
                           label: 'Log out',
                           onClick: handleLogout,
+                          danger: true,
                       },
                   ]
                 : []),
@@ -143,7 +143,10 @@ export function AppBottomNav() {
         return [
             {
                 active: false,
-                href: activeActivity.worldHref ?? worldHref,
+                href:
+                    activeActivity.playHref ??
+                    activeActivity.worldHref ??
+                    worldHref,
                 icon: <PlayCircle className="size-5" />,
                 id: 'active-activity',
                 shouldAnimateInsertion: shouldAnimateActiveActivity,
@@ -203,6 +206,7 @@ function AnimatedNavButton({ item, slot }: { item: NavItem; slot: number }) {
                 href={item.href}
                 label={item.label}
                 onClick={item.onClick}
+                danger={item.danger}
             >
                 {item.icon}
             </FloatingNavLink>
@@ -217,10 +221,12 @@ function FloatingNavLink({
     href,
     label,
     onClick,
+    danger = false,
 }: {
     active: boolean;
     asButton?: boolean;
     children: ReactNode;
+    danger?: boolean;
     href: string | ReturnType<typeof logout>;
     label: string;
     onClick?: () => void;
@@ -241,8 +247,10 @@ function FloatingNavLink({
                     ? 'var(--map-bottom-nav-active-background)'
                     : undefined,
                 color: active
-                    ? 'var(--map-bottom-nav-active-text-color)'
-                    : 'var(--map-bottom-nav-text-color)',
+                    ? 'var(--map-bottom-nav-active-icon-color, var(--map-bottom-nav-active-text-color))'
+                    : danger
+                      ? 'var(--map-bottom-nav-exit-icon-color)'
+                      : 'var(--map-bottom-nav-icon-color, var(--map-bottom-nav-text-color))',
                 cursor: 'var(--platform-action-cursor)',
             }}
         >

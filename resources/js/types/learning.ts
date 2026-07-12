@@ -20,10 +20,14 @@ export type LearningMap = {
     description: string | null;
     backgroundConfig: ThemeVariant<{
         accentColor?: string;
+        assets?: MapVisualAsset[];
         bottomNavActiveBackground?: string;
+        bottomNavActiveIconColor?: string;
         bottomNavActiveTextColor?: string;
         bottomNavBackground?: string;
         bottomNavBorderColor?: string;
+        bottomNavExitIconColor?: string;
+        bottomNavIconColor?: string;
         bottomNavTextColor?: string;
         cardBackground?: string;
         cardBorderColor?: string;
@@ -40,9 +44,11 @@ export type LearningMap = {
         panelTextColor?: string;
         pageBackground?: string;
         sideControlActiveBackground?: string;
+        sideControlActiveIconColor?: string;
         sideControlActiveTextColor?: string;
         sideControlBackground?: string;
         sideControlBorderColor?: string;
+        sideControlIconColor?: string;
         sideControlTextColor?: string;
         sidePanelBackground?: string;
         sidePanelBorderColor?: string;
@@ -55,6 +61,15 @@ export type LearningMap = {
         gap?: number;
     };
     nodes: LearningNode[];
+};
+
+export type MapVisualAsset = {
+    id?: string;
+    imageUrl?: string;
+    opacity?: number | string;
+    width?: number | string;
+    x?: number | string;
+    y?: number | string;
 };
 
 export type LearningNode = {
@@ -101,6 +116,10 @@ export type LearningNode = {
             isDiscoverable?: boolean;
             isDiscovered?: boolean;
             toolId?: string;
+        };
+        schedule?: {
+            lockAt?: string;
+            unlockAt?: string;
         };
         sounds?: {
             click?: {
@@ -154,7 +173,17 @@ export type LearningActivityStart = {
     imageDark: string | null;
     imageLight: string | null;
     label: string;
+    progress: LearningRouteProgress | null;
     sortOrder: number;
+};
+
+export type LearningRouteProgress = {
+    completionCount: number;
+    currentActivityId: number | null;
+    lastCompletedAt: string | null;
+    lastEnteredAt: string | null;
+    playRunId: string | null;
+    status: 'completed' | 'in_progress' | 'not_started' | string;
 };
 
 export type LearningPortalLink = {

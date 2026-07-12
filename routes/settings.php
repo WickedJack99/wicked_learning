@@ -69,6 +69,9 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::get('settings/worlds/maps/{map}/edit', [AdminWorldController::class, 'editMap'])
         ->name('settings.worlds.maps.edit');
 
+    Route::get('settings/worlds/maps/{map}/configure', [AdminWorldController::class, 'configureMap'])
+        ->name('settings.worlds.maps.configure');
+
     Route::patch('settings/worlds/maps/{map}', [AdminWorldController::class, 'updateMap'])
         ->name('settings.worlds.maps.update');
 
@@ -149,6 +152,14 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
 
     Route::delete('settings/worlds/activity-transitions/{transition}', [AdminActivityController::class, 'destroyTransition'])
         ->name('settings.worlds.activity-transitions.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'can:worlds.rud'])->group(function () {
+    Route::delete('settings/worlds/maps/{map}', [AdminWorldController::class, 'destroyMap'])
+        ->name('settings.worlds.maps.destroy');
+
+    Route::delete('settings/worlds/nodes/{node}', [AdminWorldController::class, 'destroyNode'])
+        ->name('settings.worlds.nodes.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {

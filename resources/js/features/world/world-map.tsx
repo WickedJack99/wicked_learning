@@ -14,9 +14,11 @@ import {
     toolAnimationWidthPercent,
     toolAnimationWidthStyle,
 } from '@/features/tools/tool-visuals';
+import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
 import type {
     LearningMap,
+    MapVisualAsset,
     LearningNode,
     LearningProgress,
     LearningTool,
@@ -280,6 +282,7 @@ export function WorldMap({
                     background: mapTheme.overlay ?? 'rgba(0, 0, 0, 0.4)',
                 }}
             />
+            <MapVisualAssetLayers assets={mapTheme.assets} />
 
             <div
                 className="pointer-events-none absolute top-5 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md md:top-8 md:left-8 md:w-auto md:translate-x-0"
@@ -444,7 +447,7 @@ const HexTile = memo(function HexTile({
           ? 'var(--platform-cursor)'
           : canInteract
             ? tileCursor
-            : 'default';
+            : 'var(--platform-denied-cursor)';
     const highlightClass = cn(
         'pointer-events-none absolute opacity-0',
         canInteract && 'group-hover:opacity-100 group-focus:opacity-100',
@@ -753,6 +756,44 @@ function showToolAnimation(
 
 function wait(durationMs: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, durationMs));
+}
+
+function MapVisualAssetLayers({
+    assets,
+}: {
+    assets?: MapVisualAsset[];
+}) {
+    if (!Array.isArray(assets) || assets.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {assets.map((asset, index) => {
+                const imageUrl = normalizeMediaUrl(asset.imageUrl ?? '');
+
+                if (!imageUrl) {
+                    return null;
+                }
+
+                return (
+                    <img
+                        alt=""
+                        className="absolute h-auto max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+                        draggable={false}
+                        key={asset.id || `${imageUrl}-${index}`}
+                        src={imageUrl}
+                        style={{
+                            left: `${percentConfig(asset.x, 50)}%`,
+                            opacity: percentConfig(asset.opacity, 100) / 100,
+                            top: `${percentConfig(asset.y, 50)}%`,
+                            width: `${percentConfig(asset.width, 20, 1, 200)}%`,
+                        }}
+                    />
+                );
+            })}
+        </div>
+    );
 }
 
 function cacheBustedUrl(url: string, id: number): string {

@@ -98,10 +98,10 @@ export function ColorOpacityField({
     return (
         <div className="grid gap-2">
             <Label htmlFor={id}>{label}</Label>
-            <div className="grid gap-2 sm:grid-cols-[auto_1fr_7rem]">
+            <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-2">
                 <Input
                     aria-label={`${label} picker`}
-                    className="h-9 w-12 cursor-pointer p-1"
+                    className="h-9 w-12 shrink-0 cursor-pointer p-1"
                     onChange={(event) =>
                         onColorChange(event.currentTarget.value)
                     }
@@ -115,7 +115,9 @@ export function ColorOpacityField({
                     }
                     value={colorValue}
                 />
-                <div className="grid gap-1">
+            </div>
+            <div className="grid gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-end gap-3">
                     <Label
                         className="text-[0.68rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
                         htmlFor={`${id}-opacity`}
@@ -133,15 +135,17 @@ export function ColorOpacityField({
                         value={resolvedOpacity}
                     />
                 </div>
+                <Input
+                    aria-label={`${label} opacity slider`}
+                    max="100"
+                    min="0"
+                    onChange={(event) =>
+                        onOpacityChange(event.currentTarget.value)
+                    }
+                    type="range"
+                    value={resolvedOpacity}
+                />
             </div>
-            <Input
-                aria-label={`${label} opacity slider`}
-                max="100"
-                min="0"
-                onChange={(event) => onOpacityChange(event.currentTarget.value)}
-                type="range"
-                value={resolvedOpacity}
-            />
             <InputError message={colorError || opacityError} />
         </div>
     );

@@ -12,6 +12,11 @@ use Illuminate\Validation\ValidationException;
 
 class NodeUnlockService
 {
+    public function __construct(
+        private readonly LearnerNodeAnswerEventService $answerEvents,
+        private readonly NodeAvailabilitySchedule $availabilitySchedule,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -47,14 +52,26 @@ class NodeUnlockService
             return true;
         }
 
+        if ($this->answerEvents->isUnlockedForUser($node, $userId)) {
+            return true;
+        }
+
         if (! $this->hasUnlockRules($node) || $userId === null) {
             return false;
         }
 
+        $ruleTree = $this->ruleTree($node);
+        $timeUnlocked = $this->availabilitySchedule->isUnlockedBySchedule($node);
+
+        if ($ruleTree === []) {
+            return $timeUnlocked;
+        }
+
         return $this->evaluateRule(
-            $this->ruleTree($node),
+            $ruleTree,
             $this->completedNodeIds($userId),
             $this->hasToolUnlock($node, $userId),
+            $timeUnlocked,
         );
     }
 
@@ -79,7 +96,7 @@ class NodeUnlockService
         $unlock = $this->unlockConfig($node);
 
         return filter_var($unlock['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)
-            && $this->ruleTree($node) !== [];
+            && ($this->ruleTree($node) !== [] || $this->availabilitySchedule->hasUnlockSchedule($node));
     }
 
     private function isToolUnlockable(LearningNode $node): bool
@@ -155,7 +172,7 @@ class NodeUnlockService
      * @param  array<int, true>  $completedNodeIds
      * @param  array<string, mixed>  $rule
      */
-    private function evaluateRule(array $rule, array $completedNodeIds, bool $toolUsed): bool
+    private function evaluateRule(array $rule, array $completedNodeIds, bool $toolUsed, bool $timeUnlocked): bool
     {
         if (($rule['type'] ?? null) === 'node_completed') {
             $nodeId = (int) ($rule['nodeId'] ?? 0);
@@ -165,6 +182,10 @@ class NodeUnlockService
 
         if (($rule['type'] ?? null) === 'tool_used') {
             return $toolUsed;
+        }
+
+        if (($rule['type'] ?? null) === 'time_after') {
+            return $timeUnlocked;
         }
 
         if (($rule['type'] ?? null) !== 'group') {
@@ -182,8 +203,8 @@ class NodeUnlockService
         $operator = ($rule['operator'] ?? 'and') === 'or' ? 'or' : 'and';
 
         return $operator === 'or'
-            ? $rules->contains(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed))
-            : $rules->every(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed));
+            ? $rules->contains(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked))
+            : $rules->every(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked));
     }
 
     private function hasToolUnlock(LearningNode $node, int $userId): bool
@@ -195,6 +216,7 @@ class NodeUnlockService
             $unlock = is_array($metadata['unlock'] ?? null) ? $metadata['unlock'] : [];
 
             return $discovery->user_id === $userId
+                && ($unlock['source'] ?? null) === 'world-map-lock-tool'
                 && isset($unlock['unlockedAt']);
         });
     }

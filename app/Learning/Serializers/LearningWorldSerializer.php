@@ -5,8 +5,8 @@ namespace App\Learning\Serializers;
 use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
-use App\Models\User;
 use App\Models\LearningWorld;
+use App\Models\User;
 
 class LearningWorldSerializer
 {

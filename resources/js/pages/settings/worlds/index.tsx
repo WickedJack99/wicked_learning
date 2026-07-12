@@ -225,7 +225,9 @@ export default function AdminWorldIndex({
                                 {selectedPortal ? (
                                     <PortalDetails portal={selectedPortal} />
                                 ) : selectedMap ? (
-                                    <MapDetails map={selectedMap} />
+                                    <MapDetails
+                                        map={selectedMap}
+                                    />
                                 ) : (
                                     <EmptyDetails />
                                 )}
@@ -355,6 +357,7 @@ export default function AdminWorldIndex({
                     </form>
                 </DialogContent>
             </Dialog>
+
         </>
     );
 }

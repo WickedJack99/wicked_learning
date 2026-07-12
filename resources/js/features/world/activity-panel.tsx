@@ -4,9 +4,11 @@ import {
     Bookmark,
     CheckCircle2,
     PlayCircle,
+    RotateCcw,
     X,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
+import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,7 @@ import {
     ReflectionActivity,
 } from './standard-activities';
 import { ToolGrantActivity } from './tool-grant-activity';
+import { postJson } from './api';
 
 export function ActivityPanel({
     canBookmark,
@@ -46,7 +49,11 @@ export function ActivityPanel({
     isCompleted: boolean;
     node: LearningNode | null;
     onClose: () => void;
-    onStart: (node: LearningNode, activityId: number | null) => void;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
     onToggleBookmark: (node: LearningNode) => void;
 }) {
     if (!node) {
@@ -105,7 +112,11 @@ function RouteStartButtons({
     onStart,
 }: {
     node: LearningNode;
-    onStart: (node: LearningNode, activityId: number | null) => void;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
 }) {
     const { resolvedAppearance } = useAppearance();
     const routes =
@@ -122,6 +133,7 @@ function RouteStartButtons({
                       imageDark: null,
                       imageLight: null,
                       label: 'Start node',
+                      progress: null,
                       sortOrder: 0,
                   },
               ].filter(
@@ -135,7 +147,7 @@ function RouteStartButtons({
     const showScrollHints = routes.length > 3;
 
     return (
-        <div className="relative mt-auto min-h-0">
+        <div className="relative mt-auto flex min-h-[50%] basis-1/2 flex-col pb-12 md:pb-14">
             {showScrollHints ? (
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center bg-gradient-to-b from-white via-white/80 to-transparent py-1 text-slate-400 dark:from-[#111820] dark:via-[#111820]/80">
                     <ArrowLeft className="size-3 rotate-90" />
@@ -143,7 +155,7 @@ function RouteStartButtons({
             ) : null}
             <div
                 className={cn(
-                    'route-options-scroll -mt-1 grid max-h-56 gap-2 overflow-y-auto px-1 pt-2 pb-1',
+                    'route-options-scroll -mt-1 grid min-h-0 flex-1 content-end gap-2 overflow-y-auto px-1 pt-2 pb-1',
                     showScrollHints && 'py-6',
                 )}
             >
@@ -174,7 +186,11 @@ function RouteStartOption({
 }: {
     mode: 'dark' | 'light';
     node: LearningNode;
-    onStart: (node: LearningNode, activityId: number | null) => void;
+    onStart: (
+        node: LearningNode,
+        activityId: number | null,
+        routeId?: number | null,
+    ) => void;
     route: LearningNode['startRoutes'][number];
 }) {
     const image = mode === 'light' ? route.imageLight : route.imageDark;
@@ -196,48 +212,128 @@ function RouteStartOption({
         boxShadow: `inset 0 0 0 2px ${routeBorderColor}`,
     };
 
+    const resetRoute = async () => {
+        if (route.id <= 0) {
+            return;
+        }
+
+        const response = await postJson<{ url: string }>(
+            `/learning/activity-starts/${route.id}/reset`,
+            {},
+        );
+
+        router.visit(response.url);
+    };
+    const progressText = routeProgressText(route);
+
     if (image) {
         return (
-            <button
-                className="group relative overflow-hidden rounded-lg bg-slate-950 text-left transition duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:focus-visible:ring-teal-200"
-                onClick={() => onStart(node, route.activityId)}
-                type="button"
-            >
-                <img alt="" className="h-32 w-full object-cover" src={image} />
-                <span
-                    className="absolute inset-x-0 top-0 z-[1] flex min-h-10 items-center justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white"
-                    style={buttonStyle}
+            <div className="grid gap-1.5">
+                <button
+                    className="group relative overflow-hidden rounded-lg bg-slate-950 text-left transition duration-200 hover:-translate-y-1 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:focus-visible:ring-teal-200"
+                    onClick={() => onStart(node, route.activityId, route.id)}
+                    type="button"
                 >
-                    <span className="inline-flex min-w-0 items-center gap-2">
-                        <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
-                        <span className="truncate">{route.label}</span>
+                    <img
+                        alt=""
+                        className="h-32 w-full object-cover"
+                        src={image}
+                    />
+                    <span
+                        className="absolute inset-x-0 top-0 z-[1] flex min-h-10 items-center justify-between gap-3 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-slate-950 backdrop-blur-md dark:bg-slate-950/82 dark:text-white"
+                        style={buttonStyle}
+                    >
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                            <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                            <span className="truncate">{route.label}</span>
+                        </span>
+                        <ArrowRight className="size-4 shrink-0 text-cyan-700 transition group-hover:translate-x-0.5 dark:text-teal-200" />
                     </span>
-                    <ArrowRight className="size-4 shrink-0 text-cyan-700 transition group-hover:translate-x-0.5 dark:text-teal-200" />
-                </span>
-                <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 z-[2] rounded-lg"
-                    style={frameStyle}
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 z-[2] rounded-lg"
+                        style={frameStyle}
+                    />
+                </button>
+                <RouteProgressActions
+                    onReset={() => void resetRoute()}
+                    progressText={progressText}
+                    route={route}
                 />
-            </button>
+            </div>
         );
     }
 
     return (
-        <Button
-            className="h-10 justify-between border border-transparent bg-white/90 text-slate-950 shadow-none transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-50 hover:text-slate-950 hover:shadow-none dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900 dark:hover:text-white"
-            onClick={() => onStart(node, route.activityId)}
-            style={buttonStyle}
-            variant="ghost"
-            type="button"
-        >
-            <span className="inline-flex min-w-0 items-center gap-2">
-                <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
-                <span className="truncate">{route.label}</span>
-            </span>
-            <ArrowRight className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
-        </Button>
+        <div className="grid gap-1.5">
+            <Button
+                className="h-10 justify-between border border-transparent bg-white/90 text-slate-950 shadow-none transition duration-200 hover:-translate-y-0.5 hover:bg-cyan-50 hover:text-slate-950 hover:shadow-none dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900 dark:hover:text-white"
+                onClick={() => onStart(node, route.activityId, route.id)}
+                style={buttonStyle}
+                variant="ghost"
+                type="button"
+            >
+                <span className="inline-flex min-w-0 items-center gap-2">
+                    <PlayCircle className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <span className="truncate">{route.label}</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+            </Button>
+            <RouteProgressActions
+                onReset={() => void resetRoute()}
+                progressText={progressText}
+                route={route}
+            />
+        </div>
     );
+}
+
+function RouteProgressActions({
+    onReset,
+    progressText,
+    route,
+}: {
+    onReset: () => void;
+    progressText: string | null;
+    route: LearningNode['startRoutes'][number];
+}) {
+    if (!progressText && !route.progress) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center justify-between gap-2 px-1 text-[0.7rem] text-slate-500 dark:text-slate-400">
+            <span className="min-w-0 truncate">{progressText}</span>
+            <button
+                className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-semibold text-cyan-700 transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:text-teal-200 dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
+                onClick={onReset}
+                type="button"
+            >
+                <RotateCcw className="size-3" />
+                Reset
+            </button>
+        </div>
+    );
+}
+
+function routeProgressText(
+    route: LearningNode['startRoutes'][number],
+): string | null {
+    const progress = route.progress;
+
+    if (!progress) {
+        return null;
+    }
+
+    if (progress.completionCount > 0) {
+        return `Completed ${progress.completionCount}x${progress.lastCompletedAt ? ` · ${new Date(progress.lastCompletedAt).toLocaleDateString()}` : ''}`;
+    }
+
+    if (progress.status === 'in_progress') {
+        return 'In progress';
+    }
+
+    return null;
 }
 
 export function ActivityPlayer({
@@ -248,6 +344,8 @@ export function ActivityPlayer({
     onAnswer,
     onComplete,
     onMoveToActivity,
+    playState,
+    playRunId,
     onTravel,
 }: {
     activity: LearningActivity | null;
@@ -257,6 +355,8 @@ export function ActivityPlayer({
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    playState: Record<string, unknown>;
+    playRunId: string | null;
     onTravel: (portalLink: LearningPortalLink) => void;
 }) {
     if (!activity) {
@@ -288,8 +388,11 @@ export function ActivityPlayer({
             {activity.type === 'npc_dialogue' ? (
                 <NpcDialogueActivity
                     activity={activity}
+                    initialState={playState[activity.id]}
+                    key={`${activity.id}:${playRunId ?? 'local'}`}
                     onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
                 />
             ) : null}
 
@@ -327,6 +430,7 @@ export function ActivityPlayer({
                     activity={activity}
                     onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
                     transition={completedTransition}
                 />
             ) : null}

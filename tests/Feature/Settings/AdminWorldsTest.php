@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\ActivityTransition;
+use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -11,6 +13,7 @@ use App\Models\NpcDialogueAnswer;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 use App\Models\User;
+use App\Models\UserPreference;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +30,7 @@ test('admin users can see the world graph with portal links', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/worlds/index')
+            ->where('canDeleteWorldMaps', true)
             ->where('worldGraph.world.slug', 'demo-learning-world')
             ->has('worldGraph.maps', 2)
             ->has('worldGraph.portalCandidates', 5)
@@ -140,6 +144,163 @@ test('admin users can open the hex map editor', function () {
             ->where('editableMap.map.slug', 'first-sector')
             ->has('editableMap.map.nodes', 4)
         );
+});
+
+test('admin users can open the full map configuration screen', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.configure', $map))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/worlds/configure-map')
+            ->where('canDeleteWorldMaps', true)
+            ->where('editableMap.map.slug', 'first-sector')
+            ->has('accessGroups')
+        );
+});
+
+test('admin users can delete map tiles and related authoring state', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $sourceNode = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $targetNode = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'temporary-tile',
+        'title' => 'Temporary tile',
+        'description' => 'This tile can be removed.',
+        'position_q' => 4,
+        'position_r' => 0,
+        'state' => 'available',
+        'visual_config' => [],
+    ]);
+    $sourceActivity = LearningActivity::query()->where('learning_node_id', $sourceNode->id)->firstOrFail();
+    $targetActivity = LearningActivity::query()->create([
+        'learning_node_id' => $targetNode->id,
+        'slug' => 'temporary-activity',
+        'title' => 'Temporary activity',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 10,
+    ]);
+    $transition = ActivityTransition::query()->create([
+        'from_activity_id' => $sourceActivity->id,
+        'to_activity_id' => $targetActivity->id,
+        'from_connector' => 'completed',
+        'to_connector' => 'in',
+        'trigger' => 'completed',
+    ]);
+
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $targetNode->id,
+        'learning_activity_id' => $targetActivity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now(),
+        'completed_at' => now(),
+    ]);
+
+    $sourceNode->forceFill([
+        'visual_config' => [
+            'unlock' => [
+                'requiredNodeIds' => [$targetNode->id],
+                'rules' => [
+                    'type' => 'group',
+                    'operator' => 'and',
+                    'rules' => [
+                        [
+                            'type' => 'node_completed',
+                            'nodeId' => $targetNode->id,
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($admin)
+        ->delete(route('settings.worlds.nodes.destroy', $targetNode))
+        ->assertRedirect(route('settings.worlds.maps.edit', $map));
+
+    expect(LearningNode::query()->whereKey($targetNode->id)->exists())->toBeFalse()
+        ->and(LearningActivity::query()->whereKey($targetActivity->id)->exists())->toBeFalse()
+        ->and(ActivityTransition::query()->whereKey($transition->id)->exists())->toBeFalse()
+        ->and(LearnerActivityProgress::query()->where('learning_node_id', $targetNode->id)->exists())->toBeFalse();
+
+    $sourceNode->refresh();
+
+    expect($sourceNode->visual_config['unlock']['requiredNodeIds'])->toBe([])
+        ->and($sourceNode->visual_config['unlock']['rules']['rules'])->toBe([]);
+});
+
+test('admin users can delete world maps and related map state', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $deletedNode = LearningNode::query()
+        ->where('learning_map_id', $map->id)
+        ->where('slug', 'portal-foundation')
+        ->firstOrFail();
+    $externalNode = LearningNode::query()->where('slug', 'return-gate')->firstOrFail();
+
+    UserPreference::query()->create([
+        'user_id' => $learner->id,
+        'appearance' => 'dark',
+        'settings' => [
+            'learning' => [
+                'lastMapId' => $map->id,
+                'lastMapSlug' => $map->slug,
+            ],
+        ],
+    ]);
+
+    $externalNode->forceFill([
+        'visual_config' => [
+            'unlock' => [
+                'requiredNodeIds' => [$deletedNode->id],
+                'rules' => [
+                    'type' => 'group',
+                    'operator' => 'and',
+                    'rules' => [
+                        [
+                            'type' => 'node_completed',
+                            'nodeId' => $deletedNode->id,
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($admin)
+        ->delete(route('settings.worlds.maps.destroy', $map))
+        ->assertRedirect(route('settings.worlds.index'));
+
+    $externalNode->refresh();
+    $preference = $learner->refresh()->preference;
+
+    expect(LearningMap::query()->whereKey($map->id)->exists())->toBeFalse()
+        ->and(LearningNode::query()->where('learning_map_id', $map->id)->exists())->toBeFalse()
+        ->and(LearningPortalLink::query()
+            ->where('source_learning_node_id', $deletedNode->id)
+            ->orWhere('target_learning_node_id', $deletedNode->id)
+            ->exists())->toBeFalse()
+        ->and($externalNode->visual_config['unlock']['requiredNodeIds'])->toBe([])
+        ->and($externalNode->visual_config['unlock']['rules']['rules'])->toBe([])
+        ->and($preference?->settings['learning']['lastMapId'] ?? null)->toBeNull()
+        ->and($preference?->settings['learning']['lastMapSlug'] ?? null)->toBeNull();
 });
 
 test('admin users can manage map access permissions', function () {
@@ -283,16 +444,54 @@ test('admin users configure portal destinations from portal activities', functio
         ->and($activity->config['portalSwirlEnabled'])->toBeFalse()
         ->and($activity->config['portalWaitForEnter'])->toBeTrue();
 
+    $targetActivity->forceFill([
+        'config' => [
+            ...($targetActivity->config ?? []),
+            'portalBackgroundLight' => '/storage/learning/nodes/old-exit-light.webp',
+            'portalForegroundLight' => '/storage/learning/nodes/old-exit-swirl.svg',
+        ],
+    ])->save();
+
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $targetActivity), [
+            'title' => $targetActivity->title,
+            'slug' => $targetActivity->slug,
+            'type' => 'portal',
+            'introduction' => 'Arrive back through the gate.',
             'portal_mode' => 'input',
+            'portal_background_dark' => '/storage/learning/nodes/exit-dark.webp',
+            'portal_background_light' => '',
+            'portal_background_mirrored' => true,
+            'portal_duration_seconds' => 4,
+            'portal_foreground_dark' => '/storage/learning/nodes/exit-swirl.svg',
+            'portal_foreground_light' => '',
+            'portal_foreground_mirrored' => true,
+            'portal_foreground_width' => 44,
+            'portal_foreground_x' => 46,
+            'portal_foreground_y' => 54,
             'portal_show_on_arrival' => false,
+            'portal_swirl_enabled' => true,
+            'portal_wait_for_enter' => false,
+            'target_portal_activity_id' => '',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $targetActivity->node));
 
     $targetActivity->refresh();
 
-    expect($targetActivity->config['portalShowOnArrival'])->toBeFalse();
+    expect($targetActivity->config['portalMode'])->toBe('input')
+        ->and($targetActivity->config['portalBackgroundDark'])->toBe('/storage/learning/nodes/exit-dark.webp')
+        ->and($targetActivity->config['portalBackgroundLight'])->toBe('')
+        ->and($targetActivity->config['portalBackgroundMirrored'])->toBeTrue()
+        ->and((float) $targetActivity->config['portalDurationSeconds'])->toBe(4.0)
+        ->and($targetActivity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/exit-swirl.svg')
+        ->and($targetActivity->config['portalForegroundLight'])->toBe('')
+        ->and($targetActivity->config['portalForegroundMirrored'])->toBeTrue()
+        ->and((float) $targetActivity->config['portalForegroundWidth'])->toBe(44.0)
+        ->and($targetActivity->config['portalForegroundX'])->toBe(46)
+        ->and($targetActivity->config['portalForegroundY'])->toBe(54)
+        ->and($targetActivity->config['portalShowOnArrival'])->toBeFalse()
+        ->and($targetActivity->config['portalSwirlEnabled'])->toBeTrue()
+        ->and($targetActivity->config['portalWaitForEnter'])->toBeFalse();
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.nodes.activities.edit', $sourceNode))
@@ -1159,14 +1358,29 @@ test('admin users can edit map visual theme variants', function () {
                     'sidePanelMutedTextColor' => 'rgba(226, 232, 240, 0.72)',
                     'bottomNavBackground' => 'rgba(8, 17, 26, 0.78)',
                     'bottomNavBorderColor' => 'rgba(226, 232, 240, 0.12)',
+                    'bottomNavIconColor' => '#cbd5e1',
                     'bottomNavTextColor' => '#e2e8f0',
                     'bottomNavActiveBackground' => '#5eead4',
+                    'bottomNavActiveIconColor' => '#020617',
                     'bottomNavActiveTextColor' => '#020617',
+                    'bottomNavExitIconColor' => '#ef4444',
                     'sideControlBackground' => 'rgba(8, 17, 26, 0.78)',
                     'sideControlBorderColor' => 'rgba(226, 232, 240, 0.12)',
+                    'sideControlIconColor' => '#cbd5e1',
                     'sideControlTextColor' => '#e2e8f0',
                     'sideControlActiveBackground' => '#5eead4',
+                    'sideControlActiveIconColor' => '#020617',
                     'sideControlActiveTextColor' => '#020617',
+                    'assets' => [
+                        [
+                            'id' => 'moon',
+                            'imageUrl' => '/images/map-assets/moon.png',
+                            'x' => 72,
+                            'y' => 18,
+                            'width' => 16,
+                            'opacity' => 82,
+                        ],
+                    ],
                 ],
                 'light' => [
                     'imageUrl' => '/storage/learning/maps/light.webp',
@@ -1185,7 +1399,13 @@ test('admin users can edit map visual theme variants', function () {
         ->and($map->background_config['dark']['imageUrl'])->toBe('/storage/learning/maps/dark.webp')
         ->and($map->background_config['dark']['panelBorderColor'])->toBe('rgba(226, 232, 240, 0.12)')
         ->and($map->background_config['dark']['bottomNavBackground'])->toBe('rgba(8, 17, 26, 0.78)')
+        ->and($map->background_config['dark']['bottomNavIconColor'])->toBe('#cbd5e1')
+        ->and($map->background_config['dark']['bottomNavActiveIconColor'])->toBe('#020617')
+        ->and($map->background_config['dark']['bottomNavExitIconColor'])->toBe('#ef4444')
         ->and($map->background_config['dark']['sideControlBackground'])->toBe('rgba(8, 17, 26, 0.78)')
+        ->and($map->background_config['dark']['sideControlIconColor'])->toBe('#cbd5e1')
+        ->and($map->background_config['dark']['sideControlActiveIconColor'])->toBe('#020617')
+        ->and($map->background_config['dark']['assets'][0]['imageUrl'])->toBe('/images/map-assets/moon.png')
         ->and($map->background_config['light']['pageBackground'])->toBe('#ecfeff');
 });
 

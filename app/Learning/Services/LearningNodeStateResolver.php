@@ -7,14 +7,24 @@ use App\Models\LearningNode;
 class LearningNodeStateResolver
 {
     public function __construct(
+        private readonly LearnerNodeAnswerEventService $answerEvents,
+        private readonly NodeAvailabilitySchedule $availabilitySchedule,
         private readonly NodeRevealService $nodeRevealService,
         private readonly NodeUnlockService $nodeUnlockService,
     ) {}
 
     public function stateForUser(LearningNode $node, ?int $userId): string
     {
+        if ($this->answerEvents->isHiddenForUser($node, $userId)) {
+            return 'hidden';
+        }
+
         if ($this->nodeRevealService->isConcealedForUser($node, $userId)) {
             return 'hidden';
+        }
+
+        if ($this->availabilitySchedule->isLockedBySchedule($node)) {
+            return 'locked';
         }
 
         if ($node->state === 'hidden' && $this->nodeRevealService->isDiscoverable($node)) {
