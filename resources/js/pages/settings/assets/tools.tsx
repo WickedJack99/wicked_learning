@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { ToolCursorImage } from '@/features/tools/tool-cursor-overlay';
 import { toolAnimationWidthStyle } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 
 type AdminTool = {
@@ -187,44 +188,14 @@ function ToolFormPanel({
         router.post('/settings/assets/tools', form, options);
     };
     const uploadMedia = async (field: keyof ToolForm, file: File) => {
-        const formData = new FormData();
-        const csrfToken =
-            document
-                .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-                ?.getAttribute('content') ?? '';
-
-        formData.append('file', file);
         setUploadingField(field);
         setUploadErrors((current) => ({ ...current, [field]: '' }));
 
         try {
-            const response = await fetch('/settings/assets/tool-media', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/tool-media',
+                file,
             });
-            const payload = (await response.json()) as {
-                durationSeconds?: number | null;
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setUploadErrors((current) => ({
-                    ...current,
-                    [field]:
-                        payload.errors?.file?.[0] ??
-                        payload.message ??
-                        'The file could not be uploaded.',
-                }));
-
-                return;
-            }
 
             updateField(field, payload.url);
 
@@ -238,10 +209,13 @@ function ToolFormPanel({
                     String(payload.durationSeconds),
                 );
             }
-        } catch {
+        } catch (error) {
             setUploadErrors((current) => ({
                 ...current,
-                [field]: 'The file could not be uploaded.',
+                [field]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The file could not be uploaded.',
             }));
         } finally {
             setUploadingField(null);

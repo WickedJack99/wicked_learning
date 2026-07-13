@@ -10,6 +10,7 @@ import {
     getPresentationBackgroundImage,
     getPublicPresentationPalette,
     getPublicPresentationStyle,
+    publicPaletteColor,
 } from '@/theme/presentation';
 import type { AuthLayoutProps } from '@/types';
 
@@ -33,18 +34,18 @@ export default function AuthSimpleLayout({
     );
     const theme = {
         ...getAuthTheme(page, resolvedAppearance),
-        borderLineColor: publicPalette.controlBorder,
-        buttonBackground: publicPalette.accentText,
-        buttonTextColor: publicPalette.controlText,
-        descriptionTextColor: publicPalette.bodyText,
-        eyebrowTextColor: publicPalette.accentText,
-        focusRingColor: publicPalette.accentText,
-        inputBorderColor: publicPalette.controlBorder,
-        labelTextColor: publicPalette.bodyText,
-        linkTextColor: publicPalette.accentText,
-        logoBackground: publicPalette.accentText,
-        logoColor: publicPalette.controlText,
-        titleTextColor: publicPalette.headingText,
+        borderLineColor: publicPaletteColor(publicPalette, 'controlBorder'),
+        buttonBackground: publicPaletteColor(publicPalette, 'accentText'),
+        buttonTextColor: publicPaletteColor(publicPalette, 'controlText'),
+        descriptionTextColor: publicPaletteColor(publicPalette, 'bodyText'),
+        eyebrowTextColor: publicPaletteColor(publicPalette, 'accentText'),
+        focusRingColor: publicPaletteColor(publicPalette, 'accentText'),
+        inputBorderColor: publicPaletteColor(publicPalette, 'controlBorder'),
+        labelTextColor: publicPaletteColor(publicPalette, 'bodyText'),
+        linkTextColor: publicPaletteColor(publicPalette, 'accentText'),
+        logoBackground: publicPaletteColor(publicPalette, 'accentText'),
+        logoColor: publicPaletteColor(publicPalette, 'controlText'),
+        titleTextColor: publicPaletteColor(publicPalette, 'headingText'),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
     const cursorStyle = usePlatformCursorStyle(props.publicPresentation);

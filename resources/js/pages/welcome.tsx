@@ -81,7 +81,7 @@ export default function Welcome() {
                 <div
                     aria-hidden="true"
                     className="absolute inset-0"
-                    style={{ background: 'var(--auth-background-overlay)' }}
+                    style={{ background: 'var(--public-welcome-overlay)' }}
                 />
 
                 <header className="absolute top-0 right-0 left-0 z-20 flex items-center justify-between px-6 py-5 md:px-10">
@@ -90,7 +90,7 @@ export default function Welcome() {
                             className="flex size-9 items-center justify-center rounded-md"
                             style={{
                                 background: 'var(--public-accent)',
-                                color: 'var(--auth-logo-color)',
+                                color: 'var(--public-control-text)',
                             }}
                         >
                             <Compass className="size-5" />
@@ -107,7 +107,7 @@ export default function Welcome() {
                                 href={worldHref}
                                 style={{
                                     background: 'var(--public-accent)',
-                                    color: 'var(--auth-button-text-color)',
+                                    color: 'var(--public-control-text)',
                                 }}
                             >
                                 Open world
@@ -195,7 +195,7 @@ export default function Welcome() {
                                         key={`${button.text}-${button.target}`}
                                         style={{
                                             background: 'var(--public-accent)',
-                                            color: 'var(--auth-button-text-color)',
+                                            color: 'var(--public-control-text)',
                                         }}
                                     >
                                         {button.text}

@@ -4,7 +4,6 @@ import {
     Image,
     LayoutPanelTop,
     Map as MapIcon,
-    Moon,
     Navigation,
     Palette,
     PanelRight,
@@ -12,11 +11,11 @@ import {
     Save,
     ShieldCheck,
     SlidersHorizontal,
-    Sun,
     Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
+import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
 import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
 import type { MapVisualAsset } from '@/types/learning';
@@ -301,48 +301,24 @@ export default function ConfigureMap({
         file: File,
         onUploaded: (url: string) => void,
     ) => {
-        const formData = new FormData();
-        const csrfToken = document
-            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        formData.append('image', file);
         setUploadingImageKey(key);
         setImageErrors((current) => ({ ...current, [key]: '' }));
 
         try {
-            const response = await fetch('/settings/worlds/node-images', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/worlds/node-images',
+                errorMessage: 'The image could not be uploaded.',
+                fieldName: 'image',
+                file,
             });
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setImageErrors((current) => ({
-                    ...current,
-                    [key]:
-                        payload.errors?.image?.[0] ??
-                        payload.message ??
-                        'The image could not be uploaded.',
-                }));
-
-                return;
-            }
-
             onUploaded(payload.url);
-        } catch {
+        } catch (error) {
             setImageErrors((current) => ({
                 ...current,
-                [key]: 'The image could not be uploaded.',
+                [key]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The image could not be uploaded.',
             }));
         } finally {
             setUploadingImageKey(null);
@@ -355,7 +331,12 @@ export default function ConfigureMap({
             <main className="min-h-full overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
                 <div className="mx-auto flex h-[calc(100svh-8rem)] min-h-[34rem] w-full max-w-[92rem] flex-col gap-4">
                     <header className="shrink-0">
-                        <Button asChild className="mb-2" size="sm" variant="ghost">
+                        <Button
+                            asChild
+                            className="mb-2"
+                            size="sm"
+                            variant="ghost"
+                        >
                             <Link href={`/settings/worlds/maps/${map.id}/edit`}>
                                 <ArrowLeft className="size-4" />
                                 Back to map editor
@@ -398,10 +379,12 @@ export default function ConfigureMap({
                                                     : 'bg-cyan-600 text-white shadow-lg shadow-cyan-950/15 dark:bg-teal-300 dark:text-slate-950'
                                                 : section.danger
                                                   ? 'text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950/30 dark:hover:text-red-100'
-                                                : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                                                  : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                                         )}
                                         key={section.id}
-                                        onClick={() => setMainSection(section.id)}
+                                        onClick={() =>
+                                            setMainSection(section.id)
+                                        }
                                         type="button"
                                     >
                                         <Icon className="size-4" />
@@ -597,7 +580,11 @@ function MapVisualsSection({
                         the map element you want to tune.
                     </p>
                 </div>
-                <ThemeModeSwitch mode={mode} onChange={onModeChange} />
+                <ConfigModeSwitch
+                    mode={mode}
+                    onChange={onModeChange}
+                    size="large"
+                />
             </div>
 
             <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
@@ -614,7 +601,9 @@ function MapVisualsSection({
                                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                                 )}
                                 key={section.id}
-                                onClick={() => onVisualSectionChange(section.id)}
+                                onClick={() =>
+                                    onVisualSectionChange(section.id)
+                                }
                                 type="button"
                             >
                                 <Icon className="mt-0.5 size-4" />
@@ -720,26 +709,20 @@ function VisualEditorPanel({
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
             <div className="grid content-start gap-4">
                 <h3 className="text-lg font-semibold">
-                    {visualSections.find((candidate) => candidate.id === section)
-                        ?.label ?? 'Visual settings'}
+                    {visualSections.find(
+                        (candidate) => candidate.id === section,
+                    )?.label ?? 'Visual settings'}
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                     {visualFieldGroups[section].map((field) => (
                         <CssColorOpacityField
                             error={
-                                errors[
-                                    `background_config.${mode}.${field.key}`
-                                ]
+                                errors[`background_config.${mode}.${field.key}`]
                             }
                             key={field.key}
                             label={field.label}
                             onChange={(value) =>
-                                setVisualField(
-                                    setForm,
-                                    mode,
-                                    field.key,
-                                    value,
-                                )
+                                setVisualField(setForm, mode, field.key, value)
                             }
                             value={String(values[field.key] ?? '')}
                         />
@@ -997,9 +980,9 @@ function DeleteWorldSection({
                         </h3>
                         <p className="mt-2 text-sm leading-6 text-red-800 dark:text-red-100/80">
                             This deletes {map.nodeCount} tile
-                            {map.nodeCount === 1 ? '' : 's'}, activities,
-                            portal links and learner progress connected to this
-                            map. This action cannot be undone.
+                            {map.nodeCount === 1 ? '' : 's'}, activities, portal
+                            links and learner progress connected to this map.
+                            This action cannot be undone.
                         </p>
                         {canDelete ? (
                             <Button
@@ -1021,62 +1004,6 @@ function DeleteWorldSection({
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function ThemeModeSwitch({
-    mode,
-    onChange,
-}: {
-    mode: ThemeMode;
-    onChange: (mode: ThemeMode) => void;
-}) {
-    return (
-        <div
-            aria-label="Theme mode"
-            className="flex rounded-2xl border border-slate-200 bg-white/80 p-1 shadow-sm dark:border-white/10 dark:bg-white/5"
-            onKeyDown={(event) => {
-                if (event.key === 'ArrowLeft') {
-                    onChange('light');
-                }
-
-                if (event.key === 'ArrowRight') {
-                    onChange('dark');
-                }
-            }}
-            role="tablist"
-        >
-            <button
-                aria-selected={mode === 'light'}
-                className={cn(
-                    'grid size-11 place-items-center rounded-xl transition',
-                    mode === 'light'
-                        ? 'bg-cyan-600 text-white dark:bg-teal-300 dark:text-slate-950'
-                        : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
-                )}
-                onClick={() => onChange('light')}
-                role="tab"
-                type="button"
-            >
-                <Sun className="size-5" />
-                <span className="sr-only">Light mode</span>
-            </button>
-            <button
-                aria-selected={mode === 'dark'}
-                className={cn(
-                    'grid size-11 place-items-center rounded-xl transition',
-                    mode === 'dark'
-                        ? 'bg-cyan-600 text-white dark:bg-teal-300 dark:text-slate-950'
-                        : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
-                )}
-                onClick={() => onChange('dark')}
-                role="tab"
-                type="button"
-            >
-                <Moon className="size-5" />
-                <span className="sr-only">Dark mode</span>
-            </button>
         </div>
     );
 }
@@ -1157,8 +1084,10 @@ function MapScenePreview({ theme }: { theme: MapVisualThemeFields }) {
             <div
                 className="absolute top-5 left-5 rounded-xl border p-4"
                 style={{
-                    background: theme.panelBackground || 'rgba(5, 15, 22, 0.72)',
-                    borderColor: theme.panelBorderColor || 'rgba(255,255,255,0.1)',
+                    background:
+                        theme.panelBackground || 'rgba(5, 15, 22, 0.72)',
+                    borderColor:
+                        theme.panelBorderColor || 'rgba(255,255,255,0.1)',
                     color: theme.panelTextColor || '#f8fafc',
                 }}
             >
@@ -1203,8 +1132,10 @@ function MapTitlePanelPreview({
             <div
                 className="rounded-xl border p-5 shadow-lg backdrop-blur-md"
                 style={{
-                    background: theme.panelBackground || 'rgba(5, 15, 22, 0.72)',
-                    borderColor: theme.panelBorderColor || 'rgba(255,255,255,0.1)',
+                    background:
+                        theme.panelBackground || 'rgba(5, 15, 22, 0.72)',
+                    borderColor:
+                        theme.panelBorderColor || 'rgba(255,255,255,0.1)',
                     color: theme.panelTextColor || '#f8fafc',
                 }}
             >
@@ -1255,7 +1186,9 @@ function SidePanelPreview({ theme }: { theme: MapVisualThemeFields }) {
                 >
                     Location
                 </p>
-                <h3 className="mt-2 text-2xl font-semibold">Learning Village</h3>
+                <h3 className="mt-2 text-2xl font-semibold">
+                    Learning Village
+                </h3>
                 <p
                     className="mt-4 rounded-lg border p-3 text-sm leading-6"
                     style={{
@@ -1312,7 +1245,9 @@ function RightControlPreview({ theme }: { theme: MapVisualThemeFields }) {
                     borderColor:
                         theme.sideControlBorderColor ||
                         'rgba(255,255,255,0.12)',
-                    color: theme.sideControlIconColor || theme.sideControlTextColor,
+                    color:
+                        theme.sideControlIconColor ||
+                        theme.sideControlTextColor,
                 }}
             >
                 <PreviewIconButton active theme={theme} type="side" />
@@ -1407,7 +1342,9 @@ function CssColorOpacityField({
             colorError={error}
             colorValue={parsed.hex}
             label={label}
-            onColorChange={(hex) => onChange(cssColorFromPicker(hex, parsed.opacity))}
+            onColorChange={(hex) =>
+                onChange(cssColorFromPicker(hex, parsed.opacity))
+            }
             onOpacityChange={(opacity) =>
                 onChange(cssColorFromPicker(parsed.hex, opacity))
             }
@@ -1600,7 +1537,11 @@ function saveAccess(
     );
 }
 
-function toggleRole(current: string[], role: string, enabled: boolean): string[] {
+function toggleRole(
+    current: string[],
+    role: string,
+    enabled: boolean,
+): string[] {
     if (enabled) {
         return current.includes(role) ? current : [...current, role];
     }
@@ -1623,9 +1564,15 @@ function mapVisualThemeFieldsFromConfig(
     return {
         accentColor: stringConfig(config?.accentColor),
         assets: mapAssetsFromConfig(config?.assets),
-        bottomNavActiveBackground: stringConfig(config?.bottomNavActiveBackground),
-        bottomNavActiveIconColor: stringConfig(config?.bottomNavActiveIconColor),
-        bottomNavActiveTextColor: stringConfig(config?.bottomNavActiveTextColor),
+        bottomNavActiveBackground: stringConfig(
+            config?.bottomNavActiveBackground,
+        ),
+        bottomNavActiveIconColor: stringConfig(
+            config?.bottomNavActiveIconColor,
+        ),
+        bottomNavActiveTextColor: stringConfig(
+            config?.bottomNavActiveTextColor,
+        ),
         bottomNavBackground: stringConfig(config?.bottomNavBackground),
         bottomNavBorderColor: stringConfig(config?.bottomNavBorderColor),
         bottomNavExitIconColor: stringConfig(config?.bottomNavExitIconColor),
@@ -1677,7 +1624,8 @@ function resolveThemePreview(
                 return value !== '';
             }),
         ),
-        assets: form.light.assets.length > 0 ? form.light.assets : form.dark.assets,
+        assets:
+            form.light.assets.length > 0 ? form.light.assets : form.dark.assets,
     } as MapVisualThemeFields;
 }
 
@@ -1758,12 +1706,7 @@ function rgbToHex(red: number, green: number, blue: number): string {
         .join('')}`;
 }
 
-function percent(
-    value: unknown,
-    fallback: number,
-    min = 0,
-    max = 100,
-): number {
+function percent(value: unknown, fallback: number, min = 0, max = 100): number {
     const numeric = typeof value === 'number' ? value : Number(value);
 
     if (!Number.isFinite(numeric)) {

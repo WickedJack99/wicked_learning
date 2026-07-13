@@ -28,14 +28,19 @@ export type CursorImageSettings = {
     size?: number | null;
 };
 
-export type PublicPaletteModeSettings = {
-    accentText: string;
-    bodyText: string;
-    controlBorder: string;
-    controlText: string;
-    headingText: string;
-    mutedText: string;
-};
+export type PublicPaletteField =
+    | 'accentText'
+    | 'bodyText'
+    | 'controlBorder'
+    | 'controlText'
+    | 'headingText'
+    | 'mutedText'
+    | 'welcomeOverlay';
+
+export type PublicPaletteOpacityField = `${PublicPaletteField}Opacity`;
+
+export type PublicPaletteModeSettings = Record<PublicPaletteField, string> &
+    Partial<Record<PublicPaletteOpacityField, number | string | null>>;
 
 export type SourceLinkSettings = {
     label: string;
@@ -308,13 +313,17 @@ export function getPublicPresentationStyle(
     const palette = getPublicPresentationPalette(presentation, mode);
 
     return {
-        '--public-accent': palette.accentText,
-        '--public-accent-text': palette.accentText,
-        '--public-body-text': palette.bodyText,
-        '--public-control-border': palette.controlBorder,
-        '--public-control-text': palette.controlText,
-        '--public-heading-text': palette.headingText,
-        '--public-muted-text': palette.mutedText,
+        '--public-accent': publicPaletteColor(palette, 'accentText'),
+        '--public-accent-text': publicPaletteColor(palette, 'accentText'),
+        '--public-body-text': publicPaletteColor(palette, 'bodyText'),
+        '--public-control-border': publicPaletteColor(palette, 'controlBorder'),
+        '--public-control-text': publicPaletteColor(palette, 'controlText'),
+        '--public-heading-text': publicPaletteColor(palette, 'headingText'),
+        '--public-muted-text': publicPaletteColor(palette, 'mutedText'),
+        '--public-welcome-overlay': publicPaletteColor(
+            palette,
+            'welcomeOverlay',
+        ),
     } as CSSProperties;
 }
 
@@ -324,21 +333,80 @@ export const defaultPublicPalette: Record<
 > = {
     dark: {
         accentText: '#5eead4',
+        accentTextOpacity: 100,
         bodyText: '#cbd5e1',
+        bodyTextOpacity: 100,
         controlBorder: '#ffffff',
+        controlBorderOpacity: 100,
         controlText: '#ffffff',
+        controlTextOpacity: 100,
         headingText: '#f8fafc',
+        headingTextOpacity: 100,
         mutedText: '#94a3b8',
+        mutedTextOpacity: 100,
+        welcomeOverlay: '#020617',
+        welcomeOverlayOpacity: 62,
     },
     light: {
         accentText: '#0891b2',
+        accentTextOpacity: 100,
         bodyText: '#475569',
+        bodyTextOpacity: 100,
         controlBorder: '#0f172a',
+        controlBorderOpacity: 100,
         controlText: '#0f172a',
+        controlTextOpacity: 100,
         headingText: '#0f172a',
+        headingTextOpacity: 100,
         mutedText: '#334155',
+        mutedTextOpacity: 100,
+        welcomeOverlay: '#ffffff',
+        welcomeOverlayOpacity: 72,
     },
 };
+
+export function publicPaletteColor(
+    palette: PublicPaletteModeSettings,
+    field: PublicPaletteField,
+): string {
+    const color = palette[field];
+    const opacity = palette[`${field}Opacity`];
+
+    return applyOpacity(color, opacity);
+}
+
+function applyOpacity(
+    color: string,
+    opacity: number | string | null | undefined,
+): string {
+    if (!color || opacity === undefined || opacity === null) {
+        return color;
+    }
+
+    const opacityNumber = Number(opacity);
+
+    if (!Number.isFinite(opacityNumber) || opacityNumber >= 100) {
+        return color;
+    }
+
+    if (opacityNumber <= 0) {
+        return 'rgba(0, 0, 0, 0)';
+    }
+
+    const hexMatch = color.match(/^#([0-9a-fA-F]{6})$/);
+
+    if (!hexMatch) {
+        return color;
+    }
+
+    const hex = hexMatch[1];
+    const red = parseInt(hex.slice(0, 2), 16);
+    const green = parseInt(hex.slice(2, 4), 16);
+    const blue = parseInt(hex.slice(4, 6), 16);
+    const alpha = Math.min(Math.max(opacityNumber, 0), 100) / 100;
+
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
 
 function normalizeWelcomePage(
     page: WelcomePageSettings,

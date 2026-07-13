@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import type { LearningSound } from '@/types';
 
@@ -125,25 +126,13 @@ export default function AdminSoundsPage({
         });
     };
     const uploadSound = async (file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
         setIsUploading(true);
 
         try {
-            const response = await fetch('/settings/assets/sound-media', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: { Accept: 'application/json' },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/sound-media',
+                file,
             });
-            const payload = (await response.json()) as {
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                throw new Error(payload.message ?? 'Upload failed.');
-            }
 
             setForm((current) => ({ ...current, url: payload.url ?? '' }));
         } finally {

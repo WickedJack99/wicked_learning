@@ -9,21 +9,21 @@ import {
     GripVertical,
     Image,
     LogIn,
-    Moon,
     MousePointer2,
     Palette,
     Plus,
     Save,
-    Sun,
     Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { ColorField } from '@/components/color-input';
+import { ColorOpacityField } from '@/components/color-input';
+import { ConfigModeSwitch } from '@/components/config-mode-switch';
+import { ConfigImageInput } from '@/components/config-image-input';
 import InputError from '@/components/input-error';
-import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import {
     defaultPlatformInformationPages,
@@ -32,11 +32,13 @@ import {
     getPublicPresentationPalette,
     getWelcomePageBackgroundImage,
     getWelcomePages,
+    publicPaletteColor,
 } from '@/theme/presentation';
 import type {
     BackgroundImageSettings,
     CursorImageSettings,
     PlatformInformationPageSettings,
+    PublicPaletteField,
     PublicPaletteModeSettings,
     PublicPresentationSettings,
     SourceLinkSettings,
@@ -47,7 +49,7 @@ import type {
 type ThemeMode = 'dark' | 'light';
 type SectionKey = 'auth' | 'colors' | 'cursors' | 'info' | 'source' | 'welcome';
 type CursorKey = keyof PublicPresentationSettings['cursors'];
-type PaletteField = keyof PublicPaletteModeSettings;
+type PaletteField = PublicPaletteField;
 
 type Props = {
     publicPresentation: PublicPresentationSettings;
@@ -63,7 +65,7 @@ const sections: Array<{
     { key: 'info', label: 'Platform information pages', icon: FileText },
     { key: 'source', label: 'Source code links', icon: Github },
     { key: 'cursors', label: 'Cursors', icon: MousePointer2 },
-    { key: 'colors', label: 'Public text colors', icon: Palette },
+    { key: 'colors', label: 'Public colors', icon: Palette },
 ];
 
 const cursorRoles: Array<{
@@ -92,6 +94,11 @@ const paletteFields: Array<{
     { field: 'accentText', label: 'Accent', preview: 'Highlighted action' },
     { field: 'controlText', label: 'Control text', preview: 'Log in' },
     { field: 'controlBorder', label: 'Control border', preview: 'Border' },
+    {
+        field: 'welcomeOverlay',
+        label: 'Welcome background blend',
+        preview: 'Background blend',
+    },
 ];
 
 const blankButton: WelcomePageButtonSettings = {
@@ -155,46 +162,24 @@ export default function PresentationSettingsPage({
         file: File,
         onUploaded: (url: string) => void,
     ) => {
-        const formData = new FormData();
-        const csrfToken = document
-            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        formData.append('image', file);
         setUploading(fieldKey);
 
         try {
-            const response = await fetch(
-                '/settings/presentation/background-images',
-                {
-                    body: formData,
-                    credentials: 'same-origin',
-                    headers: {
-                        Accept: 'application/json',
-                        ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                    },
-                    method: 'POST',
-                },
-            );
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setErrors((current) => ({
-                    ...current,
-                    [fieldKey]:
-                        payload.errors?.image?.[0] ??
-                        payload.message ??
-                        'The image could not be uploaded.',
-                }));
-
-                return;
-            }
-
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/presentation/background-images',
+                errorMessage: 'The image could not be uploaded.',
+                fieldName: 'image',
+                file,
+            });
             onUploaded(payload.url);
+        } catch (error) {
+            setErrors((current) => ({
+                ...current,
+                [fieldKey]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The image could not be uploaded.',
+            }));
         } finally {
             setUploading(null);
         }
@@ -256,7 +241,7 @@ export default function PresentationSettingsPage({
 
                         <div className="flex min-h-0 flex-col overflow-hidden">
                             <div className="mb-4 flex shrink-0 justify-end">
-                                <ModeConfigSwitch
+                                <ConfigModeSwitch
                                     mode={configMode}
                                     onChange={setConfigMode}
                                 />
@@ -334,42 +319,6 @@ PresentationSettingsPage.layout = {
         },
     ],
 };
-
-function ModeConfigSwitch({
-    mode,
-    onChange,
-}: {
-    mode: ThemeMode;
-    onChange: (mode: ThemeMode) => void;
-}) {
-    return (
-        <div className="inline-flex rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/80">
-            {[
-                { icon: Moon, label: 'Dark config', value: 'dark' as const },
-                { icon: Sun, label: 'Light config', value: 'light' as const },
-            ].map((option) => {
-                const Icon = option.icon;
-
-                return (
-                    <button
-                        aria-label={option.label}
-                        className={cn(
-                            'grid size-10 place-items-center rounded-xl transition',
-                            mode === option.value
-                                ? 'bg-cyan-600 text-white dark:bg-teal-300 dark:text-slate-950'
-                                : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
-                        )}
-                        key={option.value}
-                        onClick={() => onChange(option.value)}
-                        type="button"
-                    >
-                        <Icon className="size-4" />
-                    </button>
-                );
-            })}
-        </div>
-    );
-}
 
 function WelcomePagesEditor({
     configMode,
@@ -482,12 +431,14 @@ function WelcomePagesEditor({
                                 }
                                 value={page.body}
                             />
-                            <ImagePathField
+                            <ConfigImageInput
+                                description="Displayed behind this welcome page in the selected mode."
                                 error={
                                     errors[
                                         `welcome.pages.${index}.backgrounds.${configMode}`
                                     ]
                                 }
+                                id={`welcome-page-${index}-${configMode}-background`}
                                 label={`${capitalize(configMode)} mode background`}
                                 onChange={(value) =>
                                     updatePage(index, (current) => ({
@@ -853,12 +804,14 @@ function InformationPagesEditor({
                                     rows={12}
                                     value={page.markdown}
                                 />
-                                <ImagePathField
+                                <ConfigImageInput
+                                    description="Displayed behind this public information page in the selected mode."
                                     error={
                                         errors[
                                             `infoPages.pages.${index}.backgrounds.${configMode}`
                                         ]
                                     }
+                                    id={`info-page-${index}-${configMode}-background`}
                                     label={`${capitalize(configMode)} mode background`}
                                     onChange={(value) =>
                                         updatePage(index, (current) => ({
@@ -900,6 +853,7 @@ function InformationPagesEditor({
                                 links={getPlatformInformationLinks(draft)}
                                 mode={configMode}
                                 page={page}
+                                presentation={draft}
                             />
                         </div>
                     </EditableCard>
@@ -951,8 +905,10 @@ function AuthBackgroundsEditor({
                     return (
                         <EditableCard key={page.key} title={page.label}>
                             <div className="grid gap-4">
-                                <ImagePathField
+                                <ConfigImageInput
+                                    description="Displayed behind this authentication page in the selected mode."
                                     error={errors[fieldKey]}
+                                    id={`${page.key}-${configMode}-background`}
                                     label={`${capitalize(configMode)} mode background`}
                                     onChange={(value) =>
                                         onChange({
@@ -1274,12 +1230,23 @@ function PublicPaletteEditor({
     const activeField = paletteFields.find(
         (field) => field.field === selectedField,
     );
+    const opacityField =
+        `${selectedField}Opacity` as keyof PublicPaletteModeSettings;
+    const previewColors = {
+        accentText: publicPaletteColor(palette, 'accentText'),
+        bodyText: publicPaletteColor(palette, 'bodyText'),
+        controlBorder: publicPaletteColor(palette, 'controlBorder'),
+        controlText: publicPaletteColor(palette, 'controlText'),
+        headingText: publicPaletteColor(palette, 'headingText'),
+        mutedText: publicPaletteColor(palette, 'mutedText'),
+        welcomeOverlay: publicPaletteColor(palette, 'welcomeOverlay'),
+    };
 
     return (
         <section className="grid gap-4">
             <SectionHeader
-                description={`Editing ${mode} mode public colors. This switch does not change the settings page theme.`}
-                title="Public text colors"
+                description={`Editing ${mode} mode public colors and welcome background blending. This switch does not change the settings page theme.`}
+                title="Public colors"
             />
             <div className="grid gap-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
                 <aside className="grid h-fit gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
@@ -1301,12 +1268,13 @@ function PublicPaletteEditor({
                 </aside>
                 <EditableCard title={activeField?.label ?? 'Color'}>
                     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                        <ColorField
-                            error={
+                        <ColorOpacityField
+                            colorError={
                                 errors[`publicPalette.${mode}.${selectedField}`]
                             }
+                            colorValue={palette[selectedField]}
                             label={activeField?.label ?? 'Color'}
-                            onChange={(value) =>
+                            onColorChange={(value) =>
                                 onChange((current) => ({
                                     ...current,
                                     publicPalette: {
@@ -1318,42 +1286,90 @@ function PublicPaletteEditor({
                                     },
                                 }))
                             }
-                            value={palette[selectedField]}
+                            onOpacityChange={(value) =>
+                                onChange((current) => ({
+                                    ...current,
+                                    publicPalette: {
+                                        ...current.publicPalette,
+                                        [mode]: {
+                                            ...current.publicPalette[mode],
+                                            [opacityField]: value,
+                                        },
+                                    },
+                                }))
+                            }
+                            opacityError={
+                                errors[
+                                    `publicPalette.${mode}.${String(opacityField)}`
+                                ]
+                            }
+                            opacityValue={String(palette[opacityField] ?? 100)}
                         />
-                        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-950">
+                        <div
+                            className="rounded-xl border p-5"
+                            style={{
+                                background:
+                                    mode === 'dark' ? '#020617' : '#f8fafc',
+                                borderColor:
+                                    mode === 'dark'
+                                        ? 'rgba(255,255,255,0.12)'
+                                        : 'rgba(15,23,42,0.12)',
+                            }}
+                        >
                             <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
                                 Preview
                             </p>
                             <div
                                 className="mt-4 rounded-lg border p-4"
                                 style={{
-                                    borderColor: palette.controlBorder,
+                                    backgroundImage:
+                                        selectedField === 'welcomeOverlay'
+                                            ? 'linear-gradient(120deg, rgba(15, 23, 42, 0.1), rgba(14, 165, 233, 0.2))'
+                                            : undefined,
+                                    backgroundColor:
+                                        mode === 'dark' ? '#082038' : '#ffffff',
+                                    borderColor: previewColors.controlBorder,
                                 }}
                             >
                                 <p
                                     className="text-2xl font-semibold"
-                                    style={{ color: palette.headingText }}
+                                    style={{ color: previewColors.headingText }}
                                 >
                                     Learning Worlds
                                 </p>
                                 <p
                                     className="mt-2 text-sm"
-                                    style={{ color: palette.bodyText }}
+                                    style={{ color: previewColors.bodyText }}
                                 >
                                     Public presentation copy uses the configured
                                     palette.
                                 </p>
                                 <p
                                     className="mt-2 text-xs"
-                                    style={{ color: palette.mutedText }}
+                                    style={{ color: previewColors.mutedText }}
                                 >
                                     Muted secondary context
                                 </p>
+                                {selectedField === 'welcomeOverlay' ? (
+                                    <div className="relative mt-4 h-20 overflow-hidden rounded-lg bg-[linear-gradient(135deg,#1e3a8a,#22c55e,#f8fafc)]">
+                                        <div
+                                            aria-hidden="true"
+                                            className="absolute inset-0"
+                                            style={{
+                                                background:
+                                                    previewColors.welcomeOverlay,
+                                            }}
+                                        />
+                                        <span className="relative z-10 flex h-full items-center justify-center text-sm font-semibold text-white">
+                                            Background blend preview
+                                        </span>
+                                    </div>
+                                ) : null}
                                 <button
                                     className="mt-4 rounded-md px-4 py-2 text-sm font-semibold"
                                     style={{
-                                        background: palette.accentText,
-                                        color: palette.controlText,
+                                        background: previewColors.accentText,
+                                        color: previewColors.controlText,
                                     }}
                                     type="button"
                                 >
@@ -1505,87 +1521,6 @@ function TextareaField({
     );
 }
 
-function ImagePathField({
-    error,
-    label,
-    onChange,
-    onUpload,
-    uploading,
-    value,
-}: {
-    error?: string;
-    label: string;
-    onChange: (value: string) => void;
-    onUpload: (file: File) => void;
-    uploading: boolean;
-    value: string;
-}) {
-    const [isPickerOpen, setIsPickerOpen] = useState(false);
-    const inputId = label.toLowerCase().replaceAll(' ', '-');
-
-    return (
-        <div className="grid gap-2">
-            <TextField
-                error={error}
-                label={label}
-                onChange={onChange}
-                value={value}
-            />
-            <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" type="button" variant="secondary">
-                    <label htmlFor={`${inputId}-upload`}>
-                        {uploading ? 'Uploading...' : 'Upload'}
-                    </label>
-                </Button>
-                <input
-                    accept=".gif,.jpg,.jpeg,.png,.svg,.webp,image/gif,image/jpeg,image/png,image/svg+xml,image/webp"
-                    className="sr-only"
-                    disabled={uploading}
-                    id={`${inputId}-upload`}
-                    onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-                        if (file) {
-                            onUpload(file);
-                        }
-                        event.currentTarget.value = '';
-                    }}
-                    type="file"
-                />
-                <Button
-                    onClick={() => setIsPickerOpen(true)}
-                    size="sm"
-                    type="button"
-                    variant="secondary"
-                >
-                    Select existing
-                </Button>
-                <Button
-                    onClick={() => onChange('')}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                >
-                    Clear
-                </Button>
-            </div>
-            {isPickerOpen ? (
-                <ReusableImagePicker
-                    currentValue={value}
-                    onClear={() => {
-                        onChange('');
-                        setIsPickerOpen(false);
-                    }}
-                    onClose={() => setIsPickerOpen(false)}
-                    onSelect={(url) => {
-                        onChange(url);
-                        setIsPickerOpen(false);
-                    }}
-                />
-            ) : null}
-        </div>
-    );
-}
-
 function SourceLinkFields({
     errorPrefix,
     errors,
@@ -1635,8 +1570,10 @@ function CursorFields({
 }) {
     return (
         <div className="grid gap-4">
-            <ImagePathField
+            <ConfigImageInput
+                description="Image used for this cursor role."
                 error={errors[`${errorPrefix}.image`]}
+                id={`${errorPrefix}-image`}
                 label="Image"
                 onChange={(value) => onChange('image', value)}
                 onUpload={onUpload}
@@ -1694,24 +1631,34 @@ function WelcomePreview({
         mode,
     );
     const palette = getPublicPresentationPalette(presentation, mode);
+    const colors = {
+        accentText: publicPaletteColor(palette, 'accentText'),
+        bodyText: publicPaletteColor(palette, 'bodyText'),
+        controlText: publicPaletteColor(palette, 'controlText'),
+        headingText: publicPaletteColor(palette, 'headingText'),
+    };
 
     return (
-        <PreviewFrame backgroundImage={backgroundImage}>
+        <PreviewFrame
+            backgroundImage={backgroundImage}
+            mode={mode}
+            overlayColor={publicPaletteColor(palette, 'welcomeOverlay')}
+        >
             <p
                 className="text-xs font-medium tracking-[0.16em] uppercase"
-                style={{ color: palette.accentText }}
+                style={{ color: colors.accentText }}
             >
                 {page.eyebrow}
             </p>
             <h4
                 className="mt-3 text-3xl font-semibold"
-                style={{ color: palette.headingText }}
+                style={{ color: colors.headingText }}
             >
                 {page.title}
             </h4>
             <p
                 className="mt-3 text-sm leading-6"
-                style={{ color: palette.bodyText }}
+                style={{ color: colors.bodyText }}
             >
                 {page.body}
             </p>
@@ -1721,8 +1668,8 @@ function WelcomePreview({
                         className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold"
                         key={`${button.text}-${button.target}`}
                         style={{
-                            background: palette.accentText,
-                            color: palette.controlText,
+                            background: colors.accentText,
+                            color: colors.controlText,
                         }}
                     >
                         {button.text}
@@ -1738,17 +1685,25 @@ function InfoPreview({
     links,
     mode,
     page,
+    presentation,
 }: {
     links: Array<{ href: string; key: string; label: string }>;
     mode: ThemeMode;
     page: PlatformInformationPageSettings;
+    presentation: PublicPresentationSettings;
 }) {
-    const palette = getPublicPresentationPalette(undefined, mode);
+    const palette = getPublicPresentationPalette(presentation, mode);
+    const colors = {
+        accentText: publicPaletteColor(palette, 'accentText'),
+        bodyText: publicPaletteColor(palette, 'bodyText'),
+        controlText: publicPaletteColor(palette, 'controlText'),
+        headingText: publicPaletteColor(palette, 'headingText'),
+    };
     const backgroundImage =
         page.backgrounds?.[mode] || page.backgrounds?.dark || null;
 
     return (
-        <PreviewFrame backgroundImage={backgroundImage}>
+        <PreviewFrame backgroundImage={backgroundImage} mode={mode}>
             <nav className="mb-4 flex flex-wrap gap-2">
                 {links.map((link) => (
                     <span
@@ -1757,8 +1712,8 @@ function InfoPreview({
                         style={{
                             color:
                                 link.key === page.key
-                                    ? palette.accentText
-                                    : palette.controlText,
+                                    ? colors.accentText
+                                    : colors.controlText,
                         }}
                     >
                         {link.label}
@@ -1767,13 +1722,13 @@ function InfoPreview({
             </nav>
             <h4
                 className="text-2xl font-semibold"
-                style={{ color: palette.headingText }}
+                style={{ color: colors.headingText }}
             >
                 {page.title}
             </h4>
             <p
                 className="mt-3 line-clamp-5 text-sm leading-6 whitespace-pre-line"
-                style={{ color: palette.bodyText }}
+                style={{ color: colors.bodyText }}
             >
                 {page.markdown.replace(/^#+\s*/gm, '')}
             </p>
@@ -1793,9 +1748,15 @@ function AuthBackgroundPreview({
     title: string;
 }) {
     const palette = getPublicPresentationPalette(presentation, mode);
+    const colors = {
+        accentText: publicPaletteColor(palette, 'accentText'),
+        bodyText: publicPaletteColor(palette, 'bodyText'),
+        controlBorder: publicPaletteColor(palette, 'controlBorder'),
+        headingText: publicPaletteColor(palette, 'headingText'),
+    };
 
     return (
-        <PreviewFrame backgroundImage={backgroundImage}>
+        <PreviewFrame backgroundImage={backgroundImage} mode={mode}>
             <div
                 className="w-64 rounded-xl border p-4 shadow-xl backdrop-blur-md"
                 style={{
@@ -1803,29 +1764,29 @@ function AuthBackgroundPreview({
                         mode === 'dark'
                             ? 'rgba(5, 15, 22, 0.78)'
                             : 'rgba(255, 255, 255, 0.78)',
-                    borderColor: palette.controlBorder,
+                    borderColor: colors.controlBorder,
                 }}
             >
                 <div
                     className="mb-3 h-8 w-8 rounded-lg"
-                    style={{ background: palette.accentText }}
+                    style={{ background: colors.accentText }}
                 />
                 <h3
                     className="text-sm font-semibold"
-                    style={{ color: palette.headingText }}
+                    style={{ color: colors.headingText }}
                 >
                     {title}
                 </h3>
-                <p className="mt-1 text-xs" style={{ color: palette.bodyText }}>
+                <p className="mt-1 text-xs" style={{ color: colors.bodyText }}>
                     Public palette colors style auth text and controls.
                 </p>
                 <div
                     className="mt-4 h-8 rounded-md border"
-                    style={{ borderColor: palette.controlBorder }}
+                    style={{ borderColor: colors.controlBorder }}
                 />
                 <div
                     className="mt-3 h-8 rounded-md"
-                    style={{ background: palette.accentText }}
+                    style={{ background: colors.accentText }}
                 />
             </div>
         </PreviewFrame>
@@ -1861,20 +1822,44 @@ function CursorPreview({ cursor }: { cursor: CursorImageSettings }) {
 function PreviewFrame({
     backgroundImage,
     children,
+    mode,
+    overlayColor,
 }: {
     backgroundImage: string | null;
     children: React.ReactNode;
+    mode: ThemeMode;
+    overlayColor?: string;
 }) {
+    const fallbackBackground =
+        mode === 'dark'
+            ? 'linear-gradient(120deg, rgba(14,116,144,0.16), rgba(15,23,42,0.94))'
+            : 'linear-gradient(120deg, rgba(224,242,254,0.95), rgba(248,250,252,0.98))';
+    const imageOverlay =
+        overlayColor ??
+        (mode === 'dark' ? 'rgba(2,6,23,0.58)' : 'rgba(255,255,255,0.62)');
+
     return (
         <div
-            className="min-h-80 overflow-hidden rounded-xl border border-slate-200 bg-cover bg-center p-5 shadow-inner dark:border-white/10"
+            className="min-h-80 overflow-hidden rounded-xl border bg-cover bg-center p-5 shadow-inner"
             style={{
+                borderColor:
+                    mode === 'dark'
+                        ? 'rgba(255,255,255,0.12)'
+                        : 'rgba(15,23,42,0.12)',
                 backgroundImage: backgroundImage
-                    ? `linear-gradient(120deg, rgba(2,6,23,0.78), rgba(2,6,23,0.35)), url(${backgroundImage})`
-                    : 'linear-gradient(120deg, rgba(14,116,144,0.16), rgba(15,23,42,0.94))',
+                    ? `linear-gradient(120deg, ${imageOverlay}, ${imageOverlay}), url(${backgroundImage})`
+                    : fallbackBackground,
             }}
         >
-            <div className="rounded-xl bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div
+                className="rounded-xl p-4 backdrop-blur-sm"
+                style={{
+                    background:
+                        mode === 'dark'
+                            ? 'rgba(2, 6, 23, 0.55)'
+                            : 'rgba(255, 255, 255, 0.68)',
+                }}
+            >
                 {children}
             </div>
         </div>

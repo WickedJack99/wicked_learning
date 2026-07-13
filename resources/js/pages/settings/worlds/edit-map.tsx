@@ -46,6 +46,7 @@ import {
 import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import type { LearningTool } from '@/types';
 import { ConfigImageInput as NodeImageInput } from './activity-config-fields';
@@ -577,48 +578,24 @@ export default function EditWorldMap({
         file: File,
         onUploaded: (url: string) => void,
     ) => {
-        const formData = new FormData();
-        const csrfToken = document
-            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        formData.append('image', file);
         setUploadingImageKey(key);
         setImageUploadErrors((current) => ({ ...current, [key]: '' }));
 
         try {
-            const response = await fetch('/settings/worlds/node-images', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/worlds/node-images',
+                errorMessage: 'The image could not be uploaded.',
+                fieldName: 'image',
+                file,
             });
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setImageUploadErrors((current) => ({
-                    ...current,
-                    [key]:
-                        payload.errors?.image?.[0] ??
-                        payload.message ??
-                        'The image could not be uploaded.',
-                }));
-
-                return;
-            }
-
             onUploaded(payload.url);
-        } catch {
+        } catch (error) {
             setImageUploadErrors((current) => ({
                 ...current,
-                [key]: 'The image could not be uploaded.',
+                [key]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The image could not be uploaded.',
             }));
         } finally {
             setUploadingImageKey(null);
@@ -630,48 +607,23 @@ export default function EditWorldMap({
         file: File,
         onUploaded: (url: string) => void,
     ) => {
-        const formData = new FormData();
-        const csrfToken = document
-            .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.getAttribute('content');
-
-        formData.append('file', file);
         setUploadingSoundKey(key);
         setSoundUploadErrors((current) => ({ ...current, [key]: '' }));
 
         try {
-            const response = await fetch('/settings/assets/sound-media', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/sound-media',
+                errorMessage: 'The sound could not be uploaded.',
+                file,
             });
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setSoundUploadErrors((current) => ({
-                    ...current,
-                    [key]:
-                        payload.errors?.file?.[0] ??
-                        payload.message ??
-                        'The sound could not be uploaded.',
-                }));
-
-                return;
-            }
-
             onUploaded(payload.url);
-        } catch {
+        } catch (error) {
             setSoundUploadErrors((current) => ({
                 ...current,
-                [key]: 'The sound could not be uploaded.',
+                [key]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The sound could not be uploaded.',
             }));
         } finally {
             setUploadingSoundKey(null);
@@ -1631,7 +1583,7 @@ export default function EditWorldMap({
                                                 />
                                             </div>
 
-                                            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/60 sm:grid-cols-2">
+                                            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-2 dark:border-white/10 dark:bg-slate-950/60">
                                                 <DateTimeField
                                                     description="Optional unlock condition. The rule passes when the current time is the same or later."
                                                     disabled={

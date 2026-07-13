@@ -16,6 +16,7 @@ import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 
 type AdminItem = {
@@ -146,49 +147,23 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
     };
 
     const uploadMedia = async (field: keyof ItemForm, file: File) => {
-        const formData = new FormData();
-        const csrfToken =
-            document
-                .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-                ?.getAttribute('content') ?? '';
-
-        formData.append('file', file);
         setUploadingField(field);
         setUploadErrors((current) => ({ ...current, [field]: '' }));
 
         try {
-            const response = await fetch('/settings/assets/item-media', {
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
-                },
-                method: 'POST',
+            const payload = await uploadMediaFile({
+                endpoint: '/settings/assets/item-media',
+                file,
             });
-            const payload = (await response.json()) as {
-                errors?: Record<string, string[]>;
-                message?: string;
-                url?: string;
-            };
-
-            if (!response.ok || !payload.url) {
-                setUploadErrors((current) => ({
-                    ...current,
-                    [field]:
-                        payload.errors?.file?.[0] ??
-                        payload.message ??
-                        'The file could not be uploaded.',
-                }));
-
-                return;
-            }
 
             updateField(field, payload.url);
-        } catch {
+        } catch (error) {
             setUploadErrors((current) => ({
                 ...current,
-                [field]: 'The file could not be uploaded.',
+                [field]:
+                    error instanceof Error
+                        ? error.message
+                        : 'The file could not be uploaded.',
             }));
         } finally {
             setUploadingField(null);
@@ -239,8 +214,7 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
                         <div className="grid gap-4 md:grid-cols-2">
                             <MediaField
                                 error={
-                                    errors.image_dark ??
-                                    uploadErrors.image_dark
+                                    errors.image_dark ?? uploadErrors.image_dark
                                 }
                                 label="Dark image"
                                 onChange={(value) =>
@@ -336,7 +310,11 @@ function ItemListPanel({
                                         <img
                                             alt=""
                                             className="h-full w-full object-contain"
-                                            src={item.imageDark ?? item.imageLight ?? ''}
+                                            src={
+                                                item.imageDark ??
+                                                item.imageLight ??
+                                                ''
+                                            }
                                         />
                                     ) : (
                                         <Package className="size-5 text-cyan-700 dark:text-teal-200" />
@@ -413,7 +391,10 @@ function MediaField({
                 </span>
                 <Label>{label}</Label>
             </div>
-            <Input onChange={(event) => onChange(event.currentTarget.value)} value={value} />
+            <Input
+                onChange={(event) => onChange(event.currentTarget.value)}
+                value={value}
+            />
             {value ? (
                 <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/70">
                     <img
