@@ -102,7 +102,7 @@ export default function AdminToolsPage({ tools }: { tools: AdminTool[] }) {
         <>
             <Head title="Edit tools" />
             <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-7xl flex-col px-4 pt-6 pb-24">
+                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
                     <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
                         <div>
                             <Button asChild className="mb-4" variant="ghost">

@@ -100,12 +100,12 @@ export default function AdminMediaAssets({
         <>
             <Head title="Edit visuals" />
             <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-7xl flex-col px-4 pt-6 pb-24">
+                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
                     <header className="shrink-0 pb-5">
                         <Button asChild className="mb-4" variant="ghost">
-                            <Link href="/settings/assets">
+                            <Link href="/settings">
                                 <ArrowLeft className="size-4" />
-                                Tools, items and currencies
+                                Settings
                             </Link>
                         </Button>
                         <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
