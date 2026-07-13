@@ -220,6 +220,7 @@ const adminSettings: SettingsListItem[] = [
         label: 'Public presentation',
         description: 'Welcome, auth backgrounds and public information pages.',
         icon: Image,
+        href: '/settings/presentation',
         resources: ['presentation'],
     },
     {

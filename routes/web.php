@@ -18,6 +18,8 @@ Route::get('imprint', [PlatformInfoPageController::class, 'show'])
 Route::get('data-protection', [PlatformInfoPageController::class, 'show'])
     ->defaults('page', 'data-protection')
     ->name('data-protection');
+Route::get('info/{page}', [PlatformInfoPageController::class, 'showConfigured'])
+    ->name('info.show');
 Route::get('source', SourceCodePageController::class)->name('source');
 
 Route::get('world', [LearningWorldController::class, 'show'])->name('world');

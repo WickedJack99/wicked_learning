@@ -2,11 +2,15 @@ import { Link, usePage } from '@inertiajs/react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import AppearanceToggleTab from '@/components/appearance-tabs';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
+import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { home } from '@/routes';
-import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import type { AuthThemePage } from '@/theme/platform-theme';
-import { getPresentationBackgroundImage } from '@/theme/presentation';
+import {
+    getPresentationBackgroundImage,
+    getPublicPresentationPalette,
+    getPublicPresentationStyle,
+} from '@/theme/presentation';
 import type { AuthLayoutProps } from '@/types';
 
 export default function AuthSimpleLayout({
@@ -23,18 +27,39 @@ export default function AuthSimpleLayout({
         page,
         resolvedAppearance,
     );
+    const publicPalette = getPublicPresentationPalette(
+        props.publicPresentation,
+        resolvedAppearance,
+    );
     const theme = {
         ...getAuthTheme(page, resolvedAppearance),
+        borderLineColor: publicPalette.controlBorder,
+        buttonBackground: publicPalette.accentText,
+        buttonTextColor: publicPalette.controlText,
+        descriptionTextColor: publicPalette.bodyText,
+        eyebrowTextColor: publicPalette.accentText,
+        focusRingColor: publicPalette.accentText,
+        inputBorderColor: publicPalette.controlBorder,
+        labelTextColor: publicPalette.bodyText,
+        linkTextColor: publicPalette.accentText,
+        logoBackground: publicPalette.accentText,
+        logoColor: publicPalette.controlText,
+        titleTextColor: publicPalette.headingText,
         ...(backgroundImage ? { backgroundImage } : {}),
     };
+    const cursorStyle = usePlatformCursorStyle(props.publicPresentation);
     const themeStyle = {
         ...getAuthThemeStyle(theme),
-        ...platformCursorStyle(props.publicPresentation),
+        ...getPublicPresentationStyle(
+            props.publicPresentation,
+            resolvedAppearance,
+        ),
+        ...cursorStyle,
     };
 
     return (
         <div
-            className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-[var(--auth-background-color)] p-6 md:p-10"
+            className="platform-shell relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-[var(--auth-background-color)] p-6 md:p-10"
             style={themeStyle}
         >
             <div
@@ -47,7 +72,10 @@ export default function AuthSimpleLayout({
                 className="absolute inset-0"
                 style={{ background: 'var(--auth-background-overlay)' }}
             />
-            <AppearanceToggleTab className="absolute top-4 right-4 z-10 shadow-lg" />
+            <AppearanceToggleTab
+                className="absolute top-4 right-4 z-10 shadow-lg"
+                variant="subtle"
+            />
 
             <div
                 className="relative w-full max-w-sm rounded-lg border p-6 shadow-2xl backdrop-blur-md md:p-8"

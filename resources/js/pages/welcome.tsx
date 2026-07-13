@@ -2,14 +2,14 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, Compass, LogIn } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
 import AppearanceToggleTab from '@/components/appearance-tabs';
-import { platformInfoLinks } from '@/features/platform-info/content';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
+import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { login, register } from '@/routes';
-import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
+    getPlatformInformationLinks,
     getPublicPresentationStyle,
-    getPresentationBackgroundImage,
+    getWelcomePageBackgroundImage,
     getWelcomePages,
 } from '@/theme/presentation';
 
@@ -19,23 +19,28 @@ export default function Welcome() {
     const { auth, appearance, publicPresentation } = usePage().props;
     useAppearancePageSync(Boolean(auth.user), appearance);
     const { resolvedAppearance } = useAppearance();
-    const backgroundImage = getPresentationBackgroundImage(
-        publicPresentation,
-        'welcome',
-        resolvedAppearance,
-    );
+    const welcomePages = getWelcomePages(publicPresentation);
+    const pageCount = welcomePages.length;
+    const [activePage, setActivePage] = useState(0);
+    const activeWelcomePage = welcomePages[activePage] ?? welcomePages[0];
+    const backgroundImage = activeWelcomePage
+        ? getWelcomePageBackgroundImage(
+              publicPresentation,
+              activeWelcomePage,
+              resolvedAppearance,
+          )
+        : null;
     const theme = {
         ...getAuthTheme('welcome', resolvedAppearance),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
+    const cursorStyle = usePlatformCursorStyle(publicPresentation);
     const themeStyle = {
         ...getAuthThemeStyle(theme),
-        ...platformCursorStyle(publicPresentation),
+        ...cursorStyle,
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
-    const welcomePages = getWelcomePages(publicPresentation);
-    const pageCount = welcomePages.length;
-    const [activePage, setActivePage] = useState(0);
+    const platformInfoLinks = getPlatformInformationLinks(publicPresentation);
     const wheelLocked = useRef(false);
 
     const goToPage = useCallback(
@@ -64,7 +69,7 @@ export default function Welcome() {
         <>
             <Head title="Learning Worlds" />
             <main
-                className="relative h-svh overflow-hidden bg-[var(--auth-background-color)]"
+                className="platform-shell relative h-svh overflow-hidden bg-[var(--auth-background-color)]"
                 onWheel={handleWheel}
                 style={themeStyle}
             >
@@ -84,7 +89,7 @@ export default function Welcome() {
                         <span
                             className="flex size-9 items-center justify-center rounded-md"
                             style={{
-                                background: 'var(--public-accent-text)',
+                                background: 'var(--public-accent)',
                                 color: 'var(--auth-logo-color)',
                             }}
                         >
@@ -101,7 +106,7 @@ export default function Welcome() {
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
                                 href={worldHref}
                                 style={{
-                                    background: 'var(--public-accent-text)',
+                                    background: 'var(--public-accent)',
                                     color: 'var(--auth-button-text-color)',
                                 }}
                             >
@@ -158,7 +163,7 @@ export default function Welcome() {
                             <p
                                 className="mb-4 text-sm font-medium tracking-[0.18em] uppercase"
                                 style={{
-                                    color: 'var(--public-accent-text)',
+                                    color: 'var(--public-accent)',
                                 }}
                             >
                                 {page.eyebrow}
@@ -180,24 +185,28 @@ export default function Welcome() {
                                 {page.body}
                             </p>
                             <div className="mt-8 flex flex-wrap gap-3">
-                                <Link
-                                    className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold opacity-95 transition hover:opacity-100"
-                                    href={
-                                        index === 1
-                                            ? '/about'
-                                            : auth.user
-                                              ? worldHref
-                                              : register()
-                                    }
-                                    style={{
-                                        background: 'var(--public-accent-text)',
-                                        color: 'var(--auth-button-text-color)',
-                                    }}
-                                >
-                                    {page.primaryLabel}
-                                    <ArrowRight className="size-4" />
-                                </Link>
-                                {!auth.user && index === 0 ? (
+                                {(page.buttons ?? []).map((button) => (
+                                    <Link
+                                        className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold opacity-95 transition hover:opacity-100"
+                                        href={resolvePublicTarget(
+                                            button.target,
+                                            Boolean(auth.user),
+                                        )}
+                                        key={`${button.text}-${button.target}`}
+                                        style={{
+                                            background: 'var(--public-accent)',
+                                            color: 'var(--auth-button-text-color)',
+                                        }}
+                                    >
+                                        {button.text}
+                                        <ArrowRight className="size-4" />
+                                    </Link>
+                                ))}
+                                {!auth.user &&
+                                index === 0 &&
+                                !(page.buttons ?? []).some(
+                                    (button) => button.target === '/login',
+                                ) ? (
                                     <Link
                                         className="inline-flex items-center gap-2 rounded-md border px-5 py-3 text-sm font-semibold transition hover:bg-white/10"
                                         href={login()}
@@ -229,13 +238,13 @@ export default function Welcome() {
                             style={{
                                 background:
                                     activePage === index
-                                        ? 'var(--public-accent-text)'
+                                        ? 'var(--public-accent)'
                                         : resolvedAppearance === 'light'
                                           ? 'rgba(255,255,255,0.82)'
                                           : 'rgba(15,23,42,0.82)',
                                 borderColor:
                                     activePage === index
-                                        ? 'var(--public-accent-text)'
+                                        ? 'var(--public-accent)'
                                         : 'var(--auth-border-line-color)',
                             }}
                             type="button"
@@ -250,9 +259,12 @@ export default function Welcome() {
 }
 
 function PublicWelcomeFooter() {
+    const { publicPresentation } = usePage().props;
+    const links = getPlatformInformationLinks(publicPresentation);
+
     return (
         <footer className="absolute right-0 bottom-0 left-0 z-20 flex flex-wrap items-center justify-center gap-2 px-6 py-5 md:justify-end md:pr-20 md:pl-10">
-            {platformInfoLinks.map((link) => (
+            {links.map((link) => (
                 <Link
                     className="rounded-md px-3 py-2 text-xs font-medium transition hover:bg-white/10"
                     href={link.href}
@@ -266,4 +278,12 @@ function PublicWelcomeFooter() {
             ))}
         </footer>
     );
+}
+
+function resolvePublicTarget(target: string, isAuthenticated: boolean): string {
+    if (target === '/world' && !isAuthenticated) {
+        return '/register';
+    }
+
+    return target;
 }

@@ -231,6 +231,9 @@ Route::middleware(['auth', 'verified', 'can:sounds.rud'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'can:presentation.ru'])->group(function () {
+    Route::get('settings/presentation', [PresentationController::class, 'edit'])
+        ->name('settings.presentation.edit');
+
     Route::patch('settings/presentation', [PresentationController::class, 'update'])
         ->name('settings.presentation.update');
 

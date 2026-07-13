@@ -6,14 +6,14 @@ import type {
 
 const defaultCursors = {
     action: {
-        image: '/images/cursors/action-pointer.svg',
+        image: '/images/cursors/fantasy-pointer.png',
         hotspotX: 12,
         hotspotY: 4,
         size: 32,
         fallback: 'pointer',
     },
     default: {
-        image: '/images/cursors/default-cursor.svg',
+        image: '/images/cursors/fantasy-cursor.png',
         hotspotX: 4,
         hotspotY: 4,
         size: 32,
@@ -106,7 +106,10 @@ export function cursorValue(
 ): string {
     const resolved = resolveCursorSettings(settings, fallbackSettings);
 
-    return cursorCssValue(assetUrl(resolved.image), resolved);
+    return cursorCssValue(
+        sizedCursorAssetUrl(assetUrl(resolved.image), resolved.size),
+        resolved,
+    );
 }
 
 export async function embeddedPlatformCursors(
@@ -159,7 +162,10 @@ async function embeddedCursorValue(
             resolved,
         );
     } catch {
-        return cursorCssValue(assetUrl(resolved.image), resolved);
+        return cursorCssValue(
+            sizedCursorAssetUrl(assetUrl(resolved.image), resolved.size),
+            resolved,
+        );
     }
 }
 

@@ -11,9 +11,18 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PresentationController extends Controller
 {
+    public function edit(): Response
+    {
+        return Inertia::render('settings/presentation', [
+            'publicPresentation' => PlatformPresentationSetting::current(),
+        ]);
+    }
+
     public function update(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -48,11 +57,22 @@ class PresentationController extends Controller
             'cursors.denied.hotspotY' => ['nullable', 'integer', 'min:0', 'max:64'],
             'cursors.denied.size' => ['nullable', 'integer', 'min:16', 'max:128'],
             'cursors.denied.fallback' => ['nullable', 'string', 'max:32'],
-            'welcome.pages' => ['required', 'array', 'min:1', 'max:6'],
+            'welcome.pages' => ['required', 'array', 'min:1', 'max:12'],
+            'welcome.pages.*.backgrounds.dark' => ['nullable', 'string', 'max:2048'],
+            'welcome.pages.*.backgrounds.light' => ['nullable', 'string', 'max:2048'],
             'welcome.pages.*.eyebrow' => ['required', 'string', 'max:120'],
             'welcome.pages.*.title' => ['required', 'string', 'max:160'],
             'welcome.pages.*.body' => ['required', 'string', 'max:1200'],
-            'welcome.pages.*.primaryLabel' => ['required', 'string', 'max:80'],
+            'welcome.pages.*.primaryLabel' => ['nullable', 'string', 'max:80'],
+            'welcome.pages.*.buttons' => ['nullable', 'array', 'max:6'],
+            'welcome.pages.*.buttons.*.text' => ['required', 'string', 'max:80'],
+            'welcome.pages.*.buttons.*.target' => ['required', 'string', 'max:2048'],
+            'infoPages.pages' => ['nullable', 'array', 'max:24'],
+            'infoPages.pages.*.key' => ['required', 'string', 'regex:/^[a-z0-9-]+$/', 'max:80'],
+            'infoPages.pages.*.title' => ['required', 'string', 'max:120'],
+            'infoPages.pages.*.markdown' => ['required', 'string', 'max:50000'],
+            'infoPages.pages.*.backgrounds.dark' => ['nullable', 'string', 'max:2048'],
+            'infoPages.pages.*.backgrounds.light' => ['nullable', 'string', 'max:2048'],
             'publicPalette.dark.headingText' => ['nullable', 'string', 'max:64'],
             'publicPalette.dark.bodyText' => ['nullable', 'string', 'max:64'],
             'publicPalette.dark.mutedText' => ['nullable', 'string', 'max:64'],
@@ -74,7 +94,7 @@ class PresentationController extends Controller
 
         PlatformPresentationSetting::updateCurrent($data, $request->user());
 
-        return redirect()->route('settings.index', ['panel' => 'admin-presentation']);
+        return redirect()->route('settings.presentation.edit');
     }
 
     public function uploadBackgroundImage(Request $request): JsonResponse

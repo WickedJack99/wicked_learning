@@ -3,19 +3,18 @@ import { ArrowLeft, Compass, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import {
-    platformInfoLinks,
-    platformInfoPages,
-} from '@/features/platform-info/content';
+import { platformInfoPages } from '@/features/platform-info/content';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
+import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { cn } from '@/lib/utils';
-import { platformCursorStyle } from '@/theme/cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
+    getPlatformInformationBackgroundImage,
+    getPlatformInformationLinks,
+    getPlatformInformationPage,
     getPublicPresentationStyle,
-    getPresentationBackgroundImage,
 } from '@/theme/presentation';
 
 type PlatformInfoContent = {
@@ -48,9 +47,18 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
     } = props;
     useAppearancePageSync(Boolean(auth.user), appearance);
     const { resolvedAppearance } = useAppearance();
-    const page = platformInfoPages[pageKey];
-    const markdown = platformInfoContent?.markdown ?? page.markdown;
+    const configuredPage = getPlatformInformationPage(
+        publicPresentation,
+        pageKey,
+    );
+    const page = platformInfoPages[pageKey] ?? platformInfoPages.about;
+    const pageTitle = configuredPage?.title ?? page.title;
+    const markdown =
+        platformInfoContent?.markdown ??
+        configuredPage?.markdown ??
+        page.markdown;
     const canEdit = variant === 'settings' && Boolean(canEditPlatformInfo);
+    const cursorStyle = usePlatformCursorStyle(publicPresentation);
     const [isEditing, setIsEditing] = useState(false);
     const { data, errors, patch, processing, setData } = useForm({
         markdown,
@@ -124,9 +132,9 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
         );
     }
 
-    const backgroundImage = getPresentationBackgroundImage(
+    const backgroundImage = getPlatformInformationBackgroundImage(
         publicPresentation,
-        'welcome',
+        configuredPage,
         resolvedAppearance,
     );
     const theme = {
@@ -135,7 +143,7 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
     };
     const themeStyle = {
         ...getAuthThemeStyle(theme),
-        ...platformCursorStyle(publicPresentation),
+        ...cursorStyle,
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
 
@@ -143,7 +151,7 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
         <>
             <Head title={page.title} />
             <main
-                className="relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
+                className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
                 style={themeStyle}
             >
                 <div
@@ -164,8 +172,8 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
                         <span
                             className="flex size-9 items-center justify-center rounded-md"
                             style={{
-                                background: 'var(--auth-logo-background)',
-                                color: 'var(--auth-logo-color)',
+                                background: 'var(--public-accent)',
+                                color: 'var(--auth-button-text-color)',
                             }}
                         >
                             <Compass className="size-5" />
@@ -184,21 +192,23 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
                         >
                             Home
                         </Link>
-                        {platformInfoLinks.map((link) => (
-                            <Link
-                                className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
-                                href={link.href}
-                                key={link.key}
-                                style={{
-                                    color:
-                                        link.key === pageKey
-                                            ? 'var(--public-accent-text)'
-                                            : 'var(--public-control-text)',
-                                }}
-                            >
-                                {link.label}
-                            </Link>
-                        ))}
+                        {getPlatformInformationLinks(publicPresentation).map(
+                            (link) => (
+                                <Link
+                                    className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-white/10"
+                                    href={link.href}
+                                    key={link.key}
+                                    style={{
+                                        color:
+                                            link.key === pageKey
+                                                ? 'var(--public-accent)'
+                                                : 'var(--public-control-text)',
+                                    }}
+                                >
+                                    {link.label}
+                                </Link>
+                            ),
+                        )}
                     </nav>
                 </header>
 
@@ -207,6 +217,7 @@ export function PlatformInfoPage({ pageKey, variant }: Props) {
                         <InfoArticle
                             markdown={markdown}
                             pageKey={pageKey}
+                            title={pageTitle}
                             variant="public"
                         />
                     </div>
@@ -221,15 +232,17 @@ function InfoArticle({
     isEditing = false,
     markdown,
     pageKey,
+    title,
     variant,
 }: {
     children?: React.ReactNode;
     isEditing?: boolean;
     markdown: string;
     pageKey: PlatformInfoPageKey;
+    title?: string;
     variant: 'public' | 'settings';
 }) {
-    const page = platformInfoPages[pageKey];
+    const page = platformInfoPages[pageKey] ?? platformInfoPages.about;
 
     return (
         <article
@@ -245,11 +258,11 @@ function InfoArticle({
                 className="shrink-0 text-xs font-medium tracking-[0.18em] uppercase"
                 style={
                     variant === 'public'
-                        ? { color: 'var(--public-accent-text)' }
+                        ? { color: 'var(--public-accent)' }
                         : undefined
                 }
             >
-                {page.eyebrow}
+                {title ?? page.title}
             </p>
             {isEditing ? (
                 children

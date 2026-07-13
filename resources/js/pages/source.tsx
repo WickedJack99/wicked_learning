@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, ExternalLink, Github } from 'lucide-react';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
-import { platformCursorStyle } from '@/theme/cursors';
+import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { getAuthTheme, getAuthThemeStyle } from '@/theme/platform-theme';
 import {
     getPublicPresentationStyle,
@@ -28,9 +28,10 @@ export default function SourcePage() {
         ...getAuthTheme('welcome', resolvedAppearance),
         ...(backgroundImage ? { backgroundImage } : {}),
     };
+    const cursorStyle = usePlatformCursorStyle(publicPresentation);
     const themeStyle = {
         ...getAuthThemeStyle(theme),
-        ...platformCursorStyle(publicPresentation),
+        ...cursorStyle,
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
     const origin = publicPresentation.sourceLinks.origin;
@@ -50,7 +51,7 @@ export default function SourcePage() {
         <>
             <Head title="Source Code" />
             <main
-                className="relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
+                className="platform-shell relative min-h-svh overflow-hidden bg-[var(--auth-background-color)]"
                 style={themeStyle}
             >
                 <div
@@ -80,7 +81,7 @@ export default function SourcePage() {
                             <span
                                 className="grid size-11 shrink-0 place-items-center rounded-lg"
                                 style={{
-                                    background: 'var(--public-accent-text)',
+                                    background: 'var(--public-accent)',
                                     color: 'var(--auth-button-text-color)',
                                 }}
                             >
@@ -90,7 +91,7 @@ export default function SourcePage() {
                                 <p
                                     className="text-xs font-medium tracking-[0.18em] uppercase"
                                     style={{
-                                        color: 'var(--public-accent-text)',
+                                        color: 'var(--public-accent)',
                                     }}
                                 >
                                     Source availability

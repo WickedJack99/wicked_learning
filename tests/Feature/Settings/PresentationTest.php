@@ -12,8 +12,8 @@ test('public pages receive presentation defaults', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('welcome')
             ->where('publicPresentation.auth.backgroundImages.login.dark', '')
-            ->where('publicPresentation.cursors.default.image', '/images/cursors/default-cursor.svg')
-            ->where('publicPresentation.cursors.action.image', '/images/cursors/action-pointer.svg')
+            ->where('publicPresentation.cursors.default.image', '/images/cursors/fantasy-cursor.png')
+            ->where('publicPresentation.cursors.action.image', '/images/cursors/fantasy-pointer.png')
             ->where('publicPresentation.cursors.grab.image', '/images/cursors/fantasy-grab-backhand.png')
             ->where('publicPresentation.cursors.grab.size', 40)
             ->where('publicPresentation.welcome.pages.0.title', 'Learning Worlds')
@@ -84,7 +84,7 @@ test('admins can update public presentation settings', function () {
                 'custom' => [],
             ],
         ])
-        ->assertRedirect(route('settings.index', ['panel' => 'admin-presentation']));
+        ->assertRedirect(route('settings.presentation.edit'));
 
     $settings = PlatformPresentationSetting::current();
 

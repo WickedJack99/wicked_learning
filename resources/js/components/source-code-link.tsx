@@ -1,8 +1,7 @@
 import { Github } from 'lucide-react';
 
 export function SourceCodeLink() {
-    const path =
-        typeof window === 'undefined' ? '/' : window.location.pathname;
+    const path = typeof window === 'undefined' ? '/' : window.location.pathname;
     const isPublicSurface =
         path === '/' ||
         path === '/about' ||
@@ -18,7 +17,7 @@ export function SourceCodeLink() {
             style={{
                 bottom: isPublicSurface ? '1.55rem' : '1rem',
                 color: 'var(--public-control-text, currentColor)',
-                outlineColor: 'var(--public-accent-text, #5eead4)',
+                outlineColor: 'var(--public-accent, #5eead4)',
             }}
             title="Source code"
         >

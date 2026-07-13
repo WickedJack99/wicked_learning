@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PlatformInfoPage;
+use App\Models\PlatformPresentationSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,17 @@ class PlatformInfoPageController extends Controller
         $this->ensureKnownPage($page);
 
         return Inertia::render(self::PUBLIC_COMPONENTS[$page], [
+            'platformInfoContent' => $this->contentFor($page),
+            'canEditPlatformInfo' => false,
+        ]);
+    }
+
+    public function showConfigured(Request $request, string $page): Response
+    {
+        $this->ensureConfiguredPage($page);
+
+        return Inertia::render('info/show', [
+            'pageKey' => $page,
             'platformInfoContent' => $this->contentFor($page),
             'canEditPlatformInfo' => false,
         ]);
@@ -96,5 +108,14 @@ class PlatformInfoPageController extends Controller
     private function ensureKnownPage(string $page): void
     {
         abort_unless(array_key_exists($page, self::PUBLIC_COMPONENTS), 404);
+    }
+
+    private function ensureConfiguredPage(string $page): void
+    {
+        $configuredPages = PlatformPresentationSetting::current()['infoPages']['pages'] ?? [];
+        $known = collect($configuredPages)
+            ->contains(fn (array $configuredPage): bool => ($configuredPage['key'] ?? null) === $page);
+
+        abort_unless($known, 404);
     }
 }

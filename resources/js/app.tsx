@@ -28,6 +28,8 @@ createInertiaApp({
                 return AuthLayout;
             case name === 'settings/index':
                 return AppLayout;
+            case name === 'settings/presentation':
+                return AppLayout;
             case name === 'settings/about':
             case name === 'settings/imprint':
             case name === 'settings/data-protection':

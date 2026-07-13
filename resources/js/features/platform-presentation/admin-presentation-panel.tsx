@@ -1039,8 +1039,9 @@ const paletteFields: Array<{
     },
     {
         field: 'accentText',
-        label: 'Accent text',
-        purpose: 'Eyebrows, active links and highlighted public labels.',
+        label: 'Accent',
+        purpose:
+            'Primary public accent for buttons, icons, active links and highlighted labels.',
     },
     {
         field: 'controlText',
