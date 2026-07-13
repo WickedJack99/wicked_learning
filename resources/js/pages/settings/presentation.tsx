@@ -1,7 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     ArrowDown,
-    ArrowLeft,
     ArrowRight,
     ArrowUp,
     FileText,
@@ -17,9 +16,14 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { ColorOpacityField } from '@/components/color-input';
-import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import { ConfigImageInput } from '@/components/config-image-input';
+import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
+import {
+    SettingsConfigurationShell,
+    SettingsSectionButton,
+    SettingsSidebar,
+} from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -188,125 +192,96 @@ export default function PresentationSettingsPage({
     return (
         <>
             <Head title="Public presentation" />
-            <main className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
-                    <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
-                        <div>
-                            <Button asChild className="mb-4" variant="ghost">
-                                <Link href="/settings">
-                                    <ArrowLeft className="size-4" />
-                                    Settings
-                                </Link>
-                            </Button>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
-                                Administration
-                            </p>
-                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                                Public presentation
-                            </h1>
-                        </div>
-                        <Button disabled={saving} onClick={save}>
-                            <Save className="size-4" />
-                            Save changes
-                        </Button>
-                    </header>
-
-                    <section className="grid min-h-0 flex-1 gap-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl md:grid-cols-[16rem_minmax(0,1fr)] dark:border-white/10 dark:bg-[#111820]">
-                        <aside className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
-                            <nav className="grid gap-2">
-                                {sections.map((section) => {
-                                    const Icon = section.icon;
-
-                                    return (
-                                        <button
-                                            className={cn(
-                                                'flex items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition',
-                                                activeSection === section.key
-                                                    ? 'bg-cyan-600 text-white shadow-sm dark:bg-teal-300 dark:text-slate-950'
-                                                    : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
-                                            )}
-                                            key={section.key}
-                                            onClick={() =>
-                                                setActiveSection(section.key)
-                                            }
-                                            type="button"
-                                        >
-                                            <Icon className="size-4" />
-                                            {section.label}
-                                        </button>
-                                    );
-                                })}
-                            </nav>
-                        </aside>
-
-                        <div className="flex min-h-0 flex-col overflow-hidden">
-                            <div className="mb-4 flex shrink-0 justify-end">
-                                <ConfigModeSwitch
-                                    mode={configMode}
-                                    onChange={setConfigMode}
-                                />
-                            </div>
-                            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                                {activeSection === 'welcome' ? (
-                                    <WelcomePagesEditor
-                                        configMode={configMode}
-                                        draft={draft}
-                                        errors={errors}
-                                        onChange={setDraft}
-                                        onUpload={uploadImage}
-                                        uploading={uploading}
-                                    />
-                                ) : null}
-                                {activeSection === 'info' ? (
-                                    <InformationPagesEditor
-                                        configMode={configMode}
-                                        draft={draft}
-                                        errors={errors}
-                                        onChange={setDraft}
-                                        onUpload={uploadImage}
-                                        uploading={uploading}
-                                    />
-                                ) : null}
-                                {activeSection === 'auth' ? (
-                                    <AuthBackgroundsEditor
-                                        configMode={configMode}
-                                        draft={draft}
-                                        errors={errors}
-                                        onChange={setDraft}
-                                        onUpload={uploadImage}
-                                        uploading={uploading}
-                                    />
-                                ) : null}
-                                {activeSection === 'source' ? (
-                                    <SourceLinksEditor
-                                        draft={draft}
-                                        errors={errors}
-                                        onChange={setDraft}
-                                    />
-                                ) : null}
-                                {activeSection === 'cursors' ? (
-                                    <CursorEditor
-                                        configMode={configMode}
-                                        draft={draft}
-                                        errors={errors}
-                                        onChange={setDraft}
-                                        onUpload={uploadImage}
-                                        uploading={uploading}
-                                    />
-                                ) : null}
-                                {activeSection === 'colors' ? (
-                                    <PublicPaletteEditor
-                                        draft={draft}
-                                        errors={errors}
-                                        mode={configMode}
-                                        onChange={setDraft}
-                                    />
-                                ) : null}
-                            </div>
-                        </div>
-                    </section>
+            <SettingsConfigurationShell
+                action={
+                    <Button disabled={saving} onClick={save}>
+                        <Save className="size-4" />
+                        Save changes
+                    </Button>
+                }
+                eyebrow="Administration"
+                sidebar={
+                    <SettingsSidebar>
+                        {sections.map((section) => (
+                            <SettingsSectionButton
+                                active={activeSection === section.key}
+                                icon={section.icon}
+                                id={section.key}
+                                key={section.key}
+                                label={section.label}
+                                onSelect={setActiveSection}
+                            />
+                        ))}
+                    </SettingsSidebar>
+                }
+                title="Public presentation"
+            >
+                <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                    <div className="mb-4 flex shrink-0 justify-end">
+                        <ConfigModeSwitch
+                            mode={configMode}
+                            onChange={setConfigMode}
+                        />
+                    </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                        {activeSection === 'welcome' ? (
+                            <WelcomePagesEditor
+                                configMode={configMode}
+                                draft={draft}
+                                errors={errors}
+                                onChange={setDraft}
+                                onUpload={uploadImage}
+                                uploading={uploading}
+                            />
+                        ) : null}
+                        {activeSection === 'info' ? (
+                            <InformationPagesEditor
+                                configMode={configMode}
+                                draft={draft}
+                                errors={errors}
+                                onChange={setDraft}
+                                onUpload={uploadImage}
+                                uploading={uploading}
+                            />
+                        ) : null}
+                        {activeSection === 'auth' ? (
+                            <AuthBackgroundsEditor
+                                configMode={configMode}
+                                draft={draft}
+                                errors={errors}
+                                onChange={setDraft}
+                                onUpload={uploadImage}
+                                uploading={uploading}
+                            />
+                        ) : null}
+                        {activeSection === 'source' ? (
+                            <SourceLinksEditor
+                                draft={draft}
+                                errors={errors}
+                                onChange={setDraft}
+                            />
+                        ) : null}
+                        {activeSection === 'cursors' ? (
+                            <CursorEditor
+                                configMode={configMode}
+                                draft={draft}
+                                errors={errors}
+                                onChange={setDraft}
+                                onUpload={uploadImage}
+                                uploading={uploading}
+                            />
+                        ) : null}
+                        {activeSection === 'colors' ? (
+                            <PublicPaletteEditor
+                                draft={draft}
+                                errors={errors}
+                                mode={configMode}
+                                onChange={setDraft}
+                            />
+                        ) : null}
+                    </div>
                 </div>
-            </main>
+            </SettingsConfigurationShell>
         </>
     );
 }

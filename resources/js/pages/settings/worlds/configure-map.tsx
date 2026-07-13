@@ -1,6 +1,5 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
     Image,
     LayoutPanelTop,
     Map as MapIcon,
@@ -17,7 +16,11 @@ import { useMemo, useState } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
-import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
+import {
+    SettingsConfigurationShell,
+    SettingsSectionButton,
+    SettingsSidebar,
+} from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -32,6 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { normalizeMediaUrl } from '@/lib/media-url';
+import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 import { cn } from '@/lib/utils';
 import type { MapVisualAsset } from '@/types/learning';
 
@@ -328,116 +332,81 @@ export default function ConfigureMap({
     return (
         <>
             <Head title={`Configure ${map.title}`} />
-            <main className="min-h-full overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-[calc(100svh-8rem)] min-h-[34rem] w-full max-w-[92rem] flex-col gap-4">
-                    <header className="shrink-0">
+            <SettingsConfigurationShell
+                action={
+                    mainSection !== 'delete' ? (
                         <Button
-                            asChild
-                            className="mb-2"
-                            size="sm"
-                            variant="ghost"
+                            disabled={processing}
+                            onClick={saveCurrentSection}
+                            type="button"
                         >
-                            <Link href={`/settings/worlds/maps/${map.id}/edit`}>
-                                <ArrowLeft className="size-4" />
-                                Back to map editor
-                            </Link>
+                            <Save className="size-4" />
+                            {processing ? 'Saving...' : 'Save changes'}
                         </Button>
-                        <div className="flex flex-wrap items-end justify-between gap-3">
-                            <div>
-                                <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
-                                    {world.title}
-                                </p>
-                                <h1 className="mt-1 text-3xl font-semibold tracking-normal">
-                                    Configure {map.title}
-                                </h1>
-                            </div>
-                            {mainSection !== 'delete' ? (
-                                <Button
-                                    disabled={processing}
-                                    onClick={saveCurrentSection}
-                                    type="button"
-                                >
-                                    <Save className="size-4" />
-                                    {processing ? 'Saving...' : 'Save changes'}
-                                </Button>
-                            ) : null}
-                        </div>
-                    </header>
-
-                    <section className="grid min-h-0 flex-1 gap-4 rounded-[1.75rem] border border-slate-200 bg-white/88 p-3 shadow-2xl shadow-slate-950/10 backdrop-blur-md md:grid-cols-[16rem_minmax(0,1fr)] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-black/30">
-                        <nav className="flex gap-2 overflow-x-auto rounded-2xl bg-slate-100/80 p-2 md:block md:space-y-2 md:overflow-visible dark:bg-white/5">
-                            {mainSections.map((section) => {
-                                const Icon = section.icon;
-
-                                return (
-                                    <button
-                                        className={cn(
-                                            'flex w-full min-w-max items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition md:min-w-0',
-                                            mainSection === section.id
-                                                ? section.danger
-                                                    ? 'bg-red-600 text-white shadow-lg shadow-red-950/15 dark:bg-red-500 dark:text-white'
-                                                    : 'bg-cyan-600 text-white shadow-lg shadow-cyan-950/15 dark:bg-teal-300 dark:text-slate-950'
-                                                : section.danger
-                                                  ? 'text-red-700 hover:bg-red-50 hover:text-red-800 dark:text-red-300 dark:hover:bg-red-950/30 dark:hover:text-red-100'
-                                                  : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
-                                        )}
-                                        key={section.id}
-                                        onClick={() =>
-                                            setMainSection(section.id)
-                                        }
-                                        type="button"
-                                    >
-                                        <Icon className="size-4" />
-                                        {section.label}
-                                    </button>
-                                );
-                            })}
-                        </nav>
-
-                        <div className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
-                            {mainSection === 'details' ? (
-                                <MapDetailsSection
-                                    errors={errors}
-                                    form={detailsForm}
-                                    onChange={setDetailsForm}
-                                    previewTheme={resolvedTheme}
-                                />
-                            ) : null}
-                            {mainSection === 'visuals' ? (
-                                <MapVisualsSection
-                                    errors={errors}
-                                    imageErrors={imageErrors}
-                                    mode={mode}
-                                    onImageUpload={uploadImage}
-                                    onModeChange={setMode}
-                                    onVisualSectionChange={setVisualSection}
-                                    setForm={setVisualForm}
-                                    theme={resolvedTheme}
-                                    uploadingImageKey={uploadingImageKey}
-                                    visualSection={visualSection}
-                                    visualForm={visualForm}
-                                />
-                            ) : null}
-                            {mainSection === 'access' ? (
-                                <AccessSection
-                                    accessGroups={accessGroups}
-                                    errors={errors}
-                                    roles={accessRoles}
-                                    setRoles={setAccessRoles}
-                                />
-                            ) : null}
-                            {mainSection === 'delete' ? (
-                                <DeleteWorldSection
-                                    canDelete={canDeleteWorldMaps}
-                                    deleting={deleting}
-                                    map={map}
-                                    onDelete={() => setDeleteOpen(true)}
-                                />
-                            ) : null}
-                        </div>
-                    </section>
+                    ) : null
+                }
+                backHref={`/settings/worlds/maps/${map.id}/edit`}
+                backLabel="Back to map editor"
+                eyebrow={world.title}
+                sidebar={
+                    <SettingsSidebar>
+                        {mainSections.map((section) => (
+                            <SettingsSectionButton
+                                active={mainSection === section.id}
+                                danger={section.danger}
+                                icon={section.icon}
+                                id={section.id}
+                                key={section.id}
+                                label={section.label}
+                                onSelect={setMainSection}
+                            />
+                        ))}
+                    </SettingsSidebar>
+                }
+                title={`Configure ${map.title}`}
+            >
+                <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    {mainSection === 'details' ? (
+                        <MapDetailsSection
+                            errors={errors}
+                            form={detailsForm}
+                            onChange={setDetailsForm}
+                            previewTheme={resolvedTheme}
+                        />
+                    ) : null}
+                    {mainSection === 'visuals' ? (
+                        <MapVisualsSection
+                            errors={errors}
+                            imageErrors={imageErrors}
+                            mode={mode}
+                            onImageUpload={uploadImage}
+                            onModeChange={setMode}
+                            onVisualSectionChange={setVisualSection}
+                            setForm={setVisualForm}
+                            theme={resolvedTheme}
+                            uploadingImageKey={uploadingImageKey}
+                            visualSection={visualSection}
+                            visualForm={visualForm}
+                        />
+                    ) : null}
+                    {mainSection === 'access' ? (
+                        <AccessSection
+                            accessGroups={accessGroups}
+                            errors={errors}
+                            roles={accessRoles}
+                            setRoles={setAccessRoles}
+                        />
+                    ) : null}
+                    {mainSection === 'delete' ? (
+                        <DeleteWorldSection
+                            canDelete={canDeleteWorldMaps}
+                            deleting={deleting}
+                            map={map}
+                            onDelete={() => setDeleteOpen(true)}
+                        />
+                    ) : null}
                 </div>
-            </main>
+            </SettingsConfigurationShell>
             <Dialog
                 onOpenChange={(open) => {
                     if (!open && !deleting) {
