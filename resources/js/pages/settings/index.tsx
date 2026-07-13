@@ -33,7 +33,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
-import { AdminPresentationPanel } from '@/features/platform-presentation/admin-presentation-panel';
 import { cn } from '@/lib/utils';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { User as AuthUser } from '@/types';
@@ -270,10 +269,6 @@ const panelContent: Partial<
         title: 'World content',
         body: 'First admin target: create and edit maps, hex nodes, activity graphs, dialogue stages, questions and portals.',
     },
-    'admin-presentation': {
-        title: 'Public presentation',
-        body: 'Admin controls for public-facing content and authentication visuals.',
-    },
     'admin-access': {
         title: 'Access management',
         body: 'Manage users and configurable access roles.',
@@ -344,9 +339,7 @@ export default function SettingsIndex({
     assignableRegistrationRoles,
     canAccessAdministration,
     createdRegistrationToken = null,
-    platformInfoPages,
     permissionResources,
-    publicPresentation,
     registrationTokens,
 }: SettingsIndexProps) {
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
@@ -377,7 +370,7 @@ export default function SettingsIndex({
         <>
             <Head title="Settings" />
             <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-5xl flex-col px-4 pt-6 pb-24">
+                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
                     <header className="shrink-0 pb-5">
                         {selectedPanel ? (
                             <Button
@@ -397,7 +390,7 @@ export default function SettingsIndex({
                         </h1>
                     </header>
 
-                    <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+                    <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#111820]">
                         {selectedPanel ? (
                             <SettingsDetail
                                 accessCapabilities={accessCapabilities}
@@ -406,9 +399,7 @@ export default function SettingsIndex({
                                 createdRegistrationToken={
                                     createdRegistrationToken
                                 }
-                                platformInfoPages={platformInfoPages}
                                 permissionResources={permissionResources}
-                                publicPresentation={publicPresentation}
                                 assignableRegistrationRoles={
                                     assignableRegistrationRoles
                                 }
@@ -539,9 +530,7 @@ function SettingsDetail({
     adminUsers,
     assignableRegistrationRoles,
     createdRegistrationToken,
-    platformInfoPages,
     permissionResources,
-    publicPresentation,
     registrationTokens,
     selectedPanel,
 }: {
@@ -550,25 +539,14 @@ function SettingsDetail({
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
     createdRegistrationToken: string | null;
-    platformInfoPages: Partial<
-        Record<PlatformInfoPageKey, PlatformInfoContent>
-    >;
     permissionResources: PermissionResource[];
-    publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
     selectedPanel: SettingsPanelKey;
 }) {
     const content = panelContent[selectedPanel];
 
     return (
-        <div
-            className={cn(
-                'h-full bg-white p-4 dark:bg-[#111820]',
-                selectedPanel === 'admin-presentation'
-                    ? 'overflow-hidden'
-                    : 'overflow-y-auto',
-            )}
-        >
+        <div className="h-full overflow-y-auto bg-white dark:bg-[#111820]">
             {(selectedPanel === 'admin-access' ||
                 selectedPanel === 'admin-users') &&
             (accessCapabilities.users?.read ||
@@ -581,12 +559,6 @@ function SettingsDetail({
                     permissionResources={permissionResources}
                     registrationTokens={registrationTokens}
                     users={adminUsers}
-                />
-            ) : selectedPanel === 'admin-presentation' &&
-              accessCapabilities.presentation?.read ? (
-                <AdminPresentationPanel
-                    platformInfoContent={platformInfoPages}
-                    presentation={publicPresentation}
                 />
             ) : content ? (
                 <PlaceholderPanel content={content} panel={selectedPanel} />
