@@ -5,10 +5,15 @@ use App\Http\Controllers\Settings\AdminAccessController;
 use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminItemController;
+use App\Http\Controllers\Settings\AdminLanguageController;
 use App\Http\Controllers\Settings\AdminNpcDialogueController;
 use App\Http\Controllers\Settings\AdminUserController;
 use App\Http\Controllers\Settings\AdminWorldController;
 use App\Http\Controllers\Settings\AppearanceController;
+use App\Http\Controllers\Settings\ColorPaletteController;
+use App\Http\Controllers\Settings\LanguageController;
+use App\Http\Controllers\Settings\JournalSettingsController;
+use App\Http\Controllers\Settings\PersonalSettingsController;
 use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -30,10 +35,24 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('settings/profile/image', [ProfileController::class, 'uploadImage'])
+        ->name('profile.image.store');
+    Route::get('settings/language', [LanguageController::class, 'edit'])
+        ->name('settings.language.edit');
+    Route::patch('settings/language', [LanguageController::class, 'update'])
+        ->name('settings.language.update');
+    Route::get('settings/personal', [PersonalSettingsController::class, 'edit'])
+        ->name('settings.personal.edit');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('settings/color-palette', [ColorPaletteController::class, 'edit'])
+        ->name('settings.color-palette.edit');
+
+    Route::patch('settings/color-palette', [ColorPaletteController::class, 'update'])
+        ->name('settings.color-palette.update');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
         ->middleware(RequirePassword::class)
@@ -242,6 +261,30 @@ Route::middleware(['auth', 'verified', 'can:presentation.ru'])->group(function (
 
     Route::patch('settings/info-pages/{page}', [PlatformInfoPageController::class, 'update'])
         ->name('settings.info-pages.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:journals.ru'])->group(function () {
+    Route::get('settings/journal', [JournalSettingsController::class, 'edit'])
+        ->name('settings.journal.edit');
+    Route::patch('settings/journal', [JournalSettingsController::class, 'update'])
+        ->name('settings.journal.update');
+    Route::post('settings/journal/background-images', [JournalSettingsController::class, 'uploadBackgroundImage'])
+        ->name('settings.journal.background-images.store');
+});
+
+Route::middleware(['auth', 'verified', 'can:languages.ru'])->group(function () {
+    Route::get('settings/languages', [AdminLanguageController::class, 'index'])
+        ->name('settings.languages.index');
+    Route::post('settings/languages', [AdminLanguageController::class, 'store'])
+        ->name('settings.languages.store');
+    Route::patch('settings/languages/{language}', [AdminLanguageController::class, 'update'])
+        ->name('settings.languages.update');
+    Route::get('settings/languages/export/english', [AdminLanguageController::class, 'export'])
+        ->name('settings.languages.export.english');
+    Route::get('settings/languages/{language}/export', [AdminLanguageController::class, 'export'])
+        ->name('settings.languages.export');
+    Route::post('settings/languages/{language}/import', [AdminLanguageController::class, 'import'])
+        ->name('settings.languages.import');
 });
 
 Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {

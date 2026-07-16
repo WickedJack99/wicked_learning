@@ -23,6 +23,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $username
+ * @property string|null $profile_image
+ * @property string|null $avatar
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
@@ -37,7 +40,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'role', 'roles', 'login_disabled_at', 'banned_until'])]
+#[Fillable(['name', 'username', 'profile_image', 'email', 'password', 'role', 'roles', 'login_disabled_at', 'banned_until'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -47,6 +50,11 @@ class User extends Authenticatable implements PasskeyUser
     public const ROLE_ADMIN = 'admin';
 
     public const ROLE_USER = 'user';
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = ['avatar'];
 
     /**
      * Lower numbers have fewer permissions.
@@ -91,6 +99,11 @@ class User extends Authenticatable implements PasskeyUser
             'login_disabled_at' => 'datetime',
             'banned_until' => 'datetime',
         ];
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->profile_image;
     }
 
     public function isAdmin(): bool
@@ -367,5 +380,25 @@ class User extends Authenticatable implements PasskeyUser
             ->wherePivot('quantity', '>', 0)
             ->orderByPivot('acquired_at')
             ->orderBy('user_learning_items.id');
+    }
+
+    /**
+     * Private markdown pages that collect the learner's own reflections.
+     *
+     * @return HasMany<LearnerJournalPage, $this>
+     */
+    public function journalPages(): HasMany
+    {
+        return $this->hasMany(LearnerJournalPage::class);
+    }
+
+    /**
+     * Individual, timestamped reflection entries written during learning.
+     *
+     * @return HasMany<LearnerReflection, $this>
+     */
+    public function learnerReflections(): HasMany
+    {
+        return $this->hasMany(LearnerReflection::class);
     }
 }

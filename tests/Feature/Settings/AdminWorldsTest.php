@@ -410,6 +410,20 @@ test('admin users configure portal destinations from portal activities', functio
             'portal_mode' => 'output',
             'portal_background_dark' => '/storage/learning/nodes/portal-dark.webp',
             'portal_background_light' => '/storage/learning/nodes/portal-light.webp',
+            'portal_assets' => [
+                [
+                    'id' => 'destination-view',
+                    'imageDark' => '/storage/learning/nodes/archive-dark.webp',
+                    'imageLight' => '/storage/learning/nodes/archive-light.webp',
+                    'label' => 'Destination view',
+                    'layer' => 'above-background',
+                    'mirrored' => true,
+                    'opacity' => 82,
+                    'width' => 48,
+                    'x' => 56,
+                    'y' => 42,
+                ],
+            ],
             'portal_duration_seconds' => 2.5,
             'portal_foreground_dark' => '/storage/learning/nodes/swirl-dark.svg',
             'portal_foreground_light' => '/storage/learning/nodes/swirl-light.svg',
@@ -434,6 +448,15 @@ test('admin users configure portal destinations from portal activities', functio
         ->and($link->target_learning_activity_id)->toBe($targetActivity->id);
     expect($activity->config['portalBackgroundDark'])->toBe('/storage/learning/nodes/portal-dark.webp')
         ->and($activity->config['portalBackgroundLight'])->toBe('/storage/learning/nodes/portal-light.webp')
+        ->and($activity->config['portalAssets'][0]['id'])->toBe('destination-view')
+        ->and($activity->config['portalAssets'][0]['imageDark'])->toBe('/storage/learning/nodes/archive-dark.webp')
+        ->and($activity->config['portalAssets'][0]['imageLight'])->toBe('/storage/learning/nodes/archive-light.webp')
+        ->and($activity->config['portalAssets'][0]['layer'])->toBe('above-background')
+        ->and($activity->config['portalAssets'][0]['mirrored'])->toBeTrue()
+        ->and((float) $activity->config['portalAssets'][0]['opacity'])->toBe(82.0)
+        ->and((float) $activity->config['portalAssets'][0]['width'])->toBe(48.0)
+        ->and((float) $activity->config['portalAssets'][0]['x'])->toBe(56.0)
+        ->and((float) $activity->config['portalAssets'][0]['y'])->toBe(42.0)
         ->and($activity->config['portalDurationSeconds'])->toBe(2.5)
         ->and($activity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/swirl-dark.svg')
         ->and($activity->config['portalForegroundLight'])->toBe('/storage/learning/nodes/swirl-light.svg')
@@ -462,6 +485,20 @@ test('admin users configure portal destinations from portal activities', functio
             'portal_background_dark' => '/storage/learning/nodes/exit-dark.webp',
             'portal_background_light' => '',
             'portal_background_mirrored' => true,
+            'portal_assets' => [
+                [
+                    'id' => 'arrival-mist',
+                    'imageDark' => '/storage/learning/nodes/mist-dark.webp',
+                    'imageLight' => '',
+                    'label' => 'Arrival mist',
+                    'layer' => 'front',
+                    'mirrored' => false,
+                    'opacity' => 64,
+                    'width' => 72,
+                    'x' => 50,
+                    'y' => 60,
+                ],
+            ],
             'portal_duration_seconds' => 4,
             'portal_foreground_dark' => '/storage/learning/nodes/exit-swirl.svg',
             'portal_foreground_light' => '',
@@ -482,6 +519,9 @@ test('admin users configure portal destinations from portal activities', functio
         ->and($targetActivity->config['portalBackgroundDark'])->toBe('/storage/learning/nodes/exit-dark.webp')
         ->and($targetActivity->config['portalBackgroundLight'])->toBe('')
         ->and($targetActivity->config['portalBackgroundMirrored'])->toBeTrue()
+        ->and($targetActivity->config['portalAssets'][0]['id'])->toBe('arrival-mist')
+        ->and($targetActivity->config['portalAssets'][0]['layer'])->toBe('front')
+        ->and((float) $targetActivity->config['portalAssets'][0]['opacity'])->toBe(64.0)
         ->and((float) $targetActivity->config['portalDurationSeconds'])->toBe(4.0)
         ->and($targetActivity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/exit-swirl.svg')
         ->and($targetActivity->config['portalForegroundLight'])->toBe('')

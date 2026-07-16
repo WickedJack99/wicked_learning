@@ -5,17 +5,16 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Models\UserPreference;
 use App\Support\Appearance;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
-use Inertia\Inertia;
-use Inertia\Response as InertiaResponse;
 
 class AppearanceController extends Controller
 {
-    public function edit(): InertiaResponse
+    public function edit(): RedirectResponse
     {
-        return Inertia::render('settings/appearance');
+        return to_route('settings.personal.edit', ['section' => 'appearance']);
     }
 
     public function update(Request $request): Response

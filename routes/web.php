@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningItemActivityController;
+use App\Http\Controllers\LearnerJournalController;
 use App\Http\Controllers\LearningRouteProgressController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\PlatformInfoPageController;
@@ -40,6 +42,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.nodes.unlock-tool');
     Route::post('learning/activities/{activity}/progress', [LearningWorldController::class, 'markActivity'])
         ->name('learning.activities.progress');
+    Route::get('learning/journal', [LearnerJournalController::class, 'index'])
+        ->name('learning.journal.index');
+    Route::get('learning/journal/export', [LearnerJournalController::class, 'export'])
+        ->name('learning.journal.export');
+    Route::post('learning/journal/pages', [LearnerJournalController::class, 'storePage'])
+        ->name('learning.journal.pages.store');
+    Route::patch('learning/journal/pages/{page}', [LearnerJournalController::class, 'update'])
+        ->name('learning.journal.pages.update');
+    Route::post('learning/activities/{activity}/reflection', [LearnerJournalController::class, 'storeActivityReflection'])
+        ->name('learning.activities.reflection.store');
+    Route::post('learning/npc-dialogue-nodes/{node}/reflection', [LearnerJournalController::class, 'storeDialogueReflection'])
+        ->name('learning.npc-dialogue-nodes.reflection.store');
+    Route::get('learning/activities/{activity}/translation', [LearningActivityTranslationController::class, 'show'])
+        ->name('learning.activities.translation.show');
     Route::post('learning/questions/{question}/answer', [LearningWorldController::class, 'answerQuestion'])
         ->name('learning.questions.answer');
     Route::post('learning/npc-dialogue-nodes/{node}/answer', [LearningWorldController::class, 'answerNpcDialogue'])

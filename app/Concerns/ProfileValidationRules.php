@@ -17,6 +17,8 @@ trait ProfileValidationRules
     {
         return [
             'name' => $this->nameRules(),
+            'username' => $this->usernameRules($userId),
+            'profile_image' => ['nullable', 'string', 'max:2048'],
             'email' => $this->emailRules($userId),
         ];
     }
@@ -29,6 +31,25 @@ trait ProfileValidationRules
     protected function nameRules(): array
     {
         return ['required', 'string', 'max:255'];
+    }
+
+    /**
+     * Get the validation rules used to validate public usernames.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function usernameRules(?int $userId = null): array
+    {
+        return [
+            'nullable',
+            'string',
+            'alpha_dash:ascii',
+            'min:3',
+            'max:32',
+            $userId === null
+                ? Rule::unique(User::class)
+                : Rule::unique(User::class)->ignore($userId),
+        ];
     }
 
     /**

@@ -59,7 +59,10 @@ class AdminAccessController extends Controller
 
         foreach (PermissionCatalog::resourceKeys() as $resource) {
             $rules["permissions.{$resource}"] = [
-                'required',
+                // New permission areas are introduced over time. Existing
+                // clients may not submit their key yet; SaveAccessRole gives
+                // omitted resources the conservative "none" level.
+                'sometimes',
                 'string',
                 Rule::in(AccessLevel::values()),
             ];

@@ -23,6 +23,7 @@ class AdminActivityRules
             ...$this->markdownRules(),
             ...$this->obstacleRules(),
             ...$this->portalRules(),
+            ...$this->reflectionRules(),
             ...$this->toolGrantRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
@@ -52,6 +53,7 @@ class AdminActivityRules
             ...$this->markdownRules('sometimes'),
             ...$this->obstacleRules('sometimes'),
             ...$this->portalRules('sometimes'),
+            ...$this->reflectionRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
@@ -144,6 +146,22 @@ class AdminActivityRules
             'portal_background_dark' => $this->optional($modifier, ['string', 'max:2048']),
             'portal_background_light' => $this->optional($modifier, ['string', 'max:2048']),
             'portal_background_mirrored' => [$modifier, 'boolean'],
+            'portal_assets' => [$modifier, 'array', 'max:20'],
+            'portal_assets.*.id' => $this->optional($modifier, ['string', 'max:120']),
+            'portal_assets.*.imageDark' => $this->optional($modifier, ['string', 'max:2048']),
+            'portal_assets.*.imageLight' => $this->optional($modifier, ['string', 'max:2048']),
+            'portal_assets.*.label' => $this->optional($modifier, ['string', 'max:120']),
+            'portal_assets.*.layer' => $this->optional($modifier, ['string', Rule::in([
+                'behind-background',
+                'above-background',
+                'above-foreground',
+                'front',
+            ])]),
+            'portal_assets.*.mirrored' => [$modifier, 'boolean'],
+            'portal_assets.*.opacity' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'portal_assets.*.width' => $this->optional($modifier, ['numeric', 'min:1', 'max:160']),
+            'portal_assets.*.x' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
+            'portal_assets.*.y' => $this->optional($modifier, ['numeric', 'min:0', 'max:100']),
             'portal_duration_seconds' => $this->optional($modifier, ['numeric', 'min:0.5', 'max:60']),
             'portal_foreground_dark' => $this->optional($modifier, ['string', 'max:2048']),
             'portal_foreground_light' => $this->optional($modifier, ['string', 'max:2048']),
@@ -171,6 +189,17 @@ class AdminActivityRules
             'item_grant_items.*.itemId' => $this->optional($modifier, ['integer', 'exists:learning_items,id']),
             'item_grant_items.*.quantity' => $this->optional($modifier, ['integer', 'min:1', 'max:999']),
             'item_grant_probability_percent' => [$modifier, 'numeric', 'min:0.01', 'max:100'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function reflectionRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'reflection_prompt' => $this->optional($modifier, ['string', 'max:4000']),
+            'reflection_note' => $this->optional($modifier, ['string', 'max:2000']),
+            'reflection_topic' => $this->optional($modifier, ['string', 'max:160']),
+            'reflection_subtopic' => $this->optional($modifier, ['string', 'max:160']),
         ];
     }
 

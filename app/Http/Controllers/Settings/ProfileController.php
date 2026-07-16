@@ -4,25 +4,24 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
+use App\Http\Requests\Settings\ProfileImageUploadRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Settings\Services\ProfileImageUploadService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class ProfileController extends Controller
 {
+    public function __construct(private readonly ProfileImageUploadService $profileImageUpload) {}
+
     /**
      * Show the user's profile settings page.
      */
-    public function edit(Request $request): Response
+    public function edit(): RedirectResponse
     {
-        return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => $request->session()->get('status'),
-        ]);
+        return to_route('settings.personal.edit', ['section' => 'profile']);
     }
 
     /**
@@ -40,7 +39,14 @@ class ProfileController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 
-        return to_route('profile.edit');
+        return to_route('settings.personal.edit', ['section' => 'profile']);
+    }
+
+    public function uploadImage(ProfileImageUploadRequest $request): JsonResponse
+    {
+        return response()->json(
+            $this->profileImageUpload->upload($request->file('file')),
+        );
     }
 
     /**

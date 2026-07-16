@@ -108,6 +108,8 @@ class NpcDialogueConfiguration
             'npcY' => 50,
             'toolId' => null,
             'questionOutputCount' => 2,
+            'journalTopic' => '',
+            'journalSubtopic' => '',
             'typingSpeed' => 28,
             'bubbleColorDark' => '#0f172a',
             'bubbleBorderColorDark' => '#2dd4bf',

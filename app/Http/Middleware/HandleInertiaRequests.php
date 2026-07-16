@@ -2,8 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Learning\Queries\LoadCurrentMenuMapTheme;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
+use App\Localization\Services\PlatformLocaleCatalog;
+use App\Localization\Services\UserLocaleResolver;
 use App\Models\LearningItem;
 use App\Models\LearningTool;
 use App\Models\PlatformPresentationSetting;
@@ -16,6 +19,9 @@ class HandleInertiaRequests extends Middleware
     public function __construct(
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearningItemSerializer $itemSerializer,
+        private readonly LoadCurrentMenuMapTheme $loadCurrentMenuMapTheme,
+        private readonly PlatformLocaleCatalog $localeCatalog,
+        private readonly UserLocaleResolver $localeResolver,
     ) {}
 
     /**
@@ -78,6 +84,14 @@ class HandleInertiaRequests extends Middleware
                 )
                 : Appearance::forGuest(),
             'publicPresentation' => PlatformPresentationSetting::current(),
+            'menuTheme' => $this->loadCurrentMenuMapTheme->handle($request->user()),
+            'localization' => [
+                'locale' => $this->localeResolver->forUser($request->user()),
+                // This catalog deliberately contains platform UI copy only.
+                'translations' => $this->localeCatalog->translations(
+                    $this->localeResolver->forUser($request->user()),
+                ),
+            ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

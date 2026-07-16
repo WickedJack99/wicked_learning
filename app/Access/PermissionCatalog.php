@@ -16,6 +16,10 @@ class PermissionCatalog
 
     public const PRESENTATION = 'presentation';
 
+    public const LANGUAGES = 'languages';
+
+    public const JOURNALS = 'journals';
+
     /**
      * @return array<string, array{label: string, description: string}>
      */
@@ -45,6 +49,14 @@ class PermissionCatalog
             self::PRESENTATION => [
                 'label' => 'Presentation',
                 'description' => 'Welcome pages, public information pages, login visuals and cursors.',
+            ],
+            self::LANGUAGES => [
+                'label' => 'Languages',
+                'description' => 'Available learner languages and the import/export of translated catalogs.',
+            ],
+            self::JOURNALS => [
+                'label' => 'Journals',
+                'description' => 'Learner reflections and whether learners may request informational expert feedback.',
             ],
         ];
     }

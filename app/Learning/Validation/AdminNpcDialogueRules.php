@@ -12,7 +12,7 @@ class AdminNpcDialogueRules
     public function storeNode(): array
     {
         return [
-            'type' => ['required', 'string', Rule::in(['answer', 'npc_monologue', 'npc_question', 'end'])],
+            'type' => ['required', 'string', Rule::in(['answer', 'npc_monologue', 'npc_question', 'reflection', 'end'])],
             'title' => ['required', 'string', 'max:120'],
             'body' => ['nullable', 'string', 'max:4000'],
             'config' => ['nullable', 'array'],
@@ -31,7 +31,7 @@ class AdminNpcDialogueRules
     public function updateNode(): array
     {
         return [
-            'type' => ['sometimes', 'required', 'string', Rule::in(['answer', 'npc_monologue', 'npc_question', 'end'])],
+            'type' => ['sometimes', 'required', 'string', Rule::in(['answer', 'npc_monologue', 'npc_question', 'reflection', 'end'])],
             'title' => ['sometimes', 'required', 'string', 'max:120'],
             'body' => ['sometimes', 'nullable', 'string', 'max:4000'],
             'config' => ['sometimes', 'nullable', 'array'],

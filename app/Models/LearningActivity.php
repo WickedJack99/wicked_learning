@@ -97,4 +97,12 @@ class LearningActivity extends Model
     {
         return $this->hasMany(LearningPortalLink::class, 'target_learning_activity_id');
     }
+
+    /**
+     * @return HasMany<LearningActivityTranslation, $this>
+     */
+    public function translations(): HasMany
+    {
+        return $this->hasMany(LearningActivityTranslation::class);
+    }
 }

@@ -1,0 +1,13 @@
+{
+    "settings.personal.language": "Language",
+    "settings.personal.language.description": "Choose the language used for platform controls and learner-visible activity copy.",
+    "settings.personal.language.current": "Current language",
+    "settings.personal.language.save": "Save language",
+    "settings.personal.preference": "Personal preference",
+    "settings.administration.languages": "Languages",
+    "settings.administration.languages.description": "Create supported languages and import translated platform and activity catalogs.",
+    "settings.administration.languages.add": "Add language",
+    "settings.administration.languages.export_english": "Download English catalog",
+    "settings.administration.languages.import": "Upload translation catalog",
+    "settings.administration.languages.enabled": "Enabled for learners"
+}
