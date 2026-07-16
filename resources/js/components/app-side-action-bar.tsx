@@ -1,9 +1,9 @@
-import { usePage } from '@inertiajs/react';
-import { Backpack, Hammer, Sparkles } from 'lucide-react';
+import { router, usePage } from '@inertiajs/react';
+import { Backpack, Hammer, NotebookPen, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
+import type { CSSProperties, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
+import { JournalOverlay } from '@/features/journal/journal-overlay';
 import {
     selectLearningTool,
     useAvailableLearningTools,
@@ -11,11 +11,13 @@ import {
 } from '@/features/tools/tool-selection';
 import { toolImageUrl } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useInitials } from '@/hooks/use-initials';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
-import type { LearningItem, LearningTool } from '@/types';
+import type { LearningItem, LearningTool, User } from '@/types';
 
-type OverlayMode = 'inventory' | 'tools' | null;
+type OverlayMode = 'inventory' | 'journal' | 'tools' | null;
+type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
 
 export function AppSideActionBar() {
     const { props, url } = usePage();
@@ -24,6 +26,7 @@ export function AppSideActionBar() {
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
+    const user = props.auth.user;
     const shouldShow = useMemo(
         () =>
             Boolean(props.auth.user) &&
@@ -65,9 +68,12 @@ export function AppSideActionBar() {
                     />
                 </SideOverlay>
             ) : null}
+            {overlay === 'journal' ? (
+                <JournalOverlay onClose={() => setOverlay(null)} />
+            ) : null}
 
             <nav
-                className="grid gap-1.5 rounded-2xl border border-slate-200 bg-white/88 p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:border-white/12 dark:bg-slate-950/82 dark:shadow-black/35"
+                className="grid gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
                 style={{
                     background: 'var(--map-side-control-background)',
                     borderColor: 'var(--map-side-control-border-color)',
@@ -75,6 +81,15 @@ export function AppSideActionBar() {
                     cursor: 'var(--platform-cursor)',
                 }}
             >
+                <ActionButton
+                    label="Open personal settings"
+                    onClick={() => {
+                        setOverlay(null);
+                        router.visit('/settings/personal?section=profile');
+                    }}
+                >
+                    <ProfileActionAvatar user={user} />
+                </ActionButton>
                 <ActionButton
                     isActive={overlay === 'inventory'}
                     label="Open inventory"
@@ -113,6 +128,17 @@ export function AppSideActionBar() {
                     )}
                 </ActionButton>
                 <ActionButton
+                    isActive={overlay === 'journal'}
+                    label="Open journal"
+                    onClick={() =>
+                        setOverlay((current) =>
+                            current === 'journal' ? null : 'journal',
+                        )
+                    }
+                >
+                    <NotebookPen className="size-5" />
+                </ActionButton>
+                <ActionButton
                     disabled
                     label="Competence star map"
                     onClick={() => undefined}
@@ -124,6 +150,45 @@ export function AppSideActionBar() {
     );
 }
 
+function ProfileActionAvatar({ user }: { user: User | null }) {
+    const getInitials = useInitials();
+    const displayName = user?.username || user?.name || 'User';
+    const imageUrl = normalizeMediaUrl(user?.profile_image || user?.avatar);
+
+    if (imageUrl) {
+        return (
+            <span
+                className="grid size-7 place-items-center overflow-hidden rounded-full border"
+                style={{
+                    borderColor: 'var(--map-floating-accent-color)',
+                }}
+            >
+                <img
+                    alt=""
+                    className="h-full w-full object-cover"
+                    draggable={false}
+                    src={imageUrl}
+                />
+            </span>
+        );
+    }
+
+    return (
+        <span
+            className="grid size-7 place-items-center rounded-full text-xs font-semibold"
+            style={{
+                background:
+                    'color-mix(in srgb, var(--map-floating-accent-color) 28%, transparent)',
+                boxShadow:
+                    'inset 0 0 0 1px color-mix(in srgb, var(--map-floating-accent-color) 62%, transparent)',
+                color: 'var(--map-floating-accent-color)',
+            }}
+        >
+            {getInitials(displayName)}
+        </span>
+    );
+}
+
 function ItemGrid({
     items,
     mode,
@@ -132,11 +197,7 @@ function ItemGrid({
     mode: 'dark' | 'light';
 }) {
     if (items.length === 0) {
-        return (
-            <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400">
-                No items acquired yet.
-            </p>
-        );
+        return <EmptyOverlayState>No items acquired yet.</EmptyOverlayState>;
     }
 
     return (
@@ -165,7 +226,7 @@ function ItemTile({
 
     return (
         <button
-            className="relative grid aspect-square place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1 text-slate-700 transition hover:border-cyan-500 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100 dark:focus-visible:ring-teal-200"
+            className="relative grid aspect-square place-items-center overflow-hidden rounded-lg border p-1 transition hover:border-[var(--map-floating-accent-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
             draggable
             onDragStart={(event) => {
                 event.dataTransfer.setData(
@@ -174,7 +235,12 @@ function ItemTile({
                 );
                 event.dataTransfer.effectAllowed = 'move';
             }}
-            style={{ cursor: 'var(--platform-action-cursor)' }}
+            style={{
+                background: 'var(--map-side-control-panel-background)',
+                borderColor: 'var(--map-side-control-panel-border-color)',
+                color: 'var(--map-side-control-text-color)',
+                cursor: 'var(--platform-action-cursor)',
+            }}
             title={item.title}
             type="button"
         >
@@ -188,7 +254,13 @@ function ItemTile({
             ) : (
                 <Backpack className="size-6" />
             )}
-            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-slate-950/82 px-1 text-center text-[0.65rem] font-semibold text-white dark:bg-teal-300 dark:text-slate-950">
+            <span
+                className="absolute right-1 bottom-1 min-w-5 rounded px-1 text-center text-[0.65rem] font-semibold"
+                style={{
+                    background: 'var(--map-side-control-active-background)',
+                    color: 'var(--map-side-control-active-text-color)',
+                }}
+            >
                 {item.quantity}
             </span>
             <span className="sr-only">{item.title}</span>
@@ -213,11 +285,9 @@ function ActionButton({
         <button
             aria-label={label}
             className={cn(
-                'grid size-11 place-items-center rounded-xl text-slate-600 transition hover:bg-cyan-50 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-teal-200 dark:focus-visible:ring-teal-200',
-                isActive &&
-                    'bg-cyan-500 text-slate-950 hover:bg-cyan-400 hover:text-slate-950 dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200',
+                'grid size-11 place-items-center rounded-xl transition hover:bg-[var(--map-side-control-hover-background)] hover:text-[var(--map-side-control-active-icon-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none',
                 disabled &&
-                    'cursor-not-allowed opacity-45 hover:bg-transparent hover:text-slate-600 dark:hover:bg-transparent dark:hover:text-slate-300',
+                    'cursor-not-allowed opacity-45 hover:bg-transparent hover:text-[var(--map-side-control-icon-color)]',
             )}
             disabled={disabled}
             onClick={onClick}
@@ -252,24 +322,40 @@ function SideOverlay({
     title: string;
 }) {
     return (
-        <div className="w-72 rounded-xl border border-slate-200 bg-white/94 p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:border-white/12 dark:bg-slate-950/90 dark:shadow-black/35">
+        <div
+            className="w-72 rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
+            style={{
+                background: 'var(--map-side-control-panel-background)',
+                borderColor: 'var(--map-side-control-panel-border-color)',
+                color: 'var(--map-side-control-text-color)',
+            }}
+        >
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
+                    <p
+                        className="text-xs font-medium tracking-[0.16em] uppercase"
+                        style={{ color: 'var(--map-floating-accent-color)' }}
+                    >
                         {eyebrow}
                     </p>
-                    <h2 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    <h2
+                        className="text-sm font-semibold"
+                        style={{ color: 'var(--map-side-control-text-color)' }}
+                    >
                         {title}
                     </h2>
                 </div>
-                <Button
+                <button
+                    className="rounded-lg px-2 py-1 text-xs font-semibold transition hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
                     onClick={onClose}
-                    size="sm"
+                    style={{
+                        color: 'var(--map-side-control-text-color)',
+                        cursor: 'var(--platform-action-cursor)',
+                    }}
                     type="button"
-                    variant="ghost"
                 >
                     Close
-                </Button>
+                </button>
             </div>
             {children}
         </div>
@@ -288,11 +374,7 @@ function ToolGrid({
     tools: LearningTool[];
 }) {
     if (tools.length === 0) {
-        return (
-            <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm leading-6 text-slate-500 dark:border-white/10 dark:text-slate-400">
-                No tools acquired yet.
-            </p>
-        );
+        return <EmptyOverlayState>No tools acquired yet.</EmptyOverlayState>;
     }
 
     return (
@@ -300,9 +382,9 @@ function ToolGrid({
             {tools.map((tool) => (
                 <button
                     className={cn(
-                        'grid aspect-square place-items-center rounded-lg border border-slate-200 bg-slate-50 p-2 transition hover:-translate-y-0.5 hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:border-white/10 dark:bg-white/6 dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200',
+                        'grid aspect-square place-items-center rounded-lg border p-2 transition hover:-translate-y-0.5 hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none',
                         selectedTool?.id === tool.id &&
-                            'border-cyan-600 bg-cyan-50 dark:border-teal-200 dark:bg-teal-200/10',
+                            'border-[var(--map-floating-accent-color)] bg-[var(--map-side-control-hover-background)]',
                     )}
                     key={tool.id}
                     onClick={() => {
@@ -311,16 +393,49 @@ function ToolGrid({
                         );
                         onClose();
                     }}
+                    style={
+                        {
+                            background:
+                                selectedTool?.id === tool.id
+                                    ? 'var(--map-side-control-hover-background)'
+                                    : 'var(--map-side-control-panel-background)',
+                            borderColor:
+                                selectedTool?.id === tool.id
+                                    ? 'var(--map-floating-accent-color)'
+                                    : 'var(--map-side-control-panel-border-color)',
+                            color: 'var(--map-side-control-text-color)',
+                            cursor: 'var(--platform-action-cursor)',
+                        } satisfies MapThemedStyle
+                    }
                     title={tool.title}
                     type="button"
                 >
                     <ToolImage className="size-10" mode={mode} tool={tool} />
-                    <span className="mt-1 max-w-full truncate text-[0.65rem] font-medium text-slate-600 dark:text-slate-300">
+                    <span
+                        className="mt-1 max-w-full truncate text-[0.65rem] font-medium"
+                        style={{
+                            color: 'var(--map-side-control-text-color)',
+                        }}
+                    >
                         {tool.title}
                     </span>
                 </button>
             ))}
         </div>
+    );
+}
+
+function EmptyOverlayState({ children }: { children: ReactNode }) {
+    return (
+        <p
+            className="rounded-lg border border-dashed p-3 text-sm leading-6"
+            style={{
+                borderColor: 'var(--map-side-control-panel-border-color)',
+                color: 'var(--map-side-control-muted-text-color)',
+            }}
+        >
+            {children}
+        </p>
     );
 }
 

@@ -1,42 +1,48 @@
 import { Head } from '@inertiajs/react';
-import { UserRound } from 'lucide-react';
+import { Languages } from 'lucide-react';
 import {
     SettingsConfigurationShell,
     SettingsContentPane,
     SettingsSectionButton,
     SettingsSidebar,
 } from '@/components/settings-configuration-shell';
-import { ProfileSettingsPanel } from '@/features/settings/profile-settings-panel';
+import { LanguageSettingsPanel } from '@/features/settings/language-settings-panel';
 
-export default function Profile({
-    mustVerifyEmail,
-    status,
+type AvailableLanguage = {
+    code: string;
+    name: string;
+    nativeName: string;
+};
+
+export default function LanguageSettings({
+    availableLanguages,
+    locale,
 }: {
-    mustVerifyEmail: boolean;
-    status?: string;
+    availableLanguages: AvailableLanguage[];
+    locale: string;
 }) {
     return (
         <>
-            <Head title="Profile settings" />
+            <Head title="Language" />
             <SettingsConfigurationShell
                 eyebrow="Personal"
                 sidebar={
                     <SettingsSidebar>
                         <SettingsSectionButton
                             active
-                            icon={UserRound}
-                            id="profile"
-                            label="Profile"
+                            icon={Languages}
+                            id="language"
+                            label="Language"
                             onSelect={() => undefined}
                         />
                     </SettingsSidebar>
                 }
-                title="Profile"
+                title="Language"
             >
                 <SettingsContentPane>
-                    <ProfileSettingsPanel
-                        mustVerifyEmail={mustVerifyEmail}
-                        status={status}
+                    <LanguageSettingsPanel
+                        availableLanguages={availableLanguages}
+                        locale={locale}
                     />
                 </SettingsContentPane>
             </SettingsConfigurationShell>

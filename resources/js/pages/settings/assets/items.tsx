@@ -78,7 +78,7 @@ export default function AdminItemsPage({ items }: { items: AdminItem[] }) {
                                 Tools, items and currencies
                             </Link>
                         </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             Administration
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-normal">
@@ -175,7 +175,7 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
             <div className="flex h-full flex-col">
                 <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
                     <div className="flex items-center gap-3">
-                        <span className="flex size-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-slate-950/70 dark:text-teal-200">
+                        <span className="flex size-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                             <Package className="size-5" />
                         </span>
                         <div>
@@ -298,8 +298,8 @@ function ItemListPanel({
                                 className={cn(
                                     'flex items-center gap-3 rounded-lg border p-3 text-left transition',
                                     selectedItemId === item.id
-                                        ? 'border-cyan-500 bg-cyan-50 dark:border-teal-200 dark:bg-teal-200/10'
-                                        : 'border-slate-200 bg-slate-50 hover:border-cyan-500/40 dark:border-white/10 dark:bg-white/5 dark:hover:border-teal-200/40',
+                                        ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
+                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5',
                                 )}
                                 key={item.id}
                                 onClick={() => onSelect(item.id)}
@@ -317,7 +317,7 @@ function ItemListPanel({
                                             }
                                         />
                                     ) : (
-                                        <Package className="size-5 text-cyan-700 dark:text-teal-200" />
+                                        <Package className="size-5 text-[var(--settings-accent)]" />
                                     )}
                                 </span>
                                 <span className="min-w-0">
@@ -386,7 +386,7 @@ function MediaField({
     return (
         <div className="grid gap-3 rounded-lg bg-slate-100 p-4 dark:bg-white/5">
             <div className="flex items-center gap-3">
-                <span className="flex size-8 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-200/12 dark:text-teal-200">
+                <span className="flex size-8 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                     <Image className="size-4" />
                 </span>
                 <Label>{label}</Label>

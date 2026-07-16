@@ -161,11 +161,11 @@ export function ReusableImagePicker({
                             {assets.map((asset) => (
                                 <button
                                     className={[
-                                        'group grid min-w-0 gap-3 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200',
+                                        'group grid min-w-0 gap-3 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                         normalizeMediaUrl(currentValue) ===
                                         normalizeMediaUrl(asset.url)
-                                            ? 'border-cyan-600 bg-cyan-50 dark:border-teal-200 dark:bg-teal-200/10'
-                                            : 'border-slate-200 bg-slate-50 hover:border-cyan-500/40 hover:bg-cyan-50/70 dark:border-white/10 dark:bg-white/5 dark:hover:border-teal-200/40 dark:hover:bg-teal-200/10',
+                                            ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
+                                            : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5',
                                     ].join(' ')}
                                     key={asset.url}
                                     onClick={() =>

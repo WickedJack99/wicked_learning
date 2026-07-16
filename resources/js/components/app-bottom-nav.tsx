@@ -236,9 +236,9 @@ function FloatingNavLink({
             aria-label={label}
             as={asButton ? 'button' : undefined}
             className={cn(
-                'flex size-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-teal-200',
+                'flex size-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                 active &&
-                    'bg-cyan-600 text-white hover:bg-cyan-500 hover:text-white dark:bg-teal-300 dark:text-slate-950 dark:hover:bg-teal-200 dark:hover:text-slate-950',
+                    'bg-[var(--map-bottom-nav-active-background)] text-[var(--map-bottom-nav-active-icon-color)] hover:bg-[var(--map-bottom-nav-active-background)] hover:text-[var(--map-bottom-nav-active-icon-color)]',
             )}
             href={href}
             onClick={onClick}

@@ -31,7 +31,7 @@ export function SoundAssetInput({
     return (
         <div className="grid min-w-0 gap-2 overflow-hidden rounded-lg border border-slate-200 p-3 dark:border-white/10">
             <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                     <Music className="size-4" />
                 </span>
                 <div className="min-w-0">

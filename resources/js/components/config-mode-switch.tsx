@@ -52,12 +52,20 @@ export function ConfigModeSwitch({
                             'grid place-items-center rounded-xl transition',
                             buttonSize,
                             mode === value
-                                ? 'bg-cyan-600 text-white dark:bg-teal-300 dark:text-slate-950'
+                                ? 'text-white dark:text-slate-950'
                                 : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
                         )}
                         key={value}
                         onClick={() => onChange(value)}
                         role="tab"
+                        style={
+                            mode === value
+                                ? {
+                                      background: 'var(--settings-accent)',
+                                      color: 'var(--settings-accent-foreground)',
+                                  }
+                                : undefined
+                        }
                         type="button"
                     >
                         <Icon className={iconSize} />

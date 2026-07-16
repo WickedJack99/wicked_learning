@@ -1,4 +1,5 @@
 import type { Appearance } from '@/theme/appearance';
+import type { MapMenuTheme } from '@/features/world/map-control-theme';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { Auth } from '@/types/auth';
 
@@ -23,6 +24,11 @@ declare module '@inertiajs/core' {
             name: string;
             appearance: Appearance;
             auth: Auth;
+            menuTheme: MapMenuTheme | null;
+            localization: {
+                locale: string;
+                translations: Record<string, string>;
+            };
             publicPresentation: PublicPresentationSettings;
             sidebarOpen: boolean;
             [key: string]: unknown;

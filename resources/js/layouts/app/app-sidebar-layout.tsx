@@ -21,6 +21,7 @@ import {
     platformGrabCursor,
     platformTextCursor,
 } from '@/theme/cursors';
+import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -80,6 +81,10 @@ export default function AppSidebarLayout({
         selectedTool,
         resolvedAppearance,
     );
+    const menuControlVariables = mapControlCssVariables(
+        props.menuTheme?.backgroundConfig,
+        resolvedAppearance,
+    );
     const platformCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
@@ -111,6 +116,7 @@ export default function AppSidebarLayout({
                     '--platform-grab-cursor': grabCursorValue,
                     '--platform-text-cursor': textCursorValue,
                     '--platform-cursor': platformCursorValue,
+                    ...menuControlVariables,
                     ...toolCursor,
                 } as CSSProperties
             }

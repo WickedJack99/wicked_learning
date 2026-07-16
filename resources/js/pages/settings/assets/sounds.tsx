@@ -156,7 +156,7 @@ export default function AdminSoundsPage({
                                 Settings
                             </Link>
                         </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             Sounds
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-normal">
@@ -459,16 +459,16 @@ function SoundListItem({
     return (
         <button
             className={cn(
-                'grid gap-2 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200',
+                'grid gap-2 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                 isSelected
-                    ? 'border-cyan-500 bg-cyan-50 dark:border-teal-200 dark:bg-teal-300/10'
-                    : 'border-slate-200 bg-slate-50 hover:border-cyan-500/40 dark:border-white/10 dark:bg-white/5 dark:hover:border-teal-200/40',
+                    ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
+                    : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5',
             )}
             onClick={onSelect}
             type="button"
         >
             <span className="flex items-start gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-slate-950/70 dark:text-teal-200">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                     <Icon className="size-4" />
                 </span>
                 <span className="min-w-0">

@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -25,23 +25,27 @@ type SettingsSectionButtonProps<T extends string> = {
     onSelect: (id: T) => void;
 };
 
-const settingsControlVars = {
-    '--map-bottom-nav-active-background': 'rgb(45 212 191)',
-    '--map-bottom-nav-active-icon-color': 'rgb(2 6 23)',
-    '--map-bottom-nav-active-text-color': 'rgb(2 6 23)',
-    '--map-bottom-nav-background': 'rgba(2, 6, 23, 0.82)',
-    '--map-bottom-nav-border-color': 'rgba(255, 255, 255, 0.12)',
-    '--map-bottom-nav-exit-icon-color': 'rgb(248 113 113)',
-    '--map-bottom-nav-icon-color': 'rgb(226 232 240)',
-    '--map-bottom-nav-text-color': 'rgb(226 232 240)',
-    '--map-side-control-active-background': 'rgb(45 212 191)',
-    '--map-side-control-active-icon-color': 'rgb(2 6 23)',
-    '--map-side-control-active-text-color': 'rgb(2 6 23)',
-    '--map-side-control-background': 'rgba(2, 6, 23, 0.82)',
-    '--map-side-control-border-color': 'rgba(255, 255, 255, 0.12)',
-    '--map-side-control-icon-color': 'rgb(226 232 240)',
-    '--map-side-control-text-color': 'rgb(226 232 240)',
-} as CSSProperties;
+export type SettingsNavigationItem<T extends string> = {
+    description: string;
+    danger?: boolean;
+    icon: LucideIcon;
+    key: T;
+    label: string;
+};
+
+type SettingsConfigurationLayoutProps = {
+    children: ReactNode;
+    className?: string;
+    contentClassName?: string;
+    sidebar: ReactNode;
+};
+
+type SettingsSectionNavigationProps<T extends string> = {
+    activeSection: T;
+    ariaLabel: string;
+    items: SettingsNavigationItem<T>[];
+    onChange: (section: T) => void;
+};
 
 export function SettingsConfigurationShell({
     action,
@@ -53,10 +57,7 @@ export function SettingsConfigurationShell({
     title,
 }: SettingsConfigurationShellProps) {
     return (
-        <main
-            className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
-            style={settingsControlVars}
-        >
+        <main className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
             <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
                 <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
                     <div>
@@ -66,7 +67,10 @@ export function SettingsConfigurationShell({
                                 {backLabel}
                             </Link>
                         </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                        <p
+                            className="text-xs font-medium tracking-[0.18em] uppercase"
+                            style={{ color: 'var(--settings-accent)' }}
+                        >
                             {eyebrow}
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-normal">
@@ -87,7 +91,7 @@ export function SettingsConfigurationShell({
 
 export function SettingsSidebar({ children }: { children: ReactNode }) {
     return (
-        <aside className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
+        <aside className="h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
             <nav className="grid gap-2">{children}</nav>
         </aside>
     );
@@ -106,15 +110,25 @@ export function SettingsSectionButton<T extends string>({
         <button
             className={cn(
                 'flex items-start gap-3 rounded-lg px-3 py-3 text-left text-sm font-medium transition',
-                active
-                    ? danger
-                        ? 'bg-red-600 text-white shadow-sm dark:bg-red-400 dark:text-slate-950'
-                        : 'bg-cyan-600 text-white shadow-sm dark:bg-teal-300 dark:text-slate-950'
-                    : danger
-                      ? 'text-red-600 hover:bg-red-50 dark:text-red-200 dark:hover:bg-red-400/10'
-                      : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                active && 'shadow-sm',
+                !active &&
+                    (danger
+                        ? 'text-red-600 hover:bg-red-50 dark:text-red-200 dark:hover:bg-red-400/10'
+                        : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'),
             )}
             onClick={() => onSelect(id)}
+            style={
+                active
+                    ? {
+                          background: danger
+                              ? '#dc2626'
+                              : 'var(--settings-accent, #2dd4bf)',
+                          color: danger
+                              ? '#ffffff'
+                              : 'var(--settings-accent-foreground, #020617)',
+                      }
+                    : undefined
+            }
             type="button"
         >
             <Icon className="mt-0.5 size-4 shrink-0" />
@@ -139,4 +153,49 @@ export function SettingsSectionButton<T extends string>({
 
 export function SettingsContentPane({ children }: { children: ReactNode }) {
     return <div className="h-full overflow-y-auto pr-1">{children}</div>;
+}
+
+export function SettingsConfigurationLayout({
+    children,
+    className,
+    contentClassName,
+    sidebar,
+}: SettingsConfigurationLayoutProps) {
+    return (
+        <div
+            className={cn(
+                'grid min-h-0 gap-4 overflow-hidden lg:grid-cols-[16rem_minmax(0,1fr)]',
+                className,
+            )}
+        >
+            {sidebar}
+            <div className={cn('min-h-0 overflow-hidden', contentClassName)}>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+export function SettingsSectionNavigation<T extends string>({
+    activeSection,
+    ariaLabel,
+    items,
+    onChange,
+}: SettingsSectionNavigationProps<T>) {
+    return (
+        <div aria-label={ariaLabel} className="grid gap-2" role="tablist">
+            {items.map((item) => (
+                <SettingsSectionButton
+                    active={activeSection === item.key}
+                    danger={item.danger}
+                    description={item.description}
+                    icon={item.icon}
+                    id={item.key}
+                    key={item.key}
+                    label={item.label}
+                    onSelect={onChange}
+                />
+            ))}
+        </div>
+    );
 }

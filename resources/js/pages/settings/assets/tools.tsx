@@ -111,7 +111,7 @@ export default function AdminToolsPage({ tools }: { tools: AdminTool[] }) {
                                     Tools, items and currencies
                                 </Link>
                             </Button>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 Administration
                             </p>
                             <h1 className="mt-2 text-3xl font-semibold tracking-normal">
@@ -227,7 +227,7 @@ function ToolFormPanel({
             <div className="flex h-full flex-col">
                 <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
                     <div className="flex items-center gap-3">
-                        <span className="flex size-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-700 dark:bg-slate-950/70 dark:text-teal-200">
+                        <span className="flex size-10 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                             <Hammer className="size-5" />
                         </span>
                         <div>
@@ -270,7 +270,7 @@ function ToolFormPanel({
                                 Description
                             </Label>
                             <textarea
-                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
+                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
                                 id="tool-description"
                                 onChange={(event) =>
                                     updateField(
@@ -477,7 +477,7 @@ function ToolCursorPreview({
                 </p>
             </div>
             <div
-                className="relative grid min-h-44 overflow-hidden rounded-lg border border-dashed border-cyan-500/35 bg-white text-center text-sm text-slate-500 select-none dark:border-teal-200/25 dark:bg-slate-950/70 dark:text-slate-400"
+                className="relative grid min-h-44 overflow-hidden rounded-lg border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-white text-center text-sm text-slate-500 select-none dark:bg-slate-950/70 dark:text-slate-400"
                 onClick={playAnimation}
                 onPointerLeave={() => setCursorPosition(null)}
                 onPointerMove={(event) =>
@@ -488,7 +488,7 @@ function ToolCursorPreview({
                 }
                 style={{ cursor: cursorStyle }}
             >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(8,145,178,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_55%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_12%,transparent),transparent_55%)]" />
                 <div className="pointer-events-none relative z-10 m-auto grid gap-1">
                     <span>
                         {cursorImage
@@ -608,9 +608,9 @@ function ToolListItem({
     return (
         <button
             className={cn(
-                'flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-cyan-500/35 hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/8 dark:bg-white/5 dark:hover:border-teal-200/35 dark:hover:bg-teal-100/8 dark:focus-visible:ring-teal-200',
+                'flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/8 dark:bg-white/5',
                 isSelected &&
-                    'border-cyan-600 bg-cyan-50 dark:border-teal-200 dark:bg-teal-200/10',
+                    'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]',
             )}
             onClick={onSelect}
             type="button"
@@ -713,7 +713,7 @@ function MediaField({
                     }
                     value={value}
                 />
-                <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-cyan-50 dark:border-white/10 dark:bg-slate-950 dark:text-slate-200 dark:hover:bg-white/10">
+                <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200">
                     {uploading ? (
                         <LoaderCircle className="size-4 animate-spin" />
                     ) : (
@@ -753,7 +753,7 @@ function MediaField({
             </div>
             {value ? (
                 <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
-                    <Image className="size-4 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <Image className="size-4 shrink-0 text-[var(--settings-accent)]" />
                     <span className="truncate text-xs text-slate-500 dark:text-slate-400">
                         {value}
                     </span>

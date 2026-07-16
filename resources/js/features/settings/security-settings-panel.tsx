@@ -1,0 +1,132 @@
+import { Form } from '@inertiajs/react';
+import { KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { useRef } from 'react';
+import type { ComponentProps, Ref } from 'react';
+import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
+import InputError from '@/components/input-error';
+import ManagePasskeys from '@/components/manage-passkeys';
+import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys';
+import ManageTwoFactor from '@/components/manage-two-factor';
+import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
+import PasswordInput from '@/components/password-input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+
+export type SecuritySettingsProps = {
+    passwordRules: string;
+} & ManagePasskeysProps &
+    ManageTwoFactorProps;
+
+export function SecuritySettingsPanel(props: SecuritySettingsProps) {
+    const passwordInput = useRef<HTMLInputElement>(null);
+    const currentPasswordInput = useRef<HTMLInputElement>(null);
+
+    return (
+        <div className="grid gap-5">
+            <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                <div>
+                    <p
+                        className="text-xs font-medium tracking-[0.18em] uppercase"
+                        style={{ color: 'var(--settings-accent)' }}
+                    >
+                        Security
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold">
+                        Update password
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        Use a long, random password to keep your account secure.
+                    </p>
+                </div>
+                <Form
+                    {...SecurityController.update.form()}
+                    className="grid gap-5"
+                    onError={(errors) => {
+                        if (errors.password) {
+                            passwordInput.current?.focus();
+                        }
+
+                        if (errors.current_password) {
+                            currentPasswordInput.current?.focus();
+                        }
+                    }}
+                    options={{ preserveScroll: true }}
+                    resetOnError={[
+                        'password',
+                        'password_confirmation',
+                        'current_password',
+                    ]}
+                    resetOnSuccess
+                >
+                    {({ errors, processing }) => (
+                        <>
+                            <PasswordField
+                                autoComplete="current-password"
+                                error={errors.current_password}
+                                id="current_password"
+                                inputRef={currentPasswordInput}
+                                label="Current password"
+                                name="current_password"
+                                placeholder="Current password"
+                            />
+                            <PasswordField
+                                autoComplete="new-password"
+                                error={errors.password}
+                                id="password"
+                                inputRef={passwordInput}
+                                label="New password"
+                                name="password"
+                                passwordrules={props.passwordRules}
+                                placeholder="New password"
+                            />
+                            <PasswordField
+                                autoComplete="new-password"
+                                error={errors.password_confirmation}
+                                id="password_confirmation"
+                                label="Confirm password"
+                                name="password_confirmation"
+                                passwordrules={props.passwordRules}
+                                placeholder="Confirm password"
+                            />
+                            <Button
+                                data-test="update-password-button"
+                                disabled={processing}
+                            >
+                                Save password
+                            </Button>
+                        </>
+                    )}
+                </Form>
+            </section>
+            {props.canManageTwoFactor ? (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    <ManageTwoFactor {...props} />
+                </section>
+            ) : null}
+            {props.canManagePasskeys ? (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    <ManagePasskeys {...props} />
+                </section>
+            ) : null}
+        </div>
+    );
+}
+
+function PasswordField({
+    error,
+    inputRef,
+    label,
+    ...input
+}: ComponentProps<typeof PasswordInput> & {
+    error?: string;
+    inputRef?: Ref<HTMLInputElement>;
+    label: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={input.id}>{label}</Label>
+            <PasswordInput className="block w-full" ref={inputRef} {...input} />
+            <InputError message={error} />
+        </div>
+    );
+}

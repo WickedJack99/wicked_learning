@@ -81,11 +81,11 @@ function AssetSectionDetail({ section }: { section: AssetSection }) {
 
     return (
         <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-            <span className="flex size-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-slate-950/70 dark:text-teal-200">
+            <span className="flex size-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                 <Icon className="size-5" />
             </span>
             <div>
-                <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                     Asset library
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold">{section.label}</h2>

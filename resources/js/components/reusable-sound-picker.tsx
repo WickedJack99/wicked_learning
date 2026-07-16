@@ -188,7 +188,7 @@ function SoundPickerRow({
     return (
         <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_auto] md:items-center dark:border-white/10 dark:bg-white/5">
             <button
-                className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200"
+                className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                 onClick={() => onSelect(sound)}
                 type="button"
             >
@@ -199,7 +199,7 @@ function SoundPickerRow({
                     {sound.icon} · {sound.url}
                 </span>
                 {currentValue === sound.url ? (
-                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
+                    <span className="mt-1 block text-xs font-medium text-[var(--settings-accent)]">
                         Selected
                     </span>
                 ) : null}

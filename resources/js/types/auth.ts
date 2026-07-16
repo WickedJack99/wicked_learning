@@ -3,8 +3,10 @@ import type { LearningItem, LearningTool } from './learning';
 export type User = {
     id: number;
     name: string;
+    username?: string | null;
     email: string;
-    avatar?: string;
+    avatar?: string | null;
+    profile_image?: string | null;
     role: 'admin' | 'user';
     email_verified_at: string | null;
     login_disabled_at?: string | null;

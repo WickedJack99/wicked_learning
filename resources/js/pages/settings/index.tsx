@@ -1,23 +1,25 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
-    Bell,
-    Brush,
     CalendarClock,
     Copy,
     Database,
     Image,
     Info,
     KeyRound,
+    NotebookPen,
+    Languages,
     Map,
     Music,
+    Palette,
     Plus,
     Shield,
     Trash2,
-    User,
+    UserRound,
     Users,
     X,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import { Badge } from '@/components/ui/badge';
@@ -146,7 +148,7 @@ type RoleFormState = {
 type SettingsListItem = {
     description: string;
     href?: string;
-    icon: typeof User;
+    icon: LucideIcon;
     key: string;
     label: string;
     panel?: SettingsPanelKey;
@@ -155,28 +157,12 @@ type SettingsListItem = {
 
 const personalSettings: SettingsListItem[] = [
     {
-        key: 'profile',
-        label: 'Profile',
-        description: 'Name, email and personal account details.',
-        icon: User,
-    },
-    {
-        key: 'security',
-        label: 'Security',
-        description: 'Password, passkeys and two-factor settings.',
-        icon: Shield,
-    },
-    {
-        key: 'appearance',
-        label: 'Appearance',
-        description: 'Theme preference and visual comfort options.',
-        icon: Brush,
-    },
-    {
-        key: 'notifications',
-        label: 'Notifications',
-        description: 'Future reminders, nudges and quiet hours.',
-        icon: Bell,
+        key: 'personal',
+        label: 'Personal',
+        description:
+            'Profile, appearance, language, notifications and security.',
+        icon: UserRound,
+        href: '/settings/personal',
     },
 ] satisfies SettingsListItem[];
 
@@ -223,6 +209,15 @@ const adminSettings: SettingsListItem[] = [
         resources: ['presentation'],
     },
     {
+        key: 'admin-color-palette',
+        label: 'Color palette',
+        description:
+            'Edit color fields from presentation, journal and maps in one place.',
+        icon: Palette,
+        href: '/settings/color-palette',
+        resources: ['presentation', 'journals', 'worlds'],
+    },
+    {
         key: 'admin-visuals',
         label: 'Visuals',
         description: 'Reusable images, backgrounds and animations.',
@@ -237,6 +232,23 @@ const adminSettings: SettingsListItem[] = [
         icon: Music,
         href: '/settings/assets/sounds',
         resources: ['sounds'],
+    },
+    {
+        key: 'admin-journal',
+        label: 'Journal',
+        description:
+            'Learner reflection pages and optional expert feedback consent.',
+        icon: NotebookPen,
+        href: '/settings/journal',
+        resources: ['journals'],
+    },
+    {
+        key: 'admin-languages',
+        label: 'Languages',
+        description: 'Import and maintain platform and activity translations.',
+        icon: Languages,
+        href: '/settings/languages',
+        resources: ['languages'],
     },
 ] satisfies SettingsListItem[];
 
@@ -382,7 +394,10 @@ export default function SettingsIndex({
                                 Settings
                             </Button>
                         ) : null}
-                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                        <p
+                            className="text-xs font-medium tracking-[0.18em] uppercase"
+                            style={{ color: 'var(--settings-accent)' }}
+                        >
                             Platform
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-normal">
@@ -474,7 +489,7 @@ function SettingsList({
 
                             return (
                                 <button
-                                    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-cyan-500/35 hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/8 dark:bg-white/5 dark:hover:border-teal-200/35 dark:hover:bg-teal-100/8 dark:focus-visible:ring-teal-200"
+                                    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10"
                                     key={item.key}
                                     onClick={() => {
                                         if (item.href) {
@@ -490,7 +505,14 @@ function SettingsList({
                                     }}
                                     type="button"
                                 >
-                                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-slate-950/60 dark:text-teal-200">
+                                    <span
+                                        className="flex size-9 shrink-0 items-center justify-center rounded-md"
+                                        style={{
+                                            backgroundColor:
+                                                'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
+                                            color: 'var(--settings-accent)',
+                                        }}
+                                    >
                                         <Icon className="size-4" />
                                     </span>
                                     <span className="min-w-0">
@@ -590,7 +612,7 @@ function AccessManagementPanel({
         <div className="grid gap-5">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
                 <div>
-                    <div className="mb-3 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
+                    <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Shield className="size-5" />
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                             Access management
@@ -657,7 +679,7 @@ function AccessSectionButton({
             className={cn(
                 'rounded-md px-3 py-2 transition',
                 active
-                    ? 'bg-white text-slate-950 shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                    ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
                     : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
             )}
             onClick={onClick}
@@ -677,7 +699,7 @@ function PlaceholderPanel({
 }) {
     return (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/6">
-            <div className="mb-4 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
+            <div className="mb-4 flex items-center gap-3 text-[var(--settings-accent)]">
                 <Database className="size-5" />
                 <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                     {content.title}
@@ -848,7 +870,7 @@ function AdminUsersPanel({
         <div>
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between dark:border-white/10">
                 <div>
-                    <div className="mb-3 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
+                    <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
                             Users
@@ -920,7 +942,7 @@ function AdminUsersPanel({
             </Dialog>
 
             {createdRegistrationToken ? (
-                <div className="mt-4 rounded-lg border border-cyan-300 bg-cyan-50 p-4 text-cyan-950 dark:border-teal-300/30 dark:bg-teal-300/10 dark:text-teal-50">
+                <div className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] p-4 text-slate-950 dark:text-slate-50">
                     <p className="text-sm font-medium">
                         New registration token
                     </p>
@@ -970,7 +992,7 @@ function AdminUsersPanel({
                                 key={user.id}
                             >
                                 <button
-                                    className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200"
+                                    className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                                     onClick={() => setSelectedUser(user)}
                                     type="button"
                                 >
@@ -1068,7 +1090,7 @@ function AdminUsersPanel({
 
             <div className="mt-5 rounded-lg border border-slate-200 p-4 dark:border-white/10">
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-950 dark:text-white">
-                    <KeyRound className="size-4 text-cyan-700 dark:text-teal-200" />
+                    <KeyRound className="size-4 text-[var(--settings-accent)]" />
                     Latest registration tokens
                 </div>
                 <div className="grid gap-2">
@@ -1210,7 +1232,7 @@ function RoleEditor({
                         {!disabled && roles.length > 1 ? (
                             <button
                                 aria-label={`Remove ${roleLabel(role, roleOptions)} role`}
-                                className="rounded text-slate-500 transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:hover:text-red-300 dark:focus-visible:ring-teal-200"
+                                className="rounded text-slate-500 transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:text-slate-400 dark:hover:text-red-300"
                                 onClick={() => removeRole(role)}
                                 type="button"
                             >
@@ -1267,7 +1289,7 @@ function LoginToggle({
                 className={cn(
                     'rounded-md px-2 py-1.5 transition',
                     !isDisabled
-                        ? 'bg-white text-slate-950 shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                        ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
                         : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
                 )}
                 disabled={disabled}
@@ -1332,7 +1354,7 @@ function UserDetailsDialog({
 
                 <div className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
                     <div className="mb-3 flex items-center gap-2 font-medium">
-                        <CalendarClock className="size-4 text-cyan-700 dark:text-teal-200" />
+                        <CalendarClock className="size-4 text-[var(--settings-accent)]" />
                         Registration token
                     </div>
                     {token ? (
@@ -1474,8 +1496,8 @@ function RoleManagementPanel({
                             className={cn(
                                 'mb-2 w-full rounded-lg border p-3 text-left transition',
                                 selectedRoleId === role.id
-                                    ? 'border-cyan-500 bg-cyan-50 text-cyan-950 dark:border-teal-200 dark:bg-teal-300/10 dark:text-teal-50'
-                                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-cyan-500/40 dark:border-white/10 dark:bg-white/5 dark:text-slate-100',
+                                    ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] text-slate-950 dark:text-slate-50'
+                                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5 dark:text-slate-100',
                             )}
                             key={role.id}
                             onClick={() => selectRole(role)}
@@ -1495,7 +1517,7 @@ function RoleManagementPanel({
             <section className="min-h-0 rounded-lg border border-slate-200 p-4 dark:border-white/10">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             {selectedRole ? 'Role' : 'New role'}
                         </p>
                         <h3 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
@@ -1661,7 +1683,7 @@ function PermissionButtonGroup({
                     className={cn(
                         'rounded-md px-3 py-2 transition',
                         level === option.value
-                            ? 'bg-white text-slate-950 shadow-sm dark:bg-teal-300 dark:text-slate-950'
+                            ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
                             : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
                     )}
                     disabled={disabled}

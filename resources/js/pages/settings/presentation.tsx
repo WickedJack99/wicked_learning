@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     ArrowDown,
     ArrowRight,
@@ -14,8 +14,11 @@ import {
     Save,
     Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
-import { ColorOpacityField } from '@/components/color-input';
+import { useMemo, useState } from 'react';
+import {
+    ColorOpacityField,
+    type AvailableColorOption,
+} from '@/components/color-input';
 import { ConfigImageInput } from '@/components/config-image-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
@@ -134,7 +137,10 @@ const blankSourceLink: SourceLinkSettings = {
 export default function PresentationSettingsPage({
     publicPresentation,
 }: Props) {
-    const [activeSection, setActiveSection] = useState<SectionKey>('welcome');
+    const { url } = usePage();
+    const [activeSection, setActiveSection] = useState<SectionKey>(() =>
+        sectionFromUrl(url),
+    );
     const [configMode, setConfigMode] = useState<ThemeMode>('dark');
     const [draft, setDraft] = useState<PublicPresentationSettings>(() => ({
         ...structuredClone(publicPresentation),
@@ -1202,6 +1208,10 @@ function PublicPaletteEditor({
     const [selectedField, setSelectedField] =
         useState<PaletteField>('accentText');
     const palette = getPublicPresentationPalette(draft, mode);
+    const availableColors = useMemo(
+        () => collectPublicPaletteColors(draft),
+        [draft],
+    );
     const activeField = paletteFields.find(
         (field) => field.field === selectedField,
     );
@@ -1230,11 +1240,19 @@ function PublicPaletteEditor({
                             className={cn(
                                 'rounded-lg px-3 py-3 text-left text-sm font-medium transition',
                                 selectedField === field.field
-                                    ? 'bg-cyan-600 text-white dark:bg-teal-300 dark:text-slate-950'
+                                    ? 'text-white dark:text-slate-950'
                                     : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                             )}
                             key={field.field}
                             onClick={() => setSelectedField(field.field)}
+                            style={
+                                selectedField === field.field
+                                    ? {
+                                          background: 'var(--settings-accent)',
+                                          color: 'var(--settings-accent-foreground)',
+                                      }
+                                    : undefined
+                            }
                             type="button"
                         >
                             {field.label}
@@ -1244,6 +1262,11 @@ function PublicPaletteEditor({
                 <EditableCard title={activeField?.label ?? 'Color'}>
                     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
                         <ColorOpacityField
+                            availableColors={availableColors.filter(
+                                (color) =>
+                                    color.label !==
+                                    `${capitalize(mode)} ${activeField?.label}`,
+                            )}
                             colorError={
                                 errors[`publicPalette.${mode}.${selectedField}`]
                             }
@@ -1357,6 +1380,48 @@ function PublicPaletteEditor({
             </div>
         </section>
     );
+}
+
+function collectPublicPaletteColors(
+    presentation: PublicPresentationSettings,
+): AvailableColorOption[] {
+    const colors: AvailableColorOption[] = [];
+
+    for (const mode of ['dark', 'light'] as const) {
+        const palette = getPublicPresentationPalette(presentation, mode);
+
+        for (const field of paletteFields) {
+            const opacityField =
+                `${field.field}Opacity` as keyof PublicPaletteModeSettings;
+            const value = palette[field.field];
+
+            if (!value) {
+                continue;
+            }
+
+            colors.push({
+                label: `${capitalize(mode)} ${field.label}`,
+                opacity:
+                    typeof palette[opacityField] === 'number' ||
+                    typeof palette[opacityField] === 'string'
+                        ? palette[opacityField]
+                        : undefined,
+                value,
+            });
+        }
+    }
+
+    return colors;
+}
+
+function sectionFromUrl(url: string): SectionKey {
+    const section = new URLSearchParams(url.split('?')[1] ?? '').get('section');
+
+    if (sections.some((current) => current.key === section)) {
+        return section as SectionKey;
+    }
+
+    return 'welcome';
 }
 
 type EditorProps = {
@@ -1485,7 +1550,7 @@ function TextareaField({
         <div className="grid gap-1">
             <Label htmlFor={id}>{label}</Label>
             <textarea
-                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/30 dark:border-white/10 dark:bg-slate-950 dark:focus:border-teal-200 dark:focus:ring-teal-200/30"
+                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-xs outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950"
                 id={id}
                 onChange={(event) => onChange(event.currentTarget.value)}
                 rows={rows}
@@ -1777,8 +1842,8 @@ function CursorPreview({ cursor }: { cursor: CursorImageSettings }) {
                 Preview
             </p>
             <div className="relative mt-4 h-44 overflow-hidden rounded-xl bg-[radial-gradient(circle_at_center,rgba(14,116,144,0.12),rgba(248,250,252,0.94))] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.12),rgba(2,6,23,0.92))]">
-                <div className="absolute top-16 left-20 h-px w-28 bg-cyan-700/20 dark:bg-teal-200/20" />
-                <div className="absolute top-8 left-28 h-28 w-px bg-cyan-700/20 dark:bg-teal-200/20" />
+                <div className="absolute top-16 left-20 h-px w-28 bg-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)]" />
+                <div className="absolute top-8 left-28 h-28 w-px bg-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)]" />
                 {cursor.image ? (
                     <img
                         alt=""
@@ -1788,7 +1853,7 @@ function CursorPreview({ cursor }: { cursor: CursorImageSettings }) {
                         style={{ height: size, width: size }}
                     />
                 ) : null}
-                <span className="absolute top-16 left-28 size-2 rounded-full bg-cyan-600 ring-2 ring-white dark:bg-teal-300 dark:ring-slate-950" />
+                <span className="absolute top-16 left-28 size-2 rounded-full bg-[var(--settings-accent)] ring-2 ring-white dark:ring-slate-950" />
             </div>
         </div>
     );
