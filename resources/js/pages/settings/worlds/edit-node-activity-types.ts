@@ -17,7 +17,14 @@ export type ActivityTypeDefinition = {
 export type ActivitySummary = {
     config: Record<
         string,
-        | Array<MarkdownPageForm | MarkdownTransitionForm | number | string>
+        | Array<
+              | MarkdownPageForm
+              | MarkdownTransitionForm
+              | PortalAssetForm
+              | Record<string, unknown>
+              | number
+              | string
+          >
         | GraphLayout
         | Record<string, unknown>
         | string
@@ -66,6 +73,19 @@ export type PortalCandidate = {
     nodeId: number;
     nodeTitle: string;
     title: string;
+};
+
+export type PortalAssetForm = {
+    id: string;
+    imageDark: string;
+    imageLight: string;
+    label: string;
+    layer: string;
+    mirrored: boolean;
+    opacity: string;
+    width: string;
+    x: string;
+    y: string;
 };
 
 export type ActivityTransitionSummary = {
@@ -275,6 +295,7 @@ export type CreateActivityForm = {
     portal_background_dark: string;
     portal_background_light: string;
     portal_background_mirrored: boolean;
+    portal_assets: PortalAssetForm[];
     portal_duration_seconds: string;
     portal_foreground_dark: string;
     portal_foreground_light: string;
@@ -286,6 +307,10 @@ export type CreateActivityForm = {
     portal_show_on_arrival: boolean;
     portal_swirl_enabled: boolean;
     portal_wait_for_enter: boolean;
+    reflection_note: string;
+    reflection_prompt: string;
+    reflection_subtopic: string;
+    reflection_topic: string;
     slug: string;
     target_portal_activity_id: string;
     title: string;

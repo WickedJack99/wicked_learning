@@ -88,7 +88,7 @@ export default function EditMarkdownActivity({
                                     Back to node
                                 </Link>
                             </Button>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 {markdownActivity.map.title} /{' '}
                                 {markdownActivity.node.title}
                             </p>
@@ -98,7 +98,7 @@ export default function EditMarkdownActivity({
                         </div>
                         <div className="flex items-center gap-3">
                             {saved ? (
-                                <p className="text-sm text-cyan-700 dark:text-teal-200">
+                                <p className="text-sm text-[var(--settings-accent)]">
                                     Saved
                                 </p>
                             ) : null}

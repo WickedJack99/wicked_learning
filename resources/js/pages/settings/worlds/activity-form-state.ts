@@ -4,6 +4,7 @@ import type {
     CreateActivityForm,
     MarkdownPageForm,
     MarkdownTransitionForm,
+    PortalAssetForm,
 } from './edit-node-activity-types';
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
@@ -78,6 +79,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         portal_background_dark: '',
         portal_background_light: '',
         portal_background_mirrored: false,
+        portal_assets: [],
         portal_duration_seconds: '1.5',
         portal_foreground_dark: '',
         portal_foreground_light: '',
@@ -89,6 +91,10 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         portal_show_on_arrival: true,
         portal_swirl_enabled: true,
         portal_wait_for_enter: false,
+        reflection_note: '',
+        reflection_prompt: 'What feels clearer now?',
+        reflection_subtopic: '',
+        reflection_topic: '',
         slug: '',
         target_portal_activity_id: '',
         title: '',
@@ -286,6 +292,7 @@ export function activityFormFromActivity(
             activity.config.portalBackgroundMirrored,
             false,
         ),
+        portal_assets: portalAssets(activity.config.portalAssets),
         portal_duration_seconds: stringConfig(
             activity.config.portalDurationSeconds,
             '1.5',
@@ -322,6 +329,13 @@ export function activityFormFromActivity(
             activity.config.portalWaitForEnter,
             false,
         ),
+        reflection_note: stringConfig(activity.config.note),
+        reflection_prompt: stringConfig(
+            activity.config.prompt,
+            'What feels clearer now?',
+        ),
+        reflection_subtopic: stringConfig(activity.config.subtopic),
+        reflection_topic: stringConfig(activity.config.topic),
         slug: activity.slug,
         target_portal_activity_id:
             activity.portalLink?.targetActivity?.id.toString() ?? '',
@@ -536,6 +550,25 @@ function itemGrantItems(value: unknown): ActivityForm['item_grant_items'] {
         .filter((item) => item.itemId);
 
     return items.length > 0 ? items : [{ itemId: '', quantity: '1' }];
+}
+
+function portalAssets(value: unknown): PortalAssetForm[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(isRecord).map((asset, index) => ({
+        id: stringConfig(asset.id, `portal-asset-${index + 1}`),
+        imageDark: stringConfig(asset.imageDark),
+        imageLight: stringConfig(asset.imageLight),
+        label: stringConfig(asset.label, `Asset ${index + 1}`),
+        layer: stringConfig(asset.layer, 'above-background'),
+        mirrored: booleanConfig(asset.mirrored, false),
+        opacity: stringConfig(asset.opacity, '100'),
+        width: stringConfig(asset.width, '28'),
+        x: stringConfig(asset.x, '50'),
+        y: stringConfig(asset.y, '50'),
+    }));
 }
 
 function itemObstacleSlots(

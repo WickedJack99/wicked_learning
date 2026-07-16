@@ -19,7 +19,7 @@ import type {
 } from '@/types';
 import { booleanConfig, numericConfig, stringConfig } from './activity-utils';
 import { postJson } from './api';
-import { PortalScene } from './portal-scene';
+import { PortalScene, type PortalSceneAsset } from './portal-scene';
 
 export function PlaceholderActivity({
     activity,
@@ -110,6 +110,10 @@ export function PortalActivity({
               stringConfig(activity.config.portalForegroundDark)
             : stringConfig(activity.config.portalForegroundDark) ||
               stringConfig(activity.config.portalForegroundLight);
+    const sceneAssets = portalSceneAssets(
+        activity.config.portalAssets,
+        resolvedAppearance,
+    );
     const swirlEnabled = activity.config.portalSwirlEnabled !== false;
     const showOnArrival = activity.config.portalShowOnArrival !== false;
     const waitForEnter = activity.config.portalWaitForEnter === true;
@@ -219,6 +223,7 @@ export function PortalActivity({
     return (
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
             <PortalScene
+                assets={sceneAssets}
                 backgroundImage={backgroundImage}
                 backgroundMirrored={backgroundMirrored}
                 className="max-h-full"
@@ -276,6 +281,55 @@ export function PortalActivity({
             </PortalScene>
         </div>
     );
+}
+
+function portalSceneAssets(
+    value: unknown,
+    appearance: 'dark' | 'light',
+): PortalSceneAsset[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value
+        .filter(isRecord)
+        .map((asset, index): PortalSceneAsset => {
+            const imageDark = stringConfig(asset.imageDark);
+            const imageLight = stringConfig(asset.imageLight);
+            const image =
+                appearance === 'light'
+                    ? imageLight || imageDark
+                    : imageDark || imageLight;
+
+            return {
+                id: stringConfig(asset.id) || `portal-asset-${index + 1}`,
+                image,
+                layer: portalAssetLayer(stringConfig(asset.layer)),
+                mirrored: booleanConfig(asset.mirrored, false),
+                opacity: numericConfig(asset.opacity, 100),
+                width: numericConfig(asset.width, 28),
+                x: numericConfig(asset.x, 50),
+                y: numericConfig(asset.y, 50),
+            };
+        })
+        .filter((asset) => asset.image);
+}
+
+function portalAssetLayer(value: string): PortalSceneAsset['layer'] {
+    if (
+        value === 'behind-background' ||
+        value === 'above-background' ||
+        value === 'above-foreground' ||
+        value === 'front'
+    ) {
+        return value;
+    }
+
+    return 'above-background';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 export function DialogueActivity({
@@ -478,14 +532,17 @@ export function ReflectionActivity({
     activity,
     onComplete,
     onMoveToActivity,
+    playRunId,
     transition,
 }: {
     activity: LearningActivity;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    playRunId: string | null;
     transition: ActivityTransition | null;
 }) {
     const [reflection, setReflection] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const prompt =
         typeof activity.config.prompt === 'string'
             ? activity.config.prompt
@@ -511,15 +568,40 @@ export function ReflectionActivity({
             ) : null}
             <Button
                 className="mt-auto"
-                disabled={reflection.trim().length === 0}
-                onClick={() =>
-                    void onComplete(activity).then(() =>
-                        onMoveToActivity(transition?.toActivityId ?? null),
-                    )
+                disabled={
+                    reflection.trim().length === 0 || isSaving || !playRunId
                 }
+                onClick={() => void saveReflection()}
             >
                 Keep reflection
             </Button>
         </div>
     );
+
+    async function saveReflection() {
+        if (!playRunId || isSaving) {
+            return;
+        }
+
+        setIsSaving(true);
+
+        try {
+            await postJson(`/learning/activities/${activity.id}/reflection`, {
+                play_run_id: playRunId,
+                reflection,
+                subtopic:
+                    typeof activity.config.subtopic === 'string'
+                        ? activity.config.subtopic
+                        : '',
+                topic:
+                    typeof activity.config.topic === 'string'
+                        ? activity.config.topic
+                        : '',
+            });
+            await onComplete(activity);
+            onMoveToActivity(transition?.toActivityId ?? null);
+        } finally {
+            setIsSaving(false);
+        }
+    }
 }

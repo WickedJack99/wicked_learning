@@ -23,7 +23,7 @@ import type {
 } from './edit-node-activity-types';
 
 const edgeStyle: CSSProperties = {
-    stroke: '#0e7490',
+    stroke: 'var(--settings-accent)',
     strokeWidth: 2,
 };
 
@@ -45,7 +45,7 @@ function ActivityGraphNodeCard({
             className={cn(
                 'relative w-64 rounded-xl border bg-slate-50 p-4 shadow-lg transition dark:border-white/10 dark:bg-slate-950',
                 selected &&
-                    'border-cyan-600 ring-2 ring-cyan-600/20 dark:border-teal-200 dark:ring-teal-200/20',
+                    'border-[var(--settings-accent)] ring-2 ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)]',
             )}
         >
             <ConnectorHandles
@@ -59,7 +59,7 @@ function ActivityGraphNodeCard({
                 type="source"
             />
 
-            <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                 {activity.type}
             </p>
             <h2 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
@@ -88,7 +88,7 @@ function ActivityGraphNodeCard({
             <div className="mt-3 flex flex-wrap gap-1">
                 {activity.connectors.outputs.map((connector) => (
                     <span
-                        className="rounded-md bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200"
+                        className="rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] px-2 py-1 text-[11px] font-medium text-[var(--settings-accent)]"
                         key={connector.id}
                         style={
                             connector.color
@@ -176,20 +176,20 @@ function SpecialGraphNode({
         <div className="relative grid w-40 place-items-center rounded-xl border border-slate-200 bg-white p-4 text-center shadow-lg dark:border-white/10 dark:bg-slate-950">
             {data.kind === 'start' ? (
                 <Handle
-                    className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                    className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                     id="start"
                     position={Position.Right}
                     type="source"
                 />
             ) : (
                 <Handle
-                    className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                    className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                     id="end"
                     position={Position.Left}
                     type="target"
                 />
             )}
-            <span className="mb-2 grid size-9 place-items-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
+            <span className="mb-2 grid size-9 place-items-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                 {data.kind === 'start' ? (
                     <Play className="size-4" />
                 ) : (
@@ -217,7 +217,7 @@ function ConnectorHandles({
         <>
             {connectors.map((connector, index) => (
                 <Handle
-                    className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                    className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                     id={connector.id}
                     key={connector.id}
                     position={position}

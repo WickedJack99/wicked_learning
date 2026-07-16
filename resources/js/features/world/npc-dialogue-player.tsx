@@ -72,6 +72,7 @@ export function NpcDialogueActivity({
         null,
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [reflection, setReflection] = useState('');
     const grantedNodeIds = useRef(new Set<number>());
     const [grantedTool, setGrantedTool] = useState<{
         nodeId: number;
@@ -82,6 +83,7 @@ export function NpcDialogueActivity({
         ? npcDialogueNodeById(activity, currentNodeId)
         : null;
     const isQuestion = currentNode ? isQuestionNode(currentNode) : false;
+    const isReflection = currentNode?.type === 'reflection';
     const answers =
         currentNode && isQuestion ? answerOptions(activity, currentNode) : [];
     const canGoBack = history.length > 0;
@@ -141,6 +143,7 @@ export function NpcDialogueActivity({
 
             setCurrentNodeId(nextNodeId);
             setSelectedAnswerKey(null);
+            setReflection('');
             persistDialogueState(nextNodeId, nextHistory);
         },
         [
@@ -247,6 +250,37 @@ export function NpcDialogueActivity({
         }
     }, [activity, currentNode, isSubmitting, moveToNode, selectedAnswerKey]);
 
+    const submitReflection = useCallback(async () => {
+        if (!currentNode || !playRunId || !reflection.trim() || isSubmitting) {
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await postJson(
+                `/learning/npc-dialogue-nodes/${currentNode.id}/reflection`,
+                {
+                    play_run_id: playRunId,
+                    reflection,
+                    subtopic: stringConfig(currentNode.config.journalSubtopic),
+                    topic: stringConfig(currentNode.config.journalTopic),
+                },
+            );
+            setReflection('');
+            await moveToNode(nextDialogueNodeId(activity, currentNode.id));
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [
+        activity,
+        currentNode,
+        isSubmitting,
+        moveToNode,
+        playRunId,
+        reflection,
+    ]);
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (isEditableTarget(event.target)) {
@@ -258,7 +292,10 @@ export function NpcDialogueActivity({
                 moveBack();
             }
 
-            if (event.key === 'ArrowRight' || event.key === ' ') {
+            if (
+                (event.key === 'ArrowRight' || event.key === ' ') &&
+                !isReflection
+            ) {
                 event.preventDefault();
 
                 moveForward();
@@ -274,7 +311,7 @@ export function NpcDialogueActivity({
         window.addEventListener('keydown', handleKeyDown);
 
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isQuestion, moveBack, moveForward, submitAnswer]);
+    }, [isQuestion, isReflection, moveBack, moveForward, submitAnswer]);
 
     if (!currentNode) {
         return (
@@ -289,6 +326,7 @@ export function NpcDialogueActivity({
             answers={answers}
             canGoBack={canGoBack}
             currentNode={currentNode}
+            isReflection={isReflection}
             isQuestion={isQuestion}
             isSubmitting={isSubmitting}
             mode={resolvedAppearance}
@@ -296,12 +334,15 @@ export function NpcDialogueActivity({
             onContinue={moveForward}
             onSelectAnswer={setSelectedAnswerKey}
             onSubmitAnswer={submitAnswer}
+            onReflectionChange={setReflection}
+            onSubmitReflection={submitReflection}
             grantedToolName={
                 grantedTool?.nodeId === currentNode.id
                     ? grantedTool.title
                     : null
             }
             selectedAnswerKey={selectedAnswerKey}
+            reflection={reflection}
             text={displayedText}
             typingSpeed={typingSpeed}
         />
@@ -343,14 +384,18 @@ function NpcDialogueScene({
     canGoBack,
     currentNode,
     isQuestion,
+    isReflection,
     isSubmitting,
     mode,
     onBack,
     onContinue,
     onSelectAnswer,
     onSubmitAnswer,
+    onReflectionChange,
+    onSubmitReflection,
     grantedToolName,
     selectedAnswerKey,
+    reflection,
     text,
     typingSpeed,
 }: {
@@ -358,14 +403,18 @@ function NpcDialogueScene({
     canGoBack: boolean;
     currentNode: NpcDialogueNode;
     isQuestion: boolean;
+    isReflection: boolean;
     isSubmitting: boolean;
     mode: 'dark' | 'light';
     onBack: () => void;
     onContinue: () => void;
     onSelectAnswer: (key: string | null) => void;
     onSubmitAnswer: () => void;
+    onReflectionChange: (value: string) => void;
+    onSubmitReflection: () => void;
     grantedToolName: string | null;
     selectedAnswerKey: string | null;
+    reflection: string;
     text: string;
     typingSpeed: number;
 }) {
@@ -458,6 +507,25 @@ function NpcDialogueScene({
                             selectedAnswerKey={selectedAnswerKey}
                         />
                     ) : null}
+                    {isReflection ? (
+                        <div className="mt-4 grid gap-3">
+                            <textarea
+                                className="min-h-28 resize-none rounded-lg border border-white/20 bg-slate-950/30 p-3 text-sm leading-6 text-inherit outline-none placeholder:text-current/55 focus:border-cyan-400 dark:focus:border-teal-200"
+                                onChange={(event) =>
+                                    onReflectionChange(event.target.value)
+                                }
+                                placeholder="Write a reflection for your journal."
+                                value={reflection}
+                            />
+                            <Button
+                                disabled={!reflection.trim() || isSubmitting}
+                                onClick={onSubmitReflection}
+                                type="button"
+                            >
+                                Keep reflection
+                            </Button>
+                        </div>
+                    ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-3">
                     <Button
@@ -470,12 +538,14 @@ function NpcDialogueScene({
                         <ArrowLeft className="size-4" />
                     </Button>
                     <p className="text-xs text-slate-600 dark:text-slate-300">
-                        {isQuestion
-                            ? 'Choose an answer, then confirm.'
-                            : 'Use Space or arrows to move.'}
+                        {isReflection
+                            ? 'Save your reflection to continue.'
+                            : isQuestion
+                              ? 'Choose an answer, then confirm.'
+                              : 'Use Space or arrows to move.'}
                     </p>
                     <Button
-                        disabled={isQuestion}
+                        disabled={isQuestion || isReflection}
                         onClick={onContinue}
                         size="icon"
                         type="button"

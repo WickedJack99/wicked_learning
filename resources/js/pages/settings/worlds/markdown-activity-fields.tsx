@@ -382,7 +382,7 @@ export function MarkdownActivityFields({
                                 </div>
                             </div>
                             <textarea
-                                className="min-h-56 resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
+                                className="min-h-56 resize-y rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-6 text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
                                 id="markdown-page-body"
                                 onChange={(event) => {
                                     const body = event.currentTarget.value;
@@ -634,22 +634,22 @@ function MarkdownPageNode({
             className={cn(
                 'relative w-56 rounded-lg border bg-white p-4 shadow-lg transition dark:border-white/10 dark:bg-slate-950',
                 selected &&
-                    'border-cyan-600 ring-2 ring-cyan-600/20 dark:border-teal-200 dark:ring-teal-200/20',
+                    'border-[var(--settings-accent)] ring-2 ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)]',
             )}
         >
             <Handle
-                className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                 id="in"
                 position={Position.Left}
                 type="target"
             />
             <Handle
-                className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                 id="out"
                 position={Position.Right}
                 type="source"
             />
-            <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                 Page
             </p>
             <h3 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
@@ -683,20 +683,20 @@ function MarkdownSpecialNode({
         <div className="relative grid w-36 place-items-center rounded-lg border border-slate-200 bg-white p-4 text-center shadow-lg dark:border-white/10 dark:bg-slate-950">
             {data.kind === 'start' ? (
                 <Handle
-                    className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                    className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                     id="start"
                     position={Position.Right}
                     type="source"
                 />
             ) : (
                 <Handle
-                    className="!size-3 !border-2 !border-white !bg-cyan-600 dark:!bg-teal-300"
+                    className="!size-3 !border-2 !border-white !bg-[var(--settings-accent)]"
                     id="end"
                     position={Position.Left}
                     type="target"
                 />
             )}
-            <span className="mb-2 grid size-9 place-items-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
+            <span className="mb-2 grid size-9 place-items-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                 {data.kind === 'start' ? (
                     <FileText className="size-4" />
                 ) : (
@@ -754,7 +754,7 @@ function buildMarkdownEdges(
         targetHandle: transition.to === 'end' ? 'end' : 'in',
         markerEnd: { type: MarkerType.ArrowClosed },
         style: {
-            stroke: '#0e7490',
+            stroke: 'var(--settings-accent)',
             strokeWidth: 2,
         },
         data: transition,

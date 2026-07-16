@@ -15,6 +15,10 @@ import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { resolveThemeVariant } from '@/features/world/theme';
 import { worldHref } from '@/features/world/types';
 import { soundFromNode, WorldMap } from '@/features/world/world-map';
+import {
+    mapControlCssVariables,
+    type MapControlCssVars,
+} from '@/features/world/map-control-theme';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
@@ -63,9 +67,6 @@ type SearchResponse = {
     results: SearchResult[];
 };
 
-type MapControlCssVars = CSSProperties &
-    Record<`--map-${string}`, string | undefined>;
-
 export default function World({
     bookmarkedNodeIds: initialBookmarkedNodeIds,
     world,
@@ -99,71 +100,10 @@ export default function World({
                 : null,
         [map, resolvedAppearance],
     );
-    const mapControlVariables = useMemo<MapControlCssVars>(() => {
-        const sharedBackground = configuredCssValue(mapTheme?.panelBackground);
-        const sharedBorder =
-            configuredCssValue(mapTheme?.panelBorderColor) ??
-            configuredCssValue(mapTheme?.cardBorderColor) ??
-            configuredCssValue(mapTheme?.sidePanelBorderColor);
-        const sharedText = configuredCssValue(mapTheme?.panelTextColor);
-        const sharedMutedText =
-            configuredCssValue(mapTheme?.panelMutedTextColor) ?? sharedText;
-        const sharedAccent = configuredCssValue(mapTheme?.accentColor);
-
-        return {
-            '--map-floating-accent-color': sharedAccent,
-            '--map-floating-background': sharedBackground,
-            '--map-floating-border-color': sharedBorder,
-            '--map-floating-muted-text-color': sharedMutedText,
-            '--map-floating-text-color': sharedText,
-            '--map-bottom-nav-active-background': configuredCssValue(
-                mapTheme?.bottomNavActiveBackground,
-            ),
-            '--map-bottom-nav-active-icon-color':
-                configuredCssValue(mapTheme?.bottomNavActiveIconColor) ??
-                configuredCssValue(mapTheme?.bottomNavActiveTextColor),
-            '--map-bottom-nav-active-text-color': configuredCssValue(
-                mapTheme?.bottomNavActiveTextColor,
-            ),
-            '--map-bottom-nav-background':
-                configuredCssValue(mapTheme?.bottomNavBackground) ??
-                sharedBackground,
-            '--map-bottom-nav-border-color':
-                configuredCssValue(mapTheme?.bottomNavBorderColor) ??
-                sharedBorder,
-            '--map-bottom-nav-exit-icon-color':
-                configuredCssValue(mapTheme?.bottomNavExitIconColor) ??
-                '#ef4444',
-            '--map-bottom-nav-icon-color':
-                configuredCssValue(mapTheme?.bottomNavIconColor) ??
-                configuredCssValue(mapTheme?.bottomNavTextColor) ??
-                sharedText,
-            '--map-bottom-nav-text-color':
-                configuredCssValue(mapTheme?.bottomNavTextColor) ?? sharedText,
-            '--map-side-control-active-background': configuredCssValue(
-                mapTheme?.sideControlActiveBackground,
-            ),
-            '--map-side-control-active-icon-color':
-                configuredCssValue(mapTheme?.sideControlActiveIconColor) ??
-                configuredCssValue(mapTheme?.sideControlActiveTextColor),
-            '--map-side-control-active-text-color': configuredCssValue(
-                mapTheme?.sideControlActiveTextColor,
-            ),
-            '--map-side-control-background':
-                configuredCssValue(mapTheme?.sideControlBackground) ??
-                sharedBackground,
-            '--map-side-control-border-color':
-                configuredCssValue(mapTheme?.sideControlBorderColor) ??
-                sharedBorder,
-            '--map-side-control-icon-color':
-                configuredCssValue(mapTheme?.sideControlIconColor) ??
-                configuredCssValue(mapTheme?.sideControlTextColor) ??
-                sharedText,
-            '--map-side-control-text-color':
-                configuredCssValue(mapTheme?.sideControlTextColor) ??
-                sharedText,
-        };
-    }, [mapTheme]);
+    const mapControlVariables = useMemo<MapControlCssVars>(
+        () => mapControlCssVariables(map?.backgroundConfig, resolvedAppearance),
+        [map?.backgroundConfig, resolvedAppearance],
+    );
     const mapShellStyle: MapControlCssVars = {
         background: mapTheme?.pageBackground,
         color: mapTheme?.sidePanelTextColor,
@@ -786,12 +726,6 @@ function getActivityById(
     return (
         node.activities.find((activity) => activity.id === activityId) ?? null
     );
-}
-
-function configuredCssValue(value: string | undefined): string | undefined {
-    const trimmedValue = value?.trim();
-
-    return trimmedValue ? trimmedValue : undefined;
 }
 
 function replaceWorldQuery(params: { focused?: string; map?: string }): void {

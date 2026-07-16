@@ -81,6 +81,7 @@ const portalFields: Array<keyof ActivityForm> = [
     'portal_background_dark',
     'portal_background_light',
     'portal_background_mirrored',
+    'portal_assets',
     'portal_duration_seconds',
     'portal_foreground_dark',
     'portal_foreground_light',
@@ -93,6 +94,13 @@ const portalFields: Array<keyof ActivityForm> = [
     'portal_swirl_enabled',
     'portal_wait_for_enter',
     'target_portal_activity_id',
+];
+
+const reflectionFields: Array<keyof ActivityForm> = [
+    'reflection_prompt',
+    'reflection_note',
+    'reflection_topic',
+    'reflection_subtopic',
 ];
 
 const toolGrantFields: Array<keyof ActivityForm> = [
@@ -143,6 +151,10 @@ function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
 
     if (type === 'tool_grant') {
         return toolGrantFields;
+    }
+
+    if (type === 'reflection') {
+        return reflectionFields;
     }
 
     return [];

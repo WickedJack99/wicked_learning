@@ -171,9 +171,7 @@ export function ItemGrantVisualFields({
                 <div className="absolute inset-0 z-10 grid place-items-center p-6">
                     <div
                         className="inline-grid justify-center gap-3"
-                        style={itemGrantGridStyle(
-                            form.item_grant_items.length,
-                        )}
+                        style={itemGrantGridStyle(form.item_grant_items.length)}
                     >
                         {form.item_grant_items.map((row, index) => {
                             const item = itemForSlot(items, row.itemId);
@@ -590,7 +588,7 @@ function ItemGrantPreviewTile({
     title: string;
 }) {
     return (
-        <div className="relative grid aspect-square place-items-center rounded-xl border border-cyan-600/35 bg-white/78 p-2 shadow-sm backdrop-blur-sm dark:border-teal-200/30 dark:bg-slate-950/72">
+        <div className="relative grid aspect-square place-items-center rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-white/78 p-2 shadow-sm backdrop-blur-sm dark:bg-slate-950/72">
             {imageUrl ? (
                 <img
                     alt=""
@@ -599,9 +597,9 @@ function ItemGrantPreviewTile({
                     src={imageUrl}
                 />
             ) : (
-                <Package className="size-7 text-cyan-700 dark:text-teal-200" />
+                <Package className="size-7 text-[var(--settings-accent)]" />
             )}
-            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-slate-950/82 px-1 text-center text-[0.65rem] font-semibold text-white dark:bg-teal-300 dark:text-slate-950">
+            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-[var(--settings-accent)] px-1 text-center text-[0.65rem] font-semibold text-[var(--settings-accent-foreground)]">
                 {quantity || '1'}
             </span>
             <span className="sr-only">{title}</span>

@@ -9,17 +9,29 @@ import {
     Palette,
     PanelRight,
     Save,
-    ShieldCheck,
     SlidersHorizontal,
     Trash2,
     Volume2,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import type { Dispatch, PointerEvent, SetStateAction } from 'react';
+import type {
+    CSSProperties,
+    Dispatch,
+    PointerEvent,
+    SetStateAction,
+} from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
+import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
-import { SettingsAccordionSection } from '@/components/settings-accordion-section';
+import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
+import { SettingsConfigurationSection } from '@/components/settings-configuration-section';
+import {
+    SettingsConfigurationLayout,
+    SettingsContentPane,
+    SettingsSectionNavigation,
+    SettingsSidebar,
+    type SettingsNavigationItem,
+} from '@/components/settings-configuration-shell';
 import { SoundAssetInput } from '@/components/sound-asset-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -260,10 +272,12 @@ type MapDetailsForm = {
 };
 
 type NodeSettingsSection =
+    | 'activities'
     | 'right-panel'
     | 'availability'
     | 'visuals'
-    | 'sounds';
+    | 'sounds'
+    | 'danger';
 
 export default function EditWorldMap({
     accessGroups,
@@ -280,6 +294,11 @@ export default function EditWorldMap({
         map.backgroundConfig,
         resolvedAppearance,
     );
+    const nodeDialogThemeStyle = {
+        '--settings-accent': previewMapTheme.accentColor || '#2dd4bf',
+        '--settings-accent-foreground':
+            previewMapTheme.bottomNavActiveTextColor || '#020617',
+    } as CSSProperties;
     const [selectedNode, setSelectedNode] = useState<EditableNode | null>(null);
     const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -306,6 +325,7 @@ export default function EditWorldMap({
     const [mapVisualOpen, setMapVisualOpen] = useState(false);
     const [activeNodeSettingsSection, setActiveNodeSettingsSection] =
         useState<NodeSettingsSection>('right-panel');
+    const [nodeVisualMode, setNodeVisualMode] = useState<ThemeMode>('dark');
     const [mapVisualForm, setMapVisualForm] = useState<MapVisualForm>(() =>
         mapVisualFormFromConfig(map.backgroundConfig),
     );
@@ -734,14 +754,19 @@ export default function EditWorldMap({
                                     World graph
                                 </Link>
                             </Button>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 {world.title}
                             </p>
                             <div className="mt-1 flex flex-wrap items-center gap-3">
                                 <h1 className="truncate text-2xl font-semibold tracking-normal">
                                     Edit {map.title}
                                 </h1>
-                                <Button asChild size="sm" variant="outline">
+                                <Button
+                                    asChild
+                                    className="border-[color-mix(in_srgb,var(--settings-accent)_34%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] text-[var(--settings-accent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)]"
+                                    size="sm"
+                                    variant="outline"
+                                >
                                     <Link
                                         href={`/settings/worlds/maps/${map.id}/configure`}
                                     >
@@ -759,7 +784,7 @@ export default function EditWorldMap({
                     </header>
 
                     <section
-                        className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.14),rgba(255,255,255,0.88)_64%)] shadow-2xl select-none dark:border-white/10 dark:bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.16),rgba(17,24,32,0.94)_66%)]"
+                        className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] shadow-2xl select-none dark:border-white/10 dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]"
                         data-draggable-surface="true"
                         data-dragging={isDraggingSurface ? 'true' : undefined}
                         onPointerCancel={stopDrag}
@@ -807,9 +832,7 @@ export default function EditWorldMap({
                                     style={{
                                         color:
                                             previewMapTheme.accentColor ??
-                                            (resolvedAppearance === 'light'
-                                                ? '#0e7490'
-                                                : '#ccfbf1'),
+                                            'var(--settings-accent)',
                                     }}
                                 />
                                 {map.title}
@@ -832,7 +855,7 @@ export default function EditWorldMap({
 
                         {map.nodes.length === 0 ? (
                             <div className="pointer-events-none absolute inset-x-0 top-24 z-20 flex justify-center px-4">
-                                <div className="max-w-sm rounded-xl border border-dashed border-cyan-300 bg-white/86 p-4 text-center text-sm shadow-lg backdrop-blur dark:border-teal-200/30 dark:bg-slate-950/72">
+                                <div className="max-w-sm rounded-xl border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-white/86 p-4 text-center text-sm shadow-lg backdrop-blur dark:bg-slate-950/72">
                                     <p className="font-semibold text-slate-950 dark:text-white">
                                         This map is empty
                                     </p>
@@ -901,7 +924,7 @@ export default function EditWorldMap({
                         <div className="grid gap-1">
                             <Label htmlFor="map-description">Description</Label>
                             <textarea
-                                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-600/20 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus-visible:border-teal-200 dark:focus-visible:ring-teal-200/20"
+                                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
                                 id="map-description"
                                 onChange={(event) => {
                                     const description =
@@ -941,7 +964,7 @@ export default function EditWorldMap({
             </Dialog>
 
             <Dialog onOpenChange={setMapVisualOpen} open={mapVisualOpen}>
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
+                <SettingsConfigurationDialog className="overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Map visuals</DialogTitle>
                         <DialogDescription>
@@ -1007,11 +1030,11 @@ export default function EditWorldMap({
                             Save map visuals
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog onOpenChange={setMapAccessOpen} open={mapAccessOpen}>
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+                <SettingsConfigurationDialog className="overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Access permissions</DialogTitle>
                         <DialogDescription>
@@ -1058,7 +1081,7 @@ export default function EditWorldMap({
                         />
                     </div>
 
-                    <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-sm leading-6 text-cyan-950 dark:border-teal-200/20 dark:bg-teal-300/10 dark:text-teal-50">
+                    <div className="rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-3 text-sm leading-6 text-slate-800 dark:text-slate-100">
                         Public maps can be opened without an account. Guest
                         progress, tools and items are not stored on the server;
                         server-side learning state starts after login.
@@ -1081,7 +1104,7 @@ export default function EditWorldMap({
                             Save access
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog
@@ -1092,7 +1115,10 @@ export default function EditWorldMap({
                 }}
                 open={dialogOpen}
             >
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+                <SettingsConfigurationDialog
+                    className="flex flex-col overflow-hidden"
+                    style={nodeDialogThemeStyle}
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {isEditingNode ? 'Edit tile' : 'Add tile'}
@@ -1104,811 +1130,929 @@ export default function EditWorldMap({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-4">
-                        {selectedNode ? (
-                            <SettingsAccordionSection
-                                description="Open the activity graph for this tile."
-                                title="Activities"
-                            >
-                                <Button asChild type="button" variant="outline">
-                                    <Link
-                                        href={`/settings/worlds/nodes/${selectedNode.id}/activities`}
+                    <SettingsConfigurationLayout
+                        className="max-h-[min(38rem,calc(100svh-17rem))]"
+                        sidebar={
+                            <NodeSettingsSwitcher
+                                activeSection={activeNodeSettingsSection}
+                                isEditingNode={Boolean(selectedNode)}
+                                onChange={setActiveNodeSettingsSection}
+                            />
+                        }
+                    >
+                        <SettingsContentPane>
+                            <div className="grid content-start gap-4">
+                                {activeNodeSettingsSection === 'activities' &&
+                                selectedNode ? (
+                                    <SettingsConfigurationSection
+                                        description="Open the activity graph for this tile."
+                                        title="Activities"
                                     >
-                                        <GitBranch className="size-4" />
-                                        Edit activities
-                                    </Link>
-                                </Button>
-                            </SettingsAccordionSection>
-                        ) : null}
-
-                        <NodeSettingsSwitcher
-                            activeSection={activeNodeSettingsSection}
-                            onChange={setActiveNodeSettingsSection}
-                        />
-
-                        {activeNodeSettingsSection === 'right-panel' ? (
-                            <SettingsAccordionSection
-                                description="Name, URL slug and learner-facing summary."
-                                title="Right panel"
-                            >
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    <TextField
-                                        error={errors.title}
-                                        label="Title"
-                                        onChange={(value) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                title: value,
-                                                visual_config: {
-                                                    ...current.visual_config,
-                                                    label:
-                                                        current.visual_config
-                                                            .label || value,
-                                                },
-                                            }))
-                                        }
-                                        value={form.title}
-                                    />
-                                    <TextField
-                                        error={errors.slug}
-                                        label="Slug"
-                                        onChange={(value) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                slug: value,
-                                            }))
-                                        }
-                                        placeholder="Optional, generated if empty"
-                                        value={form.slug}
-                                    />
-                                </div>
-
-                                <div className="grid gap-1">
-                                    <Label htmlFor="tile-description">
-                                        Description
-                                    </Label>
-                                    <textarea
-                                        className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                        id="tile-description"
-                                        onChange={(event) => {
-                                            const description =
-                                                event.currentTarget.value;
-
-                                            setForm((current) => ({
-                                                ...current,
-                                                description,
-                                            }));
-                                        }}
-                                        value={form.description}
-                                    />
-                                    <InputError message={errors.description} />
-                                </div>
-                            </SettingsAccordionSection>
-                        ) : null}
-
-                        {activeNodeSettingsSection === 'availability' ? (
-                            <>
-                                <SettingsAccordionSection
-                                    description="Learner-facing label and visibility behavior for the tile."
-                                    title="Tile display and text"
-                                >
-                                    <TextField
-                                        error={errors['visual_config.label']}
-                                        label="Tile label"
-                                        onChange={(value) =>
-                                            setVisualTextConfig(
-                                                setForm,
-                                                'label',
-                                                value,
-                                            )
-                                        }
-                                        value={form.visual_config.label}
-                                    />
-                                    <TextField
-                                        error={errors['visual_config.tooltip']}
-                                        label="Hover text"
-                                        onChange={(value) =>
-                                            setVisualTextConfig(
-                                                setForm,
-                                                'tooltip',
-                                                value,
-                                            )
-                                        }
-                                        placeholder="Shown when learners hover the tile"
-                                        value={form.visual_config.tooltip}
-                                    />
-
-                                    <div className="grid gap-3">
-                                        {form.state !== 'hidden' ? (
-                                            <CheckboxField
-                                                checked={
-                                                    form.state === 'locked'
-                                                }
-                                                description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
-                                                id="lock-node"
-                                                label="Lock node for learners"
-                                                onCheckedChange={(checked) =>
-                                                    setLockedState(
-                                                        setForm,
-                                                        checked,
-                                                    )
-                                                }
-                                            />
-                                        ) : null}
-                                        <CheckboxField
-                                            checked={
-                                                form.visual_config.hideLabel
-                                            }
-                                            description="The title still appears in the side panel after the tile is selected."
-                                            id="hide-label"
-                                            label="Hide tile label on world map"
-                                            onCheckedChange={(checked) =>
-                                                setVisualBooleanConfig(
-                                                    setForm,
-                                                    'hideLabel',
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <CheckboxField
-                                            checked={
-                                                form.visual_config.hideImage
-                                            }
-                                            description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
-                                            id="hide-image"
-                                            label="Hide node image on world map"
-                                            onCheckedChange={(checked) =>
-                                                setVisualBooleanConfig(
-                                                    setForm,
-                                                    'hideImage',
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        {form.state === 'hidden' ? (
-                                            <CheckboxField
-                                                checked={
-                                                    form.visual_config
-                                                        .hideEmptySpace
-                                                }
-                                                description="The tile keeps its coordinate and spacing, but learners do not see or click it."
-                                                id="hide-empty-space"
-                                                label="Hide this empty space on learner map"
-                                                onCheckedChange={(checked) =>
-                                                    setVisualBooleanConfig(
-                                                        setForm,
-                                                        'hideEmptySpace',
-                                                        checked,
-                                                    )
-                                                }
-                                            />
-                                        ) : null}
-                                    </div>
-                                </SettingsAccordionSection>
-
-                                <SettingsAccordionSection
-                                    description="Hide this node until a learner uses a configured tool at its map position."
-                                    title="Discovery"
-                                >
-                                    <div className="grid gap-3">
-                                        <CheckboxField
-                                            checked={
-                                                form.visual_config.reveal
-                                                    .enabled
-                                            }
-                                            description="The node keeps its coordinates, but learners only reveal it by equipping the chosen tool and clicking its hidden map position."
-                                            id="reveal-with-tool"
-                                            label="Hide until revealed with a tool"
-                                            onCheckedChange={(checked) =>
-                                                setRevealEnabled(
-                                                    setForm,
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <div className="grid gap-1">
-                                            <Label htmlFor="reveal-tool">
-                                                Reveal tool
-                                            </Label>
-                                            <select
-                                                className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                                disabled={
-                                                    !form.visual_config.reveal
-                                                        .enabled
-                                                }
-                                                id="reveal-tool"
-                                                onChange={(event) =>
-                                                    setRevealToolId(
-                                                        setForm,
-                                                        event.currentTarget
-                                                            .value,
-                                                    )
-                                                }
-                                                value={
-                                                    form.visual_config.reveal
-                                                        .toolId
-                                                }
-                                            >
-                                                <option value="">
-                                                    Select a tool
-                                                </option>
-                                                {tools.map((tool) => (
-                                                    <option
-                                                        key={tool.id}
-                                                        value={tool.id}
-                                                    >
-                                                        {tool.title}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <InputError
-                                                message={
-                                                    errors[
-                                                        'visual_config.reveal.toolId'
-                                                    ]
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                </SettingsAccordionSection>
-
-                                <SettingsAccordionSection
-                                    description="Keep this visible node locked until completion rules and optional tool use allow access."
-                                    title="Unlocking"
-                                >
-                                    <div className="grid gap-3">
-                                        <CheckboxField
-                                            checked={
-                                                form.visual_config.unlock
-                                                    .enabled
-                                            }
-                                            description="Learners cannot open this node until the configured rule evaluates to true."
-                                            id="unlock-rules-enabled"
-                                            label="Use unlock rules for this node"
-                                            onCheckedChange={(checked) =>
-                                                setUnlockEnabled(
-                                                    setForm,
-                                                    checked,
-                                                )
-                                            }
-                                        />
-                                        <div className="grid gap-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
-                                            <div className="grid gap-1">
-                                                <Label htmlFor="unlock-top-operator">
-                                                    Combine node and tool rules
-                                                    with
-                                                </Label>
-                                                <select
-                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                                    disabled={
-                                                        !form.visual_config
-                                                            .unlock.enabled
-                                                    }
-                                                    id="unlock-top-operator"
-                                                    onChange={(event) =>
-                                                        setUnlockOperator(
-                                                            setForm,
-                                                            'topOperator',
-                                                            event.currentTarget
-                                                                .value,
-                                                        )
-                                                    }
-                                                    value={
-                                                        form.visual_config
-                                                            .unlock.topOperator
-                                                    }
-                                                >
-                                                    <option value="and">
-                                                        AND - all groups must
-                                                        pass
-                                                    </option>
-                                                    <option value="or">
-                                                        OR - any group can pass
-                                                    </option>
-                                                </select>
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="unlock-node-operator">
-                                                    Completed-node rule
-                                                </Label>
-                                                <select
-                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                                    disabled={
-                                                        !form.visual_config
-                                                            .unlock.enabled
-                                                    }
-                                                    id="unlock-node-operator"
-                                                    onChange={(event) =>
-                                                        setUnlockOperator(
-                                                            setForm,
-                                                            'nodeOperator',
-                                                            event.currentTarget
-                                                                .value,
-                                                        )
-                                                    }
-                                                    value={
-                                                        form.visual_config
-                                                            .unlock.nodeOperator
-                                                    }
-                                                >
-                                                    <option value="and">
-                                                        All selected nodes
-                                                        completed
-                                                    </option>
-                                                    <option value="or">
-                                                        Any selected node
-                                                        completed
-                                                    </option>
-                                                </select>
-                                                <select
-                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                                    disabled={
-                                                        !form.visual_config
-                                                            .unlock.enabled
-                                                    }
-                                                    onChange={(event) => {
-                                                        addUnlockRequiredNode(
-                                                            setForm,
-                                                            event.currentTarget
-                                                                .value,
-                                                        );
-                                                        event.currentTarget.value =
-                                                            '';
-                                                    }}
-                                                    value=""
-                                                >
-                                                    <option value="">
-                                                        Add completed-node
-                                                        condition
-                                                    </option>
-                                                    {map.nodes
-                                                        .filter(
-                                                            (node) =>
-                                                                node.id !==
-                                                                selectedNode?.id,
-                                                        )
-                                                        .map((node) => (
-                                                            <option
-                                                                disabled={form.visual_config.unlock.requiredNodeIds.includes(
-                                                                    node.id.toString(),
-                                                                )}
-                                                                key={node.id}
-                                                                value={node.id}
-                                                            >
-                                                                {node.title}
-                                                            </option>
-                                                        ))}
-                                                </select>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {form.visual_config.unlock
-                                                        .requiredNodeIds
-                                                        .length === 0 ? (
-                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                            No completed-node
-                                                            conditions yet.
-                                                        </span>
-                                                    ) : null}
-                                                    {form.visual_config.unlock.requiredNodeIds.map(
-                                                        (nodeId) => {
-                                                            const node =
-                                                                map.nodes.find(
-                                                                    (
-                                                                        candidate,
-                                                                    ) =>
-                                                                        candidate.id.toString() ===
-                                                                        nodeId,
-                                                                );
-
-                                                            return (
-                                                                <button
-                                                                    className="rounded-full border border-cyan-500/25 bg-cyan-50 px-3 py-1 text-xs text-cyan-800 transition hover:border-cyan-600 dark:border-teal-200/20 dark:bg-teal-200/10 dark:text-teal-100"
-                                                                    key={nodeId}
-                                                                    onClick={() =>
-                                                                        removeUnlockRequiredNode(
-                                                                            setForm,
-                                                                            nodeId,
-                                                                        )
-                                                                    }
-                                                                    type="button"
-                                                                >
-                                                                    {node?.title ??
-                                                                        `Node ${nodeId}`}
-                                                                    {' x'}
-                                                                </button>
-                                                            );
-                                                        },
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <CheckboxField
-                                                checked={
-                                                    form.visual_config.unlock
-                                                        .tool.enabled
-                                                }
-                                                description="Learners must use the selected tool on this locked node."
-                                                id="unlock-tool-enabled"
-                                                label="Require tool use"
-                                                onCheckedChange={(checked) =>
-                                                    setUnlockToolEnabled(
-                                                        setForm,
-                                                        checked,
-                                                    )
-                                                }
-                                            />
-                                            <div className="grid gap-1">
-                                                <Label htmlFor="unlock-tool">
-                                                    Unlock tool
-                                                </Label>
-                                                <select
-                                                    className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                                    disabled={
-                                                        !form.visual_config
-                                                            .unlock.enabled ||
-                                                        !form.visual_config
-                                                            .unlock.tool.enabled
-                                                    }
-                                                    id="unlock-tool"
-                                                    onChange={(event) =>
-                                                        setUnlockToolId(
-                                                            setForm,
-                                                            event.currentTarget
-                                                                .value,
-                                                        )
-                                                    }
-                                                    value={
-                                                        form.visual_config
-                                                            .unlock.tool.toolId
-                                                    }
-                                                >
-                                                    <option value="">
-                                                        Select a tool
-                                                    </option>
-                                                    {tools.map((tool) => (
-                                                        <option
-                                                            key={tool.id}
-                                                            value={tool.id}
-                                                        >
-                                                            {tool.title}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <InputError
-                                                    message={
-                                                        errors[
-                                                            'visual_config.unlock.tool.toolId'
-                                                        ]
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-2 dark:border-white/10 dark:bg-slate-950/60">
-                                                <DateTimeField
-                                                    description="Optional unlock condition. The rule passes when the current time is the same or later."
-                                                    disabled={
-                                                        !form.visual_config
-                                                            .unlock.enabled
-                                                    }
-                                                    error={
-                                                        errors[
-                                                            'visual_config.schedule.unlockAt'
-                                                        ]
-                                                    }
-                                                    label="Unlock not before"
-                                                    onChange={(value) =>
-                                                        setScheduleValue(
-                                                            setForm,
-                                                            'unlockAt',
-                                                            value,
-                                                        )
-                                                    }
-                                                    value={
-                                                        form.visual_config
-                                                            .schedule.unlockAt
-                                                    }
-                                                />
-                                                <DateTimeField
-                                                    description="Optional hard lock. Once this time is reached, the node is locked again."
-                                                    error={
-                                                        errors[
-                                                            'visual_config.schedule.lockAt'
-                                                        ]
-                                                    }
-                                                    label="Lock after"
-                                                    onChange={(value) =>
-                                                        setScheduleValue(
-                                                            setForm,
-                                                            'lockAt',
-                                                            value,
-                                                        )
-                                                    }
-                                                    value={
-                                                        form.visual_config
-                                                            .schedule.lockAt
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="rounded-md border border-amber-500/25 bg-amber-50 p-3 dark:border-amber-300/20 dark:bg-amber-300/10">
-                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                                    <div className="grid gap-1 text-sm">
-                                                        <p className="font-medium text-amber-950 dark:text-amber-50">
-                                                            Reset learner unlock
-                                                            state
-                                                        </p>
-                                                        <p className="text-xs text-amber-800 dark:text-amber-100/75">
-                                                            Lock this node again
-                                                            for every learner by
-                                                            removing saved
-                                                            tool-unlock
-                                                            progress.
-                                                        </p>
-                                                    </div>
-                                                    <Button
-                                                        className="shrink-0 border-amber-500/40 text-amber-950 hover:bg-amber-100 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15"
-                                                        disabled={
-                                                            !selectedNode ||
-                                                            processing
-                                                        }
-                                                        onClick={
-                                                            resetNodeUnlocksForAllUsers
-                                                        }
-                                                        type="button"
-                                                        variant="outline"
-                                                    >
-                                                        <LockKeyhole className="size-4" />
-                                                        Lock for all users
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </SettingsAccordionSection>
-                            </>
-                        ) : null}
-
-                        {activeNodeSettingsSection === 'visuals' ? (
-                            <>
-                                <SettingsAccordionSection
-                                    description="Dark mode colors and the image displayed on the world map."
-                                    title="Dark mode visuals"
-                                >
-                                    <NodeVisualModeFields
-                                        errors={errors}
-                                        imageError={imageUploadErrors.nodeDark}
-                                        mode="dark"
-                                        onImageUpload={(file) =>
-                                            void uploadWorldImage(
-                                                'nodeDark',
-                                                file,
-                                                (url) =>
-                                                    setVisualThemeTextConfig(
-                                                        setForm,
-                                                        'dark',
-                                                        'imageUrl',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        uploadingImage={
-                                            uploadingImageKey === 'nodeDark'
-                                        }
-                                        values={form.visual_config.dark}
-                                    />
-                                </SettingsAccordionSection>
-
-                                <SettingsAccordionSection
-                                    description="Light mode colors and the image displayed on the world map."
-                                    title="Light mode visuals"
-                                >
-                                    <NodeVisualModeFields
-                                        errors={errors}
-                                        imageError={imageUploadErrors.nodeLight}
-                                        mode="light"
-                                        onImageUpload={(file) =>
-                                            void uploadWorldImage(
-                                                'nodeLight',
-                                                file,
-                                                (url) =>
-                                                    setVisualThemeTextConfig(
-                                                        setForm,
-                                                        'light',
-                                                        'imageUrl',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        uploadingImage={
-                                            uploadingImageKey === 'nodeLight'
-                                        }
-                                        values={form.visual_config.light}
-                                    />
-                                </SettingsAccordionSection>
-                            </>
-                        ) : null}
-
-                        {activeNodeSettingsSection === 'sounds' ? (
-                            <SettingsAccordionSection
-                                description="Optional learner-map sounds for pointer and unlock interactions."
-                                title="Node sounds"
-                            >
-                                <div className="grid gap-4">
-                                    <NodeSoundTriggerField
-                                        description="Played when the pointer enters this tile."
-                                        error={
-                                            errors[
-                                                'visual_config.sounds.mouseEnter.url'
-                                            ]
-                                        }
-                                        id="node-sound-mouse-enter"
-                                        label="Mouse enter"
-                                        onUpload={(file) =>
-                                            void uploadWorldSound(
-                                                'nodeSoundMouseEnter',
-                                                file,
-                                                (url) =>
-                                                    setNodeSoundUrl(
-                                                        setForm,
-                                                        'mouseEnter',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        trigger="mouseEnter"
-                                        uploadError={
-                                            soundUploadErrors.nodeSoundMouseEnter
-                                        }
-                                        uploading={
-                                            uploadingSoundKey ===
-                                            'nodeSoundMouseEnter'
-                                        }
-                                        value={
-                                            form.visual_config.sounds.mouseEnter
-                                        }
-                                    />
-                                    <NodeSoundTriggerField
-                                        description="Played when learners click or tap this tile."
-                                        error={
-                                            errors[
-                                                'visual_config.sounds.click.url'
-                                            ]
-                                        }
-                                        id="node-sound-click"
-                                        label="Click"
-                                        onUpload={(file) =>
-                                            void uploadWorldSound(
-                                                'nodeSoundClick',
-                                                file,
-                                                (url) =>
-                                                    setNodeSoundUrl(
-                                                        setForm,
-                                                        'click',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        trigger="click"
-                                        uploadError={
-                                            soundUploadErrors.nodeSoundClick
-                                        }
-                                        uploading={
-                                            uploadingSoundKey ===
-                                            'nodeSoundClick'
-                                        }
-                                        value={form.visual_config.sounds.click}
-                                    />
-                                    <NodeSoundTriggerField
-                                        description="Played when the pointer leaves this tile."
-                                        error={
-                                            errors[
-                                                'visual_config.sounds.mouseLeave.url'
-                                            ]
-                                        }
-                                        id="node-sound-mouse-leave"
-                                        label="Mouse leave"
-                                        onUpload={(file) =>
-                                            void uploadWorldSound(
-                                                'nodeSoundMouseLeave',
-                                                file,
-                                                (url) =>
-                                                    setNodeSoundUrl(
-                                                        setForm,
-                                                        'mouseLeave',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        trigger="mouseLeave"
-                                        uploadError={
-                                            soundUploadErrors.nodeSoundMouseLeave
-                                        }
-                                        uploading={
-                                            uploadingSoundKey ===
-                                            'nodeSoundMouseLeave'
-                                        }
-                                        value={
-                                            form.visual_config.sounds.mouseLeave
-                                        }
-                                    />
-                                    <NodeSoundTriggerField
-                                        description="Played after the backend confirms this node was unlocked."
-                                        error={
-                                            errors[
-                                                'visual_config.sounds.unlock.url'
-                                            ]
-                                        }
-                                        id="node-sound-unlock"
-                                        label="Unlock"
-                                        onUpload={(file) =>
-                                            void uploadWorldSound(
-                                                'nodeSoundUnlock',
-                                                file,
-                                                (url) =>
-                                                    setNodeSoundUrl(
-                                                        setForm,
-                                                        'unlock',
-                                                        url,
-                                                    ),
-                                            )
-                                        }
-                                        setForm={setForm}
-                                        trigger="unlock"
-                                        uploadError={
-                                            soundUploadErrors.nodeSoundUnlock
-                                        }
-                                        uploading={
-                                            uploadingSoundKey ===
-                                            'nodeSoundUnlock'
-                                        }
-                                        value={form.visual_config.sounds.unlock}
-                                    />
-                                </div>
-                            </SettingsAccordionSection>
-                        ) : null}
-
-                        {selectedNode ? (
-                            <SettingsAccordionSection
-                                description="Remove this tile and its activities from the map."
-                                title="Danger zone"
-                            >
-                                <div className="rounded-md border border-red-500/25 bg-red-50 p-3 dark:border-red-300/20 dark:bg-red-500/10">
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="grid gap-1 text-sm">
-                                            <p className="font-medium text-red-950 dark:text-red-50">
-                                                Delete this tile
-                                            </p>
-                                            <p className="text-xs text-red-800 dark:text-red-100/75">
-                                                This removes the tile, its
-                                                activities, route buttons,
-                                                portal links, bookmarks and
-                                                learner progress. This cannot be
-                                                undone.
-                                            </p>
-                                        </div>
                                         <Button
-                                            className="shrink-0 border-red-500/40 text-red-700 hover:bg-red-100 dark:border-red-200/35 dark:text-red-200 dark:hover:bg-red-200/15"
-                                            disabled={processing}
-                                            onClick={() =>
-                                                setPendingDeleteNode(
-                                                    selectedNode,
-                                                )
-                                            }
+                                            asChild
                                             type="button"
                                             variant="outline"
                                         >
-                                            <Trash2 className="size-4" />
-                                            Delete tile
+                                            <Link
+                                                href={`/settings/worlds/nodes/${selectedNode.id}/activities`}
+                                            >
+                                                <GitBranch className="size-4" />
+                                                Edit activities
+                                            </Link>
                                         </Button>
-                                    </div>
-                                </div>
-                            </SettingsAccordionSection>
-                        ) : null}
-                    </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection === 'right-panel' ? (
+                                    <SettingsConfigurationSection
+                                        description="Name, URL slug and learner-facing summary."
+                                        title="Right panel"
+                                    >
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                            <TextField
+                                                error={errors.title}
+                                                label="Title"
+                                                onChange={(value) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        title: value,
+                                                        visual_config: {
+                                                            ...current.visual_config,
+                                                            label:
+                                                                current
+                                                                    .visual_config
+                                                                    .label ||
+                                                                value,
+                                                        },
+                                                    }))
+                                                }
+                                                value={form.title}
+                                            />
+                                            <TextField
+                                                error={errors.slug}
+                                                label="Slug"
+                                                onChange={(value) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        slug: value,
+                                                    }))
+                                                }
+                                                placeholder="Optional, generated if empty"
+                                                value={form.slug}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-1">
+                                            <Label htmlFor="tile-description">
+                                                Description
+                                            </Label>
+                                            <textarea
+                                                className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                id="tile-description"
+                                                onChange={(event) => {
+                                                    const description =
+                                                        event.currentTarget
+                                                            .value;
+
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        description,
+                                                    }));
+                                                }}
+                                                value={form.description}
+                                            />
+                                            <InputError
+                                                message={errors.description}
+                                            />
+                                        </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection ===
+                                'availability' ? (
+                                    <>
+                                        <SettingsConfigurationSection
+                                            description="Learner-facing label and visibility behavior for the tile."
+                                            title="Tile display and text"
+                                        >
+                                            <TextField
+                                                error={
+                                                    errors[
+                                                        'visual_config.label'
+                                                    ]
+                                                }
+                                                label="Tile label"
+                                                onChange={(value) =>
+                                                    setVisualTextConfig(
+                                                        setForm,
+                                                        'label',
+                                                        value,
+                                                    )
+                                                }
+                                                value={form.visual_config.label}
+                                            />
+                                            <TextField
+                                                error={
+                                                    errors[
+                                                        'visual_config.tooltip'
+                                                    ]
+                                                }
+                                                label="Hover text"
+                                                onChange={(value) =>
+                                                    setVisualTextConfig(
+                                                        setForm,
+                                                        'tooltip',
+                                                        value,
+                                                    )
+                                                }
+                                                placeholder="Shown when learners hover the tile"
+                                                value={
+                                                    form.visual_config.tooltip
+                                                }
+                                            />
+
+                                            <div className="grid gap-3">
+                                                {form.state !== 'hidden' ? (
+                                                    <CheckboxField
+                                                        checked={
+                                                            form.state ===
+                                                            'locked'
+                                                        }
+                                                        description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
+                                                        id="lock-node"
+                                                        label="Lock node for learners"
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setLockedState(
+                                                                setForm,
+                                                                checked,
+                                                            )
+                                                        }
+                                                    />
+                                                ) : null}
+                                                <CheckboxField
+                                                    checked={
+                                                        form.visual_config
+                                                            .hideLabel
+                                                    }
+                                                    description="The title still appears in the side panel after the tile is selected."
+                                                    id="hide-label"
+                                                    label="Hide tile label on world map"
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setVisualBooleanConfig(
+                                                            setForm,
+                                                            'hideLabel',
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                <CheckboxField
+                                                    checked={
+                                                        form.visual_config
+                                                            .hideImage
+                                                    }
+                                                    description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
+                                                    id="hide-image"
+                                                    label="Hide node image on world map"
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setVisualBooleanConfig(
+                                                            setForm,
+                                                            'hideImage',
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                {form.state === 'hidden' ? (
+                                                    <CheckboxField
+                                                        checked={
+                                                            form.visual_config
+                                                                .hideEmptySpace
+                                                        }
+                                                        description="The tile keeps its coordinate and spacing, but learners do not see or click it."
+                                                        id="hide-empty-space"
+                                                        label="Hide this empty space on learner map"
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setVisualBooleanConfig(
+                                                                setForm,
+                                                                'hideEmptySpace',
+                                                                checked,
+                                                            )
+                                                        }
+                                                    />
+                                                ) : null}
+                                            </div>
+                                        </SettingsConfigurationSection>
+
+                                        <SettingsConfigurationSection
+                                            description="Hide this node until a learner uses a configured tool at its map position."
+                                            title="Discovery"
+                                        >
+                                            <div className="grid gap-3">
+                                                <CheckboxField
+                                                    checked={
+                                                        form.visual_config
+                                                            .reveal.enabled
+                                                    }
+                                                    description="The node keeps its coordinates, but learners only reveal it by equipping the chosen tool and clicking its hidden map position."
+                                                    id="reveal-with-tool"
+                                                    label="Hide until revealed with a tool"
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setRevealEnabled(
+                                                            setForm,
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                <div className="grid gap-1">
+                                                    <Label htmlFor="reveal-tool">
+                                                        Reveal tool
+                                                    </Label>
+                                                    <select
+                                                        className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                        disabled={
+                                                            !form.visual_config
+                                                                .reveal.enabled
+                                                        }
+                                                        id="reveal-tool"
+                                                        onChange={(event) =>
+                                                            setRevealToolId(
+                                                                setForm,
+                                                                event
+                                                                    .currentTarget
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        value={
+                                                            form.visual_config
+                                                                .reveal.toolId
+                                                        }
+                                                    >
+                                                        <option value="">
+                                                            Select a tool
+                                                        </option>
+                                                        {tools.map((tool) => (
+                                                            <option
+                                                                key={tool.id}
+                                                                value={tool.id}
+                                                            >
+                                                                {tool.title}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <InputError
+                                                        message={
+                                                            errors[
+                                                                'visual_config.reveal.toolId'
+                                                            ]
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                        </SettingsConfigurationSection>
+
+                                        <SettingsConfigurationSection
+                                            description="Keep this visible node locked until completion rules and optional tool use allow access."
+                                            title="Unlocking"
+                                        >
+                                            <div className="grid gap-3">
+                                                <CheckboxField
+                                                    checked={
+                                                        form.visual_config
+                                                            .unlock.enabled
+                                                    }
+                                                    description="Learners cannot open this node until the configured rule evaluates to true."
+                                                    id="unlock-rules-enabled"
+                                                    label="Use unlock rules for this node"
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setUnlockEnabled(
+                                                            setForm,
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                                <div className="grid gap-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
+                                                    <div className="grid gap-1">
+                                                        <Label htmlFor="unlock-top-operator">
+                                                            Combine node and
+                                                            tool rules with
+                                                        </Label>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled
+                                                            }
+                                                            id="unlock-top-operator"
+                                                            onChange={(event) =>
+                                                                setUnlockOperator(
+                                                                    setForm,
+                                                                    'topOperator',
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .topOperator
+                                                            }
+                                                        >
+                                                            <option value="and">
+                                                                AND - all groups
+                                                                must pass
+                                                            </option>
+                                                            <option value="or">
+                                                                OR - any group
+                                                                can pass
+                                                            </option>
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="unlock-node-operator">
+                                                            Completed-node rule
+                                                        </Label>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled
+                                                            }
+                                                            id="unlock-node-operator"
+                                                            onChange={(event) =>
+                                                                setUnlockOperator(
+                                                                    setForm,
+                                                                    'nodeOperator',
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .nodeOperator
+                                                            }
+                                                        >
+                                                            <option value="and">
+                                                                All selected
+                                                                nodes completed
+                                                            </option>
+                                                            <option value="or">
+                                                                Any selected
+                                                                node completed
+                                                            </option>
+                                                        </select>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled
+                                                            }
+                                                            onChange={(
+                                                                event,
+                                                            ) => {
+                                                                addUnlockRequiredNode(
+                                                                    setForm,
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                );
+                                                                event.currentTarget.value =
+                                                                    '';
+                                                            }}
+                                                            value=""
+                                                        >
+                                                            <option value="">
+                                                                Add
+                                                                completed-node
+                                                                condition
+                                                            </option>
+                                                            {map.nodes
+                                                                .filter(
+                                                                    (node) =>
+                                                                        node.id !==
+                                                                        selectedNode?.id,
+                                                                )
+                                                                .map((node) => (
+                                                                    <option
+                                                                        disabled={form.visual_config.unlock.requiredNodeIds.includes(
+                                                                            node.id.toString(),
+                                                                        )}
+                                                                        key={
+                                                                            node.id
+                                                                        }
+                                                                        value={
+                                                                            node.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            node.title
+                                                                        }
+                                                                    </option>
+                                                                ))}
+                                                        </select>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {form.visual_config
+                                                                .unlock
+                                                                .requiredNodeIds
+                                                                .length ===
+                                                            0 ? (
+                                                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                    No
+                                                                    completed-node
+                                                                    conditions
+                                                                    yet.
+                                                                </span>
+                                                            ) : null}
+                                                            {form.visual_config.unlock.requiredNodeIds.map(
+                                                                (nodeId) => {
+                                                                    const node =
+                                                                        map.nodes.find(
+                                                                            (
+                                                                                candidate,
+                                                                            ) =>
+                                                                                candidate.id.toString() ===
+                                                                                nodeId,
+                                                                        );
+
+                                                                    return (
+                                                                        <button
+                                                                            className="rounded-full border border-[color-mix(in_srgb,var(--settings-accent)_28%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] px-3 py-1 text-xs text-[var(--settings-accent)] transition hover:border-[var(--settings-accent)]"
+                                                                            key={
+                                                                                nodeId
+                                                                            }
+                                                                            onClick={() =>
+                                                                                removeUnlockRequiredNode(
+                                                                                    setForm,
+                                                                                    nodeId,
+                                                                                )
+                                                                            }
+                                                                            type="button"
+                                                                        >
+                                                                            {node?.title ??
+                                                                                `Node ${nodeId}`}
+                                                                            {
+                                                                                ' x'
+                                                                            }
+                                                                        </button>
+                                                                    );
+                                                                },
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <CheckboxField
+                                                        checked={
+                                                            form.visual_config
+                                                                .unlock.tool
+                                                                .enabled
+                                                        }
+                                                        description="Learners must use the selected tool on this locked node."
+                                                        id="unlock-tool-enabled"
+                                                        label="Require tool use"
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setUnlockToolEnabled(
+                                                                setForm,
+                                                                checked,
+                                                            )
+                                                        }
+                                                    />
+                                                    <div className="grid gap-1">
+                                                        <Label htmlFor="unlock-tool">
+                                                            Unlock tool
+                                                        </Label>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled ||
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock.tool
+                                                                    .enabled
+                                                            }
+                                                            id="unlock-tool"
+                                                            onChange={(event) =>
+                                                                setUnlockToolId(
+                                                                    setForm,
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .unlock.tool
+                                                                    .toolId
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                Select a tool
+                                                            </option>
+                                                            {tools.map(
+                                                                (tool) => (
+                                                                    <option
+                                                                        key={
+                                                                            tool.id
+                                                                        }
+                                                                        value={
+                                                                            tool.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            tool.title
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <InputError
+                                                            message={
+                                                                errors[
+                                                                    'visual_config.unlock.tool.toolId'
+                                                                ]
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-2 dark:border-white/10 dark:bg-slate-950/60">
+                                                        <DateTimeField
+                                                            description="Optional unlock condition. The rule passes when the current time is the same or later."
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled
+                                                            }
+                                                            error={
+                                                                errors[
+                                                                    'visual_config.schedule.unlockAt'
+                                                                ]
+                                                            }
+                                                            label="Unlock not before"
+                                                            onChange={(value) =>
+                                                                setScheduleValue(
+                                                                    setForm,
+                                                                    'unlockAt',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .schedule
+                                                                    .unlockAt
+                                                            }
+                                                        />
+                                                        <DateTimeField
+                                                            description="Optional hard lock. Once this time is reached, the node is locked again."
+                                                            error={
+                                                                errors[
+                                                                    'visual_config.schedule.lockAt'
+                                                                ]
+                                                            }
+                                                            label="Lock after"
+                                                            onChange={(value) =>
+                                                                setScheduleValue(
+                                                                    setForm,
+                                                                    'lockAt',
+                                                                    value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .schedule
+                                                                    .lockAt
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="rounded-md border border-amber-500/25 bg-amber-50 p-3 dark:border-amber-300/20 dark:bg-amber-300/10">
+                                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                            <div className="grid gap-1 text-sm">
+                                                                <p className="font-medium text-amber-950 dark:text-amber-50">
+                                                                    Reset
+                                                                    learner
+                                                                    unlock state
+                                                                </p>
+                                                                <p className="text-xs text-amber-800 dark:text-amber-100/75">
+                                                                    Lock this
+                                                                    node again
+                                                                    for every
+                                                                    learner by
+                                                                    removing
+                                                                    saved
+                                                                    tool-unlock
+                                                                    progress.
+                                                                </p>
+                                                            </div>
+                                                            <Button
+                                                                className="shrink-0 border-amber-500/40 text-amber-950 hover:bg-amber-100 dark:border-amber-200/35 dark:text-amber-50 dark:hover:bg-amber-200/15"
+                                                                disabled={
+                                                                    !selectedNode ||
+                                                                    processing
+                                                                }
+                                                                onClick={
+                                                                    resetNodeUnlocksForAllUsers
+                                                                }
+                                                                type="button"
+                                                                variant="outline"
+                                                            >
+                                                                <LockKeyhole className="size-4" />
+                                                                Lock for all
+                                                                users
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </SettingsConfigurationSection>
+                                    </>
+                                ) : null}
+
+                                {activeNodeSettingsSection === 'visuals' ? (
+                                    <SettingsConfigurationSection
+                                        description="Switch between dark and light tile visuals, then preview the learner-facing tile."
+                                        title="Visuals"
+                                    >
+                                        <div className="mb-4 flex justify-end">
+                                            <ConfigModeSwitch
+                                                mode={nodeVisualMode}
+                                                onChange={setNodeVisualMode}
+                                            />
+                                        </div>
+                                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                            <NodeVisualModeFields
+                                                errors={errors}
+                                                imageError={
+                                                    nodeVisualMode === 'dark'
+                                                        ? imageUploadErrors.nodeDark
+                                                        : imageUploadErrors.nodeLight
+                                                }
+                                                mode={nodeVisualMode}
+                                                onImageUpload={(file) =>
+                                                    void uploadWorldImage(
+                                                        nodeVisualMode ===
+                                                            'dark'
+                                                            ? 'nodeDark'
+                                                            : 'nodeLight',
+                                                        file,
+                                                        (url) =>
+                                                            setVisualThemeTextConfig(
+                                                                setForm,
+                                                                nodeVisualMode,
+                                                                'imageUrl',
+                                                                url,
+                                                            ),
+                                                    )
+                                                }
+                                                setForm={setForm}
+                                                uploadingImage={
+                                                    nodeVisualMode === 'dark'
+                                                        ? uploadingImageKey ===
+                                                          'nodeDark'
+                                                        : uploadingImageKey ===
+                                                          'nodeLight'
+                                                }
+                                                values={
+                                                    form.visual_config[
+                                                        nodeVisualMode
+                                                    ]
+                                                }
+                                            />
+                                            <NodeVisualPreview
+                                                form={form}
+                                                mode={nodeVisualMode}
+                                            />
+                                        </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection === 'sounds' ? (
+                                    <SettingsConfigurationSection
+                                        description="Optional learner-map sounds for pointer and unlock interactions."
+                                        title="Node sounds"
+                                    >
+                                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                            <div className="grid gap-4">
+                                                <NodeSoundTriggerField
+                                                    description="Played when the pointer enters this tile."
+                                                    error={
+                                                        errors[
+                                                            'visual_config.sounds.mouseEnter.url'
+                                                        ]
+                                                    }
+                                                    id="node-sound-mouse-enter"
+                                                    label="Mouse enter"
+                                                    onUpload={(file) =>
+                                                        void uploadWorldSound(
+                                                            'nodeSoundMouseEnter',
+                                                            file,
+                                                            (url) =>
+                                                                setNodeSoundUrl(
+                                                                    setForm,
+                                                                    'mouseEnter',
+                                                                    url,
+                                                                ),
+                                                        )
+                                                    }
+                                                    setForm={setForm}
+                                                    trigger="mouseEnter"
+                                                    uploadError={
+                                                        soundUploadErrors.nodeSoundMouseEnter
+                                                    }
+                                                    uploading={
+                                                        uploadingSoundKey ===
+                                                        'nodeSoundMouseEnter'
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .sounds.mouseEnter
+                                                    }
+                                                />
+                                                <NodeSoundTriggerField
+                                                    description="Played when learners click or tap this tile."
+                                                    error={
+                                                        errors[
+                                                            'visual_config.sounds.click.url'
+                                                        ]
+                                                    }
+                                                    id="node-sound-click"
+                                                    label="Click"
+                                                    onUpload={(file) =>
+                                                        void uploadWorldSound(
+                                                            'nodeSoundClick',
+                                                            file,
+                                                            (url) =>
+                                                                setNodeSoundUrl(
+                                                                    setForm,
+                                                                    'click',
+                                                                    url,
+                                                                ),
+                                                        )
+                                                    }
+                                                    setForm={setForm}
+                                                    trigger="click"
+                                                    uploadError={
+                                                        soundUploadErrors.nodeSoundClick
+                                                    }
+                                                    uploading={
+                                                        uploadingSoundKey ===
+                                                        'nodeSoundClick'
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .sounds.click
+                                                    }
+                                                />
+                                                <NodeSoundTriggerField
+                                                    description="Played when the pointer leaves this tile."
+                                                    error={
+                                                        errors[
+                                                            'visual_config.sounds.mouseLeave.url'
+                                                        ]
+                                                    }
+                                                    id="node-sound-mouse-leave"
+                                                    label="Mouse leave"
+                                                    onUpload={(file) =>
+                                                        void uploadWorldSound(
+                                                            'nodeSoundMouseLeave',
+                                                            file,
+                                                            (url) =>
+                                                                setNodeSoundUrl(
+                                                                    setForm,
+                                                                    'mouseLeave',
+                                                                    url,
+                                                                ),
+                                                        )
+                                                    }
+                                                    setForm={setForm}
+                                                    trigger="mouseLeave"
+                                                    uploadError={
+                                                        soundUploadErrors.nodeSoundMouseLeave
+                                                    }
+                                                    uploading={
+                                                        uploadingSoundKey ===
+                                                        'nodeSoundMouseLeave'
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .sounds.mouseLeave
+                                                    }
+                                                />
+                                                <NodeSoundTriggerField
+                                                    description="Played after the backend confirms this node was unlocked."
+                                                    error={
+                                                        errors[
+                                                            'visual_config.sounds.unlock.url'
+                                                        ]
+                                                    }
+                                                    id="node-sound-unlock"
+                                                    label="Unlock"
+                                                    onUpload={(file) =>
+                                                        void uploadWorldSound(
+                                                            'nodeSoundUnlock',
+                                                            file,
+                                                            (url) =>
+                                                                setNodeSoundUrl(
+                                                                    setForm,
+                                                                    'unlock',
+                                                                    url,
+                                                                ),
+                                                        )
+                                                    }
+                                                    setForm={setForm}
+                                                    trigger="unlock"
+                                                    uploadError={
+                                                        soundUploadErrors.nodeSoundUnlock
+                                                    }
+                                                    uploading={
+                                                        uploadingSoundKey ===
+                                                        'nodeSoundUnlock'
+                                                    }
+                                                    value={
+                                                        form.visual_config
+                                                            .sounds.unlock
+                                                    }
+                                                />
+                                            </div>
+                                            <NodeSoundPreview
+                                                sounds={
+                                                    form.visual_config.sounds
+                                                }
+                                            />
+                                        </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection === 'danger' &&
+                                selectedNode ? (
+                                    <SettingsConfigurationSection
+                                        description="Remove this tile and its activities from the map."
+                                        title="Danger zone"
+                                    >
+                                        <div className="rounded-md border border-red-500/25 bg-red-50 p-3 dark:border-red-300/20 dark:bg-red-500/10">
+                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                <div className="grid gap-1 text-sm">
+                                                    <p className="font-medium text-red-950 dark:text-red-50">
+                                                        Delete this tile
+                                                    </p>
+                                                    <p className="text-xs text-red-800 dark:text-red-100/75">
+                                                        This removes the tile,
+                                                        its activities, route
+                                                        buttons, portal links,
+                                                        bookmarks and learner
+                                                        progress. This cannot be
+                                                        undone.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    className="shrink-0 border-red-500/40 text-red-700 hover:bg-red-100 dark:border-red-200/35 dark:text-red-200 dark:hover:bg-red-200/15"
+                                                    disabled={processing}
+                                                    onClick={() =>
+                                                        setPendingDeleteNode(
+                                                            selectedNode,
+                                                        )
+                                                    }
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                    Delete tile
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+                            </div>
+                        </SettingsContentPane>
+                    </SettingsConfigurationLayout>
 
                     <DialogFooter>
                         <Button
@@ -1937,7 +2081,7 @@ export default function EditWorldMap({
                             Save tile
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog
@@ -1981,12 +2125,13 @@ export default function EditWorldMap({
     );
 }
 
-const nodeSettingsSections: {
-    description: string;
-    icon: LucideIcon;
-    key: NodeSettingsSection;
-    label: string;
-}[] = [
+const nodeSettingsSections: SettingsNavigationItem<NodeSettingsSection>[] = [
+    {
+        description: 'Open the activity graph for this tile.',
+        icon: GitBranch,
+        key: 'activities',
+        label: 'Activities',
+    },
     {
         description: 'Title, slug and description shown in the side panel.',
         icon: PanelRight,
@@ -2011,45 +2156,38 @@ const nodeSettingsSections: {
         key: 'sounds',
         label: 'Sounds',
     },
+    {
+        description: 'Remove the tile and linked learner data.',
+        icon: Trash2,
+        key: 'danger',
+        label: 'Danger zone',
+    },
 ];
 
 function NodeSettingsSwitcher({
     activeSection,
+    isEditingNode,
     onChange,
 }: {
     activeSection: NodeSettingsSection;
+    isEditingNode: boolean;
     onChange: (section: NodeSettingsSection) => void;
 }) {
-    return (
-        <div
-            aria-label="Node settings sections"
-            className="mx-auto flex w-fit items-center gap-1 rounded-2xl border border-slate-200 bg-white/88 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/82"
-            role="tablist"
-        >
-            {nodeSettingsSections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.key;
+    const visibleSections = nodeSettingsSections.filter(
+        (section) =>
+            isEditingNode ||
+            (section.key !== 'activities' && section.key !== 'danger'),
+    );
 
-                return (
-                    <button
-                        aria-label={section.label}
-                        aria-selected={isActive}
-                        className={cn(
-                            'group grid size-10 place-items-center rounded-xl text-slate-500 transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:focus-visible:ring-teal-200',
-                            isActive
-                                ? 'bg-cyan-600 text-white shadow-sm dark:bg-teal-300 dark:text-slate-950'
-                                : 'hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-white/10 dark:hover:text-white',
-                        )}
-                        key={section.key}
-                        onClick={() => onChange(section.key)}
-                        title={`${section.label} - ${section.description}`}
-                        type="button"
-                    >
-                        <Icon className="size-4" />
-                    </button>
-                );
-            })}
-        </div>
+    return (
+        <SettingsSidebar>
+            <SettingsSectionNavigation
+                activeSection={activeSection}
+                ariaLabel="Tile settings sections"
+                items={visibleSections}
+                onChange={onChange}
+            />
+        </SettingsSidebar>
     );
 }
 
@@ -2113,7 +2251,7 @@ function HexGridCell({
                 >
                     <button
                         className={cn(
-                            'absolute top-1/2 left-1/2 grid h-[104px] w-[120px] -translate-x-1/2 -translate-y-1/2 place-items-center px-4 text-center text-xs font-semibold shadow-lg transition hover:-translate-y-[54%] focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:focus-visible:ring-teal-200',
+                            'absolute top-1/2 left-1/2 grid h-[104px] w-[120px] -translate-x-1/2 -translate-y-1/2 place-items-center px-4 text-center text-xs font-semibold shadow-lg transition hover:-translate-y-[54%] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                             'pointer-events-auto',
                             isEmptySpace &&
                                 'border border-dashed border-slate-400/70 bg-slate-100/70 text-slate-500 shadow-none dark:border-white/20 dark:bg-white/5 dark:text-slate-400',
@@ -2189,9 +2327,9 @@ function HexGridCell({
                                             : `No neighboring tile ${direction.label}`
                                     }
                                     className={cn(
-                                        'absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border text-cyan-700 shadow-sm transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-teal-200 dark:focus-visible:ring-teal-200',
+                                        'absolute grid size-6 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border text-[var(--settings-accent)] shadow-sm backdrop-blur-md transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                         targetNode
-                                            ? 'pointer-events-auto border-cyan-600/40 bg-white/90 hover:bg-cyan-100 dark:border-teal-200/35 dark:bg-slate-950/88 dark:hover:bg-teal-200/15'
+                                            ? 'pointer-events-auto border-[color-mix(in_srgb,var(--settings-accent)_48%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] hover:border-[color-mix(in_srgb,var(--settings-accent)_78%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)]'
                                             : 'pointer-events-none border-slate-300/40 bg-white/40 text-slate-300 opacity-35 dark:border-white/10 dark:bg-slate-950/30 dark:text-slate-600',
                                     )}
                                     disabled={!targetNode}
@@ -2236,7 +2374,7 @@ function HexGridCell({
             ) : (
                 <button
                     aria-label={`Add tile at ${cell.q}, ${cell.r}`}
-                    className="pointer-events-auto grid size-14 place-items-center rounded-full border border-dashed border-cyan-500/45 bg-cyan-50/80 text-cyan-700 shadow-sm transition hover:scale-105 hover:border-cyan-600 hover:bg-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-teal-200/30 dark:bg-teal-200/8 dark:text-teal-200 dark:hover:border-teal-200 dark:hover:bg-teal-200/15 dark:focus-visible:ring-teal-200"
+                    className="pointer-events-auto grid size-14 place-items-center rounded-full border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] text-[var(--settings-accent)] shadow-sm backdrop-blur-md transition hover:scale-105 hover:border-[color-mix(in_srgb,var(--settings-accent)_78%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                     draggable={false}
                     onClick={(event) => {
                         event.stopPropagation();
@@ -2268,7 +2406,7 @@ function InsertBetweenControl({
     return (
         <button
             aria-label={`Insert tile between ${node.title} and ${targetNode.title}`}
-            className="pointer-events-auto absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-cyan-600/45 bg-white/95 text-cyan-700 shadow-sm transition hover:scale-105 hover:bg-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-teal-200/45 dark:bg-slate-950/95 dark:text-teal-200 dark:hover:bg-teal-200/15 dark:focus-visible:ring-teal-200"
+            className="pointer-events-auto absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[color-mix(in_srgb,var(--settings-accent)_55%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)] shadow-sm backdrop-blur-md transition hover:scale-105 hover:border-[color-mix(in_srgb,var(--settings-accent)_82%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
             draggable={false}
             onClick={(event) => {
                 event.stopPropagation();
@@ -2478,6 +2616,50 @@ function NodeSoundTriggerField({
     );
 }
 
+function NodeSoundPreview({ sounds }: { sounds: NodeSoundFields }) {
+    return (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/70">
+            <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                Preview
+            </p>
+            <button
+                className="mt-4 grid min-h-44 w-full place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-semibold text-slate-700 transition hover:border-[var(--settings-accent)] hover:bg-slate-50 dark:border-white/15 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/5"
+                onClick={() => void playNodeSound(sounds.click)}
+                onMouseEnter={() => void playNodeSound(sounds.mouseEnter)}
+                onMouseLeave={() => void playNodeSound(sounds.mouseLeave)}
+                type="button"
+            >
+                <span>
+                    Preview tile
+                    <span className="mt-2 block text-xs font-normal text-slate-500 dark:text-slate-400">
+                        Hover, click, and leave this tile to test configured
+                        sounds.
+                    </span>
+                </span>
+            </button>
+            <Button
+                className="mt-3 w-full"
+                onClick={() => void playNodeSound(sounds.unlock)}
+                type="button"
+                variant="outline"
+            >
+                <Volume2 className="size-4" />
+                Preview unlock sound
+            </Button>
+        </div>
+    );
+}
+
+async function playNodeSound(sound: NodeSoundTriggerConfig): Promise<void> {
+    if (!sound.enabled || !sound.url) {
+        return;
+    }
+
+    const audio = new Audio(sound.url);
+    audio.volume = 0.8;
+    await audio.play().catch(() => undefined);
+}
+
 type NodeVisualColorKey =
     | 'foregroundColor'
     | 'highlightColor'
@@ -2680,6 +2862,88 @@ function NodeVisualModeFields({
     );
 }
 
+function NodeVisualPreview({
+    form,
+    mode,
+}: {
+    form: NodeForm;
+    mode: ThemeMode;
+}) {
+    const values = form.visual_config[mode];
+    const tileColor =
+        withOpacity(values.tileColor || '#253047', values.tileOpacity) ??
+        '#253047';
+    const labelColor =
+        withOpacity(values.labelColor || '#ffffff', values.labelOpacity) ??
+        '#ffffff';
+    const highlightColor =
+        withOpacity(
+            values.highlightColor || '#7dd3fc',
+            values.highlightOpacity,
+        ) ?? '#7dd3fc';
+    const imageX = percentConfig(values.imageX, 50);
+    const imageY = percentConfig(values.imageY, 50);
+    const imageWidth = percentConfig(values.imageWidth, 100, 10, 200);
+    const imageRotation = rotationConfig(values.imageRotation);
+    const previewLabel =
+        form.visual_config.label || form.title || 'Preview tile';
+
+    return (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/70">
+            <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                Preview
+            </p>
+            <div className="mt-4 grid min-h-72 place-items-center rounded-lg bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_58%)]">
+                <div
+                    className="group relative grid h-[156px] w-[180px] place-items-center overflow-hidden px-5 text-center text-sm font-semibold shadow-xl transition hover:-translate-y-1"
+                    style={{
+                        background: tileColor,
+                        clipPath:
+                            'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                        color: labelColor,
+                    }}
+                >
+                    {values.imageUrl && !form.visual_config.hideImage ? (
+                        <span
+                            className="absolute inset-[8px] overflow-hidden"
+                            style={{
+                                clipPath:
+                                    'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                            }}
+                        >
+                            <img
+                                alt=""
+                                className="absolute inset-0 size-full object-cover"
+                                draggable={false}
+                                src={values.imageUrl}
+                                style={{
+                                    objectPosition: `${imageX}% ${imageY}%`,
+                                    transform: `scale(${imageWidth / 100}) rotate(${imageRotation}deg)`,
+                                }}
+                            />
+                        </span>
+                    ) : null}
+                    <span
+                        className="pointer-events-none absolute inset-[7px] opacity-0 transition-opacity group-hover:opacity-100"
+                        style={{
+                            background: highlightColor,
+                            clipPath:
+                                'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                            filter: 'drop-shadow(0 0 12px currentColor)',
+                        }}
+                    />
+                    {!form.visual_config.hideLabel ? (
+                        <span className="relative z-10">{previewLabel}</span>
+                    ) : null}
+                    {form.state === 'locked' ? (
+                        <LockKeyhole className="relative z-20 size-9 text-white/70 drop-shadow" />
+                    ) : null}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function NodeImageNumberField({
     error,
     id,
@@ -2722,7 +2986,6 @@ function NodeImageNumberField({
 }
 
 function MapVisualModeFields({
-    defaultOpen = false,
     errors,
     imageError,
     mode,
@@ -2731,7 +2994,6 @@ function MapVisualModeFields({
     uploadingImage,
     values,
 }: {
-    defaultOpen?: boolean;
     errors: Record<string, string>;
     imageError?: string;
     mode: ThemeMode;
@@ -2747,8 +3009,7 @@ function MapVisualModeFields({
             : 'Empty fields inherit the dark-mode defaults.';
 
     return (
-        <SettingsAccordionSection
-            defaultOpen={defaultOpen}
+        <SettingsConfigurationSection
             description={description}
             title={`${labelPrefix} visuals`}
         >
@@ -2803,7 +3064,7 @@ function MapVisualModeFields({
                 uploading={uploadingImage}
                 value={values.imageUrl}
             />
-        </SettingsAccordionSection>
+        </SettingsConfigurationSection>
     );
 }
 

@@ -11,7 +11,8 @@ import type { Connection } from '@xyflow/react';
 import { ArrowLeft, ArrowRight, GitBranch, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
-import { SettingsAccordionSection } from '@/components/settings-accordion-section';
+import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
+import { SettingsConfigurationSection } from '@/components/settings-configuration-section';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -23,7 +24,6 @@ import {
 } from '@/components/ui/dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { ConfigImageInput } from './activity-config-fields';
-import { themedPreviewAsset } from './activity-scene-preview';
 import { ActivityFormFields } from './activity-form-fields';
 import { activityFormPayload } from './activity-form-payload';
 import {
@@ -36,6 +36,7 @@ import {
     buildGraphNodes,
     routeActivityTitle,
 } from './activity-graph-elements';
+import { themedPreviewAsset } from './activity-scene-preview';
 import type {
     ActivityForm,
     ActivityGraphEdge,
@@ -418,7 +419,7 @@ export default function EditNodeActivities({
                                     Edit map
                                 </Link>
                             </Button>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 {activityGraph.map.title}
                             </p>
                             <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
@@ -434,8 +435,8 @@ export default function EditNodeActivities({
                     <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
                         {activityGraph.activities.length === 0 ? (
                             <div className="pointer-events-none absolute inset-x-0 top-8 z-10 flex justify-center">
-                                <div className="rounded-xl border border-dashed border-cyan-300 bg-cyan-50/90 px-5 py-4 text-center shadow-lg backdrop-blur dark:border-teal-200/30 dark:bg-teal-300/10">
-                                    <GitBranch className="mx-auto mb-2 size-7 text-cyan-700 dark:text-teal-200" />
+                                <div className="rounded-xl border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] px-5 py-4 text-center shadow-lg backdrop-blur">
+                                    <GitBranch className="mx-auto mb-2 size-7 text-[var(--settings-accent)]" />
                                     <p className="font-semibold">
                                         No activities yet
                                     </p>
@@ -490,7 +491,7 @@ export default function EditNodeActivities({
             </main>
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
+                <SettingsConfigurationDialog className="overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add activity</DialogTitle>
                         <DialogDescription>
@@ -537,11 +538,11 @@ export default function EditNodeActivities({
                             </Button>
                         </DialogFooter>
                     </form>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-3xl">
+                <SettingsConfigurationDialog className="overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit activity</DialogTitle>
                         <DialogDescription>
@@ -584,7 +585,7 @@ export default function EditNodeActivities({
                             Save
                         </Button>
                     </DialogFooter>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog
@@ -595,7 +596,7 @@ export default function EditNodeActivities({
                     }
                 }}
             >
-                <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
+                <SettingsConfigurationDialog className="overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Route visuals</DialogTitle>
                         <DialogDescription>
@@ -607,7 +608,7 @@ export default function EditNodeActivities({
                     {selectedStartRoute ? (
                         <div className="grid gap-4">
                             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-                                <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
+                                <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                                     Starts activity
                                 </p>
                                 <p className="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
@@ -627,7 +628,7 @@ export default function EditNodeActivities({
                                 )}
                             />
 
-                            <SettingsAccordionSection
+                            <SettingsConfigurationSection
                                 description="Optional images shown as the route card background."
                                 title="Route images"
                             >
@@ -699,9 +700,9 @@ export default function EditNodeActivities({
                                         value={startRouteForm.image_light}
                                     />
                                 </div>
-                            </SettingsAccordionSection>
+                            </SettingsConfigurationSection>
 
-                            <SettingsAccordionSection
+                            <SettingsConfigurationSection
                                 description="Theme-specific colors for the button layered over a route image."
                                 title="Overlay button"
                             >
@@ -774,7 +775,7 @@ export default function EditNodeActivities({
                                         }
                                     />
                                 </div>
-                            </SettingsAccordionSection>
+                            </SettingsConfigurationSection>
                         </div>
                     ) : null}
 
@@ -809,7 +810,7 @@ export default function EditNodeActivities({
                             </Button>
                         </div>
                     </DialogFooter>
-                </DialogContent>
+                </SettingsConfigurationDialog>
             </Dialog>
 
             <Dialog
@@ -907,7 +908,8 @@ function RouteVisualPreview({
     const borderColor =
         (isLight
             ? form.button_border_color_light
-            : form.button_border_color_dark) || (isLight ? '#e2e8f0' : '#334155');
+            : form.button_border_color_dark) ||
+        (isLight ? '#e2e8f0' : '#334155');
 
     return (
         <div className="grid gap-2">

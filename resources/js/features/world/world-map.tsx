@@ -758,11 +758,7 @@ function wait(durationMs: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, durationMs));
 }
 
-function MapVisualAssetLayers({
-    assets,
-}: {
-    assets?: MapVisualAsset[];
-}) {
+function MapVisualAssetLayers({ assets }: { assets?: MapVisualAsset[] }) {
     if (!Array.isArray(assets) || assets.length === 0) {
         return null;
     }

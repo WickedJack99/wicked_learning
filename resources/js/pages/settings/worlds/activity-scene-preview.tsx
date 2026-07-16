@@ -87,7 +87,7 @@ export function ScenePreviewImage({
     if (!imageUrl) {
         return (
             <div
-                className="absolute z-10 grid aspect-square place-items-center rounded-lg border border-dashed border-cyan-600/45 bg-cyan-100/45 px-3 text-center text-xs font-semibold text-cyan-800 dark:border-teal-200/35 dark:bg-teal-200/10 dark:text-teal-100"
+                className="absolute z-10 grid aspect-square place-items-center rounded-lg border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_18%,transparent)] px-3 text-center text-xs font-semibold text-[var(--settings-accent)]"
                 style={style}
             >
                 {label}
@@ -124,7 +124,7 @@ export function ScenePreviewBubble({
             className="relative z-20 rounded-2xl border p-3 text-sm leading-5 shadow-sm backdrop-blur-md"
             style={{
                 backgroundColor: colorWithOpacity(color, opacity),
-                borderColor: borderColor || '#0891b2',
+                borderColor: borderColor || 'var(--settings-accent)',
             }}
         >
             <p className="mb-1 text-xs font-semibold tracking-wide text-slate-700 uppercase dark:text-slate-200">
@@ -154,14 +154,14 @@ export function ScenePreviewSlot({
 }) {
     return (
         <div
-            className="absolute z-10 aspect-square -translate-x-1/2 -translate-y-1/2 rounded-lg border border-cyan-600/45 bg-cyan-100/30 p-1 backdrop-blur-sm dark:border-teal-200/45 dark:bg-teal-200/10"
+            className="absolute z-10 aspect-square -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[color-mix(in_srgb,var(--settings-accent)_45%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] p-1 backdrop-blur-sm"
             style={{
                 left: `${boundedPercent(x, 50)}%`,
                 top: `${boundedPercent(y, 50)}%`,
                 width: `${boundedPercent(width, 12, 1)}%`,
             }}
         >
-            <div className="grid size-full place-items-center rounded bg-white/30 text-center text-[0.65rem] font-semibold text-cyan-800 dark:bg-slate-950/30 dark:text-teal-100">
+            <div className="grid size-full place-items-center rounded bg-white/30 text-center text-[0.65rem] font-semibold text-[var(--settings-accent)] dark:bg-slate-950/30">
                 {imageUrl ? (
                     <img
                         alt=""

@@ -486,7 +486,7 @@ function MapDetailsSection({
                 <div className="grid gap-2">
                     <Label htmlFor="map-description">Description</Label>
                     <textarea
-                        className="min-h-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-cyan-600 focus-visible:ring-2 focus-visible:ring-cyan-600/20 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus-visible:border-teal-200 dark:focus-visible:ring-teal-200/20"
+                        className="min-h-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
                         id="map-description"
                         onChange={(event) =>
                             onChange({
@@ -566,12 +566,21 @@ function MapVisualsSection({
                                 className={cn(
                                     'mb-2 grid w-full grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-xl px-3 py-3 text-left transition last:mb-0',
                                     visualSection === section.id
-                                        ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/15 dark:bg-teal-300 dark:text-slate-950'
+                                        ? 'text-[var(--settings-accent-foreground)] shadow-md shadow-black/15'
                                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                                 )}
                                 key={section.id}
                                 onClick={() =>
                                     onVisualSectionChange(section.id)
+                                }
+                                style={
+                                    visualSection === section.id
+                                        ? {
+                                              background:
+                                                  'var(--settings-accent)',
+                                              color: 'var(--settings-accent-foreground)',
+                                          }
+                                        : undefined
                                 }
                                 type="button"
                             >

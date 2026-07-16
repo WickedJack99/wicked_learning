@@ -2,10 +2,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import {
     Background,
     Controls,
+    Handle,
     MarkerType,
     MiniMap,
+    Position,
     ReactFlow,
-    useEdgesState,
     useNodesState,
 } from '@xyflow/react';
 import type { Edge, Node } from '@xyflow/react';
@@ -91,6 +92,22 @@ type MapNodeData = {
 
 type MapGraphNode = Node<MapNodeData, 'mapNode'>;
 type PortalEdge = Edge<PortalLinkSummary>;
+type GraphSide = 'bottom' | 'left' | 'right' | 'top';
+type GraphHandleLane = -2 | -1 | 0 | 1 | 2;
+
+const mapNodeSize = {
+    height: 150,
+    width: 224,
+};
+
+const graphHandleLanes: GraphHandleLane[] = [-2, -1, 0, 1, 2];
+const graphHandleLanePercent: Record<GraphHandleLane, number> = {
+    [-2]: 22,
+    [-1]: 36,
+    0: 50,
+    1: 64,
+    2: 78,
+};
 
 export default function AdminWorldIndex({
     worldGraph,
@@ -102,12 +119,14 @@ export default function AdminWorldIndex({
         () => buildGraphNodes(worldGraph.maps),
         [worldGraph.maps],
     );
-    const initialEdges = useMemo(
-        () => buildGraphEdges(worldGraph.portalLinks),
-        [worldGraph.portalLinks],
-    );
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [highlightedEdgeId, setHighlightedEdgeId] = useState<string | null>(
+        null,
+    );
+    const edges = useMemo(
+        () => buildGraphEdges(worldGraph.portalLinks, nodes, highlightedEdgeId),
+        [highlightedEdgeId, nodes, worldGraph.portalLinks],
+    );
     const [selectedMap, setSelectedMap] = useState<MapSummary | null>(null);
     const [selectedPortal, setSelectedPortal] =
         useState<PortalLinkSummary | null>(null);
@@ -122,23 +141,6 @@ export default function AdminWorldIndex({
         title: '',
     });
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
-    useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
-
-    const highlightEdge = (edgeId: string | null) => {
-        setEdges((currentEdges) =>
-            currentEdges.map((edge) => ({
-                ...edge,
-                animated: edge.id === edgeId,
-                label:
-                    edge.id === edgeId && edge.data
-                        ? portalActivityLabel(edge.data)
-                        : edge.data
-                          ? (edge.data.label ?? 'Portal')
-                          : edge.label,
-                style: edgeStyle(edge.id === edgeId),
-            })),
-        );
-    };
 
     const resetCreateForm = () => {
         setCreateErrors({});
@@ -178,7 +180,7 @@ export default function AdminWorldIndex({
                                     </Link>
                                 </Button>
                             </div>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 World editing
                             </p>
                             <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
@@ -204,11 +206,16 @@ export default function AdminWorldIndex({
                                     setSelectedMap(null);
                                 }}
                                 onEdgeMouseEnter={(_, edge) =>
-                                    highlightEdge(edge.id)
+                                    setHighlightedEdgeId(edge.id)
                                 }
-                                onEdgeMouseLeave={() => highlightEdge(null)}
-                                onEdgesChange={onEdgesChange}
+                                onEdgeMouseLeave={() =>
+                                    setHighlightedEdgeId(null)
+                                }
                                 onNodeClick={(_, node) => {
+                                    setSelectedMap(node.data.map);
+                                    setSelectedPortal(null);
+                                }}
+                                onNodeDragStart={(_, node) => {
                                     setSelectedMap(node.data.map);
                                     setSelectedPortal(null);
                                 }}
@@ -225,16 +232,14 @@ export default function AdminWorldIndex({
                                 {selectedPortal ? (
                                     <PortalDetails portal={selectedPortal} />
                                 ) : selectedMap ? (
-                                    <MapDetails
-                                        map={selectedMap}
-                                    />
+                                    <MapDetails map={selectedMap} />
                                 ) : (
                                     <EmptyDetails />
                                 )}
                             </div>
 
-                            <div className="shrink-0 rounded-xl border border-cyan-200 bg-cyan-50 p-5 shadow-lg dark:border-teal-200/20 dark:bg-teal-300/10">
-                                <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                            <div className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_34%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5 shadow-lg">
+                                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                     Prepare
                                 </p>
                                 <h2 className="mt-2 text-lg font-semibold">
@@ -245,7 +250,7 @@ export default function AdminWorldIndex({
                                     with portal tiles later.
                                 </p>
                                 <Button
-                                    className="mt-4 w-full"
+                                    className="mt-4 w-full bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
                                     onClick={() => {
                                         resetCreateForm();
                                         setCreateOpen(true);
@@ -258,7 +263,7 @@ export default function AdminWorldIndex({
                             </div>
 
                             <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-white/10 dark:bg-[#111820]">
-                                <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+                                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                     Travel
                                 </p>
                                 <h2 className="mt-2 text-lg font-semibold">
@@ -327,7 +332,7 @@ export default function AdminWorldIndex({
                         <div className="grid gap-2">
                             <Label htmlFor="map-description">Description</Label>
                             <textarea
-                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-600/20 dark:border-white/10 dark:bg-slate-950 dark:text-white dark:focus:border-teal-200 dark:focus:ring-teal-200/20"
+                                className="min-h-28 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_22%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
                                 id="map-description"
                                 onChange={(event) =>
                                     setCreateForm((current) => ({
@@ -357,7 +362,6 @@ export default function AdminWorldIndex({
                     </form>
                 </DialogContent>
             </Dialog>
-
         </>
     );
 }
@@ -374,12 +378,13 @@ function MapGraphNode({
     return (
         <div
             className={cn(
-                'w-56 rounded-xl border bg-slate-50 p-4 text-left shadow-lg transition dark:border-white/10 dark:bg-slate-950',
+                'relative w-56 rounded-xl border bg-slate-50 p-4 text-left shadow-lg transition dark:border-white/10 dark:bg-slate-950',
                 selected &&
-                    'border-cyan-600 ring-2 ring-cyan-600/20 dark:border-teal-200 dark:ring-teal-200/20',
+                    'border-[var(--settings-accent)] ring-2 ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)]',
             )}
         >
-            <span className="mb-3 flex size-9 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/10 dark:text-teal-200">
+            <MapGraphHandles />
+            <span className="mb-3 flex size-9 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] text-[var(--settings-accent)]">
                 <MapIcon className="size-5" />
             </span>
             <span className="block text-sm font-semibold text-slate-950 dark:text-white">
@@ -395,10 +400,41 @@ function MapGraphNode({
     );
 }
 
+function MapGraphHandles() {
+    return (
+        <>
+            {(['top', 'right', 'bottom', 'left'] as const).map((side) => (
+                <div key={side}>
+                    {graphHandleLanes.map((lane) => (
+                        <div key={`${side}-${lane}`}>
+                            <Handle
+                                className="!pointer-events-none !size-3 !border-0 !bg-transparent"
+                                id={handleId('source', side, lane)}
+                                isConnectable={false}
+                                position={handlePosition(side)}
+                                style={handleStyle(side, lane)}
+                                type="source"
+                            />
+                            <Handle
+                                className="!pointer-events-none !size-3 !border-0 !bg-transparent"
+                                id={handleId('target', side, lane)}
+                                isConnectable={false}
+                                position={handlePosition(side)}
+                                style={handleStyle(side, lane)}
+                                type="target"
+                            />
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </>
+    );
+}
+
 function MapDetails({ map }: { map: MapSummary }) {
     return (
         <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                 Map
             </p>
             <h2 className="mt-2 text-xl font-semibold">{map.title}</h2>
@@ -422,7 +458,7 @@ function MapDetails({ map }: { map: MapSummary }) {
 function PortalDetails({ portal }: { portal: PortalLinkSummary }) {
     return (
         <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/70">
+            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                 Portal link
             </p>
             <h2 className="mt-2 text-xl font-semibold">
@@ -474,7 +510,7 @@ function PortalEndpoint({
             </p>
             <p className="mt-1 text-sm font-semibold">{node.title}</p>
             {activity ? (
-                <p className="mt-1 text-xs text-cyan-700 dark:text-teal-200">
+                <p className="mt-1 text-xs text-[var(--settings-accent)]">
                     {activity.title}
                 </p>
             ) : null}
@@ -488,7 +524,7 @@ function PortalEndpoint({
 function EmptyDetails() {
     return (
         <div className="flex h-full min-h-72 flex-col items-center justify-center text-center">
-            <GitBranch className="mb-4 size-10 text-cyan-700 dark:text-teal-200" />
+            <GitBranch className="mb-4 size-10 text-[var(--settings-accent)]" />
             <h2 className="text-lg font-semibold">Select a map or portal</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                 Click a world-map node to edit it, or click a portal edge to see
@@ -531,18 +567,260 @@ function buildGraphNodes(maps: MapSummary[]): MapGraphNode[] {
     });
 }
 
-function buildGraphEdges(portalLinks: PortalLinkSummary[]): PortalEdge[] {
-    return portalLinks.map((portal) => ({
-        id: portal.id.toString(),
-        source: portal.sourceMapId.toString(),
-        target: portal.targetMapId.toString(),
-        label: portal.label ?? 'Portal',
-        data: portal,
-        markerEnd: {
-            type: MarkerType.ArrowClosed,
-        },
-        style: edgeStyle(false),
-    }));
+function buildGraphEdges(
+    portalLinks: PortalLinkSummary[],
+    nodes: MapGraphNode[],
+    highlightedEdgeId: string | null,
+): PortalEdge[] {
+    const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+    const pairCounts = countPortalPairs(portalLinks);
+    const pairIndexes = new Map<string, number>();
+
+    return portalLinks.map((portal) => {
+        const source = portal.sourceMapId.toString();
+        const target = portal.targetMapId.toString();
+        const active = portal.id.toString() === highlightedEdgeId;
+        const pairKey = [source, target].sort().join(':');
+        const pairIndex = pairIndexes.get(pairKey) ?? 0;
+        pairIndexes.set(pairKey, pairIndex + 1);
+        const route = chooseEdgeRoute(
+            nodeById.get(source),
+            nodeById.get(target),
+            pairIndex,
+            pairCounts.get(pairKey) ?? 1,
+        );
+
+        return {
+            id: portal.id.toString(),
+            source,
+            target,
+            sourceHandle: handleId(
+                'source',
+                route.sourceSide,
+                route.sourceLane,
+            ),
+            targetHandle: handleId(
+                'target',
+                route.targetSide,
+                route.targetLane,
+            ),
+            label: active
+                ? portalActivityLabel(portal)
+                : (portal.label ?? 'Portal'),
+            data: portal,
+            markerEnd: {
+                type: MarkerType.ArrowClosed,
+            },
+            pathOptions: {
+                borderRadius: 24,
+                offset: route.offset,
+            },
+            style: edgeStyle(active),
+            type: 'smoothstep',
+            animated: active,
+        };
+    });
+}
+
+function chooseEdgeRoute(
+    sourceNode: MapGraphNode | undefined,
+    targetNode: MapGraphNode | undefined,
+    pairIndex: number,
+    pairCount: number,
+): {
+    offset: number;
+    sourceLane: GraphHandleLane;
+    sourceSide: GraphSide;
+    targetLane: GraphHandleLane;
+    targetSide: GraphSide;
+} {
+    const lane = pairCount > 1 ? laneForPairIndex(pairIndex) : 0;
+
+    if (!sourceNode || !targetNode || sourceNode.id === targetNode.id) {
+        return {
+            offset: 72 + pairIndex * 24,
+            sourceLane: lane,
+            sourceSide: pairIndex % 2 === 0 ? 'right' : 'left',
+            targetLane: reverseLane(lane),
+            targetSide: pairIndex % 2 === 0 ? 'bottom' : 'top',
+        };
+    }
+
+    const sourceCenter = nodeCenter(sourceNode);
+    const targetCenter = nodeCenter(targetNode);
+    const deltaX = targetCenter.x - sourceCenter.x;
+    const deltaY = targetCenter.y - sourceCenter.y;
+
+    if (pairCount > 1) {
+        return parallelPairRoute(deltaX, deltaY, pairIndex);
+    }
+
+    const primarySide =
+        Math.abs(deltaX) >= Math.abs(deltaY)
+            ? deltaX >= 0
+                ? 'right'
+                : 'left'
+            : deltaY >= 0
+              ? 'bottom'
+              : 'top';
+
+    return {
+        offset: 32 + pairIndex * 18,
+        sourceLane: lane,
+        sourceSide: primarySide,
+        targetLane: reverseLane(lane),
+        targetSide: oppositeSide(primarySide),
+    };
+}
+
+function countPortalPairs(
+    portalLinks: PortalLinkSummary[],
+): Map<string, number> {
+    const counts = new Map<string, number>();
+
+    for (const portal of portalLinks) {
+        const pairKey = [
+            portal.sourceMapId.toString(),
+            portal.targetMapId.toString(),
+        ]
+            .sort()
+            .join(':');
+
+        counts.set(pairKey, (counts.get(pairKey) ?? 0) + 1);
+    }
+
+    return counts;
+}
+
+function parallelPairRoute(
+    deltaX: number,
+    deltaY: number,
+    pairIndex: number,
+): {
+    offset: number;
+    sourceLane: GraphHandleLane;
+    sourceSide: GraphSide;
+    targetLane: GraphHandleLane;
+    targetSide: GraphSide;
+} {
+    const laneIndex = Math.floor(pairIndex / 2);
+    const offset = 56 + laneIndex * 28;
+    const lane = laneForPairIndex(pairIndex);
+
+    if (Math.abs(deltaX) >= Math.abs(deltaY)) {
+        const side = pairIndex % 2 === 0 ? 'bottom' : 'top';
+
+        return {
+            offset,
+            sourceLane: lane,
+            sourceSide: side,
+            targetLane: reverseLane(lane),
+            targetSide: side,
+        };
+    }
+
+    const side = pairIndex % 2 === 0 ? 'right' : 'left';
+
+    return {
+        offset,
+        sourceLane: lane,
+        sourceSide: side,
+        targetLane: reverseLane(lane),
+        targetSide: side,
+    };
+}
+
+function handleId(
+    type: 'source' | 'target',
+    side: GraphSide,
+    lane: GraphHandleLane,
+): string {
+    return `${type}-${side}-${lane}`;
+}
+
+function handlePosition(side: GraphSide): Position {
+    if (side === 'left') {
+        return Position.Left;
+    }
+
+    if (side === 'right') {
+        return Position.Right;
+    }
+
+    if (side === 'bottom') {
+        return Position.Bottom;
+    }
+
+    return Position.Top;
+}
+
+function handleStyle(side: GraphSide, lane: GraphHandleLane): CSSProperties {
+    const position = `${graphHandleLanePercent[lane]}%`;
+
+    if (side === 'top') {
+        return {
+            left: position,
+            top: 0,
+            transform: 'translate(-50%, -50%)',
+        };
+    }
+
+    if (side === 'bottom') {
+        return {
+            bottom: 0,
+            left: position,
+            top: 'auto',
+            transform: 'translate(-50%, 50%)',
+        };
+    }
+
+    if (side === 'left') {
+        return {
+            left: 0,
+            top: position,
+            transform: 'translate(-50%, -50%)',
+        };
+    }
+
+    return {
+        left: 'auto',
+        right: 0,
+        top: position,
+        transform: 'translate(50%, -50%)',
+    };
+}
+
+function laneForPairIndex(pairIndex: number): GraphHandleLane {
+    const lanesBySpread: GraphHandleLane[] = [-1, 1, -2, 2, 0];
+
+    return lanesBySpread[pairIndex % lanesBySpread.length];
+}
+
+function reverseLane(lane: GraphHandleLane): GraphHandleLane {
+    return -lane as GraphHandleLane;
+}
+
+function nodeCenter(node: MapGraphNode): { x: number; y: number } {
+    return {
+        x: node.position.x + mapNodeSize.width / 2,
+        y: node.position.y + mapNodeSize.height / 2,
+    };
+}
+
+function oppositeSide(side: GraphSide): GraphSide {
+    if (side === 'left') {
+        return 'right';
+    }
+
+    if (side === 'right') {
+        return 'left';
+    }
+
+    if (side === 'bottom') {
+        return 'top';
+    }
+
+    return 'bottom';
 }
 
 function portalActivityLabel(portal: PortalLinkSummary): string {
@@ -553,7 +831,9 @@ function portalActivityLabel(portal: PortalLinkSummary): string {
 
 function edgeStyle(active: boolean): CSSProperties {
     return {
-        stroke: active ? '#0e7490' : 'rgba(14, 116, 144, 0.42)',
+        stroke: active
+            ? 'var(--settings-accent)'
+            : 'color-mix(in srgb, var(--settings-accent) 42%, transparent)',
         strokeWidth: active ? 4 : 2,
     };
 }

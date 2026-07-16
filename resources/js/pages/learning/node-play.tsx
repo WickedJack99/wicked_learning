@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPlayer } from '@/features/world/activity-panel';
-import { postJson } from '@/features/world/api';
+import { getJson, postJson } from '@/features/world/api';
+import {
+    applyActivityTranslation,
+    type LearningActivityTranslation,
+} from '@/features/localization/activity-translation';
 import { useAppearance } from '@/hooks/use-appearance';
 import type {
     LearningActivity,
@@ -45,16 +49,26 @@ export default function NodePlay({
     const [activityProgress, setActivityProgress] = useState(
         progress.activities,
     );
-    const [activityPlayState, setActivityPlayState] = useState(
-        initialPlayState,
-    );
+    const [activityPlayState, setActivityPlayState] =
+        useState(initialPlayState);
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
+    const [activityTranslation, setActivityTranslation] =
+        useState<LearningActivityTranslation | null>(null);
     const activeActivity = useMemo(
         () => getActivityById(node, activeActivityId),
         [activeActivityId, node],
     );
+    const displayedActivity = useMemo(
+        () =>
+            activeActivity
+                ? applyActivityTranslation(activeActivity, activityTranslation)
+                : null,
+        [activeActivity, activityTranslation],
+    );
 
     useEffect(() => {
+        setActivityTranslation(null);
+
         if (!activeActivity) {
             return;
         }
@@ -69,7 +83,23 @@ export default function NodePlay({
                     play_run_id: playRunId,
                     status: 'reached',
                 },
-            ).catch(() => undefined);
+            )
+                .then(async () => {
+                    if (!playRunId) {
+                        return;
+                    }
+
+                    const response = await getJson<{
+                        translation: LearningActivityTranslation;
+                    }>(
+                        `/learning/activities/${activeActivity.id}/translation?play_run_id=${encodeURIComponent(playRunId)}`,
+                    );
+
+                    setActivityTranslation(response.translation);
+                })
+                // English has no alternate payload, and a stale request may no
+                // longer match the active activity. Both should keep source copy.
+                .catch(() => undefined);
         }
     }, [activeActivity, isAuthenticated, node, playRunId]);
 
@@ -245,9 +275,9 @@ export default function NodePlay({
                         </p>
                     ) : null}
 
-                    {activeActivity ? (
+                    {displayedActivity ? (
                         <ActivityPlayer
-                            activity={activeActivity}
+                            activity={displayedActivity}
                             activityProgress={activityProgress}
                             answerProgress={answerProgress}
                             node={node}

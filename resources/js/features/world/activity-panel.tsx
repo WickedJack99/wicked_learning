@@ -411,6 +411,7 @@ export function ActivityPlayer({
                     activity={activity}
                     onComplete={onComplete}
                     onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
                     transition={completedTransition}
                 />
             ) : null}
