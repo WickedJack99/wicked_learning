@@ -589,7 +589,7 @@ function PanelShell({
         <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
             <div className="flex items-start gap-4">
                 <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/78">
+                    <p className="text-xs font-medium tracking-[0.18em] [color:var(--map-side-panel-heading-color)] text-cyan-700 uppercase dark:text-teal-200/78">
                         {eyebrow}
                     </p>
                     <h2 className="mt-2 text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">

@@ -578,6 +578,60 @@ test('item obstacles consume matching items and only continue after conditions a
         ->and($learner->learningItems()->whereKey($item->id)->exists())->toBeFalse();
 });
 
+test('item obstacles can clear filled slots after successful continue', function () {
+    $learner = User::factory()->create([
+        'email' => 'item-obstacle-replay@example.com',
+    ]);
+
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $item = LearningItem::query()->create([
+        'slug' => 'replay-gem',
+        'title' => 'Replay gem',
+    ]);
+    $learner->learningItems()->attach($item, [
+        'quantity' => 1,
+        'acquired_at' => now(),
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'socket-the-replay-gem',
+        'type' => 'item_obstacle',
+        'title' => 'Socket the replay gem',
+        'config' => [
+            'slots' => [
+                ['itemId' => $item->id, 'x' => 50, 'y' => 50, 'width' => 10],
+            ],
+            'consumeOnEachEntry' => true,
+            'lockMinutes' => 0,
+        ],
+        'sort_order' => 121,
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.item-obstacle-slot', $activity), [
+            'item_id' => $item->id,
+            'slot_index' => 0,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.conditionsMet', true);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.item-obstacle-continue', $activity))
+        ->assertOk()
+        ->assertJsonPath('state.canContinue', true)
+        ->assertJsonPath('state.conditionsMet', false);
+
+    $progress = LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    expect($progress->metadata['itemObstacle']['filledSlots'])->toBe([])
+        ->and($progress->metadata['itemObstacle']['conditionsMet'])->toBeFalse();
+});
+
 function currentPlayRunId(User $learner, LearningNode $node, LearningActivityStart $start): string
 {
     $runId = LearnerRouteProgress::query()

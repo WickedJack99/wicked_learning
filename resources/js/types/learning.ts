@@ -52,6 +52,7 @@ export type LearningMap = {
         sideControlTextColor?: string;
         sidePanelBackground?: string;
         sidePanelBorderColor?: string;
+        sidePanelHeadingColor?: string;
         sidePanelMutedTextColor?: string;
         sidePanelTextColor?: string;
     }>;

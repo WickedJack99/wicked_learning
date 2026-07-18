@@ -27,6 +27,14 @@ class PortalActivityConfiguration
             'portalForegroundY' => $this->number($data, 'portal_foreground_y', $existing['portalForegroundY'] ?? 50),
             'portalShowOnArrival' => (bool) ($data['portal_show_on_arrival'] ?? $existing['portalShowOnArrival'] ?? true),
             'portalSwirlEnabled' => (bool) ($data['portal_swirl_enabled'] ?? $existing['portalSwirlEnabled'] ?? true),
+            'portalBubbleText' => $this->string($data, 'portal_bubble_text', $existing['portalBubbleText'] ?? ''),
+            'portalBubbleTypingSpeed' => $this->number($data, 'portal_bubble_typing_speed', $existing['portalBubbleTypingSpeed'] ?? 24),
+            'portalBubbleColorDark' => $this->string($data, 'portal_bubble_color_dark', $existing['portalBubbleColorDark'] ?? '#0f172a', '#0f172a'),
+            'portalBubbleColorLight' => $this->string($data, 'portal_bubble_color_light', $existing['portalBubbleColorLight'] ?? '#ffffff', '#ffffff'),
+            'portalBubbleBorderColorDark' => $this->string($data, 'portal_bubble_border_color_dark', $existing['portalBubbleBorderColorDark'] ?? '#2dd4bf', '#2dd4bf'),
+            'portalBubbleBorderColorLight' => $this->string($data, 'portal_bubble_border_color_light', $existing['portalBubbleBorderColorLight'] ?? '#0891b2', '#0891b2'),
+            'portalBubbleTextColorDark' => $this->string($data, 'portal_bubble_text_color_dark', $existing['portalBubbleTextColorDark'] ?? '#f8fafc', '#f8fafc'),
+            'portalBubbleTextColorLight' => $this->string($data, 'portal_bubble_text_color_light', $existing['portalBubbleTextColorLight'] ?? '#0f172a', '#0f172a'),
             'portalWaitForEnter' => (bool) ($data['portal_wait_for_enter'] ?? $existing['portalWaitForEnter'] ?? false),
         ];
     }
@@ -70,6 +78,14 @@ class PortalActivityConfiguration
             'portal_mode',
             'portal_show_on_arrival',
             'portal_swirl_enabled',
+            'portal_bubble_text',
+            'portal_bubble_typing_speed',
+            'portal_bubble_color_dark',
+            'portal_bubble_color_light',
+            'portal_bubble_border_color_dark',
+            'portal_bubble_border_color_light',
+            'portal_bubble_text_color_dark',
+            'portal_bubble_text_color_light',
             'portal_wait_for_enter',
         ];
     }

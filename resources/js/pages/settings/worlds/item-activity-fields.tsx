@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -326,6 +327,29 @@ export function ItemObstacleFlowFields({
                 />
                 <InputError message={errors.item_obstacle_lock_minutes} />
             </div>
+            <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-white/10 dark:bg-white/5">
+                <Checkbox
+                    checked={form.item_obstacle_consume_on_each_entry}
+                    onCheckedChange={(checked) =>
+                        onChange((current) => ({
+                            ...current,
+                            item_obstacle_consume_on_each_entry:
+                                checked === true,
+                        }))
+                    }
+                />
+                <span className="grid gap-1">
+                    <span className="font-medium">
+                        Consume items on every entry
+                    </span>
+                    <span className="text-slate-600 dark:text-slate-300">
+                        After a successful continue, filled slots are cleared so
+                        learners must insert the required consumables again when
+                        they replay this activity.
+                    </span>
+                </span>
+            </label>
+            <InputError message={errors.item_obstacle_consume_on_each_entry} />
         </div>
     );
 }

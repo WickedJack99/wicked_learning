@@ -28,6 +28,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         item_obstacle_overlay_x: '50',
         item_obstacle_overlay_y: '50',
         item_obstacle_slots: [{ itemId: '', x: '50', y: '50', width: '10' }],
+        item_obstacle_consume_on_each_entry: false,
         item_obstacle_sound_met_enabled: false,
         item_obstacle_sound_met_id: '',
         item_obstacle_sound_not_met_enabled: false,
@@ -90,6 +91,14 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         portal_mode: 'output',
         portal_show_on_arrival: true,
         portal_swirl_enabled: true,
+        portal_bubble_text: '',
+        portal_bubble_typing_speed: '24',
+        portal_bubble_color_dark: '#0f172a',
+        portal_bubble_color_light: '#ffffff',
+        portal_bubble_border_color_dark: '#2dd4bf',
+        portal_bubble_border_color_light: '#0891b2',
+        portal_bubble_text_color_dark: '#f8fafc',
+        portal_bubble_text_color_light: '#0f172a',
         portal_wait_for_enter: false,
         reflection_note: '',
         reflection_prompt: 'What feels clearer now?',
@@ -180,6 +189,10 @@ export function activityFormFromActivity(
         item_obstacle_overlay_x: stringConfig(activity.config.overlayX, '50'),
         item_obstacle_overlay_y: stringConfig(activity.config.overlayY, '50'),
         item_obstacle_slots: itemObstacleSlots(activity.config.slots),
+        item_obstacle_consume_on_each_entry: booleanConfig(
+            activity.config.consumeOnEachEntry,
+            false,
+        ),
         item_obstacle_sound_met_enabled: soundEnabled(
             activity.config.sounds,
             'met',
@@ -325,6 +338,35 @@ export function activityFormFromActivity(
             true,
         ),
         portal_swirl_enabled: activity.config.portalSwirlEnabled !== false,
+        portal_bubble_text: stringConfig(activity.config.portalBubbleText),
+        portal_bubble_typing_speed: stringConfig(
+            activity.config.portalBubbleTypingSpeed,
+            '24',
+        ),
+        portal_bubble_color_dark: stringConfig(
+            activity.config.portalBubbleColorDark,
+            '#0f172a',
+        ),
+        portal_bubble_color_light: stringConfig(
+            activity.config.portalBubbleColorLight,
+            '#ffffff',
+        ),
+        portal_bubble_border_color_dark: stringConfig(
+            activity.config.portalBubbleBorderColorDark,
+            '#2dd4bf',
+        ),
+        portal_bubble_border_color_light: stringConfig(
+            activity.config.portalBubbleBorderColorLight,
+            '#0891b2',
+        ),
+        portal_bubble_text_color_dark: stringConfig(
+            activity.config.portalBubbleTextColorDark,
+            '#f8fafc',
+        ),
+        portal_bubble_text_color_light: stringConfig(
+            activity.config.portalBubbleTextColorLight,
+            '#0f172a',
+        ),
         portal_wait_for_enter: booleanConfig(
             activity.config.portalWaitForEnter,
             false,

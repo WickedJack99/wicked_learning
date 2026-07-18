@@ -70,6 +70,12 @@ class ItemObstacleService
             if ((bool) ($state['conditionsMet'] ?? false)) {
                 $progress->status = 'completed';
                 $progress->completed_at ??= now();
+
+                if ($this->consumeOnEachEntry($activity)) {
+                    $state = $this->emptyState();
+                }
+
+                $metadata['itemObstacle'] = $state;
                 $progress->metadata = $metadata;
                 $progress->save();
 
@@ -145,10 +151,24 @@ class ItemObstacleService
         $state = is_array($metadata['itemObstacle'] ?? null) ? $metadata['itemObstacle'] : [];
 
         return [
+            ...$this->emptyState(),
             'filledSlots' => is_array($state['filledSlots'] ?? null) ? $state['filledSlots'] : [],
             'conditionsMet' => (bool) ($state['conditionsMet'] ?? false),
             'failedAttempts' => (int) ($state['failedAttempts'] ?? 0),
             'lockedUntil' => $state['lockedUntil'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyState(): array
+    {
+        return [
+            'filledSlots' => [],
+            'conditionsMet' => false,
+            'failedAttempts' => 0,
+            'lockedUntil' => null,
         ];
     }
 
@@ -195,6 +215,11 @@ class ItemObstacleService
         $value = ($activity->config ?? [])['lockMinutes'] ?? 0;
 
         return is_numeric($value) ? max(0, (int) $value) : 0;
+    }
+
+    private function consumeOnEachEntry(LearningActivity $activity): bool
+    {
+        return filter_var(($activity->config ?? [])['consumeOnEachEntry'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

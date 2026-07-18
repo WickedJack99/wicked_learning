@@ -255,6 +255,7 @@ export type CreateActivityForm = {
         x: string;
         y: string;
     }>;
+    item_obstacle_consume_on_each_entry: boolean;
     item_obstacle_sound_met_enabled: boolean;
     item_obstacle_sound_met_id: string;
     item_obstacle_sound_not_met_enabled: boolean;
@@ -306,6 +307,14 @@ export type CreateActivityForm = {
     portal_mode: 'input' | 'output';
     portal_show_on_arrival: boolean;
     portal_swirl_enabled: boolean;
+    portal_bubble_text: string;
+    portal_bubble_typing_speed: string;
+    portal_bubble_color_dark: string;
+    portal_bubble_color_light: string;
+    portal_bubble_border_color_dark: string;
+    portal_bubble_border_color_light: string;
+    portal_bubble_text_color_dark: string;
+    portal_bubble_text_color_light: string;
     portal_wait_for_enter: boolean;
     reflection_note: string;
     reflection_prompt: string;

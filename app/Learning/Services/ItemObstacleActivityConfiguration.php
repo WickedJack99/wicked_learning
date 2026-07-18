@@ -27,6 +27,7 @@ class ItemObstacleActivityConfiguration
             'overlayY' => $this->number($data, 'item_obstacle_overlay_y', $existing['overlayY'] ?? 50),
             'overlayWidth' => $this->number($data, 'item_obstacle_overlay_width', $existing['overlayWidth'] ?? 30),
             'slots' => $this->slotsFrom($data['item_obstacle_slots'] ?? $existing['slots'] ?? []),
+            'consumeOnEachEntry' => $this->boolean($data, 'item_obstacle_consume_on_each_entry', $existing['consumeOnEachEntry'] ?? false),
             'lockMinutes' => (int) $this->number($data, 'item_obstacle_lock_minutes', $existing['lockMinutes'] ?? 0),
             'sounds' => $this->soundsFrom($data, $existing['sounds'] ?? []),
         ];
@@ -56,6 +57,7 @@ class ItemObstacleActivityConfiguration
             'item_obstacle_overlay_y',
             'item_obstacle_overlay_width',
             'item_obstacle_slots',
+            'item_obstacle_consume_on_each_entry',
             'item_obstacle_lock_minutes',
             'item_obstacle_sound_not_met_enabled',
             'item_obstacle_sound_not_met_id',
@@ -85,6 +87,7 @@ class ItemObstacleActivityConfiguration
             'overlayY' => 50,
             'overlayWidth' => 30,
             'slots' => [],
+            'consumeOnEachEntry' => false,
             'lockMinutes' => 0,
             'sounds' => [
                 'notMet' => ['enabled' => false, 'soundId' => null],

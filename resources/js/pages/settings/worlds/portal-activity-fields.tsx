@@ -18,8 +18,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
+    ConfigColorField,
     ConfigImageInput,
     MirrorImageCheckbox,
+    NumberField,
 } from './activity-config-fields';
 import type {
     ActivityForm,
@@ -214,6 +216,11 @@ export function PortalVisualFields({
         1,
         100,
     );
+    const previewBubbleText = form.portal_bubble_text.trim();
+    const previewBubbleStyle = portalBubblePreviewStyle(
+        form,
+        resolvedAppearance,
+    );
 
     const imageFields: Array<{
         description: string;
@@ -305,7 +312,7 @@ export function PortalVisualFields({
                 ))}
             </div>
 
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3">
                 <div className="grid gap-2">
                     <Label htmlFor="portal-foreground-x">Swirl X</Label>
                     <Input
@@ -359,24 +366,6 @@ export function PortalVisualFields({
                         value={form.portal_foreground_width}
                     />
                     <InputError message={errors.portal_foreground_width} />
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="portal-duration">Duration in seconds</Label>
-                    <Input
-                        id="portal-duration"
-                        max="60"
-                        min="0.5"
-                        onChange={(event) =>
-                            updateField(
-                                'portal_duration_seconds',
-                                event.currentTarget.value,
-                            )
-                        }
-                        step="0.5"
-                        type="number"
-                        value={form.portal_duration_seconds}
-                    />
-                    <InputError message={errors.portal_duration_seconds} />
                 </div>
             </div>
 
@@ -466,25 +455,93 @@ export function PortalVisualFields({
             </label>
             <InputError message={errors.portal_swirl_enabled} />
 
-            <label className="flex items-start gap-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
-                <Checkbox
-                    checked={form.portal_wait_for_enter}
-                    className="mt-0.5"
-                    onCheckedChange={(checked) =>
-                        updateField('portal_wait_for_enter', checked === true)
+            <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                <div>
+                    <p className="text-sm font-medium text-slate-950 dark:text-white">
+                        Portal text bubble
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Optional text shown before the learner traverses or
+                        continues from the portal.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="portal-bubble-text">Bubble text</Label>
+                    <textarea
+                        className="min-h-28 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30"
+                        id="portal-bubble-text"
+                        onChange={(event) =>
+                            updateField(
+                                'portal_bubble_text',
+                                event.currentTarget.value,
+                            )
+                        }
+                        placeholder="Before you lies an unexplored world..."
+                        value={form.portal_bubble_text}
+                    />
+                    <InputError message={errors.portal_bubble_text} />
+                </div>
+                <NumberField
+                    label="Typing speed"
+                    max="500"
+                    min="1"
+                    onChange={(value) =>
+                        updateField('portal_bubble_typing_speed', value)
                     }
+                    value={form.portal_bubble_typing_speed || '24'}
                 />
-                <span>
-                    <span className="block text-sm font-medium text-slate-950 dark:text-white">
-                        Wait for player to enter portal
-                    </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        Ignore the duration timer and keep the portal animation
-                        visible until the player clicks the enter button.
-                    </span>
-                </span>
-            </label>
-            <InputError message={errors.portal_wait_for_enter} />
+                <InputError message={errors.portal_bubble_typing_speed} />
+                <div className="grid gap-3 md:grid-cols-2">
+                    <ConfigColorField
+                        label="Dark bubble color"
+                        onChange={(value) =>
+                            updateField('portal_bubble_color_dark', value)
+                        }
+                        value={form.portal_bubble_color_dark}
+                    />
+                    <ConfigColorField
+                        label="Light bubble color"
+                        onChange={(value) =>
+                            updateField('portal_bubble_color_light', value)
+                        }
+                        value={form.portal_bubble_color_light}
+                    />
+                    <ConfigColorField
+                        label="Dark border color"
+                        onChange={(value) =>
+                            updateField(
+                                'portal_bubble_border_color_dark',
+                                value,
+                            )
+                        }
+                        value={form.portal_bubble_border_color_dark}
+                    />
+                    <ConfigColorField
+                        label="Light border color"
+                        onChange={(value) =>
+                            updateField(
+                                'portal_bubble_border_color_light',
+                                value,
+                            )
+                        }
+                        value={form.portal_bubble_border_color_light}
+                    />
+                    <ConfigColorField
+                        label="Dark text color"
+                        onChange={(value) =>
+                            updateField('portal_bubble_text_color_dark', value)
+                        }
+                        value={form.portal_bubble_text_color_dark}
+                    />
+                    <ConfigColorField
+                        label="Light text color"
+                        onChange={(value) =>
+                            updateField('portal_bubble_text_color_light', value)
+                        }
+                        value={form.portal_bubble_text_color_light}
+                    />
+                </div>
+            </div>
 
             <div className="grid gap-2">
                 <div>
@@ -507,7 +564,16 @@ export function PortalVisualFields({
                     foregroundY={foregroundY}
                     showForegroundPlaceholder
                     swirlEnabled={form.portal_swirl_enabled}
-                />
+                >
+                    {previewBubbleText ? (
+                        <div
+                            className="relative z-30 mt-auto w-full rounded-lg border p-3 text-sm leading-6"
+                            style={previewBubbleStyle}
+                        >
+                            {previewBubbleText}
+                        </div>
+                    ) : null}
+                </PortalScene>
             </div>
         </div>
     );
@@ -771,6 +837,31 @@ function portalSceneAssetLayer(value: string): PortalSceneAssetLayer {
     return portalAssetLayers.some((layer) => layer.value === value)
         ? (value as PortalSceneAssetLayer)
         : 'above-background';
+}
+
+function portalBubblePreviewStyle(
+    form: ActivityForm,
+    appearance: 'dark' | 'light',
+) {
+    const isLight = appearance === 'light';
+
+    return {
+        backgroundColor:
+            (isLight
+                ? form.portal_bubble_color_light
+                : form.portal_bubble_color_dark) ||
+            (isLight ? '#ffffff' : '#0f172a'),
+        borderColor:
+            (isLight
+                ? form.portal_bubble_border_color_light
+                : form.portal_bubble_border_color_dark) ||
+            (isLight ? '#0891b2' : '#2dd4bf'),
+        color:
+            (isLight
+                ? form.portal_bubble_text_color_light
+                : form.portal_bubble_text_color_dark) ||
+            (isLight ? '#0f172a' : '#f8fafc'),
+    };
 }
 
 function boundedNumber(

@@ -6,6 +6,7 @@ import {
     MessageCircle,
     RotateCcw,
 } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -17,7 +18,12 @@ import type {
     LearningPortalLink,
     QuestionAnswerProgress,
 } from '@/types';
-import { booleanConfig, numericConfig, stringConfig } from './activity-utils';
+import {
+    booleanConfig,
+    numericConfig,
+    stringConfig,
+    TypingText,
+} from './activity-utils';
 import { postJson } from './api';
 import { PortalScene, type PortalSceneAsset } from './portal-scene';
 
@@ -80,10 +86,6 @@ export function PortalActivity({
         node.outgoingPortalLinks[0] ??
         null;
     const isInputPortal = portalMode === 'input';
-    const durationSeconds = numericConfig(
-        activity.config.portalDurationSeconds,
-        1.5,
-    );
     const foregroundX = numericConfig(activity.config.portalForegroundX, 50);
     const foregroundY = numericConfig(activity.config.portalForegroundY, 50);
     const foregroundWidth = numericConfig(
@@ -116,7 +118,11 @@ export function PortalActivity({
     );
     const swirlEnabled = activity.config.portalSwirlEnabled !== false;
     const showOnArrival = activity.config.portalShowOnArrival !== false;
-    const waitForEnter = activity.config.portalWaitForEnter === true;
+    const bubbleText = stringConfig(activity.config.portalBubbleText).trim();
+    const bubbleTypingSpeed = numericConfig(
+        activity.config.portalBubbleTypingSpeed,
+        24,
+    );
 
     const travel = useCallback(async () => {
         if (!link) {
@@ -156,39 +162,6 @@ export function PortalActivity({
         onMoveToActivity,
         showOnArrival,
         transition,
-    ]);
-
-    useEffect(() => {
-        if ((isInputPortal && !showOnArrival) || waitForEnter) {
-            return;
-        }
-
-        const timer = window.setTimeout(
-            () => {
-                if (isInputPortal) {
-                    void onComplete(activity).then(() =>
-                        onMoveToActivity(transition?.toActivityId ?? null),
-                    );
-
-                    return;
-                }
-
-                void travel();
-            },
-            Math.max(0.5, durationSeconds) * 1000,
-        );
-
-        return () => window.clearTimeout(timer);
-    }, [
-        activity,
-        durationSeconds,
-        isInputPortal,
-        onComplete,
-        onMoveToActivity,
-        showOnArrival,
-        transition,
-        travel,
-        waitForEnter,
     ]);
 
     const enterPortal = async () => {
@@ -234,53 +207,90 @@ export function PortalActivity({
                 foregroundY={foregroundY}
                 swirlEnabled={swirlEnabled}
             >
-                <div className="relative z-20 mt-auto flex w-full items-start gap-3 bg-white/82 p-4 backdrop-blur dark:bg-slate-950/72">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/14 dark:text-teal-200">
-                        <MapIcon className="size-4" />
-                    </span>
-                    <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
-                            {isInputPortal
-                                ? 'Exit portal'
-                                : link
-                                  ? (link.label ?? 'Linked portal')
-                                  : 'Portal not linked yet'}
-                        </h4>
-                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            {isInputPortal
-                                ? 'This portal is configured as the exit point for paths that arrive here.'
-                                : link
-                                  ? `Travel to ${link.targetMapTitle} / ${link.targetNodeTitle}.`
-                                  : 'An admin can choose a target exit portal in this portal activity.'}
-                        </p>
-                        {link?.description ? (
-                            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                {link.description}
+                <div className="relative z-20 mt-auto grid w-full gap-3 bg-white/82 p-4 backdrop-blur dark:bg-slate-950/72">
+                    {bubbleText ? (
+                        <div
+                            className="rounded-lg border p-4 text-sm leading-6"
+                            style={portalBubbleStyle(
+                                activity,
+                                resolvedAppearance,
+                            )}
+                        >
+                            <TypingText
+                                speed={bubbleTypingSpeed}
+                                text={bubbleText}
+                            />
+                        </div>
+                    ) : null}
+                    <div className="flex items-start gap-3">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/14 dark:text-teal-200">
+                            <MapIcon className="size-4" />
+                        </span>
+                        <div className="min-w-0">
+                            <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                                {isInputPortal
+                                    ? 'Exit portal'
+                                    : link
+                                      ? (link.label ?? 'Linked portal')
+                                      : 'Portal not linked yet'}
+                            </h4>
+                            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                {isInputPortal
+                                    ? 'This portal is configured as the exit point for paths that arrive here.'
+                                    : link
+                                      ? `Travel to ${link.targetMapTitle} / ${link.targetNodeTitle}.`
+                                      : 'An admin can choose a target exit portal in this portal activity.'}
                             </p>
-                        ) : null}
-                        <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            {isTravelling
-                                ? 'Travelling...'
-                                : waitForEnter
-                                  ? 'Waiting for the player to enter.'
-                                  : `Continuing in ${durationSeconds.toFixed(1)} seconds.`}
-                        </p>
-                        {waitForEnter ? (
+                            {link?.description ? (
+                                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    {link.description}
+                                </p>
+                            ) : null}
                             <Button
                                 className="mt-4"
-                                disabled={!isInputPortal && !link}
+                                disabled={
+                                    isTravelling || (!isInputPortal && !link)
+                                }
                                 onClick={() => void enterPortal()}
                                 type="button"
                             >
-                                {isInputPortal ? 'Continue' : 'Enter portal'}
+                                {isInputPortal ? 'Continue' : 'Traverse'}
                                 <ArrowRight className="ml-2 size-4" />
                             </Button>
-                        ) : null}
+                        </div>
                     </div>
                 </div>
             </PortalScene>
         </div>
     );
+}
+
+function portalBubbleStyle(
+    activity: LearningActivity,
+    appearance: 'dark' | 'light',
+): CSSProperties {
+    const isLight = appearance === 'light';
+
+    return {
+        backgroundColor:
+            stringConfig(
+                isLight
+                    ? activity.config.portalBubbleColorLight
+                    : activity.config.portalBubbleColorDark,
+            ) || (isLight ? '#ffffff' : '#0f172a'),
+        borderColor:
+            stringConfig(
+                isLight
+                    ? activity.config.portalBubbleBorderColorLight
+                    : activity.config.portalBubbleBorderColorDark,
+            ) || (isLight ? '#0891b2' : '#2dd4bf'),
+        color:
+            stringConfig(
+                isLight
+                    ? activity.config.portalBubbleTextColorLight
+                    : activity.config.portalBubbleTextColorDark,
+            ) || (isLight ? '#0f172a' : '#f8fafc'),
+    };
 }
 
 function portalSceneAssets(
