@@ -74,6 +74,16 @@ Prefer:
 
 Avoid God classes. A class, hook or component should have one clear responsibility.
 
+## Localization
+
+For every new or materially changed feature, add fixed, generic, user-facing UI text to `lang/en.json` and access it through the existing platform localization path, such as `usePlatformTranslation` in React. Translation wiring is part of the feature's definition of done.
+
+Do not introduce a second translation mechanism. Do not leave new fixed English UI strings hard-coded in touched React components, pages, validation messages, dialogs, buttons, placeholders, tooltips, empty states or accessibility labels.
+
+Keep user-authored content, deployment-configured content and protected activity-specific content outside the global platform catalog when those strings should not be loaded broadly. Apply this rule to files touched by the current feature and shared components introduced or modified by it; do not perform repository-wide localization audits unless explicitly requested.
+
+When the catalog or localization behavior changes, add or update targeted tests.
+
 ## Before Larger Changes
 
 Briefly identify where the logic belongs:

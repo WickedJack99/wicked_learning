@@ -20,6 +20,14 @@ This directory owns the Inertia/React user interface. Keep pages focused on comp
 - Keep scroll behavior intentional. Main app views should not accidentally create body scroll.
 - Preserve custom cursor behavior unless the feature intentionally overrides it, such as equipped tools.
 
+## Localization
+
+- Add fixed, generic, user-facing UI strings for touched features to `lang/en.json`.
+- Access platform copy through `usePlatformTranslation` or an existing wrapper around that hook.
+- Do not add a second translation mechanism or hard-code new fixed English strings in touched React files.
+- Keep authored content, deployment-configured content and protected activity-specific content out of the global catalog when it should not be preloaded.
+- Update targeted localization tests when catalog structure or behavior changes.
+
 ## Performance
 
 - Keep heavy map, graph and activity logic outside page components.

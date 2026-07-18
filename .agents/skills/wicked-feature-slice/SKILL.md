@@ -37,6 +37,16 @@ Use this skill for larger feature work in Wicked Learning.
 - Use the established settings configuration layout for admin configuration pages.
 - Use shared appearance and map visual helpers instead of creating a new theme path.
 
+## Localization Pattern
+
+- Treat localization as part of the feature definition of done.
+- Put fixed, generic, user-facing UI text introduced or materially changed by the feature in `lang/en.json`.
+- Access that text through `usePlatformTranslation` or the existing platform localization path.
+- Do not introduce a second translation mechanism or leave new fixed English UI strings hard-coded in touched React components, pages, validation messages, dialogs, buttons, placeholders, tooltips, empty states or accessibility labels.
+- Keep user-authored content, deployment-configured content and protected activity-specific content outside the global platform catalog when broad preloading would be inappropriate.
+- Apply this to touched feature files and any shared components introduced or modified by the feature, not as an automatic repository-wide localization audit.
+- Add or update targeted tests when catalog entries or localization behavior change.
+
 ## Verification
 
 Run targeted checks that match the touched layer. Mention any checks skipped and why.
