@@ -20,8 +20,8 @@ return new class extends Migration
 
         $value = $setting->value;
         $defaults = [
-            'login' => '/images/themes/mentor-calm.png',
-            'register' => '/images/themes/mentor-hint.png',
+            'login' => '/images/characters/mentor-calm.png',
+            'register' => '/images/characters/mentor-hint.png',
             'welcome' => '/images/themes/abstract-map-background.svg',
         ];
 

@@ -10,11 +10,12 @@ return new class extends Migration
      * @var array<string, string>
      */
     private array $replacements = [
-        '/images/themes/mentor-calm.svg' => '/images/characters/mentor-calm.png',
-        '/images/themes/mentor-hint.svg' => '/images/characters/mentor-hint.png',
-        '/images/themes/mentor-alert.svg' => '/images/characters/mentor-alert.png',
-        '/images/themes/npc-mira-dark.svg' => '/images/characters/npc-mira-dark.png',
-        '/images/themes/npc-mira-light.svg' => '/images/characters/npc-mira-light.png',
+        '/images/themes/mentor-calm.png' => '/images/characters/mentor-calm.png',
+        '/images/themes/mentor-hint.png' => '/images/characters/mentor-hint.png',
+        '/images/themes/mentor-alert.png' => '/images/characters/mentor-alert.png',
+        '/images/themes/mentor-dragon.png' => '/images/characters/mentor-dragon.png',
+        '/images/themes/npc-mira-dark.png' => '/images/characters/npc-mira-dark.png',
+        '/images/themes/npc-mira-light.png' => '/images/characters/npc-mira-light.png',
     ];
 
     public function up(): void
