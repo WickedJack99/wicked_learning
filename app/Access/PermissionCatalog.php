@@ -20,6 +20,8 @@ class PermissionCatalog
 
     public const JOURNALS = 'journals';
 
+    public const AI = 'ai';
+
     /**
      * @return array<string, array{label: string, description: string}>
      */
@@ -57,6 +59,10 @@ class PermissionCatalog
             self::JOURNALS => [
                 'label' => 'Journals',
                 'description' => 'Learner reflections and whether learners may request informational expert feedback.',
+            ],
+            self::AI => [
+                'label' => 'AI support',
+                'description' => 'Provider credentials, agent templates and usage guardrails.',
             ],
         ];
     }

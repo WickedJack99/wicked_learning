@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Bot,
     CalendarClock,
     Copy,
     Database,
@@ -249,6 +250,15 @@ const adminSettings: SettingsListItem[] = [
         icon: Languages,
         href: '/settings/languages',
         resources: ['languages'],
+    },
+    {
+        key: 'admin-ai',
+        label: 'AI support',
+        description:
+            'Provider credentials, agent templates and guarded usage limits.',
+        icon: Bot,
+        href: '/settings/ai',
+        resources: ['ai'],
     },
 ] satisfies SettingsListItem[];
 

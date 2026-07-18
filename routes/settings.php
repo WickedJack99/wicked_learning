@@ -3,6 +3,7 @@
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminAccessController;
 use App\Http\Controllers\Settings\AdminActivityController;
+use App\Http\Controllers\Settings\AdminAiController;
 use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminItemController;
 use App\Http\Controllers\Settings\AdminLanguageController;
@@ -285,6 +286,33 @@ Route::middleware(['auth', 'verified', 'can:languages.ru'])->group(function () {
         ->name('settings.languages.export');
     Route::post('settings/languages/{language}/import', [AdminLanguageController::class, 'import'])
         ->name('settings.languages.import');
+});
+
+Route::middleware(['auth', 'verified', 'can:ai.ro'])->group(function () {
+    Route::get('settings/ai', [AdminAiController::class, 'index'])
+        ->name('settings.ai.index');
+});
+
+Route::middleware(['auth', 'verified', 'can:ai.ru'])->group(function () {
+    Route::post('settings/ai/credentials', [AdminAiController::class, 'storeCredential'])
+        ->name('settings.ai.credentials.store');
+
+    Route::patch('settings/ai/credentials/{credential}', [AdminAiController::class, 'updateCredential'])
+        ->name('settings.ai.credentials.update');
+
+    Route::post('settings/ai/templates', [AdminAiController::class, 'storeTemplate'])
+        ->name('settings.ai.templates.store');
+
+    Route::patch('settings/ai/templates/{template}', [AdminAiController::class, 'updateTemplate'])
+        ->name('settings.ai.templates.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {
+    Route::delete('settings/ai/credentials/{credential}', [AdminAiController::class, 'destroyCredential'])
+        ->name('settings.ai.credentials.destroy');
+
+    Route::delete('settings/ai/templates/{template}', [AdminAiController::class, 'destroyTemplate'])
+        ->name('settings.ai.templates.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
