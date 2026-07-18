@@ -105,6 +105,7 @@ type MapVisualThemeFields = {
     sideControlTextColor: string;
     sidePanelBackground: string;
     sidePanelBorderColor: string;
+    sidePanelHeadingColor: string;
     sidePanelMutedTextColor: string;
     sidePanelTextColor: string;
 };
@@ -213,6 +214,7 @@ const visualFieldGroups: Record<
     sidePanel: [
         { key: 'sidePanelBackground', label: 'Background' },
         { key: 'sidePanelBorderColor', label: 'Border' },
+        { key: 'sidePanelHeadingColor', label: 'Heading accent' },
         { key: 'sidePanelTextColor', label: 'Text' },
         { key: 'sidePanelMutedTextColor', label: 'Muted text' },
     ],
@@ -1160,7 +1162,12 @@ function SidePanelPreview({ theme }: { theme: MapVisualThemeFields }) {
             >
                 <p
                     className="text-xs font-semibold tracking-[0.18em] uppercase"
-                    style={{ color: theme.accentColor || '#99f6e4' }}
+                    style={{
+                        color:
+                            theme.sidePanelHeadingColor ||
+                            theme.accentColor ||
+                            '#99f6e4',
+                    }}
                 >
                     Location
                 </p>
@@ -1578,6 +1585,7 @@ function mapVisualThemeFieldsFromConfig(
         sideControlTextColor: stringConfig(config?.sideControlTextColor),
         sidePanelBackground: stringConfig(config?.sidePanelBackground),
         sidePanelBorderColor: stringConfig(config?.sidePanelBorderColor),
+        sidePanelHeadingColor: stringConfig(config?.sidePanelHeadingColor),
         sidePanelMutedTextColor: stringConfig(config?.sidePanelMutedTextColor),
         sidePanelTextColor: stringConfig(config?.sidePanelTextColor),
     };

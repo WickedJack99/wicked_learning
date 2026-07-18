@@ -121,6 +121,7 @@ class AdminWorldRules
             'sideControlTextColor',
             'sidePanelBackground',
             'sidePanelBorderColor',
+            'sidePanelHeadingColor',
             'sidePanelMutedTextColor',
             'sidePanelTextColor',
         ];

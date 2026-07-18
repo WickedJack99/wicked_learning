@@ -11,6 +11,7 @@ import {
     Save,
     SlidersHorizontal,
     Trash2,
+    Type,
     Volume2,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
@@ -190,6 +191,7 @@ type MapVisualThemeFields = {
     sideControlTextColor: string;
     sidePanelBackground: string;
     sidePanelBorderColor: string;
+    sidePanelHeadingColor: string;
     sidePanelMutedTextColor: string;
     sidePanelTextColor: string;
 };
@@ -273,6 +275,7 @@ type MapDetailsForm = {
 
 type NodeSettingsSection =
     | 'activities'
+    | 'tile-text'
     | 'right-panel'
     | 'availability'
     | 'visuals'
@@ -1116,7 +1119,7 @@ export default function EditWorldMap({
                 open={dialogOpen}
             >
                 <SettingsConfigurationDialog
-                    className="flex flex-col overflow-hidden"
+                    className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden"
                     style={nodeDialogThemeStyle}
                 >
                     <DialogHeader>
@@ -1131,7 +1134,7 @@ export default function EditWorldMap({
                     </DialogHeader>
 
                     <SettingsConfigurationLayout
-                        className="max-h-[min(38rem,calc(100svh-17rem))]"
+                        className="min-h-0 flex-1"
                         sidebar={
                             <NodeSettingsSwitcher
                                 activeSection={activeNodeSettingsSection}
@@ -1160,6 +1163,58 @@ export default function EditWorldMap({
                                                 Edit activities
                                             </Link>
                                         </Button>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection === 'tile-text' ? (
+                                    <SettingsConfigurationSection
+                                        description="Learner-facing tile title, hover text and map label visibility."
+                                        title="Tile text"
+                                    >
+                                        <TextField
+                                            error={
+                                                errors['visual_config.label']
+                                            }
+                                            label="Tile label"
+                                            onChange={(value) =>
+                                                setVisualTextConfig(
+                                                    setForm,
+                                                    'label',
+                                                    value,
+                                                )
+                                            }
+                                            value={form.visual_config.label}
+                                        />
+                                        <TextField
+                                            error={
+                                                errors['visual_config.tooltip']
+                                            }
+                                            label="Hover text"
+                                            onChange={(value) =>
+                                                setVisualTextConfig(
+                                                    setForm,
+                                                    'tooltip',
+                                                    value,
+                                                )
+                                            }
+                                            placeholder="Shown when learners hover the tile"
+                                            value={form.visual_config.tooltip}
+                                        />
+                                        <CheckboxField
+                                            checked={
+                                                form.visual_config.hideLabel
+                                            }
+                                            description="The title still appears when hovered or selected and in the side panel."
+                                            id="hide-label"
+                                            label="Hide tile label on world map"
+                                            onCheckedChange={(checked) =>
+                                                setVisualBooleanConfig(
+                                                    setForm,
+                                                    'hideLabel',
+                                                    checked,
+                                                )
+                                            }
+                                        />
                                     </SettingsConfigurationSection>
                                 ) : null}
 
@@ -1232,45 +1287,9 @@ export default function EditWorldMap({
                                 'availability' ? (
                                     <>
                                         <SettingsConfigurationSection
-                                            description="Learner-facing label and visibility behavior for the tile."
-                                            title="Tile display and text"
+                                            description="Learner-facing lock and visibility behavior for the tile."
+                                            title="Tile availability"
                                         >
-                                            <TextField
-                                                error={
-                                                    errors[
-                                                        'visual_config.label'
-                                                    ]
-                                                }
-                                                label="Tile label"
-                                                onChange={(value) =>
-                                                    setVisualTextConfig(
-                                                        setForm,
-                                                        'label',
-                                                        value,
-                                                    )
-                                                }
-                                                value={form.visual_config.label}
-                                            />
-                                            <TextField
-                                                error={
-                                                    errors[
-                                                        'visual_config.tooltip'
-                                                    ]
-                                                }
-                                                label="Hover text"
-                                                onChange={(value) =>
-                                                    setVisualTextConfig(
-                                                        setForm,
-                                                        'tooltip',
-                                                        value,
-                                                    )
-                                                }
-                                                placeholder="Shown when learners hover the tile"
-                                                value={
-                                                    form.visual_config.tooltip
-                                                }
-                                            />
-
                                             <div className="grid gap-3">
                                                 {form.state !== 'hidden' ? (
                                                     <CheckboxField
@@ -1291,24 +1310,6 @@ export default function EditWorldMap({
                                                         }
                                                     />
                                                 ) : null}
-                                                <CheckboxField
-                                                    checked={
-                                                        form.visual_config
-                                                            .hideLabel
-                                                    }
-                                                    description="The title still appears in the side panel after the tile is selected."
-                                                    id="hide-label"
-                                                    label="Hide tile label on world map"
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        setVisualBooleanConfig(
-                                                            setForm,
-                                                            'hideLabel',
-                                                            checked,
-                                                        )
-                                                    }
-                                                />
                                                 <CheckboxField
                                                     checked={
                                                         form.visual_config
@@ -2133,13 +2134,19 @@ const nodeSettingsSections: SettingsNavigationItem<NodeSettingsSection>[] = [
         label: 'Activities',
     },
     {
+        description: 'Tile label, hover text and map label visibility.',
+        icon: Type,
+        key: 'tile-text',
+        label: 'Tile text',
+    },
+    {
         description: 'Title, slug and description shown in the side panel.',
         icon: PanelRight,
         key: 'right-panel',
         label: 'Right panel',
     },
     {
-        description: 'Locking, discovery and tile display text.',
+        description: 'Locking, discovery and unlock rules.',
         icon: Eye,
         key: 'availability',
         label: 'Rules',
@@ -2704,6 +2711,7 @@ const mapVisualFields: {
     { key: 'accentColor', label: 'Accent color' },
     { key: 'sidePanelBackground', label: 'Node side panel background' },
     { key: 'sidePanelBorderColor', label: 'Node side panel border' },
+    { key: 'sidePanelHeadingColor', label: 'Node side panel heading' },
     { key: 'sidePanelTextColor', label: 'Node side panel text' },
     { key: 'sidePanelMutedTextColor', label: 'Node side panel muted text' },
     { key: 'bottomNavBackground', label: 'Bottom nav background' },
@@ -3515,6 +3523,7 @@ function emptyMapVisualThemeFields(): MapVisualThemeFields {
         sideControlTextColor: '',
         sidePanelBackground: '',
         sidePanelBorderColor: '',
+        sidePanelHeadingColor: '',
         sidePanelMutedTextColor: '',
         sidePanelTextColor: '',
     };
@@ -3880,6 +3889,10 @@ function mapVisualThemeFieldsFromConfig(
         sidePanelBorderColor: stringConfig(
             config?.sidePanelBorderColor,
             fallback.sidePanelBorderColor,
+        ),
+        sidePanelHeadingColor: stringConfig(
+            config?.sidePanelHeadingColor,
+            fallback.sidePanelHeadingColor,
         ),
         sidePanelMutedTextColor: stringConfig(
             config?.sidePanelMutedTextColor,

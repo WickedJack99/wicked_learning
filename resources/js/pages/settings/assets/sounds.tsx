@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SoundAssetInput } from '@/components/sound-asset-input';
+import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,281 +165,300 @@ export default function AdminSoundsPage({
                         </h1>
                     </header>
 
-                    <section className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                        <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div>
-                                    <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                                        {selectedSound
-                                            ? selectedSound.name
-                                            : 'Create sound'}
-                                    </h2>
-                                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                        Configure the default playback behavior.
-                                        Individual activities can later override
-                                        these defaults per use.
-                                    </p>
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        disabled={!form.url}
-                                        onClick={() =>
-                                            player.play(
-                                                soundPreview,
-                                                'sound-editor-preview',
-                                            )
-                                        }
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        <Play className="size-4" />
-                                        Play
-                                    </Button>
-                                    <Button
-                                        disabled={!form.url}
-                                        onClick={() =>
-                                            player.pause('sound-editor-preview')
-                                        }
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        <Pause className="size-4" />
-                                        Pause
-                                    </Button>
-                                    <Button
-                                        disabled={!form.url}
-                                        onClick={() =>
-                                            player.stop('sound-editor-preview')
-                                        }
-                                        type="button"
-                                        variant="secondary"
-                                    >
-                                        <Square className="size-4" />
-                                        Stop
-                                    </Button>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-4">
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <TextField
-                                        label="Name"
-                                        onChange={(name) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                name,
-                                            }))
-                                        }
-                                        value={form.name}
-                                    />
-                                    <TextField
-                                        label="Slug"
-                                        onChange={(slug) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                slug,
-                                            }))
-                                        }
-                                        placeholder="Generated from name if empty"
-                                        value={form.slug}
-                                    />
-                                </div>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="grid gap-1">
-                                        <Label htmlFor="sound-icon">Icon</Label>
-                                        <select
-                                            className="h-10 rounded-md border border-input bg-white px-3 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
-                                            id="sound-icon"
-                                            onChange={(event) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    icon: event.currentTarget
-                                                        .value,
-                                                }))
-                                            }
-                                            value={form.icon}
-                                        >
-                                            {iconOptions.map((option) => (
-                                                <option
-                                                    className="bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-100"
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                    <SettingsGroupedPane>
+                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
+                            <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/30">
+                                <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+                                            {selectedSound
+                                                ? selectedSound.name
+                                                : 'Create sound'}
+                                        </h2>
+                                        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                            Configure the default playback
+                                            behavior. Individual activities can
+                                            later override these defaults per
+                                            use.
+                                        </p>
                                     </div>
-                                    <div className="grid gap-1">
-                                        <Label htmlFor="sound-volume">
-                                            Volume
-                                        </Label>
-                                        <div className="grid grid-cols-[1fr_4rem] gap-2">
-                                            <Input
-                                                id="sound-volume"
-                                                max="100"
-                                                min="0"
-                                                onChange={(event) =>
-                                                    setForm((current) => ({
-                                                        ...current,
-                                                        volume: event
-                                                            .currentTarget
-                                                            .value,
-                                                    }))
-                                                }
-                                                type="range"
-                                                value={form.volume}
-                                            />
-                                            <Input
-                                                aria-label="Volume percent"
-                                                max="100"
-                                                min="0"
-                                                onChange={(event) =>
-                                                    setForm((current) => ({
-                                                        ...current,
-                                                        volume: event
-                                                            .currentTarget
-                                                            .value,
-                                                    }))
-                                                }
-                                                type="number"
-                                                value={form.volume}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <TextField
-                                        label="Play first seconds"
-                                        onChange={(playSeconds) =>
-                                            setForm((current) => ({
-                                                ...current,
-                                                playSeconds,
-                                            }))
-                                        }
-                                        placeholder="Leave empty to play full file"
-                                        type="number"
-                                        value={form.playSeconds}
-                                    />
-                                    <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                                        <input
-                                            checked={form.loop}
-                                            className="size-4"
-                                            id="sound-loop"
-                                            onChange={(event) =>
-                                                setForm((current) => ({
-                                                    ...current,
-                                                    loop: event.currentTarget
-                                                        .checked,
-                                                }))
-                                            }
-                                            type="checkbox"
-                                        />
-                                        <div>
-                                            <Label htmlFor="sound-loop">
-                                                Loop playback
-                                            </Label>
-                                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                                Useful for background music or
-                                                ambience layers.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <SoundAssetInput
-                                    description="Upload a sound file or choose an existing sound from the reusable library."
-                                    id="sound-url"
-                                    label="Sound file"
-                                    onChange={(url) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            url,
-                                        }))
-                                    }
-                                    onSelectSound={(sound) =>
-                                        setForm((current) => ({
-                                            ...current,
-                                            icon: sound.icon,
-                                            loop: sound.loop,
-                                            playSeconds:
-                                                sound.playSeconds?.toString() ??
-                                                current.playSeconds,
-                                            volume: sound.volume.toString(),
-                                        }))
-                                    }
-                                    onUpload={uploadSound}
-                                    uploading={isUploading}
-                                    value={form.url}
-                                />
-
-                                <div className="flex flex-wrap justify-end gap-2">
-                                    {selectedSound ? (
+                                    <div className="flex flex-wrap gap-2">
                                         <Button
-                                            onClick={deleteSound}
+                                            disabled={!form.url}
+                                            onClick={() =>
+                                                player.play(
+                                                    soundPreview,
+                                                    'sound-editor-preview',
+                                                )
+                                            }
                                             type="button"
-                                            variant="destructive"
+                                            variant="secondary"
                                         >
-                                            <Trash2 className="size-4" />
-                                            Delete
+                                            <Play className="size-4" />
+                                            Play
                                         </Button>
-                                    ) : null}
-                                    <Button onClick={saveSound} type="button">
-                                        {isUploading ? (
-                                            <LoaderCircle className="size-4 animate-spin" />
-                                        ) : (
-                                            <Plus className="size-4" />
-                                        )}
-                                        {selectedSound ? 'Save' : 'Create'}
+                                        <Button
+                                            disabled={!form.url}
+                                            onClick={() =>
+                                                player.pause(
+                                                    'sound-editor-preview',
+                                                )
+                                            }
+                                            type="button"
+                                            variant="secondary"
+                                        >
+                                            <Pause className="size-4" />
+                                            Pause
+                                        </Button>
+                                        <Button
+                                            disabled={!form.url}
+                                            onClick={() =>
+                                                player.stop(
+                                                    'sound-editor-preview',
+                                                )
+                                            }
+                                            type="button"
+                                            variant="secondary"
+                                        >
+                                            <Square className="size-4" />
+                                            Stop
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-4">
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <TextField
+                                            label="Name"
+                                            onChange={(name) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    name,
+                                                }))
+                                            }
+                                            value={form.name}
+                                        />
+                                        <TextField
+                                            label="Slug"
+                                            onChange={(slug) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    slug,
+                                                }))
+                                            }
+                                            placeholder="Generated from name if empty"
+                                            value={form.slug}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-1">
+                                            <Label htmlFor="sound-icon">
+                                                Icon
+                                            </Label>
+                                            <select
+                                                className="h-10 rounded-md border border-input bg-white px-3 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                id="sound-icon"
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        icon: event
+                                                            .currentTarget
+                                                            .value,
+                                                    }))
+                                                }
+                                                value={form.icon}
+                                            >
+                                                {iconOptions.map((option) => (
+                                                    <option
+                                                        className="bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-100"
+                                                        key={option.value}
+                                                        value={option.value}
+                                                    >
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="grid gap-1">
+                                            <Label htmlFor="sound-volume">
+                                                Volume
+                                            </Label>
+                                            <div className="grid grid-cols-[1fr_4rem] gap-2">
+                                                <Input
+                                                    id="sound-volume"
+                                                    max="100"
+                                                    min="0"
+                                                    onChange={(event) =>
+                                                        setForm((current) => ({
+                                                            ...current,
+                                                            volume: event
+                                                                .currentTarget
+                                                                .value,
+                                                        }))
+                                                    }
+                                                    type="range"
+                                                    value={form.volume}
+                                                />
+                                                <Input
+                                                    aria-label="Volume percent"
+                                                    max="100"
+                                                    min="0"
+                                                    onChange={(event) =>
+                                                        setForm((current) => ({
+                                                            ...current,
+                                                            volume: event
+                                                                .currentTarget
+                                                                .value,
+                                                        }))
+                                                    }
+                                                    type="number"
+                                                    value={form.volume}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <TextField
+                                            label="Play first seconds"
+                                            onChange={(playSeconds) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    playSeconds,
+                                                }))
+                                            }
+                                            placeholder="Leave empty to play full file"
+                                            type="number"
+                                            value={form.playSeconds}
+                                        />
+                                        <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                                            <input
+                                                checked={form.loop}
+                                                className="size-4"
+                                                id="sound-loop"
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        loop: event
+                                                            .currentTarget
+                                                            .checked,
+                                                    }))
+                                                }
+                                                type="checkbox"
+                                            />
+                                            <div>
+                                                <Label htmlFor="sound-loop">
+                                                    Loop playback
+                                                </Label>
+                                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                    Useful for background music
+                                                    or ambience layers.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <SoundAssetInput
+                                        description="Upload a sound file or choose an existing sound from the reusable library."
+                                        id="sound-url"
+                                        label="Sound file"
+                                        onChange={(url) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                url,
+                                            }))
+                                        }
+                                        onSelectSound={(sound) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                icon: sound.icon,
+                                                loop: sound.loop,
+                                                playSeconds:
+                                                    sound.playSeconds?.toString() ??
+                                                    current.playSeconds,
+                                                volume: sound.volume.toString(),
+                                            }))
+                                        }
+                                        onUpload={uploadSound}
+                                        uploading={isUploading}
+                                        value={form.url}
+                                    />
+
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        {selectedSound ? (
+                                            <Button
+                                                onClick={deleteSound}
+                                                type="button"
+                                                variant="destructive"
+                                            >
+                                                <Trash2 className="size-4" />
+                                                Delete
+                                            </Button>
+                                        ) : null}
+                                        <Button
+                                            onClick={saveSound}
+                                            type="button"
+                                        >
+                                            {isUploading ? (
+                                                <LoaderCircle className="size-4 animate-spin" />
+                                            ) : (
+                                                <Plus className="size-4" />
+                                            )}
+                                            {selectedSound ? 'Save' : 'Create'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
+                                <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
+                                    <div className="relative">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                                        <Input
+                                            className="pl-9"
+                                            onChange={(event) =>
+                                                setSearch(
+                                                    event.currentTarget.value,
+                                                )
+                                            }
+                                            placeholder="Search sounds"
+                                            value={search}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                    <div className="grid gap-2">
+                                        {filteredSounds.map((sound) => (
+                                            <SoundListItem
+                                                isSelected={
+                                                    selectedSound?.id ===
+                                                    sound.id
+                                                }
+                                                key={sound.id}
+                                                onSelect={() =>
+                                                    selectSound(sound)
+                                                }
+                                                sound={sound}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
+                                    <Button
+                                        className="w-full"
+                                        onClick={startCreate}
+                                        type="button"
+                                    >
+                                        <Plus className="size-4" />
+                                        Create sound
                                     </Button>
                                 </div>
-                            </div>
+                            </aside>
                         </div>
-
-                        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                            <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        className="pl-9"
-                                        onChange={(event) =>
-                                            setSearch(event.currentTarget.value)
-                                        }
-                                        placeholder="Search sounds"
-                                        value={search}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                                <div className="grid gap-2">
-                                    {filteredSounds.map((sound) => (
-                                        <SoundListItem
-                                            isSelected={
-                                                selectedSound?.id === sound.id
-                                            }
-                                            key={sound.id}
-                                            onSelect={() => selectSound(sound)}
-                                            sound={sound}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
-                                <Button
-                                    className="w-full"
-                                    onClick={startCreate}
-                                    type="button"
-                                >
-                                    <Plus className="size-4" />
-                                    Create sound
-                                </Button>
-                            </div>
-                        </aside>
-                    </section>
+                    </SettingsGroupedPane>
                 </div>
             </main>
         </>

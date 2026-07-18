@@ -40,6 +40,11 @@ type SettingsConfigurationLayoutProps = {
     sidebar: ReactNode;
 };
 
+type SettingsGroupedPaneProps = {
+    children: ReactNode;
+    className?: string;
+};
+
 type SettingsSectionNavigationProps<T extends string> = {
     activeSection: T;
     ariaLabel: string;
@@ -153,6 +158,22 @@ export function SettingsSectionButton<T extends string>({
 
 export function SettingsContentPane({ children }: { children: ReactNode }) {
     return <div className="h-full overflow-y-auto pr-1">{children}</div>;
+}
+
+export function SettingsGroupedPane({
+    children,
+    className,
+}: SettingsGroupedPaneProps) {
+    return (
+        <section
+            className={cn(
+                'min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#111820]',
+                className,
+            )}
+        >
+            {children}
+        </section>
+    );
 }
 
 export function SettingsConfigurationLayout({

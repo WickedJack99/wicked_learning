@@ -509,15 +509,20 @@ export default function World({
                             setPanelSwipe(null);
                         }
                     }}
-                    style={{
-                        background: mapTheme?.sidePanelBackground,
-                        borderColor: mapTheme?.sidePanelBorderColor,
-                        color: mapTheme?.sidePanelTextColor,
-                        transform:
-                            selectedNode && panelSwipe?.offsetX
-                                ? `translateX(${panelSwipe.offsetX}px)`
-                                : undefined,
-                    }}
+                    style={
+                        {
+                            '--map-side-panel-heading-color':
+                                mapTheme?.sidePanelHeadingColor ??
+                                mapTheme?.accentColor,
+                            background: mapTheme?.sidePanelBackground,
+                            borderColor: mapTheme?.sidePanelBorderColor,
+                            color: mapTheme?.sidePanelTextColor,
+                            transform:
+                                selectedNode && panelSwipe?.offsetX
+                                    ? `translateX(${panelSwipe.offsetX}px)`
+                                    : undefined,
+                        } as CSSProperties
+                    }
                 >
                     <ActivityPanel
                         canBookmark={isAuthenticated}

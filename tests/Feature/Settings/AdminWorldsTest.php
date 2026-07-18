@@ -424,6 +424,14 @@ test('admin users configure portal destinations from portal activities', functio
                     'y' => 42,
                 ],
             ],
+            'portal_bubble_text' => 'Before you lies an unexplored archive.',
+            'portal_bubble_typing_speed' => 32,
+            'portal_bubble_color_dark' => '#0f172a',
+            'portal_bubble_color_light' => '#ffffff',
+            'portal_bubble_border_color_dark' => '#8f64dd',
+            'portal_bubble_border_color_light' => '#7c3aed',
+            'portal_bubble_text_color_dark' => '#f8fafc',
+            'portal_bubble_text_color_light' => '#111827',
             'portal_duration_seconds' => 2.5,
             'portal_foreground_dark' => '/storage/learning/nodes/swirl-dark.svg',
             'portal_foreground_light' => '/storage/learning/nodes/swirl-light.svg',
@@ -457,6 +465,14 @@ test('admin users configure portal destinations from portal activities', functio
         ->and((float) $activity->config['portalAssets'][0]['width'])->toBe(48.0)
         ->and((float) $activity->config['portalAssets'][0]['x'])->toBe(56.0)
         ->and((float) $activity->config['portalAssets'][0]['y'])->toBe(42.0)
+        ->and($activity->config['portalBubbleText'])->toBe('Before you lies an unexplored archive.')
+        ->and($activity->config['portalBubbleTypingSpeed'])->toBe(32)
+        ->and($activity->config['portalBubbleColorDark'])->toBe('#0f172a')
+        ->and($activity->config['portalBubbleColorLight'])->toBe('#ffffff')
+        ->and($activity->config['portalBubbleBorderColorDark'])->toBe('#8f64dd')
+        ->and($activity->config['portalBubbleBorderColorLight'])->toBe('#7c3aed')
+        ->and($activity->config['portalBubbleTextColorDark'])->toBe('#f8fafc')
+        ->and($activity->config['portalBubbleTextColorLight'])->toBe('#111827')
         ->and($activity->config['portalDurationSeconds'])->toBe(2.5)
         ->and($activity->config['portalForegroundDark'])->toBe('/storage/learning/nodes/swirl-dark.svg')
         ->and($activity->config['portalForegroundLight'])->toBe('/storage/learning/nodes/swirl-light.svg')

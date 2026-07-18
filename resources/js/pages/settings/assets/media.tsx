@@ -10,6 +10,7 @@ import {
     Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -116,73 +117,80 @@ export default function AdminMediaAssets({
                         </h1>
                     </header>
 
-                    <section className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                        <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                            {selectedAsset ? (
-                                <AssetDetails
-                                    asset={selectedAsset}
-                                    busy={busyUrl === selectedAsset.url}
-                                    onDelete={deleteSelectedAsset}
-                                    onReplace={() =>
-                                        replaceInputRef.current?.click()
-                                    }
-                                />
-                            ) : (
-                                <div className="grid h-full place-items-center p-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                                    No media assets are available yet.
-                                </div>
-                            )}
-                        </div>
-
-                        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                            <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
-                                <div className="relative">
-                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-                                    <Input
-                                        className="pl-9"
-                                        onChange={(event) =>
-                                            setSearch(event.currentTarget.value)
+                    <SettingsGroupedPane>
+                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
+                            <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
+                                {selectedAsset ? (
+                                    <AssetDetails
+                                        asset={selectedAsset}
+                                        busy={busyUrl === selectedAsset.url}
+                                        onDelete={deleteSelectedAsset}
+                                        onReplace={() =>
+                                            replaceInputRef.current?.click()
                                         }
-                                        placeholder="Search visuals"
-                                        value={search}
                                     />
-                                </div>
+                                ) : (
+                                    <div className="grid h-full place-items-center p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                                        No media assets are available yet.
+                                    </div>
+                                )}
                             </div>
 
-                            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                                <div className="grid gap-2">
-                                    {filteredAssets.map((asset) => (
-                                        <AssetListItem
-                                            asset={asset}
-                                            isSelected={
-                                                selectedAsset?.url === asset.url
+                            <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
+                                <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
+                                    <div className="relative">
+                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                                        <Input
+                                            className="pl-9"
+                                            onChange={(event) =>
+                                                setSearch(
+                                                    event.currentTarget.value,
+                                                )
                                             }
-                                            key={asset.url}
-                                            onSelect={() =>
-                                                setSelectedUrl(asset.url)
-                                            }
+                                            placeholder="Search visuals"
+                                            value={search}
                                         />
-                                    ))}
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
-                                <Button
-                                    className="w-full"
-                                    disabled={isAdding}
-                                    onClick={() => addInputRef.current?.click()}
-                                    type="button"
-                                >
-                                    {isAdding ? (
-                                        <LoaderCircle className="size-4 animate-spin" />
-                                    ) : (
-                                        <Plus className="size-4" />
-                                    )}
-                                    Add item
-                                </Button>
-                            </div>
-                        </aside>
-                    </section>
+                                <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                    <div className="grid gap-2">
+                                        {filteredAssets.map((asset) => (
+                                            <AssetListItem
+                                                asset={asset}
+                                                isSelected={
+                                                    selectedAsset?.url ===
+                                                    asset.url
+                                                }
+                                                key={asset.url}
+                                                onSelect={() =>
+                                                    setSelectedUrl(asset.url)
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
+                                    <Button
+                                        className="w-full"
+                                        disabled={isAdding}
+                                        onClick={() =>
+                                            addInputRef.current?.click()
+                                        }
+                                        type="button"
+                                    >
+                                        {isAdding ? (
+                                            <LoaderCircle className="size-4 animate-spin" />
+                                        ) : (
+                                            <Plus className="size-4" />
+                                        )}
+                                        Add item
+                                    </Button>
+                                </div>
+                            </aside>
+                        </div>
+                    </SettingsGroupedPane>
                 </div>
 
                 <input

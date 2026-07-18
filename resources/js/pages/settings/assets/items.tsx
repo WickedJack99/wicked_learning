@@ -13,6 +13,7 @@ import {
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
+import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -86,20 +87,22 @@ export default function AdminItemsPage({ items }: { items: AdminItem[] }) {
                         </h1>
                     </header>
 
-                    <section className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                        <ItemFormPanel
-                            key={selectedItem?.id ?? 'new'}
-                            selectedItem={selectedItem}
-                        />
-                        <ItemListPanel
-                            filteredItems={filteredItems}
-                            onCreate={() => setSelectedItemId(null)}
-                            onSearch={setSearch}
-                            onSelect={setSelectedItemId}
-                            search={search}
-                            selectedItemId={selectedItemId}
-                        />
-                    </section>
+                    <SettingsGroupedPane>
+                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
+                            <ItemFormPanel
+                                key={selectedItem?.id ?? 'new'}
+                                selectedItem={selectedItem}
+                            />
+                            <ItemListPanel
+                                filteredItems={filteredItems}
+                                onCreate={() => setSelectedItemId(null)}
+                                onSearch={setSearch}
+                                onSelect={setSelectedItemId}
+                                search={search}
+                                selectedItemId={selectedItemId}
+                            />
+                        </div>
+                    </SettingsGroupedPane>
                 </div>
             </main>
         </>
@@ -171,7 +174,7 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
     };
 
     return (
-        <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+        <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
             <div className="flex h-full flex-col">
                 <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
                     <div className="flex items-center gap-3">
@@ -276,7 +279,7 @@ function ItemListPanel({
     selectedItemId: number | null;
 }) {
     return (
-        <aside className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+        <aside className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
             <div className="flex h-full flex-col">
                 <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
                     <div className="relative">

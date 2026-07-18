@@ -1,6 +1,6 @@
 import { router, usePage } from '@inertiajs/react';
 import { Backpack, Hammer, NotebookPen, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
 import { JournalOverlay } from '@/features/journal/journal-overlay';
@@ -23,6 +23,7 @@ export function AppSideActionBar() {
     const { props, url } = usePage();
     const { resolvedAppearance } = useAppearance();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
+    const sideActionRef = useRef<HTMLElement | null>(null);
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
@@ -36,6 +37,37 @@ export function AppSideActionBar() {
         [props.auth.user, url],
     );
 
+    useEffect(() => {
+        if (overlay !== 'inventory' && overlay !== 'tools') {
+            return;
+        }
+
+        const closeOverlayOnOutsidePointerDown = (event: PointerEvent) => {
+            const target = event.target;
+
+            if (
+                target instanceof Node &&
+                sideActionRef.current?.contains(target)
+            ) {
+                return;
+            }
+
+            setOverlay(null);
+        };
+
+        document.addEventListener(
+            'pointerdown',
+            closeOverlayOnOutsidePointerDown,
+        );
+
+        return () => {
+            document.removeEventListener(
+                'pointerdown',
+                closeOverlayOnOutsidePointerDown,
+            );
+        };
+    }, [overlay]);
+
     if (!shouldShow) {
         return null;
     }
@@ -44,6 +76,7 @@ export function AppSideActionBar() {
         <aside
             aria-label="Player actions"
             className="fixed top-1/2 right-3 z-40 flex -translate-y-1/2 items-center gap-3 md:right-5"
+            ref={sideActionRef}
         >
             {overlay === 'inventory' ? (
                 <SideOverlay

@@ -2,6 +2,7 @@
 
 namespace App\Learning\Support;
 
+use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningItem;
 use App\Models\LearningMap;
@@ -72,6 +73,23 @@ class UniqueSlugGenerator
         while (LearningItem::query()
             ->where('slug', $slug)
             ->when($existingItem, fn ($query) => $query->whereKeyNot($existingItem->id))
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    public function forAiAgentTemplate(string $title, ?AiAgentTemplate $existingTemplate = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'ai-agent';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (AiAgentTemplate::query()
+            ->where('slug', $slug)
+            ->when($existingTemplate, fn ($query) => $query->whereKeyNot($existingTemplate->id))
             ->exists()) {
             $slug = $baseSlug.'-'.$suffix;
             $suffix++;

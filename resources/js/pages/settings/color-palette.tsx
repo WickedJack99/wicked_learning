@@ -121,6 +121,7 @@ const mapFieldGroups: Array<{
         fields: [
             { field: 'sidePanelBackground', label: 'Background' },
             { field: 'sidePanelBorderColor', label: 'Border' },
+            { field: 'sidePanelHeadingColor', label: 'Heading accent' },
             { field: 'sidePanelTextColor', label: 'Text' },
             { field: 'sidePanelMutedTextColor', label: 'Muted text' },
         ],

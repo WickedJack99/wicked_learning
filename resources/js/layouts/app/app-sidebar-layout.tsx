@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { AppBottomNav } from '@/components/app-bottom-nav';
 import { AppSideActionBar } from '@/components/app-side-action-bar';
@@ -13,16 +13,17 @@ import {
 } from '@/features/tools/tool-selection';
 import { useAppearancePageSync } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
-import {
-    embeddedPlatformCursors,
-    platformActionCursor,
-    platformCursor,
-    platformDeniedCursor,
-    platformGrabCursor,
-    platformTextCursor,
-} from '@/theme/cursors';
+import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import type { AppLayoutProps } from '@/types';
+
+type PlatformCursorStyle = CSSProperties & {
+    '--platform-action-cursor'?: string;
+    '--platform-cursor'?: string;
+    '--platform-denied-cursor'?: string;
+    '--platform-grab-cursor'?: string;
+    '--platform-text-cursor'?: string;
+};
 
 export default function AppSidebarLayout({
     children,
@@ -49,34 +50,9 @@ export default function AppSidebarLayout({
     }, [selectedTool]);
     void breadcrumbs;
     const presentation = props.publicPresentation;
-    const [platformCursors, setPlatformCursors] = useState(() => ({
-        action: platformActionCursor(presentation),
-        default: platformCursor(presentation),
-        denied: platformDeniedCursor(presentation),
-        grab: platformGrabCursor(presentation),
-        text: platformTextCursor(presentation),
-    }));
-    useEffect(() => {
-        let isMounted = true;
-
-        setPlatformCursors({
-            action: platformActionCursor(presentation),
-            default: platformCursor(presentation),
-            denied: platformDeniedCursor(presentation),
-            grab: platformGrabCursor(presentation),
-            text: platformTextCursor(presentation),
-        });
-
-        void embeddedPlatformCursors(presentation).then((cursors) => {
-            if (isMounted) {
-                setPlatformCursors(cursors);
-            }
-        });
-
-        return () => {
-            isMounted = false;
-        };
-    }, [presentation]);
+    const platformCursors = usePlatformCursorStyle(
+        presentation,
+    ) as PlatformCursorStyle;
     const toolCursor = equippedToolCursorStyle(
         selectedTool,
         resolvedAppearance,
@@ -88,23 +64,23 @@ export default function AppSidebarLayout({
     const platformCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursors.default;
+            : platformCursors['--platform-cursor'];
     const actionCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursors.action;
+            : platformCursors['--platform-action-cursor'];
     const grabCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursors.grab;
+            : platformCursors['--platform-grab-cursor'];
     const textCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursors.text;
+            : platformCursors['--platform-text-cursor'];
     const deniedCursorValue =
         typeof toolCursor.cursor === 'string'
             ? toolCursor.cursor
-            : platformCursors.denied;
+            : platformCursors['--platform-denied-cursor'];
 
     return (
         <div
