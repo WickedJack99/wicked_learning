@@ -50,9 +50,37 @@ For app changes, use targeted checks based on the touched layer. Do not run the 
 - `README.md` is the public overview.
 - `documentation/` contains stable implementation and setup docs.
 - `concept_current/` contains current design thinking.
-- Code is the source of truth for behavior that already exists.
+- `concept/` and `conversations/` contain older, exploratory or historical thinking.
+- Code, migrations and tests show how the application currently behaves.
 
-If code and concept disagree, inspect the code, decide whether the implementation is intentional, then update the concept if needed.
+None of these sources alone defines the final intended product. Wicked Learning is developed through iterative exploration rather than from a complete fixed specification.
+
+When sources disagree:
+
+1. Do not assume the code is the intended final design.
+2. Do not assume a concept document is a binding specification.
+3. Do not silently revive an old idea.
+4. Follow the newest explicit user direction when it is clear.
+5. Use existing material to understand context, terminology and consequences.
+6. Report important contradictions when they affect architecture, stored data, security or substantial future work.
+7. For smaller reversible decisions, make a reasonable choice and state the assumption afterward.
+
+Do not require the user to fully specify the entire surrounding concept before implementing one developing idea.
+
+## Exploratory Product Work
+
+Implementation may help clarify the concept. When building an exploratory feature:
+
+- Identify clearly requested parts.
+- Distinguish settled requirements from assumptions.
+- Prefer reversible structures where the design is still developing.
+- Avoid unnecessary abstractions based on an imagined final system.
+- Implement the smallest version that makes the idea tangible and testable.
+- Note design questions discovered during implementation.
+- Update concept documents only when the new direction is clear enough to record.
+- Do not rewrite broad concept documents merely to make them match every prototype experiment.
+
+A prototype may intentionally leave surrounding behavior unresolved. Report those boundaries instead of pretending the whole concept is complete.
 
 ## Conflict Handling
 

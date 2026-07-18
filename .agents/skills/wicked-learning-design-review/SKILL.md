@@ -9,25 +9,37 @@ Use this skill for concept and design judgment before or after implementation.
 
 ## Review Lens
 
-Check whether the idea supports:
+Use these ideas as design lenses, not automatic vetoes. Check whether the idea supports:
 
 - Autonomy: meaningful choice, no coercive pressure.
 - Competence: informational feedback, clear orientation, visible growth without public ranking.
 - Relatedness: cooperation, care and context rather than comparison.
 - Wellbeing: interaction pace that invites exploration rather than obligation.
+- Accessibility: interaction that remains usable across devices, inputs and learner needs.
+- Privacy: learner data and reflections are handled intentionally.
+- Cognitive load: configuration and learner screens do not overwhelm without purpose.
 - Domain genericity: content can be themed for any subject.
 
-## Red Flags
+## Tensions To Name
+
+Name these concerns when they matter, but do not block implementation automatically:
 
 - Points, streaks, badges or rankings becoming the reason to continue.
 - Public comparison or shame.
-- Hidden mechanics that feel manipulative.
+- Hidden mechanics that may feel manipulative.
 - Hard-coded story or domain assumptions.
 - AI feedback pretending certainty where it should be cautious and informational.
+- Tools, items, progression or rewards that might pull attention away from learning.
+
+Suggest less controlling or more learner-supportive alternatives when useful, then let the creator make the product decision. Preserve intentional experimentation.
 
 ## Concept Sync
 
-When a design decision changes direction, update `concept_current/` and mark old ideas as changed or discontinued with a short reason.
+When a design decision changes direction, update `concept_current/` only when the new direction is clear enough to record. Do not rewrite broad concept documents just to match every prototype experiment. Mark old ideas as changed or discontinued with a short reason when the change is meaningful.
+
+## Evolving Context
+
+Treat code, documentation, concepts and conversations as snapshots of an evolving project. If they disagree, use the newest explicit user direction as the strongest current product direction, while reporting contradictions that affect architecture, stored data, security or substantial future work.
 
 ## Output Style
 

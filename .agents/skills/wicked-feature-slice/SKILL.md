@@ -17,6 +17,7 @@ Use this skill for larger feature work in Wicked Learning.
    - React component or hook owning UI behavior
 3. Reuse existing abstractions when responsibilities match.
 4. Keep domain content configurable and preserve the no-points, no-streaks, no-leaderboards direction.
+5. Distinguish settled requirements from assumptions when the feature is exploratory.
 
 ## Backend Pattern
 
@@ -41,4 +42,6 @@ Run targeted checks that match the touched layer. Mention any checks skipped and
 
 ## Documentation
 
-When behavior changes the concept, update `concept_current/`. When public setup or feature behavior changes, update `documentation/`.
+When behavior changes the concept, update `concept_current/` only if the new direction is clear enough to record. When public setup or implemented feature behavior changes, update `documentation/`.
+
+Do not rewrite broad concept documents merely to make them match a prototype experiment. Report unresolved boundaries instead.

@@ -6,6 +6,8 @@ This file is the first instruction layer for Codex work in this repository. More
 
 Wicked Learning is a generic, explorable learning platform. It should be adaptable to any learning domain through configured worlds, maps, nodes, activities, media, sounds, cursors, public pages and access rules.
 
+The product is developed through iterative exploration rather than from a complete fixed specification. The creator may hold parts of the concept mentally, discover the shape of a feature while seeing it implemented, or intentionally contradict an older concept note after using a prototype.
+
 Preserve these product invariants:
 
 - Support autonomy, competence, curiosity, orientation and wellbeing.
@@ -14,16 +16,44 @@ Preserve these product invariants:
 - Keep domain content configurable. Do not hard-code one story, subject area, image set or terminology into core learning logic.
 - Treat ideas from the project creator as product direction from WickedJack99. If concept notes are updated, mark changed or discontinued ideas clearly.
 
+Use the learning principles as design lenses, not as automatic blockers. Playful mechanics, tools, items, progression and rewards are not automatically inappropriate. Consider what behavior they encourage, explain important tensions, suggest learner-supportive alternatives when useful, and let the creator make the product decision.
+
 ## Source Of Truth
 
 - `README.md` is the public overview.
 - `documentation/` is slower-moving implementation and setup documentation.
 - `concept_current/` is the current living concept layer.
-- Older `concept*` files can contain historical thinking and should not overrule `concept_current/`.
+- `concept/` and older `concept*` files can contain historical thinking and should not silently overrule `concept_current/`.
+- `conversations/` contains exploratory history and should be used for context, not as binding specification.
 - `app/Learning` owns learning-domain behavior.
 - `resources/js/features` owns larger frontend feature behavior.
 
-If implementation and concept notes disagree, inspect the current code first, then update the concept notes when the implementation intentionally changes the idea.
+None of these sources alone defines the final intended product. If implementation, documentation and concept notes disagree:
+
+- Do not assume the code is the intended final design.
+- Do not assume a concept document is a binding specification.
+- Do not silently revive an old idea.
+- Follow the newest explicit user direction when it is clear.
+- Use existing material to understand context, terminology and consequences.
+- Report important contradictions when they affect architecture, stored data, security or substantial future work.
+- For smaller reversible decisions, make a reasonable choice and state the assumption afterward.
+
+Do not require the user to fully specify the entire surrounding concept before implementing one developing idea.
+
+## Exploratory Implementation
+
+Implementation may clarify the concept. When building an exploratory feature:
+
+- Identify which parts are clearly requested.
+- Distinguish settled requirements from assumptions.
+- Prefer reversible structures where the design is still developing.
+- Avoid unnecessary abstractions based on an imagined final system.
+- Implement the smallest version that makes the idea tangible and testable.
+- Note design questions discovered during implementation.
+- Update concept documents only when the new direction is clear enough to record.
+- Do not rewrite broad concept documents merely to make them match every prototype experiment.
+
+A prototype may intentionally leave surrounding behavior unresolved. Report those boundaries instead of pretending the whole concept is complete.
 
 ## Architecture Rules
 
