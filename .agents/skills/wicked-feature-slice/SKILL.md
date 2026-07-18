@@ -16,8 +16,9 @@ Use this skill for larger feature work in Wicked Learning.
    - Serializer shaping data
    - React component or hook owning UI behavior
 3. Reuse existing abstractions when responsibilities match.
-4. Keep domain content configurable and preserve the no-points, no-streaks, no-leaderboards direction.
+4. Keep domain content configurable and consider the no-points, no-streaks, no-leaderboards direction as a design lens rather than a hard veto.
 5. Distinguish settled requirements from assumptions when the feature is exploratory.
+6. Prefer reversible implementation choices when the surrounding product direction is still forming.
 
 ## Backend Pattern
 

@@ -8,7 +8,7 @@ Wicked Learning is a generic, explorable learning platform. It should be adaptab
 
 The product is developed through iterative exploration rather than from a complete fixed specification. The creator may hold parts of the concept mentally, discover the shape of a feature while seeing it implemented, or intentionally contradict an older concept note after using a prototype.
 
-Preserve these product invariants:
+Use these design directions as current guidance:
 
 - Support autonomy, competence, curiosity, orientation and wellbeing.
 - Avoid global points, streak pressure, leaderboards and reward loops that make the reward more important than learning.
@@ -16,7 +16,7 @@ Preserve these product invariants:
 - Keep domain content configurable. Do not hard-code one story, subject area, image set or terminology into core learning logic.
 - Treat ideas from the project creator as product direction from WickedJack99. If concept notes are updated, mark changed or discontinued ideas clearly.
 
-Use the learning principles as design lenses, not as automatic blockers. Playful mechanics, tools, items, progression and rewards are not automatically inappropriate. Consider what behavior they encourage, explain important tensions, suggest learner-supportive alternatives when useful, and let the creator make the product decision.
+Use the learning principles as design lenses, not as automatic blockers or veto authority. Playful mechanics, tools, items, progression and rewards are not automatically inappropriate. Consider what behavior they encourage, explain important tensions, suggest learner-supportive alternatives when useful, and let the creator make the final product decision.
 
 ## Source Of Truth
 

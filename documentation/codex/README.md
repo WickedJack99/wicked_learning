@@ -16,7 +16,7 @@ Scoped files should only add local guidance. They should not contradict the root
 
 ## Repository Guidance Files
 
-- `AGENTS.md` covers project direction, architecture boundaries, safety and verification.
+- `AGENTS.md` covers product direction, design lenses, architecture boundaries, safety and verification.
 - `app/Learning/AGENTS.md` covers backend learning-domain behavior.
 - `resources/js/AGENTS.md` covers React, Inertia, feature modules and UI consistency.
 - `tests/AGENTS.md` covers test priorities and scope.
@@ -27,10 +27,10 @@ Repository-local skills live under `.agents/skills/`.
 
 Current skills:
 
-- `wicked-feature-slice`: feature ownership, architecture and documentation sync.
+- `wicked-feature-slice`: feature ownership, architecture, reversible implementation and documentation sync.
 - `wicked-activity-type`: activity graph, playback, progress and activity localization work.
 - `wicked-ui-qa`: visual consistency, cursor behavior, map/settings layout and browser checks.
-- `wicked-learning-design-review`: SDT-aligned concept review and product judgment.
+- `wicked-learning-design-review`: advisory SDT-informed concept review, product tensions and alternatives.
 
 Each skill has a compact `SKILL.md` with YAML frontmatter containing `name` and `description`.
 

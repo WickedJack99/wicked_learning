@@ -5,11 +5,11 @@ description: Use when reviewing Wicked Learning concepts, activity flows, compet
 
 # Wicked Learning Design Review
 
-Use this skill for concept and design judgment before or after implementation.
+Use this skill for advisory concept and design judgment before or after implementation.
 
 ## Review Lens
 
-Use these ideas as design lenses, not automatic vetoes. Check whether the idea supports:
+Use these ideas as design lenses, not automatic vetoes or strict compliance rules. Check whether the idea supports:
 
 - Autonomy: meaningful choice, no coercive pressure.
 - Competence: informational feedback, clear orientation, visible growth without public ranking.
@@ -31,7 +31,7 @@ Name these concerns when they matter, but do not block implementation automatica
 - AI feedback pretending certainty where it should be cautious and informational.
 - Tools, items, progression or rewards that might pull attention away from learning.
 
-Suggest less controlling or more learner-supportive alternatives when useful, then let the creator make the product decision. Preserve intentional experimentation.
+Identify tensions, risks and alternatives when useful. Do not treat current concept notes or Self-Determination Theory principles as veto authority. The creator makes the final product decision. Preserve intentional experimentation.
 
 ## Concept Sync
 
