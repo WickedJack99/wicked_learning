@@ -1,4 +1,5 @@
 import { Moon, Sun } from 'lucide-react';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 export type ConfigThemeMode = 'dark' | 'light';
@@ -16,12 +17,13 @@ export function ConfigModeSwitch({
     onChange,
     size = 'default',
 }: ConfigModeSwitchProps) {
+    const t = usePlatformTranslation();
     const buttonSize = size === 'large' ? 'size-11' : 'size-10';
     const iconSize = size === 'large' ? 'size-5' : 'size-4';
 
     return (
         <div
-            aria-label="Configuration mode"
+            aria-label={t('common.configuration.mode', 'Configuration mode')}
             className={cn(
                 'inline-flex rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/80',
                 className,
@@ -38,8 +40,22 @@ export function ConfigModeSwitch({
             role="tablist"
         >
             {[
-                { icon: Moon, label: 'Dark configuration', value: 'dark' },
-                { icon: Sun, label: 'Light configuration', value: 'light' },
+                {
+                    icon: Moon,
+                    label: t(
+                        'common.configuration.dark',
+                        'Dark configuration',
+                    ),
+                    value: 'dark',
+                },
+                {
+                    icon: Sun,
+                    label: t(
+                        'common.configuration.light',
+                        'Light configuration',
+                    ),
+                    value: 'light',
+                },
             ].map((option) => {
                 const Icon = option.icon;
                 const value = option.value as ConfigThemeMode;

@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { send } from '@/routes/verification';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { User } from '@/types';
 
 type ProfileSettingsPanelProps = {
@@ -27,6 +28,7 @@ export function ProfileSettingsPanel({
     mustVerifyEmail,
     status,
 }: ProfileSettingsPanelProps) {
+    const t = usePlatformTranslation();
     const { auth } = usePage<PageProps>().props;
     const [profileImage, setProfileImage] = useState(
         auth.user.profile_image ?? auth.user.avatar ?? '',
@@ -36,6 +38,10 @@ export function ProfileSettingsPanel({
     );
     const [isUploadingProfileImage, setIsUploadingProfileImage] =
         useState(false);
+    const profileImageUploadError = t(
+        'settings.personal.profile.image.upload_error',
+        'The profile image could not be uploaded.',
+    );
 
     const uploadProfileImage = async (file: File) => {
         setIsUploadingProfileImage(true);
@@ -44,7 +50,7 @@ export function ProfileSettingsPanel({
         try {
             const payload = await uploadMediaFile({
                 endpoint: '/settings/profile/image',
-                errorMessage: 'The profile image could not be uploaded.',
+                errorMessage: profileImageUploadError,
                 file,
             });
 
@@ -53,7 +59,7 @@ export function ProfileSettingsPanel({
             setProfileImageError(
                 error instanceof Error
                     ? error.message
-                    : 'The profile image could not be uploaded.',
+                    : profileImageUploadError,
             );
         } finally {
             setIsUploadingProfileImage(false);
@@ -68,14 +74,19 @@ export function ProfileSettingsPanel({
                         className="text-xs font-medium tracking-[0.18em] uppercase"
                         style={{ color: 'var(--settings-accent)' }}
                     >
-                        Account
+                        {t('settings.personal.profile.eyebrow', 'Account')}
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">
-                        Profile details
+                        {t(
+                            'settings.personal.profile.title',
+                            'Profile details',
+                        )}
                     </h2>
                     <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        Update account details and the public identity shown to
-                        other people later on.
+                        {t(
+                            'settings.personal.profile.description',
+                            'Update account details and the public identity shown to other people later on.',
+                        )}
                     </p>
                 </div>
 
@@ -106,29 +117,50 @@ export function ProfileSettingsPanel({
                                 defaultValue={auth.user.name}
                                 error={errors.name}
                                 id="name"
-                                label="Name"
+                                label={t(
+                                    'settings.personal.profile.name',
+                                    'Name',
+                                )}
                                 name="name"
-                                placeholder="Full name"
+                                placeholder={t(
+                                    'settings.personal.profile.name.placeholder',
+                                    'Full name',
+                                )}
                                 required
                             />
                             <Field
                                 autoComplete="nickname"
                                 defaultValue={auth.user.username ?? ''}
                                 error={errors.username}
-                                hint="Optional. Use letters, numbers, dashes and underscores. This is the name intended for public learning spaces."
+                                hint={t(
+                                    'settings.personal.profile.username.hint',
+                                    'Optional. Use letters, numbers, dashes and underscores. This is the name intended for public learning spaces.',
+                                )}
                                 id="username"
-                                label="Public username"
+                                label={t(
+                                    'settings.personal.profile.username',
+                                    'Public username',
+                                )}
                                 name="username"
-                                placeholder="Visible handle, for example WickedJack99"
+                                placeholder={t(
+                                    'settings.personal.profile.username.placeholder',
+                                    'Visible handle, for example WickedJack99',
+                                )}
                             />
                             <Field
                                 autoComplete="username"
                                 defaultValue={auth.user.email}
                                 error={errors.email}
                                 id="email"
-                                label="Email address"
+                                label={t(
+                                    'settings.personal.profile.email',
+                                    'Email address',
+                                )}
                                 name="email"
-                                placeholder="Email address"
+                                placeholder={t(
+                                    'settings.personal.profile.email.placeholder',
+                                    'Email address',
+                                )}
                                 required
                                 type="email"
                             />
@@ -137,19 +169,27 @@ export function ProfileSettingsPanel({
                             auth.user.email_verified_at === null ? (
                                 <div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        Your email address is unverified.{' '}
+                                        {t(
+                                            'settings.personal.profile.email_unverified',
+                                            'Your email address is unverified.',
+                                        )}{' '}
                                         <Link
                                             as="button"
                                             className="text-slate-950 underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:text-white dark:decoration-neutral-500"
                                             href={send()}
                                         >
-                                            Re-send the verification email.
+                                            {t(
+                                                'settings.personal.profile.email_resend',
+                                                'Re-send the verification email.',
+                                            )}
                                         </Link>
                                     </p>
                                     {status === 'verification-link-sent' ? (
                                         <div className="mt-2 text-sm font-medium text-green-600">
-                                            A new verification link has been
-                                            sent to your email address.
+                                            {t(
+                                                'settings.personal.profile.email_sent',
+                                                'A new verification link has been sent to your email address.',
+                                            )}
                                         </div>
                                     ) : null}
                                 </div>
@@ -159,7 +199,10 @@ export function ProfileSettingsPanel({
                                 data-test="update-profile-button"
                                 disabled={processing}
                             >
-                                Save profile
+                                {t(
+                                    'settings.personal.profile.save',
+                                    'Save profile',
+                                )}
                             </Button>
                         </>
                     )}
@@ -206,6 +249,7 @@ function ProfileImageField({
     uploading: boolean;
     value: string;
 }) {
+    const t = usePlatformTranslation();
     const uploadId = 'profile-image-upload';
     const previewUrl = normalizeMediaUrl(value);
 
@@ -216,11 +260,17 @@ function ProfileImageField({
                     <Image className="size-5" />
                 </span>
                 <div className="min-w-0">
-                    <Label htmlFor="profile-image">Profile image</Label>
+                    <Label htmlFor="profile-image">
+                        {t(
+                            'settings.personal.profile.image',
+                            'Profile image',
+                        )}
+                    </Label>
                     <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        Upload an image that can represent you in shared
-                        learning spaces. The file path is saved only when you
-                        press Save.
+                        {t(
+                            'settings.personal.profile.image.description',
+                            'Upload an image that can represent you in shared learning spaces. The file path is saved only when you press Save.',
+                        )}
                     </p>
                 </div>
             </div>
@@ -242,7 +292,10 @@ function ProfileImageField({
                         onChange={(event) =>
                             onChange(event.currentTarget.value)
                         }
-                        placeholder="/storage/profiles/images/example.webp"
+                        placeholder={t(
+                            'settings.personal.profile.image.placeholder',
+                            '/storage/profiles/images/example.webp',
+                        )}
                         value={value}
                     />
                     <InputError message={error ?? undefined} />
@@ -256,7 +309,9 @@ function ProfileImageField({
                         >
                             <label htmlFor={uploadId}>
                                 <Upload className="size-4" />
-                                {uploading ? 'Uploading...' : 'Upload'}
+                                {uploading
+                                    ? t('common.uploading', 'Uploading...')
+                                    : t('common.upload', 'Upload')}
                             </label>
                         </Button>
                         <input
@@ -288,7 +343,7 @@ function ProfileImageField({
                                 rel="noreferrer"
                             >
                                 <Download className="size-4" />
-                                Download
+                                {t('common.download', 'Download')}
                             </a>
                         </Button>
                         <Button
@@ -297,7 +352,7 @@ function ProfileImageField({
                             type="button"
                             variant="ghost"
                         >
-                            Clear
+                            {t('common.clear', 'Clear')}
                         </Button>
                     </div>
                 </div>

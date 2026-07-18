@@ -4,6 +4,7 @@ import { ReusableSoundPicker } from '@/components/reusable-sound-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { LearningSound } from '@/types';
 
 export function SoundAssetInput({
@@ -25,6 +26,7 @@ export function SoundAssetInput({
     uploading: boolean;
     value: string;
 }) {
+    const t = usePlatformTranslation();
     const uploadId = `${id}-upload`;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -54,7 +56,9 @@ export function SoundAssetInput({
                 <Button asChild size="sm" type="button" variant="secondary">
                     <label htmlFor={uploadId}>
                         <Upload className="size-4" />
-                        {uploading ? 'Uploading...' : 'Upload'}
+                        {uploading
+                            ? t('common.uploading', 'Uploading...')
+                            : t('common.upload', 'Upload')}
                     </label>
                 </Button>
                 <input
@@ -80,12 +84,15 @@ export function SoundAssetInput({
                     variant="secondary"
                 >
                     <Search className="size-4" />
-                    Select existing
+                    {t(
+                        'settings.assets.sounds.select_existing',
+                        'Select existing',
+                    )}
                 </Button>
                 <Button asChild disabled={!value} size="sm" variant="ghost">
                     <a download href={value || '#'} rel="noreferrer">
                         <Download className="size-4" />
-                        Download
+                        {t('common.download', 'Download')}
                     </a>
                 </Button>
             </div>

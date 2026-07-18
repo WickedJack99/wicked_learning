@@ -4,6 +4,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 export type AvailableColorOption = {
@@ -40,6 +41,7 @@ export function ColorField({
     value: string;
 }) {
     const inputId = id ?? fieldId(label);
+    const t = usePlatformTranslation();
     const pickerValue = isHexColor(value) ? value : fallback;
     const [copied, setCopied] = useState(false);
     const [showAvailableColors, setShowAvailableColors] = useState(false);
@@ -55,7 +57,9 @@ export function ColorField({
                 )}
             >
                 <Input
-                    aria-label={`${label} picker`}
+                    aria-label={t('common.color.picker_label', ':label picker', {
+                        label,
+                    })}
                     className={cn(
                         'h-9 w-12 shrink-0 cursor-pointer p-1',
                         pickerClassName,
@@ -72,7 +76,11 @@ export function ColorField({
                     value={value}
                 />
                 <button
-                    aria-label={`Copy ${label} color`}
+                    aria-label={t(
+                        'common.color.copy_label',
+                        'Copy :label color',
+                        { label },
+                    )}
                     className="grid size-9 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                     onClick={() =>
                         copyToClipboard(value, () => {
@@ -95,7 +103,7 @@ export function ColorField({
                         type="button"
                         variant="ghost"
                     >
-                        Clear
+                        {t('common.clear', 'Clear')}
                     </Button>
                 ) : null}
             </div>
@@ -132,6 +140,7 @@ export function ColorOpacityField({
     opacityValue: string;
 }) {
     const id = fieldId(label);
+    const t = usePlatformTranslation();
     const resolvedOpacity = opacityValue || '100';
     const [copied, setCopied] = useState(false);
     const [showAvailableColors, setShowAvailableColors] = useState(false);
@@ -145,7 +154,9 @@ export function ColorOpacityField({
             <Label htmlFor={id}>{label}</Label>
             <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
                 <Input
-                    aria-label={`${label} picker`}
+                    aria-label={t('common.color.picker_label', ':label picker', {
+                        label,
+                    })}
                     className="h-9 w-12 shrink-0 cursor-pointer p-1"
                     onChange={(event) =>
                         onColorChange(event.currentTarget.value)
@@ -161,7 +172,11 @@ export function ColorOpacityField({
                     value={colorValue}
                 />
                 <button
-                    aria-label={`Copy ${label} color`}
+                    aria-label={t(
+                        'common.color.copy_label',
+                        'Copy :label color',
+                        { label },
+                    )}
                     className="grid size-9 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                     onClick={() =>
                         copyToClipboard(colorValue, () => {
@@ -198,7 +213,7 @@ export function ColorOpacityField({
                         className="text-[0.68rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
                         htmlFor={`${id}-opacity`}
                     >
-                        Opacity %
+                        {t('common.color.opacity_percent', 'Opacity %')}
                     </Label>
                     <Input
                         id={`${id}-opacity`}
@@ -212,7 +227,11 @@ export function ColorOpacityField({
                     />
                 </div>
                 <Input
-                    aria-label={`${label} opacity slider`}
+                    aria-label={t(
+                        'common.color.opacity_slider_label',
+                        ':label opacity slider',
+                        { label },
+                    )}
                     max="100"
                     min="0"
                     onChange={(event) =>
@@ -238,6 +257,8 @@ function AvailableColorSelector({
     onOpenChange: (isOpen: boolean) => void;
     onSelect: (color: AvailableColorOption) => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="grid gap-2">
             <Button
@@ -247,7 +268,10 @@ function AvailableColorSelector({
                 type="button"
                 variant="secondary"
             >
-                Copy color from available
+                {t(
+                    'common.color.copy_from_available',
+                    'Copy color from available',
+                )}
             </Button>
             {isOpen ? (
                 <div className="max-h-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-xl dark:border-white/10 dark:bg-slate-950">

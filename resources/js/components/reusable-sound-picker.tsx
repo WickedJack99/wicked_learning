@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { LearningSound } from '@/types';
 
 export function ReusableSoundPicker({
@@ -16,11 +17,16 @@ export function ReusableSoundPicker({
     onClose: () => void;
     onSelect: (sound: LearningSound) => void;
 }) {
+    const t = usePlatformTranslation();
     const [sounds, setSounds] = useState<LearningSound[]>([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
     const player = useLayeredSoundPlayer();
+    const loadError = t(
+        'settings.assets.sounds.load_error',
+        'Sounds could not be loaded.',
+    );
 
     useEffect(() => {
         const controller = new AbortController();
@@ -47,7 +53,7 @@ export function ReusableSoundPicker({
 
                     if (!response.ok) {
                         throw new Error(
-                            payload.message ?? 'Sounds could not be loaded.',
+                            payload.message ?? loadError,
                         );
                     }
 
@@ -61,7 +67,7 @@ export function ReusableSoundPicker({
                     setError(
                         nextError instanceof Error
                             ? nextError.message
-                            : 'Sounds could not be loaded.',
+                            : loadError,
                     );
                 })
                 .finally(() => {
@@ -75,7 +81,7 @@ export function ReusableSoundPicker({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [search]);
+    }, [loadError, search]);
 
     return (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
@@ -83,14 +89,23 @@ export function ReusableSoundPicker({
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-white/10">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            Select existing sound
+                            {t(
+                                'settings.assets.sounds.select_existing_title',
+                                'Select existing sound',
+                            )}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Reuse uploaded or bundled audio with its metadata.
+                            {t(
+                                'settings.assets.sounds.select_existing_description',
+                                'Reuse uploaded or bundled audio with its metadata.',
+                            )}
                         </p>
                     </div>
                     <Button
-                        aria-label="Close sound picker"
+                        aria-label={t(
+                            'settings.assets.sounds.close_picker',
+                            'Close sound picker',
+                        )}
                         onClick={() => {
                             player.stopAll();
                             onClose();
@@ -112,7 +127,10 @@ export function ReusableSoundPicker({
                             onChange={(event) =>
                                 setSearch(event.currentTarget.value)
                             }
-                            placeholder="Search sounds"
+                            placeholder={t(
+                                'settings.assets.sounds.search_placeholder',
+                                'Search sounds',
+                            )}
                             value={search}
                         />
                     </div>
@@ -125,7 +143,7 @@ export function ReusableSoundPicker({
                         type="button"
                         variant="secondary"
                     >
-                        Clear
+                        {t('common.clear', 'Clear')}
                     </Button>
                 </div>
 
@@ -149,7 +167,10 @@ export function ReusableSoundPicker({
 
                     {!error && !isLoading && sounds.length === 0 ? (
                         <p className="rounded-lg border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                            No sounds match this search.
+                            {t(
+                                'settings.assets.sounds.empty_search',
+                                'No sounds match this search.',
+                            )}
                         </p>
                     ) : null}
 
@@ -183,6 +204,7 @@ function SoundPickerRow({
     player: ReturnType<typeof useLayeredSoundPlayer>;
     sound: LearningSound;
 }) {
+    const t = usePlatformTranslation();
     const layer = `picker-${sound.id}`;
 
     return (
@@ -200,13 +222,17 @@ function SoundPickerRow({
                 </span>
                 {currentValue === sound.url ? (
                     <span className="mt-1 block text-xs font-medium text-[var(--settings-accent)]">
-                        Selected
+                        {t('settings.assets.sounds.selected', 'Selected')}
                     </span>
                 ) : null}
             </button>
             <div className="flex gap-1">
                 <Button
-                    aria-label={`Play ${sound.name}`}
+                    aria-label={t(
+                        'settings.assets.sounds.play_label',
+                        'Play :name',
+                        { name: sound.name },
+                    )}
                     onClick={() => player.play(sound, layer)}
                     size="icon"
                     type="button"
@@ -215,7 +241,11 @@ function SoundPickerRow({
                     <Play className="size-4" />
                 </Button>
                 <Button
-                    aria-label={`Pause ${sound.name}`}
+                    aria-label={t(
+                        'settings.assets.sounds.pause_label',
+                        'Pause :name',
+                        { name: sound.name },
+                    )}
                     onClick={() => player.pause(layer)}
                     size="icon"
                     type="button"
@@ -224,7 +254,11 @@ function SoundPickerRow({
                     <Pause className="size-4" />
                 </Button>
                 <Button
-                    aria-label={`Stop ${sound.name}`}
+                    aria-label={t(
+                        'settings.assets.sounds.stop_label',
+                        'Stop :name',
+                        { name: sound.name },
+                    )}
                     onClick={() => player.stop(layer)}
                     size="icon"
                     type="button"

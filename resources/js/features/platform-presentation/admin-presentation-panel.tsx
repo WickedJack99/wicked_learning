@@ -485,7 +485,7 @@ export function AdminPresentationPanel({
                             </h3>
                             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                 Use a public asset path such as
-                                `/images/themes/mentor-calm.png` or an external
+                                `/images/characters/mentor-calm.png` or an external
                                 image URL.
                             </p>
                         </div>

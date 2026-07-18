@@ -8,65 +8,99 @@ import {
     SettingsSidebar,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type AssetSection = {
-    description: string;
+    descriptionKey: string;
+    descriptionFallback: string;
     href: string | null;
     icon: typeof Hammer;
-    label: string;
+    labelFallback: string;
+    labelKey: string;
+    openLabelKey?: string;
 };
 
 const sections: AssetSection[] = [
     {
-        label: 'Tools',
-        description: 'Create reusable learner tools for obstacle activities.',
+        labelKey: 'settings.assets.sections.tools',
+        labelFallback: 'Tools',
+        descriptionKey: 'settings.assets.sections.tools.description',
+        descriptionFallback:
+            'Create reusable learner tools for obstacle activities.',
         href: '/settings/assets/tools',
         icon: Hammer,
+        openLabelKey: 'settings.assets.sections.tools.open',
     },
     {
-        label: 'Items',
-        description:
+        labelKey: 'settings.assets.sections.items',
+        labelFallback: 'Items',
+        descriptionKey: 'settings.assets.sections.items.description',
+        descriptionFallback:
             'Create consumable inventory objects for item-based activities.',
         href: '/settings/assets/items',
         icon: Package,
+        openLabelKey: 'settings.assets.sections.items.open',
     },
     {
-        label: 'Currencies',
-        description: 'Future non-pressure resource concepts, if ever needed.',
+        labelKey: 'settings.assets.sections.currencies',
+        labelFallback: 'Currencies',
+        descriptionKey: 'settings.assets.sections.currencies.description',
+        descriptionFallback:
+            'Future non-pressure resource concepts, if ever needed.',
         href: null,
         icon: Coins,
     },
 ];
 
 export default function AdminAssetsIndex() {
+    const t = usePlatformTranslation();
     const [selectedSectionLabel, setSelectedSectionLabel] = useState(
-        sections[0].label,
+        sections[0].labelKey,
     );
     const selectedSection =
-        sections.find((section) => section.label === selectedSectionLabel) ??
+        sections.find((section) => section.labelKey === selectedSectionLabel) ??
         sections[0];
 
     return (
         <>
-            <Head title="Tools, items and currencies" />
+            <Head
+                title={t(
+                    'settings.assets.title',
+                    'Tools, items and currencies',
+                )}
+            />
             <SettingsConfigurationShell
-                eyebrow="Administration"
+                eyebrow={t(
+                    'settings.assets.eyebrow',
+                    'Administration',
+                )}
                 sidebar={
                     <SettingsSidebar>
                         {sections.map((section) => (
                             <SettingsSectionButton
-                                active={section.label === selectedSectionLabel}
-                                description={section.description}
+                                active={
+                                    section.labelKey === selectedSectionLabel
+                                }
+                                description={t(
+                                    section.descriptionKey,
+                                    section.descriptionFallback,
+                                )}
                                 icon={section.icon}
-                                id={section.label}
-                                key={section.label}
-                                label={section.label}
+                                id={section.labelKey}
+                                key={section.labelKey}
+                                label={t(
+                                    section.labelKey,
+                                    section.labelFallback,
+                                )}
                                 onSelect={setSelectedSectionLabel}
                             />
                         ))}
                     </SettingsSidebar>
                 }
-                title="Tools, items and currencies"
+                title={t(
+                    'settings.assets.title',
+                    'Tools, items and currencies',
+                )}
             >
                 <SettingsContentPane>
                     <AssetSectionDetail section={selectedSection} />
@@ -77,7 +111,10 @@ export default function AdminAssetsIndex() {
 }
 
 function AssetSectionDetail({ section }: { section: AssetSection }) {
+    const t = usePlatformTranslation();
     const Icon = section.icon;
+    const label = t(section.labelKey, section.labelFallback);
+    const description = t(section.descriptionKey, section.descriptionFallback);
 
     return (
         <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
@@ -86,21 +123,27 @@ function AssetSectionDetail({ section }: { section: AssetSection }) {
             </span>
             <div>
                 <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                    Asset library
+                    {t('settings.assets.library', 'Asset library')}
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold">{section.label}</h2>
+                <h2 className="mt-2 text-2xl font-semibold">{label}</h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {section.description}
+                    {description}
                 </p>
             </div>
 
             {section.href ? (
                 <Button asChild className="w-fit">
-                    <Link href={section.href}>Open {section.label}</Link>
+                    <Link href={section.href}>
+                        {t(
+                            section.openLabelKey ?? 'settings.assets.open',
+                            'Open :label',
+                            { label },
+                        )}
+                    </Link>
                 </Button>
             ) : (
                 <Button disabled className="w-fit" variant="secondary">
-                    Planned for later
+                    {t('settings.assets.planned', 'Planned for later')}
                 </Button>
             )}
         </section>

@@ -23,6 +23,7 @@ import {
     SecuritySettingsPanel,
     type SecuritySettingsProps,
 } from '@/features/settings/security-settings-panel';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type PersonalSection =
     | 'appearance'
@@ -32,51 +33,79 @@ type PersonalSection =
     | 'profile'
     | 'security';
 
-const personalSections: SettingsNavigationItem<PersonalSection>[] = [
-    {
-        description: 'Identity and account details.',
-        icon: UserRound,
-        key: 'profile',
-        label: 'Profile',
-    },
-    {
-        description: 'Light and dark appearance.',
-        icon: Brush,
-        key: 'appearance',
-        label: 'Appearance',
-    },
-    {
-        description: 'Platform and learner copy.',
-        icon: Languages,
-        key: 'language',
-        label: 'Language',
-    },
-    {
-        description: 'Future reminders and quiet hours.',
-        icon: Bell,
-        key: 'notifications',
-        label: 'Notifications',
-    },
-    {
-        description: 'Password, two-factor and passkeys.',
-        icon: KeyRound,
-        key: 'security',
-        label: 'Security',
-    },
-    {
-        danger: true,
-        description: 'Permanently remove your account.',
-        icon: Trash2,
-        key: 'delete-account',
-        label: 'Delete account',
-    },
-];
-
 type AvailableLanguage = {
     code: string;
     name: string;
     nativeName: string;
 };
+
+function buildPersonalSections(
+    t: ReturnType<typeof usePlatformTranslation>,
+): SettingsNavigationItem<PersonalSection>[] {
+    return [
+        {
+            description: t(
+                'settings.personal.sections.profile.description',
+                'Identity and account details.',
+            ),
+            icon: UserRound,
+            key: 'profile',
+            label: t('settings.personal.sections.profile', 'Profile'),
+        },
+        {
+            description: t(
+                'settings.personal.sections.appearance.description',
+                'Light and dark appearance.',
+            ),
+            icon: Brush,
+            key: 'appearance',
+            label: t('settings.personal.sections.appearance', 'Appearance'),
+        },
+        {
+            description: t(
+                'settings.personal.sections.language.description',
+                'Platform and learner copy.',
+            ),
+            icon: Languages,
+            key: 'language',
+            label: t('settings.personal.sections.language', 'Language'),
+        },
+        {
+            description: t(
+                'settings.personal.sections.notifications.description',
+                'Future reminders and quiet hours.',
+            ),
+            icon: Bell,
+            key: 'notifications',
+            label: t(
+                'settings.personal.sections.notifications',
+                'Notifications',
+            ),
+        },
+        {
+            description: t(
+                'settings.personal.sections.security.description',
+                'Password, two-factor and passkeys.',
+            ),
+            icon: KeyRound,
+            key: 'security',
+            label: t('settings.personal.sections.security', 'Security'),
+        },
+        {
+            danger: true,
+            description: t(
+                'settings.personal.sections.delete_account.description',
+                'Permanently remove your account.',
+            ),
+            icon: Trash2,
+            key: 'delete-account',
+            label: t(
+                'settings.personal.sections.delete_account',
+                'Delete account',
+            ),
+        },
+    ];
+}
 
 type PersonalSettingsProps = {
     availableLanguages: AvailableLanguage[];
@@ -94,26 +123,31 @@ export default function PersonalSettings({
     status,
     ...security
 }: PersonalSettingsProps) {
+    const t = usePlatformTranslation();
     const [section, setSection] = useState<PersonalSection>(initialSection);
+    const personalSections = buildPersonalSections(t);
 
     useEffect(() => setSection(initialSection), [initialSection]);
 
     return (
         <>
-            <Head title="Personal settings" />
+            <Head title={t('settings.personal.title', 'Personal settings')} />
             <SettingsConfigurationShell
-                eyebrow="Personal"
+                eyebrow={t('settings.personal.eyebrow', 'Personal')}
                 sidebar={
                     <SettingsSidebar>
                         <SettingsSectionNavigation
                             activeSection={section}
-                            ariaLabel="Personal settings sections"
+                            ariaLabel={t(
+                                'settings.personal.sections.aria',
+                                'Personal settings sections',
+                            )}
                             items={personalSections}
                             onChange={setSection}
                         />
                     </SettingsSidebar>
                 }
-                title="Personal settings"
+                title={t('settings.personal.title', 'Personal settings')}
             >
                 <SettingsContentPane>
                     {section === 'profile' ? (
@@ -155,6 +189,8 @@ function DeleteAccountPanel() {
 }
 
 function NotificationsPanel() {
+    const t = usePlatformTranslation();
+
     return (
         <section className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
             <div>
@@ -162,15 +198,22 @@ function NotificationsPanel() {
                     className="text-xs font-medium tracking-[0.18em] uppercase"
                     style={{ color: 'var(--settings-accent)' }}
                 >
-                    Notifications
+                    {t(
+                        'settings.personal.notifications.eyebrow',
+                        'Notifications',
+                    )}
                 </p>
                 <h2 className="mt-2 text-xl font-semibold">
-                    Communication preferences
+                    {t(
+                        'settings.personal.notifications.title',
+                        'Communication preferences',
+                    )}
                 </h2>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    This area will hold optional reminders, quiet hours and
-                    communication preferences. It will remain opt-in and avoid
-                    pressure-based learning loops.
+                    {t(
+                        'settings.personal.notifications.description',
+                        'This area will hold optional reminders, quiet hours and communication preferences. It will remain opt-in and avoid pressure-based learning loops.',
+                    )}
                 </p>
             </div>
         </section>

@@ -5,6 +5,7 @@ import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 
 type ConfigImageInputProps = {
@@ -30,6 +31,7 @@ export function ConfigImageInput({
     uploading,
     value,
 }: ConfigImageInputProps) {
+    const t = usePlatformTranslation();
     const uploadId = `${id}-upload`;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const previewUrl = normalizeMediaUrl(value);
@@ -76,7 +78,9 @@ export function ConfigImageInput({
                 <Button asChild size="sm" type="button" variant="secondary">
                     <label htmlFor={uploadId}>
                         <Upload className="size-4" />
-                        {uploading ? 'Uploading...' : 'Upload'}
+                        {uploading
+                            ? t('common.uploading', 'Uploading...')
+                            : t('common.upload', 'Upload')}
                     </label>
                 </Button>
                 <input
@@ -102,7 +106,10 @@ export function ConfigImageInput({
                     variant="secondary"
                 >
                     <Images className="size-4" />
-                    Select existing
+                    {t(
+                        'settings.assets.images.select_existing',
+                        'Select existing',
+                    )}
                 </Button>
                 <Button
                     asChild
@@ -112,7 +119,7 @@ export function ConfigImageInput({
                 >
                     <a download href={previewUrl || '#'} rel="noreferrer">
                         <Download className="size-4" />
-                        Download
+                        {t('common.download', 'Download')}
                     </a>
                 </Button>
                 <Button
@@ -121,7 +128,7 @@ export function ConfigImageInput({
                     type="button"
                     variant="ghost"
                 >
-                    Clear
+                    {t('common.clear', 'Clear')}
                 </Button>
             </div>
 

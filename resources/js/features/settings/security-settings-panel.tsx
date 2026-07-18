@@ -11,6 +11,7 @@ import type { Props as ManageTwoFactorProps } from '@/components/manage-two-fact
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type SecuritySettingsProps = {
     passwordRules: string;
@@ -18,6 +19,7 @@ export type SecuritySettingsProps = {
     ManageTwoFactorProps;
 
 export function SecuritySettingsPanel(props: SecuritySettingsProps) {
+    const t = usePlatformTranslation();
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -29,13 +31,19 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                         className="text-xs font-medium tracking-[0.18em] uppercase"
                         style={{ color: 'var(--settings-accent)' }}
                     >
-                        Security
+                        {t('settings.personal.security.eyebrow', 'Security')}
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">
-                        Update password
+                        {t(
+                            'settings.personal.security.title',
+                            'Update password',
+                        )}
                     </h2>
                     <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        Use a long, random password to keep your account secure.
+                        {t(
+                            'settings.personal.security.description',
+                            'Use a long, random password to keep your account secure.',
+                        )}
                     </p>
                 </div>
                 <Form
@@ -65,34 +73,55 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                                 error={errors.current_password}
                                 id="current_password"
                                 inputRef={currentPasswordInput}
-                                label="Current password"
+                                label={t(
+                                    'settings.personal.security.current_password',
+                                    'Current password',
+                                )}
                                 name="current_password"
-                                placeholder="Current password"
+                                placeholder={t(
+                                    'settings.personal.security.current_password',
+                                    'Current password',
+                                )}
                             />
                             <PasswordField
                                 autoComplete="new-password"
                                 error={errors.password}
                                 id="password"
                                 inputRef={passwordInput}
-                                label="New password"
+                                label={t(
+                                    'settings.personal.security.new_password',
+                                    'New password',
+                                )}
                                 name="password"
                                 passwordrules={props.passwordRules}
-                                placeholder="New password"
+                                placeholder={t(
+                                    'settings.personal.security.new_password',
+                                    'New password',
+                                )}
                             />
                             <PasswordField
                                 autoComplete="new-password"
                                 error={errors.password_confirmation}
                                 id="password_confirmation"
-                                label="Confirm password"
+                                label={t(
+                                    'settings.personal.security.confirm_password',
+                                    'Confirm password',
+                                )}
                                 name="password_confirmation"
                                 passwordrules={props.passwordRules}
-                                placeholder="Confirm password"
+                                placeholder={t(
+                                    'settings.personal.security.confirm_password',
+                                    'Confirm password',
+                                )}
                             />
                             <Button
                                 data-test="update-password-button"
                                 disabled={processing}
                             >
-                                Save password
+                                {t(
+                                    'settings.personal.security.save',
+                                    'Save password',
+                                )}
                             </Button>
                         </>
                     )}

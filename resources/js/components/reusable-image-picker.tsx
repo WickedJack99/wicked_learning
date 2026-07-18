@@ -2,6 +2,7 @@ import { Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 
 type ReusableImageAsset = {
@@ -22,10 +23,15 @@ export function ReusableImagePicker({
     onClear?: () => void;
     onSelect: (url: string) => void;
 }) {
+    const t = usePlatformTranslation();
     const [assets, setAssets] = useState<ReusableImageAsset[]>([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const loadError = t(
+        'settings.assets.images.load_error',
+        'Images could not be loaded.',
+    );
 
     useEffect(() => {
         const controller = new AbortController();
@@ -52,7 +58,7 @@ export function ReusableImagePicker({
 
                     if (!response.ok) {
                         throw new Error(
-                            payload.message ?? 'Images could not be loaded.',
+                            payload.message ?? loadError,
                         );
                     }
 
@@ -66,7 +72,7 @@ export function ReusableImagePicker({
                     setError(
                         nextError instanceof Error
                             ? nextError.message
-                            : 'Images could not be loaded.',
+                            : loadError,
                     );
                 })
                 .finally(() => {
@@ -80,7 +86,7 @@ export function ReusableImagePicker({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [search]);
+    }, [loadError, search]);
 
     return (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
@@ -88,15 +94,23 @@ export function ReusableImagePicker({
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-white/10">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            Select existing image
+                            {t(
+                                'settings.assets.images.select_existing_title',
+                                'Select existing image',
+                            )}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Reuse uploaded or bundled assets instead of adding
-                            duplicates.
+                            {t(
+                                'settings.assets.images.select_existing_description',
+                                'Reuse uploaded or bundled assets instead of adding duplicates.',
+                            )}
                         </p>
                     </div>
                     <Button
-                        aria-label="Close image picker"
+                        aria-label={t(
+                            'settings.assets.images.close_picker',
+                            'Close image picker',
+                        )}
                         onClick={onClose}
                         size="icon"
                         type="button"
@@ -115,7 +129,10 @@ export function ReusableImagePicker({
                             onChange={(event) =>
                                 setSearch(event.currentTarget.value)
                             }
-                            placeholder="Search uploaded and bundled images"
+                            placeholder={t(
+                                'settings.assets.images.search_placeholder',
+                                'Search uploaded and bundled images',
+                            )}
                             value={search}
                         />
                     </div>
@@ -128,7 +145,7 @@ export function ReusableImagePicker({
                         type="button"
                         variant="secondary"
                     >
-                        Clear
+                        {t('common.clear', 'Clear')}
                     </Button>
                 </div>
 
@@ -152,7 +169,10 @@ export function ReusableImagePicker({
 
                     {!error && !isLoading && assets.length === 0 ? (
                         <p className="rounded-lg border border-dashed border-slate-200 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                            No images match this search.
+                            {t(
+                                'settings.assets.images.empty_search',
+                                'No images match this search.',
+                            )}
                         </p>
                     ) : null}
 

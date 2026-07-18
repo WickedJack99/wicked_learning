@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { User as AuthUser } from '@/types';
@@ -49,6 +50,8 @@ type SettingsPanelKey =
     | 'notifications'
     | 'profile'
     | 'security';
+
+type Translator = ReturnType<typeof usePlatformTranslation>;
 
 type UserReference = {
     email: string;
@@ -148,10 +151,12 @@ type RoleFormState = {
 
 type SettingsListItem = {
     description: string;
+    descriptionKey?: string;
     href?: string;
     icon: LucideIcon;
     key: string;
     label: string;
+    labelKey?: string;
     panel?: SettingsPanelKey;
     resources?: string[];
 };
@@ -160,8 +165,10 @@ const personalSettings: SettingsListItem[] = [
     {
         key: 'personal',
         label: 'Personal',
+        labelKey: 'settings.navigation.personal',
         description:
             'Profile, appearance, language, notifications and security.',
+        descriptionKey: 'settings.navigation.personal.description',
         icon: UserRound,
         href: '/settings/personal',
     },
@@ -171,7 +178,9 @@ const informationSettings: SettingsListItem[] = [
     {
         key: 'about-and-legal',
         label: 'About & legal',
+        labelKey: 'settings.navigation.about_and_legal',
         description: 'Read about the platform, imprint and data protection.',
+        descriptionKey: 'settings.navigation.about_and_legal.description',
         icon: Info,
         href: '/settings/about',
     },
@@ -181,7 +190,9 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-world',
         label: 'Edit world',
+        labelKey: 'settings.navigation.edit_world',
         description: 'Maps, nodes, activities and portal links.',
+        descriptionKey: 'settings.navigation.edit_world.description',
         icon: Map,
         href: '/settings/worlds',
         resources: ['worlds'],
@@ -189,7 +200,9 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-assets',
         label: 'Edit tools, items and currencies',
+        labelKey: 'settings.navigation.assets',
         description: 'Reusable capabilities and future inventory concepts.',
+        descriptionKey: 'settings.navigation.assets.description',
         icon: Database,
         href: '/settings/assets',
         resources: ['assets'],
@@ -197,14 +210,18 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-access',
         label: 'Access management',
+        labelKey: 'settings.navigation.access',
         description: 'Users, roles and permissions.',
+        descriptionKey: 'settings.navigation.access.description',
         icon: Shield,
         resources: ['users', 'roles'],
     },
     {
         key: 'admin-presentation',
         label: 'Public presentation',
+        labelKey: 'settings.navigation.presentation',
         description: 'Welcome, auth backgrounds and public information pages.',
+        descriptionKey: 'settings.navigation.presentation.description',
         icon: Image,
         href: '/settings/presentation',
         resources: ['presentation'],
@@ -212,8 +229,10 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-color-palette',
         label: 'Color palette',
+        labelKey: 'settings.navigation.color_palette',
         description:
             'Edit color fields from presentation, journal and maps in one place.',
+        descriptionKey: 'settings.navigation.color_palette.description',
         icon: Palette,
         href: '/settings/color-palette',
         resources: ['presentation', 'journals', 'worlds'],
@@ -221,7 +240,9 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-visuals',
         label: 'Visuals',
+        labelKey: 'settings.navigation.visuals',
         description: 'Reusable images, backgrounds and animations.',
+        descriptionKey: 'settings.navigation.visuals.description',
         icon: Image,
         href: '/settings/assets/media',
         resources: ['assets'],
@@ -229,7 +250,9 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-sounds',
         label: 'Sounds',
+        labelKey: 'settings.navigation.sounds',
         description: 'Reusable music, ambience, voices and sound effects.',
+        descriptionKey: 'settings.navigation.sounds.description',
         icon: Music,
         href: '/settings/assets/sounds',
         resources: ['sounds'],
@@ -237,8 +260,10 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-journal',
         label: 'Journal',
+        labelKey: 'settings.navigation.journal',
         description:
             'Learner reflection pages and optional expert feedback consent.',
+        descriptionKey: 'settings.navigation.journal.description',
         icon: NotebookPen,
         href: '/settings/journal',
         resources: ['journals'],
@@ -246,7 +271,9 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-languages',
         label: 'Languages',
+        labelKey: 'settings.navigation.languages',
         description: 'Import and maintain platform and activity translations.',
+        descriptionKey: 'settings.navigation.languages.description',
         icon: Languages,
         href: '/settings/languages',
         resources: ['languages'],
@@ -254,8 +281,10 @@ const adminSettings: SettingsListItem[] = [
     {
         key: 'admin-ai',
         label: 'AI support',
+        labelKey: 'settings.navigation.ai',
         description:
             'Provider credentials, agent templates and guarded usage limits.',
+        descriptionKey: 'settings.navigation.ai.description',
         icon: Bot,
         href: '/settings/ai',
         resources: ['ai'],
@@ -364,6 +393,7 @@ export default function SettingsIndex({
     permissionResources,
     registrationTokens,
 }: SettingsIndexProps) {
+    const t = usePlatformTranslation();
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
         () => readPanelFromUrl(canAccessAdministration),
     );
@@ -390,7 +420,7 @@ export default function SettingsIndex({
 
     return (
         <>
-            <Head title="Settings" />
+            <Head title={t('settings.title', 'Settings')} />
             <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
                 <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
                     <header className="shrink-0 pb-5">
@@ -401,17 +431,17 @@ export default function SettingsIndex({
                                 variant="ghost"
                             >
                                 <ArrowLeft className="size-4" />
-                                Settings
+                                {t('settings.back', 'Settings')}
                             </Button>
                         ) : null}
                         <p
                             className="text-xs font-medium tracking-[0.18em] uppercase"
                             style={{ color: 'var(--settings-accent)' }}
                         >
-                            Platform
+                            {t('settings.eyebrow', 'Platform')}
                         </p>
                         <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Settings
+                            {t('settings.title', 'Settings')}
                         </h1>
                     </header>
 
@@ -465,19 +495,23 @@ function SettingsList({
     canAccessAdministration: boolean;
     onSelect: (panel: SettingsPanelKey) => void;
 }) {
+    const t = usePlatformTranslation();
     const sections = [
         {
-            label: 'Personal',
+            label: t('settings.sections.personal', 'Personal'),
             items: personalSettings,
         },
         {
-            label: 'Information',
+            label: t('settings.sections.information', 'Information'),
             items: informationSettings,
         },
         ...(canAccessAdministration
             ? [
                   {
-                      label: 'Administration',
+                      label: t(
+                          'settings.sections.administration',
+                          'Administration',
+                      ),
                       items: adminSettings.filter((item) =>
                           canSeeAdminItem(item, accessCapabilities),
                       ),
@@ -496,6 +530,12 @@ function SettingsList({
                     <div className="grid gap-2">
                         {section.items.map((item) => {
                             const Icon = item.icon;
+                            const label = item.labelKey
+                                ? t(item.labelKey, item.label)
+                                : item.label;
+                            const description = item.descriptionKey
+                                ? t(item.descriptionKey, item.description)
+                                : item.description;
 
                             return (
                                 <button
@@ -527,10 +567,10 @@ function SettingsList({
                                     </span>
                                     <span className="min-w-0">
                                         <span className="block text-sm font-medium text-slate-950 dark:text-white">
-                                            {item.label}
+                                            {label}
                                         </span>
                                         <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            {item.description}
+                                            {description}
                                         </span>
                                     </span>
                                 </button>
@@ -616,6 +656,7 @@ function AccessManagementPanel({
     roles: AccessRoleSummary[];
     users: AdminUser[];
 }) {
+    const t = usePlatformTranslation();
     const [section, setSection] = useState<'roles' | 'users'>('users');
 
     return (
@@ -625,26 +666,34 @@ function AccessManagementPanel({
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Shield className="size-5" />
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            Access management
+                            {t('settings.access.title', 'Access management')}
                         </h2>
                     </div>
                     <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Configure who can read, update or delete administration
-                        areas. Default roles stay available.
+                        {t(
+                            'settings.access.description',
+                            'Configure who can read, update or delete administration areas. Default roles stay available.',
+                        )}
                     </p>
                 </div>
                 <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-sm font-medium dark:border-white/10 dark:bg-slate-950/70">
                     {accessCapabilities.users?.read ? (
                         <AccessSectionButton
                             active={section === 'users'}
-                            label="User management"
+                            label={t(
+                                'settings.access.tabs.users',
+                                'User management',
+                            )}
                             onClick={() => setSection('users')}
                         />
                     ) : null}
                     {accessCapabilities.roles?.read ? (
                         <AccessSectionButton
                             active={section === 'roles'}
-                            label="Role management"
+                            label={t(
+                                'settings.access.tabs.roles',
+                                'Role management',
+                            )}
                             onClick={() => setSection('roles')}
                         />
                     ) : null}
@@ -684,6 +733,8 @@ function AccessSectionButton({
     label: string;
     onClick: () => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <button
             className={cn(
@@ -707,6 +758,8 @@ function PlaceholderPanel({
     content: { body: string; title: string };
     panel: SettingsPanelKey;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/6">
             <div className="mb-4 flex items-center gap-3 text-[var(--settings-accent)]">
@@ -724,8 +777,10 @@ function PlaceholderPanel({
                 </div>
             ) : (
                 <div className="mt-5 rounded-md border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
-                    This is a scaffolded settings panel. The next step can
-                    connect this area to real forms and policies.
+                    {t(
+                        'settings.scaffold',
+                        'This is a scaffolded settings panel. The next step can connect this area to real forms and policies.',
+                    )}
                 </div>
             )}
         </div>
@@ -749,6 +804,7 @@ function AdminUsersPanel({
     roles: AccessRoleSummary[];
     users: AdminUser[];
 }) {
+    const t = usePlatformTranslation();
     const { props } = usePage();
     const currentUser = props.auth.user as AuthUser | null;
     const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -867,7 +923,15 @@ function AdminUsersPanel({
     };
 
     const deleteUser = (user: AdminUser) => {
-        if (!window.confirm(`Delete ${user.name}? This cannot be undone.`)) {
+        if (
+            !window.confirm(
+                t(
+                    'settings.access.users.delete_confirm',
+                    'Delete :name? This cannot be undone.',
+                    { name: user.name },
+                ),
+            )
+        ) {
             return;
         }
 
@@ -883,17 +947,19 @@ function AdminUsersPanel({
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
                         <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            Users
+                            {t('settings.access.users.title', 'Users')}
                         </h2>
                     </div>
                     <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Manage registration tokens and account access. Token
-                        plaintext is shown only once after creation.
+                        {t(
+                            'settings.access.users.description',
+                            'Manage registration tokens and account access. Token plaintext is shown only once after creation.',
+                        )}
                     </p>
                 </div>
                 <Button onClick={() => setIsCreatingToken(true)}>
                     <Plus className="size-4" />
-                    Create token
+                    {t('settings.access.users.create_token', 'Create token')}
                 </Button>
             </div>
 
@@ -907,10 +973,17 @@ function AdminUsersPanel({
             >
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>Create registration token</DialogTitle>
+                        <DialogTitle>
+                            {t(
+                                'settings.access.tokens.dialog_title',
+                                'Create registration token',
+                            )}
+                        </DialogTitle>
                         <DialogDescription>
-                            Choose the roles this one-use token grants and
-                            optionally set an expiration date.
+                            {t(
+                                'settings.access.tokens.dialog_description',
+                                'Choose the roles this one-use token grants and optionally set an expiration date.',
+                            )}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4">
@@ -924,7 +997,12 @@ function AdminUsersPanel({
                             setRoleToAdd={setTokenRoleToAdd}
                         />
                         <div className="grid gap-1">
-                            <Label htmlFor="token-expires-at">Expires at</Label>
+                            <Label htmlFor="token-expires-at">
+                                {t(
+                                    'settings.access.tokens.expires_at',
+                                    'Expires at',
+                                )}
+                            </Label>
                             <Input
                                 id="token-expires-at"
                                 onChange={(event) =>
@@ -941,11 +1019,11 @@ function AdminUsersPanel({
                             type="button"
                             variant="secondary"
                         >
-                            Cancel
+                            {t('common.cancel', 'Cancel')}
                         </Button>
                         <Button onClick={createToken} type="button">
                             <Plus className="size-4" />
-                            Create
+                            {t('common.create', 'Create')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -954,7 +1032,10 @@ function AdminUsersPanel({
             {createdRegistrationToken ? (
                 <div className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] p-4 text-slate-950 dark:text-slate-50">
                     <p className="text-sm font-medium">
-                        New registration token
+                        {t(
+                            'settings.access.tokens.new',
+                            'New registration token',
+                        )}
                     </p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                         <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-white px-3 py-2 text-sm dark:bg-slate-950/70">
@@ -962,17 +1043,32 @@ function AdminUsersPanel({
                         </code>
                         <Button onClick={copyCreatedToken} variant="secondary">
                             <Copy className="size-4" />
-                            Copy
+                            {t('common.copy', 'Copy')}
                         </Button>
                     </div>
                 </div>
             ) : null}
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <AdminMetric label="Registered users" value={users.length} />
-                <AdminMetric label="Unused tokens" value={unusedTokenCount} />
                 <AdminMetric
-                    label="Blocked users"
+                    label={t(
+                        'settings.access.metrics.registered_users',
+                        'Registered users',
+                    )}
+                    value={users.length}
+                />
+                <AdminMetric
+                    label={t(
+                        'settings.access.metrics.unused_tokens',
+                        'Unused tokens',
+                    )}
+                    value={unusedTokenCount}
+                />
+                <AdminMetric
+                    label={t(
+                        'settings.access.metrics.blocked_users',
+                        'Blocked users',
+                    )}
                     value={
                         users.filter(
                             (user) =>
@@ -985,11 +1081,24 @@ function AdminUsersPanel({
 
             <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
                 <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase lg:grid dark:bg-white/5 dark:text-slate-400">
-                    <span>User</span>
-                    <span>Roles</span>
-                    <span>Status</span>
-                    <span>Ban until</span>
-                    <span>Actions</span>
+                    <span>
+                        {t('settings.access.users.table.user', 'User')}
+                    </span>
+                    <span>
+                        {t('settings.access.users.table.roles', 'Roles')}
+                    </span>
+                    <span>
+                        {t('settings.access.users.table.status', 'Status')}
+                    </span>
+                    <span>
+                        {t(
+                            'settings.access.users.table.ban_until',
+                            'Ban until',
+                        )}
+                    </span>
+                    <span>
+                        {t('settings.access.users.table.actions', 'Actions')}
+                    </span>
                 </div>
                 <div className="divide-y divide-slate-200 dark:divide-white/10">
                     {users.map((user) => {
@@ -1053,7 +1162,10 @@ function AdminUsersPanel({
                                         className="text-xs lg:hidden"
                                         htmlFor={`banned-until-${user.id}`}
                                     >
-                                        Ban until
+                                        {t(
+                                            'settings.access.users.table.ban_until',
+                                            'Ban until',
+                                        )}
                                     </Label>
                                     <Input
                                         disabled={isCurrentUser}
@@ -1078,7 +1190,7 @@ function AdminUsersPanel({
                                         size="sm"
                                         variant="secondary"
                                     >
-                                        Save
+                                        {t('common.save', 'Save')}
                                     </Button>
                                     <Button
                                         disabled={
@@ -1089,7 +1201,7 @@ function AdminUsersPanel({
                                         variant="destructive"
                                     >
                                         <Trash2 className="size-4" />
-                                        Delete
+                                        {t('common.delete', 'Delete')}
                                     </Button>
                                 </div>
                             </div>
@@ -1101,7 +1213,10 @@ function AdminUsersPanel({
             <div className="mt-5 rounded-lg border border-slate-200 p-4 dark:border-white/10">
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-950 dark:text-white">
                     <KeyRound className="size-4 text-[var(--settings-accent)]" />
-                    Latest registration tokens
+                    {t(
+                        'settings.access.tokens.latest',
+                        'Latest registration tokens',
+                    )}
                 </div>
                 <div className="grid gap-2">
                     {registrationTokens.map((token) => (
@@ -1111,11 +1226,22 @@ function AdminUsersPanel({
                         >
                             <div>
                                 <span className="font-medium">
-                                    Token #{token.id}
+                                    {t(
+                                        'settings.access.tokens.number',
+                                        'Token #:id',
+                                        { id: token.id },
+                                    )}
                                 </span>
                                 <span className="ml-2 text-slate-500 dark:text-slate-400">
-                                    created by{' '}
-                                    {token.created_by?.name ?? 'unknown'}
+                                    {t(
+                                        'settings.access.tokens.created_by',
+                                        'created by :name',
+                                        {
+                                            name:
+                                                token.created_by?.name ??
+                                                t('common.unknown', 'Unknown'),
+                                        },
+                                    )}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -1133,13 +1259,22 @@ function AdminUsersPanel({
                                     }
                                 >
                                     {token.is_expired
-                                        ? 'Expired'
+                                        ? t(
+                                              'settings.access.tokens.expired',
+                                              'Expired',
+                                          )
                                         : token.is_used
-                                          ? 'Used'
-                                          : 'Unused'}
+                                          ? t(
+                                                'settings.access.tokens.used',
+                                                'Used',
+                                            )
+                                          : t(
+                                                'settings.access.tokens.unused',
+                                                'Unused',
+                                            )}
                                 </Badge>
                                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                                    {formatDate(token.created_at)}
+                                    {formatDate(token.created_at, t)}
                                 </span>
                             </div>
                         </div>
@@ -1200,6 +1335,7 @@ function RoleEditor({
     roles: UserRole[];
     setRoleToAdd?: (role: UserRole) => void;
 }) {
+    const t = usePlatformTranslation();
     const [internalRoleToAdd, setInternalRoleToAdd] = useState<UserRole>(
         firstAddableRole(assignableRoles, roles) ??
             assignableRoles[0] ??
@@ -1241,7 +1377,11 @@ function RoleEditor({
                         {roleLabel(role, roleOptions)}
                         {!disabled && roles.length > 1 ? (
                             <button
-                                aria-label={`Remove ${roleLabel(role, roleOptions)} role`}
+                                aria-label={t(
+                                    'settings.access.roles.remove_role',
+                                    'Remove :role role',
+                                    { role: roleLabel(role, roleOptions) },
+                                )}
                                 className="rounded text-slate-500 transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:text-slate-400 dark:hover:text-red-300"
                                 onClick={() => removeRole(role)}
                                 type="button"
@@ -1276,7 +1416,7 @@ function RoleEditor({
                         ))}
                     </select>
                     <Button onClick={addRole} size="sm" variant="secondary">
-                        Add
+                        {t('common.add', 'Add')}
                     </Button>
                 </div>
             ) : null}
@@ -1306,7 +1446,7 @@ function LoginToggle({
                 onClick={() => onChange(false)}
                 type="button"
             >
-                Enabled
+                {t('settings.access.login.enabled', 'Enabled')}
             </button>
             <button
                 className={cn(
@@ -1319,7 +1459,7 @@ function LoginToggle({
                 onClick={() => onChange(true)}
                 type="button"
             >
-                Disabled
+                {t('settings.access.login.disabled', 'Disabled')}
             </button>
         </div>
     );
@@ -1332,6 +1472,7 @@ function UserDetailsDialog({
     roleOptions: AccessRoleSummary[];
     user: AdminUser;
 }) {
+    const t = usePlatformTranslation();
     const token = user.registration_token;
 
     return (
@@ -1339,68 +1480,110 @@ function UserDetailsDialog({
             <DialogHeader>
                 <DialogTitle>{user.name}</DialogTitle>
                 <DialogDescription>
-                    Read-only account and registration-token audit details.
+                    {t(
+                        'settings.access.users.details.description',
+                        'Read-only account and registration-token audit details.',
+                    )}
                 </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 text-sm">
-                <DetailRow label="Email" value={user.email} />
                 <DetailRow
-                    label="Roles"
+                    label={t('settings.access.users.details.email', 'Email')}
+                    value={user.email}
+                />
+                <DetailRow
+                    label={t('settings.access.users.details.roles', 'Roles')}
                     value={roleListLabel(user.roles, roleOptions)}
                 />
                 <DetailRow
-                    label="Registered"
-                    value={formatDate(user.created_at)}
+                    label={t(
+                        'settings.access.users.details.registered',
+                        'Registered',
+                    )}
+                    value={formatDate(user.created_at, t)}
                 />
                 <DetailRow
-                    label="Login disabled"
-                    value={formatDate(user.login_disabled_at)}
+                    label={t(
+                        'settings.access.users.details.login_disabled',
+                        'Login disabled',
+                    )}
+                    value={formatDate(user.login_disabled_at, t)}
                 />
                 <DetailRow
-                    label="Banned until"
-                    value={formatDate(user.banned_until)}
+                    label={t(
+                        'settings.access.users.details.banned_until',
+                        'Banned until',
+                    )}
+                    value={formatDate(user.banned_until, t)}
                 />
 
                 <div className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
                     <div className="mb-3 flex items-center gap-2 font-medium">
                         <CalendarClock className="size-4 text-[var(--settings-accent)]" />
-                        Registration token
+                        {t(
+                            'settings.access.users.details.registration_token',
+                            'Registration token',
+                        )}
                     </div>
                     {token ? (
                         <div className="grid gap-3">
                             <DetailRow
-                                label="Token id"
+                                label={t(
+                                    'settings.access.users.details.token_id',
+                                    'Token id',
+                                )}
                                 value={`#${token.id.toString()}`}
                             />
                             <DetailRow
-                                label="Token created"
-                                value={formatDate(token.created_at)}
+                                label={t(
+                                    'settings.access.users.details.token_created',
+                                    'Token created',
+                                )}
+                                value={formatDate(token.created_at, t)}
                             />
                             <DetailRow
-                                label="Token roles"
+                                label={t(
+                                    'settings.access.users.details.token_roles',
+                                    'Token roles',
+                                )}
                                 value={roleListLabel(token.roles, roleOptions)}
                             />
                             <DetailRow
-                                label="Token expires"
-                                value={formatDate(token.expires_at)}
+                                label={t(
+                                    'settings.access.users.details.token_expires',
+                                    'Token expires',
+                                )}
+                                value={formatDate(token.expires_at, t)}
                             />
                             <DetailRow
-                                label="Token creator"
-                                value={formatUserReference(token.created_by)}
+                                label={t(
+                                    'settings.access.users.details.token_creator',
+                                    'Token creator',
+                                )}
+                                value={formatUserReference(token.created_by, t)}
                             />
                             <DetailRow
-                                label="Token used"
-                                value={formatDate(token.used_at)}
+                                label={t(
+                                    'settings.access.users.details.token_used',
+                                    'Token used',
+                                )}
+                                value={formatDate(token.used_at, t)}
                             />
                             <DetailRow
-                                label="Used by"
-                                value={formatUserReference(token.used_by)}
+                                label={t(
+                                    'settings.access.users.details.used_by',
+                                    'Used by',
+                                )}
+                                value={formatUserReference(token.used_by, t)}
                             />
                         </div>
                     ) : (
                         <p className="text-slate-500 dark:text-slate-400">
-                            No registration token is linked to this account.
+                            {t(
+                                'settings.access.users.details.no_token',
+                                'No registration token is linked to this account.',
+                            )}
                         </p>
                     )}
                 </div>
@@ -1420,6 +1603,7 @@ function RoleManagementPanel({
     permissionResources: PermissionResource[];
     roles: AccessRoleSummary[];
 }) {
+    const t = usePlatformTranslation();
     const [selectedRoleId, setSelectedRoleId] = useState<number | 'new'>(
         roles[0]?.id ?? 'new',
     );
@@ -1464,7 +1648,13 @@ function RoleManagementPanel({
             return;
         }
 
-        if (!window.confirm(`Delete role ${selectedRole.name}?`)) {
+        if (
+            !window.confirm(
+                t('settings.access.roles.delete_confirm', 'Delete role :name?', {
+                    name: selectedRole.name,
+                }),
+            )
+        ) {
             return;
         }
 
@@ -1488,10 +1678,13 @@ function RoleManagementPanel({
                 <div className="flex items-center justify-between border-b border-slate-200 p-3 dark:border-white/10">
                     <div>
                         <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                            Roles
+                            {t('settings.access.roles.title', 'Roles')}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Select a role to inspect or edit.
+                            {t(
+                                'settings.access.roles.description',
+                                'Select a role to inspect or edit.',
+                            )}
                         </p>
                     </div>
                     {canUpdateRoles ? (
@@ -1528,20 +1721,35 @@ function RoleManagementPanel({
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            {selectedRole ? 'Role' : 'New role'}
+                            {selectedRole
+                                ? t(
+                                      'settings.access.roles.eyebrow_existing',
+                                      'Role',
+                                  )
+                                : t(
+                                      'settings.access.roles.eyebrow_new',
+                                      'New role',
+                                  )}
                         </p>
                         <h3 className="mt-1 text-xl font-semibold text-slate-950 dark:text-white">
-                            {selectedRole ? selectedRole.name : 'Create role'}
+                            {selectedRole
+                                ? selectedRole.name
+                                : t(
+                                      'settings.access.roles.create_title',
+                                      'Create role',
+                                  )}
                         </h3>
                     </div>
                     <div className="flex gap-2">
                         {canUpdateRoles ? (
                             <Button onClick={saveRole}>
-                                {selectedRole ? 'Save' : 'Create'}
+                                {selectedRole
+                                    ? t('common.save', 'Save')
+                                    : t('common.create', 'Create')}
                             </Button>
                         ) : (
                             <Button disabled variant="secondary">
-                                Read only
+                                {t('common.read_only', 'Read only')}
                             </Button>
                         )}
                         {selectedRole && canDeleteRoles ? (
@@ -1558,7 +1766,9 @@ function RoleManagementPanel({
 
                 <div className="grid gap-3 sm:grid-cols-2">
                     <div className="grid gap-1">
-                        <Label htmlFor="role-name">Name</Label>
+                        <Label htmlFor="role-name">
+                            {t('settings.access.roles.name', 'Name')}
+                        </Label>
                         <Input
                             disabled={!canUpdateRoles}
                             id="role-name"
@@ -1572,7 +1782,9 @@ function RoleManagementPanel({
                         />
                     </div>
                     <div className="grid gap-1">
-                        <Label htmlFor="role-slug">Slug</Label>
+                        <Label htmlFor="role-slug">
+                            {t('settings.access.roles.slug', 'Slug')}
+                        </Label>
                         <Input
                             disabled={!canUpdateRoles || Boolean(selectedRole)}
                             id="role-slug"
@@ -1586,7 +1798,12 @@ function RoleManagementPanel({
                         />
                     </div>
                     <div className="grid gap-1 sm:col-span-2">
-                        <Label htmlFor="role-description">Description</Label>
+                        <Label htmlFor="role-description">
+                            {t(
+                                'settings.access.roles.role_description',
+                                'Description',
+                            )}
+                        </Label>
                         <Input
                             disabled={!canUpdateRoles}
                             id="role-description"
@@ -1600,7 +1817,12 @@ function RoleManagementPanel({
                         />
                     </div>
                     <div className="grid gap-1">
-                        <Label htmlFor="role-level">Assignment level</Label>
+                        <Label htmlFor="role-level">
+                            {t(
+                                'settings.access.roles.assignment_level',
+                                'Assignment level',
+                            )}
+                        </Label>
                         <Input
                             disabled={!canUpdateRoles}
                             id="role-level"
@@ -1620,8 +1842,13 @@ function RoleManagementPanel({
 
                 <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
                     <div className="grid grid-cols-[minmax(12rem,1fr)_22rem] bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
-                        <span>Area</span>
-                        <span>Permission level</span>
+                        <span>{t('settings.access.roles.area', 'Area')}</span>
+                        <span>
+                            {t(
+                                'settings.access.roles.permission_level',
+                                'Permission level',
+                            )}
+                        </span>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                         {permissionResources.map((resource) => (
@@ -1653,16 +1880,34 @@ function RoleManagementPanel({
 
                 <div className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:bg-white/5 dark:text-slate-300">
                     <p>
-                        <strong>RO</strong>: read only. The role may inspect the
-                        area but not save changes.
+                        <strong>
+                            {t('settings.access.permissions.ro', 'RO')}
+                        </strong>
+                        :{' '}
+                        {t(
+                            'settings.access.permissions.ro_legend',
+                            'read only. The role may inspect the area but not save changes.',
+                        )}
                     </p>
                     <p>
-                        <strong>RU</strong>: read and update. The role may edit
-                        existing content and create new content.
+                        <strong>
+                            {t('settings.access.permissions.ru', 'RU')}
+                        </strong>
+                        :{' '}
+                        {t(
+                            'settings.access.permissions.ru_legend',
+                            'read and update. The role may edit existing content and create new content.',
+                        )}
                     </p>
                     <p>
-                        <strong>RUD</strong>: read, update and delete. The role
-                        may remove records where the feature supports deletion.
+                        <strong>
+                            {t('settings.access.permissions.rud', 'RUD')}
+                        </strong>
+                        :{' '}
+                        {t(
+                            'settings.access.permissions.rud_legend',
+                            'read, update and delete. The role may remove records where the feature supports deletion.',
+                        )}
                     </p>
                 </div>
             </section>
@@ -1679,11 +1924,12 @@ function PermissionButtonGroup({
     level: PermissionLevel;
     onChange: (level: PermissionLevel) => void;
 }) {
+    const t = usePlatformTranslation();
     const options: { label: string; value: PermissionLevel }[] = [
-        { label: 'No', value: 'none' },
-        { label: 'RO', value: 'ro' },
-        { label: 'RU', value: 'ru' },
-        { label: 'RUD', value: 'rud' },
+        { label: t('settings.access.permissions.no', 'No'), value: 'none' },
+        { label: t('settings.access.permissions.ro', 'RO'), value: 'ro' },
+        { label: t('settings.access.permissions.ru', 'RU'), value: 'ru' },
+        { label: t('settings.access.permissions.rud', 'RUD'), value: 'rud' },
     ];
 
     return (
@@ -1798,25 +2044,35 @@ function roleFormFromRole(
 }
 
 function StatusBadges({ user }: { user: AdminUser }) {
+    const t = usePlatformTranslation();
+
     if (!user.is_login_disabled && !user.is_currently_banned) {
-        return <Badge variant="secondary">Active</Badge>;
+        return (
+            <Badge variant="secondary">
+                {t('settings.access.status.active', 'Active')}
+            </Badge>
+        );
     }
 
     return (
         <div className="flex flex-wrap gap-1">
             {user.is_login_disabled ? (
-                <Badge variant="destructive">Disabled</Badge>
+                <Badge variant="destructive">
+                    {t('settings.access.status.disabled', 'Disabled')}
+                </Badge>
             ) : null}
             {user.is_currently_banned ? (
-                <Badge variant="destructive">Banned</Badge>
+                <Badge variant="destructive">
+                    {t('settings.access.status.banned', 'Banned')}
+                </Badge>
             ) : null}
         </div>
     );
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, t?: Translator): string {
     if (!value) {
-        return 'Not set';
+        return t?.('common.not_set', 'Not set') ?? 'Not set';
     }
 
     return new Intl.DateTimeFormat(undefined, {
@@ -1825,9 +2081,12 @@ function formatDate(value: string | null): string {
     }).format(new Date(value));
 }
 
-function formatUserReference(user: UserReference | null): string {
+function formatUserReference(
+    user: UserReference | null,
+    t?: Translator,
+): string {
     if (!user) {
-        return 'Unknown';
+        return t?.('common.unknown', 'Unknown') ?? 'Unknown';
     }
 
     return `${user.name} (${user.email})`;

@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 type SettingsConfigurationShellProps = {
@@ -55,12 +56,15 @@ type SettingsSectionNavigationProps<T extends string> = {
 export function SettingsConfigurationShell({
     action,
     backHref = '/settings',
-    backLabel = 'Settings',
+    backLabel,
     children,
     eyebrow,
     sidebar,
     title,
 }: SettingsConfigurationShellProps) {
+    const t = usePlatformTranslation();
+    const resolvedBackLabel = backLabel ?? t('common.settings', 'Settings');
+
     return (
         <main className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
             <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
@@ -69,7 +73,7 @@ export function SettingsConfigurationShell({
                         <Button asChild className="mb-4" variant="ghost">
                             <Link href={backHref}>
                                 <ArrowLeft className="size-4" />
-                                {backLabel}
+                                {resolvedBackLabel}
                             </Link>
                         </Button>
                         <p

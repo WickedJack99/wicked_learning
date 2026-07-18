@@ -7,6 +7,7 @@ import {
     readPersistedActiveActivity,
 } from '@/features/world/active-activity';
 import type { ActiveActivity } from '@/features/world/active-activity';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { worldHref } from '@/features/world/types';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
@@ -29,6 +30,7 @@ const navPadding = 12;
 
 export function AppBottomNav() {
     const { props, url } = usePage();
+    const t = usePlatformTranslation();
     const isAuthenticated = Boolean(props.auth.user);
     const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(
         () => readPersistedActiveActivity(),
@@ -104,7 +106,7 @@ export function AppBottomNav() {
                 href: worldHref,
                 icon: <Map className="size-5" />,
                 id: 'map',
-                label: 'Map',
+                label: t('navigation.bottom.map', 'Map'),
             },
             ...(isAuthenticated
                 ? [
@@ -113,14 +115,14 @@ export function AppBottomNav() {
                           href: '/bookmarks',
                           icon: <Bookmark className="size-5" />,
                           id: 'bookmarks',
-                          label: 'Bookmarks',
+                          label: t('navigation.bottom.bookmarks', 'Bookmarks'),
                       },
                       {
                           active: isSettingsActive,
                           href: '/settings',
                           icon: <Cog className="size-5" />,
                           id: 'settings',
-                          label: 'Settings',
+                          label: t('navigation.bottom.settings', 'Settings'),
                       },
                       {
                           active: false,
@@ -128,7 +130,7 @@ export function AppBottomNav() {
                           href: logout(),
                           icon: <DoorOpen className="size-5" />,
                           id: 'logout',
-                          label: 'Log out',
+                          label: t('navigation.bottom.log_out', 'Log out'),
                           onClick: handleLogout,
                           danger: true,
                       },
@@ -150,7 +152,11 @@ export function AppBottomNav() {
                 icon: <PlayCircle className="size-5" />,
                 id: 'active-activity',
                 shouldAnimateInsertion: shouldAnimateActiveActivity,
-                label: `Return to ${activeActivity.activityTitle}`,
+                label: t(
+                    'navigation.bottom.return_to_activity',
+                    'Return to :title',
+                    { title: activeActivity.activityTitle },
+                ),
             },
             ...baseItems,
         ];
@@ -162,6 +168,7 @@ export function AppBottomNav() {
         handleLogout,
         isAuthenticated,
         shouldAnimateActiveActivity,
+        t,
     ]);
     const navWidth =
         navPadding +

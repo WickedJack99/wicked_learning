@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type Language = {
     code: string;
@@ -30,6 +31,7 @@ export default function LanguageAdministration({
 }: {
     languages: Language[];
 }) {
+    const t = usePlatformTranslation();
     const [selectedCode, setSelectedCode] = useState(
         languages[0]?.code ?? 'en',
     );
@@ -95,22 +97,36 @@ export default function LanguageAdministration({
 
     return (
         <>
-            <Head title="Language administration" />
+            <Head
+                title={t(
+                    'settings.administration.languages.head_title',
+                    'Language administration',
+                )}
+            />
             <SettingsConfigurationShell
-                eyebrow="Administration"
+                eyebrow={t(
+                    'settings.administration.languages.eyebrow',
+                    'Administration',
+                )}
                 sidebar={
                     <SettingsSidebar>
                         <SettingsSectionButton
                             active
-                            description="Catalogs and learner copy."
+                            description={t(
+                                'settings.administration.languages.sidebar_description',
+                                'Catalogs and learner copy.',
+                            )}
                             icon={Languages}
                             id="languages"
-                            label="Languages"
+                            label={t(
+                                'settings.administration.languages',
+                                'Languages',
+                            )}
                             onSelect={() => undefined}
                         />
                     </SettingsSidebar>
                 }
-                title="Languages"
+                title={t('settings.administration.languages.title', 'Languages')}
             >
                 <SettingsContentPane>
                     <section className="grid min-h-full gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
@@ -118,10 +134,16 @@ export default function LanguageAdministration({
                             <div className="mb-3 flex items-center justify-between gap-2">
                                 <div>
                                     <h2 className="text-sm font-semibold">
-                                        Available languages
+                                        {t(
+                                            'settings.administration.languages.available',
+                                            'Available languages',
+                                        )}
                                     </h2>
                                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                        English is the source catalog.
+                                        {t(
+                                            'settings.administration.languages.available_description',
+                                            'English is the source catalog.',
+                                        )}
                                     </p>
                                 </div>
                                 <Button
@@ -144,7 +166,10 @@ export default function LanguageAdministration({
                                                 event.currentTarget.value,
                                             )
                                         }
-                                        placeholder="Code, e.g. ja"
+                                        placeholder={t(
+                                            'settings.administration.languages.code_placeholder',
+                                            'Code, e.g. ja',
+                                        )}
                                         value={createForm.code}
                                     />
                                     <Input
@@ -154,7 +179,10 @@ export default function LanguageAdministration({
                                                 event.currentTarget.value,
                                             )
                                         }
-                                        placeholder="Name, e.g. Japanese"
+                                        placeholder={t(
+                                            'settings.administration.languages.name_placeholder',
+                                            'Name, e.g. Japanese',
+                                        )}
                                         value={createForm.name}
                                     />
                                     <Input
@@ -164,7 +192,10 @@ export default function LanguageAdministration({
                                                 event.currentTarget.value,
                                             )
                                         }
-                                        placeholder="Native name, e.g. 日本語"
+                                        placeholder={t(
+                                            'settings.administration.languages.native_name_placeholder',
+                                            'Native name, e.g. Japanese',
+                                        )}
                                         value={createForm.native_name}
                                     />
                                     <Button
@@ -172,7 +203,10 @@ export default function LanguageAdministration({
                                         size="sm"
                                         type="button"
                                     >
-                                        Create
+                                        {t(
+                                            'settings.administration.languages.create',
+                                            'Create',
+                                        )}
                                     </Button>
                                 </div>
                             ) : null}
@@ -201,7 +235,11 @@ export default function LanguageAdministration({
                                             {language.name}
                                         </span>
                                         <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                            {language.nativeName} ·{' '}
+                                            {language.nativeName}
+                                            {t(
+                                                'settings.administration.languages.separator',
+                                                ' / ',
+                                            )}
                                             {language.code}
                                         </span>
                                     </button>
@@ -219,38 +257,48 @@ export default function LanguageAdministration({
                                                 color: 'var(--settings-accent)',
                                             }}
                                         >
-                                            Translation catalog
+                                            {t(
+                                                'settings.administration.languages.catalog',
+                                                'Translation catalog',
+                                            )}
                                         </p>
                                         <h2 className="mt-2 text-xl font-semibold">
                                             {selected.name}
                                         </h2>
                                         <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                            Export English, translate its JSON
-                                            values, then upload it here. The
-                                            import keeps only learner-visible
-                                            activity copy and ignores answer
-                                            correctness or graph behavior.
+                                            {t(
+                                                'settings.administration.languages.catalog_description',
+                                                'Export English, translate its JSON values, then upload it here. The import keeps only learner-visible activity copy and ignores answer correctness or graph behavior.',
+                                            )}
                                         </p>
                                     </div>
                                     <Button asChild variant="secondary">
                                         <a href="/settings/languages/export/english">
                                             <Download className="size-4" />
-                                            Download English
+                                            {t(
+                                                'settings.administration.languages.download_english',
+                                                'Download English',
+                                            )}
                                         </a>
                                     </Button>
                                 </div>
 
                                 {selected.isDefault ? (
                                     <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-white/15 dark:text-slate-300">
-                                        English is the canonical source.
-                                        Download it to prepare another language.
+                                        {t(
+                                            'settings.administration.languages.default_notice',
+                                            'English is the canonical source. Download it to prepare another language.',
+                                        )}
                                     </div>
                                 ) : (
                                     <>
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <div className="grid gap-2">
                                                 <Label htmlFor="language-name">
-                                                    Language name
+                                                    {t(
+                                                        'settings.administration.languages.name',
+                                                        'Language name',
+                                                    )}
                                                 </Label>
                                                 <Input
                                                     id="language-name"
@@ -265,7 +313,10 @@ export default function LanguageAdministration({
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label htmlFor="language-native-name">
-                                                    Native name
+                                                    {t(
+                                                        'settings.administration.languages.native_name',
+                                                        'Native name',
+                                                    )}
                                                 </Label>
                                                 <Input
                                                     id="language-native-name"
@@ -283,12 +334,16 @@ export default function LanguageAdministration({
                                         <label className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/70">
                                             <span>
                                                 <span className="block text-sm font-medium">
-                                                    Enabled for learners
+                                                    {t(
+                                                        'settings.administration.languages.enabled',
+                                                        'Enabled for learners',
+                                                    )}
                                                 </span>
                                                 <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                                    Disabled languages remain
-                                                    editable but cannot be
-                                                    selected by learners.
+                                                    {t(
+                                                        'settings.administration.languages.enabled_description',
+                                                        'Disabled languages remain editable but cannot be selected by learners.',
+                                                    )}
                                                 </span>
                                             </span>
                                             <input
@@ -310,20 +365,29 @@ export default function LanguageAdministration({
                                                 type="button"
                                             >
                                                 <Save className="size-4" />
-                                                Save language
+                                                {t(
+                                                    'settings.administration.languages.save',
+                                                    'Save language',
+                                                )}
                                             </Button>
                                             <Button asChild variant="secondary">
                                                 <a
                                                     href={`/settings/languages/${selected.code}/export`}
                                                 >
                                                     <Download className="size-4" />
-                                                    Download current catalog
+                                                    {t(
+                                                        'settings.administration.languages.download_current',
+                                                        'Download current catalog',
+                                                    )}
                                                 </a>
                                             </Button>
                                             <Button asChild variant="secondary">
                                                 <label htmlFor="translation-catalog">
                                                     <FileUp className="size-4" />
-                                                    Upload translation catalog
+                                                    {t(
+                                                        'settings.administration.languages.import',
+                                                        'Upload translation catalog',
+                                                    )}
                                                 </label>
                                             </Button>
                                             <input
