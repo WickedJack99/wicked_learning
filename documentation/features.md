@@ -209,6 +209,12 @@ Item-grant playback displays the granted items directly, grows the item display 
 
 Markdown activities use their own page graph. Each page can carry Markdown content, media embeds and theme-specific page colors while still fitting into the same parent activity-route graph.
 
+### AI support
+
+Admins can configure AI provider credentials and reusable agent templates from settings. Provider credentials are intended to stay encrypted server-side, while templates define the behavior, task purpose, model preferences, budgets and guardrails for future AI-assisted jobs.
+
+Agent templates support importing and exporting their instruction text as Markdown files. The repository also contains `agent-instruction-sets/` with starter instruction sets for SDT design support, learner reflection feedback, asset brief generation and competence-oriented question design. These files are meant to be improved through issues and pull requests without mixing private learner data or deployment-specific secrets into the public repo.
+
 ## Intentional non-goals
 
 The prototype deliberately avoids:

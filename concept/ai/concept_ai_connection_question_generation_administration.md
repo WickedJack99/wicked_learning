@@ -386,3 +386,25 @@ The AI should not replace domain expertise.
 The AI should help transform domain expertise into learning experiences.
 
 The platform should act as a bridge between expert knowledge and competence-oriented learning.
+
+---
+
+# Agent Instruction Sets
+
+Reusable agent instructions should be importable and exportable as simple files.
+
+This allows admins to:
+
+* download a working instruction set
+* edit it outside the browser
+* upload it into an agent template
+* share improved instruction sets through issues or pull requests
+
+The repository should contain public starter sets for common responsibilities such as:
+
+* Self-Determination Theory design support
+* learner reflection feedback
+* asset generation briefs
+* competence-oriented question design
+
+Instruction files should not contain learner data, API keys, hidden answers or deployment-specific secrets.
