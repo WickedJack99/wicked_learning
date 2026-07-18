@@ -1,8 +1,8 @@
-# Learning Worlds
+# Wicked Learning
 
 An open-source experiment in building an explorable learning environment around intrinsic motivation instead of points, streaks, badges or leaderboards.
 
-Learning Worlds is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, nodes, activities, media and public text while the core learning model stays reusable.
+Wicked Learning is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, nodes, activities, media and public text while the core learning model stays reusable.
 
 The concept direction comes from the project creator. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
 
