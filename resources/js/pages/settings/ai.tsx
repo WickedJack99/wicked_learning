@@ -27,6 +27,7 @@ import {
     instructionFilename,
     parseAgentInstructionFile,
 } from '@/features/ai/agent-instruction-files';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 type AiSection = 'providers' | 'templates' | 'guardrails';
@@ -111,27 +112,35 @@ type AiSettingsProps = {
 const sectionItems = [
     {
         key: 'providers',
-        label: 'Provider keys',
-        description: 'Encrypted API credentials and provider-level budgets.',
+        labelKey: 'settings.ai.sections.providers',
+        labelFallback: 'Provider keys',
+        descriptionKey: 'settings.ai.sections.providers.description',
+        descriptionFallback: 'Encrypted API credentials and provider-level budgets.',
         icon: KeyRound,
     },
     {
         key: 'templates',
-        label: 'Agent templates',
-        description: 'Reusable task behaviors for design, assets and feedback.',
+        labelKey: 'settings.ai.sections.templates',
+        labelFallback: 'Agent templates',
+        descriptionKey: 'settings.ai.sections.templates.description',
+        descriptionFallback: 'Reusable task behaviors for design, assets and feedback.',
         icon: BrainCircuit,
     },
     {
         key: 'guardrails',
-        label: 'Guardrails',
-        description: 'How sensitive context and limits should be handled.',
+        labelKey: 'settings.ai.sections.guardrails',
+        labelFallback: 'Guardrails',
+        descriptionKey: 'settings.ai.sections.guardrails.description',
+        descriptionFallback: 'How sensitive context and limits should be handled.',
         icon: ShieldCheck,
     },
 ] satisfies {
-    description: string;
+    descriptionFallback: string;
+    descriptionKey: string;
     icon: LucideIcon;
     key: AiSection;
-    label: string;
+    labelFallback: string;
+    labelKey: string;
 }[];
 
 function blankProviderForm(defaultProvider = 'openai'): ProviderForm {
@@ -209,11 +218,12 @@ export default function AiSettings({
     providerOptions,
     purposeOptions,
 }: AiSettingsProps) {
+    const t = usePlatformTranslation();
     const [activeSection, setActiveSection] = useState<AiSection>('providers');
 
     return (
         <>
-            <Head title="AI support" />
+            <Head title={t('settings.ai.title', 'AI support')} />
             <SettingsConfigurationShell
                 action={
                     <Button asChild variant="secondary">
@@ -222,27 +232,33 @@ export default function AiSettings({
                             rel="noreferrer"
                             target="_blank"
                         >
-                            Laravel AI SDK
+                            {t(
+                                'settings.ai.actions.open_laravel_ai_sdk',
+                                'Laravel AI SDK',
+                            )}
                         </a>
                     </Button>
                 }
-                eyebrow="Administration"
+                eyebrow={t('settings.ai.eyebrow', 'Administration')}
                 sidebar={
                     <SettingsSidebar>
                         {sectionItems.map((item) => (
                             <SettingsSectionButton
                                 active={activeSection === item.key}
-                                description={item.description}
+                                description={t(
+                                    item.descriptionKey,
+                                    item.descriptionFallback,
+                                )}
                                 icon={item.icon}
                                 id={item.key}
                                 key={item.key}
-                                label={item.label}
+                                label={t(item.labelKey, item.labelFallback)}
                                 onSelect={setActiveSection}
                             />
                         ))}
                     </SettingsSidebar>
                 }
-                title="AI support"
+                title={t('settings.ai.title', 'AI support')}
             >
                 <SettingsContentPane>
                     {activeSection === 'providers' ? (
@@ -274,6 +290,7 @@ function ProviderCredentialsPanel({
     providerCredentials: ProviderCredential[];
     providerOptions: Option[];
 }) {
+    const t = usePlatformTranslation();
     const [selectedId, setSelectedId] = useState<number | 'new'>(
         providerCredentials[0]?.id ?? 'new',
     );
@@ -325,13 +342,27 @@ function ProviderCredentialsPanel({
                 <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
                     <PanelHeader
                         icon={KeyRound}
-                        eyebrow="Provider"
-                        title={selectedCredential?.label ?? 'New provider key'}
-                        description="Store encrypted credentials and coarse budgets for one AI provider account."
+                        eyebrow={t('settings.ai.providers.eyebrow', 'Provider')}
+                        title={
+                            selectedCredential?.label ??
+                            t(
+                                'settings.ai.providers.new_title',
+                                'New provider key',
+                            )
+                        }
+                        description={t(
+                            'settings.ai.providers.description',
+                            'Store encrypted credentials and coarse budgets for one AI provider account.',
+                        )}
                     />
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                        <Field label="Label">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.label',
+                                'Label',
+                            )}
+                        >
                             <Input
                                 value={form.label}
                                 onChange={(event) =>
@@ -342,7 +373,12 @@ function ProviderCredentialsPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Provider">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.provider',
+                                'Provider',
+                            )}
+                        >
                             <select
                                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
                                 value={form.provider}
@@ -363,9 +399,17 @@ function ProviderCredentialsPanel({
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Base URL">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.base_url',
+                                'Base URL',
+                            )}
+                        >
                             <Input
-                                placeholder="Optional for local or compatible providers"
+                                placeholder={t(
+                                    'settings.ai.providers.placeholders.base_url',
+                                    'Optional for local or compatible providers',
+                                )}
                                 value={form.base_url}
                                 onChange={(event) =>
                                     setForm({
@@ -375,7 +419,12 @@ function ProviderCredentialsPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Organization">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.organization',
+                                'Organization',
+                            )}
+                        >
                             <Input
                                 value={form.organization}
                                 onChange={(event) =>
@@ -386,13 +435,29 @@ function ProviderCredentialsPanel({
                                 }
                             />
                         </Field>
-                        <Field label="API key">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.api_key',
+                                'API key',
+                            )}
+                        >
                             <Input
                                 autoComplete="off"
                                 placeholder={
                                     selectedCredential?.hasApiKey
-                                        ? `Stored key ending in ${selectedCredential.apiKeyLastFour}`
-                                        : 'Paste a key to store it encrypted'
+                                        ? t(
+                                              'settings.ai.providers.placeholders.api_key_stored',
+                                              'Stored key ending in :lastFour',
+                                              {
+                                                  lastFour:
+                                                      selectedCredential.apiKeyLastFour ??
+                                                      '',
+                                              },
+                                          )
+                                        : t(
+                                              'settings.ai.providers.placeholders.api_key_new',
+                                              'Paste a key to store it encrypted',
+                                          )
                                 }
                                 type="password"
                                 value={form.api_key}
@@ -404,7 +469,12 @@ function ProviderCredentialsPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Monthly token limit">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.monthly_token_limit',
+                                'Monthly token limit',
+                            )}
+                        >
                             <Input
                                 inputMode="numeric"
                                 value={form.monthly_token_limit}
@@ -416,7 +486,12 @@ function ProviderCredentialsPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Monthly cost limit in cents">
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.monthly_cost_limit',
+                                'Monthly cost limit in cents',
+                            )}
+                        >
                             <Input
                                 inputMode="numeric"
                                 value={form.monthly_cost_limit_cents}
@@ -440,10 +515,18 @@ function ProviderCredentialsPanel({
                                     })
                                 }
                             />
-                            Provider may be used by enabled templates
+                            {t(
+                                'settings.ai.providers.enabled_label',
+                                'Provider may be used by enabled templates',
+                            )}
                         </label>
                     </div>
-                    <Field label="Notes">
+                    <Field
+                        label={t(
+                            'settings.ai.providers.fields.notes',
+                            'Notes',
+                        )}
+                    >
                         <textarea
                             className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
                             value={form.notes}
@@ -461,15 +544,21 @@ function ProviderCredentialsPanel({
             }
             list={
                 <ItemList
-                    addLabel="New provider"
-                    emptyLabel="No providers yet"
+                    addLabel={t(
+                        'settings.ai.providers.new_button',
+                        'New provider',
+                    )}
+                    emptyLabel={t(
+                        'settings.ai.providers.empty',
+                        'No providers yet',
+                    )}
                     onAdd={() => selectCredential(null)}
                 >
                     {providerCredentials.map((credential) => (
                         <ListButton
                             active={credential.id === selectedId}
                             key={credential.id}
-                            meta={`${credential.provider}${credential.enabled ? '' : ' - disabled'}`}
+                            meta={`${credential.provider}${credential.enabled ? '' : t('settings.ai.common.disabled_suffix', ' - disabled')}`}
                             onClick={() => selectCredential(credential)}
                             title={credential.label}
                         />
@@ -489,6 +578,7 @@ function AgentTemplatesPanel({
     providerCredentials: ProviderCredential[];
     purposeOptions: Option[];
 }) {
+    const t = usePlatformTranslation();
     const [selectedId, setSelectedId] = useState<number | 'new'>(
         agentTemplates[0]?.id ?? 'new',
     );
@@ -543,7 +633,10 @@ function AgentTemplatesPanel({
         downloadAgentInstructionFile(
             instructionFilename(form.name || selectedTemplate?.name || 'agent'),
             buildAgentInstructionMarkdown({
-                name: form.name || selectedTemplate?.name || 'Untitled agent',
+                name:
+                    form.name ||
+                    selectedTemplate?.name ||
+                    t('settings.ai.templates.untitled', 'Untitled agent'),
                 purpose: form.purpose,
                 systemPrompt: form.system_prompt,
                 taskPrompt: form.task_prompt,
@@ -571,7 +664,10 @@ function AgentTemplatesPanel({
                 }));
             } catch {
                 window.alert(
-                    'The selected instruction file could not be read. Use Markdown with "## System prompt" and "## Task prompt" sections, or a JSON file with systemPrompt and taskPrompt fields.',
+                    t(
+                        'settings.ai.templates.alerts.instructions_parse_failed',
+                        'The selected instruction file could not be read. Use Markdown with "## System prompt" and "## Task prompt" sections, or a JSON file with systemPrompt and taskPrompt fields.',
+                    ),
                 );
             } finally {
                 if (instructionInputRef.current) {
@@ -589,13 +685,27 @@ function AgentTemplatesPanel({
                 <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
                     <PanelHeader
                         icon={BrainCircuit}
-                        eyebrow="Agent template"
-                        title={selectedTemplate?.name ?? 'New agent template'}
-                        description="Define a reusable behavior. Runtime jobs can later execute these templates with guarded context."
+                        eyebrow={t(
+                            'settings.ai.templates.eyebrow',
+                            'Agent template',
+                        )}
+                        title={
+                            selectedTemplate?.name ??
+                            t(
+                                'settings.ai.templates.new_title',
+                                'New agent template',
+                            )
+                        }
+                        description={t(
+                            'settings.ai.templates.description',
+                            'Define a reusable behavior. Runtime jobs can later execute these templates with guarded context.',
+                        )}
                     />
 
                     <div className="grid gap-4 lg:grid-cols-2">
-                        <Field label="Name">
+                        <Field
+                            label={t('settings.ai.templates.fields.name', 'Name')}
+                        >
                             <Input
                                 value={form.name}
                                 onChange={(event) =>
@@ -606,9 +716,14 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Slug">
+                        <Field
+                            label={t('settings.ai.templates.fields.slug', 'Slug')}
+                        >
                             <Input
-                                placeholder="Generated from the name when empty"
+                                placeholder={t(
+                                    'settings.ai.templates.placeholders.slug',
+                                    'Generated from the name when empty',
+                                )}
                                 value={form.slug}
                                 onChange={(event) =>
                                     setForm({
@@ -618,7 +733,12 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Purpose">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.purpose',
+                                'Purpose',
+                            )}
+                        >
                             <select
                                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
                                 value={form.purpose}
@@ -644,7 +764,12 @@ function AgentTemplatesPanel({
                                 </p>
                             ) : null}
                         </Field>
-                        <Field label="Provider key">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.provider_key',
+                                'Provider key',
+                            )}
+                        >
                             <select
                                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
                                 value={form.ai_provider_credential_id}
@@ -656,7 +781,12 @@ function AgentTemplatesPanel({
                                     })
                                 }
                             >
-                                <option value="">No provider selected</option>
+                                <option value="">
+                                    {t(
+                                        'settings.ai.templates.placeholders.provider',
+                                        'No provider selected',
+                                    )}
+                                </option>
                                 {providerCredentials.map((credential) => (
                                     <option
                                         key={credential.id}
@@ -667,9 +797,17 @@ function AgentTemplatesPanel({
                                 ))}
                             </select>
                         </Field>
-                        <Field label="Model">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.model',
+                                'Model',
+                            )}
+                        >
                             <Input
-                                placeholder="gpt-4.1, gpt-5, local-model..."
+                                placeholder={t(
+                                    'settings.ai.templates.placeholders.model',
+                                    'gpt-4.1, gpt-5, local-model...',
+                                )}
                                 value={form.model}
                                 onChange={(event) =>
                                     setForm({
@@ -679,7 +817,12 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Temperature">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.temperature',
+                                'Temperature',
+                            )}
+                        >
                             <Input
                                 inputMode="decimal"
                                 value={form.temperature}
@@ -691,7 +834,12 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Max output tokens">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.max_output_tokens',
+                                'Max output tokens',
+                            )}
+                        >
                             <Input
                                 inputMode="numeric"
                                 value={form.max_output_tokens}
@@ -703,7 +851,12 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Concurrency limit">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.concurrency_limit',
+                                'Concurrency limit',
+                            )}
+                        >
                             <Input
                                 inputMode="numeric"
                                 value={form.concurrency_limit}
@@ -715,7 +868,12 @@ function AgentTemplatesPanel({
                                 }
                             />
                         </Field>
-                        <Field label="Monthly token limit">
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.monthly_token_limit',
+                                'Monthly token limit',
+                            )}
+                        >
                             <Input
                                 inputMode="numeric"
                                 value={form.monthly_token_limit}
@@ -733,13 +891,21 @@ function AgentTemplatesPanel({
                         <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                                 <h3 className="text-sm font-semibold">
-                                    Agent instructions
+                                    {t(
+                                        'settings.ai.templates.instructions.title',
+                                        'Agent instructions',
+                                    )}
                                 </h3>
                                 <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                    Download these prompts as a Markdown file,
-                                    edit them elsewhere, or upload a prepared
-                                    instruction set. Shared examples live in{' '}
+                                    {t(
+                                        'settings.ai.templates.instructions.description_before_path',
+                                        'Download these prompts as a Markdown file, edit them elsewhere, or upload a prepared instruction set. Shared examples live in ',
+                                    )}
                                     <code>agent-instruction-sets/</code>.
+                                    {t(
+                                        'settings.ai.templates.instructions.description_after_path',
+                                        '',
+                                    )}
                                 </p>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -749,7 +915,10 @@ function AgentTemplatesPanel({
                                     onClick={downloadInstructions}
                                 >
                                     <Download className="size-4" />
-                                    Download instructions
+                                    {t(
+                                        'settings.ai.templates.instructions.download',
+                                        'Download instructions',
+                                    )}
                                 </Button>
                                 <Button
                                     type="button"
@@ -759,7 +928,10 @@ function AgentTemplatesPanel({
                                     }
                                 >
                                     <Upload className="size-4" />
-                                    Upload instructions
+                                    {t(
+                                        'settings.ai.templates.instructions.upload',
+                                        'Upload instructions',
+                                    )}
                                 </Button>
                                 <input
                                     accept=".md,.txt,.json,text/markdown,text/plain,application/json"
@@ -776,7 +948,12 @@ function AgentTemplatesPanel({
                         </div>
                     </div>
 
-                    <Field label="System prompt">
+                    <Field
+                        label={t(
+                            'settings.ai.templates.fields.system_prompt',
+                            'System prompt',
+                        )}
+                    >
                         <textarea
                             className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
                             value={form.system_prompt}
@@ -788,7 +965,12 @@ function AgentTemplatesPanel({
                             }
                         />
                     </Field>
-                    <Field label="Task prompt">
+                    <Field
+                        label={t(
+                            'settings.ai.templates.fields.task_prompt',
+                            'Task prompt',
+                        )}
+                    >
                         <textarea
                             className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
                             value={form.task_prompt}
@@ -812,7 +994,10 @@ function AgentTemplatesPanel({
                                     })
                                 }
                             />
-                            Template may be used by future runtime jobs
+                            {t(
+                                'settings.ai.templates.enabled_label',
+                                'Template may be used by future runtime jobs',
+                            )}
                         </label>
                         <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
                             <input
@@ -825,7 +1010,10 @@ function AgentTemplatesPanel({
                                     })
                                 }
                             />
-                            Requires explicit guarded learner context
+                            {t(
+                                'settings.ai.templates.guarded_context_label',
+                                'Requires explicit guarded learner context',
+                            )}
                         </label>
                     </div>
                     <EditorActions
@@ -837,15 +1025,21 @@ function AgentTemplatesPanel({
             }
             list={
                 <ItemList
-                    addLabel="New template"
-                    emptyLabel="No templates yet"
+                    addLabel={t(
+                        'settings.ai.templates.new_button',
+                        'New template',
+                    )}
+                    emptyLabel={t(
+                        'settings.ai.templates.empty',
+                        'No templates yet',
+                    )}
                     onAdd={() => selectTemplate(null)}
                 >
                     {agentTemplates.map((template) => (
                         <ListButton
                             active={template.id === selectedId}
                             key={template.id}
-                            meta={`${template.purpose.replace('_', ' ')}${template.enabled ? '' : ' - disabled'}`}
+                            meta={`${template.purpose.replace('_', ' ')}${template.enabled ? '' : t('settings.ai.common.disabled_suffix', ' - disabled')}`}
                             onClick={() => selectTemplate(template)}
                             title={template.name}
                         />
@@ -857,30 +1051,61 @@ function AgentTemplatesPanel({
 }
 
 function GuardrailsPanel({ notes }: { notes: string[] }) {
+    const t = usePlatformTranslation();
+
     return (
         <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
             <PanelHeader
                 icon={ShieldCheck}
-                eyebrow="Guardrails"
-                title="Recommended AI structure"
-                description="Use separate templates by responsibility. A single provider key can be shared when trust and limits match, but learner feedback should stay guarded."
+                eyebrow={t('settings.ai.guardrails.eyebrow', 'Guardrails')}
+                title={t(
+                    'settings.ai.guardrails.title',
+                    'Recommended AI structure',
+                )}
+                description={t(
+                    'settings.ai.guardrails.description',
+                    'Use separate templates by responsibility. A single provider key can be shared when trust and limits match, but learner feedback should stay guarded.',
+                )}
             />
             <div className="grid gap-4 lg:grid-cols-3">
                 <GuardrailCard
-                    title="Admin design helper"
-                    body="Reviews platform and activity design through the Self-Determination Theory lens without seeing private learner journal content."
+                    title={t(
+                        'settings.ai.guardrails.admin.title',
+                        'Admin design helper',
+                    )}
+                    body={t(
+                        'settings.ai.guardrails.admin.body',
+                        'Reviews platform and activity design through the Self-Determination Theory lens without seeing private learner journal content.',
+                    )}
                 />
                 <GuardrailCard
-                    title="Asset helper"
-                    body="Generates prompts or visual concepts. It usually needs no learner data and can safely use a separate cheaper model."
+                    title={t(
+                        'settings.ai.guardrails.asset.title',
+                        'Asset helper',
+                    )}
+                    body={t(
+                        'settings.ai.guardrails.asset.body',
+                        'Generates prompts or visual concepts. It usually needs no learner data and can safely use a separate cheaper model.',
+                    )}
                 />
                 <GuardrailCard
-                    title="Feedback helper"
-                    body="Handles learner reflections only through explicit activity runs, with guarded context and stricter quotas."
+                    title={t(
+                        'settings.ai.guardrails.feedback.title',
+                        'Feedback helper',
+                    )}
+                    body={t(
+                        'settings.ai.guardrails.feedback.body',
+                        'Handles learner reflections only through explicit activity runs, with guarded context and stricter quotas.',
+                    )}
                 />
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#050816]">
-                <h3 className="text-sm font-semibold">Implementation notes</h3>
+                <h3 className="text-sm font-semibold">
+                    {t(
+                        'settings.ai.guardrails.implementation_notes',
+                        'Implementation notes',
+                    )}
+                </h3>
                 <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                     {notes.map((note) => (
                         <li key={note}>- {note}</li>
@@ -917,10 +1142,14 @@ function ItemList({
     emptyLabel: string;
     onAdd: () => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
             <div className="flex items-center justify-between border-b border-slate-200 p-3 dark:border-white/10">
-                <h3 className="text-sm font-semibold">Configured</h3>
+                <h3 className="text-sm font-semibold">
+                    {t('settings.ai.common.configured', 'Configured')}
+                </h3>
                 <Button
                     size="icon"
                     type="button"
@@ -1025,6 +1254,8 @@ function EditorActions({
     onDelete: () => void;
     onSave: () => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
             <Button
@@ -1034,11 +1265,11 @@ function EditorActions({
                 onClick={onDelete}
             >
                 <Trash2 className="size-4" />
-                Delete
+                {t('common.delete', 'Delete')}
             </Button>
             <Button type="button" onClick={onSave}>
                 <Save className="size-4" />
-                Save
+                {t('common.save', 'Save')}
             </Button>
         </div>
     );
