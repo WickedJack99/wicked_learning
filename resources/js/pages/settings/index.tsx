@@ -5,13 +5,10 @@ import {
     CalendarClock,
     Copy,
     Database,
-    Image,
     Info,
     KeyRound,
     NotebookPen,
-    Languages,
     Map,
-    Music,
     Palette,
     Plus,
     Shield,
@@ -150,6 +147,7 @@ type RoleFormState = {
 };
 
 type SettingsListItem = {
+    children?: SettingsListLink[];
     description: string;
     descriptionKey?: string;
     href?: string;
@@ -158,6 +156,13 @@ type SettingsListItem = {
     label: string;
     labelKey?: string;
     panel?: SettingsPanelKey;
+    resources?: string[];
+};
+
+type SettingsListLink = {
+    href: string;
+    label: string;
+    labelKey?: string;
     resources?: string[];
 };
 
@@ -188,106 +193,139 @@ const informationSettings: SettingsListItem[] = [
 
 const adminSettings: SettingsListItem[] = [
     {
-        key: 'admin-world',
-        label: 'Edit world',
-        labelKey: 'settings.navigation.edit_world',
-        description: 'Maps, nodes, activities and portal links.',
-        descriptionKey: 'settings.navigation.edit_world.description',
+        key: 'admin-world-builder',
+        label: 'World Builder',
+        labelKey: 'settings.navigation.world_builder',
+        description: 'Worlds, maps, nodes, activity graphs and portal routes.',
+        descriptionKey: 'settings.navigation.world_builder.description',
         icon: Map,
         href: '/settings/worlds',
         resources: ['worlds'],
+        children: [
+            {
+                label: 'World graph',
+                labelKey: 'settings.navigation.world_builder.world_graph',
+                href: '/settings/worlds',
+                resources: ['worlds'],
+            },
+        ],
     },
     {
-        key: 'admin-assets',
-        label: 'Edit tools, items and currencies',
-        labelKey: 'settings.navigation.assets',
-        description: 'Reusable capabilities and future inventory concepts.',
-        descriptionKey: 'settings.navigation.assets.description',
+        key: 'admin-presentation-localization',
+        label: 'Presentation & Localization',
+        labelKey: 'settings.navigation.presentation_localization',
+        description:
+            'Public pages, authentication screens, cursors, colors and languages.',
+        descriptionKey:
+            'settings.navigation.presentation_localization.description',
+        icon: Palette,
+        href: '/settings/presentation',
+        resources: ['presentation', 'languages'],
+        children: [
+            {
+                label: 'Public presentation',
+                labelKey: 'settings.navigation.presentation',
+                href: '/settings/presentation',
+                resources: ['presentation'],
+            },
+            {
+                label: 'Color palette',
+                labelKey: 'settings.navigation.color_palette',
+                href: '/settings/color-palette',
+                resources: ['presentation', 'journals', 'worlds'],
+            },
+            {
+                label: 'Languages',
+                labelKey: 'settings.navigation.languages',
+                href: '/settings/languages',
+                resources: ['languages'],
+            },
+        ],
+    },
+    {
+        key: 'admin-assets-world-objects',
+        label: 'Assets & World Objects',
+        labelKey: 'settings.navigation.assets_world_objects',
+        description:
+            'Media, sounds, reusable tools, consumable items and future currencies.',
+        descriptionKey: 'settings.navigation.assets_world_objects.description',
         icon: Database,
         href: '/settings/assets',
-        resources: ['assets'],
+        resources: ['assets', 'sounds'],
+        children: [
+            {
+                label: 'Visuals',
+                labelKey: 'settings.navigation.visuals',
+                href: '/settings/assets/media',
+                resources: ['assets'],
+            },
+            {
+                label: 'Sounds',
+                labelKey: 'settings.navigation.sounds',
+                href: '/settings/assets/sounds',
+                resources: ['sounds'],
+            },
+            {
+                label: 'Tools',
+                labelKey: 'settings.assets.sections.tools',
+                href: '/settings/assets/tools',
+                resources: ['assets'],
+            },
+            {
+                label: 'Items',
+                labelKey: 'settings.assets.sections.items',
+                href: '/settings/assets/items',
+                resources: ['assets'],
+            },
+        ],
     },
     {
         key: 'admin-access',
         label: 'Access management',
         labelKey: 'settings.navigation.access',
-        description: 'Users, roles and permissions.',
+        description:
+            'Users, registration tokens, roles, permissions and account access.',
         descriptionKey: 'settings.navigation.access.description',
         icon: Shield,
         resources: ['users', 'roles'],
     },
     {
-        key: 'admin-presentation',
-        label: 'Public presentation',
-        labelKey: 'settings.navigation.presentation',
-        description: 'Welcome, auth backgrounds and public information pages.',
-        descriptionKey: 'settings.navigation.presentation.description',
-        icon: Image,
-        href: '/settings/presentation',
-        resources: ['presentation'],
-    },
-    {
-        key: 'admin-color-palette',
-        label: 'Color palette',
-        labelKey: 'settings.navigation.color_palette',
+        key: 'admin-learning-support',
+        label: 'Learning Support',
+        labelKey: 'settings.navigation.learning_support',
         description:
-            'Edit color fields from presentation, journal and maps in one place.',
-        descriptionKey: 'settings.navigation.color_palette.description',
-        icon: Palette,
-        href: '/settings/color-palette',
-        resources: ['presentation', 'journals', 'worlds'],
-    },
-    {
-        key: 'admin-visuals',
-        label: 'Visuals',
-        labelKey: 'settings.navigation.visuals',
-        description: 'Reusable images, backgrounds and animations.',
-        descriptionKey: 'settings.navigation.visuals.description',
-        icon: Image,
-        href: '/settings/assets/media',
-        resources: ['assets'],
-    },
-    {
-        key: 'admin-sounds',
-        label: 'Sounds',
-        labelKey: 'settings.navigation.sounds',
-        description: 'Reusable music, ambience, voices and sound effects.',
-        descriptionKey: 'settings.navigation.sounds.description',
-        icon: Music,
-        href: '/settings/assets/sounds',
-        resources: ['sounds'],
-    },
-    {
-        key: 'admin-journal',
-        label: 'Journal',
-        labelKey: 'settings.navigation.journal',
-        description:
-            'Learner reflection pages and optional expert feedback consent.',
-        descriptionKey: 'settings.navigation.journal.description',
+            'Journal settings, reflection support and future competence views.',
+        descriptionKey: 'settings.navigation.learning_support.description',
         icon: NotebookPen,
         href: '/settings/journal',
         resources: ['journals'],
+        children: [
+            {
+                label: 'Journal',
+                labelKey: 'settings.navigation.journal',
+                href: '/settings/journal',
+                resources: ['journals'],
+            },
+        ],
     },
     {
-        key: 'admin-languages',
-        label: 'Languages',
-        labelKey: 'settings.navigation.languages',
-        description: 'Import and maintain platform and activity translations.',
-        descriptionKey: 'settings.navigation.languages.description',
-        icon: Languages,
-        href: '/settings/languages',
-        resources: ['languages'],
-    },
-    {
-        key: 'admin-ai',
-        label: 'AI support',
-        labelKey: 'settings.navigation.ai',
+        key: 'admin-ai-integrations',
+        label: 'AI & Integrations',
+        labelKey: 'settings.navigation.ai_integrations',
         description:
-            'Provider credentials, agent templates and guarded usage limits.',
-        descriptionKey: 'settings.navigation.ai.description',
+            'Provider credentials, agent templates, instruction sets and future integrations.',
+        descriptionKey: 'settings.navigation.ai_integrations.description',
         icon: Bot,
         href: '/settings/ai',
         resources: ['ai'],
+        children: [
+            {
+                label: 'AI support',
+                labelKey: 'settings.navigation.ai',
+                href: '/settings/ai',
+                resources: ['ai'],
+            },
+        ],
     },
 ] satisfies SettingsListItem[];
 
@@ -536,44 +574,78 @@ function SettingsList({
                             const description = item.descriptionKey
                                 ? t(item.descriptionKey, item.description)
                                 : item.description;
+                            const visibleChildren = (
+                                item.children ?? []
+                            ).filter((child) =>
+                                canSeeSettingsLink(
+                                    child,
+                                    accessCapabilities,
+                                ),
+                            );
 
                             return (
-                                <button
-                                    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10"
+                                <div
+                                    className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:bg-slate-100 md:grid-cols-[minmax(0,1fr)_max-content] md:items-center dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10"
                                     key={item.key}
-                                    onClick={() => {
-                                        if (item.href) {
-                                            router.visit(item.href);
-
-                                            return;
-                                        }
-
-                                        onSelect(
-                                            (item.panel ??
-                                                item.key) as SettingsPanelKey,
-                                        );
-                                    }}
-                                    type="button"
                                 >
-                                    <span
-                                        className="flex size-9 shrink-0 items-center justify-center rounded-md"
-                                        style={{
-                                            backgroundColor:
-                                                'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
-                                            color: 'var(--settings-accent)',
+                                    <button
+                                        className="flex min-w-0 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                                        onClick={() => {
+                                            if (item.href) {
+                                                router.visit(item.href);
+
+                                                return;
+                                            }
+
+                                            onSelect(
+                                                (item.panel ??
+                                                    item.key) as SettingsPanelKey,
+                                            );
                                         }}
+                                        type="button"
                                     >
-                                        <Icon className="size-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block text-sm font-medium text-slate-950 dark:text-white">
-                                            {label}
+                                        <span
+                                            className="flex size-9 shrink-0 items-center justify-center rounded-md"
+                                            style={{
+                                                backgroundColor:
+                                                    'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
+                                                color: 'var(--settings-accent)',
+                                            }}
+                                        >
+                                            <Icon className="size-4" />
                                         </span>
-                                        <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                            {description}
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-medium text-slate-950 dark:text-white">
+                                                {label}
+                                            </span>
+                                            <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                {description}
+                                            </span>
                                         </span>
-                                    </span>
-                                </button>
+                                    </button>
+
+                                    {visibleChildren.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2 md:flex-nowrap md:justify-end">
+                                            {visibleChildren.map((child) => (
+                                                <button
+                                                    className="inline-flex h-7 items-center rounded-md border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] px-2 text-xs font-medium whitespace-nowrap text-[var(--settings-accent)] transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                                                    key={child.href}
+                                                    onClick={() =>
+                                                        router.visit(child.href)
+                                                    }
+                                                    type="button"
+                                                >
+                                                    {child.labelKey
+                                                        ? t(
+                                                              child.labelKey,
+                                                              child.label,
+                                                          )
+                                                        : child.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
                             );
                         })}
                     </div>
@@ -587,11 +659,30 @@ function canSeeAdminItem(
     item: SettingsListItem,
     accessCapabilities: Record<string, AccessCapability>,
 ): boolean {
-    if (!item.resources) {
+    const itemIsVisible =
+        !item.resources ||
+        item.resources.some(
+            (resource) => accessCapabilities[resource]?.read,
+        );
+
+    if (itemIsVisible) {
         return true;
     }
 
-    return item.resources.some(
+    return (item.children ?? []).some((child) =>
+        canSeeSettingsLink(child, accessCapabilities),
+    );
+}
+
+function canSeeSettingsLink(
+    link: SettingsListLink,
+    accessCapabilities: Record<string, AccessCapability>,
+): boolean {
+    if (!link.resources) {
+        return true;
+    }
+
+    return link.resources.some(
         (resource) => accessCapabilities[resource]?.read,
     );
 }
@@ -1433,6 +1524,8 @@ function LoginToggle({
     isDisabled: boolean;
     onChange: (isDisabled: boolean) => void;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="inline-grid grid-cols-2 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium dark:border-white/10 dark:bg-slate-950/70">
             <button

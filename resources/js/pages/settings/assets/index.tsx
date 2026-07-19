@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import { Coins, Hammer, Package } from 'lucide-react';
+import { Coins, Hammer, Image, Music, Package } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import {
     SettingsConfigurationShell,
@@ -14,13 +15,31 @@ type AssetSection = {
     descriptionKey: string;
     descriptionFallback: string;
     href: string | null;
-    icon: typeof Hammer;
+    icon: LucideIcon;
     labelFallback: string;
     labelKey: string;
     openLabelKey?: string;
 };
 
 const sections: AssetSection[] = [
+    {
+        labelKey: 'settings.assets.sections.media',
+        labelFallback: 'Visuals',
+        descriptionKey: 'settings.assets.sections.media.description',
+        descriptionFallback: 'Manage reusable images, backgrounds and animations.',
+        href: '/settings/assets/media',
+        icon: Image,
+        openLabelKey: 'settings.assets.sections.media.open',
+    },
+    {
+        labelKey: 'settings.assets.sections.sounds',
+        labelFallback: 'Sounds',
+        descriptionKey: 'settings.assets.sections.sounds.description',
+        descriptionFallback: 'Manage reusable music, ambience, voices and sound effects.',
+        href: '/settings/assets/sounds',
+        icon: Music,
+        openLabelKey: 'settings.assets.sections.sounds.open',
+    },
     {
         labelKey: 'settings.assets.sections.tools',
         labelFallback: 'Tools',
@@ -66,7 +85,7 @@ export default function AdminAssetsIndex() {
             <Head
                 title={t(
                     'settings.assets.title',
-                    'Tools, items and currencies',
+                    'Assets & World Objects',
                 )}
             />
             <SettingsConfigurationShell
@@ -99,7 +118,7 @@ export default function AdminAssetsIndex() {
                 }
                 title={t(
                     'settings.assets.title',
-                    'Tools, items and currencies',
+                    'Assets & World Objects',
                 )}
             >
                 <SettingsContentPane>
