@@ -91,6 +91,29 @@ test('an activity translation cannot be read outside the current activity run', 
         ->assertNotFound();
 });
 
+test('the default locale returns no alternate translation for the current activity run', function () {
+    $user = User::factory()->create();
+    $activity = translatedLearningActivity();
+    $runId = (string) Str::uuid();
+
+    LearnerRouteProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('learning.activities.translation.show', [
+            'activity' => $activity,
+            'play_run_id' => $runId,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('translation', null);
+});
+
 test('activity translation imports keep only learner-facing configuration copy', function () {
     $user = User::factory()->create();
     $activity = translatedLearningActivity();

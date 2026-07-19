@@ -13,13 +13,15 @@ class LearningActivityTranslationController extends Controller
 
     public function show(ShowActiveActivityTranslationRequest $request, LearningActivity $activity): JsonResponse
     {
+        $playRunId = $request->string('play_run_id')->toString();
+
+        abort_unless($this->translations->isActive($request->user(), $activity, $playRunId), 404);
+
         $translation = $this->translations->handle(
             $request->user(),
             $activity,
-            $request->string('play_run_id')->toString(),
+            $playRunId,
         );
-
-        abort_if($translation === null, 404);
 
         return response()->json(['translation' => $translation]);
     }

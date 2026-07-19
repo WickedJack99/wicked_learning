@@ -36,7 +36,7 @@ class LoadActiveActivityTranslation
         return is_array($content) ? $content : null;
     }
 
-    private function isActive(User $user, LearningActivity $activity, string $playRunId): bool
+    public function isActive(User $user, LearningActivity $activity, string $playRunId): bool
     {
         return LearnerRouteProgress::query()
             ->where('user_id', $user->id)
