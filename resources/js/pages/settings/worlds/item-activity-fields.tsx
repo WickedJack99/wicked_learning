@@ -654,7 +654,7 @@ function ItemSelect({
     value: string;
 }) {
     return (
-        <Select onValueChange={onChange} value={value || undefined}>
+        <Select onValueChange={onChange} value={value ?? ''}>
             <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select item" />
             </SelectTrigger>
@@ -699,7 +699,7 @@ function SoundRow({
             <Select
                 disabled={!enabled}
                 onValueChange={onSoundChange}
-                value={selectedSoundId || undefined}
+                value={selectedSoundId ?? ''}
             >
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select sound" />

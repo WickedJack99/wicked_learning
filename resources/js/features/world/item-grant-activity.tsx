@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { setLearningItems } from '@/features/items/item-inventory';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
 import type {
@@ -40,16 +41,22 @@ export function ItemGrantActivity({
 }) {
     const [result, setResult] = useState<ItemGrantResult | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-    const rolledActivityId = useRef<number | null>(null);
+    const [errorKey, setErrorKey] = useState('');
+    const rolledGrantKey = useRef<string | null>(null);
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
 
     useEffect(() => {
-        if (rolledActivityId.current === activity.id) {
+        const grantKey = `${activity.id}:${playRunId ?? 'local'}`;
+
+        if (rolledGrantKey.current === grantKey) {
             return;
         }
 
-        rolledActivityId.current = activity.id;
+        rolledGrantKey.current = grantKey;
+        setIsLoading(true);
+        setResult(null);
+        setErrorKey('');
 
         postJson<{ inventory: LearningItem[]; result: ItemGrantResult }>(
             `/learning/activities/${activity.id}/grant-items`,
@@ -67,8 +74,8 @@ export function ItemGrantActivity({
                 }
             })
             .catch(() => {
-                rolledActivityId.current = null;
-                setError('The item grant could not be resolved right now.');
+                rolledGrantKey.current = null;
+                setErrorKey('activities.item_grant.error');
             })
             .finally(() => setIsLoading(false));
     }, [activity, onComplete, onMoveToActivity, playRunId, transition]);
@@ -76,15 +83,15 @@ export function ItemGrantActivity({
     if (isLoading) {
         return (
             <div className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                Rolling for items...
+                {t('activities.item_grant.loading')}
             </div>
         );
     }
 
-    if (error) {
+    if (errorKey) {
         return (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">
-                {error}
+                {t(errorKey)}
             </p>
         );
     }
@@ -124,7 +131,9 @@ export function ItemGrantActivity({
             ) : null}
 
             <div className="relative z-10 grid max-w-xl place-items-center gap-5">
-                <h4 className="text-lg font-semibold">Item received:</h4>
+                <h4 className="text-lg font-semibold">
+                    {t('activities.item_grant.received')}
+                </h4>
                 {grantedItems.length > 0 ? (
                     <div
                         className="mx-auto inline-grid justify-center gap-3"
@@ -147,7 +156,7 @@ export function ItemGrantActivity({
                     }}
                     type="button"
                 >
-                    Continue
+                    {t('common.continue')}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             </div>

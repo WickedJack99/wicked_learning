@@ -171,6 +171,7 @@ class LearningWorldController extends Controller
     public function markActivity(Request $request, LearningActivity $activity): JsonResponse
     {
         $data = $request->validate([
+            'ends_route' => ['sometimes', 'boolean'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
             'status' => ['required', 'string', 'in:reached,completed'],
         ]);
@@ -180,6 +181,7 @@ class LearningWorldController extends Controller
             $activity,
             (string) $data['status'],
             is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
+            array_key_exists('ends_route', $data) ? (bool) $data['ends_route'] : null,
         );
 
         return response()->json([

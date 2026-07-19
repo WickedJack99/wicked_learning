@@ -7,7 +7,7 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { useCallback, type CSSProperties } from 'react';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -353,7 +353,10 @@ export function ActivityPlayer({
     answerProgress: LearningProgress['answers'];
     node: LearningNode;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
-    onComplete: (activity: LearningActivity) => Promise<void>;
+    onComplete: (
+        activity: LearningActivity,
+        options?: { endsRoute?: boolean },
+    ) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
     playState: Record<string, unknown>;
     playRunId: string | null;
@@ -364,13 +367,22 @@ export function ActivityPlayer({
     }
 
     const completedTransition = completionTransitionFor(activity);
+    const completesRoute =
+        !completedTransition || completedTransition.toActivityId === null;
+    const completeActivity = useCallback(
+        (completedActivity: LearningActivity) =>
+            onComplete(completedActivity, {
+                endsRoute: completesRoute,
+            }),
+        [completesRoute, onComplete],
+    );
 
     return (
         <ActivityFrame activity={activity}>
             {activity.type === 'dialogue' ? (
                 <DialogueActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
@@ -390,7 +402,7 @@ export function ActivityPlayer({
                     activity={activity}
                     initialState={playState[activity.id]}
                     key={`${activity.id}:${playRunId ?? 'local'}`}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
                 />
@@ -400,7 +412,7 @@ export function ActivityPlayer({
                 <MarkdownActivity
                     activity={activity}
                     key={activity.id}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
@@ -409,7 +421,7 @@ export function ActivityPlayer({
             {activity.type === 'reflection' ? (
                 <ReflectionActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
                     transition={completedTransition}
@@ -420,7 +432,7 @@ export function ActivityPlayer({
                 <ObstacleActivity
                     activity={activity}
                     progress={activityProgress[activity.id]}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
@@ -429,7 +441,7 @@ export function ActivityPlayer({
             {activity.type === 'item_grant' ? (
                 <ItemGrantActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
                     transition={completedTransition}
@@ -439,7 +451,7 @@ export function ActivityPlayer({
             {activity.type === 'item_obstacle' ? (
                 <ItemObstacleActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     progress={activityProgress[activity.id]}
                     transition={completedTransition}
@@ -449,7 +461,7 @@ export function ActivityPlayer({
             {activity.type === 'tool_grant' ? (
                 <ToolGrantActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
@@ -458,7 +470,7 @@ export function ActivityPlayer({
             {activity.type === 'placeholder' ? (
                 <PlaceholderActivity
                     activity={activity}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
@@ -468,7 +480,7 @@ export function ActivityPlayer({
                 <PortalActivity
                     activity={activity}
                     node={node}
-                    onComplete={onComplete}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     onTravel={onTravel}
                     transition={completedTransition}

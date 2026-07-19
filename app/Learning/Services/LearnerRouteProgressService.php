@@ -22,31 +22,15 @@ class LearnerRouteProgressService
 
     public function startOrResume(User $user, LearningActivityStart $start): LearnerRouteProgress
     {
-        $progress = $this->firstOrNew($user, $start);
-        $now = Carbon::now();
-
-        if (! $progress->exists || ! $progress->current_play_run_id) {
-            $progress->current_play_run_id = (string) Str::uuid();
-            $progress->started_at = $now;
-        }
-
-        if (! $progress->current_learning_activity_id || $progress->status === 'completed') {
-            $progress->current_learning_activity_id = $start->learning_activity_id;
-        }
-
-        $progress->learning_activity_start_id = $start->id;
-        $progress->status = $progress->status === 'completed' ? 'completed' : 'in_progress';
-        $progress->last_entered_at = $now;
-        $progress->save();
-
-        return $progress;
+        return $this->startOrResumeRun($user, $start, true);
     }
 
     public function restartSameRun(User $user, LearningActivityStart $start): LearnerRouteProgress
     {
-        $progress = $this->startOrResume($user, $start);
+        $progress = $this->startOrResumeRun($user, $start, false);
         $progress->current_learning_activity_id = $start->learning_activity_id;
         $progress->last_entered_at = Carbon::now();
+        $progress->last_exited_at = null;
         $metadata = is_array($progress->metadata) ? $progress->metadata : [];
         unset($metadata['activityStates']);
         $progress->metadata = $metadata;
@@ -111,9 +95,17 @@ class LearnerRouteProgressService
         $progress->save();
     }
 
-    public function completeRouteIfTerminal(User $user, LearningActivity $activity, ?string $playRunId): void
-    {
-        if (! $playRunId || $activity->transitions()->whereNotNull('to_activity_id')->exists()) {
+    public function completeRouteIfTerminal(
+        User $user,
+        LearningActivity $activity,
+        ?string $playRunId,
+        ?bool $endsRoute = null,
+    ): void {
+        if (! $playRunId || $endsRoute === false) {
+            return;
+        }
+
+        if ($endsRoute !== true && $activity->transitions()->whereNotNull('to_activity_id')->exists()) {
             return;
         }
 
@@ -182,6 +174,41 @@ class LearnerRouteProgressService
             'learning_node_id' => $start->learning_node_id,
             'start_learning_activity_id' => $start->learning_activity_id,
         ]);
+    }
+
+    private function startOrResumeRun(
+        User $user,
+        LearningActivityStart $start,
+        bool $startNewWhenCompleted,
+    ): LearnerRouteProgress {
+        $progress = $this->firstOrNew($user, $start);
+        $now = Carbon::now();
+        $wasCompleted = $progress->status === 'completed';
+
+        $shouldStartNewRun = ! $progress->exists
+            || ! $progress->current_play_run_id
+            || ($startNewWhenCompleted && $wasCompleted);
+
+        $progress->learning_activity_start_id = $start->id;
+        $progress->status = 'in_progress';
+        $progress->last_entered_at = $now;
+        $progress->last_exited_at = null;
+
+        if ($shouldStartNewRun) {
+            $progress->current_learning_activity_id = $start->learning_activity_id;
+            $progress->current_play_run_id = (string) Str::uuid();
+            $progress->started_at = $now;
+            $progress->completed_at = null;
+            $progress->metadata = $this->withoutCurrentRunState($progress);
+        } else {
+            if (! $progress->current_learning_activity_id || $wasCompleted) {
+                $progress->current_learning_activity_id = $start->learning_activity_id;
+            }
+        }
+
+        $progress->save();
+
+        return $progress;
     }
 
     /**

@@ -20,24 +20,7 @@ class LearningItemGrantService
         abort_unless($activity->type === 'item_grant', 404);
 
         return DB::transaction(function () use ($user, $activity, $playRunId): array {
-            $progress = LearnerActivityProgress::query()
-                ->where('user_id', $user->id)
-                ->where('learning_activity_id', $activity->id)
-                ->lockForUpdate()
-                ->first();
-
-            if (! $progress) {
-                $progress = new LearnerActivityProgress([
-                    'user_id' => $user->id,
-                    'learning_node_id' => $activity->learning_node_id,
-                    'learning_activity_id' => $activity->id,
-                    'status' => 'completed',
-                    'attempt_count' => 1,
-                    'reached_at' => now(),
-                    'completed_at' => now(),
-                    'metadata' => [],
-                ]);
-            }
+            $progress = $this->progressFor($user, $activity);
 
             $metadata = is_array($progress->metadata) ? $progress->metadata : [];
             $storedRoll = $this->storedRoll($metadata, $playRunId);
@@ -88,6 +71,30 @@ class LearningItemGrantService
 
             return $result;
         });
+    }
+
+    private function progressFor(User $user, LearningActivity $activity): LearnerActivityProgress
+    {
+        $now = now();
+
+        LearnerActivityProgress::query()->insertOrIgnore([
+            'user_id' => $user->id,
+            'learning_node_id' => $activity->learning_node_id,
+            'learning_activity_id' => $activity->id,
+            'status' => 'completed',
+            'attempt_count' => 1,
+            'reached_at' => $now,
+            'completed_at' => $now,
+            'metadata' => '[]',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return LearnerActivityProgress::query()
+            ->where('user_id', $user->id)
+            ->where('learning_activity_id', $activity->id)
+            ->lockForUpdate()
+            ->firstOrFail();
     }
 
     /**

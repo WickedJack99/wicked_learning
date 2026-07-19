@@ -27,6 +27,10 @@ type NodePlayProps = {
     progress: LearningProgress;
 };
 
+type CompletionOptions = {
+    endsRoute?: boolean;
+};
+
 export default function NodePlay({
     node,
     playActivityId,
@@ -90,7 +94,7 @@ export default function NodePlay({
                     }
 
                     const response = await getJson<{
-                        translation: LearningActivityTranslation;
+                        translation: LearningActivityTranslation | null;
                     }>(
                         `/learning/activities/${activeActivity.id}/translation?play_run_id=${encodeURIComponent(playRunId)}`,
                     );
@@ -110,7 +114,10 @@ export default function NodePlay({
     }, [node.mapSlug, node.slug]);
 
     const markCompleted = useCallback(
-        async (activity: LearningActivity) => {
+        async (
+            activity: LearningActivity,
+            options: CompletionOptions = {},
+        ) => {
             if (!isAuthenticated) {
                 setActivityProgress((current) => ({
                     ...current,
@@ -126,14 +133,24 @@ export default function NodePlay({
                 return;
             }
 
+            const payload: {
+                ends_route?: boolean;
+                play_run_id: string | null;
+                status: 'completed';
+            } = {
+                play_run_id: playRunId,
+                status: 'completed',
+            };
+
+            if (typeof options.endsRoute === 'boolean') {
+                payload.ends_route = options.endsRoute;
+            }
+
             const response = await postJson<{
                 progress: LearningProgress['activities'][number] & {
                     activityId: number;
                 };
-            }>(`/learning/activities/${activity.id}/progress`, {
-                play_run_id: playRunId,
-                status: 'completed',
-            });
+            }>(`/learning/activities/${activity.id}/progress`, payload);
 
             setActivityProgress((current) => ({
                 ...current,
@@ -172,7 +189,13 @@ export default function NodePlay({
             setTravelBlockedMessage('');
 
             if (!activityId) {
-                returnToMap();
+                if (activeActivity) {
+                    void markCompleted(activeActivity, {
+                        endsRoute: true,
+                    }).finally(returnToMap);
+                } else {
+                    returnToMap();
+                }
 
                 return;
             }
@@ -185,7 +208,7 @@ export default function NodePlay({
 
             setActiveActivityId(activityId);
         },
-        [markReached, node, returnToMap],
+        [activeActivity, markCompleted, markReached, node, returnToMap],
     );
 
     const restartFromBeginning = useCallback(async () => {

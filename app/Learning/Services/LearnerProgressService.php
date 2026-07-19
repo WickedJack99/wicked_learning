@@ -14,8 +14,13 @@ class LearnerProgressService
         private readonly LearnerActivityPlayStateService $activityPlayState,
     ) {}
 
-    public function mark(int $userId, LearningActivity $activity, string $status, ?string $playRunId = null): LearnerActivityProgress
-    {
+    public function mark(
+        int $userId,
+        LearningActivity $activity,
+        string $status,
+        ?string $playRunId = null,
+        ?bool $endsRoute = null,
+    ): LearnerActivityProgress {
         $progress = LearnerActivityProgress::query()->firstOrNew([
             'user_id' => $userId,
             'learning_activity_id' => $activity->id,
@@ -47,7 +52,7 @@ class LearnerProgressService
                 if ($status === 'completed') {
                     $this->routeProgress->exitActivity($routeUser, $activity, $playRunId);
                     $this->activityPlayState->clearActivityState($routeUser, $activity, $playRunId);
-                    $this->routeProgress->completeRouteIfTerminal($routeUser, $activity, $playRunId);
+                    $this->routeProgress->completeRouteIfTerminal($routeUser, $activity, $playRunId, $endsRoute);
                 }
             }
         }

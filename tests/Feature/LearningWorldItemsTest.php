@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\Services\ItemGrantActivityConfiguration;
+use App\Models\ActivityTransition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
@@ -75,6 +76,62 @@ test('item grant activities persist the roll and do not grant repeatedly', funct
 
     expect($progress->metadata['itemGrant']['rolledAt'] ?? null)->toBeString()
         ->and($learner->learningItems()->whereKey($item->id)->first()?->pivot->quantity)->toBe(2);
+});
+
+test('item grant activities reuse existing progress rows', function () {
+    $learner = User::factory()->create([
+        'email' => 'reached-items@example.com',
+    ]);
+
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $item = LearningItem::query()->create([
+        'slug' => 'reached-portal-key',
+        'title' => 'Reached portal key',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'reached-receive-portal-key',
+        'type' => 'item_grant',
+        'title' => 'Reached receive portal key',
+        'config' => [
+            'items' => [
+                ['itemId' => $item->id, 'quantity' => 3],
+            ],
+            'probabilityPercent' => 100,
+        ],
+        'sort_order' => 112,
+    ]);
+
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'reached',
+        'attempt_count' => 1,
+        'reached_at' => now(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.grant-items', $activity))
+        ->assertOk()
+        ->assertJsonPath('result.success', true)
+        ->assertJsonPath('inventory.0.quantity', 3);
+
+    expect(LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->count())->toBe(1);
+
+    $progress = LearnerActivityProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    expect($progress->status)->toBe('completed')
+        ->and($progress->metadata['itemGrant']['inventoryAppliedAt'] ?? null)->toBeString();
 });
 
 test('stored successful item grants reconcile missing inventory once', function () {
@@ -232,6 +289,129 @@ test('item grant activities can grant again on a new play run', function () {
 
     expect($firstRunId)->not->toBe($secondRunId)
         ->and($learner->learningItems()->whereKey($item->id)->first()?->pivot->quantity)->toBe(2);
+});
+
+test('item grant activities can grant again after a selected terminal transition completes the route', function () {
+    $learner = User::factory()->create([
+        'email' => 'terminal-replay-items@example.com',
+    ]);
+
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $item = LearningItem::query()->create([
+        'slug' => 'terminal-portal-key',
+        'title' => 'Terminal portal key',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'terminal-replay-grant',
+        'type' => 'item_grant',
+        'title' => 'Terminal replay grant',
+        'config' => [
+            'items' => [
+                ['itemId' => $item->id, 'quantity' => 1],
+            ],
+            'probabilityPercent' => 100,
+        ],
+        'sort_order' => 117,
+    ]);
+    $alternate = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'terminal-replay-alternate',
+        'type' => 'markdown',
+        'title' => 'Alternate branch',
+        'config' => [],
+        'sort_order' => 118,
+    ]);
+    $start = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'label' => 'Terminal replay route',
+        'sort_order' => 201,
+    ]);
+
+    ActivityTransition::query()->create([
+        'from_activity_id' => $activity->id,
+        'to_activity_id' => null,
+        'from_connector' => 'completed',
+        'label' => 'Finish route',
+        'trigger' => 'completed',
+    ]);
+    ActivityTransition::query()->create([
+        'from_activity_id' => $activity->id,
+        'to_activity_id' => $alternate->id,
+        'from_connector' => 'alternate',
+        'to_connector' => 'input',
+        'label' => 'Continue elsewhere',
+        'trigger' => 'completed',
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'activity' => $activity->id,
+            'node' => $node,
+            'route' => $start->id,
+        ]))
+        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+
+    $firstRunId = currentPlayRunId($learner, $node, $start);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.grant-items', $activity), [
+            'play_run_id' => $firstRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('inventory.0.quantity', 1);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'play_run_id' => $firstRunId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    $routeProgress = LearnerRouteProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_node_id', $node->id)
+        ->where('learning_activity_start_id', $start->id)
+        ->firstOrFail();
+
+    expect($routeProgress->status)->toBe('in_progress');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'ends_route' => true,
+            'play_run_id' => $firstRunId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    $routeProgress->refresh();
+
+    expect($routeProgress->status)->toBe('completed')
+        ->and($routeProgress->completion_count)->toBe(1);
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'activity' => $activity->id,
+            'node' => $node,
+            'route' => $start->id,
+        ]))
+        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+
+    $secondRunId = currentPlayRunId($learner, $node, $start);
+
+    expect($secondRunId)->not->toBe($firstRunId);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.grant-items', $activity), [
+            'play_run_id' => $secondRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('inventory.0.quantity', 2);
+
+    expect($learner->learningItems()->whereKey($item->id)->first()?->pivot->quantity)->toBe(2);
 });
 
 test('play route refresh redirects stale activity query to saved current activity', function () {
