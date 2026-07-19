@@ -10,6 +10,7 @@ use App\Localization\Services\UserLocaleResolver;
 use App\Models\LearningItem;
 use App\Models\LearningTool;
 use App\Models\PlatformPresentationSetting;
+use App\Settings\Serializers\SoundPreferenceSerializer;
 use App\Support\Appearance;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -22,6 +23,7 @@ class HandleInertiaRequests extends Middleware
         private readonly LoadCurrentMenuMapTheme $loadCurrentMenuMapTheme,
         private readonly PlatformLocaleCatalog $localeCatalog,
         private readonly UserLocaleResolver $localeResolver,
+        private readonly SoundPreferenceSerializer $soundPreferences,
     ) {}
 
     /**
@@ -83,6 +85,7 @@ class HandleInertiaRequests extends Middleware
                     $browserAppearance,
                 )
                 : Appearance::forGuest(),
+            'soundPreferences' => $this->soundPreferences->serialize($request->user()?->preference),
             'publicPresentation' => PlatformPresentationSetting::current(),
             'menuTheme' => $this->loadCurrentMenuMapTheme->handle($request->user()),
             'localization' => [

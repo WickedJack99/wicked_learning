@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type PlayableSound = {
@@ -8,12 +9,25 @@ export type PlayableSound = {
     volume?: number | null;
 };
 
+export type SoundPreferences = {
+    ambienceVolume: number;
+    effectsVolume: number;
+    muted: boolean;
+};
+
 type SoundLayer = {
     audio: HTMLAudioElement;
     timeoutId: number | null;
 };
 
+const DEFAULT_SOUND_PREFERENCES: SoundPreferences = {
+    ambienceVolume: 100,
+    effectsVolume: 100,
+    muted: false,
+};
+
 export function useLayeredSoundPlayer() {
+    const { soundPreferences = DEFAULT_SOUND_PREFERENCES } = usePage().props;
     const layers = useRef<Map<string, SoundLayer>>(new Map());
     const [playingLayers, setPlayingLayers] = useState<string[]>([]);
 
@@ -63,9 +77,18 @@ export function useLayeredSoundPlayer() {
 
             stop(layerKey);
 
+            const categoryVolume = sound.loop
+                ? soundPreferences.ambienceVolume
+                : soundPreferences.effectsVolume;
+
+            if (soundPreferences.muted || categoryVolume <= 0) {
+                return layerKey;
+            }
+
             const audio = new Audio(sound.url);
             audio.loop = Boolean(sound.loop);
-            audio.volume = normalizedVolume(sound.volume);
+            audio.volume =
+                normalizedVolume(sound.volume) * normalizedVolume(categoryVolume);
 
             const layer: SoundLayer = {
                 audio,
@@ -101,7 +124,7 @@ export function useLayeredSoundPlayer() {
 
             return layerKey;
         },
-        [refreshPlayingLayers, stop],
+        [refreshPlayingLayers, soundPreferences, stop],
     );
 
     const stopAll = useCallback(() => {

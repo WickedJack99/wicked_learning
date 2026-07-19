@@ -10,7 +10,7 @@ use Inertia\Response;
 
 class PersonalSettingsController extends Controller
 {
-    private const SECTIONS = ['profile', 'appearance', 'language', 'notifications', 'security', 'delete-account'];
+    private const SECTIONS = ['profile', 'appearance', 'language', 'notifications', 'sound', 'security', 'delete-account'];
 
     public function __construct(private readonly LoadPersonalSettings $personalSettings) {}
 

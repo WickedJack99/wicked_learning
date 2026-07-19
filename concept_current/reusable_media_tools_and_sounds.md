@@ -67,16 +67,18 @@ Current behavior:
 - Sounds can loop for ambience or background music.
 - Sounds can optionally play only the first configured number of seconds.
 - The frontend sound player supports layered playback, so ambience and effects can play together.
+- Learners can mute optional sound globally for their own account.
+- Learners can tune ambience and effects volume separately without changing the configured world for anyone else.
 
 Design notes:
 
 - Sounds should support atmosphere, feedback and orientation without becoming reward jingles.
 - Volume defaults should be conservative.
-- Future playback should respect user comfort settings such as mute, reduced motion-like audio comfort, or separate ambience/effects sliders.
+- Sound comfort is a learner preference. Admin-authored sounds should remain optional layers that can be reduced or muted by the learner.
 
 Future direction:
 
 - Add sound picker fields to activity editors.
 - Add map ambience and activity ambience.
 - Add interaction sound effects for portals, tool use, dialogue typing and obstacle clearing.
-- Add accessible controls for muting or reducing sound intensity.
+- Add richer accessible controls if learners need more than the current mute and category-volume settings.

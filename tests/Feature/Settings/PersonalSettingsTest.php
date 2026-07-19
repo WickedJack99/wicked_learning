@@ -23,5 +23,26 @@ test('personal settings compose profile, language and security data', function (
             ->has('availableLanguages', 2)
             ->has('passwordRules')
             ->has('passkeys')
+            ->where('soundPreferences.muted', false)
+            ->where('soundPreferences.effectsVolume', 100)
+            ->where('soundPreferences.ambienceVolume', 100)
         );
+});
+
+test('users can update sound preferences', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->patch(route('settings.sound-preferences.update'), [
+            'muted' => true,
+            'effectsVolume' => 35,
+            'ambienceVolume' => 60,
+        ])
+        ->assertRedirect();
+
+    expect($user->fresh()->preference->settings['sound'])->toMatchArray([
+        'muted' => true,
+        'effectsVolume' => 35,
+        'ambienceVolume' => 60,
+    ]);
 });

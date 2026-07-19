@@ -19,6 +19,7 @@ use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use App\Http\Controllers\Settings\SettingsController;
+use App\Http\Controllers\Settings\SoundPreferenceController;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('settings.language.update');
     Route::get('settings/personal', [PersonalSettingsController::class, 'edit'])
         ->name('settings.personal.edit');
+    Route::patch('settings/sound-preferences', [SoundPreferenceController::class, 'update'])
+        ->name('settings.sound-preferences.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

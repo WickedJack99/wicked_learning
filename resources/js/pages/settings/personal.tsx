@@ -6,6 +6,7 @@ import {
     Languages,
     Trash2,
     UserRound,
+    Volume2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DeleteUser from '@/components/delete-user';
@@ -23,6 +24,8 @@ import {
     SecuritySettingsPanel,
     type SecuritySettingsProps,
 } from '@/features/settings/security-settings-panel';
+import { SoundSettingsPanel } from '@/features/settings/sound-settings-panel';
+import { type SoundPreferences } from '@/features/sounds/sound-player';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type PersonalSection =
@@ -31,7 +34,8 @@ type PersonalSection =
     | 'language'
     | 'notifications'
     | 'profile'
-    | 'security';
+    | 'security'
+    | 'sound';
 
 type AvailableLanguage = {
     code: string;
@@ -84,6 +88,15 @@ function buildPersonalSections(
         },
         {
             description: t(
+                'settings.personal.sections.sound.description',
+                'Sound effects and ambient audio.',
+            ),
+            icon: Volume2,
+            key: 'sound',
+            label: t('settings.personal.sections.sound', 'Sound'),
+        },
+        {
+            description: t(
                 'settings.personal.sections.security.description',
                 'Password, two-factor and passkeys.',
             ),
@@ -112,6 +125,7 @@ type PersonalSettingsProps = {
     initialSection: PersonalSection;
     locale: string;
     mustVerifyEmail: boolean;
+    soundPreferences: SoundPreferences;
     status?: string;
 } & SecuritySettingsProps;
 
@@ -120,6 +134,7 @@ export default function PersonalSettings({
     initialSection,
     locale,
     mustVerifyEmail,
+    soundPreferences,
     status,
     ...security
 }: PersonalSettingsProps) {
@@ -167,6 +182,9 @@ export default function PersonalSettings({
                     ) : null}
                     {section === 'notifications' ? (
                         <NotificationsPanel />
+                    ) : null}
+                    {section === 'sound' ? (
+                        <SoundSettingsPanel preferences={soundPreferences} />
                     ) : null}
                     {section === 'security' ? (
                         <SecuritySettingsPanel {...security} />
