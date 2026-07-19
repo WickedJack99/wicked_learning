@@ -84,6 +84,14 @@ Keep user-authored content, deployment-configured content and protected activity
 
 When the catalog or localization behavior changes, add or update targeted tests.
 
+## Delivery Pace
+
+Default to a focused, momentum-preserving workflow. For an ordinary feature or fix, inspect the directly related code plus one close existing implementation, then implement and run proportionate verification.
+
+Do not turn focused work into a repository-wide audit, repeated exploration loop or speculative refactor. Broaden discovery only when the request, an encountered architectural risk, or a clear cross-cutting dependency requires it. Reserve comprehensive audits and iterative refactors for explicit user requests.
+
+Aim to finish each task with the smallest useful investigation, a complete implementation, targeted checks, and a concise report. Avoid repeated scans that consume context without changing the implementation plan.
+
 ## Before Larger Changes
 
 Briefly identify where the logic belongs:
@@ -98,6 +106,7 @@ Inspect surrounding implementations before editing. Reuse shared abstractions wh
 ## Working Safely
 
 - Check `git status --short` before edits.
+- Treat an explicit user request as authorization to run the commands needed to complete it. Do not ask for a separate confirmation before Git staging, commits, pushes, tests, builds, migrations, or other command-backed work unless the user explicitly asks for a review or a plan without changes.
 - Preserve user changes. Never reset or revert unrelated work unless explicitly requested.
 - Keep commits focused by responsibility.
 - Do not copy secrets, tokens, local paths, private chat logs or credentials into docs or code.
