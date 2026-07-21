@@ -58,7 +58,7 @@ export default function PasskeyVerify({
                 )}
             </div>
 
-            <p className="my-6 text-center text-xs uppercase text-muted-foreground">
+            <p className="my-6 text-center text-xs text-muted-foreground uppercase">
                 {separator ?? 'Or continue with email'}
             </p>
         </>

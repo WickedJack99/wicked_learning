@@ -78,9 +78,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const selected = useMemo(
         () =>
             selectedId
-                ? draftsById[selectedId] ??
+                ? (draftsById[selectedId] ??
                   payload?.pages.find((page) => page.id === selectedId) ??
-                  null
+                  null)
                 : null,
         [draftsById, payload?.pages, selectedId],
     );
@@ -106,7 +106,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                 setDraftsById((current) =>
                     mergeServerPagesIntoDrafts(current, next.pages),
                 );
-                setSelectedId((current) => current ?? next.pages[0]?.id ?? null);
+                setSelectedId(
+                    (current) => current ?? next.pages[0]?.id ?? null,
+                );
             })
             .catch(() => undefined);
 
@@ -131,9 +133,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         const page = await createJournalPage();
 
         setPayload((current) =>
-            current
-                ? { ...current, pages: [page, ...current.pages] }
-                : current,
+            current ? { ...current, pages: [page, ...current.pages] } : current,
         );
         setDraftsById((current) => ({
             ...current,
@@ -156,9 +156,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                     ? {
                           ...current,
                           pages: current.pages.map((candidate) =>
-                              candidate.id === page.id
-                                  ? page
-                                  : candidate,
+                              candidate.id === page.id ? page : candidate,
                           ),
                       }
                     : current,
@@ -349,7 +347,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                             <div className="relative min-w-0 flex-1">
                                 <Search
                                     className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                                    style={{ color: 'var(--journal-muted-text)' }}
+                                    style={{
+                                        color: 'var(--journal-muted-text)',
+                                    }}
                                 />
                                 <Input
                                     className="pl-9"
@@ -443,7 +443,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                             {payload && payload.pages.length === 0 ? (
                                 <p
                                     className="p-3 text-sm leading-6"
-                                    style={{ color: 'var(--journal-muted-text)' }}
+                                    style={{
+                                        color: 'var(--journal-muted-text)',
+                                    }}
                                 >
                                     A reflection activity will add its first
                                     page here. You can also make a free-form
@@ -821,7 +823,7 @@ function FeedbackPanelBody({
 
     if (page.feedbackRequest?.feedback) {
         return (
-            <p className="mt-3 whitespace-pre-wrap leading-6">
+            <p className="mt-3 leading-6 whitespace-pre-wrap">
                 {page.feedbackRequest.feedback}
             </p>
         );

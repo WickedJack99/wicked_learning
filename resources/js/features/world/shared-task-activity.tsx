@@ -1,7 +1,11 @@
 import { ArrowRight, CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import type { ActivityTransition, LearningActivity, SharedTaskState } from '@/types';
+import type {
+    ActivityTransition,
+    LearningActivity,
+    SharedTaskState,
+} from '@/types';
 import { numericConfig, stringValue } from './activity-utils';
 import { postJson } from './api';
 
@@ -148,7 +152,9 @@ function SharedTaskProgress({ state }: { state: SharedTaskState }) {
                     Shared progress
                 </span>
                 <span className="inline-flex items-center gap-1 text-sm text-cyan-700 dark:text-teal-200">
-                    {state.isComplete ? <CheckCircle2 className="size-4" /> : null}
+                    {state.isComplete ? (
+                        <CheckCircle2 className="size-4" />
+                    ) : null}
                     {state.acceptedCount} / {state.threshold}
                 </span>
             </div>

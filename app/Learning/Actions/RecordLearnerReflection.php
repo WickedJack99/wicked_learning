@@ -22,7 +22,7 @@ class RecordLearnerReflection
     ) {}
 
     /**
-     * @param array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool} $data
+     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     public function forActivity(User $user, LearningActivity $activity, string $playRunId, array $data): LearnerReflection
     {
@@ -44,7 +44,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool} $data
+     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     public function forDialogueNode(User $user, NpcDialogueNode $dialogueNode, string $playRunId, array $data): LearnerReflection
     {
@@ -70,7 +70,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool} $data
+     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     private function record(
         User $user,

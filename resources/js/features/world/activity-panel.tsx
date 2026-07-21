@@ -8,8 +8,8 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { useCallback  } from 'react';
-import type {CSSProperties} from 'react';
+import { useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
@@ -364,7 +364,9 @@ export function ActivityPlayer({
     playRunId: string | null;
     onTravel: (portalLink: LearningPortalLink) => void;
 }) {
-    const completedTransition = activity ? completionTransitionFor(activity) : null;
+    const completedTransition = activity
+        ? completionTransitionFor(activity)
+        : null;
     const completesRoute =
         !completedTransition || completedTransition.toActivityId === null;
     const completeActivity = useCallback(
