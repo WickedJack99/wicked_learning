@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
@@ -52,6 +53,15 @@ class LearningMap extends Model
     public function nodes(): HasMany
     {
         return $this->hasMany(LearningNode::class);
+    }
+
+    /**
+     * @return BelongsToMany<LearningGroup, $this>
+     */
+    public function editingGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(LearningGroup::class, 'learning_group_map_editors')
+            ->withTimestamps();
     }
 
     /**

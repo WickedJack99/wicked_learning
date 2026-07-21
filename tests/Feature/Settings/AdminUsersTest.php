@@ -84,7 +84,10 @@ test('admins can create registration tokens for assignable roles', function () {
             'expires_at' => $expiresAt,
         ]);
 
-    $response->assertRedirect(route('settings.index'));
+    $response->assertRedirect(route('settings.index', [
+        'panel' => 'admin-access',
+        'access' => 'users',
+    ]));
     $response->assertSessionHas('created_registration_token');
 
     $token = RegistrationToken::query()->first();
@@ -111,7 +114,10 @@ test('admins can update another users access controls', function () {
             'banned_until' => $banDate,
             'roles' => [User::ROLE_USER, User::ROLE_ADMIN],
         ])
-        ->assertRedirect(route('settings.index'));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'users',
+        ]));
 
     $learner->refresh();
 
@@ -147,7 +153,10 @@ test('admins can delete another user', function () {
 
     $this->actingAs($admin)
         ->delete(route('settings.admin.users.destroy', $learner))
-        ->assertRedirect(route('settings.index'));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'users',
+        ]));
 
     expect(User::query()->whereKey($learner->id)->exists())->toBeFalse();
 });
@@ -172,7 +181,10 @@ test('admins can create and update configurable roles', function () {
                 PermissionCatalog::PRESENTATION => AccessLevel::READ,
             ],
         ])
-        ->assertRedirect(route('settings.index', ['panel' => 'admin-access']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'roles',
+        ]));
 
     $role = AccessRole::query()->where('slug', 'editor')->firstOrFail();
 
@@ -193,7 +205,10 @@ test('admins can create and update configurable roles', function () {
                 PermissionCatalog::PRESENTATION => AccessLevel::READ,
             ],
         ])
-        ->assertRedirect(route('settings.index', ['panel' => 'admin-access']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'roles',
+        ]));
 
     expect($role->refresh()->name)
         ->toBe('Content editor')

@@ -8,7 +8,7 @@ class LoadEditableMap
 {
     public function handle(LearningMap $map): LearningMap
     {
-        $map->loadMissing('world', 'nodes');
+        $map->loadMissing('world', 'nodes', 'editingGroups');
 
         return $map;
     }

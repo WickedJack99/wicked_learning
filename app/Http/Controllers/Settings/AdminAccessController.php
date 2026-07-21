@@ -18,21 +18,21 @@ class AdminAccessController extends Controller
     {
         $saveRole->handle($request->validate($this->rules()));
 
-        return redirect()->route('settings.index', ['panel' => 'admin-access']);
+        return $this->redirectToRolesSection();
     }
 
     public function updateRole(Request $request, AccessRole $role, SaveAccessRole $saveRole): RedirectResponse
     {
         $saveRole->handle($request->validate($this->rules($role)), $role);
 
-        return redirect()->route('settings.index', ['panel' => 'admin-access']);
+        return $this->redirectToRolesSection();
     }
 
     public function destroyRole(AccessRole $role, DeleteAccessRole $deleteRole): RedirectResponse
     {
         $deleteRole->handle($role);
 
-        return redirect()->route('settings.index', ['panel' => 'admin-access']);
+        return $this->redirectToRolesSection();
     }
 
     /**
@@ -69,5 +69,13 @@ class AdminAccessController extends Controller
         }
 
         return $rules;
+    }
+
+    private function redirectToRolesSection(): RedirectResponse
+    {
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'roles',
+        ]);
     }
 }

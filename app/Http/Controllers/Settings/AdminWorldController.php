@@ -12,15 +12,18 @@ use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\SwapLearningNode;
 use App\Learning\Actions\UpdateLearningMapAccess;
 use App\Learning\Actions\UpdateLearningMapDetails;
+use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableMap;
 use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadEditableWorldGraph;
+use App\Learning\Queries\LoadLearningGroupOptions;
 use App\Learning\Queries\LoadLearningMapAccessGroups;
 use App\Learning\Serializers\AdminToolSerializer;
 use App\Learning\Serializers\AdminWorldGraphSerializer;
 use App\Learning\Serializers\EditableMapSerializer;
+use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
@@ -46,6 +49,7 @@ class AdminWorldController extends Controller
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
+        private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
         private readonly UpdateLearningMapDetails $updateLearningMapDetails,
         private readonly UpdateLearningMapVisuals $updateLearningMapVisuals,
         private readonly DeleteLearningMap $deleteLearningMap,
@@ -58,6 +62,8 @@ class AdminWorldController extends Controller
         private readonly WorldPortalLinkService $worldPortalLinks,
         private readonly NodeImageUploadService $nodeImages,
         private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
+        private readonly LoadLearningGroupOptions $loadLearningGroupOptions,
+        private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
     public function index(Request $request): Response
@@ -65,13 +71,15 @@ class AdminWorldController extends Controller
         return Inertia::render('settings/worlds/index', [
             'canDeleteWorldMaps' => $request->user()?->can('worlds.rud') ?? false,
             'worldGraph' => $this->worldGraphSerializer->serialize(
-                $this->loadEditableWorldGraph->handle(),
+                $this->loadEditableWorldGraph->handle($request->user()),
             ),
         ]);
     }
 
-    public function editMap(LearningMap $map): Response
+    public function editMap(Request $request, LearningMap $map): Response
     {
+        $this->authorizeMapEdit($request, $map);
+
         return Inertia::render('settings/worlds/edit-map', [
             'editableMap' => $this->editableMapSerializer->serialize(
                 $this->loadEditableMap->handle($map),
@@ -82,23 +90,29 @@ class AdminWorldController extends Controller
                 ->values()
                 ->all(),
             'accessGroups' => $this->loadMapAccessGroups->handle(),
+            'learningGroups' => $this->loadLearningGroupOptions->handle(),
         ]);
     }
 
-    public function configureMap(LearningMap $map): Response
+    public function configureMap(Request $request, LearningMap $map): Response
     {
+        $this->authorizeMapEdit($request, $map);
+
         return Inertia::render('settings/worlds/configure-map', [
             'canDeleteWorldMaps' => request()->user()?->can('worlds.rud') ?? false,
             'editableMap' => $this->editableMapSerializer->serialize(
                 $this->loadEditableMap->handle($map),
             ),
             'accessGroups' => $this->loadMapAccessGroups->handle(),
+            'learningGroups' => $this->loadLearningGroupOptions->handle(),
         ]);
     }
 
     public function storeMap(Request $request): RedirectResponse
     {
-        $world = $this->loadEditableWorldGraph->handle();
+        $this->authorizeGlobalWorldEdit($request);
+
+        $world = $this->loadEditableWorldGraph->handle($request->user());
         $this->createLearningMap->handle(
             $world,
             $request->validate($this->rules->storeMap($world)),
@@ -109,8 +123,10 @@ class AdminWorldController extends Controller
 
     public function storePortalLink(Request $request): RedirectResponse
     {
+        $this->authorizeGlobalWorldEdit($request);
+
         $this->worldPortalLinks->create(
-            $this->loadEditableWorldGraph->handle(),
+            $this->loadEditableWorldGraph->handle($request->user()),
             $request->validate($this->rules->portalLink()),
         );
 
@@ -119,8 +135,10 @@ class AdminWorldController extends Controller
 
     public function destroyPortalLink(LearningPortalLink $portalLink): RedirectResponse
     {
+        $this->authorizeGlobalWorldEdit(request());
+
         $this->worldPortalLinks->deleteFromWorld(
-            $this->loadEditableWorldGraph->handle(),
+            $this->loadEditableWorldGraph->handle(request()->user()),
             $portalLink,
         );
 
@@ -138,6 +156,8 @@ class AdminWorldController extends Controller
 
     public function storeNode(Request $request, LearningMap $map): RedirectResponse
     {
+        $this->authorizeMapEdit($request, $map);
+
         $this->createLearningNode->handle(
             $map,
             $request->validate($this->rules->node($request, $map)),
@@ -148,6 +168,8 @@ class AdminWorldController extends Controller
 
     public function updateMap(Request $request, LearningMap $map): RedirectResponse
     {
+        $this->authorizeMapEdit($request, $map);
+
         $this->updateLearningMapVisuals->handle(
             $map,
             $request->validate($this->rules->mapVisual()),
@@ -158,6 +180,8 @@ class AdminWorldController extends Controller
 
     public function updateMapDetails(Request $request, LearningMap $map): RedirectResponse
     {
+        $this->authorizeMapEdit($request, $map);
+
         $this->updateLearningMapDetails->handle(
             $map,
             $request->validate($this->rules->mapDetails()),
@@ -168,9 +192,23 @@ class AdminWorldController extends Controller
 
     public function updateMapAccess(Request $request, LearningMap $map): RedirectResponse
     {
+        $this->authorizeMapEdit($request, $map);
+
         $this->updateLearningMapAccess->handle(
             $map,
             $request->validate($this->rules->mapAccess()),
+        );
+
+        return $this->redirectBackToMap($map);
+    }
+
+    public function updateMapEditingGroups(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+
+        $this->updateLearningMapEditingGroups->handle(
+            $map,
+            $request->validate($this->rules->mapEditingGroups())['group_ids'] ?? [],
         );
 
         return $this->redirectBackToMap($map);
@@ -186,6 +224,8 @@ class AdminWorldController extends Controller
     public function insertNode(Request $request, LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
+        $this->authorizeMapEdit($request, $node->map);
+
         $this->insertLearningNode->handle(
             $node,
             $request->validate($this->rules->nodeInsert($node->map)),
@@ -197,6 +237,8 @@ class AdminWorldController extends Controller
     public function updateNode(Request $request, LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
+        $this->authorizeMapEdit($request, $node->map);
+
         $this->updateLearningNode->handle(
             $node,
             $request->validate($this->rules->node($request, $node->map, $node)),
@@ -218,6 +260,8 @@ class AdminWorldController extends Controller
     public function swapNode(Request $request, LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
+        $this->authorizeMapEdit($request, $node->map);
+
         $this->swapLearningNode->handle(
             $node,
             $request->validate($this->rules->direction()),
@@ -229,6 +273,8 @@ class AdminWorldController extends Controller
     public function resetNodeUnlocks(LearningNode $node): RedirectResponse
     {
         $node->loadMissing('map');
+        $this->authorizeMapEdit(request(), $node->map);
+
         $this->resetLearningNodeUnlocks->handle($node);
 
         return $this->redirectToMap($node->map);
@@ -244,5 +290,15 @@ class AdminWorldController extends Controller
         return redirect()->back(
             fallback: route('settings.worlds.maps.edit', $map),
         );
+    }
+
+    private function authorizeMapEdit(Request $request, LearningMap $map): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canEditMap($request->user(), $map), 403);
+    }
+
+    private function authorizeGlobalWorldEdit(Request $request): void
+    {
+        abort_unless($request->user()?->hasAccess('worlds', 'ru') ?? false, 403);
     }
 }

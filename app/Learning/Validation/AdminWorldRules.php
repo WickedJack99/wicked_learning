@@ -176,6 +176,17 @@ class AdminWorldRules
     /**
      * @return array<string, mixed>
      */
+    public function mapEditingGroups(): array
+    {
+        return [
+            'group_ids' => ['present', 'array'],
+            'group_ids.*' => ['integer', 'exists:learning_groups,id'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function nodeContent(LearningMap $map, ?LearningNode $node = null): array
     {
         return [

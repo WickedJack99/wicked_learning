@@ -35,8 +35,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { normalizeMediaUrl } from '@/lib/media-url';
-import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 import { cn } from '@/lib/utils';
+import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 import type { MapVisualAsset } from '@/types/learning';
 
 type EditableWorld = {
@@ -50,6 +50,7 @@ type EditableMap = {
     accessRoles: string[];
     backgroundConfig: MapVisualConfig;
     description: string | null;
+    editingGroupIds: number[];
     id: number;
     nodeCount: number;
     slug: string;
@@ -64,6 +65,13 @@ type EditableMapPayload = {
 type AccessGroup = {
     description: string | null;
     label: string;
+    slug: string;
+};
+
+type LearningGroupOption = {
+    description: string | null;
+    id: number;
+    name: string;
     slug: string;
 };
 
@@ -243,10 +251,12 @@ export default function ConfigureMap({
     accessGroups,
     canDeleteWorldMaps,
     editableMap,
+    learningGroups,
 }: {
     accessGroups: AccessGroup[];
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
+    learningGroups: LearningGroupOption[];
 }) {
     const { map, world } = editableMap;
     const [mainSection, setMainSection] = useState<MainSection>('details');
@@ -262,6 +272,9 @@ export default function ConfigureMap({
     );
     const [accessRoles, setAccessRoles] = useState<string[]>(
         map.accessRoles.length > 0 ? map.accessRoles : ['user', 'admin'],
+    );
+    const [editingGroupIds, setEditingGroupIds] = useState<number[]>(
+        map.editingGroupIds,
     );
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -279,11 +292,19 @@ export default function ConfigureMap({
     const saveCurrentSection = () => {
         if (mainSection === 'details') {
             saveDetails(map.id, detailsForm, setErrors, setProcessing);
+
             return;
         }
 
         if (mainSection === 'access') {
             saveAccess(map.id, accessRoles, setErrors, setProcessing);
+            saveEditingGroups(
+                map.id,
+                editingGroupIds,
+                setErrors,
+                setProcessing,
+            );
+
             return;
         }
 
@@ -394,8 +415,11 @@ export default function ConfigureMap({
                     {mainSection === 'access' ? (
                         <AccessSection
                             accessGroups={accessGroups}
+                            editingGroupIds={editingGroupIds}
                             errors={errors}
+                            learningGroups={learningGroups}
                             roles={accessRoles}
+                            setEditingGroupIds={setEditingGroupIds}
                             setRoles={setAccessRoles}
                         />
                     ) : null}
@@ -875,13 +899,19 @@ function MapAssetsEditor({
 
 function AccessSection({
     accessGroups,
+    editingGroupIds,
     errors,
+    learningGroups,
     roles,
+    setEditingGroupIds,
     setRoles,
 }: {
     accessGroups: AccessGroup[];
+    editingGroupIds: number[];
     errors: Record<string, string>;
+    learningGroups: LearningGroupOption[];
     roles: string[];
+    setEditingGroupIds: React.Dispatch<React.SetStateAction<number[]>>;
     setRoles: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
     return (
@@ -925,6 +955,49 @@ function AccessSection({
             <InputError
                 message={errors.access_roles ?? errors['access_roles.0']}
             />
+            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+                <h3 className="text-sm font-semibold">Group editors</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    Selected groups can configure this map and its nodes, but
+                    they cannot delete the map.
+                </p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+                {learningGroups.map((group) => (
+                    <label
+                        className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
+                        key={group.id}
+                    >
+                        <Checkbox
+                            checked={editingGroupIds.includes(group.id)}
+                            onCheckedChange={(checked) =>
+                                setEditingGroupIds((current) =>
+                                    toggleNumber(
+                                        current,
+                                        group.id,
+                                        checked === true,
+                                    ),
+                                )
+                            }
+                        />
+                        <span className="grid gap-1">
+                            <span className="font-semibold">{group.name}</span>
+                            {group.description ? (
+                                <span className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                    {group.description}
+                                </span>
+                            ) : null}
+                        </span>
+                    </label>
+                ))}
+                {learningGroups.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                        Create groups from Settings before assigning map
+                        editors.
+                    </p>
+                ) : null}
+            </div>
+            <InputError message={errors.group_ids ?? errors['group_ids.0']} />
         </div>
     );
 }
@@ -1522,6 +1595,25 @@ function saveAccess(
     );
 }
 
+function saveEditingGroups(
+    mapId: number,
+    groupIds: number[],
+    setErrors: (errors: Record<string, string>) => void,
+    setProcessing: (processing: boolean) => void,
+) {
+    setProcessing(true);
+    router.patch(
+        `/settings/worlds/maps/${mapId}/editing-groups`,
+        { group_ids: groupIds },
+        {
+            preserveScroll: true,
+            onError: setErrors,
+            onFinish: () => setProcessing(false),
+            onSuccess: () => setErrors({}),
+        },
+    );
+}
+
 function toggleRole(
     current: string[],
     role: string,
@@ -1534,6 +1626,18 @@ function toggleRole(
     const nextRoles = current.filter((candidate) => candidate !== role);
 
     return nextRoles.length > 0 ? nextRoles : current;
+}
+
+function toggleNumber(
+    current: number[],
+    value: number,
+    enabled: boolean,
+): number[] {
+    if (enabled) {
+        return current.includes(value) ? current : [...current, value];
+    }
+
+    return current.filter((candidate) => candidate !== value);
 }
 
 function mapVisualFormFromConfig(config: MapVisualConfig): MapVisualForm {

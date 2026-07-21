@@ -20,6 +20,10 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppearanceTabs from '@/components/appearance-tabs';
+import {
+    SettingsConfigurationLayout,
+    SettingsContentPane,
+} from '@/components/settings-configuration-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +37,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
+import { AccessGroupManagementPanel } from '@/features/settings/access-group-management-panel';
+import type {
+    AccessGroupUser,
+    AccessLearningGroup,
+} from '@/features/settings/access-group-management-panel';
+import { AccessManagementNavigation } from '@/features/settings/access-management-navigation';
+import type { AccessManagementSection } from '@/features/settings/access-management-navigation';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type { PublicPresentationSettings } from '@/theme/presentation';
@@ -111,6 +122,8 @@ type AdminUser = {
 
 type SettingsIndexProps = {
     accessCapabilities: Record<string, AccessCapability>;
+    accessGroupUsers: AccessGroupUser[];
+    accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
@@ -287,7 +300,28 @@ const adminSettings: SettingsListItem[] = [
             'Users, registration tokens, roles, permissions and account access.',
         descriptionKey: 'settings.navigation.access.description',
         icon: Shield,
+        panel: 'admin-access',
         resources: ['users', 'roles'],
+        children: [
+            {
+                label: 'User management',
+                labelKey: 'settings.navigation.user_management',
+                href: '/settings?panel=admin-access&access=users',
+                resources: ['users'],
+            },
+            {
+                label: 'Role management',
+                labelKey: 'settings.navigation.role_management',
+                href: '/settings?panel=admin-access&access=roles',
+                resources: ['roles'],
+            },
+            {
+                label: 'Groups',
+                labelKey: 'settings.navigation.groups',
+                href: '/settings?panel=admin-access&access=groups',
+                resources: ['users'],
+            },
+        ],
     },
     {
         key: 'admin-learning-support',
@@ -300,6 +334,12 @@ const adminSettings: SettingsListItem[] = [
         href: '/settings/journal',
         resources: ['journals'],
         children: [
+            {
+                label: 'Admin Panel',
+                labelKey: 'settings.navigation.learning_support.admin_panel',
+                href: '/settings/admin-panel',
+                resources: ['journals'],
+            },
             {
                 label: 'Journal',
                 labelKey: 'settings.navigation.journal',
@@ -421,8 +461,69 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
     window.history.pushState({ panel }, '', url);
 }
 
+function isAccessManagementSection(
+    value: string | null,
+): value is AccessManagementSection {
+    return value === 'groups' || value === 'roles' || value === 'users';
+}
+
+function canOpenAccessSection(
+    section: AccessManagementSection,
+    accessCapabilities: Record<string, AccessCapability>,
+): boolean {
+    if (section === 'roles') {
+        return accessCapabilities.roles?.read ?? false;
+    }
+
+    return accessCapabilities.users?.read ?? false;
+}
+
+function defaultAccessSection(
+    accessCapabilities: Record<string, AccessCapability>,
+): AccessManagementSection {
+    return accessCapabilities.users?.read ? 'users' : 'roles';
+}
+
+function readAccessSectionFromUrl(
+    accessCapabilities: Record<string, AccessCapability>,
+): AccessManagementSection {
+    if (typeof window === 'undefined') {
+        return defaultAccessSection(accessCapabilities);
+    }
+
+    const section = new URL(window.location.href).searchParams.get('access');
+
+    if (
+        !isAccessManagementSection(section) ||
+        !canOpenAccessSection(section, accessCapabilities)
+    ) {
+        return defaultAccessSection(accessCapabilities);
+    }
+
+    return section;
+}
+
+function writeAccessSectionToUrl(section: AccessManagementSection): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    url.searchParams.set('panel', 'admin-access');
+    url.searchParams.set('access', section);
+
+    window.history.pushState(
+        { panel: 'admin-access', access: section },
+        '',
+        url,
+    );
+}
+
 export default function SettingsIndex({
     accessCapabilities,
+    accessGroupUsers,
+    accessGroups,
     adminRoles,
     adminUsers,
     assignableRegistrationRoles,
@@ -487,6 +588,8 @@ export default function SettingsIndex({
                         {selectedPanel ? (
                             <SettingsDetail
                                 accessCapabilities={accessCapabilities}
+                                accessGroupUsers={accessGroupUsers}
+                                accessGroups={accessGroups}
                                 adminRoles={adminRoles}
                                 adminUsers={adminUsers}
                                 createdRegistrationToken={
@@ -577,10 +680,7 @@ function SettingsList({
                             const visibleChildren = (
                                 item.children ?? []
                             ).filter((child) =>
-                                canSeeSettingsLink(
-                                    child,
-                                    accessCapabilities,
-                                ),
+                                canSeeSettingsLink(child, accessCapabilities),
                             );
 
                             return (
@@ -661,9 +761,7 @@ function canSeeAdminItem(
 ): boolean {
     const itemIsVisible =
         !item.resources ||
-        item.resources.some(
-            (resource) => accessCapabilities[resource]?.read,
-        );
+        item.resources.some((resource) => accessCapabilities[resource]?.read);
 
     if (itemIsVisible) {
         return true;
@@ -689,6 +787,8 @@ function canSeeSettingsLink(
 
 function SettingsDetail({
     accessCapabilities,
+    accessGroupUsers,
+    accessGroups,
     adminRoles,
     adminUsers,
     assignableRegistrationRoles,
@@ -698,6 +798,8 @@ function SettingsDetail({
     selectedPanel,
 }: {
     accessCapabilities: Record<string, AccessCapability>;
+    accessGroupUsers: AccessGroupUser[];
+    accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     assignableRegistrationRoles: UserRole[];
@@ -709,13 +811,15 @@ function SettingsDetail({
     const content = panelContent[selectedPanel];
 
     return (
-        <div className="h-full overflow-y-auto bg-white dark:bg-[#111820]">
+        <div className="h-full overflow-hidden bg-white dark:bg-[#111820]">
             {(selectedPanel === 'admin-access' ||
                 selectedPanel === 'admin-users') &&
             (accessCapabilities.users?.read ||
                 accessCapabilities.roles?.read) ? (
                 <AccessManagementPanel
                     accessCapabilities={accessCapabilities}
+                    accessGroupUsers={accessGroupUsers}
+                    accessGroups={accessGroups}
                     roles={adminRoles}
                     assignableRegistrationRoles={assignableRegistrationRoles}
                     createdRegistrationToken={createdRegistrationToken}
@@ -732,6 +836,8 @@ function SettingsDetail({
 
 function AccessManagementPanel({
     accessCapabilities,
+    accessGroupUsers,
+    accessGroups,
     assignableRegistrationRoles,
     createdRegistrationToken,
     permissionResources,
@@ -740,6 +846,8 @@ function AccessManagementPanel({
     users,
 }: {
     accessCapabilities: Record<string, AccessCapability>;
+    accessGroupUsers: AccessGroupUser[];
+    accessGroups: AccessLearningGroup[];
     assignableRegistrationRoles: UserRole[];
     createdRegistrationToken: string | null;
     permissionResources: PermissionResource[];
@@ -748,97 +856,107 @@ function AccessManagementPanel({
     users: AdminUser[];
 }) {
     const t = usePlatformTranslation();
-    const [section, setSection] = useState<'roles' | 'users'>('users');
-
-    return (
-        <div className="grid gap-5">
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                <div>
-                    <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
-                        <Shield className="size-5" />
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            {t('settings.access.title', 'Access management')}
-                        </h2>
-                    </div>
-                    <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        {t(
-                            'settings.access.description',
-                            'Configure who can read, update or delete administration areas. Default roles stay available.',
-                        )}
-                    </p>
-                </div>
-                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-sm font-medium dark:border-white/10 dark:bg-slate-950/70">
-                    {accessCapabilities.users?.read ? (
-                        <AccessSectionButton
-                            active={section === 'users'}
-                            label={t(
-                                'settings.access.tabs.users',
-                                'User management',
-                            )}
-                            onClick={() => setSection('users')}
-                        />
-                    ) : null}
-                    {accessCapabilities.roles?.read ? (
-                        <AccessSectionButton
-                            active={section === 'roles'}
-                            label={t(
-                                'settings.access.tabs.roles',
-                                'Role management',
-                            )}
-                            onClick={() => setSection('roles')}
-                        />
-                    ) : null}
-                </div>
-            </div>
-
-            {section === 'users' && accessCapabilities.users?.read ? (
-                <AdminUsersPanel
-                    assignableRegistrationRoles={assignableRegistrationRoles}
-                    createdRegistrationToken={createdRegistrationToken}
-                    registrationTokens={registrationTokens}
-                    roles={roles}
-                    users={users}
-                    canDeleteUsers={accessCapabilities.users?.delete ?? false}
-                    canUpdateUsers={accessCapabilities.users?.update ?? false}
-                />
-            ) : null}
-
-            {section === 'roles' && accessCapabilities.roles?.read ? (
-                <RoleManagementPanel
-                    canDeleteRoles={accessCapabilities.roles?.delete ?? false}
-                    canUpdateRoles={accessCapabilities.roles?.update ?? false}
-                    permissionResources={permissionResources}
-                    roles={roles}
-                />
-            ) : null}
-        </div>
+    const [section, setSection] = useState<AccessManagementSection>(() =>
+        readAccessSectionFromUrl(accessCapabilities),
     );
-}
+    const selectSection = useCallback(
+        (nextSection: AccessManagementSection) => {
+            setSection(nextSection);
+            writeAccessSectionToUrl(nextSection);
+        },
+        [],
+    );
 
-function AccessSectionButton({
-    active,
-    label,
-    onClick,
-}: {
-    active: boolean;
-    label: string;
-    onClick: () => void;
-}) {
-    const t = usePlatformTranslation();
+    useEffect(() => {
+        const syncAccessSectionFromHistory = () => {
+            setSection(readAccessSectionFromUrl(accessCapabilities));
+        };
+
+        window.addEventListener('popstate', syncAccessSectionFromHistory);
+
+        return () => {
+            window.removeEventListener(
+                'popstate',
+                syncAccessSectionFromHistory,
+            );
+        };
+    }, [accessCapabilities]);
 
     return (
-        <button
-            className={cn(
-                'rounded-md px-3 py-2 transition',
-                active
-                    ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
-                    : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
-            )}
-            onClick={onClick}
-            type="button"
+        <SettingsConfigurationLayout
+            className="h-full"
+            sidebar={
+                <AccessManagementNavigation
+                    activeSection={section}
+                    canViewGroups={accessCapabilities.users?.read ?? false}
+                    canViewRoles={accessCapabilities.roles?.read ?? false}
+                    canViewUsers={accessCapabilities.users?.read ?? false}
+                    onSelect={selectSection}
+                />
+            }
         >
-            {label}
-        </button>
+            <SettingsContentPane>
+                <div className="grid gap-5">
+                    <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+                        <div>
+                            <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
+                                <Shield className="size-5" />
+                                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                                    {t(
+                                        'settings.access.title',
+                                        'Access management',
+                                    )}
+                                </h2>
+                            </div>
+                            <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                {t(
+                                    'settings.access.description',
+                                    'Configure who can read, update or delete administration areas. Default roles stay available.',
+                                )}
+                            </p>
+                        </div>
+                    </div>
+
+                    {section === 'users' && accessCapabilities.users?.read ? (
+                        <AdminUsersPanel
+                            assignableRegistrationRoles={
+                                assignableRegistrationRoles
+                            }
+                            canDeleteUsers={
+                                accessCapabilities.users?.delete ?? false
+                            }
+                            canUpdateUsers={
+                                accessCapabilities.users?.update ?? false
+                            }
+                            createdRegistrationToken={createdRegistrationToken}
+                            registrationTokens={registrationTokens}
+                            roles={roles}
+                            users={users}
+                        />
+                    ) : null}
+
+                    {section === 'roles' && accessCapabilities.roles?.read ? (
+                        <RoleManagementPanel
+                            canDeleteRoles={
+                                accessCapabilities.roles?.delete ?? false
+                            }
+                            canUpdateRoles={
+                                accessCapabilities.roles?.update ?? false
+                            }
+                            permissionResources={permissionResources}
+                            roles={roles}
+                        />
+                    ) : null}
+
+                    {section === 'groups' && accessCapabilities.users?.read ? (
+                        <AccessGroupManagementPanel
+                            groups={accessGroups}
+                            users={accessGroupUsers}
+                        />
+                    ) : null}
+                </div>
+            </SettingsContentPane>
+        </SettingsConfigurationLayout>
     );
 }
 
@@ -1172,9 +1290,7 @@ function AdminUsersPanel({
 
             <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
                 <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase lg:grid dark:bg-white/5 dark:text-slate-400">
-                    <span>
-                        {t('settings.access.users.table.user', 'User')}
-                    </span>
+                    <span>{t('settings.access.users.table.user', 'User')}</span>
                     <span>
                         {t('settings.access.users.table.roles', 'Roles')}
                     </span>
@@ -1743,9 +1859,13 @@ function RoleManagementPanel({
 
         if (
             !window.confirm(
-                t('settings.access.roles.delete_confirm', 'Delete role :name?', {
-                    name: selectedRole.name,
-                }),
+                t(
+                    'settings.access.roles.delete_confirm',
+                    'Delete role :name?',
+                    {
+                        name: selectedRole.name,
+                    },
+                ),
             )
         ) {
             return;

@@ -304,6 +304,55 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Collaboration groups assigned to this account.
+     *
+     * @return BelongsToMany<LearningGroup, $this>
+     */
+    public function learningGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(LearningGroup::class, 'learning_group_user')
+            ->withPivot('joined_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * Independent organizations this user has joined.
+     *
+     * @return HasMany<OrganizationMembership, $this>
+     */
+    public function organizationMemberships(): HasMany
+    {
+        return $this->hasMany(OrganizationMembership::class);
+    }
+
+    /**
+     * Independent organizations created by this user.
+     *
+     * @return HasMany<Organization, $this>
+     */
+    public function createdOrganizations(): HasMany
+    {
+        return $this->hasMany(Organization::class, 'created_by_user_id');
+    }
+
+    public function hasGroupEditableMaps(): bool
+    {
+        return $this->learningGroups()
+            ->whereHas('editableMaps')
+            ->exists();
+    }
+
+    public function canEditLearningMap(LearningMap $map): bool
+    {
+        return $this->learningGroups()
+            ->whereHas(
+                'editableMaps',
+                fn ($query) => $query->whereKey($map->id),
+            )
+            ->exists();
+    }
+
+    /**
      * Settings that should persist beyond one browser.
      *
      * @return HasOne<UserPreference, $this>

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Models\RegistrationToken;
 use App\Models\User;
@@ -26,8 +28,7 @@ class AdminUserController extends Controller
             $data['expires_at'] ?? null,
         );
 
-        return redirect()
-            ->route('settings.index')
+        return $this->redirectToSettingsAccess($request)
             ->with('created_registration_token', $plainToken);
     }
 
@@ -50,7 +51,7 @@ class AdminUserController extends Controller
             'banned_until' => $data['banned_until'] ?? null,
         ])->save();
 
-        return redirect()->route('settings.index');
+        return $this->redirectToSettingsAccess($request);
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
@@ -59,7 +60,7 @@ class AdminUserController extends Controller
 
         $user->delete();
 
-        return redirect()->route('settings.index');
+        return $this->redirectToSettingsAccess($request);
     }
 
     private function preventSelfLockout(Request $request, User $user): void
@@ -71,5 +72,16 @@ class AdminUserController extends Controller
         throw ValidationException::withMessages([
             'user' => 'You cannot disable, ban or delete your own admin account.',
         ]);
+    }
+
+    private function redirectToSettingsAccess(Request $request): RedirectResponse
+    {
+        $parameters = $request->user()->can(
+            PermissionCatalog::ability(PermissionCatalog::USERS, AccessLevel::READ),
+        )
+            ? ['panel' => 'admin-access', 'access' => 'users']
+            : [];
+
+        return redirect()->route('settings.index', $parameters);
     }
 }
