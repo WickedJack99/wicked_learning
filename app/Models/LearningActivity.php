@@ -105,4 +105,12 @@ class LearningActivity extends Model
     {
         return $this->hasMany(LearningActivityTranslation::class);
     }
+
+    /**
+     * @return HasMany<LearningSharedTaskSubmission, $this>
+     */
+    public function sharedTaskSubmissions(): HasMany
+    {
+        return $this->hasMany(LearningSharedTaskSubmission::class);
+    }
 }

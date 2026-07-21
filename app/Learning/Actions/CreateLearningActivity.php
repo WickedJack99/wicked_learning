@@ -10,6 +10,7 @@ use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Services\ReflectionActivityConfiguration;
+use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Learning\Services\ToolGrantActivityConfiguration;
 use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
@@ -26,6 +27,7 @@ class CreateLearningActivity
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ReflectionActivityConfiguration $reflectionConfig,
+        private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
     ) {}
@@ -67,6 +69,7 @@ class CreateLearningActivity
             'obstacle' => $this->obstacleConfig->fromData($data),
             'portal' => $this->portalConfig->fromData($data),
             'reflection' => $this->reflectionConfig->fromData($data),
+            'shared_task' => $this->sharedTaskConfig->fromData($data),
             'tool_grant' => $this->toolGrantConfig->fromData($data),
             default => [],
         };

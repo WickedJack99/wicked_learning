@@ -112,6 +112,18 @@ const reflectionFields: Array<keyof ActivityForm> = [
     'reflection_subtopic',
 ];
 
+const sharedTaskFields: Array<keyof ActivityForm> = [
+    'shared_task_cycle_mode',
+    'shared_task_input_label',
+    'shared_task_instructions',
+    'shared_task_kind',
+    'shared_task_minimum_length',
+    'shared_task_prompt',
+    'shared_task_repeat_policy',
+    'shared_task_threshold',
+    'shared_task_validation_mode',
+];
+
 const toolGrantFields: Array<keyof ActivityForm> = [
     'tool_grant_background_dark',
     'tool_grant_background_light',
@@ -164,6 +176,10 @@ function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
 
     if (type === 'reflection') {
         return reflectionFields;
+    }
+
+    if (type === 'shared_task') {
+        return sharedTaskFields;
     }
 
     return [];

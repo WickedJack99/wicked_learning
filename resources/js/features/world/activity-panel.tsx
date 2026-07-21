@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -7,8 +8,8 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { useCallback, type CSSProperties } from 'react';
-import { router } from '@inertiajs/react';
+import { useCallback  } from 'react';
+import type {CSSProperties} from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
@@ -20,11 +21,13 @@ import type {
     LearningProgress,
     QuestionAnswerProgress,
 } from '@/types';
-import { MarkdownActivity } from './markdown-activity';
+import { postJson } from './api';
 import { ItemGrantActivity } from './item-grant-activity';
 import { ItemObstacleActivity } from './item-obstacle-activity';
+import { MarkdownActivity } from './markdown-activity';
 import { NpcDialogueActivity } from './npc-dialogue-player';
 import { ObstacleActivity } from './obstacle-activity';
+import { SharedTaskActivity } from './shared-task-activity';
 import {
     DialogueActivity,
     PlaceholderActivity,
@@ -33,7 +36,6 @@ import {
     ReflectionActivity,
 } from './standard-activities';
 import { ToolGrantActivity } from './tool-grant-activity';
-import { postJson } from './api';
 
 export function ActivityPanel({
     canBookmark,
@@ -362,11 +364,7 @@ export function ActivityPlayer({
     playRunId: string | null;
     onTravel: (portalLink: LearningPortalLink) => void;
 }) {
-    if (!activity) {
-        return <EmptyActivityState />;
-    }
-
-    const completedTransition = completionTransitionFor(activity);
+    const completedTransition = activity ? completionTransitionFor(activity) : null;
     const completesRoute =
         !completedTransition || completedTransition.toActivityId === null;
     const completeActivity = useCallback(
@@ -376,6 +374,10 @@ export function ActivityPlayer({
             }),
         [completesRoute, onComplete],
     );
+
+    if (!activity) {
+        return <EmptyActivityState />;
+    }
 
     return (
         <ActivityFrame activity={activity}>
@@ -420,6 +422,16 @@ export function ActivityPlayer({
 
             {activity.type === 'reflection' ? (
                 <ReflectionActivity
+                    activity={activity}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'shared_task' ? (
+                <SharedTaskActivity
                     activity={activity}
                     onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}

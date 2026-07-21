@@ -24,6 +24,7 @@ class AdminActivityRules
             ...$this->obstacleRules(),
             ...$this->portalRules(),
             ...$this->reflectionRules(),
+            ...$this->sharedTaskRules(),
             ...$this->toolGrantRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
@@ -54,6 +55,7 @@ class AdminActivityRules
             ...$this->obstacleRules('sometimes'),
             ...$this->portalRules('sometimes'),
             ...$this->reflectionRules('sometimes'),
+            ...$this->sharedTaskRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
@@ -208,6 +210,22 @@ class AdminActivityRules
             'reflection_note' => $this->optional($modifier, ['string', 'max:2000']),
             'reflection_topic' => $this->optional($modifier, ['string', 'max:160']),
             'reflection_subtopic' => $this->optional($modifier, ['string', 'max:160']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function sharedTaskRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'shared_task_kind' => [$modifier, 'string', Rule::in(['text', 'question', 'reflection'])],
+            'shared_task_prompt' => $this->optional($modifier, ['string', 'max:4000']),
+            'shared_task_instructions' => $this->optional($modifier, ['string', 'max:4000']),
+            'shared_task_input_label' => $this->optional($modifier, ['string', 'max:160']),
+            'shared_task_threshold' => [$modifier, 'integer', 'min:1', 'max:1000'],
+            'shared_task_minimum_length' => [$modifier, 'integer', 'min:0', 'max:10000'],
+            'shared_task_repeat_policy' => [$modifier, 'string', Rule::in(['once_per_user', 'unlimited'])],
+            'shared_task_validation_mode' => [$modifier, 'string', Rule::in(['minimum_length', 'none'])],
+            'shared_task_cycle_mode' => [$modifier, 'string', Rule::in(['none', 'question_response_question'])],
         ];
     }
 

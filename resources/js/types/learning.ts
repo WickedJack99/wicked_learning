@@ -223,7 +223,16 @@ export type LearningActivity = {
     npcDialogueNodes: NpcDialogueNode[];
     npcDialogueTransitions: NpcDialogueTransition[];
     question: LearningQuestion | null;
+    sharedTaskState: SharedTaskState | null;
     transitions: ActivityTransition[];
+};
+
+export type SharedTaskState = {
+    acceptedCount: number;
+    threshold: number;
+    remaining: number;
+    isComplete: boolean;
+    latestSubmissionAt: string | null;
 };
 
 export type LearningTool = {

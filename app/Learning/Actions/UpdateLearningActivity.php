@@ -10,6 +10,7 @@ use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Services\ReflectionActivityConfiguration;
+use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Learning\Services\ToolGrantActivityConfiguration;
 use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
@@ -25,6 +26,7 @@ class UpdateLearningActivity
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly ReflectionActivityConfiguration $reflectionConfig,
+        private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
     ) {}
@@ -60,6 +62,7 @@ class UpdateLearningActivity
             || $this->obstacleConfig->shouldUpdate($data, $updates)
             || $this->toolGrantConfig->shouldUpdate($data, $updates)
             || $this->reflectionConfig->shouldUpdate($data, $updates)
+            || $this->sharedTaskConfig->shouldUpdate($data, $updates)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($type, $data, $config);
@@ -82,6 +85,7 @@ class UpdateLearningActivity
             'obstacle' => $this->obstacleConfig->fromData($data, $existing),
             'portal' => $this->portalConfig->fromData($data, $existing),
             'reflection' => $this->reflectionConfig->fromData($data, $existing),
+            'shared_task' => $this->sharedTaskConfig->fromData($data, $existing),
             'tool_grant' => $this->toolGrantConfig->fromData($data, $existing),
             default => [],
         };

@@ -20,6 +20,7 @@ use App\Learning\Serializers\AdminSoundSerializer;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Services\ActivityStartRouteService;
+use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminActivityRules;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
@@ -54,10 +55,13 @@ class AdminActivityController extends Controller
         private readonly ActivityStartRouteService $startRouteService,
         private readonly CreateActivityTransition $createActivityTransition,
         private readonly DeleteActivityTransition $deleteActivityTransition,
+        private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
-    public function edit(LearningNode $node): Response
+    public function edit(Request $request, LearningNode $node): Response
     {
+        $this->authorizeNodeEdit($request, $node);
+
         return Inertia::render('settings/worlds/edit-node-activities', [
             'activityGraph' => $this->activityGraphSerializer->serialize(
                 $this->loadEditableActivityGraph->handle($node),
@@ -79,6 +83,8 @@ class AdminActivityController extends Controller
 
     public function store(Request $request, LearningNode $node): RedirectResponse
     {
+        $this->authorizeNodeEdit($request, $node);
+
         $this->createLearningActivity->handle(
             $node,
             $request->validate($this->rules->store($node)),
@@ -89,6 +95,8 @@ class AdminActivityController extends Controller
 
     public function update(Request $request, LearningActivity $activity): RedirectResponse
     {
+        $this->authorizeActivityEdit($request, $activity);
+
         $data = $request->validate($this->rules->update($activity));
         $activity = $this->updateLearningActivity->handle(
             $activity,
@@ -104,6 +112,8 @@ class AdminActivityController extends Controller
 
     public function updateNodeGraphLayout(Request $request, LearningNode $node): RedirectResponse
     {
+        $this->authorizeNodeEdit($request, $node);
+
         $this->updateNodeActivityGraphLayout->handle(
             $node,
             $request->validate($this->rules->specialGraphNodeLayout()),
@@ -114,6 +124,8 @@ class AdminActivityController extends Controller
 
     public function updateActivityGraphLayout(Request $request, LearningActivity $activity): RedirectResponse
     {
+        $this->authorizeActivityEdit($request, $activity);
+
         $activity = $this->updateActivitySpecialGraphLayout->handle(
             $activity,
             $request->validate($this->rules->specialGraphNodeLayout()),
@@ -130,17 +142,20 @@ class AdminActivityController extends Controller
         return $this->redirectToActivities($activity->node);
     }
 
-    public function editMarkdown(LearningActivity $activity): Response
+    public function editMarkdown(Request $request, LearningActivity $activity): Response
     {
         abort_unless($activity->type === 'markdown', 404);
+        $this->authorizeActivityEdit($request, $activity);
 
         return Inertia::render('settings/worlds/edit-markdown-activity', [
             'markdownActivity' => $this->markdownActivitySerializer->serialize($activity),
         ]);
     }
 
-    public function destroy(LearningActivity $activity): RedirectResponse
+    public function destroy(Request $request, LearningActivity $activity): RedirectResponse
     {
+        $this->authorizeActivityEdit($request, $activity);
+
         return $this->redirectToActivities(
             $this->deleteLearningActivity->handle($activity),
         );
@@ -148,6 +163,8 @@ class AdminActivityController extends Controller
 
     public function updateStart(Request $request, LearningNode $node): RedirectResponse
     {
+        $this->authorizeNodeEdit($request, $node);
+
         $data = $request->validate($this->rules->start());
         $this->startRouteService->addStart($node, (int) $data['activity_id']);
 
@@ -156,6 +173,8 @@ class AdminActivityController extends Controller
 
     public function destroyStart(Request $request, LearningNode $node): RedirectResponse
     {
+        $this->authorizeNodeEdit($request, $node);
+
         $data = $request->validate($this->rules->destroyStart());
         $activityId = isset($data['activity_id']) ? (int) $data['activity_id'] : null;
         $this->startRouteService->removeStarts($node, $activityId);
@@ -166,6 +185,8 @@ class AdminActivityController extends Controller
     public function updateStartRoute(Request $request, LearningActivityStart $start): RedirectResponse
     {
         $start->loadMissing('node');
+        $this->authorizeNodeEdit($request, $start->node);
+
         $this->startRouteService->updateStartRoute(
             $start,
             $request->validate($this->rules->startRoute()),
@@ -174,8 +195,11 @@ class AdminActivityController extends Controller
         return $this->redirectToActivities($start->node);
     }
 
-    public function destroyStartRoute(LearningActivityStart $start): RedirectResponse
+    public function destroyStartRoute(Request $request, LearningActivityStart $start): RedirectResponse
     {
+        $start->loadMissing('node');
+        $this->authorizeNodeEdit($request, $start->node);
+
         return $this->redirectToActivities(
             $this->startRouteService->destroyStartRoute($start),
         );
@@ -183,6 +207,8 @@ class AdminActivityController extends Controller
 
     public function storeTransition(Request $request, LearningNode $node): RedirectResponse
     {
+        $this->authorizeNodeEdit($request, $node);
+
         $this->createActivityTransition->handle(
             $node,
             $request->validate($this->rules->transition()),
@@ -191,8 +217,11 @@ class AdminActivityController extends Controller
         return $this->redirectToActivities($node);
     }
 
-    public function destroyTransition(ActivityTransition $transition): RedirectResponse
+    public function destroyTransition(Request $request, ActivityTransition $transition): RedirectResponse
     {
+        $transition->loadMissing('fromActivity.node');
+        $this->authorizeNodeEdit($request, $transition->fromActivity->node);
+
         return $this->redirectToActivities(
             $this->deleteActivityTransition->handle($transition),
         );
@@ -201,5 +230,17 @@ class AdminActivityController extends Controller
     private function redirectToActivities(LearningNode $node): RedirectResponse
     {
         return redirect()->route('settings.worlds.nodes.activities.edit', $node);
+    }
+
+    private function authorizeActivityEdit(Request $request, LearningActivity $activity): void
+    {
+        $activity->loadMissing('node.map');
+
+        $this->authorizeNodeEdit($request, $activity->node);
+    }
+
+    private function authorizeNodeEdit(Request $request, LearningNode $node): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canEditNode($request->user(), $node), 403);
     }
 }

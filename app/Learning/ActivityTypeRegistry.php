@@ -73,6 +73,13 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],
             [
+                'key' => 'shared_task',
+                'label' => 'Shared task',
+                'description' => 'A learner contribution task with activity-wide progress shared across users.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
                 'key' => 'obstacle',
                 'label' => 'Obstacle',
                 'description' => 'A tool-resolved obstacle that continues after the learner uses a configured tool.',

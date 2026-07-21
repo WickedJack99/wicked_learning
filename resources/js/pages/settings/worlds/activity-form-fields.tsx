@@ -17,9 +17,10 @@ import {
     SettingsConfigurationLayout,
     SettingsContentPane,
     SettingsSectionNavigation,
-    SettingsSidebar,
-    type SettingsNavigationItem,
+    SettingsSidebar
+    
 } from '@/components/settings-configuration-shell';
+import type {SettingsNavigationItem} from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,7 @@ import {
     PortalTargetField,
     PortalVisualFields,
 } from './portal-activity-fields';
+import { SharedTaskFlowFields } from './shared-task-activity-fields';
 import {
     ToolGrantFlowFields,
     ToolGrantVisualFields,
@@ -102,6 +104,7 @@ export function ActivityFormFields({
         form.type === 'item_obstacle' ||
         form.type === 'obstacle' ||
         form.type === 'tool_grant' ||
+        form.type === 'shared_task' ||
         form.type === 'reflection';
     const hasPresentationSettings =
         form.type === 'portal' ||
@@ -402,6 +405,19 @@ export function ActivityFormFields({
                                             />
                                         </div>
                                     </div>
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'shared_task' ? (
+                                <SettingsConfigurationSection
+                                    description="Collect learner contributions toward one activity-wide threshold."
+                                    title="Shared task"
+                                >
+                                    <SharedTaskFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                    />
                                 </SettingsConfigurationSection>
                             ) : null}
                         </>

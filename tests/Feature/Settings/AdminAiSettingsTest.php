@@ -3,6 +3,7 @@
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia;
 
 test('admin users can open ai support settings', function () {
@@ -132,4 +133,98 @@ test('admin users can create agent templates for a selected provider', function 
         ->and($template->created_by_user_id)->toBe($admin->id)
         ->and($template->enabled)->toBeTrue()
         ->and($template->guarded_context)->toBeTrue();
+});
+
+test('admin users can test an openai agent template without exposing the api key', function () {
+    Http::fake([
+        'api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_learning_test',
+            'output_text' => 'This is a small test response.',
+            'usage' => [
+                'input_tokens' => 12,
+                'output_tokens' => 7,
+                'total_tokens' => 19,
+            ],
+        ]),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $credential = AiProviderCredential::query()->create([
+        'label' => 'OpenAI main',
+        'provider' => 'openai',
+        'api_key' => 'sk-learning-secret-1234',
+        'api_key_last_four' => '1234',
+        'enabled' => true,
+    ]);
+    $template = AiAgentTemplate::query()->create([
+        'ai_provider_credential_id' => $credential->id,
+        'created_by_user_id' => $admin->id,
+        'name' => 'Feedback helper',
+        'slug' => 'feedback-helper',
+        'purpose' => 'learner_feedback',
+        'model' => 'gpt-test-model',
+        'system_prompt' => 'Be concise.',
+        'task_prompt' => 'Answer as a learning assistant.',
+        'temperature' => 0.2,
+        'max_output_tokens' => 300,
+        'concurrency_limit' => 1,
+        'enabled' => true,
+        'guarded_context' => true,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->postJson(route('settings.ai.templates.test', $template), [
+            'prompt' => 'Can you hear me?',
+        ])
+        ->assertOk()
+        ->assertJsonPath('text', 'This is a small test response.')
+        ->assertJsonPath('model', 'gpt-test-model')
+        ->assertJsonPath('usage.totalTokens', 19);
+
+    expect($response->getContent())->not->toContain('sk-learning-secret-1234');
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer sk-learning-secret-1234')
+        && $request['model'] === 'gpt-test-model'
+        && $request['input'] === 'Can you hear me?'
+        && str_contains((string) $request['instructions'], 'Be concise.')
+        && $request['max_output_tokens'] === 300);
+});
+
+test('admin users need a stored provider key before testing an agent template', function () {
+    Http::fake();
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $credential = AiProviderCredential::query()->create([
+        'label' => 'OpenAI main',
+        'provider' => 'openai',
+        'enabled' => true,
+    ]);
+    $template = AiAgentTemplate::query()->create([
+        'ai_provider_credential_id' => $credential->id,
+        'created_by_user_id' => $admin->id,
+        'name' => 'Feedback helper',
+        'slug' => 'feedback-helper',
+        'purpose' => 'learner_feedback',
+        'model' => 'gpt-test-model',
+        'temperature' => 0.2,
+        'concurrency_limit' => 1,
+        'enabled' => true,
+        'guarded_context' => true,
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->postJson(route('settings.ai.templates.test', $template), [
+            'prompt' => 'Can you hear me?',
+        ]);
+
+    expect($response->status())->toBe(422)
+        ->and($response->json('errors.prompt.0'))->toBe('Save an API key on the selected provider before testing this agent.');
+
+    Http::assertNothingSent();
 });

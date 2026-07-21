@@ -320,6 +320,15 @@ export type CreateActivityForm = {
     reflection_prompt: string;
     reflection_subtopic: string;
     reflection_topic: string;
+    shared_task_cycle_mode: string;
+    shared_task_input_label: string;
+    shared_task_instructions: string;
+    shared_task_kind: string;
+    shared_task_minimum_length: string;
+    shared_task_prompt: string;
+    shared_task_repeat_policy: string;
+    shared_task_threshold: string;
+    shared_task_validation_mode: string;
     slug: string;
     target_portal_activity_id: string;
     title: string;

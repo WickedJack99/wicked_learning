@@ -17,6 +17,7 @@ class LearningActivitySerializer
     public function __construct(
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearningItemSerializer $itemSerializer,
+        private readonly SharedTaskStateSerializer $sharedTaskState,
     ) {}
 
     /**
@@ -44,6 +45,9 @@ class LearningActivitySerializer
                 ->map(fn (NpcDialogueTransition $transition): array => $this->npcDialogueTransition($transition))
                 ->values(),
             'question' => $this->question($activity),
+            'sharedTaskState' => $activity->type === 'shared_task'
+                ? $this->sharedTaskState->state($activity)
+                : null,
             'transitions' => $activity->transitions
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->values(),

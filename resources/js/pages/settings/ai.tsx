@@ -4,14 +4,16 @@ import {
     BrainCircuit,
     Download,
     KeyRound,
-    type LucideIcon,
     Plus,
     Save,
+    Send,
     ShieldCheck,
     Trash2,
     Upload,
 } from 'lucide-react';
-import { type ReactNode, useMemo, useRef, useState } from 'react';
+import type { LucideIcon } from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import {
     SettingsConfigurationShell,
     SettingsContentPane,
@@ -109,13 +111,31 @@ type AiSettingsProps = {
     purposeOptions: Option[];
 };
 
+type AgentTemplateTestResult = {
+    model: string;
+    provider: string;
+    responseId: string | null;
+    text: string;
+    usage: {
+        inputTokens: number | null;
+        outputTokens: number | null;
+        totalTokens: number | null;
+    };
+};
+
+type JsonErrorPayload = {
+    errors?: Record<string, string[]>;
+    message?: string;
+};
+
 const sectionItems = [
     {
         key: 'providers',
         labelKey: 'settings.ai.sections.providers',
         labelFallback: 'Provider keys',
         descriptionKey: 'settings.ai.sections.providers.description',
-        descriptionFallback: 'Encrypted API credentials and provider-level budgets.',
+        descriptionFallback:
+            'Encrypted API credentials and provider-level budgets.',
         icon: KeyRound,
     },
     {
@@ -123,7 +143,8 @@ const sectionItems = [
         labelKey: 'settings.ai.sections.templates',
         labelFallback: 'Agent templates',
         descriptionKey: 'settings.ai.sections.templates.description',
-        descriptionFallback: 'Reusable task behaviors for design, assets and feedback.',
+        descriptionFallback:
+            'Reusable task behaviors for design, assets and feedback.',
         icon: BrainCircuit,
     },
     {
@@ -131,7 +152,8 @@ const sectionItems = [
         labelKey: 'settings.ai.sections.guardrails',
         labelFallback: 'Guardrails',
         descriptionKey: 'settings.ai.sections.guardrails.description',
-        descriptionFallback: 'How sensitive context and limits should be handled.',
+        descriptionFallback:
+            'How sensitive context and limits should be handled.',
         icon: ShieldCheck,
     },
 ] satisfies {
@@ -209,6 +231,46 @@ function templateFormFromTemplate(template: AgentTemplate): TemplateForm {
         task_prompt: template.taskPrompt ?? '',
         temperature: template.temperature.toString(),
     };
+}
+
+async function postSettingsJson<T>(
+    url: string,
+    payload: Record<string, unknown>,
+): Promise<T> {
+    const csrfToken =
+        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.content ?? '';
+    const response = await fetch(url, {
+        body: JSON.stringify(payload),
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        method: 'POST',
+    });
+
+    if (!response.ok) {
+        throw new Error(await jsonErrorMessage(response));
+    }
+
+    return response.json() as Promise<T>;
+}
+
+async function jsonErrorMessage(response: Response): Promise<string> {
+    const fallback = `Request failed with status ${response.status}`;
+
+    try {
+        const data = (await response.json()) as JsonErrorPayload;
+        const firstError = data.errors
+            ? Object.values(data.errors).flat()[0]
+            : null;
+
+        return firstError ?? data.message ?? fallback;
+    } catch {
+        return fallback;
+    }
 }
 
 export default function AiSettings({
@@ -317,6 +379,7 @@ function ProviderCredentialsPanel({
             selectedCredential === undefined
                 ? '/settings/ai/credentials'
                 : `/settings/ai/credentials/${selectedCredential.id}`;
+
         if (selectedCredential === undefined) {
             router.post(url, form, { preserveScroll: true });
 
@@ -522,10 +585,7 @@ function ProviderCredentialsPanel({
                         </label>
                     </div>
                     <Field
-                        label={t(
-                            'settings.ai.providers.fields.notes',
-                            'Notes',
-                        )}
+                        label={t('settings.ai.providers.fields.notes', 'Notes')}
                     >
                         <textarea
                             className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
@@ -610,6 +670,7 @@ function AgentTemplatesPanel({
             selectedTemplate === undefined
                 ? '/settings/ai/templates'
                 : `/settings/ai/templates/${selectedTemplate.id}`;
+
         if (selectedTemplate === undefined) {
             router.post(url, form, { preserveScroll: true });
 
@@ -704,7 +765,10 @@ function AgentTemplatesPanel({
 
                     <div className="grid gap-4 lg:grid-cols-2">
                         <Field
-                            label={t('settings.ai.templates.fields.name', 'Name')}
+                            label={t(
+                                'settings.ai.templates.fields.name',
+                                'Name',
+                            )}
                         >
                             <Input
                                 value={form.name}
@@ -717,7 +781,10 @@ function AgentTemplatesPanel({
                             />
                         </Field>
                         <Field
-                            label={t('settings.ai.templates.fields.slug', 'Slug')}
+                            label={t(
+                                'settings.ai.templates.fields.slug',
+                                'Slug',
+                            )}
                         >
                             <Input
                                 placeholder={t(
@@ -1021,6 +1088,7 @@ function AgentTemplatesPanel({
                         onDelete={destroy}
                         onSave={submit}
                     />
+                    <AgentTemplateTestPanel template={selectedTemplate} />
                 </section>
             }
             list={
@@ -1047,6 +1115,123 @@ function AgentTemplatesPanel({
                 </ItemList>
             }
         />
+    );
+}
+
+function AgentTemplateTestPanel({
+    template,
+}: {
+    template: AgentTemplate | undefined;
+}) {
+    const t = usePlatformTranslation();
+    const [prompt, setPrompt] = useState('');
+    const [result, setResult] = useState<AgentTemplateTestResult | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [isTesting, setIsTesting] = useState(false);
+
+    const canSubmit = Boolean(template && prompt.trim() !== '' && !isTesting);
+
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if (!template || prompt.trim() === '') {
+            return;
+        }
+
+        setError(null);
+        setResult(null);
+        setIsTesting(true);
+
+        try {
+            setResult(
+                await postSettingsJson<AgentTemplateTestResult>(
+                    `/settings/ai/templates/${template.id}/test`,
+                    { prompt },
+                ),
+            );
+        } catch (caughtError) {
+            setError(
+                caughtError instanceof Error
+                    ? caughtError.message
+                    : t(
+                          'settings.ai.templates.test.unknown_error',
+                          'The test request failed.',
+                      ),
+            );
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
+    return (
+        <form
+            className="grid gap-4 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5"
+            onSubmit={submit}
+        >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="text-sm font-semibold">
+                        {t('settings.ai.templates.test.title', 'Test request')}
+                    </h3>
+                    <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {template
+                            ? t(
+                                  'settings.ai.templates.test.saved_notice',
+                                  'Uses the saved agent template and its server-side provider key.',
+                              )
+                            : t(
+                                  'settings.ai.templates.test.new_notice',
+                                  'Save this agent template before sending a test request.',
+                              )}
+                    </p>
+                </div>
+                <Button disabled={!canSubmit} type="submit" variant="secondary">
+                    <Send className="size-4" />
+                    {isTesting
+                        ? t('settings.ai.templates.test.sending', 'Sending')
+                        : t('settings.ai.templates.test.send', 'Send test')}
+                </Button>
+            </div>
+            <textarea
+                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
+                disabled={!template || isTesting}
+                placeholder={t(
+                    'settings.ai.templates.test.placeholder',
+                    'Ask a short test question...',
+                )}
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+            />
+            {error ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-200">
+                    {error}
+                </p>
+            ) : null}
+            {result ? (
+                <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#050816]">
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <span>{result.provider}</span>
+                        <span>{result.model}</span>
+                        {result.usage.totalTokens !== null ? (
+                            <span>
+                                {t(
+                                    'settings.ai.templates.test.total_tokens',
+                                    'Tokens',
+                                )}
+                                : {result.usage.totalTokens}
+                            </span>
+                        ) : null}
+                    </div>
+                    <pre className="max-h-80 overflow-auto text-sm leading-6 whitespace-pre-wrap text-slate-700 dark:text-slate-200">
+                        {result.text ||
+                            t(
+                                'settings.ai.templates.test.empty_response',
+                                'The provider returned no text.',
+                            )}
+                    </pre>
+                </div>
+            ) : null}
+        </form>
     );
 }
 
