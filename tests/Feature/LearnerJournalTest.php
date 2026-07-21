@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearnerRouteProgress;
@@ -86,6 +87,90 @@ test('manual journal pages keep a title separate from their shared category', fu
         ->where('user_id', $learner->id)
         ->where('topic', 'Field studies')
         ->count())->toBe(2);
+});
+
+test('a learner can request review for their own journal page when policy allows it', function () {
+    $learner = User::factory()->create();
+    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => true]);
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Review me',
+        'topic' => 'Field studies',
+        'subtopic' => '',
+        'markdown' => 'I want another perspective on this page.',
+        'preferred_mode' => 'view',
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.journal.pages.feedback-request', $page))
+        ->assertOk()
+        ->assertJsonPath('page.feedbackRequest.status', 'pending')
+        ->assertJsonPath('page.expertAccessRequested', true);
+
+    expect(LearnerJournalFeedbackRequest::query()->count())->toBe(1)
+        ->and($page->refresh()->expert_access_requested)->toBeTrue();
+});
+
+test('a learner cannot request journal page review when policy is disabled', function () {
+    $learner = User::factory()->create();
+    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => false]);
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Private page',
+        'topic' => 'Field studies',
+        'subtopic' => '',
+        'markdown' => 'This remains private.',
+        'preferred_mode' => 'view',
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.journal.pages.feedback-request', $page))
+        ->assertStatus(422);
+
+    expect(LearnerJournalFeedbackRequest::query()->count())->toBe(0)
+        ->and($page->refresh()->expert_access_requested)->toBeFalse();
+});
+
+test('a learner can delete their own journal page', function () {
+    $learner = User::factory()->create();
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Delete me',
+        'topic' => 'Field studies',
+        'subtopic' => '',
+        'markdown' => 'This page is no longer needed.',
+        'preferred_mode' => 'view',
+    ]);
+
+    $this->actingAs($learner)
+        ->deleteJson(route('learning.journal.pages.destroy', $page))
+        ->assertOk()
+        ->assertJsonPath('deletedPageId', $page->id);
+
+    $this->assertDatabaseMissing('learner_journal_pages', [
+        'id' => $page->id,
+    ]);
+});
+
+test('a learner cannot delete another learners journal page', function () {
+    $owner = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $owner->id,
+        'title' => 'Keep me',
+        'topic' => 'Field studies',
+        'subtopic' => '',
+        'markdown' => 'This page belongs to someone else.',
+        'preferred_mode' => 'view',
+    ]);
+
+    $this->actingAs($otherLearner)
+        ->deleteJson(route('learning.journal.pages.destroy', $page))
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('learner_journal_pages', [
+        'id' => $page->id,
+    ]);
 });
 
 /** @return array{0: User, 1: LearningActivity, 2: string} */

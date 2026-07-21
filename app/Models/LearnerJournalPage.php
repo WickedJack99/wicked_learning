@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /** A learner-owned markdown page, organized with a topic and optional subtopic. */
 #[Fillable(['user_id', 'title', 'topic', 'subtopic', 'markdown', 'preferred_mode', 'expert_access_requested'])]
@@ -26,5 +27,11 @@ class LearnerJournalPage extends Model
     public function reflections(): HasMany
     {
         return $this->hasMany(LearnerReflection::class)->latest();
+    }
+
+    /** @return HasOne<LearnerJournalFeedbackRequest, $this> */
+    public function feedbackRequest(): HasOne
+    {
+        return $this->hasOne(LearnerJournalFeedbackRequest::class);
     }
 }

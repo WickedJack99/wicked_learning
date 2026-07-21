@@ -19,6 +19,14 @@ class LearnerJournalSerializer
             'markdown' => $page->markdown,
             'preferredMode' => $page->preferred_mode,
             'expertAccessRequested' => $page->expert_access_requested,
+            'feedbackRequest' => $page->relationLoaded('feedbackRequest') && $page->feedbackRequest !== null
+                ? [
+                    'feedback' => $page->feedbackRequest->feedback,
+                    'requestedAt' => $page->feedbackRequest->requested_at?->toIso8601String(),
+                    'respondedAt' => $page->feedbackRequest->responded_at?->toIso8601String(),
+                    'status' => $page->feedbackRequest->responded_at === null ? 'pending' : 'responded',
+                ]
+                : null,
             'reflectionCount' => $page->reflections_count ?? $page->reflections()->count(),
             'latestReflection' => $page->relationLoaded('reflections') && $page->reflections->first() instanceof LearnerReflection
                 ? $this->reflection($page->reflections->first())

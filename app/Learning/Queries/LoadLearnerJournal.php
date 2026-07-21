@@ -15,7 +15,10 @@ class LoadLearnerJournal
         return LearnerJournalPage::query()
             ->where('user_id', $user->id)
             ->withCount('reflections')
-            ->with(['reflections' => fn ($query) => $query->latest()->limit(1)])
+            ->with([
+                'feedbackRequest',
+                'reflections' => fn ($query) => $query->latest()->limit(1),
+            ])
             ->when(trim((string) $search) !== '', function ($query) use ($search): void {
                 $needle = '%'.mb_strtolower(trim((string) $search)).'%';
                 $query->where(function ($inner) use ($needle): void {

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Learning\Actions\CreateLearnerJournalPage;
+use App\Learning\Actions\DeleteLearnerJournalPage;
 use App\Learning\Actions\RecordLearnerReflection;
+use App\Learning\Actions\RequestLearnerJournalFeedback;
 use App\Learning\Actions\UpdateLearnerJournalPage;
 use App\Learning\Queries\LoadLearnerJournal;
 use App\Learning\Serializers\LearnerJournalSerializer;
@@ -24,8 +26,10 @@ class LearnerJournalController extends Controller
         private readonly LearnerJournalSerializer $serializer,
         private readonly PlatformJournalSettingsSerializer $settingsSerializer,
         private readonly RecordLearnerReflection $recordReflection,
+        private readonly RequestLearnerJournalFeedback $requestJournalFeedback,
         private readonly UpdateLearnerJournalPage $updatePage,
         private readonly CreateLearnerJournalPage $createPage,
+        private readonly DeleteLearnerJournalPage $deletePage,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -37,6 +41,15 @@ class LearnerJournalController extends Controller
             'allowExpertAccessRequests' => $settings['allowExpertAccessRequests'],
             'pages' => $pages->map(fn (LearnerJournalPage $page): array => $this->serializer->page($page))->values(),
             'theme' => $settings['theme'],
+        ]);
+    }
+
+    public function requestFeedback(Request $request, LearnerJournalPage $page): JsonResponse
+    {
+        $this->requestJournalFeedback->handle($request->user(), $page);
+
+        return response()->json([
+            'page' => $this->serializer->page($page->refresh()->load('feedbackRequest')),
         ]);
     }
 
@@ -94,6 +107,15 @@ class LearnerJournalController extends Controller
         return response()->json([
             'page' => $this->serializer->page($this->updatePage->handle($request->user(), $page, $data)),
         ]);
+    }
+
+    public function destroy(Request $request, LearnerJournalPage $page): JsonResponse
+    {
+        $deletedPageId = $page->id;
+
+        $this->deletePage->handle($request->user(), $page);
+
+        return response()->json(['deletedPageId' => $deletedPageId]);
     }
 
     public function export(Request $request): StreamedResponse

@@ -1,8 +1,14 @@
 import type { JournalThemeSettings } from '@/features/journal/theme';
-import { getJson, patchJson, postJson } from '@/features/world/api';
+import { deleteJson, getJson, patchJson, postJson } from '@/features/world/api';
 
 export type JournalPage = {
     expertAccessRequested: boolean;
+    feedbackRequest: {
+        feedback: string | null;
+        requestedAt: string | null;
+        respondedAt: string | null;
+        status: 'pending' | 'responded';
+    } | null;
     id: number;
     markdown: string;
     preferredMode: 'edit' | 'view';
@@ -13,6 +19,31 @@ export type JournalPage = {
     updatedAt: string | null;
 };
 
+export async function requestJournalFeedback(pageId: number): Promise<JournalPage> {
+    const response = await postJson<{ page: JournalPage }>(
+        `/learning/journal/pages/${pageId}/feedback-request`,
+        {},
+    );
+
+    updateCachedPages((pages) =>
+        pages.map((page) => (page.id === response.page.id ? response.page : page)),
+    );
+
+    return response.page;
+}
+
+export async function deleteJournalPage(pageId: number): Promise<number> {
+    const response = await deleteJson<{ deletedPageId: number }>(
+        `/learning/journal/pages/${pageId}`,
+    );
+
+    updateCachedPages((pages) =>
+        pages.filter((page) => page.id !== response.deletedPageId),
+    );
+
+    return response.deletedPageId;
+}
+
 export type JournalPayload = {
     allowExpertAccessRequests: boolean;
     pages: JournalPage[];
@@ -22,13 +53,21 @@ export type JournalPayload = {
 let cachedPayload: JournalPayload | null = null;
 let pendingPayload: Promise<JournalPayload> | null = null;
 
-/** Loads the learner journal once per browser session and reuses it while the app is open. */
-export async function loadJournalPayload(): Promise<JournalPayload> {
-    if (cachedPayload) {
+/** Loads the learner journal and can refresh policy/settings that may change elsewhere. */
+export async function loadJournalPayload({
+    refresh = false,
+}: {
+    refresh?: boolean;
+} = {}): Promise<JournalPayload> {
+    if (cachedPayload && !refresh) {
         return cachedPayload;
     }
 
-    pendingPayload ??= getJson<JournalPayload>('/learning/journal').then(
+    if (pendingPayload && !refresh) {
+        return pendingPayload;
+    }
+
+    pendingPayload = getJson<JournalPayload>('/learning/journal').then(
         (payload) => {
             cachedPayload = payload;
             pendingPayload = null;
