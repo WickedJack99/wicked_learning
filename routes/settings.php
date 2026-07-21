@@ -7,13 +7,15 @@ use App\Http\Controllers\Settings\AdminAiController;
 use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminItemController;
 use App\Http\Controllers\Settings\AdminLanguageController;
+use App\Http\Controllers\Settings\AdminLearningGroupController;
 use App\Http\Controllers\Settings\AdminNpcDialogueController;
+use App\Http\Controllers\Settings\AdminPanelController;
 use App\Http\Controllers\Settings\AdminUserController;
 use App\Http\Controllers\Settings\AdminWorldController;
 use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\ColorPaletteController;
-use App\Http\Controllers\Settings\LanguageController;
 use App\Http\Controllers\Settings\JournalSettingsController;
+use App\Http\Controllers\Settings\LanguageController;
 use App\Http\Controllers\Settings\PersonalSettingsController;
 use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
@@ -103,6 +105,9 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
 
     Route::patch('settings/worlds/maps/{map}/access', [AdminWorldController::class, 'updateMapAccess'])
         ->name('settings.worlds.maps.access.update');
+
+    Route::patch('settings/worlds/maps/{map}/editing-groups', [AdminWorldController::class, 'updateMapEditingGroups'])
+        ->name('settings.worlds.maps.editing-groups.update');
 
     Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
         ->name('settings.worlds.maps.nodes.store');
@@ -268,6 +273,14 @@ Route::middleware(['auth', 'verified', 'can:presentation.ru'])->group(function (
 });
 
 Route::middleware(['auth', 'verified', 'can:journals.ru'])->group(function () {
+    Route::get('settings/admin-panel', [AdminPanelController::class, 'index'])
+        ->name('settings.admin-panel.index');
+    Route::post('settings/admin-panel/feedback-requests/{feedbackRequest}', [AdminPanelController::class, 'respond'])
+        ->name('settings.admin-panel.feedback-requests.respond');
+    Route::patch('settings/admin-panel/organizations', [AdminPanelController::class, 'updateOrganizationSettings'])
+        ->name('settings.admin-panel.organizations.update');
+    Route::patch('settings/admin-panel/organization-icon-reports/{report}', [AdminPanelController::class, 'resolveOrganizationIconReport'])
+        ->name('settings.admin-panel.organization-icon-reports.resolve');
     Route::get('settings/journal', [JournalSettingsController::class, 'edit'])
         ->name('settings.journal.edit');
     Route::patch('settings/journal', [JournalSettingsController::class, 'update'])
@@ -308,6 +321,9 @@ Route::middleware(['auth', 'verified', 'can:ai.ru'])->group(function () {
 
     Route::patch('settings/ai/templates/{template}', [AdminAiController::class, 'updateTemplate'])
         ->name('settings.ai.templates.update');
+
+    Route::post('settings/ai/templates/{template}/test', [AdminAiController::class, 'testTemplate'])
+        ->name('settings.ai.templates.test');
 });
 
 Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {
@@ -319,6 +335,15 @@ Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
+    Route::get('settings/groups', [AdminLearningGroupController::class, 'index'])
+        ->name('settings.groups.index');
+    Route::post('settings/groups', [AdminLearningGroupController::class, 'store'])
+        ->name('settings.groups.store');
+    Route::patch('settings/groups/{group}', [AdminLearningGroupController::class, 'update'])
+        ->name('settings.groups.update');
+    Route::patch('settings/groups/{group}/members', [AdminLearningGroupController::class, 'updateMembers'])
+        ->name('settings.groups.members.update');
+
     Route::patch('settings/admin/users/{user}/access', [AdminUserController::class, 'updateAccess'])
         ->name('settings.admin.users.access.update');
 });

@@ -45,6 +45,7 @@ type MapSummary = {
     description: string | null;
     id: number;
     nodeCount: number;
+    nodes: NodeSummary[];
     slug: string;
     title: string;
 };

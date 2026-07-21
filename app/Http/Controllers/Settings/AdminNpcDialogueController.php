@@ -12,6 +12,7 @@ use App\Learning\Queries\LoadEditableNpcDialogueGraph;
 use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Serializers\AdminNpcDialogueGraphSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
+use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminNpcDialogueRules;
 use App\Models\LearningActivity;
 use App\Models\LearningTool;
@@ -35,10 +36,13 @@ class AdminNpcDialogueController extends Controller
         private readonly DeleteNpcDialogueNode $deleteNode,
         private readonly CreateNpcDialogueTransition $createTransition,
         private readonly DeleteNpcDialogueTransition $deleteTransition,
+        private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
-    public function edit(LearningActivity $activity): Response
+    public function edit(Request $request, LearningActivity $activity): Response
     {
+        $this->authorizeActivityEdit($request, $activity);
+
         return Inertia::render('settings/worlds/edit-npc-dialogue', [
             'dialogueGraph' => $this->dialogueGraphSerializer->serialize(
                 $this->loadDialogueGraph->handle($activity),
@@ -52,6 +56,7 @@ class AdminNpcDialogueController extends Controller
 
     public function storeNode(Request $request, LearningActivity $activity): RedirectResponse
     {
+        $this->authorizeActivityEdit($request, $activity);
         $this->loadDialogueGraph->handle($activity);
         $this->createNode->handle($activity, $request->validate($this->rules->storeNode()));
 
@@ -60,6 +65,9 @@ class AdminNpcDialogueController extends Controller
 
     public function updateNode(Request $request, NpcDialogueNode $node): RedirectResponse
     {
+        $node->loadMissing('activity.node.map');
+        $this->authorizeActivityEdit($request, $node->activity);
+
         $node = $this->updateNode->handle(
             $node,
             $request->validate($this->rules->updateNode()),
@@ -68,13 +76,17 @@ class AdminNpcDialogueController extends Controller
         return $this->redirectToDialogue($node->activity);
     }
 
-    public function destroyNode(NpcDialogueNode $node): RedirectResponse
+    public function destroyNode(Request $request, NpcDialogueNode $node): RedirectResponse
     {
+        $node->loadMissing('activity.node.map');
+        $this->authorizeActivityEdit($request, $node->activity);
+
         return $this->redirectToDialogue($this->deleteNode->handle($node));
     }
 
     public function storeTransition(Request $request, LearningActivity $activity): RedirectResponse
     {
+        $this->authorizeActivityEdit($request, $activity);
         $this->loadDialogueGraph->handle($activity);
         $this->createTransition->handle(
             $activity,
@@ -84,13 +96,23 @@ class AdminNpcDialogueController extends Controller
         return $this->redirectToDialogue($activity);
     }
 
-    public function destroyTransition(NpcDialogueTransition $transition): RedirectResponse
+    public function destroyTransition(Request $request, NpcDialogueTransition $transition): RedirectResponse
     {
+        $transition->loadMissing('fromNode.activity.node.map');
+        $this->authorizeActivityEdit($request, $transition->fromNode->activity);
+
         return $this->redirectToDialogue($this->deleteTransition->handle($transition));
     }
 
     private function redirectToDialogue(LearningActivity $activity): RedirectResponse
     {
         return redirect()->route('settings.worlds.activities.npc-dialogue.edit', $activity);
+    }
+
+    private function authorizeActivityEdit(Request $request, LearningActivity $activity): void
+    {
+        $activity->loadMissing('node.map');
+
+        abort_unless($request->user() && $this->mapEditAccess->canEditNode($request->user(), $activity->node), 403);
     }
 }

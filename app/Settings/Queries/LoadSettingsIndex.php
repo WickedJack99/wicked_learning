@@ -6,7 +6,10 @@ use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
 use App\Access\Queries\LoadAccessRoles;
 use App\Access\Serializers\AccessRoleSerializer;
+use App\Learning\Queries\LoadAdminLearningGroups;
+use App\Learning\Serializers\LearningGroupSerializer;
 use App\Models\AccessRole;
+use App\Models\LearningGroup;
 use App\Models\PlatformInfoPage;
 use App\Models\RegistrationToken;
 use App\Models\User;
@@ -17,6 +20,8 @@ class LoadSettingsIndex
     public function __construct(
         private readonly LoadAccessRoles $loadAccessRoles,
         private readonly AccessRoleSerializer $roleSerializer,
+        private readonly LoadAdminLearningGroups $loadLearningGroups,
+        private readonly LearningGroupSerializer $learningGroupSerializer,
     ) {}
 
     /**
@@ -33,6 +38,8 @@ class LoadSettingsIndex
             'canManageUsers' => $canManageUsers,
             'canAccessAdministration' => $this->canAccessAdministration($accessCapabilities),
             'accessCapabilities' => $accessCapabilities,
+            'accessGroups' => $canManageUsers ? $this->accessGroups() : [],
+            'accessGroupUsers' => $canManageUsers ? $this->accessGroupUsers() : [],
             'assignableRegistrationRoles' => $user->assignableRoles(),
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
@@ -81,6 +88,30 @@ class LoadSettingsIndex
         return $this->loadAccessRoles
             ->handle()
             ->map(fn (AccessRole $role): array => $this->roleSerializer->serialize($role))
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function accessGroups(): array
+    {
+        return $this->loadLearningGroups
+            ->handle()
+            ->map(fn (LearningGroup $group): array => $this->learningGroupSerializer->forAdmin($group))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, email: string}>
+     */
+    private function accessGroupUsers(): array
+    {
+        return User::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->map(fn (User $user): array => $this->userReference($user))
             ->all();
     }
 

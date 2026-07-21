@@ -36,6 +36,11 @@ class AdminWorldSummarySerializer
             'description' => $map->description,
             'nodeCount' => $map->nodes->count(),
             'accessRoles' => $this->mapAccess->rolesForMap($map),
+            'nodes' => $map->nodes
+                ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
+                ->values()
+                ->map(fn (LearningNode $node): array => $this->node($node))
+                ->all(),
         ];
     }
 

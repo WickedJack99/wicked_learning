@@ -4,11 +4,13 @@ namespace App\Learning\Support;
 
 use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
+use App\Models\LearningGroup;
 use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningTool;
 use App\Models\LearningWorld;
+use App\Models\Organization;
 use Illuminate\Support\Str;
 
 class UniqueSlugGenerator
@@ -90,6 +92,40 @@ class UniqueSlugGenerator
         while (AiAgentTemplate::query()
             ->where('slug', $slug)
             ->when($existingTemplate, fn ($query) => $query->whereKeyNot($existingTemplate->id))
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    public function forLearningGroup(string $title, ?LearningGroup $existingGroup = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'group';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (LearningGroup::query()
+            ->where('slug', $slug)
+            ->when($existingGroup, fn ($query) => $query->whereKeyNot($existingGroup->id))
+            ->exists()) {
+            $slug = $baseSlug.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    public function forOrganization(string $title, ?Organization $existingOrganization = null): string
+    {
+        $baseSlug = Str::slug($title) ?: 'organization';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (Organization::query()
+            ->where('slug', $slug)
+            ->when($existingOrganization, fn ($query) => $query->whereKeyNot($existingOrganization->id))
             ->exists()) {
             $slug = $baseSlug.'-'.$suffix;
             $suffix++;

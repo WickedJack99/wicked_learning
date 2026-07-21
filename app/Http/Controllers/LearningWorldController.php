@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Learning\Queries\LoadLearnerGroups;
 use App\Learning\Queries\LoadLearningWorld;
 use App\Learning\Queries\LoadPlayableNode;
 use App\Learning\Queries\SearchLearningWorld;
 use App\Learning\Serializers\LearnerProgressSerializer;
+use App\Learning\Serializers\LearningGroupSerializer;
 use App\Learning\Serializers\LearningNodeSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Serializers\LearningWorldSerializer;
@@ -43,6 +45,8 @@ class LearningWorldController extends Controller
         private readonly LoadPlayableNode $loadPlayableNode,
         private readonly SearchLearningWorld $searchLearningWorld,
         private readonly LearningWorldSerializer $worldSerializer,
+        private readonly LoadLearnerGroups $learnerGroups,
+        private readonly LearningGroupSerializer $groupSerializer,
         private readonly LearningNodeSerializer $nodeSerializer,
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearnerActivityPlayStateService $activityPlayStateService,
@@ -75,6 +79,13 @@ class LearningWorldController extends Controller
 
         return Inertia::render('world', [
             'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user->id) : [],
+            'groups' => $user
+                ? $this->learnerGroups
+                    ->handle($user)
+                    ->map(fn ($group): array => $this->groupSerializer->forLearner($group, $user))
+                    ->values()
+                    ->all()
+                : [],
             'world' => $world ? $this->worldSerializer->serialize($world, $user) : null,
             'progress' => $user
                 ? $this->progressSerializer->forUser($user->id)
