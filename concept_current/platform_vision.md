@@ -11,6 +11,10 @@ The product goal is to support:
 - Relatedness: future social features should support cooperation and care, not comparison.
 - Wellbeing: learning loops should feel inviting, active and humane.
 
+Future collaboration should enable learners to work on meaningful projects together. A group might receive a project brief such as designing or developing a system, artifact or learning world that fits the group's current competence level. The platform should help turn that brief into feasible shared tasks, scaffold cooperation, and make progress visible without turning the group into a leaderboard.
+
+One possible direction is to group learners and assign each group responsibility for designing a world, map or activity path around a topic. The platform would then support project planning, task distribution, review, iteration and presentation of the created world as part of learning, not as a separate project-management module bolted onto the side.
+
 The first implementation is intentionally small, but now contains more than the learner slice:
 
 - One seeded world map with configurable hex nodes.

@@ -129,3 +129,14 @@ Markdown activity direction:
 - Markdown activities contain a nested page graph with Start, page and End nodes.
 - Page nodes store Markdown content, media embeds and theme-specific colors for page surface, text, border and headings.
 - Runtime navigation uses arrows, space and keyboard arrows while still fitting into the normal activity route flow.
+
+Collaborative project learning direction:
+
+- Learners should eventually be able to work in groups on concrete projects instead of only completing individual activity paths.
+- A project activity can describe a system, artifact, learning world or topic-specific world section the group should design or build together.
+- Project briefs should fit the group's current competence level. The platform may need prerequisites, learner competence signals or admin-assigned difficulty bands before assigning a project.
+- Feasible sub-activities could include choosing a problem, asking clarifying questions, proposing a design, splitting implementation tasks, reviewing another learner's contribution, revising after feedback and presenting the result.
+- Group state should be shared where cooperation matters, while still preserving individual reflections, attempts and feedback where personal learning should remain private.
+- A group could be assigned one topic and receive access to design a world, map, node path or activity sequence for that topic.
+- The system should support cooperation, responsibility and peer learning without relying on public rankings, streaks or pressure mechanics.
+- AI could help validate project briefs, suggest next feasible tasks, review contributions against a contract and keep the group moving, but final state changes should still go through backend-owned activity rules.
