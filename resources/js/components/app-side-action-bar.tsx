@@ -1,5 +1,11 @@
 import { router, usePage } from '@inertiajs/react';
-import { Backpack, Hammer, NotebookPen, Sparkles } from 'lucide-react';
+import {
+    Backpack,
+    Building2,
+    Hammer,
+    NotebookPen,
+    Sparkles,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
@@ -122,6 +128,15 @@ export function AppSideActionBar() {
                     }}
                 >
                     <ProfileActionAvatar user={user} />
+                </ActionButton>
+                <ActionButton
+                    label="Open organizations"
+                    onClick={() => {
+                        setOverlay(null);
+                        router.visit('/organizations');
+                    }}
+                >
+                    <Building2 className="size-5" />
                 </ActionButton>
                 <ActionButton
                     isActive={overlay === 'inventory'}
