@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,12 @@ const governanceOptions: {
     },
 ];
 
+const organizationAccentClass = 'text-[var(--map-floating-accent-color)]';
+const organizationAccentBorderClass =
+    'border-[var(--map-floating-accent-color)]';
+const organizationAccentBackgroundClass =
+    'bg-[color-mix(in_srgb,var(--map-floating-accent-color)_12%,transparent)]';
+
 export default function OrganizationsIndex({
     organizations,
 }: {
@@ -83,28 +90,26 @@ export default function OrganizationsIndex({
             <Head title="Organizations" />
             <main className="min-h-svh bg-slate-100 px-4 py-6 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
                 <div className="mx-auto grid max-w-6xl gap-5">
-                    <header className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                            <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200">
-                                Community
-                            </p>
-                            <h1 className="mt-2 text-3xl font-semibold">
-                                Organizations
-                            </h1>
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <AccentHeading
+                        action={
+                            <Button
+                                onClick={() => setIsCreating((open) => !open)}
+                                type="button"
+                            >
+                                <Plus className="size-4" />
+                                New organization
+                            </Button>
+                        }
+                        eyebrow="Community"
+                        title="Organizations"
+                        description={
+                            <>
                                 Browse public learner organizations, request to
                                 join, or create a space for your own project
                                 community.
-                            </p>
-                        </div>
-                        <Button
-                            onClick={() => setIsCreating((open) => !open)}
-                            type="button"
-                        >
-                            <Plus className="size-4" />
-                            New organization
-                        </Button>
-                    </header>
+                            </>
+                        }
+                    />
 
                     {isCreating ? (
                         <form
@@ -112,7 +117,9 @@ export default function OrganizationsIndex({
                             onSubmit={createOrganization}
                         >
                             <div className="flex items-center gap-3">
-                                <Building2 className="size-5 text-cyan-700 dark:text-teal-200" />
+                                <Building2
+                                    className={`size-5 ${organizationAccentClass}`}
+                                />
                                 <h2 className="text-lg font-semibold">
                                     Create organization
                                 </h2>
@@ -171,8 +178,8 @@ export default function OrganizationsIndex({
                                                 className={[
                                                     'grid cursor-pointer gap-2 rounded-lg border p-3 text-sm transition',
                                                     selected
-                                                        ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
-                                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5',
+                                                        ? `${organizationAccentBorderClass} ${organizationAccentBackgroundClass}`
+                                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--map-floating-accent-color)_42%,transparent)] dark:border-white/10 dark:bg-white/5',
                                                 ].join(' ')}
                                                 key={option.value}
                                             >
@@ -191,7 +198,9 @@ export default function OrganizationsIndex({
                                                     }
                                                 />
                                                 <span className="flex items-center gap-2 font-semibold">
-                                                    <Icon className="size-4 text-[var(--settings-accent)]" />
+                                                    <Icon
+                                                        className={`size-4 ${organizationAccentClass}`}
+                                                    />
                                                     {option.label}
                                                 </span>
                                                 <span className="text-xs leading-5 text-slate-500 dark:text-slate-400">

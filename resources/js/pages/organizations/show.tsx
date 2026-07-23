@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
 import {
     SettingsSectionNavigation,
@@ -410,15 +411,11 @@ function OrganizationSummary({
                 name={organization.name}
             />
             <div className="min-w-0">
-                <p
-                    className="text-xs font-medium tracking-[0.18em] uppercase"
-                    style={{ color: 'var(--settings-accent, #0891b2)' }}
-                >
-                    Organization
-                </p>
-                <h1 className="mt-2 text-3xl font-semibold">
-                    {organization.name}
-                </h1>
+                <AccentHeading
+                    className="block"
+                    eyebrow="Organization"
+                    title={organization.name}
+                />
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                     {organization.memberCount} members -{' '}
                     {governanceLabel(organization.governanceType)}
