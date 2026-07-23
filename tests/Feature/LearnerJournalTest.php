@@ -5,9 +5,12 @@ use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
+use App\Models\LearningGroup;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
+use App\Models\Organization;
+use App\Models\OrganizationMembership;
 use App\Models\PlatformJournalSetting;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -102,13 +105,96 @@ test('a learner can request review for their own journal page when policy allows
     ]);
 
     $this->actingAs($learner)
-        ->postJson(route('learning.journal.pages.feedback-request', $page))
+        ->postJson(route('learning.journal.pages.feedback-request', $page), [
+            'domain_key' => 'journal',
+        ])
         ->assertOk()
+        ->assertJsonPath('page.feedbackRequest.domain.label', 'Journal')
         ->assertJsonPath('page.feedbackRequest.status', 'pending')
         ->assertJsonPath('page.expertAccessRequested', true);
 
     expect(LearnerJournalFeedbackRequest::query()->count())->toBe(1)
         ->and($page->refresh()->expert_access_requested)->toBeTrue();
+});
+
+test('journal feedback request domains include the learners groups and organizations', function () {
+    $learner = User::factory()->create();
+    $group = LearningGroup::query()->create([
+        'name' => 'Design Crew',
+        'slug' => 'design-crew',
+    ]);
+    $group->members()->attach($learner->id, ['joined_at' => now()]);
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $learner->id,
+        'name' => 'Sky Builders',
+        'slug' => 'sky-builders',
+    ]);
+    OrganizationMembership::query()->create([
+        'organization_id' => $organization->id,
+        'user_id' => $learner->id,
+        'role' => OrganizationMembership::ROLE_MEMBER,
+        'joined_at' => now(),
+    ]);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertOk()
+        ->assertJsonPath('feedbackDomains.0.label', 'Journal')
+        ->assertJsonFragment([
+            'key' => "group:{$group->id}",
+            'label' => 'Group: Design Crew',
+        ])
+        ->assertJsonFragment([
+            'key' => "organization:{$organization->id}",
+            'label' => 'Organization: Sky Builders',
+        ]);
+});
+
+test('a learner can attach a group domain to a journal feedback request', function () {
+    $learner = User::factory()->create();
+    $group = LearningGroup::query()->create([
+        'name' => 'Review Circle',
+        'slug' => 'review-circle',
+    ]);
+    $group->members()->attach($learner->id, ['joined_at' => now()]);
+    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => true]);
+    $page = journalPage($learner);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.journal.pages.feedback-request', $page), [
+            'domain_key' => "group:{$group->id}",
+        ])
+        ->assertOk()
+        ->assertJsonPath('page.feedbackRequest.domain.type', 'group')
+        ->assertJsonPath('page.feedbackRequest.domain.id', $group->id)
+        ->assertJsonPath('page.feedbackRequest.domain.label', 'Group: Review Circle');
+
+    $this->assertDatabaseHas('learner_journal_feedback_requests', [
+        'learner_journal_page_id' => $page->id,
+        'domain_type' => 'group',
+        'domain_id' => $group->id,
+        'domain_label' => 'Group: Review Circle',
+    ]);
+});
+
+test('a learner cannot attach a feedback request to another learners group', function () {
+    $learner = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $group = LearningGroup::query()->create([
+        'name' => 'Private Circle',
+        'slug' => 'private-circle',
+    ]);
+    $group->members()->attach($otherLearner->id, ['joined_at' => now()]);
+    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => true]);
+    $page = journalPage($learner);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.journal.pages.feedback-request', $page), [
+            'domain_key' => "group:{$group->id}",
+        ])
+        ->assertStatus(422);
+
+    expect(LearnerJournalFeedbackRequest::query()->count())->toBe(0);
 });
 
 test('a learner cannot request journal page review when policy is disabled', function () {
@@ -124,7 +210,9 @@ test('a learner cannot request journal page review when policy is disabled', fun
     ]);
 
     $this->actingAs($learner)
-        ->postJson(route('learning.journal.pages.feedback-request', $page))
+        ->postJson(route('learning.journal.pages.feedback-request', $page), [
+            'domain_key' => 'journal',
+        ])
         ->assertStatus(422);
 
     expect(LearnerJournalFeedbackRequest::query()->count())->toBe(0)
@@ -172,6 +260,18 @@ test('a learner cannot delete another learners journal page', function () {
         'id' => $page->id,
     ]);
 });
+
+function journalPage(User $learner): LearnerJournalPage
+{
+    return LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Review me',
+        'topic' => 'Field studies',
+        'subtopic' => '',
+        'markdown' => 'I want another perspective on this page.',
+        'preferred_mode' => 'view',
+    ]);
+}
 
 /** @return array{0: User, 1: LearningActivity, 2: string} */
 function activeReflectionActivity(): array

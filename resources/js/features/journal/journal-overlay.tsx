@@ -22,6 +22,7 @@ import {
     updateJournalPage,
 } from '@/features/journal/journal-client';
 import type {
+    JournalFeedbackDomain,
     JournalPage,
     JournalPayload,
 } from '@/features/journal/journal-client';
@@ -174,7 +175,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         }
     }
 
-    async function requestFeedback(page: JournalPage) {
+    async function requestFeedback(page: JournalPage, domainKey: string) {
         if (page.feedbackRequest !== null || requestingFeedbackForId !== null) {
             return;
         }
@@ -182,7 +183,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         setRequestingFeedbackForId(page.id);
 
         try {
-            const nextPage = await requestJournalFeedback(page.id);
+            const nextPage = await requestJournalFeedback(page.id, domainKey);
 
             setPayload((current) =>
                 current
@@ -459,6 +460,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                         allowExpertAccess={
                             payload?.allowExpertAccessRequests ?? false
                         }
+                        feedbackDomains={payload?.feedbackDomains ?? []}
                         isSaving={isSaving}
                         deletingPageId={deletingPageId}
                         isDirty={
@@ -506,6 +508,7 @@ function omitJournalPage<T>(pagesById: Record<number, T>, pageId: number) {
 function JournalPageEditor({
     allowExpertAccess,
     deletingPageId,
+    feedbackDomains,
     isDirty,
     isLoading,
     isRequestingFeedback,
@@ -518,13 +521,14 @@ function JournalPageEditor({
 }: {
     allowExpertAccess: boolean;
     deletingPageId: number | null;
+    feedbackDomains: JournalFeedbackDomain[];
     isDirty: boolean;
     isLoading: boolean;
     isRequestingFeedback: boolean;
     isSaving: boolean;
     onDraftChange: (next: JournalPage) => void;
     onDelete: (page: JournalPage) => Promise<void>;
-    onRequestFeedback: (page: JournalPage) => Promise<void>;
+    onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
     onSave: (next: JournalPage) => Promise<void>;
     page: JournalPage | null;
 }) {
@@ -698,6 +702,7 @@ function JournalPageEditor({
             </div>
             <JournalFeedbackPanel
                 allowExpertAccess={allowExpertAccess}
+                domains={feedbackDomains}
                 isDirty={isDirty}
                 isRequestingFeedback={isRequestingFeedback}
                 onRequestFeedback={onRequestFeedback}
@@ -742,23 +747,35 @@ function JournalPageEditor({
 
 function JournalFeedbackPanel({
     allowExpertAccess,
+    domains,
     isDirty,
     isRequestingFeedback,
     onRequestFeedback,
     page,
 }: {
     allowExpertAccess: boolean;
+    domains: JournalFeedbackDomain[];
     isDirty: boolean;
     isRequestingFeedback: boolean;
-    onRequestFeedback: (page: JournalPage) => Promise<void>;
+    onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
     page: JournalPage;
 }) {
     const t = usePlatformTranslation();
+    const [selectedDomainKey, setSelectedDomainKey] = useState(
+        domains[0]?.key ?? 'journal',
+    );
+    const selectedDomainExists = domains.some(
+        (domain) => domain.key === selectedDomainKey,
+    );
+    const domainKey = selectedDomainExists
+        ? selectedDomainKey
+        : (domains[0]?.key ?? 'journal');
     const requestDisabled =
         !allowExpertAccess ||
         isDirty ||
         page.feedbackRequest !== null ||
-        isRequestingFeedback;
+        isRequestingFeedback ||
+        domains.length === 0;
 
     return (
         <div
@@ -770,36 +787,72 @@ function JournalFeedbackPanel({
             }}
         >
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <p
-                    className="font-semibold"
-                    style={{ color: 'var(--journal-heading-text)' }}
-                >
-                    {feedbackPanelTitle({
-                        allowExpertAccess,
-                        isDirty,
-                        page,
-                        t,
-                    })}
-                </p>
-                <Button
-                    disabled={requestDisabled}
-                    onClick={() => void onRequestFeedback(page)}
-                    size="sm"
-                    style={{
-                        background: 'var(--journal-button-background)',
-                        borderColor: 'var(--journal-button-border)',
-                        color: 'var(--journal-button-text)',
-                    }}
-                    type="button"
-                    variant="outline"
-                >
-                    <MessageSquareText className="size-4" />
-                    {feedbackButtonLabel({
-                        isRequestingFeedback,
-                        page,
-                        t,
-                    })}
-                </Button>
+                <div>
+                    <p
+                        className="font-semibold"
+                        style={{ color: 'var(--journal-heading-text)' }}
+                    >
+                        {feedbackPanelTitle({
+                            allowExpertAccess,
+                            isDirty,
+                            page,
+                            t,
+                        })}
+                    </p>
+                    {page.feedbackRequest ? (
+                        <p
+                            className="mt-1 text-xs"
+                            style={{ color: 'var(--journal-muted-text)' }}
+                        >
+                            {page.feedbackRequest.domain.label}
+                        </p>
+                    ) : null}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                    {!page.feedbackRequest ? (
+                        <select
+                            className="h-9 rounded-md border bg-transparent px-3 text-sm outline-none"
+                            disabled={
+                                !allowExpertAccess ||
+                                isDirty ||
+                                isRequestingFeedback
+                            }
+                            onChange={(event) =>
+                                setSelectedDomainKey(event.target.value)
+                            }
+                            style={{
+                                borderColor: 'var(--journal-button-border)',
+                                color: 'var(--journal-button-text)',
+                            }}
+                            value={domainKey}
+                        >
+                            {domains.map((domain) => (
+                                <option key={domain.key} value={domain.key}>
+                                    {domain.label}
+                                </option>
+                            ))}
+                        </select>
+                    ) : null}
+                    <Button
+                        disabled={requestDisabled}
+                        onClick={() => void onRequestFeedback(page, domainKey)}
+                        size="sm"
+                        style={{
+                            background: 'var(--journal-button-background)',
+                            borderColor: 'var(--journal-button-border)',
+                            color: 'var(--journal-button-text)',
+                        }}
+                        type="button"
+                        variant="outline"
+                    >
+                        <MessageSquareText className="size-4" />
+                        {feedbackButtonLabel({
+                            isRequestingFeedback,
+                            page,
+                            t,
+                        })}
+                    </Button>
+                </div>
             </div>
             <FeedbackPanelBody
                 allowExpertAccess={allowExpertAccess}

@@ -7,7 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A learner's one-time request for feedback on a journal page. */
-#[Fillable(['learner_journal_page_id', 'requester_id', 'requested_at', 'reviewer_id', 'feedback', 'responded_at'])]
+#[Fillable([
+    'learner_journal_page_id',
+    'requester_id',
+    'domain_type',
+    'domain_id',
+    'domain_label',
+    'requested_at',
+    'reviewer_id',
+    'feedback',
+    'responded_at',
+])]
 class LearnerJournalFeedbackRequest extends Model
 {
     protected function casts(): array

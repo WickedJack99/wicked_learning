@@ -10,7 +10,10 @@ use App\Models\User;
 /** Creates the single review request associated with a learner journal page. */
 class RequestLearnerJournalFeedback
 {
-    public function handle(User $learner, LearnerJournalPage $page): LearnerJournalFeedbackRequest
+    /**
+     * @param  array{type: string, id: int|null, label: string}  $domain
+     */
+    public function handle(User $learner, LearnerJournalPage $page, array $domain): LearnerJournalFeedbackRequest
     {
         abort_unless((int) $page->user_id === (int) $learner->id, 404);
         abort_unless(
@@ -38,6 +41,9 @@ class RequestLearnerJournalFeedback
         return LearnerJournalFeedbackRequest::query()->create([
             'learner_journal_page_id' => $page->id,
             'requester_id' => $learner->id,
+            'domain_type' => $domain['type'],
+            'domain_id' => $domain['id'],
+            'domain_label' => $domain['label'],
             'requested_at' => now(),
         ]);
     }

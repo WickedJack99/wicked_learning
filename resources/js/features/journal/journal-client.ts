@@ -4,6 +4,11 @@ import { deleteJson, getJson, patchJson, postJson } from '@/features/world/api';
 export type JournalPage = {
     expertAccessRequested: boolean;
     feedbackRequest: {
+        domain: {
+            id: number | null;
+            label: string;
+            type: string;
+        };
         feedback: string | null;
         requestedAt: string | null;
         respondedAt: string | null;
@@ -19,14 +24,26 @@ export type JournalPage = {
     updatedAt: string | null;
 };
 
-export async function requestJournalFeedback(pageId: number): Promise<JournalPage> {
+export type JournalFeedbackDomain = {
+    id: number | null;
+    key: string;
+    label: string;
+    type: string;
+};
+
+export async function requestJournalFeedback(
+    pageId: number,
+    domainKey: string,
+): Promise<JournalPage> {
     const response = await postJson<{ page: JournalPage }>(
         `/learning/journal/pages/${pageId}/feedback-request`,
-        {},
+        { domain_key: domainKey },
     );
 
     updateCachedPages((pages) =>
-        pages.map((page) => (page.id === response.page.id ? response.page : page)),
+        pages.map((page) =>
+            page.id === response.page.id ? response.page : page,
+        ),
     );
 
     return response.page;
@@ -46,6 +63,7 @@ export async function deleteJournalPage(pageId: number): Promise<number> {
 
 export type JournalPayload = {
     allowExpertAccessRequests: boolean;
+    feedbackDomains: JournalFeedbackDomain[];
     pages: JournalPage[];
     theme: JournalThemeSettings;
 };
@@ -121,7 +139,9 @@ export async function createJournalPage(): Promise<JournalPage> {
     return response.page;
 }
 
-export async function updateJournalPage(next: JournalPage): Promise<JournalPage> {
+export async function updateJournalPage(
+    next: JournalPage,
+): Promise<JournalPage> {
     const response = await patchJson<{ page: JournalPage }>(
         `/learning/journal/pages/${next.id}`,
         {

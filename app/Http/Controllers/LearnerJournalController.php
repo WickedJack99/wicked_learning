@@ -7,6 +7,7 @@ use App\Learning\Actions\DeleteLearnerJournalPage;
 use App\Learning\Actions\RecordLearnerReflection;
 use App\Learning\Actions\RequestLearnerJournalFeedback;
 use App\Learning\Actions\UpdateLearnerJournalPage;
+use App\Learning\Queries\LoadFeedbackRequestDomains;
 use App\Learning\Queries\LoadLearnerJournal;
 use App\Learning\Serializers\LearnerJournalSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
@@ -25,6 +26,7 @@ class LearnerJournalController extends Controller
         private readonly LoadLearnerJournal $journal,
         private readonly LearnerJournalSerializer $serializer,
         private readonly PlatformJournalSettingsSerializer $settingsSerializer,
+        private readonly LoadFeedbackRequestDomains $feedbackDomains,
         private readonly RecordLearnerReflection $recordReflection,
         private readonly RequestLearnerJournalFeedback $requestJournalFeedback,
         private readonly UpdateLearnerJournalPage $updatePage,
@@ -39,6 +41,7 @@ class LearnerJournalController extends Controller
 
         return response()->json([
             'allowExpertAccessRequests' => $settings['allowExpertAccessRequests'],
+            'feedbackDomains' => $this->feedbackDomains->handle($request->user()),
             'pages' => $pages->map(fn (LearnerJournalPage $page): array => $this->serializer->page($page))->values(),
             'theme' => $settings['theme'],
         ]);
@@ -46,7 +49,14 @@ class LearnerJournalController extends Controller
 
     public function requestFeedback(Request $request, LearnerJournalPage $page): JsonResponse
     {
-        $this->requestJournalFeedback->handle($request->user(), $page);
+        $data = $request->validate([
+            'domain_key' => ['required', 'string', 'max:160'],
+        ]);
+        $domain = $this->feedbackDomains->find($request->user(), $data['domain_key']);
+
+        abort_if($domain === null, 422, 'Choose a feedback domain you can access.');
+
+        $this->requestJournalFeedback->handle($request->user(), $page, $domain);
 
         return response()->json([
             'page' => $this->serializer->page($page->refresh()->load('feedbackRequest')),

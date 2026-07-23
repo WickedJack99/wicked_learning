@@ -37,6 +37,11 @@ type AdminPanelMetrics = {
 };
 
 type FeedbackRequest = {
+    domain: {
+        id: number | null;
+        label: string;
+        type: string;
+    };
     feedback: string | null;
     id: number;
     page: {
@@ -450,6 +455,12 @@ function FeedbackRequestButton({
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {requester}
             </p>
+            <p
+                className="mt-2 text-xs font-semibold"
+                style={{ color: 'var(--settings-accent)' }}
+            >
+                {request.domain.label}
+            </p>
         </button>
     );
 }
@@ -476,6 +487,12 @@ function FeedbackRequestHeader({
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     {request.page.topic}
                     {request.page.subtopic ? ` / ${request.page.subtopic}` : ''}
+                </p>
+                <p
+                    className="mt-2 text-sm font-semibold"
+                    style={{ color: 'var(--settings-accent)' }}
+                >
+                    {request.domain.label}
                 </p>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
