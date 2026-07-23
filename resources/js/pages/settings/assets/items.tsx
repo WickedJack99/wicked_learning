@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 
-type AdminItem = {
+export type AdminItem = {
     description: string | null;
     id: number;
     imageDark: string | null;
@@ -45,7 +45,13 @@ const emptyForm: ItemForm = {
     title: '',
 };
 
-export default function AdminItemsPage({ items }: { items: AdminItem[] }) {
+export default function AdminItemsPage({
+    embedded = false,
+    items,
+}: {
+    embedded?: boolean;
+    items: AdminItem[];
+}) {
     const { url } = usePage();
     const selectedFromUrl = useMemo(() => selectedItemIdFromUrl(url), [url]);
     const [selectedItemId, setSelectedItemId] = useState<number | null>(
@@ -69,25 +75,41 @@ export default function AdminItemsPage({ items }: { items: AdminItem[] }) {
 
     return (
         <>
-            <Head title="Edit items" />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
-                    <header className="shrink-0 pb-5">
-                        <Button asChild className="mb-4" variant="ghost">
-                            <Link href="/settings/assets">
-                                <ArrowLeft className="size-4" />
-                                Tools, items and currencies
-                            </Link>
-                        </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Administration
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Edit items
-                        </h1>
-                    </header>
+            {!embedded ? <Head title="Edit items" /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden text-slate-950 dark:text-slate-100',
+                    embedded
+                        ? 'bg-transparent'
+                        : 'bg-slate-100 dark:bg-[#0b1117]',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24',
+                        embedded && 'max-w-none px-0 pt-0 pb-0',
+                    )}
+                >
+                    {!embedded ? (
+                        <header className="shrink-0 pb-5">
+                            <Button asChild className="mb-4" variant="ghost">
+                                <Link href="/settings/assets">
+                                    <ArrowLeft className="size-4" />
+                                    Tools, items and currencies
+                                </Link>
+                            </Button>
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Administration
+                            </p>
+                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                Edit items
+                            </h1>
+                        </header>
+                    ) : null}
 
-                    <SettingsGroupedPane>
+                    <SettingsGroupedPane
+                        className={embedded ? 'shadow-none' : undefined}
+                    >
                         <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
                             <ItemFormPanel
                                 key={selectedItem?.id ?? 'new'}

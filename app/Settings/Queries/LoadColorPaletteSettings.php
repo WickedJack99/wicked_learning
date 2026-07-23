@@ -8,6 +8,7 @@ use App\Models\LearningMap;
 use App\Models\PlatformJournalSetting;
 use App\Models\PlatformPresentationSetting;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class LoadColorPaletteSettings
 {
@@ -48,17 +49,21 @@ class LoadColorPaletteSettings
      */
     private function maps(User $user): array
     {
-        return $this->loadEditableWorldGraph
-            ->handle($user)
-            ->maps
-            ->sortBy('title')
-            ->values()
-            ->map(fn (LearningMap $map): array => [
-                'backgroundConfig' => $map->background_config ?? [],
-                'id' => $map->id,
-                'slug' => $map->slug,
-                'title' => $map->title,
-            ])
-            ->all();
+        try {
+            return $this->loadEditableWorldGraph
+                ->handle($user)
+                ->maps
+                ->sortBy('title')
+                ->values()
+                ->map(fn (LearningMap $map): array => [
+                    'backgroundConfig' => $map->background_config ?? [],
+                    'id' => $map->id,
+                    'slug' => $map->slug,
+                    'title' => $map->title,
+                ])
+                ->all();
+        } catch (ModelNotFoundException) {
+            return [];
+        }
     }
 }

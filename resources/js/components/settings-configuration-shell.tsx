@@ -46,6 +46,14 @@ type SettingsGroupedPaneProps = {
     className?: string;
 };
 
+type SettingsPanelHeaderProps = {
+    action?: ReactNode;
+    description?: ReactNode;
+    eyebrow?: ReactNode;
+    icon?: LucideIcon;
+    title: ReactNode;
+};
+
 type SettingsSectionNavigationProps<T extends string> = {
     activeSection: T;
     ariaLabel: string;
@@ -66,7 +74,7 @@ export function SettingsConfigurationShell({
     const resolvedBackLabel = backLabel ?? t('common.settings', 'Settings');
 
     return (
-        <main className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+        <main className="settings-surface fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
             <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
                 <header className="flex shrink-0 items-start justify-between gap-4 pb-5">
                     <div>
@@ -164,6 +172,38 @@ export function SettingsContentPane({ children }: { children: ReactNode }) {
     return <div className="h-full overflow-y-auto pr-1">{children}</div>;
 }
 
+export function SettingsPanelHeader({
+    action,
+    description,
+    eyebrow,
+    icon: Icon,
+    title,
+}: SettingsPanelHeaderProps) {
+    return (
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between dark:border-white/10">
+            <div className="min-w-0">
+                {eyebrow ? (
+                    <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
+                        {Icon ? <Icon className="size-5" /> : null}
+                        <p className="text-xs font-medium tracking-[0.18em] uppercase">
+                            {eyebrow}
+                        </p>
+                    </div>
+                ) : null}
+                <h2 className="text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
+                    {title}
+                </h2>
+                {description ? (
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {description}
+                    </p>
+                ) : null}
+            </div>
+            {action ? <div className="shrink-0">{action}</div> : null}
+        </header>
+    );
+}
+
 export function SettingsGroupedPane({
     children,
     className,
@@ -208,7 +248,11 @@ export function SettingsSectionNavigation<T extends string>({
     onChange,
 }: SettingsSectionNavigationProps<T>) {
     return (
-        <div aria-label={ariaLabel} className="grid gap-2" role="tablist">
+        <div
+            aria-label={ariaLabel}
+            className="grid auto-rows-max content-start gap-2"
+            role="tablist"
+        >
             {items.map((item) => (
                 <SettingsSectionButton
                     active={activeSection === item.key}

@@ -17,14 +17,7 @@ use App\Learning\Actions\UpdateLearningMapDetails;
 use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
-use App\Learning\Queries\LoadEditableMap;
-use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadEditableWorldGraph;
-use App\Learning\Queries\LoadLearningGroupOptions;
-use App\Learning\Queries\LoadLearningMapAccessGroups;
-use App\Learning\Serializers\AdminToolSerializer;
-use App\Learning\Serializers\AdminWorldGraphSerializer;
-use App\Learning\Serializers\EditableMapSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
@@ -32,22 +25,14 @@ use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
-use App\Models\LearningTool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class AdminWorldController extends Controller
 {
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
-        private readonly LoadEditableMap $loadEditableMap,
-        private readonly LoadEditableTools $loadEditableTools,
-        private readonly AdminWorldGraphSerializer $worldGraphSerializer,
-        private readonly EditableMapSerializer $editableMapSerializer,
-        private readonly AdminToolSerializer $toolSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
@@ -63,52 +48,37 @@ class AdminWorldController extends Controller
         private readonly ResetLearningNodeUnlocks $resetLearningNodeUnlocks,
         private readonly WorldPortalLinkService $worldPortalLinks,
         private readonly NodeImageUploadService $nodeImages,
-        private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
-        private readonly LoadLearningGroupOptions $loadLearningGroupOptions,
         private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): RedirectResponse
     {
-        return Inertia::render('settings/worlds/index', [
-            'canDeleteWorldMaps' => $request->user()?->can(PermissionCatalog::ability(PermissionCatalog::WORLD_MAPS, 'rud')) ?? false,
-            'worldGraph' => $this->worldGraphSerializer->serialize(
-                $this->loadEditableWorldGraph->handle($request->user()),
-            ),
+        $this->authorizeGlobalWorldRead($request);
+
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-world-builder',
         ]);
     }
 
-    public function editMap(Request $request, LearningMap $map): Response
+    public function editMap(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapEdit($request, $map);
 
-        return Inertia::render('settings/worlds/edit-map', [
-            'editableMap' => $this->editableMapSerializer->serialize(
-                $this->loadEditableMap->handle($map),
-            ),
-            'tools' => $this->loadEditableTools
-                ->handle()
-                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
-                ->values()
-                ->all(),
-            'accessGroups' => $this->loadMapAccessGroups->handle(),
-            'learningGroups' => $this->loadLearningGroupOptions->handle(),
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'nodes',
         ]);
     }
 
-    public function configureMap(Request $request, LearningMap $map): Response
+    public function configureMap(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapEdit($request, $map);
 
-        return Inertia::render('settings/worlds/configure-map', [
-            'canDeleteWorldMaps' => request()->user()
-                ? $this->mapEditAccess->canDeleteMap(request()->user(), $map)
-                : false,
-            'editableMap' => $this->editableMapSerializer->serialize(
-                $this->loadEditableMap->handle($map),
-            ),
-            'accessGroups' => $this->loadMapAccessGroups->handle(),
-            'learningGroups' => $this->loadLearningGroupOptions->handle(),
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'configure',
         ]);
     }
 
@@ -123,7 +93,7 @@ class AdminWorldController extends Controller
             $request->user(),
         );
 
-        return redirect()->route('settings.worlds.index');
+        return $this->redirectToWorldGraph($request);
     }
 
     public function storePortalLink(Request $request): RedirectResponse
@@ -135,7 +105,7 @@ class AdminWorldController extends Controller
             $request->validate($this->rules->portalLink()),
         );
 
-        return redirect()->route('settings.worlds.index');
+        return $this->redirectToWorldGraph($request);
     }
 
     public function destroyPortalLink(LearningPortalLink $portalLink): RedirectResponse
@@ -147,7 +117,7 @@ class AdminWorldController extends Controller
             $portalLink,
         );
 
-        return redirect()->route('settings.worlds.index');
+        return $this->redirectToWorldGraph(request());
     }
 
     public function uploadNodeImage(Request $request): JsonResponse
@@ -225,7 +195,7 @@ class AdminWorldController extends Controller
 
         $this->deleteLearningMap->handle($map);
 
-        return redirect()->route('settings.worlds.index');
+        return $this->redirectToWorldGraph(request());
     }
 
     public function insertNode(Request $request, LearningNode $node): RedirectResponse
@@ -290,14 +260,44 @@ class AdminWorldController extends Controller
 
     private function redirectToMap(LearningMap $map): RedirectResponse
     {
+        if ($this->shouldReturnToSettingsWorkspace(request())) {
+            return redirect()->route('settings.index', [
+                'panel' => 'admin-world-builder',
+                'map' => $map->id,
+            ]);
+        }
+
         return redirect()->route('settings.worlds.maps.edit', $map);
     }
 
     private function redirectBackToMap(LearningMap $map): RedirectResponse
     {
         return redirect()->back(
-            fallback: route('settings.worlds.maps.edit', $map),
+            fallback: $this->shouldReturnToSettingsWorkspace(request())
+                ? route('settings.index', [
+                    'panel' => 'admin-world-builder',
+                    'map' => $map->id,
+                ])
+                : route('settings.worlds.maps.edit', $map),
         );
+    }
+
+    private function redirectToWorldGraph(Request $request): RedirectResponse
+    {
+        if ($this->shouldReturnToSettingsWorkspace($request)) {
+            return redirect()->route('settings.index', ['panel' => 'admin-world-builder']);
+        }
+
+        return redirect()->route('settings.worlds.index');
+    }
+
+    private function shouldReturnToSettingsWorkspace(Request $request): bool
+    {
+        $referer = $request->headers->get('referer');
+
+        return is_string($referer)
+            && str_contains($referer, '/settings')
+            && str_contains($referer, 'panel=admin-world-builder');
     }
 
     private function authorizeMapEdit(Request $request, LearningMap $map): void
@@ -333,5 +333,17 @@ class AdminWorldController extends Controller
     private function authorizeGlobalWorldEdit(Request $request): void
     {
         abort_unless($request->user()?->hasAccess(PermissionCatalog::WORLD_MAP_ACCESS, AccessLevel::UPDATE) ?? false, 403);
+    }
+
+    private function authorizeGlobalWorldRead(Request $request): void
+    {
+        $canReadWorldBuilder = collect([
+            PermissionCatalog::WORLD_MAPS,
+            PermissionCatalog::WORLD_NODES,
+            PermissionCatalog::WORLD_ACTIVITIES,
+            PermissionCatalog::WORLD_MAP_ACCESS,
+        ])->some(fn (string $resource): bool => $request->user()?->hasAccess($resource, AccessLevel::READ) ?? false);
+
+        abort_unless($canReadWorldBuilder, 403);
     }
 }

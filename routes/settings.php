@@ -288,6 +288,11 @@ Route::middleware(['auth', 'verified', 'can:journal_feedback.ru'])->group(functi
         ->name('settings.admin-panel.feedback-requests.respond');
 });
 
+Route::middleware(['auth', 'verified', 'can:competence_topics.ru'])->group(function () {
+    Route::patch('settings/admin-panel/competence-topics', [AdminPanelController::class, 'updateCompetenceTopics'])
+        ->name('settings.admin-panel.competence-topics.update');
+});
+
 Route::middleware(['auth', 'verified', 'can:organization_moderation.ru'])->group(function () {
     Route::patch('settings/admin-panel/organizations', [AdminPanelController::class, 'updateOrganizationSettings'])
         ->name('settings.admin-panel.organizations.update');

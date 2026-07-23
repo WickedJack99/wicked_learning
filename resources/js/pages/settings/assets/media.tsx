@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-type ReusableMediaAsset = {
+export type ReusableMediaAsset = {
     canDelete: boolean;
     extension: string;
     label: string;
@@ -26,8 +26,10 @@ type ReusableMediaAsset = {
 
 export default function AdminMediaAssets({
     assets,
+    embedded = false,
 }: {
     assets: ReusableMediaAsset[];
+    embedded?: boolean;
 }) {
     const [search, setSearch] = useState('');
     const [selectedUrl, setSelectedUrl] = useState(assets[0]?.url ?? '');
@@ -99,25 +101,41 @@ export default function AdminMediaAssets({
 
     return (
         <>
-            <Head title="Edit visuals" />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
-                    <header className="shrink-0 pb-5">
-                        <Button asChild className="mb-4" variant="ghost">
-                            <Link href="/settings">
-                                <ArrowLeft className="size-4" />
-                                Settings
-                            </Link>
-                        </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Visuals
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Existing images and animations
-                        </h1>
-                    </header>
+            {!embedded ? <Head title="Edit visuals" /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden text-slate-950 dark:text-slate-100',
+                    embedded
+                        ? 'bg-transparent'
+                        : 'bg-slate-100 dark:bg-[#0b1117]',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24',
+                        embedded && 'max-w-none px-0 pt-0 pb-0',
+                    )}
+                >
+                    {!embedded ? (
+                        <header className="shrink-0 pb-5">
+                            <Button asChild className="mb-4" variant="ghost">
+                                <Link href="/settings">
+                                    <ArrowLeft className="size-4" />
+                                    Settings
+                                </Link>
+                            </Button>
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Visuals
+                            </p>
+                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                Existing images and animations
+                            </h1>
+                        </header>
+                    ) : null}
 
-                    <SettingsGroupedPane>
+                    <SettingsGroupedPane
+                        className={embedded ? 'shadow-none' : undefined}
+                    >
                         <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
                             <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
                                 {selectedAsset ? (

@@ -7,14 +7,42 @@ use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Access\Queries\LoadAccessRoles;
 use App\Access\Serializers\AccessRoleSerializer;
+use App\Ai\Queries\LoadAiSettings;
 use App\Learning\Queries\LoadAdminLearningGroups;
+use App\Learning\Queries\LoadEditableActivityGraph;
+use App\Learning\Queries\LoadEditableItems;
+use App\Learning\Queries\LoadEditableMap;
+use App\Learning\Queries\LoadEditableSounds;
+use App\Learning\Queries\LoadEditableTools;
+use App\Learning\Queries\LoadEditableWorldGraph;
+use App\Learning\Queries\LoadLearningGroupOptions;
+use App\Learning\Queries\LoadLearningMapAccessGroups;
+use App\Learning\Queries\LoadReusableImageAssets;
+use App\Learning\Serializers\AdminActivityGraphSerializer;
+use App\Learning\Serializers\AdminItemSerializer;
+use App\Learning\Serializers\AdminSoundSerializer;
+use App\Learning\Serializers\AdminToolSerializer;
+use App\Learning\Serializers\AdminWorldGraphSerializer;
+use App\Learning\Serializers\EditableMapSerializer;
 use App\Learning\Serializers\LearningGroupSerializer;
+use App\Learning\Serializers\LearningItemSerializer;
+use App\Learning\Services\LearningMapEditAccessService;
+use App\Localization\Queries\LoadLanguageAdministration;
 use App\Models\AccessRole;
+use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearningGroup;
+use App\Models\LearningItem;
+use App\Models\LearningMap;
+use App\Models\LearningNode;
+use App\Models\LearningSound;
+use App\Models\LearningTool;
+use App\Models\OrganizationIconReport;
 use App\Models\PlatformInfoPage;
+use App\Models\PlatformPresentationSetting;
 use App\Models\RegistrationToken;
 use App\Models\User;
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class LoadSettingsIndex
 {
@@ -23,13 +51,40 @@ class LoadSettingsIndex
         private readonly AccessRoleSerializer $roleSerializer,
         private readonly LoadAdminLearningGroups $loadLearningGroups,
         private readonly LearningGroupSerializer $learningGroupSerializer,
+        private readonly LoadAiSettings $loadAiSettings,
+        private readonly LoadPersonalSettings $personalSettings,
+        private readonly LoadColorPaletteSettings $loadColorPaletteSettings,
+        private readonly LoadLearningSupportSettings $loadLearningSupportSettings,
+        private readonly LoadLanguageAdministration $loadLanguages,
+        private readonly LoadReusableImageAssets $loadReusableImageAssets,
+        private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
+        private readonly AdminWorldGraphSerializer $worldGraphSerializer,
+        private readonly LoadEditableMap $loadEditableMap,
+        private readonly EditableMapSerializer $editableMapSerializer,
+        private readonly LoadEditableActivityGraph $loadEditableActivityGraph,
+        private readonly AdminActivityGraphSerializer $activityGraphSerializer,
+        private readonly LoadEditableTools $loadEditableTools,
+        private readonly LoadEditableItems $loadEditableItems,
+        private readonly LoadEditableSounds $loadEditableSounds,
+        private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
+        private readonly LoadLearningGroupOptions $loadLearningGroupOptions,
+        private readonly AdminToolSerializer $adminToolSerializer,
+        private readonly AdminItemSerializer $adminItemSerializer,
+        private readonly LearningItemSerializer $itemSerializer,
+        private readonly AdminSoundSerializer $soundSerializer,
+        private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
     /**
      * @return array<string, mixed>
      */
-    public function handle(User $user, ?string $createdRegistrationToken): array
-    {
+    public function handle(
+        User $user,
+        ?string $status,
+        ?string $createdRegistrationToken,
+        ?int $selectedMapId = null,
+        ?int $selectedNodeId = null,
+    ): array {
         $accessCapabilities = $this->accessCapabilities($user);
         $canManageUsers = $user->can(PermissionCatalog::ability(PermissionCatalog::USERS, AccessLevel::READ));
         $canManageGroups = $user->can(PermissionCatalog::ability(PermissionCatalog::GROUPS, AccessLevel::READ));
@@ -43,12 +98,26 @@ class LoadSettingsIndex
             'accessGroups' => $canManageGroups ? $this->accessGroups($user) : [],
             'accessGroupUsers' => ($canManageUsers || $canManageGroups) ? $this->accessGroupUsers() : [],
             'assignableRegistrationRoles' => $user->assignableRoles(),
+            'personalSettings' => [
+                ...$this->personalSettings->handle($user, $status),
+                'initialSection' => 'profile',
+            ],
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
+            'assetsWorldObjects' => $this->assetsWorldObjects($accessCapabilities),
+            'aiSettings' => $this->aiSettings($accessCapabilities),
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
             'adminRoles' => $canManageRoles ? $this->accessRoles() : [],
             'permissionResources' => $this->permissionResources(),
+            'colorPaletteSettings' => $this->colorPaletteSettings($user, $accessCapabilities),
+            'languages' => $this->languages($accessCapabilities),
+            'learningSupportSettings' => $this->loadLearningSupportSettings->handle($user),
             'platformInfoPages' => $canManagePresentation ? $this->platformInfoPages() : [],
+            'publicPresentation' => $canManagePresentation ? PlatformPresentationSetting::current() : null,
             'createdRegistrationToken' => $createdRegistrationToken,
+            'settingsNotifications' => $this->settingsNotifications($accessCapabilities),
+            'worldGraph' => $this->worldGraph($user, $accessCapabilities),
+            'selectedWorldMap' => $this->selectedWorldMap($user, $selectedMapId, $accessCapabilities),
+            'selectedWorldNode' => $this->selectedWorldNode($user, $selectedNodeId, $accessCapabilities),
         ];
     }
 
@@ -183,6 +252,82 @@ class LoadSettingsIndex
     }
 
     /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array<string, mixed>|null
+     */
+    private function colorPaletteSettings(User $user, array $capabilities): ?array
+    {
+        $canReadColorPalette = collect([
+            PermissionCatalog::PRESENTATION,
+            PermissionCatalog::JOURNAL_SETTINGS,
+            PermissionCatalog::WORLD_MAPS,
+        ])->some(fn (string $resource): bool => $capabilities[$resource]['read'] ?? false);
+
+        return $canReadColorPalette
+            ? $this->loadColorPaletteSettings->handle($user)
+            : null;
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return list<array{code: string, name: string, nativeName: string, isEnabled: bool, isDefault: bool}>
+     */
+    private function languages(array $capabilities): array
+    {
+        return ($capabilities[PermissionCatalog::LANGUAGES]['read'] ?? false)
+            ? $this->loadLanguages->handle()
+            : [];
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array<string, mixed>|null
+     */
+    private function aiSettings(array $capabilities): ?array
+    {
+        return ($capabilities[PermissionCatalog::AI]['read'] ?? false)
+            ? $this->loadAiSettings->handle()
+            : null;
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array{items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>, visuals: array<int, array<string, mixed>>}
+     */
+    private function assetsWorldObjects(array $capabilities): array
+    {
+        $canReadAssets = $capabilities[PermissionCatalog::ASSETS]['read'] ?? false;
+        $canReadSounds = $capabilities[PermissionCatalog::SOUNDS]['read'] ?? false;
+
+        return [
+            'items' => $canReadAssets
+                ? $this->loadEditableItems
+                    ->handle()
+                    ->map(fn (LearningItem $item): array => $this->adminItemSerializer->serialize($item))
+                    ->values()
+                    ->all()
+                : [],
+            'sounds' => $canReadSounds
+                ? $this->loadEditableSounds
+                    ->handle()
+                    ->map(fn (LearningSound $sound): array => $this->soundSerializer->serialize($sound))
+                    ->values()
+                    ->all()
+                : [],
+            'tools' => $canReadAssets
+                ? $this->loadEditableTools
+                    ->handle()
+                    ->map(fn (LearningTool $tool): array => $this->adminToolSerializer->serialize($tool))
+                    ->values()
+                    ->all()
+                : [],
+            'visuals' => $canReadAssets
+                ? $this->loadReusableImageAssets->handle()
+                : [],
+        ];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     private function adminUsers(): array
@@ -224,6 +369,141 @@ class LoadSettingsIndex
             ->get()
             ->map(fn (RegistrationToken $token): array => $this->tokenSummary($token))
             ->all();
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array{pendingFeedbackRequests: int, pendingOrganizationIconReports: int, reportedOrganizations: array<int, array{id: int, name: string, iconUrl: string|null}>}
+     */
+    private function settingsNotifications(array $capabilities): array
+    {
+        $canSeeFeedbackRequests = $capabilities[PermissionCatalog::JOURNAL_FEEDBACK]['read'] ?? false;
+        $canSeeOrganizationReports = $capabilities[PermissionCatalog::ORGANIZATION_MODERATION]['read'] ?? false;
+
+        return [
+            'pendingFeedbackRequests' => $canSeeFeedbackRequests
+                ? LearnerJournalFeedbackRequest::query()
+                    ->whereNull('responded_at')
+                    ->count()
+                : 0,
+            'pendingOrganizationIconReports' => $canSeeOrganizationReports
+                ? OrganizationIconReport::query()
+                    ->where('status', OrganizationIconReport::STATUS_PENDING)
+                    ->count()
+                : 0,
+            'reportedOrganizations' => $canSeeOrganizationReports
+                ? OrganizationIconReport::query()
+                    ->with('organization:id,name')
+                    ->where('status', OrganizationIconReport::STATUS_PENDING)
+                    ->latest()
+                    ->limit(4)
+                    ->get()
+                    ->map(fn (OrganizationIconReport $report): array => [
+                        'id' => $report->organization->id,
+                        'name' => $report->organization->name,
+                        'iconUrl' => $report->icon_url,
+                    ])
+                    ->values()
+                    ->all()
+                : [],
+        ];
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array<string, mixed>|null
+     */
+    private function worldGraph(User $user, array $capabilities): ?array
+    {
+        $canReadWorldBuilder = collect([
+            PermissionCatalog::WORLD_MAPS,
+            PermissionCatalog::WORLD_NODES,
+            PermissionCatalog::WORLD_ACTIVITIES,
+            PermissionCatalog::WORLD_MAP_ACCESS,
+        ])->some(fn (string $resource): bool => $capabilities[$resource]['read'] ?? false);
+
+        if (! $canReadWorldBuilder) {
+            return null;
+        }
+
+        try {
+            return $this->worldGraphSerializer->serialize(
+                $this->loadEditableWorldGraph->handle($user),
+            );
+        } catch (ModelNotFoundException) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array{accessGroups: array<int, array<string, mixed>>, canDeleteWorldMaps: bool, editableMap: array<string, mixed>, learningGroups: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>}|null
+     */
+    private function selectedWorldMap(User $user, ?int $mapId, array $capabilities): ?array
+    {
+        if (! $mapId || ! ($capabilities[PermissionCatalog::WORLD_MAPS]['update'] ?? false)) {
+            return null;
+        }
+
+        $map = LearningMap::query()->find($mapId);
+
+        if (! $map || ! $this->mapEditAccess->canEditMap($user, $map)) {
+            return null;
+        }
+
+        return [
+            'accessGroups' => $this->loadMapAccessGroups->handle(),
+            'canDeleteWorldMaps' => $this->mapEditAccess->canDeleteMap($user, $map),
+            'editableMap' => $this->editableMapSerializer->serialize(
+                $this->loadEditableMap->handle($map),
+            ),
+            'learningGroups' => $this->loadLearningGroupOptions->handle(),
+            'tools' => $this->loadEditableTools
+                ->handle()
+                ->map(fn (LearningTool $tool): array => $this->adminToolSerializer->serialize($tool))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
+     * @return array{activityGraph: array<string, mixed>, items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>}|null
+     */
+    private function selectedWorldNode(User $user, ?int $nodeId, array $capabilities): ?array
+    {
+        if (! $nodeId || ! ($capabilities[PermissionCatalog::WORLD_ACTIVITIES]['update'] ?? false)) {
+            return null;
+        }
+
+        $node = LearningNode::query()
+            ->with('map')
+            ->find($nodeId);
+
+        if (! $node || ! $this->mapEditAccess->canEditActivitiesOnNode($user, $node)) {
+            return null;
+        }
+
+        return [
+            'activityGraph' => $this->activityGraphSerializer->serialize(
+                $this->loadEditableActivityGraph->handle($node),
+            ),
+            'items' => $this->loadEditableItems
+                ->handle()
+                ->map(fn (LearningItem $item): array => $this->itemSerializer->serialize($item))
+                ->values()
+                ->all(),
+            'sounds' => $this->loadEditableSounds
+                ->handle()
+                ->map(fn (LearningSound $sound): array => $this->soundSerializer->serialize($sound))
+                ->values()
+                ->all(),
+            'tools' => $this->loadEditableTools
+                ->handle()
+                ->map(fn (LearningTool $tool): array => $this->adminToolSerializer->serialize($tool))
+                ->values()
+                ->all(),
+        ];
     }
 
     /**

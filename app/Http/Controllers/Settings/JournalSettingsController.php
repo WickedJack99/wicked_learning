@@ -4,27 +4,22 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\UpdateJournalSettings;
-use App\Learning\Serializers\PlatformJournalSettingsSerializer;
-use App\Models\PlatformJournalSetting;
 use App\Settings\Services\PresentationImageUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /** Orchestrates the small, platform-wide journal feedback policy. */
 class JournalSettingsController extends Controller
 {
     public function __construct(
         private readonly UpdateJournalSettings $updateSetting,
-        private readonly PlatformJournalSettingsSerializer $serializer,
         private readonly PresentationImageUploadService $imageUpload,
     ) {}
 
-    public function edit(): Response
+    public function edit(): RedirectResponse
     {
-        return Inertia::render('settings/journal', $this->serializer->serialize(PlatformJournalSetting::current()));
+        return $this->redirectToJournal();
     }
 
     public function update(Request $request): RedirectResponse
@@ -36,7 +31,7 @@ class JournalSettingsController extends Controller
 
         $this->updateSetting->handle($request->user(), $data);
 
-        return redirect()->route('settings.journal.edit');
+        return $this->redirectToJournal();
     }
 
     public function uploadBackgroundImage(Request $request): JsonResponse
@@ -94,5 +89,13 @@ class JournalSettingsController extends Controller
             'selectedBorder',
             'selectedText',
         ];
+    }
+
+    private function redirectToJournal(): RedirectResponse
+    {
+        return to_route('settings.index', [
+            'panel' => 'admin-learning-support',
+            'support' => 'journal',
+        ]);
     }
 }

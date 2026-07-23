@@ -10,25 +10,14 @@ use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
-use App\Learning\Queries\LoadEditableActivityGraph;
-use App\Learning\Queries\LoadEditableItems;
-use App\Learning\Queries\LoadEditableSounds;
-use App\Learning\Queries\LoadEditableTools;
-use App\Learning\Serializers\AdminActivityGraphSerializer;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
-use App\Learning\Serializers\AdminSoundSerializer;
-use App\Learning\Serializers\LearningItemSerializer;
-use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminActivityRules;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
-use App\Models\LearningItem;
 use App\Models\LearningNode;
-use App\Models\LearningSound;
-use App\Models\LearningTool;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -37,15 +26,7 @@ use Inertia\Response;
 class AdminActivityController extends Controller
 {
     public function __construct(
-        private readonly LoadEditableActivityGraph $loadEditableActivityGraph,
-        private readonly LoadEditableTools $loadEditableTools,
-        private readonly LoadEditableItems $loadEditableItems,
-        private readonly LoadEditableSounds $loadEditableSounds,
-        private readonly AdminActivityGraphSerializer $activityGraphSerializer,
         private readonly AdminMarkdownActivitySerializer $markdownActivitySerializer,
-        private readonly LearningToolSerializer $toolSerializer,
-        private readonly LearningItemSerializer $itemSerializer,
-        private readonly AdminSoundSerializer $soundSerializer,
         private readonly AdminActivityRules $rules,
         private readonly CreateLearningActivity $createLearningActivity,
         private readonly UpdateLearningActivity $updateLearningActivity,
@@ -58,26 +39,16 @@ class AdminActivityController extends Controller
         private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
-    public function edit(Request $request, LearningNode $node): Response
+    public function edit(Request $request, LearningNode $node): RedirectResponse
     {
         $this->authorizeNodeEdit($request, $node);
+        $node->loadMissing('map');
 
-        return Inertia::render('settings/worlds/edit-node-activities', [
-            'activityGraph' => $this->activityGraphSerializer->serialize(
-                $this->loadEditableActivityGraph->handle($node),
-            ),
-            'items' => $this->loadEditableItems
-                ->handle()
-                ->map(fn (LearningItem $item): array => $this->itemSerializer->serialize($item))
-                ->all(),
-            'sounds' => $this->loadEditableSounds
-                ->handle()
-                ->map(fn (LearningSound $sound): array => $this->soundSerializer->serialize($sound))
-                ->all(),
-            'tools' => $this->loadEditableTools
-                ->handle()
-                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
-                ->all(),
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $node->map->id,
+            'node' => $node->id,
+            'worldView' => 'nodes',
         ]);
     }
 
@@ -229,7 +200,26 @@ class AdminActivityController extends Controller
 
     private function redirectToActivities(LearningNode $node): RedirectResponse
     {
+        $node->loadMissing('map');
+
+        if ($this->shouldReturnToSettingsWorkspace(request())) {
+            return redirect()->route('settings.index', [
+                'panel' => 'admin-world-builder',
+                'map' => $node->map->id,
+                'node' => $node->id,
+            ]);
+        }
+
         return redirect()->route('settings.worlds.nodes.activities.edit', $node);
+    }
+
+    private function shouldReturnToSettingsWorkspace(Request $request): bool
+    {
+        $referer = $request->headers->get('referer');
+
+        return is_string($referer)
+            && str_contains($referer, '/settings')
+            && str_contains($referer, 'panel=admin-world-builder');
     }
 
     private function authorizeActivityEdit(Request $request, LearningActivity $activity): void

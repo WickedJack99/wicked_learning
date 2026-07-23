@@ -9,8 +9,6 @@ use App\Settings\Validation\PresentationRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class PresentationController extends Controller
 {
@@ -19,10 +17,11 @@ class PresentationController extends Controller
         private readonly PresentationImageUploadService $imageUploadService,
     ) {}
 
-    public function edit(): Response
+    public function edit(): RedirectResponse
     {
-        return Inertia::render('settings/presentation', [
-            'publicPresentation' => PlatformPresentationSetting::current(),
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'public',
         ]);
     }
 
@@ -32,7 +31,10 @@ class PresentationController extends Controller
 
         PlatformPresentationSetting::updateCurrent($data, $request->user());
 
-        return redirect()->route('settings.presentation.edit');
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'public',
+        ]);
     }
 
     public function uploadBackgroundImage(Request $request): JsonResponse

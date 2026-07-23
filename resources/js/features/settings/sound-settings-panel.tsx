@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import { Save, Volume2, VolumeX } from 'lucide-react';
 import { type ChangeEvent, useEffect, useState } from 'react';
 
+import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
 import { type SoundPreferences } from '@/features/sounds/sound-player';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import soundPreferences from '@/routes/settings/sound-preferences';
@@ -37,56 +38,43 @@ export function SoundSettingsPanel({ preferences }: SoundSettingsPanelProps) {
 
     return (
         <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                    <p
-                        className="text-xs font-medium tracking-[0.18em] uppercase"
-                        style={{ color: 'var(--settings-accent)' }}
+            <SettingsPanelHeader
+                action={
+                    <button
+                        aria-pressed={form.muted}
+                        className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition"
+                        onClick={() =>
+                            setForm((current) => ({
+                                ...current,
+                                muted: !current.muted,
+                            }))
+                        }
+                        style={{
+                            backgroundColor: form.muted
+                                ? 'var(--settings-accent)'
+                                : 'transparent',
+                            borderColor: form.muted
+                                ? 'var(--settings-accent)'
+                                : 'rgb(148 163 184 / 0.35)',
+                            color: form.muted ? '#050f16' : 'inherit',
+                        }}
+                        type="button"
                     >
-                        {t('settings.personal.sound.eyebrow', 'Sound comfort')}
-                    </p>
-                    <h2 className="mt-2 text-xl font-semibold">
-                        {t(
-                            'settings.personal.sound.title',
-                            'Audio preferences',
+                        {form.muted ? (
+                            <VolumeX className="size-4" />
+                        ) : (
+                            <Volume2 className="size-4" />
                         )}
-                    </h2>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {t(
-                            'settings.personal.sound.description',
-                            'Control optional effects and ambient sound for your own session without changing the learning world for others.',
-                        )}
-                    </p>
-                </div>
-
-                <button
-                    aria-pressed={form.muted}
-                    className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition"
-                    onClick={() =>
-                        setForm((current) => ({
-                            ...current,
-                            muted: !current.muted,
-                        }))
-                    }
-                    style={{
-                        backgroundColor: form.muted
-                            ? 'var(--settings-accent)'
-                            : 'transparent',
-                        borderColor: form.muted
-                            ? 'var(--settings-accent)'
-                            : 'rgb(148 163 184 / 0.35)',
-                        color: form.muted ? '#050f16' : 'inherit',
-                    }}
-                    type="button"
-                >
-                    {form.muted ? (
-                        <VolumeX className="size-4" />
-                    ) : (
-                        <Volume2 className="size-4" />
-                    )}
-                    {t('settings.personal.sound.mute', 'Mute all sound')}
-                </button>
-            </div>
+                        {t('settings.personal.sound.mute', 'Mute all sound')}
+                    </button>
+                }
+                description={t(
+                    'settings.personal.sound.description',
+                    'Control optional effects and ambient sound for your own session without changing the learning world for others.',
+                )}
+                eyebrow={t('settings.personal.sound.eyebrow', 'Sound comfort')}
+                title={t('settings.personal.sound.title', 'Audio preferences')}
+            />
 
             <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
                 <div className="grid gap-4">

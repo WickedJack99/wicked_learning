@@ -15,10 +15,7 @@ test('admin users can open the asset hub', function () {
 
     $this->actingAs($admin)
         ->get(route('settings.assets.index'))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/assets/index')
-        );
+        ->assertRedirect(assetSettingsRoute('visuals'));
 });
 
 test('admin users can list tools', function () {
@@ -33,13 +30,13 @@ test('admin users can list tools', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get(route('settings.assets.tools'))
+        ->get(assetSettingsRoute('tools'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/assets/tools')
-            ->has('tools', 1)
-            ->where('tools.0.slug', 'pattern-lens')
-            ->where('tools.0.imageDark', '/images/tools/pattern-lens-dark.svg')
+            ->component('settings/index')
+            ->has('assetsWorldObjects.tools', 1)
+            ->where('assetsWorldObjects.tools.0.slug', 'pattern-lens')
+            ->where('assetsWorldObjects.tools.0.imageDark', '/images/tools/pattern-lens-dark.svg')
         );
 });
 
@@ -81,7 +78,7 @@ test('admin users can create and update tools', function () {
             'animation_width_percent' => '',
             'image_width_percent' => 22,
         ])
-        ->assertRedirect(route('settings.assets.tools', ['tool' => $tool->id]));
+        ->assertRedirect(assetSettingsRoute('tools', ['tool' => $tool->id]));
 
     $tool->refresh();
 
@@ -152,11 +149,11 @@ test('admin users can replace and delete reusable media assets', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get(route('settings.assets.media'))
+        ->get(assetSettingsRoute('visuals'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/assets/media')
-            ->has('assets')
+            ->component('settings/index')
+            ->has('assetsWorldObjects.visuals')
         );
 
     $this->actingAs($admin)
@@ -164,7 +161,7 @@ test('admin users can replace and delete reusable media assets', function () {
             'url' => '/storage/learning/media/old-wall.svg',
             'file' => UploadedFile::fake()->create('new-wall.svg', 4, 'image/svg+xml'),
         ])
-        ->assertRedirect(route('settings.assets.media'));
+        ->assertRedirect(assetSettingsRoute('visuals'));
 
     $tool->refresh();
 
@@ -176,7 +173,7 @@ test('admin users can replace and delete reusable media assets', function () {
         ->delete(route('settings.assets.media.destroy'), [
             'url' => $tool->image_dark,
         ])
-        ->assertRedirect(route('settings.assets.media'));
+        ->assertRedirect(assetSettingsRoute('visuals'));
 
     expect($tool->refresh()->image_dark)->toBeNull();
 });
@@ -216,7 +213,7 @@ test('admin users can manage reusable sounds', function () {
             'play_seconds' => 5,
             'loop' => true,
         ])
-        ->assertRedirect(route('settings.assets.sounds', ['sound' => $sound->id]));
+        ->assertRedirect(assetSettingsRoute('sounds', ['sound' => $sound->id]));
 
     expect($sound->refresh()->name)
         ->toBe('Signal ambience')
@@ -262,3 +259,12 @@ test('admin users can upload and search reusable sound assets', function () {
 
     expect(collect($sounds)->pluck('slug'))->toContain('crystal-bell');
 });
+
+function assetSettingsRoute(string $asset, array $extra = []): string
+{
+    return route('settings.index', [
+        'panel' => 'admin-assets-world-objects',
+        'asset' => $asset,
+        ...$extra,
+    ]);
+}

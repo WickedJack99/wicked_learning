@@ -9,41 +9,46 @@ use App\Http\Requests\Settings\UpdatePlatformLanguageRequest;
 use App\Localization\Actions\CreatePlatformLanguage;
 use App\Localization\Actions\ImportTranslationCatalog;
 use App\Localization\Actions\UpdatePlatformLanguage;
-use App\Localization\Queries\LoadLanguageAdministration;
 use App\Localization\Services\TranslationCatalogExportService;
 use App\Models\PlatformLanguage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class AdminLanguageController extends Controller
 {
     public function __construct(
-        private readonly LoadLanguageAdministration $languages,
         private readonly CreatePlatformLanguage $createLanguage,
         private readonly UpdatePlatformLanguage $updateLanguage,
         private readonly TranslationCatalogExportService $exports,
         private readonly ImportTranslationCatalog $imports,
     ) {}
 
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        return Inertia::render('settings/languages', ['languages' => $this->languages->handle()]);
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'languages',
+        ]);
     }
 
     public function store(CreatePlatformLanguageRequest $request): RedirectResponse
     {
         $this->createLanguage->handle($request->validated(), $request->user());
 
-        return to_route('settings.languages.index');
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'languages',
+        ]);
     }
 
     public function update(UpdatePlatformLanguageRequest $request, PlatformLanguage $language): RedirectResponse
     {
         $this->updateLanguage->handle($language, $request->validated(), $request->user());
 
-        return to_route('settings.languages.index');
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'languages',
+        ]);
     }
 
     public function export(Request $request, ?PlatformLanguage $language = null)
@@ -71,6 +76,9 @@ class AdminLanguageController extends Controller
 
         $this->imports->handle($language, $json, $request->user());
 
-        return to_route('settings.languages.index');
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'languages',
+        ]);
     }
 }

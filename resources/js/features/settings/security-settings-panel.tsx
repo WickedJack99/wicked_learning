@@ -1,5 +1,4 @@
 import { Form } from '@inertiajs/react';
-import { KeyRound, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { useRef } from 'react';
 import type { ComponentProps, Ref } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
@@ -9,6 +8,7 @@ import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys'
 import ManageTwoFactor from '@/components/manage-two-factor';
 import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
+import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -26,26 +26,20 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
     return (
         <div className="grid gap-5">
             <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-                <div>
-                    <p
-                        className="text-xs font-medium tracking-[0.18em] uppercase"
-                        style={{ color: 'var(--settings-accent)' }}
-                    >
-                        {t('settings.personal.security.eyebrow', 'Security')}
-                    </p>
-                    <h2 className="mt-2 text-xl font-semibold">
-                        {t(
-                            'settings.personal.security.title',
-                            'Update password',
-                        )}
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {t(
-                            'settings.personal.security.description',
-                            'Use a long, random password to keep your account secure.',
-                        )}
-                    </p>
-                </div>
+                <SettingsPanelHeader
+                    description={t(
+                        'settings.personal.security.description',
+                        'Use a long, random password to keep your account secure.',
+                    )}
+                    eyebrow={t(
+                        'settings.personal.security.eyebrow',
+                        'Security',
+                    )}
+                    title={t(
+                        'settings.personal.security.title',
+                        'Update password',
+                    )}
+                />
                 <Form
                     {...SecurityController.update.form()}
                     className="grid gap-5"

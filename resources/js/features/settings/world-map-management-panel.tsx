@@ -79,14 +79,14 @@ export function WorldMapManagementPanel({
                             <div className="flex flex-wrap gap-2">
                                 <Button asChild variant="secondary">
                                     <Link
-                                        href={`/settings/worlds/maps/${selectedMap.id}/configure`}
+                                        href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=configure`}
                                     >
                                         Configure map
                                     </Link>
                                 </Button>
                                 <Button asChild>
                                     <Link
-                                        href={`/settings/worlds/maps/${selectedMap.id}/edit`}
+                                        href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=nodes`}
                                     >
                                         Configure nodes
                                     </Link>
@@ -97,7 +97,7 @@ export function WorldMapManagementPanel({
                             {selectedMap.nodes.map((node) => (
                                 <Link
                                     className="rounded-lg border border-slate-200 px-3 py-2 text-sm transition hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20"
-                                    href={`/settings/worlds/nodes/${node.id}/activities`}
+                                    href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&node=${node.id}&worldView=nodes`}
                                     key={node.id}
                                 >
                                     <span className="block font-semibold">

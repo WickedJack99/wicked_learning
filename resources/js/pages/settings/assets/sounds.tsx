@@ -52,8 +52,10 @@ const iconOptions = [
 ];
 
 export default function AdminSoundsPage({
+    embedded = false,
     sounds,
 }: {
+    embedded?: boolean;
     sounds: LearningSound[];
 }) {
     const querySelectedSoundId = readSelectedSoundId();
@@ -147,25 +149,41 @@ export default function AdminSoundsPage({
 
     return (
         <>
-            <Head title="Edit sounds" />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
-                    <header className="shrink-0 pb-5">
-                        <Button asChild className="mb-4" variant="ghost">
-                            <Link href="/settings">
-                                <ArrowLeft className="size-4" />
-                                Settings
-                            </Link>
-                        </Button>
-                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                            Sounds
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            Reusable sound library
-                        </h1>
-                    </header>
+            {!embedded ? <Head title="Edit sounds" /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden text-slate-950 dark:text-slate-100',
+                    embedded
+                        ? 'bg-transparent'
+                        : 'bg-slate-100 dark:bg-[#0b1117]',
+                )}
+            >
+                <div
+                    className={cn(
+                        'mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24',
+                        embedded && 'max-w-none px-0 pt-0 pb-0',
+                    )}
+                >
+                    {!embedded ? (
+                        <header className="shrink-0 pb-5">
+                            <Button asChild className="mb-4" variant="ghost">
+                                <Link href="/settings">
+                                    <ArrowLeft className="size-4" />
+                                    Settings
+                                </Link>
+                            </Button>
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Sounds
+                            </p>
+                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                Reusable sound library
+                            </h1>
+                        </header>
+                    ) : null}
 
-                    <SettingsGroupedPane>
+                    <SettingsGroupedPane
+                        className={embedded ? 'shadow-none' : undefined}
+                    >
                         <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
                             <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/30">
                                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

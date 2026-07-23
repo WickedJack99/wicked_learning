@@ -84,7 +84,10 @@ test('admins can update public presentation settings', function () {
                 'custom' => [],
             ],
         ])
-        ->assertRedirect(route('settings.presentation.edit'));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'public',
+        ]));
 
     $settings = PlatformPresentationSetting::current();
 

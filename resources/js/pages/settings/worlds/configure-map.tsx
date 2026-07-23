@@ -17,7 +17,10 @@ import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
 import {
+    SettingsConfigurationLayout,
     SettingsConfigurationShell,
+    SettingsContentPane,
+    SettingsPanelHeader,
     SettingsSectionButton,
     SettingsSidebar,
 } from '@/components/settings-configuration-shell';
@@ -249,11 +252,13 @@ const visualFieldGroups: Record<
 
 export default function ConfigureMap({
     accessGroups,
+    embedded = false,
     canDeleteWorldMaps,
     editableMap,
     learningGroups,
 }: {
     accessGroups: AccessGroup[];
+    embedded?: boolean;
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
     learningGroups: LearningGroupOption[];
@@ -352,87 +357,114 @@ export default function ConfigureMap({
         }
     };
 
+    const action =
+        mainSection !== 'delete' ? (
+            <Button
+                disabled={processing}
+                onClick={saveCurrentSection}
+                type="button"
+            >
+                <Save className="size-4" />
+                {processing ? 'Saving...' : 'Save changes'}
+            </Button>
+        ) : null;
+    const sidebar = (
+        <SettingsSidebar>
+            {mainSections.map((section) => (
+                <SettingsSectionButton
+                    active={mainSection === section.id}
+                    danger={section.danger}
+                    icon={section.icon}
+                    id={section.id}
+                    key={section.id}
+                    label={section.label}
+                    onSelect={setMainSection}
+                />
+            ))}
+        </SettingsSidebar>
+    );
+    const body = (
+        <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
+            {mainSection === 'details' ? (
+                <MapDetailsSection
+                    errors={errors}
+                    form={detailsForm}
+                    onChange={setDetailsForm}
+                    previewTheme={resolvedTheme}
+                />
+            ) : null}
+            {mainSection === 'visuals' ? (
+                <MapVisualsSection
+                    errors={errors}
+                    imageErrors={imageErrors}
+                    mode={mode}
+                    onImageUpload={uploadImage}
+                    onModeChange={setMode}
+                    onVisualSectionChange={setVisualSection}
+                    setForm={setVisualForm}
+                    theme={resolvedTheme}
+                    uploadingImageKey={uploadingImageKey}
+                    visualSection={visualSection}
+                    visualForm={visualForm}
+                />
+            ) : null}
+            {mainSection === 'access' ? (
+                <AccessSection
+                    accessGroups={accessGroups}
+                    editingGroupIds={editingGroupIds}
+                    errors={errors}
+                    learningGroups={learningGroups}
+                    roles={accessRoles}
+                    setEditingGroupIds={setEditingGroupIds}
+                    setRoles={setAccessRoles}
+                />
+            ) : null}
+            {mainSection === 'delete' ? (
+                <DeleteWorldSection
+                    canDelete={canDeleteWorldMaps}
+                    deleting={deleting}
+                    map={map}
+                    onDelete={() => setDeleteOpen(true)}
+                />
+            ) : null}
+        </div>
+    );
+
     return (
         <>
-            <Head title={`Configure ${map.title}`} />
-            <SettingsConfigurationShell
-                action={
-                    mainSection !== 'delete' ? (
-                        <Button
-                            disabled={processing}
-                            onClick={saveCurrentSection}
-                            type="button"
-                        >
-                            <Save className="size-4" />
-                            {processing ? 'Saving...' : 'Save changes'}
-                        </Button>
-                    ) : null
-                }
-                backHref={`/settings/worlds/maps/${map.id}/edit`}
-                backLabel="Back to map editor"
-                eyebrow={world.title}
-                sidebar={
-                    <SettingsSidebar>
-                        {mainSections.map((section) => (
-                            <SettingsSectionButton
-                                active={mainSection === section.id}
-                                danger={section.danger}
-                                icon={section.icon}
-                                id={section.id}
-                                key={section.id}
-                                label={section.label}
-                                onSelect={setMainSection}
+            {!embedded ? <Head title={`Configure ${map.title}`} /> : null}
+            {embedded ? (
+                <SettingsConfigurationLayout
+                    className="h-full p-4"
+                    sidebar={sidebar}
+                >
+                    <SettingsContentPane>
+                        <div className="grid h-full min-h-[34rem] grid-rows-[auto_minmax(0,1fr)] gap-4">
+                            <SettingsPanelHeader
+                                action={action}
+                                description={
+                                    map.description ??
+                                    'Configure map details, visuals and access.'
+                                }
+                                eyebrow={world.title}
+                                title={`Configure ${map.title}`}
                             />
-                        ))}
-                    </SettingsSidebar>
-                }
-                title={`Configure ${map.title}`}
-            >
-                <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
-                    {mainSection === 'details' ? (
-                        <MapDetailsSection
-                            errors={errors}
-                            form={detailsForm}
-                            onChange={setDetailsForm}
-                            previewTheme={resolvedTheme}
-                        />
-                    ) : null}
-                    {mainSection === 'visuals' ? (
-                        <MapVisualsSection
-                            errors={errors}
-                            imageErrors={imageErrors}
-                            mode={mode}
-                            onImageUpload={uploadImage}
-                            onModeChange={setMode}
-                            onVisualSectionChange={setVisualSection}
-                            setForm={setVisualForm}
-                            theme={resolvedTheme}
-                            uploadingImageKey={uploadingImageKey}
-                            visualSection={visualSection}
-                            visualForm={visualForm}
-                        />
-                    ) : null}
-                    {mainSection === 'access' ? (
-                        <AccessSection
-                            accessGroups={accessGroups}
-                            editingGroupIds={editingGroupIds}
-                            errors={errors}
-                            learningGroups={learningGroups}
-                            roles={accessRoles}
-                            setEditingGroupIds={setEditingGroupIds}
-                            setRoles={setAccessRoles}
-                        />
-                    ) : null}
-                    {mainSection === 'delete' ? (
-                        <DeleteWorldSection
-                            canDelete={canDeleteWorldMaps}
-                            deleting={deleting}
-                            map={map}
-                            onDelete={() => setDeleteOpen(true)}
-                        />
-                    ) : null}
-                </div>
-            </SettingsConfigurationShell>
+                            {body}
+                        </div>
+                    </SettingsContentPane>
+                </SettingsConfigurationLayout>
+            ) : (
+                <SettingsConfigurationShell
+                    action={action}
+                    backHref={`/settings?panel=admin-world-builder&map=${map.id}&worldView=nodes`}
+                    backLabel="Back to map editor"
+                    eyebrow={world.title}
+                    sidebar={sidebar}
+                    title={`Configure ${map.title}`}
+                >
+                    {body}
+                </SettingsConfigurationShell>
+            )}
             <Dialog
                 onOpenChange={(open) => {
                     if (!open && !deleting) {

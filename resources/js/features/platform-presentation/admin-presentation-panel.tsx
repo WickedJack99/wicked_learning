@@ -434,7 +434,8 @@ export function AdminPresentationPanel({
             `/settings/info-pages/${key}`,
             {
                 markdown: markdownDrafts[key],
-                redirect_to: '/settings?panel=admin-presentation',
+                redirect_to:
+                    '/settings?panel=admin-presentation-localization&presentation=public',
             },
             {
                 preserveScroll: true,
@@ -485,8 +486,8 @@ export function AdminPresentationPanel({
                             </h3>
                             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                 Use a public asset path such as
-                                `/images/characters/mentor-calm.png` or an external
-                                image URL.
+                                `/images/characters/mentor-calm.png` or an
+                                external image URL.
                             </p>
                         </div>
                         <div className="grid gap-4">
@@ -1086,7 +1087,7 @@ function PresentationSectionSwitcher({
     return (
         <div
             aria-label="Presentation settings sections"
-            className="mx-auto flex w-fit items-center gap-1 rounded-2xl border border-slate-200 bg-white/88 p-1 shadow-sm dark:border-white/10 dark:bg-slate-950/82"
+            className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
             role="tablist"
         >
             {presentationSections.map((section) => {
@@ -1095,19 +1096,39 @@ function PresentationSectionSwitcher({
 
                 return (
                     <button
-                        aria-label={section.label}
                         aria-selected={isActive}
-                        className={
+                        className={`flex min-h-20 items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${
                             isActive
-                                ? 'grid size-10 place-items-center rounded-xl bg-cyan-600 text-white shadow-sm transition focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:bg-teal-300 dark:text-slate-950 dark:focus-visible:ring-teal-200'
-                                : 'grid size-10 place-items-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-teal-200'
-                        }
+                                ? 'border-[var(--settings-accent)] shadow-sm'
+                                : 'border-slate-200 text-slate-600 hover:border-[var(--settings-accent)] hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
+                        }`}
                         key={section.key}
                         onClick={() => onChange(section.key)}
-                        title={`${section.label} - ${section.description}`}
+                        role="tab"
+                        style={
+                            isActive
+                                ? {
+                                      background:
+                                          'var(--settings-accent, #2dd4bf)',
+                                      color: 'var(--settings-accent-foreground, #020617)',
+                                  }
+                                : undefined
+                        }
                         type="button"
                     >
-                        <Icon className="size-4" />
+                        <Icon className="mt-0.5 size-4 shrink-0" />
+                        <span className="min-w-0">
+                            <span className="block">{section.label}</span>
+                            <span
+                                className={`mt-1 block text-xs leading-5 ${
+                                    isActive
+                                        ? 'opacity-80'
+                                        : 'text-slate-500 dark:text-slate-400'
+                                }`}
+                            >
+                                {section.description}
+                            </span>
+                        </span>
                     </button>
                 );
             })}

@@ -4,25 +4,21 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Settings\Actions\UpdateColorPaletteSettings;
-use App\Settings\Queries\LoadColorPaletteSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class ColorPaletteController extends Controller
 {
     public function __construct(
-        private readonly LoadColorPaletteSettings $loadColorPalette,
         private readonly UpdateColorPaletteSettings $updateColorPalette,
     ) {}
 
-    public function edit(Request $request): Response
+    public function edit(Request $request): RedirectResponse
     {
-        return Inertia::render(
-            'settings/color-palette',
-            $this->loadColorPalette->handle($request->user()),
-        );
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'palette',
+        ]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -37,6 +33,9 @@ class ColorPaletteController extends Controller
 
         $this->updateColorPalette->handle($request->user(), $data);
 
-        return redirect()->route('settings.color-palette.edit');
+        return to_route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'palette',
+        ]);
     }
 }

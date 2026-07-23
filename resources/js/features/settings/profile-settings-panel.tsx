@@ -4,13 +4,14 @@ import { useState } from 'react';
 import type { ComponentProps } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import InputError from '@/components/input-error';
+import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { send } from '@/routes/verification';
-import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { User } from '@/types';
 
 type ProfileSettingsPanelProps = {
@@ -69,26 +70,17 @@ export function ProfileSettingsPanel({
     return (
         <div className="grid gap-5">
             <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-                <div>
-                    <p
-                        className="text-xs font-medium tracking-[0.18em] uppercase"
-                        style={{ color: 'var(--settings-accent)' }}
-                    >
-                        {t('settings.personal.profile.eyebrow', 'Account')}
-                    </p>
-                    <h2 className="mt-2 text-xl font-semibold">
-                        {t(
-                            'settings.personal.profile.title',
-                            'Profile details',
-                        )}
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        {t(
-                            'settings.personal.profile.description',
-                            'Update account details and the public identity shown to other people later on.',
-                        )}
-                    </p>
-                </div>
+                <SettingsPanelHeader
+                    description={t(
+                        'settings.personal.profile.description',
+                        'Update account details and the public identity shown to other people later on.',
+                    )}
+                    eyebrow={t('settings.personal.profile.eyebrow', 'Account')}
+                    title={t(
+                        'settings.personal.profile.title',
+                        'Profile details',
+                    )}
+                />
 
                 <Form
                     {...ProfileController.update.form()}
@@ -261,10 +253,7 @@ function ProfileImageField({
                 </span>
                 <div className="min-w-0">
                     <Label htmlFor="profile-image">
-                        {t(
-                            'settings.personal.profile.image',
-                            'Profile image',
-                        )}
+                        {t('settings.personal.profile.image', 'Profile image')}
                     </Label>
                     <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                         {t(

@@ -26,17 +26,68 @@ test('admin users can see the world graph with portal links', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get(route('settings.worlds.index'))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/worlds/index')
-            ->where('canDeleteWorldMaps', true)
+            ->component('settings/index')
             ->where('worldGraph.world.slug', 'demo-learning-world')
             ->has('worldGraph.maps', 2)
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')
             ->where('worldGraph.portalLinks.0.targetNode.slug', 'return-gate')
+        );
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.index'))
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-world-builder',
+        ]));
+});
+
+test('admin users can open world builder map configuration and node inside settings workspace', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'configure',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/index')
+            ->where('selectedWorldMap.canDeleteWorldMaps', true)
+            ->where('selectedWorldMap.editableMap.map.slug', 'first-sector')
+            ->has('selectedWorldMap.learningGroups')
+        );
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'node' => $node->id,
+            'worldView' => 'nodes',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/index')
+            ->where('selectedWorldMap.editableMap.map.slug', 'first-sector')
+            ->where('selectedWorldNode.activityGraph.map.slug', 'first-sector')
+            ->where('selectedWorldNode.activityGraph.node.slug', 'signal-gate')
+            ->has('selectedWorldNode.activityGraph.activities', 6)
+            ->where('selectedWorldNode.activityGraph.activities.1.slug', 'guided-signal-dialogue')
+            ->where('selectedWorldNode.activityGraph.activities.1.type', 'npc_dialogue')
+            ->has('selectedWorldNode.activityGraph.transitions', 6)
+            ->has('selectedWorldNode.activityGraph.portalCandidates')
+            ->has('selectedWorldNode.activityGraph.activityTypes')
         );
 });
 
@@ -138,12 +189,11 @@ test('admin users can open the hex map editor', function () {
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.maps.edit', $map))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/worlds/edit-map')
-            ->where('editableMap.map.slug', 'first-sector')
-            ->has('editableMap.map.nodes', 4)
-        );
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'nodes',
+        ]));
 });
 
 test('admin users can open the full map configuration screen', function () {
@@ -155,13 +205,11 @@ test('admin users can open the full map configuration screen', function () {
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.maps.configure', $map))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/worlds/configure-map')
-            ->where('canDeleteWorldMaps', true)
-            ->where('editableMap.map.slug', 'first-sector')
-            ->has('accessGroups')
-        );
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'configure',
+        ]));
 });
 
 test('admin users can delete map tiles and related authoring state', function () {
@@ -311,18 +359,26 @@ test('admin users can manage map access permissions', function () {
     $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
 
     $this->actingAs($admin)
-        ->get(route('settings.worlds.maps.edit', $map))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'nodes',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('editableMap.map.accessRoles', [User::ROLE_USER, User::ROLE_ADMIN])
-            ->where('accessGroups.0.slug', 'public')
+            ->where('selectedWorldMap.editableMap.map.accessRoles', [User::ROLE_USER, User::ROLE_ADMIN])
+            ->where('selectedWorldMap.accessGroups.0.slug', 'public')
         );
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.maps.access.update', $map), [
             'access_roles' => ['public', User::ROLE_ADMIN],
         ])
-        ->assertRedirect(route('settings.worlds.maps.edit', $map));
+        ->assertRedirect(route('settings.index', [
+            'map' => $map->id,
+            'panel' => 'admin-world-builder',
+            'worldView' => 'nodes',
+        ]));
 
     $map->refresh();
 
@@ -352,17 +408,12 @@ test('admin users can open the activity graph editor', function () {
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.nodes.activities.edit', $node))
-        ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/worlds/edit-node-activities')
-            ->where('activityGraph.node.slug', 'signal-gate')
-            ->has('activityGraph.activities', 6)
-            ->where('activityGraph.activities.1.slug', 'guided-signal-dialogue')
-            ->where('activityGraph.activities.1.type', 'npc_dialogue')
-            ->has('activityGraph.transitions', 6)
-            ->has('activityGraph.portalCandidates')
-            ->has('activityGraph.activityTypes')
-        );
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $node->map->id,
+            'node' => $node->id,
+            'worldView' => 'nodes',
+        ]));
 });
 
 test('admin users can persist activity graph special node positions', function () {
@@ -387,11 +438,16 @@ test('admin users can persist activity graph special node positions', function (
     ]);
 
     $this->actingAs($admin)
-        ->get(route('settings.worlds.nodes.activities.edit', $node))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $node->map->id,
+            'node' => $node->id,
+            'worldView' => 'nodes',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('activityGraph.node.graphLayout.start.x', -360)
-            ->where('activityGraph.node.graphLayout.start.y', 140)
+            ->where('selectedWorldNode.activityGraph.node.graphLayout.start.x', -360)
+            ->where('selectedWorldNode.activityGraph.node.graphLayout.start.y', 140)
         );
 });
 
@@ -550,10 +606,15 @@ test('admin users configure portal destinations from portal activities', functio
         ->and($targetActivity->config['portalWaitForEnter'])->toBeFalse();
 
     $this->actingAs($admin)
-        ->get(route('settings.worlds.nodes.activities.edit', $sourceNode))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $sourceNode->map->id,
+            'node' => $sourceNode->id,
+            'worldView' => 'nodes',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('activityGraph.portalCandidates')
+            ->has('selectedWorldNode.activityGraph.portalCandidates')
         );
 });
 
@@ -1091,13 +1152,18 @@ test('admin users can configure multiple independent start routes for a node', f
         ->and($easyStart->image_light)->toBe('/images/routes/easy-light.svg');
 
     $this->actingAs($admin)
-        ->get(route('settings.worlds.nodes.activities.edit', $node))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $node->map->id,
+            'node' => $node->id,
+            'worldView' => 'nodes',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('activityGraph.node.startRoutes', 3)
-            ->where('activityGraph.node.startRoutes.1.buttonColorDark', '#0f172a')
-            ->where('activityGraph.node.startRoutes.1.buttonBorderColorLight', '#e2e8f0')
-            ->where('activityGraph.node.startRoutes.1.imageDark', '/images/routes/easy-dark.svg')
+            ->has('selectedWorldNode.activityGraph.node.startRoutes', 3)
+            ->where('selectedWorldNode.activityGraph.node.startRoutes.1.buttonColorDark', '#0f172a')
+            ->where('selectedWorldNode.activityGraph.node.startRoutes.1.buttonBorderColorLight', '#e2e8f0')
+            ->where('selectedWorldNode.activityGraph.node.startRoutes.1.imageDark', '/images/routes/easy-dark.svg')
         );
 
     $this->actingAs($admin)
@@ -1387,6 +1453,20 @@ test('admin users can edit map details', function () {
 
     expect($map->title)->toBe('First Clearing')
         ->and($map->description)->toBe('A quiet learning landscape for active practice.');
+
+    $workspaceUrl = route('settings.index', [
+        'panel' => 'admin-world-builder',
+        'map' => $map->id,
+        'worldView' => 'configure',
+    ]);
+
+    $this->actingAs($admin)
+        ->from($workspaceUrl)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'title' => 'First Clearing',
+            'description' => 'Still inside the settings workspace.',
+        ])
+        ->assertRedirect($workspaceUrl);
 });
 
 test('admin users can edit map visual theme variants', function () {

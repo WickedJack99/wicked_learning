@@ -67,7 +67,7 @@ class PlatformInfoPageController extends Controller
 
         $data = $request->validate([
             'markdown' => ['required', 'string', 'max:50000'],
-            'redirect_to' => ['nullable', 'string', Rule::in(['/settings/about', '/settings/imprint', '/settings/data-protection', '/settings?panel=admin-presentation'])],
+            'redirect_to' => ['nullable', 'string', Rule::in(['/settings/about', '/settings/imprint', '/settings/data-protection', '/settings?panel=admin-presentation-localization&presentation=public'])],
         ]);
 
         PlatformInfoPage::query()->updateOrCreate(

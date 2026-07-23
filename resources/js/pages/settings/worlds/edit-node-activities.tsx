@@ -413,7 +413,7 @@ export default function EditNodeActivities({
                                 variant="ghost"
                             >
                                 <Link
-                                    href={`/settings/worlds/maps/${activityGraph.map.id}/edit`}
+                                    href={`/settings?panel=admin-world-builder&map=${activityGraph.map.id}`}
                                 >
                                     <ArrowLeft className="size-4" />
                                     Edit map

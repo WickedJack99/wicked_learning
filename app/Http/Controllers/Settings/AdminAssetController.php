@@ -8,10 +8,8 @@ use App\Learning\Actions\CreateLearningTool;
 use App\Learning\Actions\UpdateLearningSound;
 use App\Learning\Actions\UpdateLearningTool;
 use App\Learning\Queries\LoadEditableSounds;
-use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadReusableImageAssets;
 use App\Learning\Serializers\AdminSoundSerializer;
-use App\Learning\Serializers\AdminToolSerializer;
 use App\Learning\Services\ReusableMediaAssetManager;
 use App\Learning\Services\SoundMediaUploadService;
 use App\Learning\Services\ToolMediaUploadService;
@@ -22,15 +20,11 @@ use App\Models\LearningTool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class AdminAssetController extends Controller
 {
     public function __construct(
-        private readonly LoadEditableTools $loadEditableTools,
         private readonly LoadEditableSounds $loadEditableSounds,
-        private readonly AdminToolSerializer $toolSerializer,
         private readonly AdminSoundSerializer $soundSerializer,
         private readonly AdminToolRules $rules,
         private readonly AdminSoundRules $soundRules,
@@ -44,33 +38,24 @@ class AdminAssetController extends Controller
         private readonly ReusableMediaAssetManager $mediaAssetManager,
     ) {}
 
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        return Inertia::render('settings/assets/index');
+        return $this->redirectToAssets('visuals');
     }
 
-    public function tools(): Response
+    public function tools(): RedirectResponse
     {
-        return Inertia::render('settings/assets/tools', [
-            'tools' => $this->loadEditableTools
-                ->handle()
-                ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
-                ->all(),
-        ]);
+        return $this->redirectToAssets('tools');
     }
 
-    public function media(): Response
+    public function media(): RedirectResponse
     {
-        return Inertia::render('settings/assets/media', [
-            'assets' => $this->loadReusableImageAssets->handle(),
-        ]);
+        return $this->redirectToAssets('visuals');
     }
 
-    public function sounds(): Response
+    public function sounds(): RedirectResponse
     {
-        return Inertia::render('settings/assets/sounds', [
-            'sounds' => $this->soundPayload(),
-        ]);
+        return $this->redirectToAssets('sounds');
     }
 
     public function storeTool(Request $request): RedirectResponse
@@ -79,7 +64,7 @@ class AdminAssetController extends Controller
             $request->validate($this->rules->store()),
         );
 
-        return redirect()->route('settings.assets.tools', ['tool' => $tool->id]);
+        return $this->redirectToAssets('tools', ['tool' => $tool->id]);
     }
 
     public function updateTool(Request $request, LearningTool $tool): RedirectResponse
@@ -89,7 +74,7 @@ class AdminAssetController extends Controller
             $request->validate($this->rules->update($tool)),
         );
 
-        return redirect()->route('settings.assets.tools', ['tool' => $tool->id]);
+        return $this->redirectToAssets('tools', ['tool' => $tool->id]);
     }
 
     public function uploadToolMedia(Request $request): JsonResponse
@@ -109,7 +94,7 @@ class AdminAssetController extends Controller
             $request->validate($this->soundRules->store()),
         );
 
-        return redirect()->route('settings.assets.sounds', ['sound' => $sound->id]);
+        return $this->redirectToAssets('sounds', ['sound' => $sound->id]);
     }
 
     public function updateSound(Request $request, LearningSound $sound): RedirectResponse
@@ -119,14 +104,14 @@ class AdminAssetController extends Controller
             $request->validate($this->soundRules->update($sound)),
         );
 
-        return redirect()->route('settings.assets.sounds', ['sound' => $sound->id]);
+        return $this->redirectToAssets('sounds', ['sound' => $sound->id]);
     }
 
     public function destroySound(LearningSound $sound): RedirectResponse
     {
         $sound->delete();
 
-        return redirect()->route('settings.assets.sounds');
+        return $this->redirectToAssets('sounds');
     }
 
     public function uploadSoundMedia(Request $request): JsonResponse
@@ -144,7 +129,7 @@ class AdminAssetController extends Controller
 
         $this->mediaAssetManager->upload($data['file'] ?? null);
 
-        return redirect()->route('settings.assets.media');
+        return $this->redirectToAssets('visuals');
     }
 
     public function replaceMedia(Request $request): RedirectResponse
@@ -159,7 +144,7 @@ class AdminAssetController extends Controller
             $data['file'] ?? null,
         );
 
-        return redirect()->route('settings.assets.media');
+        return $this->redirectToAssets('visuals');
     }
 
     public function destroyMedia(Request $request): RedirectResponse
@@ -170,7 +155,7 @@ class AdminAssetController extends Controller
 
         $this->mediaAssetManager->deleteAsset($data['url']);
 
-        return redirect()->route('settings.assets.media');
+        return $this->redirectToAssets('visuals');
     }
 
     public function reusableImages(Request $request): JsonResponse
@@ -204,5 +189,17 @@ class AdminAssetController extends Controller
             ->handle($search)
             ->map(fn (LearningSound $sound): array => $this->soundSerializer->serialize($sound))
             ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function redirectToAssets(string $asset, array $extra = []): RedirectResponse
+    {
+        return to_route('settings.index', [
+            'panel' => 'admin-assets-world-objects',
+            'asset' => $asset,
+            ...$extra,
+        ]);
     }
 }

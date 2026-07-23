@@ -9,6 +9,7 @@ import {
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import type { ConfigThemeMode } from '@/components/config-mode-switch';
 import {
+    SettingsConfigurationLayout,
     SettingsConfigurationShell,
     SettingsSectionButton,
     SettingsSidebar,
@@ -34,7 +35,7 @@ type ColorPaletteMap = {
     title: string;
 };
 
-type ColorPaletteProps = {
+export type ColorPaletteProps = {
     canUpdate: {
         journal: boolean;
         maps: boolean;
@@ -46,6 +47,10 @@ type ColorPaletteProps = {
     } | null;
     maps: ColorPaletteMap[];
     publicPresentation: PublicPresentationSettings | null;
+};
+
+type ColorPaletteSettingsProps = ColorPaletteProps & {
+    embedded?: boolean;
 };
 
 type PaletteSection = 'presentation' | 'journal' | 'maps';
@@ -160,10 +165,11 @@ const mapFieldGroups: Array<{
 
 export default function ColorPaletteSettings({
     canUpdate,
+    embedded = false,
     journal,
     maps,
     publicPresentation,
-}: ColorPaletteProps) {
+}: ColorPaletteSettingsProps) {
     const [section, setSection] = useState<PaletteSection>(
         publicPresentation ? 'presentation' : journal ? 'journal' : 'maps',
     );
@@ -208,106 +214,125 @@ export default function ColorPaletteSettings({
         });
     }
 
+    const saveButton = (
+        <Button disabled={saving} onClick={save} type="button">
+            <Save className="size-4" />
+            {saving ? 'Saving...' : 'Save changes'}
+        </Button>
+    );
+
+    const sidebar = (
+        <SettingsSidebar>
+            {presentationDraft ? (
+                <SettingsSectionButton
+                    active={section === 'presentation'}
+                    description="Welcome, auth and public information colors."
+                    icon={Sparkles}
+                    id="presentation"
+                    label="Public presentation"
+                    onSelect={setSection}
+                />
+            ) : null}
+            {journalThemeDraft ? (
+                <SettingsSectionButton
+                    active={section === 'journal'}
+                    description="Journal shell, text, buttons and selected pages."
+                    icon={BookOpen}
+                    id="journal"
+                    label="Journal"
+                    onSelect={setSection}
+                />
+            ) : null}
+            {mapDrafts.length > 0 ? (
+                <SettingsSectionButton
+                    active={section === 'maps'}
+                    description="Map controls, panels and navigation colors."
+                    icon={Map}
+                    id="maps"
+                    label="Map visuals"
+                    onSelect={setSection}
+                />
+            ) : null}
+        </SettingsSidebar>
+    );
+
+    const content = (
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
+                <div>
+                    <h2 className="text-xl font-semibold">
+                        {sectionTitle(section)}
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Edit color picker values across menus from one place.
+                        The original menus remain available for detailed
+                        configuration and previews.
+                    </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    {embedded ? saveButton : null}
+                    <ConfigModeSwitch
+                        mode={mode}
+                        onChange={setMode}
+                        size="large"
+                    />
+                </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
+                {section === 'presentation' && presentationDraft ? (
+                    <PublicPresentationPalette
+                        availableColors={availableColors}
+                        canUpdate={canUpdate.presentation}
+                        mode={mode}
+                        onChange={setPresentationDraft}
+                        presentation={presentationDraft}
+                    />
+                ) : null}
+                {section === 'journal' && journalThemeDraft ? (
+                    <JournalPalette
+                        availableColors={availableColors}
+                        canUpdate={canUpdate.journal}
+                        mode={mode}
+                        onChange={setJournalThemeDraft}
+                        theme={journalThemeDraft}
+                    />
+                ) : null}
+                {section === 'maps' && selectedMap ? (
+                    <MapPalette
+                        availableColors={availableColors}
+                        canUpdate={canUpdate.maps}
+                        group={selectedMapGroup}
+                        map={selectedMap}
+                        maps={mapDrafts}
+                        mode={mode}
+                        onGroupChange={setSelectedMapGroup}
+                        onMapChange={setSelectedMapId}
+                        onMapsChange={setMapDrafts}
+                    />
+                ) : null}
+            </div>
+        </div>
+    );
+
+    if (embedded) {
+        return (
+            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+                {content}
+            </SettingsConfigurationLayout>
+        );
+    }
+
     return (
         <>
             <Head title="Color palette" />
             <SettingsConfigurationShell
-                action={
-                    <Button disabled={saving} onClick={save} type="button">
-                        <Save className="size-4" />
-                        {saving ? 'Saving...' : 'Save changes'}
-                    </Button>
-                }
+                action={saveButton}
                 eyebrow="Administration"
-                sidebar={
-                    <SettingsSidebar>
-                        {presentationDraft ? (
-                            <SettingsSectionButton
-                                active={section === 'presentation'}
-                                description="Welcome, auth and public information colors."
-                                icon={Sparkles}
-                                id="presentation"
-                                label="Public presentation"
-                                onSelect={setSection}
-                            />
-                        ) : null}
-                        {journalThemeDraft ? (
-                            <SettingsSectionButton
-                                active={section === 'journal'}
-                                description="Journal shell, text, buttons and selected pages."
-                                icon={BookOpen}
-                                id="journal"
-                                label="Journal"
-                                onSelect={setSection}
-                            />
-                        ) : null}
-                        {mapDrafts.length > 0 ? (
-                            <SettingsSectionButton
-                                active={section === 'maps'}
-                                description="Map controls, panels and navigation colors."
-                                icon={Map}
-                                id="maps"
-                                label="Map visuals"
-                                onSelect={setSection}
-                            />
-                        ) : null}
-                    </SettingsSidebar>
-                }
+                sidebar={sidebar}
                 title="Color palette"
             >
-                <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                    <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
-                        <div>
-                            <h2 className="text-xl font-semibold">
-                                {sectionTitle(section)}
-                            </h2>
-                            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                Edit color picker values across menus from one
-                                place. The original menus remain available for
-                                detailed configuration and previews.
-                            </p>
-                        </div>
-                        <ConfigModeSwitch
-                            mode={mode}
-                            onChange={setMode}
-                            size="large"
-                        />
-                    </div>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
-                        {section === 'presentation' && presentationDraft ? (
-                            <PublicPresentationPalette
-                                availableColors={availableColors}
-                                canUpdate={canUpdate.presentation}
-                                mode={mode}
-                                onChange={setPresentationDraft}
-                                presentation={presentationDraft}
-                            />
-                        ) : null}
-                        {section === 'journal' && journalThemeDraft ? (
-                            <JournalPalette
-                                availableColors={availableColors}
-                                canUpdate={canUpdate.journal}
-                                mode={mode}
-                                onChange={setJournalThemeDraft}
-                                theme={journalThemeDraft}
-                            />
-                        ) : null}
-                        {section === 'maps' && selectedMap ? (
-                            <MapPalette
-                                availableColors={availableColors}
-                                canUpdate={canUpdate.maps}
-                                group={selectedMapGroup}
-                                map={selectedMap}
-                                maps={mapDrafts}
-                                mode={mode}
-                                onGroupChange={setSelectedMapGroup}
-                                onMapChange={setSelectedMapId}
-                                onMapsChange={setMapDrafts}
-                            />
-                        ) : null}
-                    </div>
-                </div>
+                {content}
             </SettingsConfigurationShell>
         </>
     );

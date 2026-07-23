@@ -7,7 +7,6 @@ use App\Ai\Actions\DeleteAiProviderCredential;
 use App\Ai\Actions\SaveAiAgentTemplate;
 use App\Ai\Actions\SaveAiProviderCredential;
 use App\Ai\Actions\TestAiAgentTemplate;
-use App\Ai\Queries\LoadAiSettings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\SaveAiAgentTemplateRequest;
 use App\Http\Requests\Settings\SaveAiProviderCredentialRequest;
@@ -16,14 +15,12 @@ use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class AdminAiController extends Controller
 {
-    public function index(LoadAiSettings $settings): Response
+    public function index(): RedirectResponse
     {
-        return Inertia::render('settings/ai', $settings->handle());
+        return $this->redirectToSettings();
     }
 
     public function storeCredential(
@@ -32,7 +29,7 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $save->handle($request->validated());
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('providers');
     }
 
     public function updateCredential(
@@ -42,7 +39,7 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $save->handle($request->validated(), $credential);
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('providers');
     }
 
     public function destroyCredential(
@@ -51,7 +48,7 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $delete->handle($credential);
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('providers');
     }
 
     public function storeTemplate(
@@ -60,7 +57,7 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $save->handle($request->validated(), $request->user());
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('templates');
     }
 
     public function updateTemplate(
@@ -70,7 +67,7 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $save->handle($request->validated(), $request->user(), $template);
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('templates');
     }
 
     public function testTemplate(
@@ -90,6 +87,14 @@ class AdminAiController extends Controller
     ): RedirectResponse {
         $delete->handle($template);
 
-        return to_route('settings.ai.index');
+        return $this->redirectToSettings('templates');
+    }
+
+    private function redirectToSettings(string $section = 'providers'): RedirectResponse
+    {
+        return to_route('settings.index', [
+            'ai' => $section,
+            'panel' => 'admin-ai-integrations',
+        ]);
     }
 }

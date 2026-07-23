@@ -15,6 +15,7 @@ import { ColorOpacityField } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import type { ConfigThemeMode } from '@/components/config-mode-switch';
 import {
+    SettingsConfigurationLayout,
     SettingsConfigurationShell,
     SettingsSectionButton,
     SettingsSidebar,
@@ -33,8 +34,9 @@ import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 
-type Props = {
+export type JournalSettingsProps = {
     allowExpertAccessRequests: boolean;
+    embedded?: boolean;
     theme: JournalThemeSettings;
 };
 
@@ -126,8 +128,9 @@ const fieldsBySection: Record<
 /** Platform journal policy and visual configuration. */
 export default function JournalSettings({
     allowExpertAccessRequests,
+    embedded = false,
     theme,
-}: Props) {
+}: JournalSettingsProps) {
     const [section, setSection] = useState<JournalSection>('policy');
     const [configMode, setConfigMode] = useState<ConfigThemeMode>('dark');
     const [allowExpertAccess, setAllowExpertAccess] = useState(
@@ -183,81 +186,100 @@ export default function JournalSettings({
         }
     }
 
+    const saveButton = (
+        <Button disabled={isSaving} onClick={save} type="button">
+            <Save className="size-4" />
+            Save changes
+        </Button>
+    );
+
+    const sidebar = (
+        <SettingsSidebar>
+            {sections.map((item) => (
+                <SettingsSectionButton
+                    active={section === item.id}
+                    description={item.description}
+                    icon={item.icon}
+                    id={item.id}
+                    key={item.id}
+                    label={item.label}
+                    onSelect={setSection}
+                />
+            ))}
+        </SettingsSidebar>
+    );
+
+    const content = (
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
+                <div>
+                    <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
+                        {sections.find((item) => item.id === section)?.label ??
+                            'Journal'}
+                    </h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Configure learner journal behavior and visuals for the
+                        selected appearance mode.
+                    </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    {embedded ? saveButton : null}
+                    {section !== 'policy' ? (
+                        <ConfigModeSwitch
+                            mode={configMode}
+                            onChange={setConfigMode}
+                            size="large"
+                        />
+                    ) : null}
+                </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
+                {section === 'policy' ? (
+                    <PolicySection
+                        allowExpertAccess={allowExpertAccess}
+                        onChange={setAllowExpertAccess}
+                    />
+                ) : null}
+                {section === 'background' ? (
+                    <BackgroundSection
+                        mode={configMode}
+                        onChange={updateThemeMode}
+                        onUpload={uploadBackground}
+                        theme={activeMode}
+                        uploading={uploading}
+                    />
+                ) : null}
+                {section !== 'policy' && section !== 'background' ? (
+                    <ColorSection
+                        fields={fieldsBySection[section]}
+                        mode={configMode}
+                        onChange={updateThemeMode}
+                        theme={activeMode}
+                    />
+                ) : null}
+            </div>
+        </div>
+    );
+
+    if (embedded) {
+        return (
+            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+                {content}
+            </SettingsConfigurationLayout>
+        );
+    }
+
     return (
         <>
             <Head title="Journal settings" />
             <SettingsConfigurationShell
-                action={
-                    <Button disabled={isSaving} onClick={save} type="button">
-                        <Save className="size-4" />
-                        Save changes
-                    </Button>
-                }
+                action={saveButton}
                 eyebrow="Administration"
-                sidebar={
-                    <SettingsSidebar>
-                        {sections.map((item) => (
-                            <SettingsSectionButton
-                                active={section === item.id}
-                                description={item.description}
-                                icon={item.icon}
-                                id={item.id}
-                                key={item.id}
-                                label={item.label}
-                                onSelect={setSection}
-                            />
-                        ))}
-                    </SettingsSidebar>
-                }
+                sidebar={sidebar}
                 title="Journal"
             >
-                <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                    <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
-                        <div>
-                            <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                                {sections.find((item) => item.id === section)
-                                    ?.label ?? 'Journal'}
-                            </h2>
-                            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                Configure learner journal behavior and visuals
-                                for the selected appearance mode.
-                            </p>
-                        </div>
-                        {section !== 'policy' ? (
-                            <ConfigModeSwitch
-                                mode={configMode}
-                                onChange={setConfigMode}
-                                size="large"
-                            />
-                        ) : null}
-                    </div>
-
-                    <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
-                        {section === 'policy' ? (
-                            <PolicySection
-                                allowExpertAccess={allowExpertAccess}
-                                onChange={setAllowExpertAccess}
-                            />
-                        ) : null}
-                        {section === 'background' ? (
-                            <BackgroundSection
-                                mode={configMode}
-                                onChange={updateThemeMode}
-                                onUpload={uploadBackground}
-                                theme={activeMode}
-                                uploading={uploading}
-                            />
-                        ) : null}
-                        {section !== 'policy' && section !== 'background' ? (
-                            <ColorSection
-                                fields={fieldsBySection[section]}
-                                mode={configMode}
-                                onChange={updateThemeMode}
-                                theme={activeMode}
-                            />
-                        ) : null}
-                    </div>
-                </div>
+                {content}
             </SettingsConfigurationShell>
         </>
     );

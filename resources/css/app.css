@@ -183,6 +183,29 @@
 }
 
 @layer utilities {
+    .dark .settings-surface [data-slot='button'][data-variant='default'] {
+        border: 1px solid
+            color-mix(in srgb, var(--settings-accent, #2dd4bf) 42%, transparent);
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, #2dd4bf) 34%,
+            #0b1117
+        );
+        color: rgb(226 232 240);
+        box-shadow: none;
+    }
+
+    .dark
+        .settings-surface
+        [data-slot='button'][data-variant='default']:hover:not(:disabled) {
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, #2dd4bf) 44%,
+            #0b1117
+        );
+        color: rgb(248 250 252);
+    }
+
     @keyframes nav-inserted-item {
         0%,
         82% {

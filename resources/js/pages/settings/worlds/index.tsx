@@ -16,6 +16,7 @@ import {
     GitBranch,
     Map as MapIcon,
     Pencil,
+    SlidersHorizontal,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -34,14 +35,14 @@ import { Label } from '@/components/ui/label';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
-type WorldSummary = {
+export type WorldSummary = {
     description: string | null;
     id: number;
     slug: string;
     title: string;
 };
 
-type MapSummary = {
+export type MapSummary = {
     description: string | null;
     id: number;
     nodeCount: number;
@@ -50,14 +51,14 @@ type MapSummary = {
     title: string;
 };
 
-type NodeSummary = {
+export type NodeSummary = {
     description: string | null;
     id: number;
     slug: string;
     title: string;
 };
 
-type PortalLinkSummary = {
+export type PortalLinkSummary = {
     description: string | null;
     id: number;
     label: string | null;
@@ -69,13 +70,13 @@ type PortalLinkSummary = {
     targetNode: NodeSummary;
 };
 
-type PortalActivitySummary = {
+export type PortalActivitySummary = {
     id: number;
     title: string;
     type: string;
 };
 
-type WorldGraph = {
+export type WorldGraph = {
     maps: MapSummary[];
     portalLinks: PortalLinkSummary[];
     world: WorldSummary;
@@ -115,6 +116,43 @@ export default function AdminWorldIndex({
 }: {
     worldGraph: WorldGraph;
 }) {
+    return (
+        <>
+            <Head title="Edit World" />
+            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+                <div className="flex h-full flex-col px-4 pt-4 pb-24">
+                    <header className="mb-3 flex shrink-0 items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <div className="mb-2 flex items-center gap-2">
+                                <Button asChild size="sm" variant="ghost">
+                                    <Link href="/settings">
+                                        <ArrowLeft className="size-4" />
+                                        Settings
+                                    </Link>
+                                </Button>
+                            </div>
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                World editing
+                            </p>
+                            <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
+                                {worldGraph.world.title}
+                            </h1>
+                        </div>
+                        <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
+                            {worldGraph.world.description}
+                        </p>
+                    </header>
+
+                    <div className="min-h-0 flex-1">
+                        <WorldBuilderPanel worldGraph={worldGraph} />
+                    </div>
+                </div>
+            </main>
+        </>
+    );
+}
+
+export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
     const { resolvedAppearance } = useAppearance();
     const initialNodes = useMemo(
         () => buildGraphNodes(worldGraph.maps),
@@ -168,118 +206,89 @@ export default function AdminWorldIndex({
 
     return (
         <>
-            <Head title="Edit World" />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="flex h-full flex-col px-4 pt-4 pb-24">
-                    <header className="mb-3 flex shrink-0 items-center justify-between gap-4">
-                        <div className="min-w-0">
-                            <div className="mb-2 flex items-center gap-2">
-                                <Button asChild size="sm" variant="ghost">
-                                    <Link href="/settings">
-                                        <ArrowLeft className="size-4" />
-                                        Settings
-                                    </Link>
-                                </Button>
-                            </div>
-                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                World editing
-                            </p>
-                            <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
-                                {worldGraph.world.title}
-                            </h1>
-                        </div>
-                        <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
-                            {worldGraph.world.description}
-                        </p>
-                    </header>
-
-                    <section className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                        <div className="relative min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                            <ReactFlow
-                                colorMode={resolvedAppearance}
-                                edges={edges}
-                                fitView
-                                fitViewOptions={{ padding: 0.24 }}
-                                nodeTypes={{ mapNode: MapGraphNode }}
-                                nodes={nodes}
-                                onEdgeClick={(_, edge) => {
-                                    setSelectedPortal(edge.data ?? null);
-                                    setSelectedMap(null);
-                                }}
-                                onEdgeMouseEnter={(_, edge) =>
-                                    setHighlightedEdgeId(edge.id)
-                                }
-                                onEdgeMouseLeave={() =>
-                                    setHighlightedEdgeId(null)
-                                }
-                                onNodeClick={(_, node) => {
-                                    setSelectedMap(node.data.map);
-                                    setSelectedPortal(null);
-                                }}
-                                onNodeDragStart={(_, node) => {
-                                    setSelectedMap(node.data.map);
-                                    setSelectedPortal(null);
-                                }}
-                                onNodesChange={onNodesChange}
-                            >
-                                <Background gap={24} />
-                                <Controls />
-                                <MiniMap pannable zoomable />
-                            </ReactFlow>
-                        </div>
-
-                        <aside className="flex min-h-0 flex-col gap-4">
-                            <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]">
-                                {selectedPortal ? (
-                                    <PortalDetails portal={selectedPortal} />
-                                ) : selectedMap ? (
-                                    <MapDetails map={selectedMap} />
-                                ) : (
-                                    <EmptyDetails />
-                                )}
-                            </div>
-
-                            <div className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_34%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5 shadow-lg">
-                                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                    Prepare
-                                </p>
-                                <h2 className="mt-2 text-lg font-semibold">
-                                    New world map
-                                </h2>
-                                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                    Create a standalone map now and connect it
-                                    with portal tiles later.
-                                </p>
-                                <Button
-                                    className="mt-4 w-full bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
-                                    onClick={() => {
-                                        resetCreateForm();
-                                        setCreateOpen(true);
-                                    }}
-                                    type="button"
-                                >
-                                    <MapIcon className="size-4" />
-                                    Create world node
-                                </Button>
-                            </div>
-
-                            <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-white/10 dark:bg-[#111820]">
-                                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                    Travel
-                                </p>
-                                <h2 className="mt-2 text-lg font-semibold">
-                                    Portal routes
-                                </h2>
-                                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                    Routes are edited inside Entry portal
-                                    activities. Hover a graph edge to see the
-                                    connected portal activities.
-                                </p>
-                            </div>
-                        </aside>
-                    </section>
+            <section className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="relative min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+                    <ReactFlow
+                        colorMode={resolvedAppearance}
+                        edges={edges}
+                        fitView
+                        fitViewOptions={{ padding: 0.24 }}
+                        nodeTypes={{ mapNode: MapGraphNode }}
+                        nodes={nodes}
+                        onEdgeClick={(_, edge) => {
+                            setSelectedPortal(edge.data ?? null);
+                            setSelectedMap(null);
+                        }}
+                        onEdgeMouseEnter={(_, edge) =>
+                            setHighlightedEdgeId(edge.id)
+                        }
+                        onEdgeMouseLeave={() => setHighlightedEdgeId(null)}
+                        onNodeClick={(_, node) => {
+                            setSelectedMap(node.data.map);
+                            setSelectedPortal(null);
+                        }}
+                        onNodeDragStart={(_, node) => {
+                            setSelectedMap(node.data.map);
+                            setSelectedPortal(null);
+                        }}
+                        onNodesChange={onNodesChange}
+                    >
+                        <Background gap={24} />
+                        <Controls />
+                        <MiniMap pannable zoomable />
+                    </ReactFlow>
                 </div>
-            </main>
+
+                <aside className="flex min-h-0 flex-col gap-4">
+                    <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]">
+                        {selectedPortal ? (
+                            <PortalDetails portal={selectedPortal} />
+                        ) : selectedMap ? (
+                            <MapDetails map={selectedMap} />
+                        ) : (
+                            <EmptyDetails />
+                        )}
+                    </div>
+
+                    <div className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_34%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5 shadow-lg">
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                            Prepare
+                        </p>
+                        <h2 className="mt-2 text-lg font-semibold">
+                            New world map
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Create a standalone map now and connect it with
+                            portal tiles later.
+                        </p>
+                        <Button
+                            className="mt-4 w-full bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_86%,white)]"
+                            onClick={() => {
+                                resetCreateForm();
+                                setCreateOpen(true);
+                            }}
+                            type="button"
+                        >
+                            <MapIcon className="size-4" />
+                            Create world node
+                        </Button>
+                    </div>
+
+                    <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-white/10 dark:bg-[#111820]">
+                        <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                            Travel
+                        </p>
+                        <h2 className="mt-2 text-lg font-semibold">
+                            Portal routes
+                        </h2>
+                        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            Routes are edited inside Entry portal activities.
+                            Hover a graph edge to see the connected portal
+                            activities.
+                        </p>
+                    </div>
+                </aside>
+            </section>
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogContent className="sm:max-w-xl">
@@ -447,9 +456,19 @@ function MapDetails({ map }: { map: MapSummary }) {
                 <Detail label="Tiles" value={map.nodeCount.toString()} />
             </dl>
             <Button asChild className="mt-6 w-full">
-                <Link href={`/settings/worlds/maps/${map.id}/edit`}>
+                <Link
+                    href={`/settings?panel=admin-world-builder&map=${map.id}&worldView=nodes`}
+                >
                     <Pencil className="size-4" />
-                    Edit World
+                    Configure nodes
+                </Link>
+            </Button>
+            <Button asChild className="mt-2 w-full" variant="secondary">
+                <Link
+                    href={`/settings?panel=admin-world-builder&map=${map.id}&worldView=configure`}
+                >
+                    <SlidersHorizontal className="size-4" />
+                    Configure map
                 </Link>
             </Button>
         </div>
@@ -484,7 +503,7 @@ function PortalDetails({ portal }: { portal: PortalLinkSummary }) {
             {portal.sourceActivity ? (
                 <Button asChild className="mt-5 w-full" variant="outline">
                     <Link
-                        href={`/settings/worlds/nodes/${portal.sourceNode.id}/activities`}
+                        href={`/settings?panel=admin-world-builder&map=${portal.sourceMapId}&node=${portal.sourceNode.id}&worldView=nodes`}
                     >
                         <Pencil className="size-4" />
                         Edit source activity

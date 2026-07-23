@@ -1,28 +1,19 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    Bot,
     CalendarClock,
     Copy,
-    Database,
-    Info,
     KeyRound,
-    NotebookPen,
-    Map as MapIcon,
-    Palette,
     Plus,
     Shield,
     Trash2,
-    UserRound,
     Users,
     X,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import AppearanceTabs from '@/components/appearance-tabs';
 import {
     SettingsConfigurationLayout,
     SettingsContentPane,
+    SettingsPanelHeader,
 } from '@/components/settings-configuration-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,87 +33,88 @@ import type {
     AccessGroupUser,
     AccessLearningGroup,
 } from '@/features/settings/access-group-management-panel';
+import {
+    AssetsWorldObjectsPanel,
+    type AssetsWorldObjectsSection,
+    type AssetsWorldObjectsSettings,
+} from '@/features/settings/assets-world-objects-panel';
 import { AccessManagementNavigation } from '@/features/settings/access-management-navigation';
 import type { AccessManagementSection } from '@/features/settings/access-management-navigation';
+import {
+    PresentationLocalizationPanel,
+    type PresentationLocalizationSection,
+} from '@/features/settings/presentation-localization-panel';
+import {
+    LearningSupportPanel,
+    type LearningSupportSection,
+    type LearningSupportSettings,
+} from '@/features/settings/learning-support-panel';
+import type {
+    AccessFormState,
+    AccessRoleSummary,
+    AdminUser,
+    PermissionLevel,
+    PermissionResource,
+    PermissionScope,
+    RegistrationTokenSummary,
+    RoleFormState,
+    UserReference,
+    UserRole,
+} from '@/features/settings/settings-access-types';
+import {
+    readAccessSectionFromUrl,
+    writeAccessSectionToUrl,
+} from '@/features/settings/settings-access-navigation-state';
+import {
+    canOpenPanel,
+    findSettingsItemForPanel,
+    isActiveSettingsItem,
+    isSettingsPanelKey,
+    panelContent,
+    settingsSections,
+    type AccessCapability,
+    type SettingsListItem,
+    type SettingsPanelKey,
+    type SettingsTranslator,
+} from '@/features/settings/settings-navigation';
+import {
+    SettingsOverview,
+    SettingsPlaceholderPanel,
+    SettingsRouteGroupPanel,
+} from '@/features/settings/settings-panel-directory';
+import {
+    SettingsSidebarNavigation,
+    SettingsTopBar,
+    type SettingsNotificationSummary,
+    type SettingsWorldBreadcrumb,
+} from '@/features/settings/settings-workspace-shell';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
+import AiSettings, {
+    type AiSection,
+    type AiSettingsProps,
+} from '@/pages/settings/ai';
+import {
+    PersonalSettingsContent,
+    type PersonalSettingsProps,
+} from '@/pages/settings/personal';
+import type { ColorPaletteProps } from '@/pages/settings/color-palette';
+import type { Language } from '@/pages/settings/languages';
+import { WorldBuilderPanel, type WorldGraph } from '@/pages/settings/worlds';
+import ConfigureMap from '@/pages/settings/worlds/configure-map';
+import EditWorldMap, {
+    type AccessGroup as WorldMapAccessGroup,
+    type EditableMapPayload,
+} from '@/pages/settings/worlds/edit-map';
+import EditNodeActivities from '@/pages/settings/worlds/edit-node-activities';
+import type {
+    ActivityGraphPayload,
+    EditableItem,
+    EditableSound,
+    EditableTool,
+} from '@/pages/settings/worlds/edit-node-activity-types';
 import type { PublicPresentationSettings } from '@/theme/presentation';
-import type { User as AuthUser } from '@/types';
-
-type SettingsPanelKey =
-    | 'admin-access'
-    | 'admin-presentation'
-    | 'admin-users'
-    | 'admin-world'
-    | 'appearance'
-    | 'notifications'
-    | 'profile'
-    | 'security';
-
-type Translator = ReturnType<typeof usePlatformTranslation>;
-
-type UserReference = {
-    email: string;
-    id: number;
-    name: string;
-};
-
-type UserRole = string;
-
-type PermissionLevel = 'none' | 'ro' | 'ru' | 'rud';
-
-type PermissionScope = 'none' | 'own' | 'assigned' | 'group' | 'all';
-
-type AccessCapability = {
-    delete: boolean;
-    read: boolean;
-    update: boolean;
-};
-
-type PermissionResource = {
-    description: string;
-    group: string;
-    key: string;
-    label: string;
-};
-
-type AccessRoleSummary = {
-    description: string | null;
-    id: number;
-    is_system: boolean;
-    level: number;
-    name: string;
-    permissionScopes: Record<string, PermissionScope>;
-    permissions: Record<string, PermissionLevel>;
-    slug: string;
-};
-
-type RegistrationTokenSummary = {
-    created_at: string | null;
-    created_by: UserReference | null;
-    expires_at: string | null;
-    id: number;
-    is_expired: boolean;
-    is_used: boolean;
-    role: UserRole;
-    roles: UserRole[];
-    used_at: string | null;
-    used_by: UserReference | null;
-};
-
-type AdminUser = {
-    banned_until: string | null;
-    created_at: string | null;
-    email: string;
-    id: number;
-    is_currently_banned: boolean;
-    is_login_disabled: boolean;
-    login_disabled_at: string | null;
-    name: string;
-    registration_token: RegistrationTokenSummary | null;
-    role: UserRole;
-    roles: UserRole[];
-};
+import type { LearningTool, User as AuthUser } from '@/types';
 
 type SettingsIndexProps = {
     accessCapabilities: Record<string, AccessCapability>;
@@ -130,17 +122,55 @@ type SettingsIndexProps = {
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
+    aiSettings: AiSettingsProps | null;
+    assetsWorldObjects: AssetsWorldObjectsSettings;
     assignableRegistrationRoles: UserRole[];
     canAccessAdministration: boolean;
     canManageUsers: boolean;
+    colorPaletteSettings: ColorPaletteProps | null;
     createdRegistrationToken?: string | null;
+    languages: Language[];
+    learningSupportSettings: LearningSupportSettings;
+    personalSettings: PersonalSettingsProps;
     platformInfoPages: Partial<
         Record<PlatformInfoPageKey, PlatformInfoContent>
     >;
     permissionResources: PermissionResource[];
     publicPresentation: PublicPresentationSettings;
     registrationTokens: RegistrationTokenSummary[];
+    selectedWorldMap: SelectedWorldMap | null;
+    selectedWorldNode: SelectedWorldNode | null;
+    settingsNotifications: SettingsNotificationSummary;
+    worldGraph: WorldGraph | null;
 };
+
+type SelectedWorldMap = {
+    accessGroups: WorldMapAccessGroup[];
+    canDeleteWorldMaps: boolean;
+    editableMap: EditableMapPayload;
+    learningGroups: LearningGroupOption[];
+    tools: LearningTool[];
+};
+
+type LearningGroupOption = {
+    description: string | null;
+    id: number;
+    name: string;
+    slug: string;
+};
+
+type SelectedWorldNode = {
+    activityGraph: ActivityGraphPayload;
+    items: EditableItem[];
+    sounds: EditableSound[];
+    tools: EditableTool[];
+};
+
+type WorldBuilderView = 'configure' | 'nodes';
+type PresentationView = PresentationLocalizationSection;
+type AssetView = AssetsWorldObjectsSection;
+type LearningSupportView = LearningSupportSection;
+type AiView = AiSection;
 
 type PlatformInfoContent = {
     key: PlatformInfoPageKey;
@@ -148,293 +178,6 @@ type PlatformInfoContent = {
     updated_at: string | null;
     updated_by: UserReference | null;
 };
-
-type AccessFormState = {
-    bannedUntil: string;
-    loginDisabled: boolean;
-    roles: UserRole[];
-};
-
-type RoleFormState = {
-    description: string;
-    level: string;
-    name: string;
-    permissionScopes: Record<string, PermissionScope>;
-    permissions: Record<string, PermissionLevel>;
-    slug: string;
-};
-
-type SettingsListItem = {
-    children?: SettingsListLink[];
-    description: string;
-    descriptionKey?: string;
-    href?: string;
-    icon: LucideIcon;
-    key: string;
-    label: string;
-    labelKey?: string;
-    panel?: SettingsPanelKey;
-    resources?: string[];
-};
-
-type SettingsListLink = {
-    href: string;
-    label: string;
-    labelKey?: string;
-    resources?: string[];
-};
-
-const personalSettings: SettingsListItem[] = [
-    {
-        key: 'personal',
-        label: 'Personal',
-        labelKey: 'settings.navigation.personal',
-        description:
-            'Profile, appearance, language, notifications and security.',
-        descriptionKey: 'settings.navigation.personal.description',
-        icon: UserRound,
-        href: '/settings/personal',
-    },
-] satisfies SettingsListItem[];
-
-const informationSettings: SettingsListItem[] = [
-    {
-        key: 'about-and-legal',
-        label: 'About & legal',
-        labelKey: 'settings.navigation.about_and_legal',
-        description: 'Read about the platform, imprint and data protection.',
-        descriptionKey: 'settings.navigation.about_and_legal.description',
-        icon: Info,
-        href: '/settings/about',
-    },
-] satisfies SettingsListItem[];
-
-const adminSettings: SettingsListItem[] = [
-    {
-        key: 'admin-world-builder',
-        label: 'World Builder',
-        labelKey: 'settings.navigation.world_builder',
-        description: 'Worlds, maps, nodes, activity graphs and portal routes.',
-        descriptionKey: 'settings.navigation.world_builder.description',
-        icon: MapIcon,
-        href: '/settings/worlds',
-        resources: [
-            'world_maps',
-            'world_nodes',
-            'world_activities',
-            'world_map_access',
-        ],
-        children: [
-            {
-                label: 'World graph',
-                labelKey: 'settings.navigation.world_builder.world_graph',
-                href: '/settings/worlds',
-                resources: ['world_maps', 'world_nodes', 'world_activities'],
-            },
-        ],
-    },
-    {
-        key: 'admin-presentation-localization',
-        label: 'Presentation & Localization',
-        labelKey: 'settings.navigation.presentation_localization',
-        description:
-            'Public pages, authentication screens, cursors, colors and languages.',
-        descriptionKey:
-            'settings.navigation.presentation_localization.description',
-        icon: Palette,
-        href: '/settings/presentation',
-        resources: ['presentation', 'languages'],
-        children: [
-            {
-                label: 'Public presentation',
-                labelKey: 'settings.navigation.presentation',
-                href: '/settings/presentation',
-                resources: ['presentation'],
-            },
-            {
-                label: 'Color palette',
-                labelKey: 'settings.navigation.color_palette',
-                href: '/settings/color-palette',
-                resources: ['presentation', 'journal_settings', 'world_maps'],
-            },
-            {
-                label: 'Languages',
-                labelKey: 'settings.navigation.languages',
-                href: '/settings/languages',
-                resources: ['languages'],
-            },
-        ],
-    },
-    {
-        key: 'admin-assets-world-objects',
-        label: 'Assets & World Objects',
-        labelKey: 'settings.navigation.assets_world_objects',
-        description:
-            'Media, sounds, reusable tools, consumable items and future currencies.',
-        descriptionKey: 'settings.navigation.assets_world_objects.description',
-        icon: Database,
-        href: '/settings/assets',
-        resources: ['assets', 'sounds'],
-        children: [
-            {
-                label: 'Visuals',
-                labelKey: 'settings.navigation.visuals',
-                href: '/settings/assets/media',
-                resources: ['assets'],
-            },
-            {
-                label: 'Sounds',
-                labelKey: 'settings.navigation.sounds',
-                href: '/settings/assets/sounds',
-                resources: ['sounds'],
-            },
-            {
-                label: 'Tools',
-                labelKey: 'settings.assets.sections.tools',
-                href: '/settings/assets/tools',
-                resources: ['assets'],
-            },
-            {
-                label: 'Items',
-                labelKey: 'settings.assets.sections.items',
-                href: '/settings/assets/items',
-                resources: ['assets'],
-            },
-        ],
-    },
-    {
-        key: 'admin-access',
-        label: 'Access management',
-        labelKey: 'settings.navigation.access',
-        description:
-            'Users, registration tokens, roles, permissions and account access.',
-        descriptionKey: 'settings.navigation.access.description',
-        icon: Shield,
-        panel: 'admin-access',
-        resources: ['users', 'roles', 'groups', 'group_members'],
-        children: [
-            {
-                label: 'User management',
-                labelKey: 'settings.navigation.user_management',
-                href: '/settings?panel=admin-access&access=users',
-                resources: ['users'],
-            },
-            {
-                label: 'Role management',
-                labelKey: 'settings.navigation.role_management',
-                href: '/settings?panel=admin-access&access=roles',
-                resources: ['roles'],
-            },
-            {
-                label: 'Groups',
-                labelKey: 'settings.navigation.groups',
-                href: '/settings?panel=admin-access&access=groups',
-                resources: ['groups', 'group_members'],
-            },
-        ],
-    },
-    {
-        key: 'admin-learning-support',
-        label: 'Learning Support',
-        labelKey: 'settings.navigation.learning_support',
-        description:
-            'Journal settings, reflection support and future competence views.',
-        descriptionKey: 'settings.navigation.learning_support.description',
-        icon: NotebookPen,
-        href: '/settings/journal',
-        resources: ['journal_settings', 'journal_feedback'],
-        children: [
-            {
-                label: 'Admin Panel',
-                labelKey: 'settings.navigation.learning_support.admin_panel',
-                href: '/settings/admin-panel',
-                resources: ['journal_feedback', 'organization_moderation'],
-            },
-            {
-                label: 'Journal',
-                labelKey: 'settings.navigation.journal',
-                href: '/settings/journal',
-                resources: ['journal_settings'],
-            },
-        ],
-    },
-    {
-        key: 'admin-ai-integrations',
-        label: 'AI & Integrations',
-        labelKey: 'settings.navigation.ai_integrations',
-        description:
-            'Provider credentials, agent templates, instruction sets and future integrations.',
-        descriptionKey: 'settings.navigation.ai_integrations.description',
-        icon: Bot,
-        href: '/settings/ai',
-        resources: ['ai'],
-        children: [
-            {
-                label: 'AI support',
-                labelKey: 'settings.navigation.ai',
-                href: '/settings/ai',
-                resources: ['ai'],
-            },
-        ],
-    },
-] satisfies SettingsListItem[];
-
-const panelContent: Partial<
-    Record<
-        SettingsPanelKey,
-        {
-            body: string;
-            title: string;
-        }
-    >
-> = {
-    profile: {
-        title: 'Profile',
-        body: 'This will connect to the existing profile settings while keeping account management inside the platform shell.',
-    },
-    security: {
-        title: 'Security',
-        body: 'Password, passkeys and two-factor controls can move here without relying on a separate sidebar-heavy screen.',
-    },
-    appearance: {
-        title: 'Appearance',
-        body: 'Theme preference, reduced motion and future cursor/theme packs belong here.',
-    },
-    notifications: {
-        title: 'Notifications',
-        body: 'Future reminders should support learner autonomy, quiet hours and wellbeing instead of pressure loops.',
-    },
-    'admin-world': {
-        title: 'World content',
-        body: 'First admin target: create and edit maps, hex nodes, activity graphs, dialogue stages, questions and portals.',
-    },
-    'admin-access': {
-        title: 'Access management',
-        body: 'Manage users and configurable access roles.',
-    },
-};
-
-const settingsPanelKeys: SettingsPanelKey[] = [
-    'admin-access',
-    'admin-presentation',
-    'admin-users',
-    'admin-world',
-    'appearance',
-    'notifications',
-    'profile',
-    'security',
-];
-
-function isSettingsPanelKey(value: string | null): value is SettingsPanelKey {
-    return settingsPanelKeys.includes(value as SettingsPanelKey);
-}
-
-function canOpenPanel(
-    panel: SettingsPanelKey,
-    canAccessAdministration: boolean,
-): boolean {
-    return canAccessAdministration || !panel.startsWith('admin-');
-}
 
 function readPanelFromUrl(
     canAccessAdministration: boolean,
@@ -468,78 +211,138 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
         url.searchParams.delete('panel');
     }
 
+    if (panel !== 'admin-world-builder') {
+        url.searchParams.delete('map');
+        url.searchParams.delete('node');
+        url.searchParams.delete('worldView');
+    }
+
+    if (panel !== 'admin-presentation-localization') {
+        url.searchParams.delete('presentation');
+    }
+
+    if (panel !== 'admin-assets-world-objects') {
+        url.searchParams.delete('asset');
+        url.searchParams.delete('item');
+        url.searchParams.delete('sound');
+        url.searchParams.delete('tool');
+    }
+
+    if (panel !== 'admin-learning-support') {
+        url.searchParams.delete('support');
+    }
+
+    if (panel !== 'admin-ai-integrations') {
+        url.searchParams.delete('ai');
+    }
+
     window.history.pushState({ panel }, '', url);
 }
 
-function isAccessManagementSection(
-    value: string | null,
-): value is AccessManagementSection {
-    return value === 'groups' || value === 'roles' || value === 'users';
-}
-
-function canOpenAccessSection(
-    section: AccessManagementSection,
-    accessCapabilities: Record<string, AccessCapability>,
-): boolean {
-    if (section === 'roles') {
-        return accessCapabilities.roles?.read ?? false;
-    }
-
-    if (section === 'groups') {
-        return accessCapabilities.groups?.read ?? false;
-    }
-
-    return accessCapabilities.users?.read ?? false;
-}
-
-function defaultAccessSection(
-    accessCapabilities: Record<string, AccessCapability>,
-): AccessManagementSection {
-    if (accessCapabilities.users?.read) {
-        return 'users';
-    }
-
-    if (accessCapabilities.groups?.read) {
-        return 'groups';
-    }
-
-    return 'roles';
-}
-
-function readAccessSectionFromUrl(
-    accessCapabilities: Record<string, AccessCapability>,
-): AccessManagementSection {
+function readAiViewFromUrl(): AiView {
     if (typeof window === 'undefined') {
-        return defaultAccessSection(accessCapabilities);
+        return 'providers';
     }
 
-    const section = new URL(window.location.href).searchParams.get('access');
+    const value = new URL(window.location.href).searchParams.get('ai');
 
-    if (
-        !isAccessManagementSection(section) ||
-        !canOpenAccessSection(section, accessCapabilities)
-    ) {
-        return defaultAccessSection(accessCapabilities);
-    }
-
-    return section;
+    return value === 'templates' || value === 'guardrails'
+        ? value
+        : 'providers';
 }
 
-function writeAccessSectionToUrl(section: AccessManagementSection): void {
+function writeAiViewToUrl(section: AiView): void {
     if (typeof window === 'undefined') {
         return;
     }
 
     const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-ai-integrations');
+    url.searchParams.set('ai', section);
+    window.history.pushState({ panel: 'admin-ai-integrations' }, '', url);
+}
 
-    url.searchParams.set('panel', 'admin-access');
-    url.searchParams.set('access', section);
+function readAssetViewFromUrl(): AssetView {
+    if (typeof window === 'undefined') {
+        return 'visuals';
+    }
 
+    const value = new URL(window.location.href).searchParams.get('asset');
+
+    return value === 'sounds' || value === 'tools' || value === 'items'
+        ? value
+        : 'visuals';
+}
+
+function writeAssetViewToUrl(section: AssetView): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-assets-world-objects');
+    url.searchParams.set('asset', section);
+    window.history.pushState({ panel: 'admin-assets-world-objects' }, '', url);
+}
+
+function readLearningSupportViewFromUrl(): LearningSupportView {
+    if (typeof window === 'undefined') {
+        return 'admin-panel';
+    }
+
+    return new URL(window.location.href).searchParams.get('support') ===
+        'journal'
+        ? 'journal'
+        : 'admin-panel';
+}
+
+function writeLearningSupportViewToUrl(section: LearningSupportView): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-learning-support');
+    url.searchParams.set('support', section);
+    window.history.pushState({ panel: 'admin-learning-support' }, '', url);
+}
+
+function readPresentationViewFromUrl(): PresentationView {
+    if (typeof window === 'undefined') {
+        return 'public';
+    }
+
+    const value = new URL(window.location.href).searchParams.get(
+        'presentation',
+    );
+
+    return value === 'palette' || value === 'languages' ? value : 'public';
+}
+
+function writePresentationViewToUrl(section: PresentationView): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-presentation-localization');
+    url.searchParams.set('presentation', section);
     window.history.pushState(
-        { panel: 'admin-access', access: section },
+        { panel: 'admin-presentation-localization' },
         '',
         url,
     );
+}
+
+function readWorldBuilderViewFromUrl(): WorldBuilderView {
+    if (typeof window === 'undefined') {
+        return 'nodes';
+    }
+
+    return new URL(window.location.href).searchParams.get('worldView') ===
+        'configure'
+        ? 'configure'
+        : 'nodes';
 }
 
 export default function SettingsIndex({
@@ -548,91 +351,204 @@ export default function SettingsIndex({
     accessGroups,
     adminRoles,
     adminUsers,
+    aiSettings,
+    assetsWorldObjects,
     assignableRegistrationRoles,
     canAccessAdministration,
+    colorPaletteSettings,
     createdRegistrationToken = null,
+    languages,
+    learningSupportSettings,
+    personalSettings,
+    platformInfoPages,
     permissionResources,
+    publicPresentation,
     registrationTokens,
+    selectedWorldMap,
+    selectedWorldNode,
+    settingsNotifications,
+    worldGraph,
 }: SettingsIndexProps) {
     const t = usePlatformTranslation();
+    const { props, url: pageUrl } = usePage();
+    const currentUser = props.auth.user as AuthUser | null;
+    const [menuQuery, setMenuQuery] = useState('');
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
-        () => readPanelFromUrl(canAccessAdministration),
+        () => readPanelFromUrl(canAccessAdministration) ?? 'personal',
     );
+    const [worldBuilderView, setWorldBuilderView] = useState<WorldBuilderView>(
+        () => readWorldBuilderViewFromUrl(),
+    );
+    const [presentationView, setPresentationView] = useState<PresentationView>(
+        () => readPresentationViewFromUrl(),
+    );
+    const [assetView, setAssetView] = useState<AssetView>(() =>
+        readAssetViewFromUrl(),
+    );
+    const [learningSupportView, setLearningSupportView] =
+        useState<LearningSupportView>(() => readLearningSupportViewFromUrl());
+    const [aiView, setAiView] = useState<AiView>(() => readAiViewFromUrl());
     const selectPanel = useCallback((panel: SettingsPanelKey) => {
         setSelectedPanel(panel);
         writePanelToUrl(panel);
     }, []);
-    const clearPanel = useCallback(() => {
-        setSelectedPanel(null);
-        writePanelToUrl(null);
-    }, []);
 
     useEffect(() => {
-        const syncPanelFromHistory = () => {
-            setSelectedPanel(readPanelFromUrl(canAccessAdministration));
+        const syncSettingsRouteState = () => {
+            setSelectedPanel(
+                readPanelFromUrl(canAccessAdministration) ?? 'personal',
+            );
+            setWorldBuilderView(readWorldBuilderViewFromUrl());
+            setPresentationView(readPresentationViewFromUrl());
+            setAssetView(readAssetViewFromUrl());
+            setLearningSupportView(readLearningSupportViewFromUrl());
+            setAiView(readAiViewFromUrl());
         };
 
-        window.addEventListener('popstate', syncPanelFromHistory);
+        syncSettingsRouteState();
+        window.addEventListener('popstate', syncSettingsRouteState);
 
         return () => {
-            window.removeEventListener('popstate', syncPanelFromHistory);
+            window.removeEventListener('popstate', syncSettingsRouteState);
         };
-    }, [canAccessAdministration]);
+    }, [canAccessAdministration, pageUrl]);
+
+    const sections = useMemo(
+        () =>
+            settingsSections(
+                t,
+                accessCapabilities,
+                canAccessAdministration,
+                menuQuery,
+            ),
+        [accessCapabilities, canAccessAdministration, menuQuery, t],
+    );
+    const activeItem = useMemo(
+        () => findSettingsItemForPanel(selectedPanel),
+        [selectedPanel],
+    );
+    const worldBreadcrumb = useMemo<SettingsWorldBreadcrumb>(
+        () => ({
+            map:
+                selectedWorldMap?.editableMap.map ??
+                selectedWorldNode?.activityGraph.map ??
+                null,
+            node: selectedWorldNode?.activityGraph.node ?? null,
+            view:
+                selectedWorldMap || selectedWorldNode ? worldBuilderView : null,
+        }),
+        [selectedWorldMap, selectedWorldNode, worldBuilderView],
+    );
+    const openItem = useCallback(
+        (item: SettingsListItem) => {
+            if (item.href) {
+                router.visit(item.href);
+
+                return;
+            }
+
+            if (item.panel) {
+                selectPanel(item.panel);
+            }
+        },
+        [selectPanel],
+    );
 
     return (
         <>
             <Head title={t('settings.title', 'Settings')} />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full max-w-[92rem] flex-col px-4 pt-6 pb-24">
-                    <header className="shrink-0 pb-5">
-                        {selectedPanel ? (
-                            <Button
-                                className="mb-5"
-                                onClick={clearPanel}
-                                variant="ghost"
+            <main className="settings-surface h-full min-h-0 overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+                <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-row">
+                    <aside className="flex shrink-0 flex-col border-b border-slate-200 bg-white/90 lg:w-72 lg:border-r lg:border-b-0 dark:border-white/10 dark:bg-[#111820]/95">
+                        <div className="shrink-0 px-5 pt-5 pb-4">
+                            <p
+                                className="text-xs font-medium tracking-[0.18em] uppercase"
+                                style={{ color: 'var(--settings-accent)' }}
                             >
-                                <ArrowLeft className="size-4" />
-                                {t('settings.back', 'Settings')}
-                            </Button>
-                        ) : null}
-                        <p
-                            className="text-xs font-medium tracking-[0.18em] uppercase"
-                            style={{ color: 'var(--settings-accent)' }}
-                        >
-                            {t('settings.eyebrow', 'Platform')}
-                        </p>
-                        <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                            {t('settings.title', 'Settings')}
-                        </h1>
-                    </header>
+                                {t('settings.eyebrow', 'Platform')}
+                            </p>
+                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
+                                {t('settings.title', 'Settings')}
+                            </h1>
+                        </div>
 
-                    <section className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                        {selectedPanel ? (
-                            <SettingsDetail
-                                accessCapabilities={accessCapabilities}
-                                accessGroupUsers={accessGroupUsers}
-                                accessGroups={accessGroups}
-                                adminRoles={adminRoles}
-                                adminUsers={adminUsers}
-                                createdRegistrationToken={
-                                    createdRegistrationToken
-                                }
-                                permissionResources={permissionResources}
-                                assignableRegistrationRoles={
-                                    assignableRegistrationRoles
-                                }
-                                registrationTokens={registrationTokens}
-                                selectedPanel={selectedPanel}
-                            />
-                        ) : (
-                            <SettingsList
-                                accessCapabilities={accessCapabilities}
-                                canAccessAdministration={
-                                    canAccessAdministration
-                                }
-                                onSelect={selectPanel}
-                            />
-                        )}
+                        <SettingsSidebarNavigation
+                            activePanel={selectedPanel}
+                            onOpenItem={openItem}
+                            sections={sections}
+                        />
+                    </aside>
+
+                    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+                        <SettingsTopBar
+                            activeItem={activeItem}
+                            currentUser={currentUser}
+                            menuQuery={menuQuery}
+                            notifications={settingsNotifications}
+                            onSearchChange={setMenuQuery}
+                            worldBreadcrumb={worldBreadcrumb}
+                        />
+
+                        <div className="min-h-0 flex-1 overflow-hidden p-4">
+                            <section className="h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+                                {selectedPanel ? (
+                                    <SettingsDetail
+                                        accessCapabilities={accessCapabilities}
+                                        accessGroupUsers={accessGroupUsers}
+                                        accessGroups={accessGroups}
+                                        adminRoles={adminRoles}
+                                        adminUsers={adminUsers}
+                                        aiSettings={aiSettings}
+                                        assetsWorldObjects={assetsWorldObjects}
+                                        colorPaletteSettings={
+                                            colorPaletteSettings
+                                        }
+                                        createdRegistrationToken={
+                                            createdRegistrationToken
+                                        }
+                                        languages={languages}
+                                        learningSupportSettings={
+                                            learningSupportSettings
+                                        }
+                                        permissionResources={
+                                            permissionResources
+                                        }
+                                        personalSettings={personalSettings}
+                                        platformInfoPages={platformInfoPages}
+                                        presentationView={presentationView}
+                                        publicPresentation={publicPresentation}
+                                        assignableRegistrationRoles={
+                                            assignableRegistrationRoles
+                                        }
+                                        registrationTokens={registrationTokens}
+                                        selectedWorldMap={selectedWorldMap}
+                                        selectedWorldNode={selectedWorldNode}
+                                        assetView={assetView}
+                                        aiView={aiView}
+                                        learningSupportView={
+                                            learningSupportView
+                                        }
+                                        setAssetView={setAssetView}
+                                        setAiView={setAiView}
+                                        setLearningSupportView={
+                                            setLearningSupportView
+                                        }
+                                        setPresentationView={
+                                            setPresentationView
+                                        }
+                                        selectedPanel={selectedPanel}
+                                        worldBuilderView={worldBuilderView}
+                                        worldGraph={worldGraph}
+                                    />
+                                ) : (
+                                    <SettingsOverview
+                                        accessCapabilities={accessCapabilities}
+                                        onOpenItem={openItem}
+                                        sections={sections}
+                                    />
+                                )}
+                            </section>
+                        </div>
                     </section>
                 </div>
             </main>
@@ -649,195 +565,165 @@ SettingsIndex.layout = {
     ],
 };
 
-function SettingsList({
-    accessCapabilities,
-    canAccessAdministration,
-    onSelect,
-}: {
-    accessCapabilities: Record<string, AccessCapability>;
-    canAccessAdministration: boolean;
-    onSelect: (panel: SettingsPanelKey) => void;
-}) {
-    const t = usePlatformTranslation();
-    const sections = [
-        {
-            label: t('settings.sections.personal', 'Personal'),
-            items: personalSettings,
-        },
-        {
-            label: t('settings.sections.information', 'Information'),
-            items: informationSettings,
-        },
-        ...(canAccessAdministration
-            ? [
-                  {
-                      label: t(
-                          'settings.sections.administration',
-                          'Administration',
-                      ),
-                      items: adminSettings.filter((item) =>
-                          canSeeAdminItem(item, accessCapabilities),
-                      ),
-                  },
-              ]
-            : []),
-    ];
-
-    return (
-        <div className="h-full overflow-y-auto p-4">
-            {sections.map((section) => (
-                <section className="mb-6" key={section.label}>
-                    <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.18em] text-slate-500 uppercase dark:text-slate-400">
-                        {section.label}
-                    </h2>
-                    <div className="grid gap-2">
-                        {section.items.map((item) => {
-                            const Icon = item.icon;
-                            const label = item.labelKey
-                                ? t(item.labelKey, item.label)
-                                : item.label;
-                            const description = item.descriptionKey
-                                ? t(item.descriptionKey, item.description)
-                                : item.description;
-                            const visibleChildren = (
-                                item.children ?? []
-                            ).filter((child) =>
-                                canSeeSettingsLink(child, accessCapabilities),
-                            );
-
-                            return (
-                                <div
-                                    className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 transition hover:bg-slate-100 md:grid-cols-[minmax(0,1fr)_max-content] md:items-center dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10"
-                                    key={item.key}
-                                >
-                                    <button
-                                        className="flex min-w-0 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
-                                        onClick={() => {
-                                            if (item.href) {
-                                                router.visit(item.href);
-
-                                                return;
-                                            }
-
-                                            onSelect(
-                                                (item.panel ??
-                                                    item.key) as SettingsPanelKey,
-                                            );
-                                        }}
-                                        type="button"
-                                    >
-                                        <span
-                                            className="flex size-9 shrink-0 items-center justify-center rounded-md"
-                                            style={{
-                                                backgroundColor:
-                                                    'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
-                                                color: 'var(--settings-accent)',
-                                            }}
-                                        >
-                                            <Icon className="size-4" />
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block text-sm font-medium text-slate-950 dark:text-white">
-                                                {label}
-                                            </span>
-                                            <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                                {description}
-                                            </span>
-                                        </span>
-                                    </button>
-
-                                    {visibleChildren.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2 md:flex-nowrap md:justify-end">
-                                            {visibleChildren.map((child) => (
-                                                <button
-                                                    className="inline-flex h-7 items-center rounded-md border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] px-2 text-xs font-medium whitespace-nowrap text-[var(--settings-accent)] transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_16%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
-                                                    key={child.href}
-                                                    onClick={() =>
-                                                        router.visit(child.href)
-                                                    }
-                                                    type="button"
-                                                >
-                                                    {child.labelKey
-                                                        ? t(
-                                                              child.labelKey,
-                                                              child.label,
-                                                          )
-                                                        : child.label}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-            ))}
-        </div>
-    );
-}
-
-function canSeeAdminItem(
-    item: SettingsListItem,
-    accessCapabilities: Record<string, AccessCapability>,
-): boolean {
-    const itemIsVisible =
-        !item.resources ||
-        item.resources.some((resource) => accessCapabilities[resource]?.read);
-
-    if (itemIsVisible) {
-        return true;
-    }
-
-    return (item.children ?? []).some((child) =>
-        canSeeSettingsLink(child, accessCapabilities),
-    );
-}
-
-function canSeeSettingsLink(
-    link: SettingsListLink,
-    accessCapabilities: Record<string, AccessCapability>,
-): boolean {
-    if (!link.resources) {
-        return true;
-    }
-
-    return link.resources.some(
-        (resource) => accessCapabilities[resource]?.read,
-    );
-}
-
 function SettingsDetail({
     accessCapabilities,
     accessGroupUsers,
     accessGroups,
     adminRoles,
     adminUsers,
+    aiSettings,
+    aiView,
+    assetView,
+    assetsWorldObjects,
     assignableRegistrationRoles,
+    colorPaletteSettings,
     createdRegistrationToken,
+    languages,
+    learningSupportSettings,
+    learningSupportView,
     permissionResources,
+    personalSettings,
+    platformInfoPages,
+    presentationView,
     registrationTokens,
+    publicPresentation,
+    selectedWorldMap,
+    selectedWorldNode,
     selectedPanel,
+    setAiView,
+    setAssetView,
+    setLearningSupportView,
+    setPresentationView,
+    worldBuilderView,
+    worldGraph,
 }: {
     accessCapabilities: Record<string, AccessCapability>;
     accessGroupUsers: AccessGroupUser[];
     accessGroups: AccessLearningGroup[];
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
+    aiSettings: AiSettingsProps | null;
+    aiView: AiView;
+    assetView: AssetView;
+    assetsWorldObjects: AssetsWorldObjectsSettings;
     assignableRegistrationRoles: UserRole[];
+    colorPaletteSettings: ColorPaletteProps | null;
     createdRegistrationToken: string | null;
+    languages: Language[];
+    learningSupportSettings: LearningSupportSettings;
+    learningSupportView: LearningSupportView;
     permissionResources: PermissionResource[];
+    personalSettings: PersonalSettingsProps;
+    platformInfoPages: Partial<
+        Record<PlatformInfoPageKey, PlatformInfoContent>
+    >;
+    presentationView: PresentationView;
     registrationTokens: RegistrationTokenSummary[];
+    publicPresentation: PublicPresentationSettings | null;
+    selectedWorldMap: SelectedWorldMap | null;
+    selectedWorldNode: SelectedWorldNode | null;
     selectedPanel: SettingsPanelKey;
+    setAiView: (view: AiView) => void;
+    setAssetView: (view: AssetView) => void;
+    setLearningSupportView: (view: LearningSupportView) => void;
+    setPresentationView: (view: PresentationView) => void;
+    worldBuilderView: WorldBuilderView;
+    worldGraph: WorldGraph | null;
 }) {
     const content = panelContent[selectedPanel];
+    const selectedItem = findSettingsItemForPanel(selectedPanel);
 
     return (
         <div className="h-full overflow-hidden bg-white dark:bg-[#111820]">
-            {(selectedPanel === 'admin-access' ||
-                selectedPanel === 'admin-users') &&
-            (accessCapabilities.users?.read ||
-                accessCapabilities.roles?.read) ? (
+            {selectedPanel === 'personal' ? (
+                <PersonalSettingsContent {...personalSettings} />
+            ) : selectedPanel === 'admin-ai-integrations' && aiSettings ? (
+                <div className="h-full min-h-0 p-4">
+                    <AiSettings
+                        {...aiSettings}
+                        activeSection={aiView}
+                        embedded
+                        onSelectSection={(section) => {
+                            setAiView(section);
+                            writeAiViewToUrl(section);
+                        }}
+                    />
+                </div>
+            ) : selectedPanel === 'admin-ai-integrations' ? (
+                <SettingsUnavailablePanel label="AI & Integrations" />
+            ) : selectedPanel === 'admin-learning-support' ? (
+                <LearningSupportPanel
+                    activeSection={learningSupportView}
+                    canViewAdminPanel={
+                        (accessCapabilities.journal_feedback?.read ?? false) ||
+                        (accessCapabilities.competence_topics?.read ?? false) ||
+                        (accessCapabilities.organization_moderation?.read ??
+                            false) ||
+                        (accessCapabilities.world_maps?.read ?? false)
+                    }
+                    canViewJournal={
+                        accessCapabilities.journal_settings?.read ?? false
+                    }
+                    onSelectSection={(section) => {
+                        setLearningSupportView(section);
+                        writeLearningSupportViewToUrl(section);
+                    }}
+                    settings={learningSupportSettings}
+                />
+            ) : selectedPanel === 'admin-assets-world-objects' ? (
+                <AssetsWorldObjectsPanel
+                    activeSection={assetView}
+                    assets={assetsWorldObjects}
+                    canViewAssets={accessCapabilities.assets?.read ?? false}
+                    canViewSounds={accessCapabilities.sounds?.read ?? false}
+                    onSelectSection={(section) => {
+                        setAssetView(section);
+                        writeAssetViewToUrl(section);
+                    }}
+                />
+            ) : selectedPanel === 'admin-presentation-localization' ? (
+                <PresentationLocalizationPanel
+                    activeSection={presentationView}
+                    colorPaletteSettings={colorPaletteSettings}
+                    languages={languages}
+                    onSelectSection={(section) => {
+                        setPresentationView(section);
+                        writePresentationViewToUrl(section);
+                    }}
+                    platformInfoPages={platformInfoPages}
+                    publicPresentation={publicPresentation}
+                />
+            ) : selectedPanel === 'admin-world-builder' && selectedWorldNode ? (
+                <EditNodeActivities
+                    activityGraph={selectedWorldNode.activityGraph}
+                    items={selectedWorldNode.items}
+                    sounds={selectedWorldNode.sounds}
+                    tools={selectedWorldNode.tools}
+                />
+            ) : selectedPanel === 'admin-world-builder' &&
+              selectedWorldMap &&
+              worldBuilderView === 'configure' ? (
+                <ConfigureMap
+                    accessGroups={selectedWorldMap.accessGroups}
+                    canDeleteWorldMaps={selectedWorldMap.canDeleteWorldMaps}
+                    editableMap={selectedWorldMap.editableMap}
+                    embedded
+                    learningGroups={selectedWorldMap.learningGroups}
+                />
+            ) : selectedPanel === 'admin-world-builder' && selectedWorldMap ? (
+                <EditWorldMap
+                    accessGroups={selectedWorldMap.accessGroups}
+                    editableMap={selectedWorldMap.editableMap}
+                    tools={selectedWorldMap.tools}
+                />
+            ) : selectedPanel === 'admin-world-builder' && worldGraph ? (
+                <div className="h-full min-h-0 p-4">
+                    <WorldBuilderPanel worldGraph={worldGraph} />
+                </div>
+            ) : (selectedPanel === 'admin-access' ||
+                  selectedPanel === 'admin-users') &&
+              (accessCapabilities.users?.read ||
+                  accessCapabilities.roles?.read) ? (
                 <AccessManagementPanel
                     accessCapabilities={accessCapabilities}
                     accessGroupUsers={accessGroupUsers}
@@ -849,10 +735,28 @@ function SettingsDetail({
                     registrationTokens={registrationTokens}
                     users={adminUsers}
                 />
+            ) : selectedItem ? (
+                <SettingsRouteGroupPanel
+                    accessCapabilities={accessCapabilities}
+                    item={selectedItem}
+                />
             ) : content ? (
-                <PlaceholderPanel content={content} panel={selectedPanel} />
+                <SettingsPlaceholderPanel
+                    content={content}
+                    panel={selectedPanel}
+                />
             ) : null}
         </div>
+    );
+}
+
+function SettingsUnavailablePanel({ label }: { label: string }) {
+    return (
+        <section className="grid h-full place-items-center p-6 text-center">
+            <p className="max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {label} settings are not available with the current permissions.
+            </p>
+        </section>
     );
 }
 
@@ -919,25 +823,18 @@ function AccessManagementPanel({
         >
             <SettingsContentPane>
                 <div className="grid gap-5">
-                    <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                        <div>
-                            <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
-                                <Shield className="size-5" />
-                                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                                    {t(
-                                        'settings.access.title',
-                                        'Access management',
-                                    )}
-                                </h2>
-                            </div>
-                            <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                {t(
-                                    'settings.access.description',
-                                    'Configure who can read, update or delete administration areas. Default roles stay available.',
-                                )}
-                            </p>
-                        </div>
-                    </div>
+                    <SettingsPanelHeader
+                        description={t(
+                            'settings.access.description',
+                            'Configure who can read, update or delete administration areas. Default roles stay available.',
+                        )}
+                        eyebrow={t(
+                            'settings.access.title',
+                            'Access management',
+                        )}
+                        icon={Shield}
+                        title={t('settings.access.title', 'Access management')}
+                    />
 
                     {section === 'users' && accessCapabilities.users?.read ? (
                         <AdminUsersPanel
@@ -979,42 +876,6 @@ function AccessManagementPanel({
                 </div>
             </SettingsContentPane>
         </SettingsConfigurationLayout>
-    );
-}
-
-function PlaceholderPanel({
-    content,
-    panel,
-}: {
-    content: { body: string; title: string };
-    panel: SettingsPanelKey;
-}) {
-    const t = usePlatformTranslation();
-
-    return (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/6">
-            <div className="mb-4 flex items-center gap-3 text-[var(--settings-accent)]">
-                <Database className="size-5" />
-                <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                    {content.title}
-                </h2>
-            </div>
-            <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {content.body}
-            </p>
-            {panel === 'appearance' ? (
-                <div className="mt-5">
-                    <AppearanceTabs />
-                </div>
-            ) : (
-                <div className="mt-5 rounded-md border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
-                    {t(
-                        'settings.scaffold',
-                        'This is a scaffolded settings panel. The next step can connect this area to real forms and policies.',
-                    )}
-                </div>
-            )}
-        </div>
     );
 }
 
@@ -2412,7 +2273,7 @@ function StatusBadges({ user }: { user: AdminUser }) {
     );
 }
 
-function formatDate(value: string | null, t?: Translator): string {
+function formatDate(value: string | null, t?: SettingsTranslator): string {
     if (!value) {
         return t?.('common.not_set', 'Not set') ?? 'Not set';
     }
@@ -2425,7 +2286,7 @@ function formatDate(value: string | null, t?: Translator): string {
 
 function formatUserReference(
     user: UserReference | null,
-    t?: Translator,
+    t?: SettingsTranslator,
 ): string {
     if (!user) {
         return t?.('common.unknown', 'Unknown') ?? 'Unknown';

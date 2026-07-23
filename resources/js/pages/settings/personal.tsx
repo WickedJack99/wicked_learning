@@ -28,7 +28,7 @@ import { SoundSettingsPanel } from '@/features/settings/sound-settings-panel';
 import { type SoundPreferences } from '@/features/sounds/sound-player';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
-type PersonalSection =
+export type PersonalSection =
     | 'appearance'
     | 'delete-account'
     | 'language'
@@ -37,7 +37,7 @@ type PersonalSection =
     | 'security'
     | 'sound';
 
-type AvailableLanguage = {
+export type AvailableLanguage = {
     code: string;
     name: string;
     nativeName: string;
@@ -120,7 +120,7 @@ function buildPersonalSections(
     ];
 }
 
-type PersonalSettingsProps = {
+export type PersonalSettingsProps = {
     availableLanguages: AvailableLanguage[];
     initialSection: PersonalSection;
     locale: string;
@@ -130,17 +130,11 @@ type PersonalSettingsProps = {
 } & SecuritySettingsProps;
 
 export default function PersonalSettings({
-    availableLanguages,
     initialSection,
-    locale,
-    mustVerifyEmail,
-    soundPreferences,
-    status,
-    ...security
+    ...props
 }: PersonalSettingsProps) {
     const t = usePlatformTranslation();
     const [section, setSection] = useState<PersonalSection>(initialSection);
-    const personalSections = buildPersonalSections(t);
 
     useEffect(() => setSection(initialSection), [initialSection]);
 
@@ -151,13 +145,8 @@ export default function PersonalSettings({
                 eyebrow={t('settings.personal.eyebrow', 'Personal')}
                 sidebar={
                     <SettingsSidebar>
-                        <SettingsSectionNavigation
+                        <PersonalSettingsSectionNavigation
                             activeSection={section}
-                            ariaLabel={t(
-                                'settings.personal.sections.aria',
-                                'Personal settings sections',
-                            )}
-                            items={personalSections}
                             onChange={setSection}
                         />
                     </SettingsSidebar>
@@ -165,35 +154,109 @@ export default function PersonalSettings({
                 title={t('settings.personal.title', 'Personal settings')}
             >
                 <SettingsContentPane>
-                    {section === 'profile' ? (
-                        <ProfileSettingsPanel
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                        />
-                    ) : null}
-                    {section === 'appearance' ? (
-                        <AppearanceSettingsPanel />
-                    ) : null}
-                    {section === 'language' ? (
-                        <LanguageSettingsPanel
-                            availableLanguages={availableLanguages}
-                            locale={locale}
-                        />
-                    ) : null}
-                    {section === 'notifications' ? (
-                        <NotificationsPanel />
-                    ) : null}
-                    {section === 'sound' ? (
-                        <SoundSettingsPanel preferences={soundPreferences} />
-                    ) : null}
-                    {section === 'security' ? (
-                        <SecuritySettingsPanel {...security} />
-                    ) : null}
-                    {section === 'delete-account' ? (
-                        <DeleteAccountPanel />
-                    ) : null}
+                    <PersonalSettingsSectionContent
+                        {...props}
+                        activeSection={section}
+                    />
                 </SettingsContentPane>
             </SettingsConfigurationShell>
+        </>
+    );
+}
+
+export function PersonalSettingsContent({
+    availableLanguages,
+    initialSection,
+    locale,
+    mustVerifyEmail,
+    soundPreferences,
+    status,
+    ...security
+}: PersonalSettingsProps) {
+    const [section, setSection] = useState<PersonalSection>(initialSection);
+
+    useEffect(() => setSection(initialSection), [initialSection]);
+
+    return (
+        <div className="grid h-full min-h-0 gap-4 p-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <PersonalSettingsSectionNavigation
+                activeSection={section}
+                onChange={setSection}
+            />
+
+            <SettingsContentPane>
+                <PersonalSettingsSectionContent
+                    availableLanguages={availableLanguages}
+                    locale={locale}
+                    mustVerifyEmail={mustVerifyEmail}
+                    soundPreferences={soundPreferences}
+                    status={status}
+                    activeSection={section}
+                    {...security}
+                />
+            </SettingsContentPane>
+        </div>
+    );
+}
+
+function PersonalSettingsSectionNavigation({
+    activeSection,
+    onChange,
+}: {
+    activeSection: PersonalSection;
+    onChange: (section: PersonalSection) => void;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <SettingsSectionNavigation
+            activeSection={activeSection}
+            ariaLabel={t(
+                'settings.personal.sections.aria',
+                'Personal settings sections',
+            )}
+            items={buildPersonalSections(t)}
+            onChange={onChange}
+        />
+    );
+}
+
+function PersonalSettingsSectionContent({
+    activeSection,
+    availableLanguages,
+    locale,
+    mustVerifyEmail,
+    soundPreferences,
+    status,
+    ...security
+}: Omit<PersonalSettingsProps, 'initialSection'> & {
+    activeSection: PersonalSection;
+}) {
+    return (
+        <>
+            {activeSection === 'profile' ? (
+                <ProfileSettingsPanel
+                    mustVerifyEmail={mustVerifyEmail}
+                    status={status}
+                />
+            ) : null}
+            {activeSection === 'appearance' ? (
+                <AppearanceSettingsPanel />
+            ) : null}
+            {activeSection === 'language' ? (
+                <LanguageSettingsPanel
+                    availableLanguages={availableLanguages}
+                    locale={locale}
+                />
+            ) : null}
+            {activeSection === 'notifications' ? <NotificationsPanel /> : null}
+            {activeSection === 'sound' ? (
+                <SoundSettingsPanel preferences={soundPreferences} />
+            ) : null}
+            {activeSection === 'security' ? (
+                <SecuritySettingsPanel {...security} />
+            ) : null}
+            {activeSection === 'delete-account' ? <DeleteAccountPanel /> : null}
         </>
     );
 }

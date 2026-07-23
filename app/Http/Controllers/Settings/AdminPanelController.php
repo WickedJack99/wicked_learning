@@ -2,67 +2,49 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Access\AccessLevel;
-use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\RespondToLearnerJournalFeedback;
-use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
-use App\Learning\Queries\LoadAdminPanelMetrics;
-use App\Learning\Queries\LoadEditableWorldGraph;
-use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
-use App\Learning\Serializers\AdminWorldGraphSerializer;
+use App\Learning\Actions\SyncCompetenceTopicDefinitions;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\OrganizationIconReport;
-use App\Models\PlatformOrganizationSetting;
 use App\Organizations\Actions\ResolveOrganizationIconReport;
 use App\Organizations\Actions\UpdateOrganizationSettings;
-use App\Organizations\Queries\LoadPendingOrganizationIconReports;
-use App\Organizations\Serializers\OrganizationIconReportSerializer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
 
 /** Coordinates the initial administration overview and journal feedback queue. */
 class AdminPanelController extends Controller
 {
     public function __construct(
-        private readonly LoadAdminPanelMetrics $metrics,
-        private readonly LoadEditableWorldGraph $worldGraph,
-        private readonly LoadAdminJournalFeedbackRequests $feedbackRequests,
-        private readonly AdminJournalFeedbackRequestSerializer $serializer,
-        private readonly AdminWorldGraphSerializer $worldGraphSerializer,
+        private readonly SyncCompetenceTopicDefinitions $syncCompetenceTopics,
         private readonly RespondToLearnerJournalFeedback $respondToFeedback,
-        private readonly LoadPendingOrganizationIconReports $iconReports,
-        private readonly OrganizationIconReportSerializer $iconReportSerializer,
         private readonly ResolveOrganizationIconReport $resolveIconReport,
         private readonly UpdateOrganizationSettings $updateOrganizationSettings,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request): RedirectResponse
     {
-        $user = $request->user();
-        $canReviewFeedback = $user->can(PermissionCatalog::ability(PermissionCatalog::JOURNAL_FEEDBACK, AccessLevel::READ));
-        $canModerateOrganizations = $user->can(PermissionCatalog::ability(PermissionCatalog::ORGANIZATION_MODERATION, AccessLevel::READ));
-        $canViewWorld = $user->can(PermissionCatalog::ability(PermissionCatalog::WORLD_MAPS, AccessLevel::READ));
-
-        abort_unless($canReviewFeedback || $canModerateOrganizations || $canViewWorld, 403);
-
-        return Inertia::render('settings/admin-panel', [
-            'metrics' => $this->metrics->handle(),
-            'feedbackRequests' => $canReviewFeedback ? $this->feedbackRequests->handle()
-                ->map(fn (LearnerJournalFeedbackRequest $feedbackRequest): array => $this->serializer->feedbackRequest($feedbackRequest))
-                ->values() : [],
-            'organizationIconReports' => $canModerateOrganizations ? $this->iconReports->handle()
-                ->map(fn (OrganizationIconReport $report): array => $this->iconReportSerializer->serialize($report))
-                ->values() : [],
-            'organizationSettings' => [
-                'maxMembershipsPerUser' => PlatformOrganizationSetting::current()->max_memberships_per_user,
-            ],
-            'worldGraph' => $canViewWorld ? $this->worldGraphSerializer->serialize(
-                $this->worldGraph->handle($request->user()),
-            ) : ['maps' => []],
+        return to_route('settings.index', [
+            'panel' => 'admin-learning-support',
+            'support' => 'admin-panel',
         ]);
+    }
+
+    public function updateCompetenceTopics(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'topics' => ['present', 'array', 'max:200'],
+            'topics.*.aura_threshold' => ['required', 'numeric', 'min:0.01', 'max:100000'],
+            'topics.*.description' => ['nullable', 'string', 'max:2000'],
+            'topics.*.emittance_threshold' => ['required', 'numeric', 'min:0.01', 'max:100000'],
+            'topics.*.growth_threshold' => ['required', 'numeric', 'min:0.01', 'max:100000'],
+            'topics.*.is_active' => ['required', 'boolean'],
+            'topics.*.name' => ['required', 'string', 'max:120'],
+        ]);
+
+        $this->syncCompetenceTopics->handle($data['topics']);
+
+        return back();
     }
 
     public function respond(Request $request, LearnerJournalFeedbackRequest $feedbackRequest): RedirectResponse

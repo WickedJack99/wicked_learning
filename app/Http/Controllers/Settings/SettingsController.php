@@ -20,7 +20,10 @@ class SettingsController extends Controller
             'settings/index',
             $this->loadSettingsIndex->handle(
                 $request->user(),
+                $request->session()->get('status'),
                 $request->session()->get('created_registration_token'),
+                $request->integer('map') ?: null,
+                $request->integer('node') ?: null,
             ),
         );
     }

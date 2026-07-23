@@ -15,6 +15,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
+    SettingsConfigurationLayout,
     SettingsConfigurationShell,
     SettingsContentPane,
     SettingsSectionButton,
@@ -32,15 +33,15 @@ import {
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
-type AiSection = 'providers' | 'templates' | 'guardrails';
+export type AiSection = 'providers' | 'templates' | 'guardrails';
 
-type Option = {
+export type Option = {
     description?: string;
     label: string;
     value: string;
 };
 
-type ProviderCredential = {
+export type ProviderCredential = {
     apiKeyLastFour: string | null;
     baseUrl: string | null;
     enabled: boolean;
@@ -55,7 +56,7 @@ type ProviderCredential = {
     updatedAt: string | null;
 };
 
-type AgentTemplate = {
+export type AgentTemplate = {
     aiProviderCredentialId: number | null;
     concurrencyLimit: number;
     createdByName: string | null;
@@ -103,9 +104,12 @@ type TemplateForm = {
     temperature: string;
 };
 
-type AiSettingsProps = {
+export type AiSettingsProps = {
+    activeSection?: AiSection;
     agentTemplates: AgentTemplate[];
+    embedded?: boolean;
     guardrailNotes: string[];
+    onSelectSection?: (section: AiSection) => void;
     providerCredentials: ProviderCredential[];
     providerOptions: Option[];
     purposeOptions: Option[];
@@ -274,72 +278,93 @@ async function jsonErrorMessage(response: Response): Promise<string> {
 }
 
 export default function AiSettings({
+    activeSection: controlledSection,
     agentTemplates,
+    embedded = false,
     guardrailNotes,
+    onSelectSection,
     providerCredentials,
     providerOptions,
     purposeOptions,
 }: AiSettingsProps) {
     const t = usePlatformTranslation();
-    const [activeSection, setActiveSection] = useState<AiSection>('providers');
+    const [localSection, setLocalSection] = useState<AiSection>('providers');
+    const activeSection = controlledSection ?? localSection;
+    const selectSection = (section: AiSection) => {
+        setLocalSection(section);
+        onSelectSection?.(section);
+    };
+
+    const action = (
+        <Button asChild variant="secondary">
+            <a
+                href="https://github.com/laravel/ai"
+                rel="noreferrer"
+                target="_blank"
+            >
+                {t('settings.ai.actions.open_laravel_ai_sdk', 'Laravel AI SDK')}
+            </a>
+        </Button>
+    );
+
+    const sidebar = (
+        <SettingsSidebar>
+            {sectionItems.map((item) => (
+                <SettingsSectionButton
+                    active={activeSection === item.key}
+                    description={t(
+                        item.descriptionKey,
+                        item.descriptionFallback,
+                    )}
+                    icon={item.icon}
+                    id={item.key}
+                    key={item.key}
+                    label={t(item.labelKey, item.labelFallback)}
+                    onSelect={selectSection}
+                />
+            ))}
+        </SettingsSidebar>
+    );
+
+    const content = (
+        <SettingsContentPane>
+            {activeSection === 'providers' ? (
+                <ProviderCredentialsPanel
+                    providerCredentials={providerCredentials}
+                    providerOptions={providerOptions}
+                />
+            ) : null}
+            {activeSection === 'templates' ? (
+                <AgentTemplatesPanel
+                    agentTemplates={agentTemplates}
+                    providerCredentials={providerCredentials}
+                    purposeOptions={purposeOptions}
+                />
+            ) : null}
+            {activeSection === 'guardrails' ? (
+                <GuardrailsPanel notes={guardrailNotes} />
+            ) : null}
+        </SettingsContentPane>
+    );
+
+    if (embedded) {
+        return (
+            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+                {content}
+            </SettingsConfigurationLayout>
+        );
+    }
 
     return (
         <>
             <Head title={t('settings.ai.title', 'AI support')} />
             <SettingsConfigurationShell
-                action={
-                    <Button asChild variant="secondary">
-                        <a
-                            href="https://github.com/laravel/ai"
-                            rel="noreferrer"
-                            target="_blank"
-                        >
-                            {t(
-                                'settings.ai.actions.open_laravel_ai_sdk',
-                                'Laravel AI SDK',
-                            )}
-                        </a>
-                    </Button>
-                }
+                action={action}
                 eyebrow={t('settings.ai.eyebrow', 'Administration')}
-                sidebar={
-                    <SettingsSidebar>
-                        {sectionItems.map((item) => (
-                            <SettingsSectionButton
-                                active={activeSection === item.key}
-                                description={t(
-                                    item.descriptionKey,
-                                    item.descriptionFallback,
-                                )}
-                                icon={item.icon}
-                                id={item.key}
-                                key={item.key}
-                                label={t(item.labelKey, item.labelFallback)}
-                                onSelect={setActiveSection}
-                            />
-                        ))}
-                    </SettingsSidebar>
-                }
+                sidebar={sidebar}
                 title={t('settings.ai.title', 'AI support')}
             >
-                <SettingsContentPane>
-                    {activeSection === 'providers' ? (
-                        <ProviderCredentialsPanel
-                            providerCredentials={providerCredentials}
-                            providerOptions={providerOptions}
-                        />
-                    ) : null}
-                    {activeSection === 'templates' ? (
-                        <AgentTemplatesPanel
-                            agentTemplates={agentTemplates}
-                            providerCredentials={providerCredentials}
-                            purposeOptions={purposeOptions}
-                        />
-                    ) : null}
-                    {activeSection === 'guardrails' ? (
-                        <GuardrailsPanel notes={guardrailNotes} />
-                    ) : null}
-                </SettingsContentPane>
+                {content}
             </SettingsConfigurationShell>
         </>
     );

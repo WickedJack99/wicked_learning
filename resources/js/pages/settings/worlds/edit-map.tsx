@@ -88,6 +88,7 @@ type EditableMap = {
     accessRoles: string[];
     backgroundConfig: MapVisualConfig;
     description: string | null;
+    editingGroupIds: number[];
     gridConfig: {
         gap?: number;
         tileHeight?: number;
@@ -201,12 +202,12 @@ type MapVisualConfig = {
     light?: Partial<MapVisualThemeFields>;
 };
 
-type EditableMapPayload = {
+export type EditableMapPayload = {
     map: EditableMap;
     world: EditableWorld;
 };
 
-type AccessGroup = {
+export type AccessGroup = {
     description: string | null;
     label: string;
     slug: string;
@@ -428,7 +429,7 @@ export default function EditWorldMap({
         setErrors({});
         setImageUploadErrors({});
         setSoundUploadErrors({});
-        setActiveNodeSettingsSection('right-panel');
+        setActiveNodeSettingsSection('activities');
         setForm(nodeFormFromNode(node));
     };
 
@@ -752,7 +753,7 @@ export default function EditWorldMap({
                                 size="sm"
                                 variant="ghost"
                             >
-                                <Link href="/settings/worlds">
+                                <Link href="/settings?panel=admin-world-builder">
                                     <ArrowLeft className="size-4" />
                                     World graph
                                 </Link>
@@ -771,7 +772,7 @@ export default function EditWorldMap({
                                     variant="outline"
                                 >
                                     <Link
-                                        href={`/settings/worlds/maps/${map.id}/configure`}
+                                        href={`/settings?panel=admin-world-builder&map=${map.id}&worldView=configure`}
                                     >
                                         <SlidersHorizontal className="size-4" />
                                         Map configuration
@@ -1157,7 +1158,7 @@ export default function EditWorldMap({
                                             variant="outline"
                                         >
                                             <Link
-                                                href={`/settings/worlds/nodes/${selectedNode.id}/activities`}
+                                                href={`/settings?panel=admin-world-builder&map=${map.id}&node=${selectedNode.id}&worldView=nodes`}
                                             >
                                                 <GitBranch className="size-4" />
                                                 Edit activities

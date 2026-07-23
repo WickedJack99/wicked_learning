@@ -14,12 +14,16 @@ test('admin users can open ai support settings', function () {
 
     $this->actingAs($admin)
         ->get(route('settings.ai.index'))
+        ->assertRedirect(aiSettingsRoute());
+
+    $this->actingAs($admin)
+        ->get(aiSettingsRoute())
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/ai')
-            ->has('providerOptions')
-            ->has('purposeOptions')
-            ->has('guardrailNotes')
+            ->component('settings/index')
+            ->has('aiSettings.providerOptions')
+            ->has('aiSettings.purposeOptions')
+            ->has('aiSettings.guardrailNotes')
         );
 });
 
@@ -49,7 +53,7 @@ test('admin users can create encrypted provider credentials without exposing pla
             'monthly_token_limit' => 100000,
             'monthly_cost_limit_cents' => 2500,
         ])
-        ->assertRedirect(route('settings.ai.index'));
+        ->assertRedirect(aiSettingsRoute('providers'));
 
     $credential = AiProviderCredential::query()->firstOrFail();
 
@@ -57,11 +61,11 @@ test('admin users can create encrypted provider credentials without exposing pla
         ->and($credential->api_key_last_four)->toBe('1234');
 
     $this->actingAs($admin)
-        ->get(route('settings.ai.index'))
+        ->get(aiSettingsRoute('providers'))
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('providerCredentials.0.label', 'OpenAI main')
-            ->where('providerCredentials.0.hasApiKey', true)
-            ->where('providerCredentials.0.apiKeyLastFour', '1234')
+            ->where('aiSettings.providerCredentials.0.label', 'OpenAI main')
+            ->where('aiSettings.providerCredentials.0.hasApiKey', true)
+            ->where('aiSettings.providerCredentials.0.apiKeyLastFour', '1234')
         );
 });
 
@@ -86,7 +90,7 @@ test('admin users can update provider settings without replacing a blank key', f
             'enabled' => false,
             'monthly_token_limit' => 30000,
         ])
-        ->assertRedirect(route('settings.ai.index'));
+        ->assertRedirect(aiSettingsRoute('providers'));
 
     $credential->refresh();
 
@@ -123,7 +127,7 @@ test('admin users can create agent templates for a selected provider', function 
             'enabled' => true,
             'guarded_context' => true,
         ])
-        ->assertRedirect(route('settings.ai.index'));
+        ->assertRedirect(aiSettingsRoute('templates'));
 
     $template = AiAgentTemplate::query()->firstOrFail();
 
@@ -228,3 +232,11 @@ test('admin users need a stored provider key before testing an agent template', 
 
     Http::assertNothingSent();
 });
+
+function aiSettingsRoute(string $section = 'providers'): string
+{
+    return route('settings.index', [
+        'ai' => $section,
+        'panel' => 'admin-ai-integrations',
+    ]);
+}
