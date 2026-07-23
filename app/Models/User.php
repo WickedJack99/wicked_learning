@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Access\AccessLevel;
+use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -187,6 +188,45 @@ class User extends Authenticatable implements PasskeyUser
         return $highest;
     }
 
+    public function hasScopedAccess(string $resource, string $requiredLevel, string $requiredScope): bool
+    {
+        if (! $this->hasAccess($resource, $requiredLevel)) {
+            return false;
+        }
+
+        return AccessScope::allows(
+            $this->accessScopeFor($resource, $requiredLevel),
+            $requiredScope,
+        );
+    }
+
+    public function accessScopeFor(string $resource, string $requiredLevel = AccessLevel::READ): string
+    {
+        $highest = AccessScope::NONE;
+
+        foreach ($this->assignedRoles() as $roleSlug) {
+            $role = $this->accessRoleForSlug($roleSlug);
+
+            if (! $role) {
+                continue;
+            }
+
+            $level = $role->permissionMap()[$resource] ?? AccessLevel::NONE;
+
+            if (! AccessLevel::allows($level, $requiredLevel)) {
+                continue;
+            }
+
+            $scope = $role->scopeMap()[$resource] ?? AccessScope::NONE;
+
+            if (AccessScope::allows($scope, $highest)) {
+                $highest = $scope;
+            }
+        }
+
+        return $highest;
+    }
+
     /**
      * @param  list<string>|array<int, string>|string|null  $roles
      * @return list<string>
@@ -352,6 +392,15 @@ class User extends Authenticatable implements PasskeyUser
                 fn ($query) => $query->whereKey($map->id),
             )
             ->exists();
+    }
+
+    public function managesLearningGroup(LearningGroup $group): bool
+    {
+        return (int) $group->created_by_user_id === (int) $this->id
+            || $this->learningGroups()
+                ->whereKey($group->id)
+                ->wherePivot('role', 'manager')
+                ->exists();
     }
 
     /**

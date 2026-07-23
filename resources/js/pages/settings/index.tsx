@@ -8,7 +8,7 @@ import {
     Info,
     KeyRound,
     NotebookPen,
-    Map,
+    Map as MapIcon,
     Palette,
     Plus,
     Shield,
@@ -71,6 +71,8 @@ type UserRole = string;
 
 type PermissionLevel = 'none' | 'ro' | 'ru' | 'rud';
 
+type PermissionScope = 'none' | 'own' | 'assigned' | 'group' | 'all';
+
 type AccessCapability = {
     delete: boolean;
     read: boolean;
@@ -79,6 +81,7 @@ type AccessCapability = {
 
 type PermissionResource = {
     description: string;
+    group: string;
     key: string;
     label: string;
 };
@@ -89,6 +92,7 @@ type AccessRoleSummary = {
     is_system: boolean;
     level: number;
     name: string;
+    permissionScopes: Record<string, PermissionScope>;
     permissions: Record<string, PermissionLevel>;
     slug: string;
 };
@@ -155,6 +159,7 @@ type RoleFormState = {
     description: string;
     level: string;
     name: string;
+    permissionScopes: Record<string, PermissionScope>;
     permissions: Record<string, PermissionLevel>;
     slug: string;
 };
@@ -211,15 +216,20 @@ const adminSettings: SettingsListItem[] = [
         labelKey: 'settings.navigation.world_builder',
         description: 'Worlds, maps, nodes, activity graphs and portal routes.',
         descriptionKey: 'settings.navigation.world_builder.description',
-        icon: Map,
+        icon: MapIcon,
         href: '/settings/worlds',
-        resources: ['worlds'],
+        resources: [
+            'world_maps',
+            'world_nodes',
+            'world_activities',
+            'world_map_access',
+        ],
         children: [
             {
                 label: 'World graph',
                 labelKey: 'settings.navigation.world_builder.world_graph',
                 href: '/settings/worlds',
-                resources: ['worlds'],
+                resources: ['world_maps', 'world_nodes', 'world_activities'],
             },
         ],
     },
@@ -245,7 +255,7 @@ const adminSettings: SettingsListItem[] = [
                 label: 'Color palette',
                 labelKey: 'settings.navigation.color_palette',
                 href: '/settings/color-palette',
-                resources: ['presentation', 'journals', 'worlds'],
+                resources: ['presentation', 'journal_settings', 'world_maps'],
             },
             {
                 label: 'Languages',
@@ -301,7 +311,7 @@ const adminSettings: SettingsListItem[] = [
         descriptionKey: 'settings.navigation.access.description',
         icon: Shield,
         panel: 'admin-access',
-        resources: ['users', 'roles'],
+        resources: ['users', 'roles', 'groups', 'group_members'],
         children: [
             {
                 label: 'User management',
@@ -319,7 +329,7 @@ const adminSettings: SettingsListItem[] = [
                 label: 'Groups',
                 labelKey: 'settings.navigation.groups',
                 href: '/settings?panel=admin-access&access=groups',
-                resources: ['users'],
+                resources: ['groups', 'group_members'],
             },
         ],
     },
@@ -332,19 +342,19 @@ const adminSettings: SettingsListItem[] = [
         descriptionKey: 'settings.navigation.learning_support.description',
         icon: NotebookPen,
         href: '/settings/journal',
-        resources: ['journals'],
+        resources: ['journal_settings', 'journal_feedback'],
         children: [
             {
                 label: 'Admin Panel',
                 labelKey: 'settings.navigation.learning_support.admin_panel',
                 href: '/settings/admin-panel',
-                resources: ['journals'],
+                resources: ['journal_feedback', 'organization_moderation'],
             },
             {
                 label: 'Journal',
                 labelKey: 'settings.navigation.journal',
                 href: '/settings/journal',
-                resources: ['journals'],
+                resources: ['journal_settings'],
             },
         ],
     },
@@ -475,13 +485,25 @@ function canOpenAccessSection(
         return accessCapabilities.roles?.read ?? false;
     }
 
+    if (section === 'groups') {
+        return accessCapabilities.groups?.read ?? false;
+    }
+
     return accessCapabilities.users?.read ?? false;
 }
 
 function defaultAccessSection(
     accessCapabilities: Record<string, AccessCapability>,
 ): AccessManagementSection {
-    return accessCapabilities.users?.read ? 'users' : 'roles';
+    if (accessCapabilities.users?.read) {
+        return 'users';
+    }
+
+    if (accessCapabilities.groups?.read) {
+        return 'groups';
+    }
+
+    return 'roles';
 }
 
 function readAccessSectionFromUrl(
@@ -888,7 +910,7 @@ function AccessManagementPanel({
             sidebar={
                 <AccessManagementNavigation
                     activeSection={section}
-                    canViewGroups={accessCapabilities.users?.read ?? false}
+                    canViewGroups={accessCapabilities.groups?.read ?? false}
                     canViewRoles={accessCapabilities.roles?.read ?? false}
                     canViewUsers={accessCapabilities.users?.read ?? false}
                     onSelect={selectSection}
@@ -948,7 +970,7 @@ function AccessManagementPanel({
                         />
                     ) : null}
 
-                    {section === 'groups' && accessCapabilities.users?.read ? (
+                    {section === 'groups' && accessCapabilities.groups?.read ? (
                         <AccessGroupManagementPanel
                             groups={accessGroups}
                             users={accessGroupUsers}
@@ -1823,6 +1845,10 @@ function RoleManagementPanel({
     const [form, setForm] = useState<RoleFormState>(() =>
         roleFormFromRole(selectedRole, permissionResources),
     );
+    const groupedResources = useMemo(
+        () => groupPermissionResources(permissionResources),
+        [permissionResources],
+    );
 
     const selectRole = (role: AccessRoleSummary) => {
         setSelectedRoleId(role.id);
@@ -1836,6 +1862,7 @@ function RoleManagementPanel({
         const payload = {
             ...form,
             level: Number(form.level || 10),
+            permission_scopes: form.permissionScopes,
         };
 
         if (selectedRole) {
@@ -1881,6 +1908,15 @@ function RoleManagementPanel({
             permissions: {
                 ...current.permissions,
                 [resource]: level,
+            },
+        }));
+    };
+    const setPermissionScope = (resource: string, scope: PermissionScope) => {
+        setForm((current) => ({
+            ...current,
+            permissionScopes: {
+                ...current.permissionScopes,
+                [resource]: scope,
             },
         }));
     };
@@ -2054,7 +2090,7 @@ function RoleManagementPanel({
                 </div>
 
                 <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
-                    <div className="grid grid-cols-[minmax(12rem,1fr)_22rem] bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                    <div className="grid grid-cols-[minmax(12rem,1fr)_18rem_14rem] bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
                         <span>{t('settings.access.roles.area', 'Area')}</span>
                         <span>
                             {t(
@@ -2062,30 +2098,57 @@ function RoleManagementPanel({
                                 'Permission level',
                             )}
                         </span>
+                        <span>{t('settings.access.roles.scope', 'Scope')}</span>
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                        {permissionResources.map((resource) => (
-                            <div
-                                className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[minmax(12rem,1fr)_22rem] sm:items-center dark:border-white/10"
-                                key={resource.key}
-                            >
-                                <div>
-                                    <p className="text-sm font-medium text-slate-950 dark:text-white">
-                                        {resource.label}
-                                    </p>
-                                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                        {resource.description}
-                                    </p>
+                    <div className="max-h-96 overflow-y-auto">
+                        {groupedResources.map((group) => (
+                            <div key={group.name}>
+                                <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                                    {group.name}
                                 </div>
-                                <PermissionButtonGroup
-                                    disabled={!canUpdateRoles}
-                                    level={
-                                        form.permissions[resource.key] ?? 'none'
-                                    }
-                                    onChange={(level) =>
-                                        setPermission(resource.key, level)
-                                    }
-                                />
+                                {group.resources.map((resource) => (
+                                    <div
+                                        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[minmax(12rem,1fr)_18rem_14rem] sm:items-center dark:border-white/10"
+                                        key={resource.key}
+                                    >
+                                        <div>
+                                            <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                                {resource.label}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                {resource.description}
+                                            </p>
+                                        </div>
+                                        <PermissionButtonGroup
+                                            disabled={!canUpdateRoles}
+                                            level={
+                                                form.permissions[
+                                                    resource.key
+                                                ] ?? 'none'
+                                            }
+                                            onChange={(level) =>
+                                                setPermission(
+                                                    resource.key,
+                                                    level,
+                                                )
+                                            }
+                                        />
+                                        <PermissionScopeSelect
+                                            disabled={!canUpdateRoles}
+                                            onChange={(scope) =>
+                                                setPermissionScope(
+                                                    resource.key,
+                                                    scope,
+                                                )
+                                            }
+                                            scope={
+                                                form.permissionScopes[
+                                                    resource.key
+                                                ] ?? 'all'
+                                            }
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>
@@ -2120,6 +2183,12 @@ function RoleManagementPanel({
                         {t(
                             'settings.access.permissions.rud_legend',
                             'read, update and delete. The role may remove records where the feature supports deletion.',
+                        )}
+                    </p>
+                    <p>
+                        {t(
+                            'settings.access.permissions.scope_legend',
+                            'Scope limits where the level applies: own records, assigned records, group records or all records.',
                         )}
                     </p>
                 </div>
@@ -2165,6 +2234,58 @@ function PermissionButtonGroup({
             ))}
         </div>
     );
+}
+
+function PermissionScopeSelect({
+    disabled,
+    onChange,
+    scope,
+}: {
+    disabled: boolean;
+    onChange: (scope: PermissionScope) => void;
+    scope: PermissionScope;
+}) {
+    const options: { label: string; value: PermissionScope }[] = [
+        { label: 'None', value: 'none' },
+        { label: 'Own', value: 'own' },
+        { label: 'Assigned', value: 'assigned' },
+        { label: 'Group', value: 'group' },
+        { label: 'All', value: 'all' },
+    ];
+
+    return (
+        <select
+            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950"
+            disabled={disabled}
+            onChange={(event) =>
+                onChange(event.currentTarget.value as PermissionScope)
+            }
+            value={scope}
+        >
+            {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                    {option.label}
+                </option>
+            ))}
+        </select>
+    );
+}
+
+function groupPermissionResources(resources: PermissionResource[]): {
+    name: string;
+    resources: PermissionResource[];
+}[] {
+    const groups = new Map<string, PermissionResource[]>();
+
+    resources.forEach((resource) => {
+        const group = resource.group || 'Other';
+        groups.set(group, [...(groups.get(group) ?? []), resource]);
+    });
+
+    return Array.from(groups.entries()).map(([name, groupedResources]) => ({
+        name,
+        resources: groupedResources,
+    }));
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -2233,12 +2354,16 @@ function roleFormFromRole(
     const emptyPermissions = Object.fromEntries(
         resources.map((resource) => [resource.key, 'none']),
     ) as Record<string, PermissionLevel>;
+    const emptyPermissionScopes = Object.fromEntries(
+        resources.map((resource) => [resource.key, 'all']),
+    ) as Record<string, PermissionScope>;
 
     if (!role) {
         return {
             description: '',
             level: '10',
             name: '',
+            permissionScopes: emptyPermissionScopes,
             permissions: emptyPermissions,
             slug: '',
         };
@@ -2248,6 +2373,10 @@ function roleFormFromRole(
         description: role.description ?? '',
         level: role.level.toString(),
         name: role.name,
+        permissionScopes: {
+            ...emptyPermissionScopes,
+            ...role.permissionScopes,
+        },
         permissions: {
             ...emptyPermissions,
             ...role.permissions,

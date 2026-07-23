@@ -113,6 +113,6 @@ class AdminNpcDialogueController extends Controller
     {
         $activity->loadMissing('node.map');
 
-        abort_unless($request->user() && $this->mapEditAccess->canEditNode($request->user(), $activity->node), 403);
+        abort_unless($request->user() && $this->mapEditAccess->canEditActivitiesOnNode($request->user(), $activity->node), 403);
     }
 }

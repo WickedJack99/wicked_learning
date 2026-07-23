@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['access_role_id', 'resource', 'level'])]
+#[Fillable(['access_role_id', 'resource', 'level', 'scope'])]
 class AccessRolePermission extends Model
 {
     /**

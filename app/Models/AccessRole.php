@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Access\AccessLevel;
+use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,24 @@ class AccessRole extends Model
         return collect(PermissionCatalog::resourceKeys())
             ->mapWithKeys(fn (string $resource): array => [
                 $resource => $stored[$resource] ?? AccessLevel::NONE,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function scopeMap(): array
+    {
+        $stored = $this->permissions
+            ->mapWithKeys(fn (AccessRolePermission $permission): array => [
+                $permission->resource => $permission->scope ?? AccessScope::ALL,
+            ])
+            ->all();
+
+        return collect(PermissionCatalog::resourceKeys())
+            ->mapWithKeys(fn (string $resource): array => [
+                $resource => $stored[$resource] ?? AccessScope::NONE,
             ])
             ->all();
     }

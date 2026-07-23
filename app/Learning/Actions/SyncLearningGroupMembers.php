@@ -23,7 +23,10 @@ class SyncLearningGroupMembers
 
             $syncPayload = collect($normalizedUserIds)
                 ->mapWithKeys(fn (int $userId): array => [
-                    $userId => ['joined_at' => in_array($userId, $currentUserIds, true) ? $this->joinedAt($group, $userId) : $now],
+                    $userId => [
+                        'joined_at' => in_array($userId, $currentUserIds, true) ? $this->joinedAt($group, $userId) : $now,
+                        'role' => $this->memberRole($group, $userId),
+                    ],
                 ])
                 ->all();
 
@@ -42,6 +45,16 @@ class SyncLearningGroupMembers
 
             return $group->refresh()->load(['members', 'messages.user', 'adminChatVotes']);
         });
+    }
+
+    private function memberRole(LearningGroup $group, int $userId): string
+    {
+        $role = DB::table('learning_group_user')
+            ->where('learning_group_id', $group->id)
+            ->where('user_id', $userId)
+            ->value('role');
+
+        return is_string($role) && $role !== '' ? $role : 'member';
     }
 
     private function joinedAt(LearningGroup $group, int $userId): ?string

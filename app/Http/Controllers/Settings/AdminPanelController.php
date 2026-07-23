@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\RespondToLearnerJournalFeedback;
 use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
@@ -39,20 +41,27 @@ class AdminPanelController extends Controller
 
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        $canReviewFeedback = $user->can(PermissionCatalog::ability(PermissionCatalog::JOURNAL_FEEDBACK, AccessLevel::READ));
+        $canModerateOrganizations = $user->can(PermissionCatalog::ability(PermissionCatalog::ORGANIZATION_MODERATION, AccessLevel::READ));
+        $canViewWorld = $user->can(PermissionCatalog::ability(PermissionCatalog::WORLD_MAPS, AccessLevel::READ));
+
+        abort_unless($canReviewFeedback || $canModerateOrganizations || $canViewWorld, 403);
+
         return Inertia::render('settings/admin-panel', [
             'metrics' => $this->metrics->handle(),
-            'feedbackRequests' => $this->feedbackRequests->handle()
+            'feedbackRequests' => $canReviewFeedback ? $this->feedbackRequests->handle()
                 ->map(fn (LearnerJournalFeedbackRequest $feedbackRequest): array => $this->serializer->feedbackRequest($feedbackRequest))
-                ->values(),
-            'organizationIconReports' => $this->iconReports->handle()
+                ->values() : [],
+            'organizationIconReports' => $canModerateOrganizations ? $this->iconReports->handle()
                 ->map(fn (OrganizationIconReport $report): array => $this->iconReportSerializer->serialize($report))
-                ->values(),
+                ->values() : [],
             'organizationSettings' => [
                 'maxMembershipsPerUser' => PlatformOrganizationSetting::current()->max_memberships_per_user,
             ],
-            'worldGraph' => $this->worldGraphSerializer->serialize(
+            'worldGraph' => $canViewWorld ? $this->worldGraphSerializer->serialize(
                 $this->worldGraph->handle($request->user()),
-            ),
+            ) : ['maps' => []],
         ]);
     }
 

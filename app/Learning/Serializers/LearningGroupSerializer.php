@@ -73,6 +73,7 @@ class LearningGroupSerializer
             'name' => $group->name,
             'slug' => $group->slug,
             'description' => $group->description,
+            'studyTopic' => $group->study_topic,
             'members' => $group->members
                 ->map(fn (User $member): array => $this->user($member))
                 ->values()

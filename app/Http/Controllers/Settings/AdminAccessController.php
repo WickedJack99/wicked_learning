@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Access\AccessLevel;
+use App\Access\AccessScope;
 use App\Access\Actions\DeleteAccessRole;
 use App\Access\Actions\SaveAccessRole;
 use App\Access\PermissionCatalog;
@@ -45,6 +46,7 @@ class AdminAccessController extends Controller
             'description' => ['nullable', 'string', 'max:500'],
             'level' => ['required', 'integer', 'min:1', 'max:100'],
             'permissions' => ['required', 'array'],
+            'permission_scopes' => ['nullable', 'array'],
         ];
 
         if ($role === null) {
@@ -65,6 +67,11 @@ class AdminAccessController extends Controller
                 'sometimes',
                 'string',
                 Rule::in(AccessLevel::values()),
+            ];
+            $rules["permission_scopes.{$resource}"] = [
+                'sometimes',
+                'string',
+                Rule::in(AccessScope::values()),
             ];
         }
 

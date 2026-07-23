@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  */
 #[Fillable([
     'learning_world_id',
+    'created_by_user_id',
+    'updated_by_user_id',
     'slug',
     'title',
     'description',
@@ -45,6 +47,22 @@ class LearningMap extends Model
     public function world(): BelongsTo
     {
         return $this->belongsTo(LearningWorld::class, 'learning_world_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 
     /**

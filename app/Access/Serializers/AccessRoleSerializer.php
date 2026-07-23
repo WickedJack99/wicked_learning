@@ -19,6 +19,7 @@ class AccessRoleSerializer
             'level' => $role->level,
             'is_system' => $role->is_system,
             'permissions' => $role->permissionMap(),
+            'permissionScopes' => $role->scopeMap(),
         ];
     }
 }

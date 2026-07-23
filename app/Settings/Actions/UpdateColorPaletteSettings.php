@@ -2,6 +2,7 @@
 
 namespace App\Settings\Actions;
 
+use App\Access\PermissionCatalog;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Services\JournalThemeConfiguration;
@@ -27,7 +28,7 @@ class UpdateColorPaletteSettings
             PlatformPresentationSetting::updateCurrent($data['publicPresentation'], $user);
         }
 
-        if ($this->canUpdate($user, 'journals') && isset($data['journalTheme']) && is_array($data['journalTheme'])) {
+        if ($this->canUpdate($user, PermissionCatalog::JOURNAL_SETTINGS) && isset($data['journalTheme']) && is_array($data['journalTheme'])) {
             PlatformJournalSetting::current()
                 ->forceFill([
                     'theme' => $this->journalTheme->normalize($data['journalTheme']),
@@ -36,8 +37,8 @@ class UpdateColorPaletteSettings
                 ->save();
         }
 
-        if ($this->canUpdate($user, 'worlds') && isset($data['mapBackgroundConfigs']) && is_array($data['mapBackgroundConfigs'])) {
-            $this->updateMaps($data['mapBackgroundConfigs']);
+        if ($this->canUpdate($user, PermissionCatalog::WORLD_MAPS) && isset($data['mapBackgroundConfigs']) && is_array($data['mapBackgroundConfigs'])) {
+            $this->updateMaps($user, $data['mapBackgroundConfigs']);
         }
     }
 
@@ -49,10 +50,10 @@ class UpdateColorPaletteSettings
     /**
      * @param  array<int, mixed>  $mapConfigs
      */
-    private function updateMaps(array $mapConfigs): void
+    private function updateMaps(User $user, array $mapConfigs): void
     {
         $maps = $this->loadEditableWorldGraph
-            ->handle()
+            ->handle($user)
             ->maps
             ->keyBy('id');
 

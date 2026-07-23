@@ -73,9 +73,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::post('settings/registration-tokens', [AdminUserController::class, 'storeRegistrationToken'])
         ->name('settings.registration-tokens.store');
+
+    Route::get('settings/admin-panel', [AdminPanelController::class, 'index'])
+        ->name('settings.admin-panel.index');
 });
 
-Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
+Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () {
     Route::get('settings/worlds', [AdminWorldController::class, 'index'])
         ->name('settings.worlds.index');
 
@@ -88,9 +91,6 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
     Route::delete('settings/worlds/portal-links/{portalLink}', [AdminWorldController::class, 'destroyPortalLink'])
         ->name('settings.worlds.portal-links.destroy');
 
-    Route::post('settings/worlds/node-images', [AdminWorldController::class, 'uploadNodeImage'])
-        ->name('settings.worlds.node-images.store');
-
     Route::get('settings/worlds/maps/{map}/edit', [AdminWorldController::class, 'editMap'])
         ->name('settings.worlds.maps.edit');
 
@@ -102,12 +102,11 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
 
     Route::patch('settings/worlds/maps/{map}/details', [AdminWorldController::class, 'updateMapDetails'])
         ->name('settings.worlds.maps.details.update');
+});
 
-    Route::patch('settings/worlds/maps/{map}/access', [AdminWorldController::class, 'updateMapAccess'])
-        ->name('settings.worlds.maps.access.update');
-
-    Route::patch('settings/worlds/maps/{map}/editing-groups', [AdminWorldController::class, 'updateMapEditingGroups'])
-        ->name('settings.worlds.maps.editing-groups.update');
+Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function () {
+    Route::post('settings/worlds/node-images', [AdminWorldController::class, 'uploadNodeImage'])
+        ->name('settings.worlds.node-images.store');
 
     Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
         ->name('settings.worlds.maps.nodes.store');
@@ -123,7 +122,9 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
 
     Route::post('settings/worlds/nodes/{node}/reset-unlocks', [AdminWorldController::class, 'resetNodeUnlocks'])
         ->name('settings.worlds.nodes.unlocks.reset');
+});
 
+Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(function () {
     Route::get('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'edit'])
         ->name('settings.worlds.nodes.activities.edit');
 
@@ -182,10 +183,20 @@ Route::middleware(['auth', 'verified', 'can:worlds.ru'])->group(function () {
         ->name('settings.worlds.activity-transitions.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'can:worlds.rud'])->group(function () {
+Route::middleware(['auth', 'verified', 'can:world_map_access.ru'])->group(function () {
+    Route::patch('settings/worlds/maps/{map}/access', [AdminWorldController::class, 'updateMapAccess'])
+        ->name('settings.worlds.maps.access.update');
+
+    Route::patch('settings/worlds/maps/{map}/editing-groups', [AdminWorldController::class, 'updateMapEditingGroups'])
+        ->name('settings.worlds.maps.editing-groups.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:world_maps.rud'])->group(function () {
     Route::delete('settings/worlds/maps/{map}', [AdminWorldController::class, 'destroyMap'])
         ->name('settings.worlds.maps.destroy');
+});
 
+Route::middleware(['auth', 'verified', 'can:world_nodes.rud'])->group(function () {
     Route::delete('settings/worlds/nodes/{node}', [AdminWorldController::class, 'destroyNode'])
         ->name('settings.worlds.nodes.destroy');
 });
@@ -272,15 +283,19 @@ Route::middleware(['auth', 'verified', 'can:presentation.ru'])->group(function (
         ->name('settings.info-pages.update');
 });
 
-Route::middleware(['auth', 'verified', 'can:journals.ru'])->group(function () {
-    Route::get('settings/admin-panel', [AdminPanelController::class, 'index'])
-        ->name('settings.admin-panel.index');
+Route::middleware(['auth', 'verified', 'can:journal_feedback.ru'])->group(function () {
     Route::post('settings/admin-panel/feedback-requests/{feedbackRequest}', [AdminPanelController::class, 'respond'])
         ->name('settings.admin-panel.feedback-requests.respond');
+});
+
+Route::middleware(['auth', 'verified', 'can:organization_moderation.ru'])->group(function () {
     Route::patch('settings/admin-panel/organizations', [AdminPanelController::class, 'updateOrganizationSettings'])
         ->name('settings.admin-panel.organizations.update');
     Route::patch('settings/admin-panel/organization-icon-reports/{report}', [AdminPanelController::class, 'resolveOrganizationIconReport'])
         ->name('settings.admin-panel.organization-icon-reports.resolve');
+});
+
+Route::middleware(['auth', 'verified', 'can:journal_settings.ru'])->group(function () {
     Route::get('settings/journal', [JournalSettingsController::class, 'edit'])
         ->name('settings.journal.edit');
     Route::patch('settings/journal', [JournalSettingsController::class, 'update'])
@@ -334,16 +349,21 @@ Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {
         ->name('settings.ai.templates.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
+Route::middleware(['auth', 'verified', 'can:groups.ru'])->group(function () {
     Route::get('settings/groups', [AdminLearningGroupController::class, 'index'])
         ->name('settings.groups.index');
     Route::post('settings/groups', [AdminLearningGroupController::class, 'store'])
         ->name('settings.groups.store');
     Route::patch('settings/groups/{group}', [AdminLearningGroupController::class, 'update'])
         ->name('settings.groups.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:group_members.ru'])->group(function () {
     Route::patch('settings/groups/{group}/members', [AdminLearningGroupController::class, 'updateMembers'])
         ->name('settings.groups.members.update');
+});
 
+Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
     Route::patch('settings/admin/users/{user}/access', [AdminUserController::class, 'updateAccess'])
         ->name('settings.admin.users.access.update');
 });

@@ -241,6 +241,6 @@ class AdminActivityController extends Controller
 
     private function authorizeNodeEdit(Request $request, LearningNode $node): void
     {
-        abort_unless($request->user() && $this->mapEditAccess->canEditNode($request->user(), $node), 403);
+        abort_unless($request->user() && $this->mapEditAccess->canEditActivitiesOnNode($request->user(), $node), 403);
     }
 }

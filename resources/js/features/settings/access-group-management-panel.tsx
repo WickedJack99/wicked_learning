@@ -36,6 +36,7 @@ export type AccessLearningGroup = {
     messages: GroupMessage[];
     name: string;
     slug: string;
+    studyTopic: string | null;
     voteUserIds: number[];
 };
 
@@ -43,6 +44,7 @@ type GroupForm = {
     description: string;
     name: string;
     slug: string;
+    study_topic: string;
 };
 
 export function AccessGroupManagementPanel({
@@ -251,6 +253,19 @@ function GroupEditor({
                     />
                 </Field>
 
+                <Field label="Study topic" message={errors.study_topic}>
+                    <Input
+                        placeholder="What should this group study or build?"
+                        value={form.study_topic}
+                        onChange={(event) =>
+                            onFormChange({
+                                ...form,
+                                study_topic: event.target.value,
+                            })
+                        }
+                    />
+                </Field>
+
                 <div className="flex flex-wrap gap-2">
                     <Button disabled={saving} onClick={onSaveGroup}>
                         <Save className="size-4" />
@@ -448,6 +463,7 @@ function blankForm(): GroupForm {
         description: '',
         name: '',
         slug: '',
+        study_topic: '',
     };
 }
 
@@ -456,6 +472,7 @@ function formFromGroup(group: AccessLearningGroup): GroupForm {
         description: group.description ?? '',
         name: group.name,
         slug: group.slug,
+        study_topic: group.studyTopic ?? '',
     };
 }
 

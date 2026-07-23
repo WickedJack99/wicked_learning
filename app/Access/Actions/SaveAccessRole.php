@@ -3,6 +3,7 @@
 namespace App\Access\Actions;
 
 use App\Access\AccessLevel;
+use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Models\AccessRole;
 use Illuminate\Support\Facades\DB;
@@ -27,13 +28,20 @@ class SaveAccessRole
             $permissions = is_array($data['permissions'] ?? null)
                 ? $data['permissions']
                 : [];
+            $permissionScopes = is_array($data['permission_scopes'] ?? null)
+                ? $data['permission_scopes']
+                : [];
 
             foreach (PermissionCatalog::resourceKeys() as $resource) {
                 $level = $permissions[$resource] ?? AccessLevel::NONE;
+                $scope = $permissionScopes[$resource] ?? AccessScope::ALL;
 
                 $role->permissions()->updateOrCreate(
                     ['resource' => $resource],
-                    ['level' => in_array($level, AccessLevel::values(), true) ? $level : AccessLevel::NONE],
+                    [
+                        'level' => in_array($level, AccessLevel::values(), true) ? $level : AccessLevel::NONE,
+                        'scope' => in_array($scope, AccessScope::values(), true) ? $scope : AccessScope::ALL,
+                    ],
                 );
             }
 

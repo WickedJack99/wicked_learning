@@ -3,6 +3,7 @@
 namespace App\Settings\Queries;
 
 use App\Access\AccessLevel;
+use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Access\Queries\LoadAccessRoles;
 use App\Access\Serializers\AccessRoleSerializer;
@@ -31,6 +32,7 @@ class LoadSettingsIndex
     {
         $accessCapabilities = $this->accessCapabilities($user);
         $canManageUsers = $user->can(PermissionCatalog::ability(PermissionCatalog::USERS, AccessLevel::READ));
+        $canManageGroups = $user->can(PermissionCatalog::ability(PermissionCatalog::GROUPS, AccessLevel::READ));
         $canManageRoles = $user->can(PermissionCatalog::ability(PermissionCatalog::ROLES, AccessLevel::READ));
         $canManagePresentation = $user->can(PermissionCatalog::ability(PermissionCatalog::PRESENTATION, AccessLevel::READ));
 
@@ -38,8 +40,8 @@ class LoadSettingsIndex
             'canManageUsers' => $canManageUsers,
             'canAccessAdministration' => $this->canAccessAdministration($accessCapabilities),
             'accessCapabilities' => $accessCapabilities,
-            'accessGroups' => $canManageUsers ? $this->accessGroups() : [],
-            'accessGroupUsers' => $canManageUsers ? $this->accessGroupUsers() : [],
+            'accessGroups' => $canManageGroups ? $this->accessGroups($user) : [],
+            'accessGroupUsers' => ($canManageUsers || $canManageGroups) ? $this->accessGroupUsers() : [],
             'assignableRegistrationRoles' => $user->assignableRoles(),
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
@@ -94,13 +96,33 @@ class LoadSettingsIndex
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function accessGroups(): array
+    private function accessGroups(User $user): array
     {
         return $this->loadLearningGroups
             ->handle()
+            ->filter(fn (LearningGroup $group): bool => $this->canSeeGroup($user, $group))
             ->map(fn (LearningGroup $group): array => $this->learningGroupSerializer->forAdmin($group))
             ->values()
             ->all();
+    }
+
+    private function canSeeGroup(User $user, LearningGroup $group): bool
+    {
+        $scope = $user->accessScopeFor(PermissionCatalog::GROUPS, AccessLevel::READ);
+
+        if (AccessScope::allows($scope, AccessScope::ALL)) {
+            return true;
+        }
+
+        if (
+            AccessScope::allows($scope, AccessScope::OWN)
+            && (int) $group->created_by_user_id === (int) $user->id
+        ) {
+            return true;
+        }
+
+        return AccessScope::allows($scope, AccessScope::ASSIGNED)
+            && $user->managesLearningGroup($group);
     }
 
     /**
@@ -116,7 +138,7 @@ class LoadSettingsIndex
     }
 
     /**
-     * @return array<int, array{key: string, label: string, description: string}>
+     * @return array<int, array{key: string, label: string, description: string, group: string}>
      */
     private function permissionResources(): array
     {
@@ -125,6 +147,7 @@ class LoadSettingsIndex
                 'key' => $key,
                 'label' => $resource['label'],
                 'description' => $resource['description'],
+                'group' => $resource['group'],
             ])
             ->values()
             ->all();

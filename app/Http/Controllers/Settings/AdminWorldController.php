@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\CreateLearningMap;
 use App\Learning\Actions\CreateLearningNode;
@@ -69,7 +71,7 @@ class AdminWorldController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('settings/worlds/index', [
-            'canDeleteWorldMaps' => $request->user()?->can('worlds.rud') ?? false,
+            'canDeleteWorldMaps' => $request->user()?->can(PermissionCatalog::ability(PermissionCatalog::WORLD_MAPS, 'rud')) ?? false,
             'worldGraph' => $this->worldGraphSerializer->serialize(
                 $this->loadEditableWorldGraph->handle($request->user()),
             ),
@@ -99,7 +101,9 @@ class AdminWorldController extends Controller
         $this->authorizeMapEdit($request, $map);
 
         return Inertia::render('settings/worlds/configure-map', [
-            'canDeleteWorldMaps' => request()->user()?->can('worlds.rud') ?? false,
+            'canDeleteWorldMaps' => request()->user()
+                ? $this->mapEditAccess->canDeleteMap(request()->user(), $map)
+                : false,
             'editableMap' => $this->editableMapSerializer->serialize(
                 $this->loadEditableMap->handle($map),
             ),
@@ -110,12 +114,13 @@ class AdminWorldController extends Controller
 
     public function storeMap(Request $request): RedirectResponse
     {
-        $this->authorizeGlobalWorldEdit($request);
+        $this->authorizeMapCreate($request);
 
         $world = $this->loadEditableWorldGraph->handle($request->user());
         $this->createLearningMap->handle(
             $world,
             $request->validate($this->rules->storeMap($world)),
+            $request->user(),
         );
 
         return redirect()->route('settings.worlds.index');
@@ -156,7 +161,7 @@ class AdminWorldController extends Controller
 
     public function storeNode(Request $request, LearningMap $map): RedirectResponse
     {
-        $this->authorizeMapEdit($request, $map);
+        $this->authorizeMapNodeEdit($request, $map);
 
         $this->createLearningNode->handle(
             $map,
@@ -192,7 +197,7 @@ class AdminWorldController extends Controller
 
     public function updateMapAccess(Request $request, LearningMap $map): RedirectResponse
     {
-        $this->authorizeMapEdit($request, $map);
+        $this->authorizeMapAccessEdit($request, $map);
 
         $this->updateLearningMapAccess->handle(
             $map,
@@ -204,7 +209,7 @@ class AdminWorldController extends Controller
 
     public function updateMapEditingGroups(Request $request, LearningMap $map): RedirectResponse
     {
-        $this->authorizeMapEdit($request, $map);
+        $this->authorizeMapAccessEdit($request, $map);
 
         $this->updateLearningMapEditingGroups->handle(
             $map,
@@ -216,6 +221,8 @@ class AdminWorldController extends Controller
 
     public function destroyMap(LearningMap $map): RedirectResponse
     {
+        $this->authorizeMapDelete(request(), $map);
+
         $this->deleteLearningMap->handle($map);
 
         return redirect()->route('settings.worlds.index');
@@ -251,6 +258,7 @@ class AdminWorldController extends Controller
     {
         $node->loadMissing('map');
         $map = $node->map;
+        $this->authorizeNodeDelete(request(), $node);
 
         $this->deleteLearningNode->handle($node);
 
@@ -297,8 +305,33 @@ class AdminWorldController extends Controller
         abort_unless($request->user() && $this->mapEditAccess->canEditMap($request->user(), $map), 403);
     }
 
+    private function authorizeMapAccessEdit(Request $request, LearningMap $map): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canManageMapAccess($request->user(), $map), 403);
+    }
+
+    private function authorizeMapNodeEdit(Request $request, LearningMap $map): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canEditNodesOnMap($request->user(), $map), 403);
+    }
+
+    private function authorizeMapCreate(Request $request): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canCreateMap($request->user()), 403);
+    }
+
+    private function authorizeMapDelete(Request $request, LearningMap $map): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canDeleteMap($request->user(), $map), 403);
+    }
+
+    private function authorizeNodeDelete(Request $request, LearningNode $node): void
+    {
+        abort_unless($request->user() && $this->mapEditAccess->canDeleteNode($request->user(), $node), 403);
+    }
+
     private function authorizeGlobalWorldEdit(Request $request): void
     {
-        abort_unless($request->user()?->hasAccess('worlds', 'ru') ?? false, 403);
+        abort_unless($request->user()?->hasAccess(PermissionCatalog::WORLD_MAP_ACCESS, AccessLevel::UPDATE) ?? false, 403);
     }
 }

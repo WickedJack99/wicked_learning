@@ -22,21 +22,21 @@ class LoadColorPaletteSettings
     public function handle(User $user): array
     {
         $canReadPresentation = $user->can('presentation.ro') || $user->can('presentation.ru') || $user->can('presentation.rud');
-        $canReadJournals = $user->can('journals.ro') || $user->can('journals.ru') || $user->can('journals.rud');
-        $canReadWorlds = $user->can('worlds.ro') || $user->can('worlds.ru') || $user->can('worlds.rud');
+        $canReadJournals = $user->can('journal_settings.ro') || $user->can('journal_settings.ru') || $user->can('journal_settings.rud');
+        $canReadWorlds = $user->can('world_maps.ro') || $user->can('world_maps.ru') || $user->can('world_maps.rud');
 
         abort_unless($canReadPresentation || $canReadJournals || $canReadWorlds, 403);
 
         return [
             'canUpdate' => [
-                'journal' => $user->can('journals.ru') || $user->can('journals.rud'),
-                'maps' => $user->can('worlds.ru') || $user->can('worlds.rud'),
+                'journal' => $user->can('journal_settings.ru') || $user->can('journal_settings.rud'),
+                'maps' => $user->can('world_maps.ru') || $user->can('world_maps.rud'),
                 'presentation' => $user->can('presentation.ru') || $user->can('presentation.rud'),
             ],
             'journal' => $canReadJournals
                 ? $this->journalSerializer->serialize(PlatformJournalSetting::current())
                 : null,
-            'maps' => $canReadWorlds ? $this->maps() : [],
+            'maps' => $canReadWorlds ? $this->maps($user) : [],
             'publicPresentation' => $canReadPresentation
                 ? PlatformPresentationSetting::current()
                 : null,
@@ -46,10 +46,10 @@ class LoadColorPaletteSettings
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function maps(): array
+    private function maps(User $user): array
     {
         return $this->loadEditableWorldGraph
-            ->handle()
+            ->handle($user)
             ->maps
             ->sortBy('title')
             ->values()

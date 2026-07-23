@@ -5,6 +5,7 @@ namespace App\Models;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,9 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property DateTimeInterface|null $admin_chat_visible_until
  */
 #[Fillable([
+    'created_by_user_id',
     'name',
     'slug',
     'description',
+    'study_topic',
     'admin_chat_visible_enabled',
     'admin_chat_visible_until',
 ])]
@@ -34,8 +37,16 @@ class LearningGroup extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'learning_group_user')
-            ->withPivot('joined_at')
+            ->withPivot('joined_at', 'role')
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     /**

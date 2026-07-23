@@ -41,13 +41,21 @@ class AppServiceProvider extends ServiceProvider
         foreach (PermissionCatalog::resourceKeys() as $resource) {
             Gate::define(
                 PermissionCatalog::ability($resource, AccessLevel::READ),
-                fn (User $user): bool => $resource === PermissionCatalog::WORLDS
+                fn (User $user): bool => in_array($resource, [
+                    PermissionCatalog::WORLD_MAPS,
+                    PermissionCatalog::WORLD_NODES,
+                    PermissionCatalog::WORLD_ACTIVITIES,
+                ], true)
                     ? app(LearningMapEditAccessService::class)->hasAnyEditableMap($user)
                     : $user->hasAccess($resource, AccessLevel::READ),
             );
             Gate::define(
                 PermissionCatalog::ability($resource, AccessLevel::UPDATE),
-                fn (User $user): bool => $resource === PermissionCatalog::WORLDS
+                fn (User $user): bool => in_array($resource, [
+                    PermissionCatalog::WORLD_MAPS,
+                    PermissionCatalog::WORLD_NODES,
+                    PermissionCatalog::WORLD_ACTIVITIES,
+                ], true)
                     ? app(LearningMapEditAccessService::class)->hasAnyEditableMap($user)
                     : $user->hasAccess($resource, AccessLevel::UPDATE),
             );

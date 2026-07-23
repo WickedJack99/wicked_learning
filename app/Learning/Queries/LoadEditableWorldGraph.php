@@ -21,7 +21,7 @@ class LoadEditableWorldGraph
             ->with(['maps.nodes'])
             ->firstOrFail();
 
-        if ($user && ! $user->hasAccess('worlds', 'ru')) {
+        if ($user && ! $this->mapEditAccess->canSeeAllEditableMaps($user)) {
             $world->setRelation(
                 'maps',
                 $world->maps
