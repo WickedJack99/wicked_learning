@@ -8,6 +8,7 @@ import type {
 } from './edit-node-activity-types';
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
+        competence_topics: [{ topic: '', weight: '1' }],
         introduction: '',
         item_grant_background_dark: '',
         item_grant_background_light: '',
@@ -145,6 +146,7 @@ export function activityFormFromActivity(
     const portalMode = activity.config.portalMode;
 
     return {
+        competence_topics: competenceTopics(activity.config.competenceTopics),
         introduction: activity.introduction ?? '',
         item_grant_background_dark: stringConfig(
             activity.config.backgroundDark,
@@ -387,10 +389,7 @@ export function activityFormFromActivity(
         ),
         reflection_subtopic: stringConfig(activity.config.subtopic),
         reflection_topic: stringConfig(activity.config.topic),
-        shared_task_cycle_mode: stringConfig(
-            activity.config.cycleMode,
-            'none',
-        ),
+        shared_task_cycle_mode: stringConfig(activity.config.cycleMode, 'none'),
         shared_task_input_label: stringConfig(
             activity.config.inputLabel,
             'Your contribution',
@@ -478,6 +477,22 @@ export function activityFormFromActivity(
         ),
         type: activity.type || fallbackType,
     };
+}
+
+function competenceTopics(value: unknown): ActivityForm['competence_topics'] {
+    if (!Array.isArray(value)) {
+        return [{ topic: '', weight: '1' }];
+    }
+
+    const topics = value
+        .filter(isRecord)
+        .map((topic) => ({
+            topic: stringConfig(topic.topic),
+            weight: stringConfig(topic.weight, '1'),
+        }))
+        .filter((topic) => topic.topic.trim().length > 0);
+
+    return topics.length > 0 ? topics : [{ topic: '', weight: '1' }];
 }
 
 function graphLayout(value: unknown): ActivityForm['markdown_graph_layout'] {

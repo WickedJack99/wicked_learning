@@ -3,6 +3,7 @@ import type { ActivityForm } from './edit-node-activity-types';
 type ActivityFormPayload = Partial<ActivityForm>;
 
 const coreFields: Array<keyof ActivityForm> = [
+    'competence_topics',
     'introduction',
     'slug',
     'title',

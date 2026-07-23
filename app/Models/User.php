@@ -37,10 +37,11 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string|null $remember_token
  * @property Carbon|null $login_disabled_at
  * @property Carbon|null $banned_until
+ * @property array<int, array{slug: string, topic: string}>|null $last_competence_topics
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'username', 'profile_image', 'email', 'password', 'role', 'roles', 'login_disabled_at', 'banned_until'])]
+#[Fillable(['name', 'username', 'profile_image', 'email', 'password', 'role', 'roles', 'last_competence_topics', 'login_disabled_at', 'banned_until'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -95,6 +96,7 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'roles' => 'array',
+            'last_competence_topics' => 'array',
             'two_factor_confirmed_at' => 'datetime',
             'login_disabled_at' => 'datetime',
             'banned_until' => 'datetime',

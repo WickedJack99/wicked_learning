@@ -5,6 +5,8 @@ import {
     Info,
     Palette,
     SlidersHorizontal,
+    Star,
+    Trash2,
 } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
@@ -17,10 +19,9 @@ import {
     SettingsConfigurationLayout,
     SettingsContentPane,
     SettingsSectionNavigation,
-    SettingsSidebar
-    
+    SettingsSidebar,
 } from '@/components/settings-configuration-shell';
-import type {SettingsNavigationItem} from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,7 +61,12 @@ import {
     ToolGrantVisualFields,
 } from './tool-grant-activity-fields';
 
-type ActivitySettingsSection = 'basics' | 'flow' | 'visuals' | 'details';
+type ActivitySettingsSection =
+    | 'basics'
+    | 'flow'
+    | 'visuals'
+    | 'competence'
+    | 'details';
 
 export function ActivityFormFields({
     activityTypes,
@@ -501,6 +507,19 @@ export function ActivityFormFields({
                         </>
                     ) : null}
 
+                    {activeSection === 'competence' ? (
+                        <SettingsConfigurationSection
+                            description="Add topic weights that increase a learner's competence counters when they complete this activity during route play."
+                            title="Competence topics"
+                        >
+                            <CompetenceTopicFields
+                                errors={errors}
+                                form={form}
+                                onChange={onChange}
+                            />
+                        </SettingsConfigurationSection>
+                    ) : null}
+
                     {activeSection === 'details' ? (
                         <SettingsConfigurationSection
                             description="Optional text and stable URL-friendly naming."
@@ -571,6 +590,12 @@ const activitySettingsSections: SettingsNavigationItem<ActivitySettingsSection>[
             label: 'Visuals',
         },
         {
+            description: 'Topics and weights awarded on route completion.',
+            icon: Star,
+            key: 'competence',
+            label: 'Competence',
+        },
+        {
             description: 'Slug and optional introductory text.',
             icon: SlidersHorizontal,
             key: 'details',
@@ -604,5 +629,136 @@ function ActivityEmptySection({
 }) {
     return (
         <SettingsEmptyStateSection description={description} title={title} />
+    );
+}
+
+function CompetenceTopicFields({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    function updateTopic(
+        index: number,
+        field: 'topic' | 'weight',
+        value: string,
+    ) {
+        onChange((current) => ({
+            ...current,
+            competence_topics: current.competence_topics.map(
+                (topic, topicIndex) =>
+                    topicIndex === index ? { ...topic, [field]: value } : topic,
+            ),
+        }));
+    }
+
+    function addTopic() {
+        onChange((current) => ({
+            ...current,
+            competence_topics: [
+                ...current.competence_topics,
+                { topic: '', weight: '1' },
+            ],
+        }));
+    }
+
+    function removeTopic(index: number) {
+        onChange((current) => {
+            const nextTopics = current.competence_topics.filter(
+                (_, topicIndex) => topicIndex !== index,
+            );
+
+            return {
+                ...current,
+                competence_topics:
+                    nextTopics.length > 0
+                        ? nextTopics
+                        : [{ topic: '', weight: '1' }],
+            };
+        });
+    }
+
+    return (
+        <div className="grid gap-4">
+            <div className="grid gap-3">
+                {form.competence_topics.map((topic, index) => (
+                    <div
+                        className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[minmax(0,1fr)_8rem_auto] md:items-start dark:border-white/10 dark:bg-white/5"
+                        key={index}
+                    >
+                        <div className="grid gap-2">
+                            <Label htmlFor={`competence-topic-${index}`}>
+                                Topic
+                            </Label>
+                            <Input
+                                id={`competence-topic-${index}`}
+                                onChange={(event) =>
+                                    updateTopic(
+                                        index,
+                                        'topic',
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="e.g. Algebra"
+                                value={topic.topic}
+                            />
+                            <InputError
+                                message={
+                                    errors[`competence_topics.${index}.topic`]
+                                }
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor={`competence-weight-${index}`}>
+                                Weight
+                            </Label>
+                            <Input
+                                id={`competence-weight-${index}`}
+                                min="0"
+                                onChange={(event) =>
+                                    updateTopic(
+                                        index,
+                                        'weight',
+                                        event.target.value,
+                                    )
+                                }
+                                step="0.1"
+                                type="number"
+                                value={topic.weight}
+                            />
+                            <InputError
+                                message={
+                                    errors[`competence_topics.${index}.weight`]
+                                }
+                            />
+                        </div>
+                        <Button
+                            aria-label="Remove topic"
+                            className="md:mt-7"
+                            onClick={() => removeTopic(index)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <InputError message={errors.competence_topics} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    Points are awarded only during route play and only once for
+                    the same activity in the same play run.
+                </p>
+                <Button onClick={addTopic} type="button" variant="secondary">
+                    <Star className="size-4" />
+                    Add topic
+                </Button>
+            </div>
+        </div>
     );
 }

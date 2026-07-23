@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\MarkdownActivityConfiguration;
@@ -19,6 +20,7 @@ class UpdateLearningActivity
 {
     public function __construct(
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
+        private readonly ActivityCompetenceConfiguration $competenceConfig,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
@@ -63,6 +65,7 @@ class UpdateLearningActivity
             || $this->toolGrantConfig->shouldUpdate($data, $updates)
             || $this->reflectionConfig->shouldUpdate($data, $updates)
             || $this->sharedTaskConfig->shouldUpdate($data, $updates)
+            || $this->competenceConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($type, $data, $config);
@@ -78,7 +81,7 @@ class UpdateLearningActivity
      */
     private function configFor(string $type, array $data, array $existing): array
     {
-        return match ($type) {
+        $config = match ($type) {
             'item_grant' => $this->itemGrantConfig->fromData($data, $existing),
             'item_obstacle' => $this->itemObstacleConfig->fromData($data, $existing),
             'markdown' => $this->markdownConfig->fromData($data, $existing),
@@ -89,6 +92,8 @@ class UpdateLearningActivity
             'tool_grant' => $this->toolGrantConfig->fromData($data, $existing),
             default => [],
         };
+
+        return $this->competenceConfig->mergeInto($config, $data);
     }
 
     /**

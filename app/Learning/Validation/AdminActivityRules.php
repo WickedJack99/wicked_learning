@@ -26,6 +26,7 @@ class AdminActivityRules
             ...$this->reflectionRules(),
             ...$this->sharedTaskRules(),
             ...$this->toolGrantRules(),
+            ...$this->competenceRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
         ];
@@ -57,6 +58,7 @@ class AdminActivityRules
             ...$this->reflectionRules('sometimes'),
             ...$this->sharedTaskRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
+            ...$this->competenceRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
             'return_to_markdown' => ['sometimes', 'boolean'],
@@ -135,6 +137,16 @@ class AdminActivityRules
             ],
             'type' => ['required', 'string', Rule::in($this->activityTypes->typeKeys())],
             'introduction' => ['nullable', 'string', 'max:1000'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function competenceRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'competence_topics' => [$modifier, 'array', 'max:20'],
+            'competence_topics.*.topic' => $this->optional($modifier, ['string', 'max:120']),
+            'competence_topics.*.weight' => $this->optional($modifier, ['numeric', 'min:0', 'max:1000']),
         ];
     }
 

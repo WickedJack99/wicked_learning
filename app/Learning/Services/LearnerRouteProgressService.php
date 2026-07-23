@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class LearnerRouteProgressService
 {
+    public function __construct(private readonly LearnerCompetenceService $competence) {}
+
     public function progressForStart(User $user, LearningActivityStart $start): ?LearnerRouteProgress
     {
         return LearnerRouteProgress::query()
@@ -88,6 +90,8 @@ class LearnerRouteProgressService
         if (! $progress) {
             return;
         }
+
+        $this->competence->visitActivityTopics($user, $activity);
 
         $progress->current_learning_activity_id = $activity->id;
         $progress->status = $progress->status === 'completed' ? 'completed' : 'in_progress';

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\LearnerCompetenceController;
 use App\Http\Controllers\LearnerJournalController;
 use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
@@ -35,6 +36,8 @@ Route::get('learning/nodes/{node}/play', [LearningWorldController::class, 'play'
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('bookmarks', [LearningBookmarkController::class, 'index'])->name('bookmarks');
+    Route::get('competence', [LearnerCompetenceController::class, 'index'])
+        ->name('competence.index');
     Route::get('organizations', [OrganizationController::class, 'index'])
         ->name('organizations.index');
     Route::post('organizations', [OrganizationController::class, 'store'])

@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\MarkdownActivityConfiguration;
@@ -20,6 +21,7 @@ class CreateLearningActivity
 {
     public function __construct(
         private readonly PortalActivityConfiguration $portalConfig,
+        private readonly ActivityCompetenceConfiguration $competenceConfig,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
@@ -62,7 +64,7 @@ class CreateLearningActivity
      */
     private function configFor(string $type, array $data): array
     {
-        return match ($type) {
+        $config = match ($type) {
             'item_grant' => $this->itemGrantConfig->fromData($data),
             'item_obstacle' => $this->itemObstacleConfig->fromData($data),
             'markdown' => $this->markdownConfig->fromData($data),
@@ -73,6 +75,8 @@ class CreateLearningActivity
             'tool_grant' => $this->toolGrantConfig->fromData($data),
             default => [],
         };
+
+        return $this->competenceConfig->mergeInto($config, $data);
     }
 
     private function nextSortOrder(LearningNode $node): int

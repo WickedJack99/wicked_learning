@@ -49,6 +49,11 @@ export type ActivitySummary = {
     type: string;
 };
 
+export type CompetenceTopicForm = {
+    topic: string;
+    weight: string;
+};
+
 export type PortalActivityLink = {
     description: string | null;
     id: number;
@@ -227,6 +232,7 @@ export type ActivityGraphEdge = Edge<
 >;
 
 export type CreateActivityForm = {
+    competence_topics: CompetenceTopicForm[];
     introduction: string;
     item_grant_background_dark: string;
     item_grant_background_light: string;

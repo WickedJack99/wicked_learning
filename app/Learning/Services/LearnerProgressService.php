@@ -12,6 +12,7 @@ class LearnerProgressService
     public function __construct(
         private readonly LearnerRouteProgressService $routeProgress,
         private readonly LearnerActivityPlayStateService $activityPlayState,
+        private readonly LearnerCompetenceService $competence,
     ) {}
 
     public function mark(
@@ -50,6 +51,10 @@ class LearnerProgressService
                 }
 
                 if ($status === 'completed') {
+                    if ($this->routeProgress->progressForRun($routeUser, $activity, $playRunId)) {
+                        $this->competence->awardActivityCompletion($routeUser, $activity, $playRunId);
+                    }
+
                     $this->routeProgress->exitActivity($routeUser, $activity, $playRunId);
                     $this->activityPlayState->clearActivityState($routeUser, $activity, $playRunId);
                     $this->routeProgress->completeRouteIfTerminal($routeUser, $activity, $playRunId, $endsRoute);

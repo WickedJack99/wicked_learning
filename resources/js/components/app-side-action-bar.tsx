@@ -187,9 +187,11 @@ export function AppSideActionBar() {
                     <NotebookPen className="size-5" />
                 </ActionButton>
                 <ActionButton
-                    disabled
-                    label="Competence star map"
-                    onClick={() => undefined}
+                    label="Open competence star map"
+                    onClick={() => {
+                        setOverlay(null);
+                        router.visit('/competence');
+                    }}
                 >
                     <Sparkles className="size-5" />
                 </ActionButton>
