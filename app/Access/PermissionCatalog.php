@@ -38,6 +38,8 @@ class PermissionCatalog
 
     public const JOURNALS = self::JOURNAL_SETTINGS;
 
+    public const COMPETENCE_TOPICS = 'competence_topics';
+
     public const ORGANIZATION_MODERATION = 'organization_moderation';
 
     public const AI = 'ai';
@@ -123,6 +125,11 @@ class PermissionCatalog
                 'description' => 'Review learner feedback requests and send informational feedback.',
                 'group' => 'Learning support',
             ],
+            self::COMPETENCE_TOPICS => [
+                'label' => 'Competence topics',
+                'description' => 'Define learner competence topics and star-map thresholds.',
+                'group' => 'Learning support',
+            ],
             self::ORGANIZATION_MODERATION => [
                 'label' => 'Organization moderation',
                 'description' => 'Review reported organization icons and platform organization limits.',
@@ -162,6 +169,7 @@ class PermissionCatalog
             'journals' => [
                 self::JOURNAL_SETTINGS,
                 self::JOURNAL_FEEDBACK,
+                self::COMPETENCE_TOPICS,
                 self::ORGANIZATION_MODERATION,
             ],
             'users' => [

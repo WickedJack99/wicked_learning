@@ -4,6 +4,7 @@ use App\Models\LearnerCompetenceActivityAward;
 use App\Models\LearnerCompetenceTopic;
 use App\Models\LearnerCompetenceTopicMonth;
 use App\Models\LearnerCompetenceTopicTransition;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -207,6 +208,13 @@ test('competence star map shows studied topics and transitions', function () {
         'topic_name' => 'Algebra',
         'total_points' => 8,
     ]);
+    CompetenceTopicDefinition::query()->create([
+        'slug' => 'algebra',
+        'name' => 'Algebra Foundations',
+        'growth_threshold' => 12,
+        'emittance_threshold' => 16,
+        'aura_threshold' => 6,
+    ]);
     LearnerCompetenceTopic::query()->create([
         'user_id' => $learner->id,
         'topic_slug' => 'geometry',
@@ -236,7 +244,11 @@ test('competence star map shows studied topics and transitions', function () {
             ->component('competence/index')
             ->where('competenceMap.monthKey', '2026-07')
             ->where('competenceMap.topics.0.slug', 'algebra')
+            ->where('competenceMap.topics.0.name', 'Algebra Foundations')
             ->where('competenceMap.topics.0.monthlyPoints', 5)
+            ->where('competenceMap.topics.0.growthThreshold', 12)
+            ->where('competenceMap.topics.0.emittanceThreshold', 16)
+            ->where('competenceMap.topics.0.auraThreshold', 6)
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')
             ->where('competenceMap.transitions.0.toTopicSlug', 'geometry')
         );

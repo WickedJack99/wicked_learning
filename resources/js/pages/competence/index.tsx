@@ -4,6 +4,9 @@ import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
 
 type CompetenceTopic = {
+    auraThreshold: number;
+    emittanceThreshold: number;
+    growthThreshold: number;
     monthlyPoints: number;
     name: string;
     slug: string;
@@ -28,6 +31,8 @@ type PositionedTopic = CompetenceTopic & {
     aura: number;
     brightness: number;
     size: number;
+    twinkleDelay: number;
+    twinkleDuration: number;
     x: number;
     y: number;
 };
@@ -45,7 +50,7 @@ export default function CompetenceStarMap({
     return (
         <>
             <Head title="Competence Star Map" />
-            <main className="min-h-svh overflow-hidden bg-slate-950 px-4 py-6 pb-24 text-white">
+            <main className="min-h-svh overflow-hidden bg-black px-4 py-6 pb-24 text-white">
                 <div className="mx-auto grid h-[calc(100svh-7rem)] max-w-7xl grid-rows-[auto_minmax(0,1fr)] gap-5">
                     <AccentHeading
                         action={
@@ -63,7 +68,7 @@ export default function CompetenceStarMap({
                         title="Star Map"
                     />
 
-                    <section className="relative min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_center,#172554_0%,#020617_58%,#000_100%)] shadow-2xl">
+                    <section className="relative min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
                         {positionedTopics.length === 0 ? (
                             <div className="grid h-full place-items-center p-6 text-center">
                                 <div>
@@ -89,7 +94,44 @@ export default function CompetenceStarMap({
                                     @keyframes competence-flow {
                                         to { stroke-dashoffset: -72; }
                                     }
+                                    @keyframes competence-twinkle {
+                                        0%, 100% {
+                                            opacity: 0.72;
+                                            transform: scale(0.94);
+                                        }
+                                        42% {
+                                            opacity: 1;
+                                            transform: scale(1.08);
+                                        }
+                                        62% {
+                                            opacity: 0.82;
+                                            transform: scale(0.98);
+                                        }
+                                    }
+                                    @keyframes competence-halo {
+                                        0%, 100% { opacity: 0.32; }
+                                        50% { opacity: 0.78; }
+                                    }
                                 `}</style>
+                                <defs>
+                                    <filter
+                                        height="200%"
+                                        id="competence-star-glow"
+                                        width="200%"
+                                        x="-50%"
+                                        y="-50%"
+                                    >
+                                        <feGaussianBlur
+                                            in="SourceGraphic"
+                                            result="blur"
+                                            stdDeviation="3"
+                                        />
+                                        <feMerge>
+                                            <feMergeNode in="blur" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
+                                </defs>
                                 <g>
                                     {competenceMap.transitions.map(
                                         (transition) => {
@@ -182,25 +224,56 @@ function CompetenceStar({ topic }: { topic: PositionedTopic }) {
                 fill="#22d3ee"
                 opacity={topic.aura}
                 r={topic.size * (1.7 + topic.monthlyPoints / 18)}
+                style={{
+                    animation: `competence-halo ${topic.twinkleDuration + 1.2}s ease-in-out infinite`,
+                    animationDelay: `${topic.twinkleDelay}s`,
+                }}
             />
             <circle
-                fill="#fef9c3"
-                opacity={topic.brightness * 0.32}
-                r={topic.size * 1.55}
+                fill="#bfdbfe"
+                opacity={topic.brightness * 0.2}
+                r={topic.size * 2.4}
             />
-            <circle
-                fill="#fff7ed"
-                opacity={topic.brightness}
-                stroke="#ffffff"
-                strokeOpacity="0.45"
-                strokeWidth="1"
-                r={topic.size}
-            />
-            <circle
-                fill="#ffffff"
-                opacity={0.75 + topic.brightness * 0.25}
-                r={Math.max(2.4, topic.size * 0.22)}
-            />
+            <g
+                filter="url(#competence-star-glow)"
+                style={{
+                    animation: `competence-twinkle ${topic.twinkleDuration}s ease-in-out infinite`,
+                    animationDelay: `${topic.twinkleDelay}s`,
+                    transformBox: 'fill-box',
+                    transformOrigin: 'center',
+                }}
+            >
+                <line
+                    stroke="#e0f2fe"
+                    strokeLinecap="round"
+                    strokeOpacity={topic.brightness * 0.42}
+                    strokeWidth={Math.max(0.5, topic.size * 0.08)}
+                    x1={-topic.size * 1.6}
+                    x2={topic.size * 1.6}
+                    y1="0"
+                    y2="0"
+                />
+                <line
+                    stroke="#e0f2fe"
+                    strokeLinecap="round"
+                    strokeOpacity={topic.brightness * 0.3}
+                    strokeWidth={Math.max(0.4, topic.size * 0.06)}
+                    x1="0"
+                    x2="0"
+                    y1={-topic.size * 1.6}
+                    y2={topic.size * 1.6}
+                />
+                <circle
+                    fill="#fff7ed"
+                    opacity={0.62 + topic.brightness * 0.38}
+                    r={topic.size}
+                />
+                <circle
+                    fill="#ffffff"
+                    opacity={0.82 + topic.brightness * 0.18}
+                    r={Math.max(1.5, topic.size * 0.22)}
+                />
+            </g>
             <text
                 fill="#f8fafc"
                 fontSize="16"
@@ -215,26 +288,40 @@ function CompetenceStar({ topic }: { topic: PositionedTopic }) {
 }
 
 function positionTopics(topics: CompetenceTopic[]): PositionedTopic[] {
-    const maxTotal = Math.max(...topics.map((topic) => topic.totalPoints), 1);
-    const maxMonthly = Math.max(
-        ...topics.map((topic) => topic.monthlyPoints),
-        1,
-    );
-
     return topics.map((topic, index) => {
         const angle =
             topics.length === 1 ? 0 : (Math.PI * 2 * index) / topics.length;
         const ring = topics.length <= 6 ? 220 : 180 + (index % 2) * 92;
-        const totalRatio = topic.totalPoints / maxTotal;
-        const monthlyRatio = topic.monthlyPoints / maxMonthly;
+        const growthRatio = thresholdRatio(
+            topic.totalPoints,
+            topic.growthThreshold,
+        );
+        const emittanceRatio = thresholdRatio(
+            topic.totalPoints,
+            topic.emittanceThreshold,
+        );
+        const auraRatio = thresholdRatio(
+            topic.monthlyPoints,
+            topic.auraThreshold,
+        );
 
         return {
             ...topic,
-            aura: 0.08 + monthlyRatio * 0.42,
-            brightness: 0.42 + totalRatio * 0.58,
-            size: 5 + totalRatio * 13,
+            aura: 0.06 + auraRatio * 0.48,
+            brightness: 0.38 + emittanceRatio * 0.62,
+            size: 3.5 + growthRatio * 16,
+            twinkleDelay: (index % 7) * -0.43,
+            twinkleDuration: 2.8 + (index % 5) * 0.36,
             x: 500 + Math.cos(angle - Math.PI / 2) * ring,
             y: 340 + Math.sin(angle - Math.PI / 2) * ring,
         };
     });
+}
+
+function thresholdRatio(points: number, threshold: number): number {
+    if (!Number.isFinite(points) || !Number.isFinite(threshold) || threshold <= 0) {
+        return 0;
+    }
+
+    return Math.min(1, points / threshold);
 }
