@@ -1,5 +1,6 @@
 <?php
 
+use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningNodeStateResolver;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
@@ -9,6 +10,7 @@ use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTool;
+use App\Models\LearningWorld;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 use App\Models\User;
@@ -22,6 +24,49 @@ test('guests can visit the public world route', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('world')
         );
+});
+
+test('guests are redirected home when the world has no public maps', function () {
+    LearningMap::query()->delete();
+
+    $world = LearningWorld::query()->updateOrCreate([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+    ], [
+        'title' => 'Private World',
+    ]);
+
+    LearningMap::query()->create([
+        'access_roles' => [User::ROLE_USER, User::ROLE_ADMIN],
+        'learning_world_id' => $world->id,
+        'slug' => 'private-map',
+        'title' => 'Private Map',
+    ]);
+
+    $this->get(route('world'))
+        ->assertRedirect(route('home'));
+});
+
+test('guests are redirected home when playing a node on a private map', function () {
+    $world = LearningWorld::query()->create([
+        'slug' => 'private-play-world',
+        'title' => 'Private Play World',
+    ]);
+    $map = LearningMap::query()->create([
+        'access_roles' => [User::ROLE_USER, User::ROLE_ADMIN],
+        'learning_world_id' => $world->id,
+        'slug' => 'private-play-map',
+        'title' => 'Private Play Map',
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'position_q' => 0,
+        'position_r' => 0,
+        'slug' => 'private-play-node',
+        'title' => 'Private Play Node',
+    ]);
+
+    $this->get(route('learning.nodes.play', $node))
+        ->assertRedirect(route('home'));
 });
 
 test('authenticated users can visit the world map', function () {

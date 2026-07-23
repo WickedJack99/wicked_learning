@@ -5,10 +5,12 @@ namespace App\Http\Middleware;
 use App\Learning\Queries\LoadCurrentMenuMapTheme;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
+use App\Learning\Serializers\PlatformJournalSettingsSerializer;
 use App\Localization\Services\PlatformLocaleCatalog;
 use App\Localization\Services\UserLocaleResolver;
 use App\Models\LearningItem;
 use App\Models\LearningTool;
+use App\Models\PlatformJournalSetting;
 use App\Models\PlatformPresentationSetting;
 use App\Settings\Serializers\SoundPreferenceSerializer;
 use App\Support\Appearance;
@@ -21,6 +23,7 @@ class HandleInertiaRequests extends Middleware
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearningItemSerializer $itemSerializer,
         private readonly LoadCurrentMenuMapTheme $loadCurrentMenuMapTheme,
+        private readonly PlatformJournalSettingsSerializer $journalSettings,
         private readonly PlatformLocaleCatalog $localeCatalog,
         private readonly UserLocaleResolver $localeResolver,
         private readonly SoundPreferenceSerializer $soundPreferences,
@@ -86,6 +89,8 @@ class HandleInertiaRequests extends Middleware
                 )
                 : Appearance::forGuest(),
             'soundPreferences' => $this->soundPreferences->serialize($request->user()?->preference),
+            'journalTheme' => fn (): array => $this->journalSettings
+                ->serialize(PlatformJournalSetting::current())['theme'],
             'publicPresentation' => PlatformPresentationSetting::current(),
             'menuTheme' => $this->loadCurrentMenuMapTheme->handle($request->user()),
             'localization' => [

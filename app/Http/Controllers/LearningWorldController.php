@@ -16,6 +16,7 @@ use App\Learning\Services\LearnerMapLocationService;
 use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearnerRouteProgressService;
 use App\Learning\Services\LearningBookmarkService;
+use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningPlayRunService;
 use App\Learning\Services\LearningToolGrantService;
 use App\Learning\Services\NodeRevealService;
@@ -54,6 +55,7 @@ class LearningWorldController extends Controller
         private readonly LearnerProgressSerializer $progressSerializer,
         private readonly LearnerProgressService $progressService,
         private readonly LearnerRouteProgressService $routeProgressService,
+        private readonly LearningMapAccessService $mapAccess,
         private readonly LearningPlayRunService $playRunService,
         private readonly QuestionAnswerService $questionAnswerService,
         private readonly NpcDialogueAnswerService $npcDialogueAnswerService,
@@ -68,6 +70,10 @@ class LearningWorldController extends Controller
     {
         $user = $request->user();
         $world = $this->loadLearningWorld->forMapView($user);
+
+        if (! $user && $world && $world->maps->isEmpty()) {
+            return redirect()->route('home');
+        }
 
         if ($user && $world) {
             $redirect = $this->syncMapLocation($request, $user, $world->maps);
@@ -101,6 +107,12 @@ class LearningWorldController extends Controller
         $runProgress = $user
             ? $this->progressForPlayRequest($request, $node, $playRunId)
             : null;
+
+        $node->loadMissing('map');
+
+        if (! $user && ! $this->mapAccess->canViewMap($node->map, null)) {
+            return redirect()->route('home');
+        }
 
         if ($user && $route && ! $playRunId) {
             $progress = $this->routeProgressService->startOrResume($user, $route);

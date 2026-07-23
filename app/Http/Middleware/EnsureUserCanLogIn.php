@@ -29,7 +29,7 @@ class EnsureUserCanLogIn
         $request->session()->regenerateToken();
 
         return redirect()
-            ->route('login')
+            ->route('home')
             ->withErrors(['email' => $message]);
     }
 }

@@ -1,4 +1,5 @@
 import type { Appearance } from '@/theme/appearance';
+import type { JournalThemeSettings } from '@/features/journal/theme';
 import type { MapMenuTheme } from '@/features/world/map-control-theme';
 import type { SoundPreferences } from '@/features/sounds/sound-player';
 import type { PublicPresentationSettings } from '@/theme/presentation';
@@ -25,6 +26,7 @@ declare module '@inertiajs/core' {
             name: string;
             appearance: Appearance;
             auth: Auth;
+            journalTheme: JournalThemeSettings;
             menuTheme: MapMenuTheme | null;
             soundPreferences: SoundPreferences;
             localization: {

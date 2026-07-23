@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import {
     Download,
     FilePlus2,
@@ -46,6 +47,7 @@ type JournalOverlayProps = {
 /** A learner-owned markdown journal that is fetched only after the rail opens. */
 export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const { resolvedAppearance } = useAppearance();
+    const { journalTheme } = usePage().props;
     const [payload, setPayload] = useState<JournalPayload | null>(() =>
         getCachedJournalPayload(),
     );
@@ -88,10 +90,10 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const themeStyle = useMemo(
         () =>
             journalThemeCssVariables(
-                payload?.theme ?? DEFAULT_JOURNAL_THEME,
+                payload?.theme ?? journalTheme ?? DEFAULT_JOURNAL_THEME,
                 resolvedAppearance,
             ),
-        [payload, resolvedAppearance],
+        [journalTheme, payload, resolvedAppearance],
     );
 
     useEffect(() => {

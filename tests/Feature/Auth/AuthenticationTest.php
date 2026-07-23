@@ -88,9 +88,19 @@ test('blocked authenticated sessions are ended on the next request', function ()
 
     $this->actingAs($user)
         ->get(route('world'))
-        ->assertRedirect(route('login'));
+        ->assertRedirect(route('home'));
 
     $this->assertGuest();
+});
+
+test('guest browser visits to protected pages redirect to welcome', function () {
+    $this->get(route('settings.index'))
+        ->assertRedirect(route('home'));
+});
+
+test('guest json visits to protected endpoints stay unauthenticated json responses', function () {
+    $this->getJson(route('learning.journal.index'))
+        ->assertUnauthorized();
 });
 
 test('users can logout', function () {
