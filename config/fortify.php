@@ -144,7 +144,12 @@ return [
 
     'passkeys' => [
         'relying_party_id' => parse_url(config('app.url'), PHP_URL_HOST),
-        'allowed_origins' => [config('app.url')],
+        'allowed_origins' => array_values(array_unique(array_filter([
+            config('app.url'),
+            preg_replace('/^http:\/\//', 'https://', (string) config('app.url')),
+            preg_replace('/^https:\/\//', 'http://', (string) config('app.url')),
+            ...array_map('trim', explode(',', (string) env('PASSKEYS_ALLOWED_ORIGINS', ''))),
+        ]))),
         'user_handle_secret' => env('PASSKEYS_USER_HANDLE_SECRET', config('app.key')),
         'timeout' => 60000,
     ],
