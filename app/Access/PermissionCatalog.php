@@ -26,6 +26,8 @@ class PermissionCatalog
 
     public const ASSETS = 'assets';
 
+    public const MEDIA_PATHS = 'media_paths';
+
     public const SOUNDS = 'sounds';
 
     public const PRESENTATION = 'presentation';
@@ -98,6 +100,11 @@ class PermissionCatalog
             self::ASSETS => [
                 'label' => 'Assets',
                 'description' => 'Tools, media, reusable images, items and future currencies.',
+                'group' => 'Assets',
+            ],
+            self::MEDIA_PATHS => [
+                'label' => 'Media paths',
+                'description' => 'View raw image and media paths in upload controls.',
                 'group' => 'Assets',
             ],
             self::SOUNDS => [

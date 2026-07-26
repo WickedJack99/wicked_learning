@@ -23,6 +23,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { ConfigImageInput } from './activity-config-fields';
 import { ActivityFormFields } from './activity-form-fields';
 import { activityFormPayload } from './activity-form-payload';
@@ -107,7 +108,7 @@ export default function EditNodeActivities({
         resetImageUploadErrors,
         uploadNodeImage,
         uploadingImageKey,
-    } = useNodeImageUpload();
+    } = useNodeImageUpload(activityGraph.map.id);
 
     const openEdit = useCallback(
         (activity: ActivitySummary) => {
@@ -168,6 +169,18 @@ export default function EditNodeActivities({
     const selectedEditType = activityGraph.activityTypes.find(
         (type) => type.key === editForm.type,
     );
+    const hasEditActivityChanges = useDirtyState(
+        editForm,
+        editingActivity
+            ? activityFormFromActivity(editingActivity, firstType)
+            : emptyCreateForm(firstType),
+    );
+    const hasStartRouteChanges = useDirtyState(
+        startRouteForm,
+        selectedStartRoute
+            ? routeFormFromStartRoute(selectedStartRoute)
+            : emptyStartRouteForm(),
+    );
 
     const openCreate = () => {
         setForm(emptyCreateForm(firstType));
@@ -192,7 +205,7 @@ export default function EditNodeActivities({
     };
 
     const updateActivity = () => {
-        if (!editingActivity) {
+        if (!editingActivity || !hasEditActivityChanges) {
             return;
         }
 
@@ -250,20 +263,13 @@ export default function EditNodeActivities({
         }
 
         setSelectedStartRoute(route);
-        setStartRouteForm({
-            button_border_color_dark: route.buttonBorderColorDark ?? '',
-            button_border_color_light: route.buttonBorderColorLight ?? '',
-            button_color_dark: route.buttonColorDark ?? '',
-            button_color_light: route.buttonColorLight ?? '',
-            image_dark: route.imageDark ?? '',
-            image_light: route.imageLight ?? '',
-        });
+        setStartRouteForm(routeFormFromStartRoute(route));
         setStartRouteErrors({});
         resetImageUploadErrors();
     };
 
     const updateStartRoute = () => {
-        if (!selectedStartRoute) {
+        if (!selectedStartRoute || !hasStartRouteChanges) {
             return;
         }
 
@@ -578,7 +584,7 @@ export default function EditNodeActivities({
                             Cancel
                         </Button>
                         <Button
-                            disabled={updating}
+                            disabled={updating || !hasEditActivityChanges}
                             onClick={updateActivity}
                             type="button"
                         >
@@ -802,7 +808,9 @@ export default function EditNodeActivities({
                                 Cancel
                             </Button>
                             <Button
-                                disabled={updatingStartRoute}
+                                disabled={
+                                    updatingStartRoute || !hasStartRouteChanges
+                                }
                                 onClick={updateStartRoute}
                                 type="button"
                             >
@@ -948,6 +956,28 @@ function RouteVisualPreview({
             </button>
         </div>
     );
+}
+
+function emptyStartRouteForm(): StartRouteForm {
+    return {
+        button_border_color_dark: '',
+        button_border_color_light: '',
+        button_color_dark: '',
+        button_color_light: '',
+        image_dark: '',
+        image_light: '',
+    };
+}
+
+function routeFormFromStartRoute(route: ActivityStartRoute): StartRouteForm {
+    return {
+        button_border_color_dark: route.buttonBorderColorDark ?? '',
+        button_border_color_light: route.buttonBorderColorLight ?? '',
+        button_color_dark: route.buttonColorDark ?? '',
+        button_color_light: route.buttonColorLight ?? '',
+        image_dark: route.imageDark ?? '',
+        image_light: route.imageLight ?? '',
+    };
 }
 
 function RouteColorInput({

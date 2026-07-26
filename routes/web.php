@@ -11,6 +11,7 @@ use App\Http\Controllers\LearningSharedTaskSubmissionController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PlatformInfoPageController;
+use App\Http\Controllers\ProtectedMapMediaController;
 use App\Http\Controllers\SourceCodePageController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,10 @@ Route::get('learning/search', [LearningWorldController::class, 'search'])
     ->name('learning.search');
 Route::get('learning/nodes/{node}/play', [LearningWorldController::class, 'play'])
     ->name('learning.nodes.play');
+
+Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::class, 'show'])
+    ->where('path', '.*')
+    ->name('protected-map-media.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('bookmarks', [LearningBookmarkController::class, 'index'])->name('bookmarks');

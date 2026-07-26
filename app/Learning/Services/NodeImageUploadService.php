@@ -2,6 +2,7 @@
 
 namespace App\Learning\Services;
 
+use App\Models\LearningMap;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -9,7 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class NodeImageUploadService
 {
-    public function upload(mixed $image): string
+    public function __construct(
+        private readonly ProtectedMapMedia $protectedMedia,
+    ) {}
+
+    public function upload(mixed $image, ?LearningMap $map = null): string
     {
         if (! $image instanceof UploadedFile) {
             throw ValidationException::withMessages([
@@ -23,6 +28,10 @@ class NodeImageUploadService
             throw ValidationException::withMessages([
                 'image' => 'The file must be a GIF, JPG, PNG, SVG, WEBP, MP4, OGG or WEBM file.',
             ]);
+        }
+
+        if ($map) {
+            return $this->protectedMedia->store($image, $map, $this->allowedExtensions())['url'];
         }
 
         $path = $image->storeAs('learning/nodes', Str::uuid()->toString().'.'.$extension, 'public');

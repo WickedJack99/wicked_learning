@@ -39,7 +39,7 @@ export default function EditMarkdownActivity({
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const { imageUploadErrors, uploadNodeImage, uploadingImageKey } =
-        useNodeImageUpload();
+        useNodeImageUpload(markdownActivity.map.id);
 
     const save = () => {
         setSaving(true);

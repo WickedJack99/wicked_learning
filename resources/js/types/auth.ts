@@ -18,6 +18,7 @@ export type User = {
 };
 
 export type Auth = {
+    canViewMediaPaths: boolean;
     items: LearningItem[];
     tools: LearningTool[];
     user: User | null;

@@ -6,6 +6,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 
 type ReusableImageAsset = {
+    canViewPath: boolean;
     extension: string;
     label: string;
     source: string;
@@ -57,9 +58,7 @@ export function ReusableImagePicker({
                     };
 
                     if (!response.ok) {
-                        throw new Error(
-                            payload.message ?? loadError,
-                        );
+                        throw new Error(payload.message ?? loadError);
                     }
 
                     setAssets(payload.assets ?? []);
@@ -213,9 +212,11 @@ export function ReusableImagePicker({
                                                 {asset.extension}
                                             </span>
                                         </span>
-                                        <span className="mt-1 block truncate text-xs text-slate-400 dark:text-slate-500">
-                                            {asset.url}
-                                        </span>
+                                        {asset.canViewPath ? (
+                                            <span className="mt-1 block truncate text-xs text-slate-400 dark:text-slate-500">
+                                                {asset.url}
+                                            </span>
+                                        ) : null}
                                     </span>
                                 </button>
                             ))}

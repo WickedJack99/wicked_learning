@@ -59,6 +59,7 @@ import {
 import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import type { LearningTool } from '@/types';
@@ -368,6 +369,18 @@ export default function EditWorldMap({
     );
     const isEditingNode = Boolean(selectedNode);
     const dialogOpen = Boolean(selectedCell || selectedNode);
+    const hasMapDetailsChanges = useDirtyState(mapDetailsForm, {
+        description: map.description ?? '',
+        title: map.title,
+    });
+    const hasMapVisualChanges = useDirtyState(
+        mapVisualForm,
+        mapVisualFormFromConfig(map.backgroundConfig),
+    );
+    const hasMapAccessChanges = useDirtyState(
+        mapAccessRoles,
+        map.accessRoles.length > 0 ? map.accessRoles : ['user', 'admin'],
+    );
 
     const openCreateTile = (cell: GridCell) => {
         if (consumeSuppressedClick()) {
@@ -526,6 +539,10 @@ export default function EditWorldMap({
     };
 
     const saveMapVisuals = () => {
+        if (!hasMapVisualChanges) {
+            return;
+        }
+
         setProcessing(true);
 
         router.patch(
@@ -546,6 +563,10 @@ export default function EditWorldMap({
     };
 
     const saveMapDetails = () => {
+        if (!hasMapDetailsChanges) {
+            return;
+        }
+
         setProcessing(true);
 
         router.patch(
@@ -564,6 +585,10 @@ export default function EditWorldMap({
     };
 
     const saveMapAccess = () => {
+        if (!hasMapAccessChanges) {
+            return;
+        }
+
         setProcessing(true);
 
         router.patch(
@@ -609,6 +634,7 @@ export default function EditWorldMap({
             const payload = await uploadMediaFile({
                 endpoint: '/settings/worlds/node-images',
                 errorMessage: 'The image could not be uploaded.',
+                fields: { map_id: map.id },
                 fieldName: 'image',
                 file,
             });
@@ -956,7 +982,7 @@ export default function EditWorldMap({
                             Cancel
                         </Button>
                         <Button
-                            disabled={processing}
+                            disabled={processing || !hasMapDetailsChanges}
                             onClick={saveMapDetails}
                             type="button"
                         >
@@ -1026,7 +1052,7 @@ export default function EditWorldMap({
                             Cancel
                         </Button>
                         <Button
-                            disabled={processing}
+                            disabled={processing || !hasMapVisualChanges}
                             onClick={saveMapVisuals}
                             type="button"
                         >
@@ -1100,7 +1126,7 @@ export default function EditWorldMap({
                             Cancel
                         </Button>
                         <Button
-                            disabled={processing}
+                            disabled={processing || !hasMapAccessChanges}
                             onClick={saveMapAccess}
                             type="button"
                         >

@@ -2,6 +2,9 @@
 
 namespace App\Learning\Queries;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
+use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -10,11 +13,12 @@ use SplFileInfo;
 class LoadReusableImageAssets
 {
     /**
-     * @return list<array{canDelete: bool, extension: string, label: string, source: string, uploaded: bool, url: string}>
+     * @return list<array{canDelete: bool, canViewPath: bool, extension: string, label: string, source: string, uploaded: bool, url: string}>
      */
-    public function handle(?string $search = null): array
+    public function handle(?string $search = null, ?User $user = null): array
     {
         $needle = Str::of($search ?? '')->trim()->lower()->toString();
+        $canViewPath = $user?->hasAccess(PermissionCatalog::MEDIA_PATHS, AccessLevel::READ) ?? false;
 
         return collect([
             ...$this->publicImages(),
@@ -29,6 +33,7 @@ class LoadReusableImageAssets
             ])
             ->map(fn (array $asset): array => [
                 'canDelete' => true,
+                'canViewPath' => $canViewPath,
                 'extension' => $asset['extension'],
                 'label' => $asset['label'],
                 'source' => $asset['source'],

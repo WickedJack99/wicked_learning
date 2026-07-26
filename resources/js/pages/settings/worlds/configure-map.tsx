@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
@@ -293,8 +294,38 @@ export default function ConfigureMap({
         () => resolveThemePreview(visualForm, mode),
         [mode, visualForm],
     );
+    const hasDetailsChanges = useDirtyState(detailsForm, {
+        description: map.description ?? '',
+        title: map.title,
+    });
+    const hasVisualChanges = useDirtyState(
+        visualForm,
+        mapVisualFormFromConfig(map.backgroundConfig),
+    );
+    const hasAccessChanges = useDirtyState(
+        { accessRoles, editingGroupIds },
+        {
+            accessRoles:
+                map.accessRoles.length > 0
+                    ? map.accessRoles
+                    : ['user', 'admin'],
+            editingGroupIds: map.editingGroupIds,
+        },
+    );
+    const currentSectionHasChanges =
+        mainSection === 'details'
+            ? hasDetailsChanges
+            : mainSection === 'access'
+              ? hasAccessChanges
+              : mainSection === 'visuals'
+                ? hasVisualChanges
+                : false;
 
     const saveCurrentSection = () => {
+        if (!currentSectionHasChanges) {
+            return;
+        }
+
         if (mainSection === 'details') {
             saveDetails(map.id, detailsForm, setErrors, setProcessing);
 
@@ -340,6 +371,7 @@ export default function ConfigureMap({
             const payload = await uploadMediaFile({
                 endpoint: '/settings/worlds/node-images',
                 errorMessage: 'The image could not be uploaded.',
+                fields: { map_id: map.id },
                 fieldName: 'image',
                 file,
             });
@@ -360,7 +392,7 @@ export default function ConfigureMap({
     const action =
         mainSection !== 'delete' ? (
             <Button
-                disabled={processing}
+                disabled={processing || !currentSectionHasChanges}
                 onClick={saveCurrentSection}
                 type="button"
             >

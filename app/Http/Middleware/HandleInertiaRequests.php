@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadCurrentMenuMapTheme;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
@@ -65,6 +67,10 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'canViewMediaPaths' => $request->user()?->hasAccess(
+                    PermissionCatalog::MEDIA_PATHS,
+                    AccessLevel::READ,
+                ) ?? false,
                 'tools' => $request->user()
                     ? $request->user()
                         ->learningTools()

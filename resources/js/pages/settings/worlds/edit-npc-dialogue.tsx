@@ -415,6 +415,7 @@ export default function EditNpcDialogue({
             const payload = await uploadMediaFile({
                 endpoint: '/settings/worlds/node-images',
                 errorMessage: 'The image could not be uploaded.',
+                fields: { map_id: dialogueGraph.map.id },
                 fieldName: 'image',
                 file,
             });

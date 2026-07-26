@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { uploadMediaFile } from '@/lib/media-upload';
 
-export function useNodeImageUpload() {
+export function useNodeImageUpload(mapId?: number | null) {
     const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
         null,
     );
@@ -23,6 +23,7 @@ export function useNodeImageUpload() {
                 const payload = await uploadMediaFile({
                     endpoint: '/settings/worlds/node-images',
                     errorMessage: 'The image could not be uploaded.',
+                    fields: { map_id: mapId },
                     fieldName: 'image',
                     file,
                 });
@@ -39,7 +40,7 @@ export function useNodeImageUpload() {
                 setUploadingImageKey(null);
             }
         },
-        [],
+        [mapId],
     );
 
     return {

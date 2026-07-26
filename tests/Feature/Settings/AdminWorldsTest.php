@@ -1402,6 +1402,53 @@ test('admin users can configure a tile to be revealed by a tool', function () {
         ->and((int) $node->visual_config['reveal']['toolId'])->toBe($tool->id);
 });
 
+test('admin users can set the tool granted by a tool grant activity with empty optional visuals', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $tool = LearningTool::query()->create([
+        'slug' => 'context-lens',
+        'title' => 'Context lens',
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'title' => 'Receive context lens',
+            'type' => 'tool_grant',
+            'tool_grant_background_dark' => '',
+            'tool_grant_background_light' => '',
+            'tool_grant_background_mirrored' => false,
+            'tool_grant_bubble_border_color_dark' => '#2dd4bf',
+            'tool_grant_bubble_border_color_light' => '#0891b2',
+            'tool_grant_bubble_color_dark' => '#0f172a',
+            'tool_grant_bubble_color_light' => '#ffffff',
+            'tool_grant_bubble_opacity_dark' => '92',
+            'tool_grant_bubble_opacity_light' => '94',
+            'tool_grant_fade_duration_seconds' => '0.4',
+            'tool_grant_slide_direction' => 'left',
+            'tool_grant_slide_duration_seconds' => '0.6',
+            'tool_grant_text' => '',
+            'tool_grant_tool_id' => $tool->id,
+            'tool_grant_tool_mirrored' => false,
+            'tool_grant_tool_x' => '50',
+            'tool_grant_tool_y' => '50',
+            'tool_grant_typing_speed' => '24',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('learning_node_id', $node->id)
+        ->where('type', 'tool_grant')
+        ->where('title', 'Receive context lens')
+        ->firstOrFail();
+
+    expect($activity->config['toolId'])->toBe($tool->id)
+        ->and($activity->config['backgroundDark'])->toBe('')
+        ->and($activity->config['text'])->toBe('');
+});
+
 test('admin users can reset node tool unlocks for all learners', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
@@ -1563,6 +1610,39 @@ test('admin users can upload a node image', function () {
 
     expect($url)->toStartWith('/storage/learning/nodes/');
     Storage::disk('public')->assertExists(str_replace('/storage/', '', $url));
+});
+
+test('map node images are served through map access', function () {
+    Storage::fake('local');
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->firstOrFail();
+
+    $response = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.node-images.store'), [
+            'image' => UploadedFile::fake()->create('private-tile.svg', 4, 'image/svg+xml'),
+            'map_id' => $map->id,
+        ])
+        ->assertOk()
+        ->assertJsonStructure(['url']);
+
+    $url = $response->json('url');
+    $fileName = basename((string) parse_url($url, PHP_URL_PATH));
+
+    expect($url)->toStartWith("/protected-media/maps/{$map->id}/");
+    Storage::disk('local')->assertExists("learning/protected/maps/{$map->id}/{$fileName}");
+
+    auth()->logout();
+
+    $this->get($url)->assertForbidden();
+
+    $map->forceFill([
+        'access_roles' => ['public', User::ROLE_ADMIN],
+    ])->save();
+
+    $this->get($url)->assertOk();
 });
 
 test('admin users can swap neighboring tiles', function () {

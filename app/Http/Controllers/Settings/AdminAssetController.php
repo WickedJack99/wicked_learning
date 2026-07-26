@@ -165,7 +165,7 @@ class AdminAssetController extends Controller
         ]);
 
         return response()->json([
-            'assets' => $this->loadReusableImageAssets->handle($data['q'] ?? null),
+            'assets' => $this->loadReusableImageAssets->handle($data['q'] ?? null, $request->user()),
         ]);
     }
 

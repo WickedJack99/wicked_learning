@@ -46,7 +46,10 @@ class AdminWorldRules
      */
     public function uploadNodeImage(): array
     {
-        return ['image' => ['required', 'file', 'max:51200']];
+        return [
+            'image' => ['required', 'file', 'max:51200'],
+            'map_id' => ['nullable', 'integer', 'exists:learning_maps,id'],
+        ];
     }
 
     /**

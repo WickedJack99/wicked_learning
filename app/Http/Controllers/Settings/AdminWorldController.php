@@ -123,9 +123,14 @@ class AdminWorldController extends Controller
     public function uploadNodeImage(Request $request): JsonResponse
     {
         $data = $request->validate($this->rules->uploadNodeImage());
+        $map = isset($data['map_id']) ? LearningMap::find((int) $data['map_id']) : null;
+
+        if ($map) {
+            $this->authorizeMapEdit($request, $map);
+        }
 
         return response()->json([
-            'url' => $this->nodeImages->upload($data['image'] ?? null),
+            'url' => $this->nodeImages->upload($data['image'] ?? null, $map),
         ]);
     }
 

@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { Download, Image, Images, Upload } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
@@ -7,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
+import type { Auth } from '@/types';
 
 type ConfigImageInputProps = {
     description?: string;
@@ -32,6 +34,8 @@ export function ConfigImageInput({
     value,
 }: ConfigImageInputProps) {
     const t = usePlatformTranslation();
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const canViewPath = auth.canViewMediaPaths;
     const uploadId = `${id}-upload`;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const previewUrl = normalizeMediaUrl(value);
@@ -52,13 +56,15 @@ export function ConfigImageInput({
                 </div>
             </div>
 
-            <Input
-                className="min-w-0"
-                id={id}
-                onChange={(event) => onChange(event.currentTarget.value)}
-                placeholder={placeholder}
-                value={value}
-            />
+            {canViewPath ? (
+                <Input
+                    className="min-w-0"
+                    id={id}
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    placeholder={placeholder}
+                    value={value}
+                />
+            ) : null}
             <InputError message={error} />
 
             {previewUrl ? (
@@ -69,7 +75,12 @@ export function ConfigImageInput({
                         src={previewUrl}
                     />
                     <span className="min-w-0 truncate text-xs text-slate-500 dark:text-slate-400">
-                        {value}
+                        {canViewPath
+                            ? value
+                            : t(
+                                  'settings.assets.images.path_hidden',
+                                  'Path hidden by role permissions.',
+                              )}
                     </span>
                 </div>
             ) : null}

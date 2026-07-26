@@ -1,6 +1,7 @@
 type MediaUploadOptions = {
     endpoint: string;
     errorMessage?: string;
+    fields?: Record<string, number | string | null | undefined>;
     file: File;
     fieldName?: string;
 };
@@ -13,6 +14,7 @@ type MediaUploadResponse = {
 export async function uploadMediaFile({
     endpoint,
     errorMessage = 'The file could not be uploaded.',
+    fields = {},
     file,
     fieldName = 'file',
 }: MediaUploadOptions): Promise<MediaUploadResponse> {
@@ -22,6 +24,11 @@ export async function uploadMediaFile({
         ?.getAttribute('content');
 
     formData.append(fieldName, file);
+    Object.entries(fields).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+            formData.append(key, value.toString());
+        }
+    });
 
     const response = await fetch(endpoint, {
         body: formData,
