@@ -4,7 +4,6 @@ import {
     Building2,
     Flag,
     Inbox,
-    Map as MapIcon,
     MessageSquareText,
     Plus,
     Save,
@@ -28,8 +27,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
-import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
-import type { WorldMapManagementGraph } from '@/features/settings/world-map-management-panel';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -119,14 +116,12 @@ export type AdminPanelProps = {
     organizationSettings: {
         maxMembershipsPerUser: number;
     };
-    worldGraph: WorldMapManagementGraph;
 };
 
 type AdminPanelSection =
     | 'competence-topics'
     | 'feedback-requests'
-    | 'organization-icons'
-    | 'world';
+    | 'organization-icons';
 
 export default function AdminPanel({
     competenceTopics,
@@ -135,7 +130,6 @@ export default function AdminPanel({
     metrics,
     organizationIconReports,
     organizationSettings,
-    worldGraph,
 }: AdminPanelProps) {
     const t = usePlatformTranslation();
     const [section, setSection] =
@@ -173,14 +167,6 @@ export default function AdminPanel({
                 label="Competence Topics"
                 onSelect={setSection}
             />
-            <SettingsSectionButton<AdminPanelSection>
-                active={section === 'world'}
-                description="Choose maps and jump into map or node configuration."
-                icon={MapIcon}
-                id="world"
-                label="World"
-                onSelect={setSection}
-            />
         </SettingsSidebar>
     );
 
@@ -202,9 +188,6 @@ export default function AdminPanel({
                 ) : null}
                 {section === 'competence-topics' ? (
                     <CompetenceTopicsSection topics={competenceTopics} />
-                ) : null}
-                {section === 'world' ? (
-                    <WorldMapManagementPanel maps={worldGraph.maps} />
                 ) : null}
             </div>
         </SettingsContentPane>

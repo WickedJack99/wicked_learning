@@ -7,7 +7,7 @@ use App\Models\LearningWorld;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
-test('admin panel includes world map management data', function () {
+test('world builder includes world map management data', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
 
     LearningWorld::query()
@@ -32,18 +32,17 @@ test('admin panel includes world map management data', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get(route('settings.admin-panel.index'))
-        ->assertRedirect(learningSupportRoute('admin-panel'));
-
-    $this->actingAs($admin)
-        ->get(learningSupportRoute('admin-panel'))
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'worldSection' => 'structural',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/index')
-            ->where('learningSupportSettings.adminPanel.worldGraph.world.title', 'Admin World')
-            ->where('learningSupportSettings.adminPanel.worldGraph.maps.0.title', 'Admin Map')
-            ->where('learningSupportSettings.adminPanel.worldGraph.maps.0.nodeCount', 1)
-            ->where('learningSupportSettings.adminPanel.worldGraph.maps.0.nodes.0.title', 'Admin Node')
+            ->where('worldGraph.world.title', 'Admin World')
+            ->where('worldGraph.maps.0.title', 'Admin Map')
+            ->where('worldGraph.maps.0.nodeCount', 1)
+            ->where('worldGraph.maps.0.nodes.0.title', 'Admin Node')
         );
 });
 

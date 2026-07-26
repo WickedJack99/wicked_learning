@@ -86,6 +86,11 @@ import {
     type SettingsNotificationSummary,
     type SettingsWorldBreadcrumb,
 } from '@/features/settings/settings-workspace-shell';
+import {
+    WorldBuilderSettingsPanel,
+    type WorldBuilderMapView,
+    type WorldBuilderSection,
+} from '@/features/settings/world-builder-settings-panel';
 import { isDirtyState, useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -105,7 +110,7 @@ import ColorPaletteSettings, {
 import LanguageAdministration, {
     type Language,
 } from '@/pages/settings/languages';
-import { WorldBuilderPanel, type WorldGraph } from '@/pages/settings/worlds';
+import type { WorldGraph } from '@/pages/settings/worlds';
 import ConfigureMap from '@/pages/settings/worlds/configure-map';
 import EditWorldMap, {
     type AccessGroup as WorldMapAccessGroup,
@@ -173,6 +178,7 @@ type SelectedWorldNode = {
 };
 
 type WorldBuilderView = 'configure' | 'nodes';
+type WorldBuilderRootView = WorldBuilderSection;
 type AssetView = AssetsWorldObjectsSection;
 type LearningSupportView = LearningSupportSection;
 type AiView = AiSection;
@@ -242,6 +248,9 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
         url.searchParams.delete('map');
         url.searchParams.delete('node');
         url.searchParams.delete('worldView');
+        url.searchParams.delete('worldSection');
+        url.searchParams.delete('mapConfig');
+        url.searchParams.delete('mapVisual');
     }
 
     url.searchParams.delete('presentation');
@@ -378,6 +387,33 @@ function readWorldBuilderViewFromUrl(): WorldBuilderView {
         : 'nodes';
 }
 
+function readWorldBuilderRootViewFromUrl(): WorldBuilderRootView {
+    if (typeof window === 'undefined') {
+        return 'graph';
+    }
+
+    return new URL(window.location.href).searchParams.get('worldSection') ===
+        'structural'
+        ? 'structural'
+        : 'graph';
+}
+
+function writeWorldBuilderRootViewToUrl(section: WorldBuilderRootView): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-world-builder');
+    url.searchParams.set('worldSection', section);
+    url.searchParams.delete('map');
+    url.searchParams.delete('node');
+    url.searchParams.delete('worldView');
+    url.searchParams.delete('mapConfig');
+    url.searchParams.delete('mapVisual');
+    window.history.pushState({ panel: 'admin-world-builder' }, '', url);
+}
+
 export default function SettingsIndex({
     accessCapabilities,
     accessGroupUsers,
@@ -416,6 +452,8 @@ export default function SettingsIndex({
     const [worldBuilderView, setWorldBuilderView] = useState<WorldBuilderView>(
         () => readWorldBuilderViewFromUrl(),
     );
+    const [worldBuilderRootView, setWorldBuilderRootView] =
+        useState<WorldBuilderRootView>(() => readWorldBuilderRootViewFromUrl());
     const [assetView, setAssetView] = useState<AssetView>(() =>
         readAssetViewFromUrl(),
     );
@@ -434,6 +472,7 @@ export default function SettingsIndex({
             );
             setPersonalView(readPersonalViewFromUrl());
             setWorldBuilderView(readWorldBuilderViewFromUrl());
+            setWorldBuilderRootView(readWorldBuilderRootViewFromUrl());
             setAssetView(readAssetViewFromUrl());
             setLearningSupportView(readLearningSupportViewFromUrl());
             setAiView(readAiViewFromUrl());
@@ -568,7 +607,11 @@ export default function SettingsIndex({
                                         setLearningSupportView
                                     }
                                     setPersonalView={setPersonalView}
+                                    setWorldBuilderRootView={
+                                        setWorldBuilderRootView
+                                    }
                                     selectedPanel={selectedPanel}
+                                    worldBuilderRootView={worldBuilderRootView}
                                     worldBuilderView={worldBuilderView}
                                     worldGraph={worldGraph}
                                 />
@@ -625,7 +668,9 @@ function SettingsDetail({
     setAssetView,
     setLearningSupportView,
     setPersonalView,
+    setWorldBuilderRootView,
     worldBuilderView,
+    worldBuilderRootView,
     worldGraph,
 }: {
     accessCapabilities: Record<string, AccessCapability>;
@@ -658,11 +703,58 @@ function SettingsDetail({
     setAssetView: (view: AssetView) => void;
     setLearningSupportView: (view: LearningSupportView) => void;
     setPersonalView: (view: PersonalView) => void;
+    setWorldBuilderRootView: (view: WorldBuilderRootView) => void;
     worldBuilderView: WorldBuilderView;
+    worldBuilderRootView: WorldBuilderRootView;
     worldGraph: WorldGraph | null;
 }) {
     const content = panelContent[selectedPanel];
     const selectedItem = findSettingsItemForPanel(selectedPanel);
+    const worldBuilderMapDetail =
+        selectedPanel === 'admin-world-builder' && selectedWorldNode
+            ? {
+                  activeView: 'nodes' as WorldBuilderMapView,
+                  content: (
+                      <EditNodeActivities
+                          activityGraph={selectedWorldNode.activityGraph}
+                          embedded
+                          items={selectedWorldNode.items}
+                          sounds={selectedWorldNode.sounds}
+                          tools={selectedWorldNode.tools}
+                      />
+                  ),
+                  mapId: selectedWorldNode.activityGraph.map.id,
+                  mapTitle: selectedWorldNode.activityGraph.map.title,
+              }
+            : selectedPanel === 'admin-world-builder' && selectedWorldMap
+              ? {
+                    activeView:
+                        worldBuilderView === 'configure'
+                            ? ('configure' as WorldBuilderMapView)
+                            : ('nodes' as WorldBuilderMapView),
+                    content:
+                        worldBuilderView === 'configure' ? (
+                            <ConfigureMap
+                                accessGroups={selectedWorldMap.accessGroups}
+                                canDeleteWorldMaps={
+                                    selectedWorldMap.canDeleteWorldMaps
+                                }
+                                editableMap={selectedWorldMap.editableMap}
+                                embedded
+                                learningGroups={selectedWorldMap.learningGroups}
+                            />
+                        ) : (
+                            <EditWorldMap
+                                accessGroups={selectedWorldMap.accessGroups}
+                                editableMap={selectedWorldMap.editableMap}
+                                embedded
+                                tools={selectedWorldMap.tools}
+                            />
+                        ),
+                    mapId: selectedWorldMap.editableMap.map.id,
+                    mapTitle: selectedWorldMap.editableMap.map.title,
+                }
+              : null;
 
     return (
         <div className="h-full overflow-hidden bg-[var(--settings-panel-background)]">
@@ -696,8 +788,7 @@ function SettingsDetail({
                         (accessCapabilities.journal_feedback?.read ?? false) ||
                         (accessCapabilities.competence_topics?.read ?? false) ||
                         (accessCapabilities.organization_moderation?.read ??
-                            false) ||
-                        (accessCapabilities.world_maps?.read ?? false)
+                            false)
                     }
                     canViewJournal={
                         accessCapabilities.journal_settings?.read ?? false
@@ -746,33 +837,24 @@ function SettingsDetail({
                 </div>
             ) : selectedPanel === 'admin-translations' ? (
                 <SettingsUnavailablePanel label="Translations" />
-            ) : selectedPanel === 'admin-world-builder' && selectedWorldNode ? (
-                <EditNodeActivities
-                    activityGraph={selectedWorldNode.activityGraph}
-                    items={selectedWorldNode.items}
-                    sounds={selectedWorldNode.sounds}
-                    tools={selectedWorldNode.tools}
-                />
-            ) : selectedPanel === 'admin-world-builder' &&
-              selectedWorldMap &&
-              worldBuilderView === 'configure' ? (
-                <ConfigureMap
-                    accessGroups={selectedWorldMap.accessGroups}
-                    canDeleteWorldMaps={selectedWorldMap.canDeleteWorldMaps}
-                    editableMap={selectedWorldMap.editableMap}
-                    embedded
-                    learningGroups={selectedWorldMap.learningGroups}
-                />
-            ) : selectedPanel === 'admin-world-builder' && selectedWorldMap ? (
-                <EditWorldMap
-                    accessGroups={selectedWorldMap.accessGroups}
-                    editableMap={selectedWorldMap.editableMap}
-                    tools={selectedWorldMap.tools}
-                />
             ) : selectedPanel === 'admin-world-builder' && worldGraph ? (
-                <div className="h-full min-h-0 p-4">
-                    <WorldBuilderPanel worldGraph={worldGraph} />
-                </div>
+                <WorldBuilderSettingsPanel
+                    activeSection={worldBuilderRootView}
+                    canViewGraph={
+                        (accessCapabilities.world_maps?.read ?? false) ||
+                        (accessCapabilities.world_nodes?.read ?? false) ||
+                        (accessCapabilities.world_activities?.read ?? false)
+                    }
+                    canViewStructural={
+                        accessCapabilities.world_maps?.read ?? false
+                    }
+                    onSelectSection={(section) => {
+                        setWorldBuilderRootView(section);
+                        writeWorldBuilderRootViewToUrl(section);
+                    }}
+                    selectedMapDetail={worldBuilderMapDetail}
+                    worldGraph={worldGraph}
+                />
             ) : (selectedPanel === 'admin-access' ||
                   selectedPanel === 'admin-users') &&
               (accessCapabilities.users?.read ||

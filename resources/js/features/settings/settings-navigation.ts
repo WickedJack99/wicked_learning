@@ -95,6 +95,31 @@ export const informationSettings: SettingsListItem[] = [
 
 export const adminSettings: SettingsListItem[] = [
     {
+        key: 'admin-learning-support',
+        label: 'Learning Support',
+        labelKey: 'settings.navigation.learning_support',
+        description:
+            'Journal settings, reflection support and future competence views.',
+        descriptionKey: 'settings.navigation.learning_support.description',
+        icon: NotebookPen,
+        panel: 'admin-learning-support',
+        resources: ['journal_settings', 'journal_feedback'],
+        children: [
+            {
+                label: 'Admin Panel',
+                labelKey: 'settings.navigation.learning_support.admin_panel',
+                href: '/settings?panel=admin-learning-support&support=admin-panel',
+                resources: ['journal_feedback', 'organization_moderation'],
+            },
+            {
+                label: 'Journal',
+                labelKey: 'settings.navigation.journal',
+                href: '/settings?panel=admin-learning-support&support=journal',
+                resources: ['journal_settings'],
+            },
+        ],
+    },
+    {
         key: 'admin-world-builder',
         label: 'World Builder',
         labelKey: 'settings.navigation.world_builder',
@@ -110,66 +135,16 @@ export const adminSettings: SettingsListItem[] = [
         ],
         children: [
             {
-                label: 'World graph',
-                labelKey: 'settings.navigation.world_builder.world_graph',
-                href: '/settings?panel=admin-world-builder',
+                label: 'Graph',
+                labelKey: 'settings.navigation.world_builder.graph',
+                href: '/settings?panel=admin-world-builder&worldSection=graph',
                 resources: ['world_maps', 'world_nodes', 'world_activities'],
             },
-        ],
-    },
-    {
-        key: 'admin-public-pages',
-        label: 'Public pages',
-        labelKey: 'settings.navigation.public_pages',
-        description:
-            'Welcome pages, authentication backgrounds, public information pages and source links.',
-        descriptionKey: 'settings.navigation.public_pages.description',
-        icon: Sparkles,
-        panel: 'admin-public-pages',
-        resources: ['presentation'],
-        children: [
             {
-                label: 'Public pages',
-                labelKey: 'settings.navigation.public_pages',
-                href: '/settings?panel=admin-public-pages',
-                resources: ['presentation'],
-            },
-        ],
-    },
-    {
-        key: 'admin-color-palettes',
-        label: 'Color palettes',
-        labelKey: 'settings.navigation.color_palettes',
-        description:
-            'Public text colors, settings UI, journal colors and map visual palettes.',
-        descriptionKey: 'settings.navigation.color_palettes.description',
-        icon: Palette,
-        panel: 'admin-color-palettes',
-        resources: ['presentation', 'journal_settings', 'world_maps'],
-        children: [
-            {
-                label: 'Color palette',
-                labelKey: 'settings.navigation.color_palette',
-                href: '/settings?panel=admin-color-palettes',
-                resources: ['presentation', 'journal_settings', 'world_maps'],
-            },
-        ],
-    },
-    {
-        key: 'admin-translations',
-        label: 'Translations',
-        labelKey: 'settings.navigation.translations',
-        description: 'Platform languages and translation catalogs.',
-        descriptionKey: 'settings.navigation.translations.description',
-        icon: Languages,
-        panel: 'admin-translations',
-        resources: ['languages'],
-        children: [
-            {
-                label: 'Languages',
-                labelKey: 'settings.navigation.languages',
-                href: '/settings?panel=admin-translations',
-                resources: ['languages'],
+                label: 'Structural',
+                labelKey: 'settings.navigation.world_builder.structural',
+                href: '/settings?panel=admin-world-builder&worldSection=structural',
+                resources: ['world_maps', 'world_nodes', 'world_activities'],
             },
         ],
     },
@@ -248,31 +223,6 @@ export const adminSettings: SettingsListItem[] = [
         ],
     },
     {
-        key: 'admin-learning-support',
-        label: 'Learning Support',
-        labelKey: 'settings.navigation.learning_support',
-        description:
-            'Journal settings, reflection support and future competence views.',
-        descriptionKey: 'settings.navigation.learning_support.description',
-        icon: NotebookPen,
-        panel: 'admin-learning-support',
-        resources: ['journal_settings', 'journal_feedback'],
-        children: [
-            {
-                label: 'Admin Panel',
-                labelKey: 'settings.navigation.learning_support.admin_panel',
-                href: '/settings?panel=admin-learning-support&support=admin-panel',
-                resources: ['journal_feedback', 'organization_moderation'],
-            },
-            {
-                label: 'Journal',
-                labelKey: 'settings.navigation.journal',
-                href: '/settings?panel=admin-learning-support&support=journal',
-                resources: ['journal_settings'],
-            },
-        ],
-    },
-    {
         key: 'admin-ai-integrations',
         label: 'AI & Integrations',
         labelKey: 'settings.navigation.ai_integrations',
@@ -300,6 +250,62 @@ export const adminSettings: SettingsListItem[] = [
                 labelKey: 'settings.ai.sections.guardrails',
                 href: '/settings?panel=admin-ai-integrations&ai=guardrails',
                 resources: ['ai'],
+            },
+        ],
+    },
+    {
+        key: 'admin-translations',
+        label: 'Translations',
+        labelKey: 'settings.navigation.translations',
+        description: 'Platform languages and translation catalogs.',
+        descriptionKey: 'settings.navigation.translations.description',
+        icon: Languages,
+        panel: 'admin-translations',
+        resources: ['languages'],
+        children: [
+            {
+                label: 'Languages',
+                labelKey: 'settings.navigation.languages',
+                href: '/settings?panel=admin-translations',
+                resources: ['languages'],
+            },
+        ],
+    },
+    {
+        key: 'admin-color-palettes',
+        label: 'Color palettes',
+        labelKey: 'settings.navigation.color_palettes',
+        description:
+            'Public text colors, settings UI, journal colors and map visual palettes.',
+        descriptionKey: 'settings.navigation.color_palettes.description',
+        icon: Palette,
+        panel: 'admin-color-palettes',
+        resources: ['presentation', 'journal_settings', 'world_maps'],
+        children: [
+            {
+                label: 'Color palette',
+                labelKey: 'settings.navigation.color_palette',
+                href: '/settings?panel=admin-color-palettes',
+                resources: ['presentation', 'journal_settings', 'world_maps'],
+            },
+        ],
+    },
+    {
+        key: 'admin-public-pages',
+        label: 'Public pages',
+        labelKey: 'settings.navigation.public_pages',
+        description:
+            'Welcome pages, authentication backgrounds, public information pages and source links.',
+        descriptionKey: 'settings.navigation.public_pages.description',
+        icon: Sparkles,
+        panel: 'admin-public-pages',
+        resources: ['presentation'],
+        children: [
+            {
+                label: 'Public pages',
+                labelKey: 'settings.navigation.public_pages',
+                href: '/settings?panel=admin-public-pages',
+                resources: ['presentation'],
             },
         ],
     },

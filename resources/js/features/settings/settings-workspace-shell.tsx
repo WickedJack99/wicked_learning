@@ -185,7 +185,6 @@ function SettingsBreadcrumb({
     const t = usePlatformTranslation();
     const isWorldBuilder = activeItem?.panel === 'admin-world-builder';
     const selectedMap = worldBreadcrumb.map;
-    const selectedNode = worldBreadcrumb.node;
     const selectedView = worldBreadcrumb.view;
 
     return (
@@ -226,26 +225,18 @@ function SettingsBreadcrumb({
                     </button>
                 </>
             ) : null}
-            {isWorldBuilder && selectedNode ? (
-                <>
-                    <span className="text-[var(--settings-muted-text)]">/</span>
-                    <span className="truncate text-[var(--settings-muted-text)]">
-                        {selectedNode.title}
-                    </span>
-                </>
-            ) : null}
-            {isWorldBuilder && selectedMap && !selectedNode && selectedView ? (
+            {isWorldBuilder && selectedMap && selectedView ? (
                 <>
                     <span className="text-[var(--settings-muted-text)]">/</span>
                     <span className="truncate text-[var(--settings-muted-text)]">
                         {selectedView === 'configure'
                             ? t(
                                   'settings.world_builder.breadcrumb.configure',
-                                  'Map configuration',
+                                  'Configure map',
                               )
                             : t(
                                   'settings.world_builder.breadcrumb.nodes',
-                                  'Nodes',
+                                  'Configure nodes',
                               )}
                     </span>
                 </>

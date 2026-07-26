@@ -9,7 +9,12 @@ import {
     ReactFlow,
     useNodesState,
 } from '@xyflow/react';
-import type { Edge, Node } from '@xyflow/react';
+import type {
+    Edge,
+    FitViewOptions,
+    Node,
+    ReactFlowInstance,
+} from '@xyflow/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -18,7 +23,7 @@ import {
     Pencil,
     SlidersHorizontal,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -32,6 +37,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 
@@ -166,6 +172,16 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
         () => buildGraphEdges(worldGraph.portalLinks, nodes, highlightedEdgeId),
         [highlightedEdgeId, nodes, worldGraph.portalLinks],
     );
+    const fitViewOptions = useMemo(
+        () => graphFitViewOptions(worldGraph.maps.length),
+        [worldGraph.maps.length],
+    );
+    const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<
+        MapGraphNode,
+        PortalEdge
+    > | null>(null);
+    const [isFittingGraph, setIsFittingGraph] = useState(true);
+    const fitRequestId = useRef(0);
     const [selectedMap, setSelectedMap] = useState<MapSummary | null>(null);
     const [selectedPortal, setSelectedPortal] =
         useState<PortalLinkSummary | null>(null);
@@ -180,6 +196,25 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
         title: '',
     });
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
+    useEffect(() => {
+        if (!flowInstance || initialNodes.length === 0) {
+            setIsFittingGraph(false);
+
+            return;
+        }
+
+        const requestId = fitRequestId.current + 1;
+        fitRequestId.current = requestId;
+        setIsFittingGraph(true);
+
+        requestAnimationFrame(() => {
+            void flowInstance.fitView(fitViewOptions).finally(() => {
+                if (fitRequestId.current === requestId) {
+                    setIsFittingGraph(false);
+                }
+            });
+        });
+    }, [fitViewOptions, flowInstance, initialNodes]);
 
     const resetCreateForm = () => {
         setCreateErrors({});
@@ -206,15 +241,22 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
 
     return (
         <>
-            <section className="grid h-full min-h-0 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <div className="relative min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+            <section className="grid h-full min-h-0 gap-0 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <div className="relative min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-content-background)] lg:border-r lg:border-b-0">
                     <ReactFlow
+                        className={cn(
+                            'transition-opacity duration-150',
+                            isFittingGraph ? 'opacity-0' : 'opacity-100',
+                        )}
                         colorMode={resolvedAppearance}
                         edges={edges}
                         fitView
-                        fitViewOptions={{ padding: 0.24 }}
+                        fitViewOptions={fitViewOptions}
+                        maxZoom={1.35}
+                        minZoom={0.12}
                         nodeTypes={{ mapNode: MapGraphNode }}
                         nodes={nodes}
+                        onInit={setFlowInstance}
                         onEdgeClick={(_, edge) => {
                             setSelectedPortal(edge.data ?? null);
                             setSelectedMap(null);
@@ -234,13 +276,14 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         onNodesChange={onNodesChange}
                     >
                         <Background gap={24} />
-                        <Controls />
+                        <Controls fitViewOptions={fitViewOptions} />
                         <MiniMap pannable zoomable />
                     </ReactFlow>
+                    {isFittingGraph ? <GraphViewportLoadingOverlay /> : null}
                 </div>
 
-                <aside className="flex min-h-0 flex-col gap-4">
-                    <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-[#111820]">
+                <aside className="flex min-h-0 flex-col border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
+                    <div className="min-h-0 flex-1 overflow-y-auto border-b border-[var(--settings-border-color)] p-5">
                         {selectedPortal ? (
                             <PortalDetails portal={selectedPortal} />
                         ) : selectedMap ? (
@@ -250,7 +293,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         )}
                     </div>
 
-                    <div className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_34%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5 shadow-lg">
+                    <div className="shrink-0 border-b border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-5">
                         <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             Prepare
                         </p>
@@ -274,7 +317,7 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         </Button>
                     </div>
 
-                    <div className="shrink-0 rounded-xl border border-slate-200 bg-white p-5 shadow-lg dark:border-white/10 dark:bg-[#111820]">
+                    <div className="shrink-0 p-5">
                         <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             Travel
                         </p>
@@ -376,6 +419,37 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
     );
 }
 
+function GraphViewportLoadingOverlay() {
+    return (
+        <div className="pointer-events-none absolute inset-0 z-50 grid place-items-center bg-[var(--settings-content-background)]">
+            <Spinner
+                aria-label="Preparing graph view"
+                className="size-7 text-[var(--settings-accent)]"
+            />
+        </div>
+    );
+}
+
+function graphFitViewOptions(mapCount: number): FitViewOptions<MapGraphNode> {
+    if (mapCount <= 1) {
+        return { duration: 320, maxZoom: 0.9, minZoom: 0.12, padding: 0.36 };
+    }
+
+    if (mapCount <= 3) {
+        return { duration: 320, maxZoom: 0.78, minZoom: 0.12, padding: 0.3 };
+    }
+
+    if (mapCount <= 6) {
+        return { duration: 320, maxZoom: 0.66, minZoom: 0.12, padding: 0.24 };
+    }
+
+    if (mapCount <= 10) {
+        return { duration: 320, maxZoom: 0.54, minZoom: 0.12, padding: 0.2 };
+    }
+
+    return { duration: 320, maxZoom: 0.46, minZoom: 0.12, padding: 0.16 };
+}
+
 function MapGraphNode({
     data,
     selected,
@@ -457,7 +531,7 @@ function MapDetails({ map }: { map: MapSummary }) {
             </dl>
             <Button asChild className="mt-6 w-full">
                 <Link
-                    href={`/settings?panel=admin-world-builder&map=${map.id}&worldView=nodes`}
+                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&worldView=nodes`}
                 >
                     <Pencil className="size-4" />
                     Configure nodes
@@ -465,7 +539,7 @@ function MapDetails({ map }: { map: MapSummary }) {
             </Button>
             <Button asChild className="mt-2 w-full" variant="secondary">
                 <Link
-                    href={`/settings?panel=admin-world-builder&map=${map.id}&worldView=configure`}
+                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&worldView=configure`}
                 >
                     <SlidersHorizontal className="size-4" />
                     Configure map
@@ -503,7 +577,7 @@ function PortalDetails({ portal }: { portal: PortalLinkSummary }) {
             {portal.sourceActivity ? (
                 <Button asChild className="mt-5 w-full" variant="outline">
                     <Link
-                        href={`/settings?panel=admin-world-builder&map=${portal.sourceMapId}&node=${portal.sourceNode.id}&worldView=nodes`}
+                        href={`/settings?panel=admin-world-builder&worldSection=graph&map=${portal.sourceMapId}&node=${portal.sourceNode.id}&worldView=nodes`}
                     >
                         <Pencil className="size-4" />
                         Edit source activity

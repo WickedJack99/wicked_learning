@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
+import { cn } from '@/lib/utils';
 import { ConfigImageInput } from './activity-config-fields';
 import { ActivityFormFields } from './activity-form-fields';
 import { activityFormPayload } from './activity-form-payload';
@@ -55,11 +56,13 @@ import { useNodeImageUpload } from './use-node-image-upload';
 
 export default function EditNodeActivities({
     activityGraph,
+    embedded = false,
     items,
     sounds,
     tools,
 }: {
     activityGraph: ActivityGraphPayload;
+    embedded?: boolean;
     items: EditableItem[];
     sounds: EditableSound[];
     tools: EditableTool[];
@@ -407,24 +410,45 @@ export default function EditNodeActivities({
 
     return (
         <>
-            <Head title={`Activities for ${activityGraph.node.title}`} />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="flex h-full flex-col px-4 pt-4 pb-24">
-                    <header className="mb-3 flex shrink-0 items-center justify-between gap-4">
+            {!embedded ? (
+                <Head title={`Activities for ${activityGraph.node.title}`} />
+            ) : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100',
+                    embedded &&
+                        'bg-transparent text-inherit dark:bg-transparent',
+                )}
+            >
+                <div
+                    className={cn(
+                        'flex h-full flex-col px-4 pt-4 pb-24',
+                        embedded && 'p-0',
+                    )}
+                >
+                    <header
+                        className={cn(
+                            'mb-3 flex shrink-0 items-center justify-between gap-4',
+                            embedded &&
+                                'mb-0 border-b border-[var(--settings-border-color)] p-4',
+                        )}
+                    >
                         <div className="min-w-0">
-                            <Button
-                                asChild
-                                className="mb-2"
-                                size="sm"
-                                variant="ghost"
-                            >
-                                <Link
-                                    href={`/settings?panel=admin-world-builder&map=${activityGraph.map.id}`}
+                            {!embedded ? (
+                                <Button
+                                    asChild
+                                    className="mb-2"
+                                    size="sm"
+                                    variant="ghost"
                                 >
-                                    <ArrowLeft className="size-4" />
-                                    Edit map
-                                </Link>
-                            </Button>
+                                    <Link
+                                        href={`/settings?panel=admin-world-builder&map=${activityGraph.map.id}`}
+                                    >
+                                        <ArrowLeft className="size-4" />
+                                        Edit map
+                                    </Link>
+                                </Button>
+                            ) : null}
                             <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                                 {activityGraph.map.title}
                             </p>

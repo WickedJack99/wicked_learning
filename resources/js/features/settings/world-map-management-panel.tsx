@@ -35,32 +35,46 @@ export function WorldMapManagementPanel({
         maps.find((map) => map.id === selectedMapId) ?? maps[0] ?? null;
 
     return (
-        <section className="grid shrink-0 gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xl lg:grid-cols-[18rem_minmax(0,1fr)] dark:border-white/10 dark:bg-[#111820]">
-            <div className="grid max-h-64 content-start gap-2 overflow-y-auto">
+        <section className="grid h-full min-h-0 gap-0 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <div className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
                 <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                     World maps
                 </p>
-                {maps.map((map) => (
-                    <button
-                        className={cn(
-                            'rounded-lg border p-3 text-left text-sm transition',
-                            selectedMap?.id === map.id
-                                ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
-                                : 'border-slate-200 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20',
-                        )}
-                        key={map.id}
-                        onClick={() => setSelectedMapId(map.id)}
-                        type="button"
-                    >
-                        <span className="block font-semibold">{map.title}</span>
-                        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                            {map.nodeCount} tile{map.nodeCount === 1 ? '' : 's'}
-                        </span>
-                    </button>
-                ))}
+                <div className="mt-3 grid gap-2">
+                    {maps.map((map) => (
+                        <button
+                            className={cn(
+                                'relative rounded-lg px-3 py-3 text-left text-sm transition',
+                                selectedMap?.id === map.id
+                                    ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                    : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
+                            )}
+                            key={map.id}
+                            onClick={() => setSelectedMapId(map.id)}
+                            type="button"
+                        >
+                            <span
+                                aria-hidden="true"
+                                className={cn(
+                                    'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                    selectedMap?.id === map.id
+                                        ? 'opacity-100'
+                                        : 'opacity-0',
+                                )}
+                            />
+                            <span className="block font-semibold">
+                                {map.title}
+                            </span>
+                            <span className="mt-1 block text-xs opacity-80">
+                                {map.nodeCount} tile
+                                {map.nodeCount === 1 ? '' : 's'}
+                            </span>
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            <div className="min-w-0">
+            <div className="min-h-0 min-w-0 overflow-y-auto p-4 sm:p-5">
                 {selectedMap ? (
                     <div className="grid gap-4">
                         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -79,25 +93,25 @@ export function WorldMapManagementPanel({
                             <div className="flex flex-wrap gap-2">
                                 <Button asChild variant="secondary">
                                     <Link
-                                        href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=configure`}
+                                        href={`/settings?panel=admin-world-builder&worldSection=structural&map=${selectedMap.id}&worldView=configure`}
                                     >
                                         Configure map
                                     </Link>
                                 </Button>
                                 <Button asChild>
                                     <Link
-                                        href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=nodes`}
+                                        href={`/settings?panel=admin-world-builder&worldSection=structural&map=${selectedMap.id}&worldView=nodes`}
                                     >
                                         Configure nodes
                                     </Link>
                                 </Button>
                             </div>
                         </div>
-                        <div className="grid max-h-52 gap-2 overflow-y-auto rounded-xl border border-slate-200 p-3 dark:border-white/10">
+                        <div className="grid max-h-72 gap-2 overflow-y-auto border-t border-[var(--settings-border-color)] pt-3">
                             {selectedMap.nodes.map((node) => (
                                 <Link
-                                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm transition hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20"
-                                    href={`/settings?panel=admin-world-builder&map=${selectedMap.id}&node=${node.id}&worldView=nodes`}
+                                    className="border-b border-[var(--settings-border-color)] px-1 py-3 text-sm transition hover:text-[var(--settings-accent)]"
+                                    href={`/settings?panel=admin-world-builder&worldSection=structural&map=${selectedMap.id}&node=${node.id}&worldView=nodes`}
                                     key={node.id}
                                 >
                                     <span className="block font-semibold">
@@ -109,14 +123,14 @@ export function WorldMapManagementPanel({
                                 </Link>
                             ))}
                             {selectedMap.nodes.length === 0 ? (
-                                <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                                <p className="border border-dashed border-[var(--settings-border-color)] p-3 text-sm text-[var(--settings-muted-text)]">
                                     No nodes yet.
                                 </p>
                             ) : null}
                         </div>
                     </div>
                 ) : (
-                    <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    <p className="border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
                         Create a map before configuring map or node access.
                     </p>
                 )}

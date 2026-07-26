@@ -56,7 +56,10 @@ type SettingsFormColumnProps = {
 type SettingsNestedWorkspaceProps = {
     action?: ReactNode;
     children: ReactNode;
+    contentClassName?: string;
     description?: ReactNode;
+    eyebrow?: ReactNode;
+    headerContentClassName?: string;
     icon?: LucideIcon;
     sidebar: ReactNode;
     title: ReactNode;
@@ -284,7 +287,10 @@ export function SettingsFormColumn({
 export function SettingsNestedWorkspace({
     action,
     children,
+    contentClassName,
     description,
+    eyebrow,
+    headerContentClassName,
     icon: Icon,
     sidebar,
     title,
@@ -300,8 +306,18 @@ export function SettingsNestedWorkspace({
             }
         >
             <header className="shrink-0 border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-4 py-4 sm:px-5">
-                <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-[45%]">
+                <div
+                    className={cn(
+                        'flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-[45%]',
+                        headerContentClassName,
+                    )}
+                >
                     <div className="min-w-0">
+                        {eyebrow ? (
+                            <p className="mb-2 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                {eyebrow}
+                            </p>
+                        ) : null}
                         <div className="flex items-center gap-3 text-[var(--settings-accent)]">
                             {Icon ? <Icon className="size-5" /> : null}
                             <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
@@ -318,7 +334,12 @@ export function SettingsNestedWorkspace({
                 </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+            <div
+                className={cn(
+                    'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5',
+                    contentClassName,
+                )}
+            >
                 {children}
             </div>
         </SettingsConfigurationLayout>

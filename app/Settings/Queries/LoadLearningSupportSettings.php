@@ -7,9 +7,7 @@ use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
 use App\Learning\Queries\LoadAdminPanelMetrics;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
-use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
-use App\Learning\Serializers\AdminWorldGraphSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\OrganizationIconReport;
@@ -18,17 +16,14 @@ use App\Models\PlatformOrganizationSetting;
 use App\Models\User;
 use App\Organizations\Queries\LoadPendingOrganizationIconReports;
 use App\Organizations\Serializers\OrganizationIconReportSerializer;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class LoadLearningSupportSettings
 {
     public function __construct(
         private readonly LoadAdminPanelMetrics $metrics,
-        private readonly LoadEditableWorldGraph $worldGraph,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
         private readonly LoadAdminJournalFeedbackRequests $feedbackRequests,
         private readonly AdminJournalFeedbackRequestSerializer $feedbackSerializer,
-        private readonly AdminWorldGraphSerializer $worldGraphSerializer,
         private readonly LoadPendingOrganizationIconReports $iconReports,
         private readonly OrganizationIconReportSerializer $iconReportSerializer,
         private readonly PlatformJournalSettingsSerializer $journalSettingsSerializer,
@@ -53,9 +48,8 @@ class LoadLearningSupportSettings
         $canReviewFeedback = $user->can(PermissionCatalog::ability(PermissionCatalog::JOURNAL_FEEDBACK, AccessLevel::READ));
         $canManageCompetenceTopics = $user->can(PermissionCatalog::ability(PermissionCatalog::COMPETENCE_TOPICS, AccessLevel::READ));
         $canModerateOrganizations = $user->can(PermissionCatalog::ability(PermissionCatalog::ORGANIZATION_MODERATION, AccessLevel::READ));
-        $canViewWorld = $user->can(PermissionCatalog::ability(PermissionCatalog::WORLD_MAPS, AccessLevel::READ));
 
-        if (! $canReviewFeedback && ! $canManageCompetenceTopics && ! $canModerateOrganizations && ! $canViewWorld) {
+        if (! $canReviewFeedback && ! $canManageCompetenceTopics && ! $canModerateOrganizations) {
             return null;
         }
 
@@ -79,7 +73,6 @@ class LoadLearningSupportSettings
             'organizationSettings' => [
                 'maxMembershipsPerUser' => PlatformOrganizationSetting::current()->max_memberships_per_user,
             ],
-            'worldGraph' => $canViewWorld ? $this->worldGraph($user) : ['maps' => []],
         ];
     }
 
@@ -93,17 +86,4 @@ class LoadLearningSupportSettings
             : null;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function worldGraph(User $user): array
-    {
-        try {
-            return $this->worldGraphSerializer->serialize(
-                $this->worldGraph->handle($user),
-            );
-        } catch (ModelNotFoundException) {
-            return ['maps' => []];
-        }
-    }
 }

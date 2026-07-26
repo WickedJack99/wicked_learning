@@ -12,17 +12,14 @@ import {
     SlidersHorizontal,
     Trash2,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
 import {
-    SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsContentPane,
-    SettingsPanelHeader,
+    SettingsNestedWorkspace,
     SettingsSectionButton,
-    SettingsSidebar,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -251,6 +248,46 @@ const visualFieldGroups: Record<
     ],
 };
 
+function readMainSectionFromUrl(): MainSection {
+    if (typeof window === 'undefined') {
+        return 'details';
+    }
+
+    const value = new URL(window.location.href).searchParams.get('mapConfig');
+
+    return mainSections.some((section) => section.id === value)
+        ? (value as MainSection)
+        : 'details';
+}
+
+function readVisualSectionFromUrl(): VisualSection {
+    if (typeof window === 'undefined') {
+        return 'general';
+    }
+
+    const value = new URL(window.location.href).searchParams.get('mapVisual');
+
+    return visualSections.some((section) => section.id === value)
+        ? (value as VisualSection)
+        : 'general';
+}
+
+function writeMapSectionToUrl(
+    section: MainSection,
+    visualSection: VisualSection,
+): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'admin-world-builder');
+    url.searchParams.set('worldView', 'configure');
+    url.searchParams.set('mapConfig', section);
+    url.searchParams.set('mapVisual', visualSection);
+    window.history.pushState({ panel: 'admin-world-builder' }, '', url);
+}
+
 export default function ConfigureMap({
     accessGroups,
     embedded = false,
@@ -265,9 +302,11 @@ export default function ConfigureMap({
     learningGroups: LearningGroupOption[];
 }) {
     const { map, world } = editableMap;
-    const [mainSection, setMainSection] = useState<MainSection>('details');
+    const [mainSection, setMainSection] = useState<MainSection>(() =>
+        readMainSectionFromUrl(),
+    );
     const [visualSection, setVisualSection] =
-        useState<VisualSection>('general');
+        useState<VisualSection>(() => readVisualSectionFromUrl());
     const [mode, setMode] = useState<ThemeMode>('dark');
     const [detailsForm, setDetailsForm] = useState<DetailsForm>({
         description: map.description ?? '',
@@ -320,6 +359,29 @@ export default function ConfigureMap({
               : mainSection === 'visuals'
                 ? hasVisualChanges
                 : false;
+
+    useEffect(() => {
+        const syncNavigationState = () => {
+            setMainSection(readMainSectionFromUrl());
+            setVisualSection(readVisualSectionFromUrl());
+        };
+
+        window.addEventListener('popstate', syncNavigationState);
+
+        return () => {
+            window.removeEventListener('popstate', syncNavigationState);
+        };
+    }, []);
+
+    const selectMainSection = (section: MainSection) => {
+        setMainSection(section);
+        writeMapSectionToUrl(section, visualSection);
+    };
+
+    const selectVisualSection = (section: VisualSection) => {
+        setVisualSection(section);
+        writeMapSectionToUrl('visuals', section);
+    };
 
     const saveCurrentSection = () => {
         if (!currentSectionHasChanges) {
@@ -401,7 +463,7 @@ export default function ConfigureMap({
             </Button>
         ) : null;
     const sidebar = (
-        <SettingsSidebar>
+        <>
             {mainSections.map((section) => (
                 <SettingsSectionButton
                     active={mainSection === section.id}
@@ -410,13 +472,13 @@ export default function ConfigureMap({
                     id={section.id}
                     key={section.id}
                     label={section.label}
-                    onSelect={setMainSection}
+                    onSelect={selectMainSection}
                 />
             ))}
-        </SettingsSidebar>
+        </>
     );
     const body = (
-        <div className="h-full min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <div className="h-full min-h-0 overflow-hidden bg-[var(--settings-panel-background)]">
             {mainSection === 'details' ? (
                 <MapDetailsSection
                     errors={errors}
@@ -432,7 +494,7 @@ export default function ConfigureMap({
                     mode={mode}
                     onImageUpload={uploadImage}
                     onModeChange={setMode}
-                    onVisualSectionChange={setVisualSection}
+                    onVisualSectionChange={selectVisualSection}
                     setForm={setVisualForm}
                     theme={resolvedTheme}
                     uploadingImageKey={uploadingImageKey}
@@ -466,25 +528,21 @@ export default function ConfigureMap({
         <>
             {!embedded ? <Head title={`Configure ${map.title}`} /> : null}
             {embedded ? (
-                <SettingsConfigurationLayout
-                    className="h-full p-4"
+                <SettingsNestedWorkspace
+                    action={action}
+                    contentClassName="p-0 sm:p-0"
+                    description={
+                        map.description ??
+                        'Configure map details, visuals and access.'
+                    }
+                    eyebrow={world.title}
+                    headerContentClassName="lg:max-w-none"
+                    icon={SlidersHorizontal}
                     sidebar={sidebar}
+                    title={`Configure ${map.title}`}
                 >
-                    <SettingsContentPane>
-                        <div className="grid h-full min-h-[34rem] grid-rows-[auto_minmax(0,1fr)] gap-4">
-                            <SettingsPanelHeader
-                                action={action}
-                                description={
-                                    map.description ??
-                                    'Configure map details, visuals and access.'
-                                }
-                                eyebrow={world.title}
-                                title={`Configure ${map.title}`}
-                            />
-                            {body}
-                        </div>
-                    </SettingsContentPane>
-                </SettingsConfigurationLayout>
+                    {body}
+                </SettingsNestedWorkspace>
             ) : (
                 <SettingsConfigurationShell
                     action={action}
@@ -559,8 +617,8 @@ function MapDetailsSection({
     previewTheme: MapVisualThemeFields;
 }) {
     return (
-        <div className="grid h-full min-h-0 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
-            <div className="grid content-start gap-5">
+        <div className="grid h-full min-h-0 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+            <div className="grid min-w-0 content-start gap-5">
                 <div>
                     <h2 className="text-xl font-semibold">Map details</h2>
                     <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -631,10 +689,10 @@ function MapVisualsSection({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 dark:border-white/10">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--settings-border-color)] p-4">
                 <div>
                     <h2 className="text-xl font-semibold">Map visuals</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
                         Switch between light and dark configuration, then select
                         the map element you want to tune.
                     </p>
@@ -646,49 +704,24 @@ function MapVisualsSection({
                 />
             </div>
 
-            <div className="grid min-h-0 flex-1 gap-4 p-4 lg:grid-cols-[17rem_minmax(0,1fr)]">
-                <nav className="min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white/72 p-2 dark:border-white/10 dark:bg-white/5">
-                    {visualSections.map((section) => {
-                        const Icon = section.icon;
-
-                        return (
-                            <button
-                                className={cn(
-                                    'mb-2 grid w-full grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-xl px-3 py-3 text-left transition last:mb-0',
-                                    visualSection === section.id
-                                        ? 'text-[var(--settings-accent-foreground)] shadow-md shadow-black/15'
-                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
-                                )}
+            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
+                <nav className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+                    <div className="grid gap-2">
+                        {visualSections.map((section) => (
+                            <SettingsSectionButton
+                                active={visualSection === section.id}
+                                description={section.description}
+                                icon={section.icon}
+                                id={section.id}
                                 key={section.id}
-                                onClick={() =>
-                                    onVisualSectionChange(section.id)
-                                }
-                                style={
-                                    visualSection === section.id
-                                        ? {
-                                              background:
-                                                  'var(--settings-accent)',
-                                              color: 'var(--settings-accent-foreground)',
-                                          }
-                                        : undefined
-                                }
-                                type="button"
-                            >
-                                <Icon className="mt-0.5 size-4" />
-                                <span className="min-w-0">
-                                    <span className="block truncate text-sm font-semibold">
-                                        {section.label}
-                                    </span>
-                                    <span className="mt-1 block text-xs leading-5 opacity-80">
-                                        {section.description}
-                                    </span>
-                                </span>
-                            </button>
-                        );
-                    })}
+                                label={section.label}
+                                onSelect={onVisualSectionChange}
+                            />
+                        ))}
+                    </div>
                 </nav>
 
-                <div className="min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-slate-950/80">
+                <div className="min-h-0 overflow-y-auto p-4 sm:p-5">
                     <VisualEditorPanel
                         errors={errors}
                         imageErrors={imageErrors}
@@ -844,13 +877,13 @@ function MapAssetsEditor({
                     </Button>
                 </div>
                 {values.assets.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    <div className="border border-dashed border-[var(--settings-border-color)] p-5 text-sm text-[var(--settings-muted-text)]">
                         No map assets configured for {mode} mode yet.
                     </div>
                 ) : null}
                 {values.assets.map((asset, index) => (
                     <div
-                        className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5"
+                        className="grid gap-4 border-t border-[var(--settings-border-color)] pt-4 first:border-t-0 first:pt-0"
                         key={asset.id}
                     >
                         <div className="flex items-center justify-between gap-2">
@@ -1242,12 +1275,12 @@ function MapTitlePanelPreview({
     title: string;
 }) {
     return (
-        <div className="grid content-start gap-3">
-            <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+        <div className="grid min-w-0 content-start gap-3 overflow-hidden">
+            <h3 className="text-sm font-semibold text-[var(--settings-muted-text)]">
                 Preview
             </h3>
             <div
-                className="rounded-xl border p-5 shadow-lg backdrop-blur-md"
+                className="min-w-0 overflow-hidden rounded-xl border p-5 shadow-lg backdrop-blur-md"
                 style={{
                     background:
                         theme.panelBackground || 'rgba(5, 15, 22, 0.72)',
@@ -1263,11 +1296,11 @@ function MapTitlePanelPreview({
                     <MapIcon className="size-4" />
                     Current map
                 </div>
-                <h3 className="text-3xl font-semibold tracking-normal">
+                <h3 className="break-words text-3xl font-semibold tracking-normal">
                     {title || 'Untitled map'}
                 </h3>
                 <p
-                    className="mt-3 text-sm leading-6"
+                    className="mt-3 break-words text-sm leading-6"
                     style={{
                         color:
                             theme.panelMutedTextColor ||
@@ -1436,10 +1469,10 @@ function PreviewFrame({
 }) {
     return (
         <div className="grid content-start gap-3">
-            <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+            <h3 className="text-sm font-semibold text-[var(--settings-muted-text)]">
                 {title}
             </h3>
-            <div className="grid min-h-64 place-items-center rounded-2xl border border-slate-200 bg-slate-100 p-6 dark:border-white/10 dark:bg-slate-900">
+            <div className="grid min-h-64 place-items-center border-t border-[var(--settings-border-color)] pt-6">
                 {children}
             </div>
         </div>

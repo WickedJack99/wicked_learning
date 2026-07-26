@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     ChevronRight,
@@ -30,7 +30,6 @@ import {
     SettingsConfigurationLayout,
     SettingsContentPane,
     SettingsSectionNavigation,
-    SettingsSidebar,
     type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { SoundAssetInput } from '@/components/sound-asset-input';
@@ -62,6 +61,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
+import { getSettingsPresentationStyle } from '@/theme/presentation';
 import type { LearningTool } from '@/types';
 import { ConfigImageInput as NodeImageInput } from './activity-config-fields';
 
@@ -287,14 +287,21 @@ type NodeSettingsSection =
 export default function EditWorldMap({
     accessGroups,
     editableMap,
+    embedded = false,
     tools,
 }: {
     accessGroups: AccessGroup[];
+    embedded?: boolean;
     editableMap: EditableMapPayload;
     tools: LearningTool[];
 }) {
     const { map, world } = editableMap;
+    const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
+    const settingsPresentationStyle = getSettingsPresentationStyle(
+        props.publicPresentation,
+        resolvedAppearance,
+    );
     const previewMapTheme = resolveThemeVariant<Partial<MapVisualThemeFields>>(
         map.backgroundConfig,
         resolvedAppearance,
@@ -304,8 +311,30 @@ export default function EditWorldMap({
         '--settings-accent-foreground':
             previewMapTheme.bottomNavActiveTextColor || '#020617',
     } as CSSProperties;
+    const nodeDialogStyle = {
+        ...(embedded ? settingsPresentationStyle : {}),
+        ...(!embedded ? nodeDialogThemeStyle : {}),
+        ...(embedded
+            ? {
+                  bottom: 0,
+                  height: 'auto',
+                  left: '51rem',
+                  maxHeight: 'none',
+                  maxWidth: 'none',
+                  right: 0,
+                  top: '4rem',
+                  translate: 'none',
+                  transform: 'none',
+                  width: 'auto',
+                  background: 'var(--settings-panel-background)',
+                  '--settings-nested-sidebar-background':
+                      'var(--settings-panel-background)',
+              }
+            : {}),
+    } as CSSProperties;
     const [selectedNode, setSelectedNode] = useState<EditableNode | null>(null);
     const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
+    const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [pendingDeleteNode, setPendingDeleteNode] =
@@ -355,6 +384,7 @@ export default function EditWorldMap({
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [isDraggingSurface, setIsDraggingSurface] = useState(false);
     const suppressClickRef = useRef(false);
+    const closeNodeDialogTimeoutRef = useRef<number | null>(null);
     const dragRef = useRef<{
         moved: boolean;
         pointerId: number;
@@ -368,7 +398,7 @@ export default function EditWorldMap({
         [map.nodes, occupiedByCoordinate],
     );
     const isEditingNode = Boolean(selectedNode);
-    const dialogOpen = Boolean(selectedCell || selectedNode);
+    const dialogOpen = nodeDialogOpen;
     const hasMapDetailsChanges = useDirtyState(mapDetailsForm, {
         description: map.description ?? '',
         title: map.title,
@@ -387,8 +417,10 @@ export default function EditWorldMap({
             return;
         }
 
+        clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         setSelectedNode(null);
         setSelectedCell(cell);
+        setNodeDialogOpen(true);
         setInsertionContext(null);
         setErrors({});
         setImageUploadErrors({});
@@ -406,6 +438,7 @@ export default function EditWorldMap({
             return;
         }
 
+        clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         const position = {
             q: node.position.q + direction.q,
             r: node.position.r + direction.r,
@@ -420,6 +453,7 @@ export default function EditWorldMap({
             x,
             y,
         });
+        setNodeDialogOpen(true);
         setInsertionContext({
             direction,
             sourceNodeId: node.id,
@@ -436,8 +470,10 @@ export default function EditWorldMap({
             return;
         }
 
+        clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         setSelectedNode(node);
         setSelectedCell(null);
+        setNodeDialogOpen(true);
         setInsertionContext(null);
         setErrors({});
         setImageUploadErrors({});
@@ -447,9 +483,14 @@ export default function EditWorldMap({
     };
 
     const closeDialog = () => {
-        setSelectedCell(null);
-        setSelectedNode(null);
-        setInsertionContext(null);
+        setNodeDialogOpen(false);
+        clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
+        closeNodeDialogTimeoutRef.current = window.setTimeout(() => {
+            setSelectedCell(null);
+            setSelectedNode(null);
+            setInsertionContext(null);
+            closeNodeDialogTimeoutRef.current = null;
+        }, 220);
     };
 
     const saveNode = (override?: Partial<NodeForm>) => {
@@ -768,10 +809,26 @@ export default function EditWorldMap({
 
     return (
         <>
-            <Head title={`Edit ${map.title}`} />
-            <main className="h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="flex h-full flex-col px-4 pt-4 pb-24">
-                    <header className="mb-3 flex shrink-0 items-center justify-between gap-4 select-none">
+            {!embedded ? <Head title={`Edit ${map.title}`} /> : null}
+            <main
+                className={cn(
+                    'h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100',
+                    embedded &&
+                        'bg-transparent text-inherit dark:bg-transparent',
+                )}
+            >
+                <div
+                    className={cn(
+                        'flex h-full flex-col px-4 pt-4 pb-24',
+                        embedded && 'p-0',
+                    )}
+                >
+                    <header
+                        className={cn(
+                            'mb-3 flex shrink-0 items-center justify-between gap-4 select-none',
+                            embedded && 'hidden',
+                        )}
+                    >
                         <div className="min-w-0">
                             <Button
                                 asChild
@@ -814,7 +871,11 @@ export default function EditWorldMap({
                     </header>
 
                     <section
-                        className="relative min-h-0 flex-1 touch-none overflow-hidden rounded-[2rem] border border-slate-200 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] shadow-2xl select-none dark:border-white/10 dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]"
+                        className={cn(
+                            'relative min-h-0 flex-1 touch-none overflow-hidden bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] select-none dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]',
+                            !embedded &&
+                                'rounded-[2rem] border border-slate-200 shadow-2xl dark:border-white/10',
+                        )}
                         data-draggable-surface="true"
                         data-dragging={isDraggingSurface ? 'true' : undefined}
                         onPointerCancel={stopDrag}
@@ -973,7 +1034,12 @@ export default function EditWorldMap({
                         </div>
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter
+                        className={cn(
+                            embedded &&
+                                'shrink-0 border-t border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-5 py-4',
+                        )}
+                    >
                         <Button
                             onClick={() => setMapDetailsOpen(false)}
                             type="button"
@@ -1043,7 +1109,12 @@ export default function EditWorldMap({
                         />
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter
+                        className={cn(
+                            embedded &&
+                                'shrink-0 border-t border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-5 py-4',
+                        )}
+                    >
                         <Button
                             onClick={() => setMapVisualOpen(false)}
                             type="button"
@@ -1138,6 +1209,7 @@ export default function EditWorldMap({
             </Dialog>
 
             <Dialog
+                modal={!embedded}
                 onOpenChange={(open) => {
                     if (!open) {
                         closeDialog();
@@ -1146,10 +1218,20 @@ export default function EditWorldMap({
                 open={dialogOpen}
             >
                 <SettingsConfigurationDialog
-                    className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden"
-                    style={nodeDialogThemeStyle}
+                    className={cn(
+                        'flex h-[calc(100svh-8rem)] flex-col overflow-hidden',
+                        embedded &&
+                            'rounded-none border-y-0 border-r-0 bg-[var(--settings-panel-background)] p-0 text-slate-950 shadow-2xl sm:max-w-none dark:text-slate-100',
+                    )}
+                    overlayClassName={embedded ? 'bg-transparent' : ''}
+                    style={nodeDialogStyle}
                 >
-                    <DialogHeader>
+                    <DialogHeader
+                        className={cn(
+                            embedded &&
+                                'shrink-0 border-b border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-5 py-4',
+                        )}
+                    >
                         <DialogTitle>
                             {isEditingNode ? 'Edit tile' : 'Add tile'}
                         </DialogTitle>
@@ -1161,7 +1243,11 @@ export default function EditWorldMap({
                     </DialogHeader>
 
                     <SettingsConfigurationLayout
-                        className="min-h-0 flex-1"
+                        className={cn('min-h-0 flex-1', embedded && 'gap-0')}
+                        contentClassName={cn(
+                            embedded &&
+                                'bg-[var(--settings-panel-background)] p-0',
+                        )}
                         sidebar={
                             <NodeSettingsSwitcher
                                 activeSection={activeNodeSettingsSection}
@@ -1171,7 +1257,12 @@ export default function EditWorldMap({
                         }
                     >
                         <SettingsContentPane>
-                            <div className="grid content-start gap-4">
+                            <div
+                                className={cn(
+                                    'grid content-start gap-4',
+                                    embedded && 'p-4 sm:p-5',
+                                )}
+                            >
                                 {activeNodeSettingsSection === 'activities' &&
                                 selectedNode ? (
                                     <SettingsConfigurationSection
@@ -2214,15 +2305,24 @@ function NodeSettingsSwitcher({
     );
 
     return (
-        <SettingsSidebar>
+        <aside className="min-h-0 overflow-y-auto border-r border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3">
             <SettingsSectionNavigation
                 activeSection={activeSection}
                 ariaLabel="Tile settings sections"
                 items={visibleSections}
                 onChange={onChange}
             />
-        </SettingsSidebar>
+        </aside>
     );
+}
+
+function clearPendingNodeDialogReset(resetRef: { current: number | null }) {
+    if (resetRef.current === null) {
+        return;
+    }
+
+    window.clearTimeout(resetRef.current);
+    resetRef.current = null;
 }
 
 function HexGridCell({
