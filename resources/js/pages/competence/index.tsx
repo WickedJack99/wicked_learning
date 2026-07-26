@@ -1,48 +1,32 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Sparkles } from 'lucide-react';
+import { type CSSProperties, useMemo, useState } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
-
-type CompetenceTopic = {
-    auraThreshold: number;
-    emittanceThreshold: number;
-    growthThreshold: number;
-    monthlyPoints: number;
-    name: string;
-    slug: string;
-    totalPoints: number;
-};
-
-type CompetenceTransition = {
-    count: number;
-    fromTopicName: string;
-    fromTopicSlug: string;
-    toTopicName: string;
-    toTopicSlug: string;
-};
-
-type CompetenceMap = {
-    monthKey: string;
-    topics: CompetenceTopic[];
-    transitions: CompetenceTransition[];
-};
-
-type PositionedTopic = CompetenceTopic & {
-    aura: number;
-    brightness: number;
-    size: number;
-    twinkleDelay: number;
-    twinkleDuration: number;
-    x: number;
-    y: number;
-};
+import {
+    backgroundStars,
+    buildCompetenceStarLayout,
+    competenceStarMapSize,
+    shootingStars,
+    type CompetenceMap,
+    type CompetenceTransition,
+    type PositionedTopic,
+} from './competence-star-layout';
 
 export default function CompetenceStarMap({
     competenceMap,
 }: {
     competenceMap: CompetenceMap;
 }) {
-    const positionedTopics = positionTopics(competenceMap.topics);
+    const [activeTopicSlug, setActiveTopicSlug] = useState<string | null>(null);
+    const positionedTopics = useMemo(
+        () =>
+            buildCompetenceStarLayout(
+                competenceMap.topics,
+                competenceMap.transitions,
+            ),
+        [competenceMap.topics, competenceMap.transitions],
+    );
     const topicBySlug = new Map(
         positionedTopics.map((topic) => [topic.slug, topic]),
     );
@@ -51,7 +35,7 @@ export default function CompetenceStarMap({
         <>
             <Head title="Competence Star Map" />
             <main className="min-h-svh overflow-hidden bg-black px-4 py-6 pb-24 text-white">
-                <div className="mx-auto grid h-[calc(100svh-7rem)] max-w-7xl grid-rows-[auto_minmax(0,1fr)] gap-5">
+                <div className="grid h-[calc(100svh-7rem)] w-full grid-rows-[auto_minmax(0,1fr)] gap-5">
                     <AccentHeading
                         action={
                             <Button asChild variant="secondary">
@@ -62,7 +46,6 @@ export default function CompetenceStarMap({
                             </Button>
                         }
                         accentColor="var(--map-floating-accent-color)"
-                        description={`Current monthly aura window: ${competenceMap.monthKey}`}
                         eyebrow="Competence"
                         icon={<Sparkles className="size-5" />}
                         title="Star Map"
@@ -88,32 +71,83 @@ export default function CompetenceStarMap({
                                 aria-label="Competence star map"
                                 className="h-full w-full"
                                 role="img"
-                                viewBox="0 0 1000 680"
+                                viewBox={`0 0 ${competenceStarMapSize.width} ${competenceStarMapSize.height}`}
                             >
                                 <style>{`
                                     @keyframes competence-flow {
                                         to { stroke-dashoffset: -72; }
                                     }
                                     @keyframes competence-twinkle {
-                                        0%, 100% {
-                                            opacity: 0.72;
-                                            transform: scale(0.94);
+                                        from {
+                                            opacity: 0.68;
+                                            transform: scale(0.92);
                                         }
-                                        42% {
+                                        to {
                                             opacity: 1;
-                                            transform: scale(1.08);
-                                        }
-                                        62% {
-                                            opacity: 0.82;
-                                            transform: scale(0.98);
+                                            transform: scale(1.16);
                                         }
                                     }
                                     @keyframes competence-halo {
-                                        0%, 100% { opacity: 0.32; }
-                                        50% { opacity: 0.78; }
+                                        from {
+                                            opacity: 0.2;
+                                            transform: scale(0.94);
+                                        }
+                                        to {
+                                            opacity: 0.68;
+                                            transform: scale(1.1);
+                                        }
+                                    }
+                                    @keyframes competence-flare-sway {
+                                        from {
+                                            transform: rotate(-15deg);
+                                        }
+                                        to {
+                                            transform: rotate(15deg);
+                                        }
+                                    }
+                                    @keyframes competence-spark {
+                                        from {
+                                            opacity: 0.18;
+                                            transform: scale(0.74);
+                                        }
+                                        to {
+                                            opacity: 0.92;
+                                            transform: scale(1.24);
+                                        }
+                                    }
+                                    @keyframes competence-background-star {
+                                        0%, 100% { opacity: 0.22; }
+                                        45% { opacity: 0.74; }
+                                    }
+                                    @keyframes competence-shooting-star-opacity {
+                                        0%, 48%, 76%, 100% { opacity: 0; }
+                                        52% { opacity: 0.84; }
+                                        62% { opacity: 0.5; }
+                                        72% { opacity: 0.08; }
+                                    }
+                                    @keyframes competence-shooting-star-travel {
+                                        0%, 48% { transform: translateX(0); }
+                                        76%, 100% { transform: translateX(var(--shooting-star-distance)); }
                                     }
                                 `}</style>
                                 <defs>
+                                    <radialGradient id="competence-sky-vignette">
+                                        <stop
+                                            offset="0%"
+                                            stopColor="#111827"
+                                            stopOpacity="0.38"
+                                        />
+                                        <stop
+                                            offset="55%"
+                                            stopColor="#020617"
+                                            stopOpacity="0.18"
+                                        />
+                                        <stop
+                                            offset="100%"
+                                            stopColor="#000000"
+                                            stopOpacity="1"
+                                        />
+                                    </radialGradient>
                                     <filter
                                         height="200%"
                                         id="competence-star-glow"
@@ -131,7 +165,137 @@ export default function CompetenceStarMap({
                                             <feMergeNode in="SourceGraphic" />
                                         </feMerge>
                                     </filter>
+                                    <filter
+                                        height="260%"
+                                        id="competence-star-bloom"
+                                        width="260%"
+                                        x="-80%"
+                                        y="-80%"
+                                    >
+                                        <feGaussianBlur
+                                            in="SourceGraphic"
+                                            result="soft"
+                                            stdDeviation="7"
+                                        />
+                                        <feMerge>
+                                            <feMergeNode in="soft" />
+                                            <feMergeNode in="SourceGraphic" />
+                                        </feMerge>
+                                    </filter>
                                 </defs>
+                                <rect
+                                    fill="url(#competence-sky-vignette)"
+                                    height={competenceStarMapSize.height}
+                                    width={competenceStarMapSize.width}
+                                    x="0"
+                                    y="0"
+                                />
+                                <g aria-hidden="true">
+                                    {backgroundStars.map((star, index) => (
+                                        <circle
+                                            cx={star.x}
+                                            cy={star.y}
+                                            fill="#dbeafe"
+                                            key={index}
+                                            opacity={star.opacity}
+                                            r={star.size}
+                                            style={{
+                                                animation: `competence-background-star ${3.4 + (index % 6) * 0.42}s ease-in-out infinite`,
+                                                animationDelay: `${star.delay}s`,
+                                            }}
+                                        />
+                                    ))}
+                                </g>
+                                <g aria-hidden="true">
+                                    {shootingStars.map((star, index) => (
+                                        <g
+                                            key={index}
+                                            opacity="0"
+                                            style={{
+                                                animation: `competence-shooting-star-opacity ${star.duration}s linear infinite`,
+                                                animationDelay: `${star.delay}s`,
+                                            }}
+                                            transform={`translate(${star.x} ${star.y}) rotate(${star.angle})`}
+                                        >
+                                            <g
+                                                style={
+                                                    {
+                                                        '--shooting-star-distance': `${star.distance}px`,
+                                                        animation: `competence-shooting-star-travel ${star.duration}s linear infinite`,
+                                                        animationDelay: `${star.delay}s`,
+                                                    } as CSSProperties &
+                                                        Record<
+                                                            '--shooting-star-distance',
+                                                            string
+                                                        >
+                                                }
+                                            >
+                                                <defs>
+                                                    <linearGradient
+                                                        gradientUnits="userSpaceOnUse"
+                                                        id={`competence-shooting-star-tail-${index}`}
+                                                        x1={-star.length}
+                                                        x2="0"
+                                                        y1="0"
+                                                        y2="0"
+                                                    >
+                                                        <stop
+                                                            offset="0%"
+                                                            stopColor="#bae6fd"
+                                                            stopOpacity="0"
+                                                        />
+                                                        <stop
+                                                            offset="35%"
+                                                            stopColor="#bfdbfe"
+                                                            stopOpacity="0.18"
+                                                        />
+                                                        <stop
+                                                            offset="72%"
+                                                            stopColor="#bfdbfe"
+                                                            stopOpacity="0.7"
+                                                        />
+                                                        <stop
+                                                            offset="100%"
+                                                            stopColor="#ffffff"
+                                                            stopOpacity="1"
+                                                        />
+                                                    </linearGradient>
+                                                </defs>
+                                                <line
+                                                    stroke={`url(#competence-shooting-star-tail-${index})`}
+                                                    strokeLinecap="round"
+                                                    strokeOpacity={
+                                                        star.opacity * 0.48
+                                                    }
+                                                    strokeWidth="9"
+                                                    x1={-star.length}
+                                                    x2="0"
+                                                    y1="0"
+                                                    y2="0"
+                                                />
+                                                <line
+                                                    stroke={`url(#competence-shooting-star-tail-${index})`}
+                                                    strokeLinecap="round"
+                                                    strokeOpacity={star.opacity}
+                                                    strokeWidth="2.1"
+                                                    x1={-star.length * 0.92}
+                                                    x2="0"
+                                                    y1="0"
+                                                    y2="0"
+                                                />
+                                                <circle
+                                                    fill="#ffffff"
+                                                    r="2.2"
+                                                />
+                                                <circle
+                                                    fill="#93c5fd"
+                                                    opacity="0.26"
+                                                    r="7.5"
+                                                />
+                                            </g>
+                                        </g>
+                                    ))}
+                                </g>
                                 <g>
                                     {competenceMap.transitions.map(
                                         (transition) => {
@@ -160,7 +324,11 @@ export default function CompetenceStarMap({
                                 <g>
                                     {positionedTopics.map((topic) => (
                                         <CompetenceStar
+                                            active={
+                                                activeTopicSlug === topic.slug
+                                            }
                                             key={topic.slug}
+                                            onActiveChange={setActiveTopicSlug}
                                             topic={topic}
                                         />
                                     ))}
@@ -217,111 +385,186 @@ function CompetencePath({
     );
 }
 
-function CompetenceStar({ topic }: { topic: PositionedTopic }) {
+function CompetenceStar({
+    active,
+    onActiveChange,
+    topic,
+}: {
+    active: boolean;
+    onActiveChange: (slug: string | null) => void;
+    topic: PositionedTopic;
+}) {
+    const flareLength = topic.size * (2.8 + topic.brightness * 2.4);
+    const flareWidth = Math.max(0.45, topic.size * 0.1);
+    const diagonalFlareLength = flareLength * 0.46;
+    const coreRadius = Math.max(1.6, topic.size * 0.26);
+    const showLabel = topic.labelVisible || active;
+
     return (
-        <g transform={`translate(${topic.x} ${topic.y})`}>
+        <g
+            aria-label={`${topic.name}: ${topic.totalPoints} total points, ${topic.monthlyPoints} this month`}
+            onPointerEnter={() => onActiveChange(topic.slug)}
+            onPointerLeave={() => onActiveChange(null)}
+            role="img"
+            transform={`translate(${topic.x} ${topic.y})`}
+        >
+            <title>
+                {topic.name}: {topic.totalPoints} total, {topic.monthlyPoints}{' '}
+                this month
+            </title>
             <circle
-                fill="#22d3ee"
+                fill={topic.color}
                 opacity={topic.aura}
-                r={topic.size * (1.7 + topic.monthlyPoints / 18)}
+                r={topic.auraRadius}
                 style={{
-                    animation: `competence-halo ${topic.twinkleDuration + 1.2}s ease-in-out infinite`,
+                    animation: `competence-halo ${topic.twinkleDuration + 1.2}s cubic-bezier(0.45,0,0.55,1) infinite alternate`,
                     animationDelay: `${topic.twinkleDelay}s`,
+                    transformBox: 'fill-box',
+                    transformOrigin: 'center',
                 }}
             />
             <circle
-                fill="#bfdbfe"
-                opacity={topic.brightness * 0.2}
-                r={topic.size * 2.4}
+                fill={topic.color}
+                filter="url(#competence-star-bloom)"
+                opacity={topic.brightness * 0.28}
+                r={topic.size * 1.9}
             />
             <g
                 filter="url(#competence-star-glow)"
                 style={{
-                    animation: `competence-twinkle ${topic.twinkleDuration}s ease-in-out infinite`,
+                    animation: `competence-twinkle ${topic.twinkleDuration}s cubic-bezier(0.45,0,0.55,1) infinite alternate`,
                     animationDelay: `${topic.twinkleDelay}s`,
                     transformBox: 'fill-box',
                     transformOrigin: 'center',
                 }}
             >
-                <line
-                    stroke="#e0f2fe"
-                    strokeLinecap="round"
-                    strokeOpacity={topic.brightness * 0.42}
-                    strokeWidth={Math.max(0.5, topic.size * 0.08)}
-                    x1={-topic.size * 1.6}
-                    x2={topic.size * 1.6}
-                    y1="0"
-                    y2="0"
-                />
-                <line
-                    stroke="#e0f2fe"
-                    strokeLinecap="round"
-                    strokeOpacity={topic.brightness * 0.3}
-                    strokeWidth={Math.max(0.4, topic.size * 0.06)}
-                    x1="0"
-                    x2="0"
-                    y1={-topic.size * 1.6}
-                    y2={topic.size * 1.6}
-                />
+                <g transform={`rotate(${topic.flareAngle})`}>
+                    <g
+                        style={{
+                            animation: `competence-flare-sway ${topic.twinkleDuration + 1.4}s cubic-bezier(0.45,0,0.55,1) infinite alternate`,
+                            animationDelay: `${topic.twinkleDelay * 0.7}s`,
+                            transformBox: 'fill-box',
+                            transformOrigin: 'center',
+                        }}
+                    >
+                        <line
+                            stroke="#ffffff"
+                            strokeLinecap="round"
+                            strokeOpacity={topic.brightness * 0.76}
+                            strokeWidth={flareWidth}
+                            x1={-flareLength}
+                            x2={flareLength}
+                            y1="0"
+                            y2="0"
+                        />
+                        <line
+                            stroke="#bae6fd"
+                            strokeLinecap="round"
+                            strokeOpacity={topic.brightness * 0.62}
+                            strokeWidth={flareWidth * 0.78}
+                            x1="0"
+                            x2="0"
+                            y1={-flareLength}
+                            y2={flareLength}
+                        />
+                        <line
+                            stroke="#f5d0fe"
+                            strokeLinecap="round"
+                            strokeOpacity={topic.brightness * 0.32}
+                            strokeWidth={flareWidth * 0.58}
+                            x1={-diagonalFlareLength}
+                            x2={diagonalFlareLength}
+                            y1={-diagonalFlareLength}
+                            y2={diagonalFlareLength}
+                        />
+                        <line
+                            stroke="#93c5fd"
+                            strokeLinecap="round"
+                            strokeOpacity={topic.brightness * 0.26}
+                            strokeWidth={flareWidth * 0.5}
+                            x1={-diagonalFlareLength}
+                            x2={diagonalFlareLength}
+                            y1={diagonalFlareLength}
+                            y2={-diagonalFlareLength}
+                        />
+                    </g>
+                </g>
                 <circle
                     fill="#fff7ed"
                     opacity={0.62 + topic.brightness * 0.38}
-                    r={topic.size}
+                    r={topic.size * 0.62}
                 />
                 <circle
                     fill="#ffffff"
                     opacity={0.82 + topic.brightness * 0.18}
-                    r={Math.max(1.5, topic.size * 0.22)}
+                    r={coreRadius}
                 />
+                {topic.sparklePoints.map((sparkle, index) => (
+                    <circle
+                        cx={sparkle.x}
+                        cy={sparkle.y}
+                        fill={index % 2 === 0 ? '#e0f2fe' : '#f5d0fe'}
+                        key={index}
+                        opacity={sparkle.opacity}
+                        r={sparkle.size}
+                        style={{
+                            animation: `competence-spark ${topic.twinkleDuration + sparkle.radius * 0.08}s cubic-bezier(0.45,0,0.55,1) infinite alternate`,
+                            animationDelay: `${topic.twinkleDelay + sparkle.delay}s`,
+                            transformBox: 'fill-box',
+                            transformOrigin: 'center',
+                        }}
+                    />
+                ))}
             </g>
-            <text
-                fill="#f8fafc"
-                fontSize="16"
-                fontWeight="700"
-                textAnchor="middle"
-                y={topic.size + 28}
-            >
-                {topic.name}
-            </text>
+            {showLabel ? (
+                <g
+                    opacity="0.92"
+                    pointerEvents="none"
+                    transform={`translate(${-topic.x} ${-topic.y})`}
+                >
+                    {!topic.labelVisible ? (
+                        <line
+                            stroke="#bae6fd"
+                            strokeDasharray="2 5"
+                            strokeLinecap="round"
+                            strokeOpacity="0.48"
+                            strokeWidth="1"
+                            x1={topic.x}
+                            x2={topic.labelX}
+                            y1={
+                                topic.y +
+                                (topic.labelSide === 'below'
+                                    ? topic.size + 9
+                                    : -topic.size - 9)
+                            }
+                            y2={topic.labelY - 11}
+                        />
+                    ) : null}
+                    <text
+                        fill="#f8fafc"
+                        fontSize="13"
+                        fontWeight="700"
+                        textAnchor="middle"
+                        x={topic.labelX}
+                        y={topic.labelY}
+                    >
+                        {topic.name}
+                    </text>
+                    {topic.clusterHiddenCount > 0 ? (
+                        <text
+                            fill="#ccfbf1"
+                            fontSize="10"
+                            fontWeight="800"
+                            opacity="0.82"
+                            textAnchor="start"
+                            x={topic.labelX + topic.labelWidth / 2 + 8}
+                            y={topic.labelY}
+                        >
+                            +{topic.clusterHiddenCount}
+                        </text>
+                    ) : null}
+                </g>
+            ) : null}
         </g>
     );
-}
-
-function positionTopics(topics: CompetenceTopic[]): PositionedTopic[] {
-    return topics.map((topic, index) => {
-        const angle =
-            topics.length === 1 ? 0 : (Math.PI * 2 * index) / topics.length;
-        const ring = topics.length <= 6 ? 220 : 180 + (index % 2) * 92;
-        const growthRatio = thresholdRatio(
-            topic.totalPoints,
-            topic.growthThreshold,
-        );
-        const emittanceRatio = thresholdRatio(
-            topic.totalPoints,
-            topic.emittanceThreshold,
-        );
-        const auraRatio = thresholdRatio(
-            topic.monthlyPoints,
-            topic.auraThreshold,
-        );
-
-        return {
-            ...topic,
-            aura: 0.06 + auraRatio * 0.48,
-            brightness: 0.38 + emittanceRatio * 0.62,
-            size: 3.5 + growthRatio * 16,
-            twinkleDelay: (index % 7) * -0.43,
-            twinkleDuration: 2.8 + (index % 5) * 0.36,
-            x: 500 + Math.cos(angle - Math.PI / 2) * ring,
-            y: 340 + Math.sin(angle - Math.PI / 2) * ring,
-        };
-    });
-}
-
-function thresholdRatio(points: number, threshold: number): number {
-    if (!Number.isFinite(points) || !Number.isFinite(threshold) || threshold <= 0) {
-        return 0;
-    }
-
-    return Math.min(1, points / threshold);
 }
