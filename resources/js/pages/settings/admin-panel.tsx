@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
 import type { WorldMapManagementGraph } from '@/features/settings/world-map-management-panel';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
@@ -240,6 +241,10 @@ function CompetenceTopicsSection({
     const [drafts, setDrafts] = useState<CompetenceTopicDraft[]>(() =>
         topics.length > 0 ? topics.map(topicDraft) : [emptyCompetenceTopic()],
     );
+    const hasChanges = useDirtyState(
+        drafts,
+        topics.length > 0 ? topics.map(topicDraft) : [emptyCompetenceTopic()],
+    );
 
     function updateTopic(
         index: number,
@@ -269,6 +274,10 @@ function CompetenceTopicsSection({
 
     function saveTopics(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (!hasChanges) {
+            return;
+        }
 
         router.patch(
             '/settings/admin-panel/competence-topics',
@@ -316,7 +325,7 @@ function CompetenceTopicsSection({
                             <Plus className="size-4" />
                             Add topic
                         </Button>
-                        <Button type="submit">
+                        <Button disabled={!hasChanges} type="submit">
                             <Save className="size-4" />
                             Save
                         </Button>
@@ -850,9 +859,18 @@ function OrganizationModerationSection({
     settings: { maxMembershipsPerUser: number };
 }) {
     const [limit, setLimit] = useState(String(settings.maxMembershipsPerUser));
+    const hasLimitChanges = useDirtyState(
+        limit,
+        String(settings.maxMembershipsPerUser),
+    );
 
     function saveLimit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (!hasLimitChanges) {
+            return;
+        }
+
         router.patch(
             '/settings/admin-panel/organizations',
             { max_memberships_per_user: Number(limit) },
@@ -898,7 +916,7 @@ function OrganizationModerationSection({
                     value={limit}
                     onChange={(event) => setLimit(event.target.value)}
                 />
-                <Button type="submit">
+                <Button disabled={!hasLimitChanges} type="submit">
                     <Save className="size-4" />
                     Save
                 </Button>

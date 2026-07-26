@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import type { LearningSound } from '@/types';
@@ -72,6 +73,7 @@ export default function AdminSoundsPage({
     const [search, setSearch] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const player = useLayeredSoundPlayer();
+    const hasChanges = useDirtyState(form, formFromSound(selectedSound));
     const filteredSounds = useMemo(() => {
         const needle = search.trim().toLowerCase();
 
@@ -96,6 +98,10 @@ export default function AdminSoundsPage({
         setForm(formFromSound(null));
     };
     const saveSound = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         const payload = soundPayload(form);
 
         if (selectedSound) {
@@ -415,6 +421,7 @@ export default function AdminSoundsPage({
                                             </Button>
                                         ) : null}
                                         <Button
+                                            disabled={!hasChanges}
                                             onClick={saveSound}
                                             type="button"
                                         >

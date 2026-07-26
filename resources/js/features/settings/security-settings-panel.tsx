@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ComponentProps, Ref } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import InputError from '@/components/input-error';
@@ -8,12 +8,18 @@ import type { Props as ManagePasskeysProps } from '@/components/manage-passkeys'
 import ManageTwoFactor from '@/components/manage-two-factor';
 import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
-import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
+import {
+    SettingsPanelHeader,
+    type SettingsSaveAction,
+} from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type SecuritySettingsProps = {
+    formId?: string;
+    hideSaveButton?: boolean;
+    onSaveActionChange?: (action: SettingsSaveAction | null) => void;
     passwordRules: string;
 } & ManagePasskeysProps &
     ManageTwoFactorProps;
@@ -25,7 +31,7 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
 
     return (
         <div className="grid gap-5">
-            <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+            <section className="grid gap-5">
                 <SettingsPanelHeader
                     description={t(
                         'settings.personal.security.description',
@@ -43,6 +49,7 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                 <Form
                     {...SecurityController.update.form()}
                     className="grid gap-5"
+                    id={props.formId}
                     onError={(errors) => {
                         if (errors.password) {
                             passwordInput.current?.focus();
@@ -60,78 +67,131 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                     ]}
                     resetOnSuccess
                 >
-                    {({ errors, processing }) => (
-                        <>
-                            <PasswordField
-                                autoComplete="current-password"
-                                error={errors.current_password}
-                                id="current_password"
-                                inputRef={currentPasswordInput}
-                                label={t(
-                                    'settings.personal.security.current_password',
-                                    'Current password',
-                                )}
-                                name="current_password"
-                                placeholder={t(
-                                    'settings.personal.security.current_password',
-                                    'Current password',
-                                )}
-                            />
-                            <PasswordField
-                                autoComplete="new-password"
-                                error={errors.password}
-                                id="password"
-                                inputRef={passwordInput}
-                                label={t(
-                                    'settings.personal.security.new_password',
-                                    'New password',
-                                )}
-                                name="password"
-                                passwordrules={props.passwordRules}
-                                placeholder={t(
-                                    'settings.personal.security.new_password',
-                                    'New password',
-                                )}
-                            />
-                            <PasswordField
-                                autoComplete="new-password"
-                                error={errors.password_confirmation}
-                                id="password_confirmation"
-                                label={t(
-                                    'settings.personal.security.confirm_password',
-                                    'Confirm password',
-                                )}
-                                name="password_confirmation"
-                                passwordrules={props.passwordRules}
-                                placeholder={t(
-                                    'settings.personal.security.confirm_password',
-                                    'Confirm password',
-                                )}
-                            />
-                            <Button
-                                data-test="update-password-button"
-                                disabled={processing}
-                            >
-                                {t(
-                                    'settings.personal.security.save',
-                                    'Save password',
-                                )}
-                            </Button>
-                        </>
+                    {({ errors, processing, isDirty }) => (
+                        <SecurityPasswordFormContent
+                            errors={errors}
+                            formId={props.formId}
+                            hideSaveButton={props.hideSaveButton ?? false}
+                            isDirty={isDirty}
+                            onSaveActionChange={props.onSaveActionChange}
+                            passwordInput={passwordInput}
+                            passwordRules={props.passwordRules}
+                            processing={processing}
+                            currentPasswordInput={currentPasswordInput}
+                        />
                     )}
                 </Form>
             </section>
             {props.canManageTwoFactor ? (
-                <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                <section className="border-t border-[var(--settings-border-color)] pt-5">
                     <ManageTwoFactor {...props} />
                 </section>
             ) : null}
             {props.canManagePasskeys ? (
-                <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                <section className="border-t border-[var(--settings-border-color)] pt-5">
                     <ManagePasskeys {...props} />
                 </section>
             ) : null}
         </div>
+    );
+}
+
+function SecurityPasswordFormContent({
+    currentPasswordInput,
+    errors,
+    formId,
+    hideSaveButton,
+    isDirty,
+    onSaveActionChange,
+    passwordInput,
+    passwordRules,
+    processing,
+}: {
+    currentPasswordInput: Ref<HTMLInputElement>;
+    errors: Record<string, string>;
+    formId?: string;
+    hideSaveButton: boolean;
+    isDirty: boolean;
+    onSaveActionChange?: (action: SettingsSaveAction | null) => void;
+    passwordInput: Ref<HTMLInputElement>;
+    passwordRules: string;
+    processing: boolean;
+}) {
+    const t = usePlatformTranslation();
+
+    useEffect(() => {
+        if (!onSaveActionChange || !formId) {
+            return;
+        }
+
+        onSaveActionChange({
+            disabled: processing || !isDirty,
+            form: formId,
+            label: t('common.save', 'Save'),
+            saving: processing,
+            savingLabel: t('common.saving', 'Saving...'),
+        });
+
+        return () => onSaveActionChange(null);
+    }, [formId, isDirty, onSaveActionChange, processing, t]);
+
+    return (
+        <>
+            <PasswordField
+                autoComplete="current-password"
+                error={errors.current_password}
+                id="current_password"
+                inputRef={currentPasswordInput}
+                label={t(
+                    'settings.personal.security.current_password',
+                    'Current password',
+                )}
+                name="current_password"
+                placeholder={t(
+                    'settings.personal.security.current_password',
+                    'Current password',
+                )}
+            />
+            <PasswordField
+                autoComplete="new-password"
+                error={errors.password}
+                id="password"
+                inputRef={passwordInput}
+                label={t(
+                    'settings.personal.security.new_password',
+                    'New password',
+                )}
+                name="password"
+                passwordrules={passwordRules}
+                placeholder={t(
+                    'settings.personal.security.new_password',
+                    'New password',
+                )}
+            />
+            <PasswordField
+                autoComplete="new-password"
+                error={errors.password_confirmation}
+                id="password_confirmation"
+                label={t(
+                    'settings.personal.security.confirm_password',
+                    'Confirm password',
+                )}
+                name="password_confirmation"
+                passwordrules={passwordRules}
+                placeholder={t(
+                    'settings.personal.security.confirm_password',
+                    'Confirm password',
+                )}
+            />
+            {!hideSaveButton ? (
+                <Button
+                    data-test="update-password-button"
+                    disabled={processing || !isDirty}
+                >
+                    {t('settings.personal.security.save', 'Save password')}
+                </Button>
+            ) : null}
+        </>
     );
 }
 

@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
     Download,
     FileText,
@@ -6,32 +6,33 @@ import {
     Image,
     Images,
     LayoutPanelTop,
-    MousePointer2,
-    Palette,
     Plus,
-    Save,
     Trash2,
     Upload,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { ColorField } from '@/components/color-input';
 import InputError from '@/components/input-error';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    SettingsNestedWorkspace,
+    SettingsSectionButton,
+    SettingsSaveButton,
+    type SettingsSaveAction,
+} from '@/components/settings-configuration-shell';
 import { platformInfoPages } from '@/features/platform-info/content';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import type {
-    CursorImageSettings,
-    PublicPaletteField,
-    PublicPaletteModeSettings,
     PublicPresentationSettings,
     SourceLinkSettings,
     WelcomePageSettings,
 } from '@/theme/presentation';
+import type { Auth } from '@/types';
 
 type PlatformInfoContent = {
     key: PlatformInfoPageKey;
@@ -52,16 +53,11 @@ type Props = {
 };
 
 type AuthBackgroundPage = 'login' | 'register' | 'welcome';
-type CursorKey = 'action' | 'default' | 'denied' | 'grab' | 'text';
-type PresentationSection =
-    | 'backgrounds'
-    | 'cursors'
-    | 'palette'
-    | 'source'
-    | 'welcome'
-    | 'info';
+type PresentationSection = 'backgrounds' | 'source' | 'welcome' | 'info';
 type ThemeMode = 'dark' | 'light';
-type PaletteField = Exclude<PublicPaletteField, 'welcomeOverlay'>;
+
+const settingsFormGroupClassName =
+    'grid gap-3 border-b border-[var(--settings-border-color)] pb-4 last:border-b-0 last:pb-0';
 
 const authBackgroundPages: Array<{
     description: string;
@@ -91,38 +87,6 @@ const infoPageKeys: PlatformInfoPageKey[] = [
     'data-protection',
 ];
 
-const cursorOptions: Array<{
-    description: string;
-    key: CursorKey;
-    label: string;
-}> = [
-    {
-        key: 'default',
-        label: 'Normal cursor',
-        description: 'Used on passive surfaces and normal map areas.',
-    },
-    {
-        key: 'action',
-        label: 'Action pointer',
-        description: 'Used on buttons, links and other clickable controls.',
-    },
-    {
-        key: 'grab',
-        label: 'Grab cursor',
-        description: 'Used while dragging maps and graph surfaces.',
-    },
-    {
-        key: 'text',
-        label: 'Text input cursor',
-        description: 'Used when hovering editable input and text areas.',
-    },
-    {
-        key: 'denied',
-        label: 'Denied cursor',
-        description: 'Used on disabled controls and unavailable locked nodes.',
-    },
-];
-
 const presentationSections: {
     description: string;
     icon: LucideIcon;
@@ -136,22 +100,10 @@ const presentationSections: {
         icon: Image,
     },
     {
-        key: 'cursors',
-        label: 'Cursor images',
-        description: 'Normal, action, grab, text and denied cursor images.',
-        icon: MousePointer2,
-    },
-    {
         key: 'welcome',
         label: 'Welcome pages',
         description: 'Full-screen welcome sequence copy.',
         icon: LayoutPanelTop,
-    },
-    {
-        key: 'palette',
-        label: 'Public text colors',
-        description: 'Text and control colors for public pages.',
-        icon: Palette,
     },
     {
         key: 'info',
@@ -210,6 +162,41 @@ export function AdminPresentationPanel({
                 ]),
             ) as Record<PlatformInfoPageKey, string>,
     );
+    const hasPresentationChanges = useDirtyState(
+        presentationDraft,
+        presentation,
+    );
+    const initialMarkdownDrafts = useMemo(
+        () =>
+            Object.fromEntries(
+                infoPageKeys.map((key) => [
+                    key,
+                    platformInfoContent[key]?.markdown ??
+                        platformInfoPages[key].markdown,
+                ]),
+            ) as Record<PlatformInfoPageKey, string>,
+        [platformInfoContent],
+    );
+    const hasAboutChanges = useDirtyState(
+        markdownDrafts.about,
+        initialMarkdownDrafts.about,
+    );
+    const hasImprintChanges = useDirtyState(
+        markdownDrafts.imprint,
+        initialMarkdownDrafts.imprint,
+    );
+    const hasDataProtectionChanges = useDirtyState(
+        markdownDrafts['data-protection'],
+        initialMarkdownDrafts['data-protection'],
+    );
+    const changedInfoPages: Record<PlatformInfoPageKey, boolean> = {
+        about: hasAboutChanges,
+        imprint: hasImprintChanges,
+        'data-protection': hasDataProtectionChanges,
+    };
+    const changedInfoPageKeys = infoPageKeys.filter(
+        (key) => changedInfoPages[key],
+    );
 
     const welcomePages = presentationDraft.welcome.pages;
     const canRemoveWelcomePage = welcomePages.length > 1;
@@ -238,40 +225,6 @@ export function AdminPresentationPanel({
                         ...current.auth.backgroundImages[page],
                         [mode]: value,
                     },
-                },
-            },
-        }));
-    };
-
-    const updateCursor = (
-        key: CursorKey,
-        field: keyof CursorImageSettings,
-        value: number | string,
-    ) => {
-        setPresentationDraft((current) => ({
-            ...current,
-            cursors: {
-                ...current.cursors,
-                [key]: {
-                    ...current.cursors[key],
-                    [field]: value,
-                },
-            },
-        }));
-    };
-
-    const updatePalette = (
-        mode: ThemeMode,
-        field: PaletteField,
-        value: string,
-    ) => {
-        setPresentationDraft((current) => ({
-            ...current,
-            publicPalette: {
-                ...current.publicPalette,
-                [mode]: {
-                    ...current.publicPalette[mode],
-                    [field]: value,
                 },
             },
         }));
@@ -329,14 +282,6 @@ export function AdminPresentationPanel({
                 ),
             },
         }));
-    };
-
-    const uploadCursorImage = async (key: CursorKey, file: File) => {
-        const fieldKey = `cursor.${key}`;
-
-        await uploadPresentationImage(fieldKey, file, (url) =>
-            updateCursor(key, 'image', url),
-        );
     };
 
     const uploadBackgroundImage = async (
@@ -418,6 +363,10 @@ export function AdminPresentationPanel({
     };
 
     const savePresentation = () => {
+        if (!hasPresentationChanges) {
+            return;
+        }
+
         setSavingPresentation(true);
         router.patch('/settings/presentation', presentationDraft, {
             preserveScroll: true,
@@ -429,13 +378,16 @@ export function AdminPresentationPanel({
     };
 
     const saveInfoPage = (key: PlatformInfoPageKey) => {
+        if (!changedInfoPages[key]) {
+            return;
+        }
+
         setSavingInfoPage(key);
         router.patch(
             `/settings/info-pages/${key}`,
             {
                 markdown: markdownDrafts[key],
-                redirect_to:
-                    '/settings?panel=admin-presentation-localization&presentation=public',
+                redirect_to: '/settings?panel=admin-public-pages',
             },
             {
                 preserveScroll: true,
@@ -446,40 +398,43 @@ export function AdminPresentationPanel({
             },
         );
     };
+    const saveChangedInfoPages = () => {
+        changedInfoPageKeys.forEach((key) => saveInfoPage(key));
+    };
+    const saveAction: SettingsSaveAction =
+        activeSection === 'info'
+            ? {
+                  disabled:
+                      savingInfoPage !== null || changedInfoPageKeys.length < 1,
+                  label: 'Save',
+                  onClick: saveChangedInfoPages,
+                  saving: savingInfoPage !== null,
+                  savingLabel: 'Saving...',
+              }
+            : {
+                  disabled: savingPresentation || !hasPresentationChanges,
+                  label: 'Save',
+                  onClick: savePresentation,
+                  saving: savingPresentation,
+                  savingLabel: 'Saving...',
+              };
 
     return (
-        <div className="flex h-full min-h-0 flex-col gap-5">
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
-                <div>
-                    <div className="mb-3 flex items-center gap-3 text-cyan-700 dark:text-teal-100">
-                        <Image className="size-5" />
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            Public presentation
-                        </h2>
-                    </div>
-                    <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Configure public visuals, welcome copy and information
-                        pages without touching code.
-                    </p>
-                </div>
-                <Button
-                    disabled={savingPresentation}
-                    onClick={savePresentation}
-                    type="button"
-                >
-                    <Save className="size-4" />
-                    Save presentation
-                </Button>
-            </div>
-
-            <PresentationSectionSwitcher
-                activeSection={activeSection}
-                onChange={setActiveSection}
-            />
-
-            <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
+        <SettingsNestedWorkspace
+            action={<SettingsSaveButton action={saveAction} />}
+            description="Configure authentication backgrounds, welcome copy, information pages and source links without touching code."
+            icon={Image}
+            sidebar={
+                <PresentationSectionNavigation
+                    activeSection={activeSection}
+                    onSelectSection={setActiveSection}
+                />
+            }
+            title="Public pages"
+        >
+            <div className="grid gap-5">
                 {activeSection === 'backgrounds' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                    <section className="grid gap-4">
                         <div className="mb-4">
                             <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                                 Authentication backgrounds
@@ -493,7 +448,7 @@ export function AdminPresentationPanel({
                         <div className="grid gap-4">
                             {backgroundImageSummary.map((page) => (
                                 <div
-                                    className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                    className={settingsFormGroupClassName}
                                     key={page.key}
                                 >
                                     <div>
@@ -575,81 +530,8 @@ export function AdminPresentationPanel({
                     </section>
                 ) : null}
 
-                {activeSection === 'palette' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                        <div className="mb-4">
-                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
-                                <Palette className="size-4 text-cyan-700 dark:text-teal-200" />
-                                Public text colors
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                These colors are used on the welcome, About,
-                                Imprint and Data Protection pages. Button
-                                background colors still come from the main auth
-                                theme.
-                            </p>
-                        </div>
-                        <div className="grid gap-4 lg:grid-cols-2">
-                            <PaletteEditor
-                                errors={presentationErrors}
-                                mode="dark"
-                                onChange={updatePalette}
-                                palette={presentationDraft.publicPalette.dark}
-                                title="Dark mode public colors"
-                            />
-                            <PaletteEditor
-                                errors={presentationErrors}
-                                mode="light"
-                                onChange={updatePalette}
-                                palette={presentationDraft.publicPalette.light}
-                                title="Light mode public colors"
-                            />
-                        </div>
-                    </section>
-                ) : null}
-
-                {activeSection === 'cursors' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                        <div className="mb-4">
-                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
-                                <MousePointer2 className="size-4 text-cyan-700 dark:text-teal-200" />
-                                Cursor images
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Configure the platform cursor set. Tool cursors
-                                still override these while a learner equips a
-                                tool.
-                            </p>
-                        </div>
-                        <div className="grid gap-4">
-                            {cursorOptions.map((cursor) => (
-                                <CursorImageInput
-                                    cursor={
-                                        presentationDraft.cursors[cursor.key]
-                                    }
-                                    description={cursor.description}
-                                    errorPrefix={`cursors.${cursor.key}`}
-                                    errors={presentationErrors}
-                                    key={cursor.key}
-                                    label={cursor.label}
-                                    onChange={(field, value) =>
-                                        updateCursor(cursor.key, field, value)
-                                    }
-                                    onUpload={(file) =>
-                                        void uploadCursorImage(cursor.key, file)
-                                    }
-                                    uploading={
-                                        uploadingImage ===
-                                        `cursor.${cursor.key}`
-                                    }
-                                />
-                            ))}
-                        </div>
-                    </section>
-                ) : null}
-
                 {activeSection === 'welcome' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                    <section className="grid gap-4">
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
@@ -672,7 +554,7 @@ export function AdminPresentationPanel({
                         <div className="grid gap-4">
                             {welcomePages.map((page, index) => (
                                 <div
-                                    className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                    className={settingsFormGroupClassName}
                                     key={index}
                                 >
                                     <div className="flex items-center justify-between gap-3">
@@ -775,7 +657,7 @@ export function AdminPresentationPanel({
                 ) : null}
 
                 {activeSection === 'info' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                    <section className="grid gap-4">
                         <div className="mb-4">
                             <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
                                 <FileText className="size-4 text-cyan-700 dark:text-teal-200" />
@@ -792,7 +674,7 @@ export function AdminPresentationPanel({
 
                                 return (
                                     <div
-                                        className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                        className={settingsFormGroupClassName}
                                         key={key}
                                     >
                                         <div>
@@ -823,20 +705,6 @@ export function AdminPresentationPanel({
                                         <InputError
                                             message={infoErrors.markdown}
                                         />
-                                        <div className="flex justify-end">
-                                            <Button
-                                                disabled={
-                                                    savingInfoPage === key
-                                                }
-                                                onClick={() =>
-                                                    saveInfoPage(key)
-                                                }
-                                                type="button"
-                                            >
-                                                <Save className="size-4" />
-                                                Save {page.title}
-                                            </Button>
-                                        </div>
                                     </div>
                                 );
                             })}
@@ -845,7 +713,7 @@ export function AdminPresentationPanel({
                 ) : null}
 
                 {activeSection === 'source' ? (
-                    <section className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                    <section className="grid gap-4">
                         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
@@ -872,7 +740,7 @@ export function AdminPresentationPanel({
                         </div>
 
                         <div className="grid gap-4">
-                            <div className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
+                            <div className={settingsFormGroupClassName}>
                                 <div>
                                     <p className="text-sm font-medium text-slate-950 dark:text-white">
                                         Origin
@@ -921,7 +789,7 @@ export function AdminPresentationPanel({
                             {presentationDraft.sourceLinks.custom.map(
                                 (link, index) => (
                                     <div
-                                        className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5"
+                                        className={settingsFormGroupClassName}
                                         key={index}
                                     >
                                         <div className="flex items-start justify-between gap-3">
@@ -989,150 +857,31 @@ export function AdminPresentationPanel({
                     </section>
                 ) : null}
             </div>
-        </div>
+        </SettingsNestedWorkspace>
     );
 }
 
-const paletteFields: Array<{
-    field: PaletteField;
-    label: string;
-    purpose: string;
-}> = [
-    {
-        field: 'headingText',
-        label: 'Heading text',
-        purpose: 'Main public headings and brand text.',
-    },
-    {
-        field: 'bodyText',
-        label: 'Body text',
-        purpose: 'Welcome body copy and information page paragraphs.',
-    },
-    {
-        field: 'mutedText',
-        label: 'Muted text',
-        purpose: 'Secondary public text when a quieter tone is needed.',
-    },
-    {
-        field: 'accentText',
-        label: 'Accent',
-        purpose:
-            'Primary public accent for buttons, icons, active links and highlighted labels.',
-    },
-    {
-        field: 'controlText',
-        label: 'Control text',
-        purpose: 'Login, register, footer and small public control text.',
-    },
-    {
-        field: 'controlBorder',
-        label: 'Control border',
-        purpose: 'Borders around public controls and footer links.',
-    },
-];
-
-function PaletteEditor({
-    errors,
-    mode,
-    onChange,
-    palette,
-    title,
-}: {
-    errors: Record<string, string>;
-    mode: ThemeMode;
-    onChange: (mode: ThemeMode, field: PaletteField, value: string) => void;
-    palette: PublicPaletteModeSettings;
-    title: string;
-}) {
-    return (
-        <div className="grid gap-4 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
-            <div>
-                <p className="text-sm font-medium text-slate-950 dark:text-white">
-                    {title}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Used whenever public pages resolve to {mode} mode.
-                </p>
-            </div>
-            <div className="grid gap-4">
-                {paletteFields.map((field) => (
-                    <div className="grid gap-1" key={field.field}>
-                        <ColorField
-                            error={
-                                errors[`publicPalette.${mode}.${field.field}`]
-                            }
-                            label={field.label}
-                            onChange={(value) =>
-                                onChange(mode, field.field, value)
-                            }
-                            value={palette[field.field]}
-                        />
-                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                            {field.purpose}
-                        </p>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function PresentationSectionSwitcher({
+function PresentationSectionNavigation({
     activeSection,
-    onChange,
+    onSelectSection,
 }: {
     activeSection: PresentationSection;
-    onChange: (section: PresentationSection) => void;
+    onSelectSection: (section: PresentationSection) => void;
 }) {
     return (
-        <div
-            aria-label="Presentation settings sections"
-            className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
-            role="tablist"
-        >
-            {presentationSections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.key;
-
-                return (
-                    <button
-                        aria-selected={isActive}
-                        className={`flex min-h-20 items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none ${
-                            isActive
-                                ? 'border-[var(--settings-accent)] shadow-sm'
-                                : 'border-slate-200 text-slate-600 hover:border-[var(--settings-accent)] hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white'
-                        }`}
-                        key={section.key}
-                        onClick={() => onChange(section.key)}
-                        role="tab"
-                        style={
-                            isActive
-                                ? {
-                                      background:
-                                          'var(--settings-accent, #2dd4bf)',
-                                      color: 'var(--settings-accent-foreground, #020617)',
-                                  }
-                                : undefined
-                        }
-                        type="button"
-                    >
-                        <Icon className="mt-0.5 size-4 shrink-0" />
-                        <span className="min-w-0">
-                            <span className="block">{section.label}</span>
-                            <span
-                                className={`mt-1 block text-xs leading-5 ${
-                                    isActive
-                                        ? 'opacity-80'
-                                        : 'text-slate-500 dark:text-slate-400'
-                                }`}
-                            >
-                                {section.description}
-                            </span>
-                        </span>
-                    </button>
-                );
-            })}
-        </div>
+        <>
+            {presentationSections.map((section) => (
+                <SettingsSectionButton
+                    active={activeSection === section.key}
+                    description={section.description}
+                    icon={section.icon}
+                    id={section.key}
+                    key={section.key}
+                    label={section.label}
+                    onSelect={onSelectSection}
+                />
+            ))}
+        </>
     );
 }
 
@@ -1156,18 +905,32 @@ function BackgroundInput({
     value: string;
 }) {
     const uploadId = `${fieldId}-upload`;
+    const { auth } = usePage<{ auth: Auth }>().props;
+    const canViewPath = auth.canViewMediaPaths;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
 
     return (
         <div className="grid gap-2">
-            <TextInput
-                error={error}
-                id={fieldId}
-                label={label}
-                onChange={onChange}
-                placeholder={placeholder}
-                value={value}
-            />
+            {canViewPath ? (
+                <TextInput
+                    error={error}
+                    id={fieldId}
+                    label={label}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    value={value}
+                />
+            ) : value ? (
+                <div className="grid gap-1">
+                    <Label htmlFor={fieldId}>{label}</Label>
+                    <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 dark:border-white/10 dark:bg-slate-950 dark:text-slate-400">
+                        Path hidden by role permissions.
+                    </p>
+                    <InputError message={error} />
+                </div>
+            ) : (
+                <InputError message={error} />
+            )}
             <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" type="button" variant="secondary">
                     <label htmlFor={uploadId}>
@@ -1223,186 +986,6 @@ function BackgroundInput({
             ) : null}
         </div>
     );
-}
-
-function CursorImageInput({
-    cursor,
-    description,
-    errorPrefix,
-    errors,
-    label,
-    onChange,
-    onUpload,
-    uploading,
-}: {
-    cursor: CursorImageSettings;
-    description: string;
-    errorPrefix: string;
-    errors: Record<string, string>;
-    label: string;
-    onChange: (
-        field: keyof CursorImageSettings,
-        value: number | string,
-    ) => void;
-    onUpload: (file: File) => void;
-    uploading: boolean;
-}) {
-    const inputId = label.toLowerCase().replaceAll(' ', '-');
-
-    return (
-        <div className="grid gap-3 rounded-lg bg-slate-50 p-3 dark:bg-white/5">
-            <div>
-                <p className="text-sm font-medium text-slate-950 dark:text-white">
-                    {label}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {description}
-                </p>
-            </div>
-            <BackgroundInput
-                error={errors[`${errorPrefix}.image`]}
-                fieldId={`${inputId}-image`}
-                label="Image"
-                onChange={(value) => onChange('image', value)}
-                onUpload={onUpload}
-                placeholder="/images/cursors/example.svg"
-                uploading={uploading}
-                value={cursor.image ?? ''}
-            />
-            <div className="grid gap-3 md:grid-cols-3">
-                <TextInput
-                    error={errors[`${errorPrefix}.hotspotX`]}
-                    label="Hotspot X"
-                    onChange={(value) =>
-                        onChange('hotspotX', Number.parseInt(value, 10) || 0)
-                    }
-                    value={(cursor.hotspotX ?? 0).toString()}
-                />
-                <TextInput
-                    error={errors[`${errorPrefix}.hotspotY`]}
-                    label="Hotspot Y"
-                    onChange={(value) =>
-                        onChange('hotspotY', Number.parseInt(value, 10) || 0)
-                    }
-                    value={(cursor.hotspotY ?? 0).toString()}
-                />
-                <TextInput
-                    error={errors[`${errorPrefix}.size`]}
-                    label="Image size"
-                    onChange={(value) =>
-                        onChange('size', Number.parseInt(value, 10) || 16)
-                    }
-                    value={(cursor.size ?? 32).toString()}
-                />
-                <TextInput
-                    error={errors[`${errorPrefix}.fallback`]}
-                    label="Fallback"
-                    onChange={(value) => onChange('fallback', value)}
-                    value={cursor.fallback ?? ''}
-                />
-            </div>
-            <CursorPreview cursor={cursor} label={label} />
-        </div>
-    );
-}
-
-function CursorPreview({
-    cursor,
-    label,
-}: {
-    cursor: CursorImageSettings;
-    label: string;
-}) {
-    const image = cursor.image ?? '';
-    const size = clampCursorSize(cursor.size);
-    const hotspotX = clampCursorPoint(cursor.hotspotX, size);
-    const hotspotY = clampCursorPoint(cursor.hotspotY, size);
-    const markerX = 112;
-    const markerY = 76;
-
-    return (
-        <div className="grid gap-2">
-            <div>
-                <p className="text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
-                    Preview
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    The tiny pointer tip marks the real click point. Adjust size
-                    and hotspot until the image sits naturally behind it.
-                </p>
-            </div>
-            <div className="relative h-44 overflow-hidden rounded-xl border border-slate-200 bg-[radial-gradient(circle_at_center,rgba(14,116,144,0.12),rgba(248,250,252,0.94))] dark:border-white/10 dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.12),rgba(2,6,23,0.92))]">
-                <div
-                    className="absolute h-px w-full bg-cyan-700/20 dark:bg-teal-200/15"
-                    style={{ top: markerY }}
-                />
-                <div
-                    className="absolute h-full w-px bg-cyan-700/20 dark:bg-teal-200/15"
-                    style={{ left: markerX }}
-                />
-                <div
-                    className="absolute rounded-full border border-cyan-700/40 bg-white/90 px-2 py-1 text-[0.65rem] font-medium text-cyan-800 shadow-sm dark:border-teal-200/35 dark:bg-slate-950/90 dark:text-teal-100"
-                    style={{
-                        left: markerX + 12,
-                        top: markerY + 10,
-                    }}
-                >
-                    click point
-                </div>
-                <div
-                    aria-hidden="true"
-                    className="absolute z-20"
-                    style={{
-                        height: size,
-                        left: markerX - hotspotX,
-                        top: markerY - hotspotY,
-                        width: size,
-                    }}
-                >
-                    {image ? (
-                        <img
-                            alt=""
-                            className="h-full w-full object-contain"
-                            draggable={false}
-                            src={image}
-                        />
-                    ) : (
-                        <div className="grid h-full w-full place-items-center rounded-lg border border-dashed border-slate-300 text-[0.65rem] text-slate-500 dark:border-white/15 dark:text-slate-400">
-                            No image
-                        </div>
-                    )}
-                </div>
-                <div
-                    aria-label={`${label} click point`}
-                    className="absolute z-30"
-                    style={{
-                        left: markerX,
-                        top: markerY,
-                    }}
-                >
-                    <div className="h-0 w-0 border-t-[14px] border-r-[8px] border-t-slate-950 border-r-transparent drop-shadow-[0_1px_0_rgba(255,255,255,0.9)] dark:border-t-white dark:drop-shadow-[0_1px_0_rgba(0,0,0,0.85)]" />
-                    <div className="absolute top-0 left-0 h-1.5 w-1.5 -translate-x-0.5 -translate-y-0.5 rounded-full bg-cyan-500 ring-2 ring-white dark:bg-teal-300 dark:ring-slate-950" />
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function clampCursorSize(value: number | null | undefined): number {
-    const size =
-        typeof value === 'number' && Number.isFinite(value) ? value : 32;
-
-    return Math.min(128, Math.max(16, Math.round(size)));
-}
-
-function clampCursorPoint(
-    value: number | null | undefined,
-    size: number,
-): number {
-    const point =
-        typeof value === 'number' && Number.isFinite(value) ? value : 0;
-
-    return Math.min(size, Math.max(0, Math.round(point)));
 }
 
 function TextInput({

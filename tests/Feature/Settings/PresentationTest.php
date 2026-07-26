@@ -131,6 +131,34 @@ test('normal users can not update public presentation settings', function () {
     expect(PlatformPresentationSetting::query()->count())->toBe(0);
 });
 
+test('settings page shares platform color palette with normal users', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $user = User::factory()->create();
+
+    PlatformPresentationSetting::updateCurrent([
+        'settingsPalette' => [
+            'dark' => [
+                'accent' => '#ff4fd8',
+                'sidebarBackground' => '#101820',
+            ],
+            'light' => [
+                'accent' => '#0f766e',
+            ],
+        ],
+    ], $admin);
+
+    $this->actingAs($user)
+        ->get(route('settings.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/index')
+            ->where('publicPresentation.settingsPalette.dark.accent', '#ff4fd8')
+            ->where('publicPresentation.settingsPalette.dark.sidebarBackground', '#101820')
+        );
+});
+
 test('admins can upload public presentation background images', function () {
     Storage::fake('public');
 

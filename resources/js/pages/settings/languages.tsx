@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type Language = {
@@ -54,6 +55,14 @@ export default function LanguageAdministration({
         name: '',
         native_name: '',
     });
+    const hasChanges = useDirtyState(
+        { isEnabled, name, nativeName },
+        {
+            isEnabled: selected?.isEnabled ?? true,
+            name: selected?.name ?? '',
+            nativeName: selected?.nativeName ?? '',
+        },
+    );
 
     useEffect(() => {
         setName(selected?.name ?? '');
@@ -62,7 +71,7 @@ export default function LanguageAdministration({
     }, [selected]);
 
     const save = () => {
-        if (!selected || selected.isDefault) {
+        if (!selected || selected.isDefault || !hasChanges) {
             return;
         }
 
@@ -321,7 +330,11 @@ export default function LanguageAdministration({
                                 </label>
 
                                 <div className="flex flex-wrap gap-2">
-                                    <Button onClick={save} type="button">
+                                    <Button
+                                        disabled={!hasChanges}
+                                        onClick={save}
+                                        type="button"
+                                    >
                                         <Save className="size-4" />
                                         {t(
                                             'settings.administration.languages.save',

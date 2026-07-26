@@ -45,7 +45,7 @@ export function SettingsOverview({
             <div className="grid gap-5">
                 {sections.map((section) => (
                     <section key={section.key}>
-                        <h2 className="mb-3 text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                        <h2 className="mb-3 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                             {section.label}
                         </h2>
                         <div className="grid gap-3 xl:grid-cols-2">
@@ -88,7 +88,7 @@ export function SettingsRouteGroupPanel({
                 <div className="grid gap-3 xl:grid-cols-2">
                     {visibleChildren.map((child) => (
                         <button
-                            className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[var(--settings-accent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5 dark:hover:border-[var(--settings-accent)] dark:hover:bg-white/10"
+                            className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 text-left transition hover:border-[var(--settings-accent)]"
                             key={child.href}
                             onClick={() => router.visit(child.href)}
                             type="button"
@@ -101,7 +101,7 @@ export function SettingsRouteGroupPanel({
                 </div>
 
                 {visibleChildren.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
                         {t(
                             'settings.no_options_available',
                             'No settings are available here with the current permissions.',
@@ -120,13 +120,13 @@ export function SettingsPlaceholderPanel({
     const t = usePlatformTranslation();
 
     return (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-white/10 dark:bg-white/6">
+        <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-5">
             <SettingsPanelHeader
                 eyebrow={content.title}
                 icon={Database}
                 title={content.title}
             />
-            <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <p className="mt-5 text-sm leading-6 text-[var(--settings-muted-text)]">
                 {content.body}
             </p>
             {panel === 'appearance' ? (
@@ -134,7 +134,7 @@ export function SettingsPlaceholderPanel({
                     <AppearanceTabs />
                 </div>
             ) : (
-                <div className="mt-5 rounded-md border border-dashed border-slate-300 p-4 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                <div className="mt-5 rounded-md border border-dashed border-[var(--settings-border-color)] p-4 text-sm leading-6 text-[var(--settings-muted-text)]">
                     {t(
                         'settings.scaffold',
                         'This is a scaffolded settings panel. The next step can connect this area to real forms and policies.',
@@ -161,7 +161,7 @@ function SettingsOverviewCard({
     );
 
     return (
-        <article className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100 dark:border-white/8 dark:bg-white/5 dark:hover:bg-white/10">
+        <article className="grid gap-3 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 transition hover:border-[var(--settings-accent)]">
             <button
                 className="flex min-w-0 items-center gap-3 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                 onClick={() => onOpen(item)}
@@ -174,7 +174,7 @@ function SettingsOverviewCard({
                     <span className="block text-sm font-semibold text-slate-950 dark:text-white">
                         {settingsItemLabel(item, t)}
                     </span>
-                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
                         {settingsItemDescription(item, t)}
                     </span>
                 </span>

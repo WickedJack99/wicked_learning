@@ -9,7 +9,10 @@ test('appearance page is displayed', function () {
 
     $this->actingAs($user)
         ->get(route('appearance.edit'))
-        ->assertRedirect(route('settings.personal.edit', ['section' => 'appearance']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'appearance',
+        ]));
 });
 
 test('appearance preference can be stored', function () {

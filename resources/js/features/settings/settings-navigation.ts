@@ -2,10 +2,13 @@ import {
     Bot,
     Database,
     Info,
+    Languages,
     NotebookPen,
     Map as MapIcon,
+    MousePointer2,
     Palette,
     Shield,
+    Sparkles,
     UserRound,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -15,9 +18,12 @@ export type SettingsPanelKey =
     | 'admin-access'
     | 'admin-ai-integrations'
     | 'admin-assets-world-objects'
+    | 'admin-color-palettes'
     | 'admin-learning-support'
     | 'admin-presentation'
     | 'admin-presentation-localization'
+    | 'admin-public-pages'
+    | 'admin-translations'
     | 'admin-users'
     | 'admin-world'
     | 'admin-world-builder'
@@ -112,33 +118,57 @@ export const adminSettings: SettingsListItem[] = [
         ],
     },
     {
-        key: 'admin-presentation-localization',
-        label: 'Presentation & Localization',
-        labelKey: 'settings.navigation.presentation_localization',
+        key: 'admin-public-pages',
+        label: 'Public pages',
+        labelKey: 'settings.navigation.public_pages',
         description:
-            'Public pages, authentication screens, cursors, colors and languages.',
-        descriptionKey:
-            'settings.navigation.presentation_localization.description',
-        icon: Palette,
-        panel: 'admin-presentation-localization',
-        resources: ['presentation', 'languages'],
+            'Welcome pages, authentication backgrounds, public information pages and source links.',
+        descriptionKey: 'settings.navigation.public_pages.description',
+        icon: Sparkles,
+        panel: 'admin-public-pages',
+        resources: ['presentation'],
         children: [
             {
-                label: 'Public presentation',
-                labelKey: 'settings.navigation.presentation',
-                href: '/settings?panel=admin-presentation-localization&presentation=public',
+                label: 'Public pages',
+                labelKey: 'settings.navigation.public_pages',
+                href: '/settings?panel=admin-public-pages',
                 resources: ['presentation'],
             },
+        ],
+    },
+    {
+        key: 'admin-color-palettes',
+        label: 'Color palettes',
+        labelKey: 'settings.navigation.color_palettes',
+        description:
+            'Public text colors, settings UI, journal colors and map visual palettes.',
+        descriptionKey: 'settings.navigation.color_palettes.description',
+        icon: Palette,
+        panel: 'admin-color-palettes',
+        resources: ['presentation', 'journal_settings', 'world_maps'],
+        children: [
             {
                 label: 'Color palette',
                 labelKey: 'settings.navigation.color_palette',
-                href: '/settings?panel=admin-presentation-localization&presentation=palette',
+                href: '/settings?panel=admin-color-palettes',
                 resources: ['presentation', 'journal_settings', 'world_maps'],
             },
+        ],
+    },
+    {
+        key: 'admin-translations',
+        label: 'Translations',
+        labelKey: 'settings.navigation.translations',
+        description: 'Platform languages and translation catalogs.',
+        descriptionKey: 'settings.navigation.translations.description',
+        icon: Languages,
+        panel: 'admin-translations',
+        resources: ['languages'],
+        children: [
             {
                 label: 'Languages',
                 labelKey: 'settings.navigation.languages',
-                href: '/settings?panel=admin-presentation-localization&presentation=languages',
+                href: '/settings?panel=admin-translations',
                 resources: ['languages'],
             },
         ],
@@ -148,11 +178,11 @@ export const adminSettings: SettingsListItem[] = [
         label: 'Assets & World Objects',
         labelKey: 'settings.navigation.assets_world_objects',
         description:
-            'Media, sounds, reusable tools, consumable items and future currencies.',
+            'Media, sounds, cursor images, reusable tools, consumable items and future currencies.',
         descriptionKey: 'settings.navigation.assets_world_objects.description',
         icon: Database,
         panel: 'admin-assets-world-objects',
-        resources: ['assets', 'sounds'],
+        resources: ['assets', 'sounds', 'presentation'],
         children: [
             {
                 label: 'Visuals',
@@ -165,6 +195,12 @@ export const adminSettings: SettingsListItem[] = [
                 labelKey: 'settings.navigation.sounds',
                 href: '/settings?panel=admin-assets-world-objects&asset=sounds',
                 resources: ['sounds'],
+            },
+            {
+                label: 'Cursor images',
+                labelKey: 'settings.navigation.cursor_images',
+                href: '/settings?panel=admin-assets-world-objects&asset=cursors',
+                resources: ['presentation'],
             },
             {
                 label: 'Tools',
@@ -308,9 +344,12 @@ export const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-access',
     'admin-ai-integrations',
     'admin-assets-world-objects',
+    'admin-color-palettes',
     'admin-learning-support',
     'admin-presentation',
     'admin-presentation-localization',
+    'admin-public-pages',
+    'admin-translations',
     'admin-users',
     'admin-world',
     'admin-world-builder',
@@ -346,11 +385,6 @@ export function settingsSections(
             key: 'personal',
             label: t('settings.sections.personal', 'Personal'),
             items: personalSettings,
-        },
-        {
-            key: 'information',
-            label: t('settings.sections.information', 'Information'),
-            items: informationSettings,
         },
         ...(canAccessAdministration
             ? [

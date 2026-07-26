@@ -42,6 +42,27 @@ export type PublicPaletteOpacityField = `${PublicPaletteField}Opacity`;
 export type PublicPaletteModeSettings = Record<PublicPaletteField, string> &
     Partial<Record<PublicPaletteOpacityField, number | string | null>>;
 
+export type SettingsPaletteField =
+    | 'accent'
+    | 'accentForeground'
+    | 'activeBackground'
+    | 'appearanceSwitchActiveBackground'
+    | 'appearanceSwitchActiveText'
+    | 'appearanceSwitchBackground'
+    | 'appearanceSwitchInactiveText'
+    | 'borderColor'
+    | 'contentBackground'
+    | 'mutedText'
+    | 'nestedSidebarBackground'
+    | 'panelBackground'
+    | 'scrollbarThumb'
+    | 'sidebarBackground';
+
+export type SettingsPaletteOpacityField = `${SettingsPaletteField}Opacity`;
+
+export type SettingsPaletteModeSettings = Record<SettingsPaletteField, string> &
+    Partial<Record<SettingsPaletteOpacityField, number | string | null>>;
+
 export type SourceLinkSettings = {
     label: string;
     url: string;
@@ -78,6 +99,10 @@ export type PublicPresentationSettings = {
     publicPalette: {
         dark: PublicPaletteModeSettings;
         light: PublicPaletteModeSettings;
+    };
+    settingsPalette?: {
+        dark: SettingsPaletteModeSettings;
+        light: SettingsPaletteModeSettings;
     };
     sourceLinks: {
         custom: SourceLinkSettings[];
@@ -327,6 +352,75 @@ export function getPublicPresentationStyle(
     } as CSSProperties;
 }
 
+export function getSettingsPalette(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): SettingsPaletteModeSettings {
+    const fallback = defaultSettingsPalette[mode];
+
+    return {
+        ...fallback,
+        ...(presentation?.settingsPalette?.[mode] ?? {}),
+    };
+}
+
+export function getSettingsPresentationStyle(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): CSSProperties {
+    const palette = getSettingsPalette(presentation, mode);
+
+    return {
+        '--settings-accent': settingsPaletteColor(palette, 'accent'),
+        '--settings-accent-foreground': settingsPaletteColor(
+            palette,
+            'accentForeground',
+        ),
+        '--settings-active-background': settingsPaletteColor(
+            palette,
+            'activeBackground',
+        ),
+        '--settings-appearance-switch-active-background': settingsPaletteColor(
+            palette,
+            'appearanceSwitchActiveBackground',
+        ),
+        '--settings-appearance-switch-active-text': settingsPaletteColor(
+            palette,
+            'appearanceSwitchActiveText',
+        ),
+        '--settings-appearance-switch-background': settingsPaletteColor(
+            palette,
+            'appearanceSwitchBackground',
+        ),
+        '--settings-appearance-switch-inactive-text': settingsPaletteColor(
+            palette,
+            'appearanceSwitchInactiveText',
+        ),
+        '--settings-border-color': settingsPaletteColor(palette, 'borderColor'),
+        '--settings-content-background': settingsPaletteColor(
+            palette,
+            'contentBackground',
+        ),
+        '--settings-muted-text': settingsPaletteColor(palette, 'mutedText'),
+        '--settings-nested-sidebar-background': settingsPaletteColor(
+            palette,
+            'nestedSidebarBackground',
+        ),
+        '--settings-panel-background': settingsPaletteColor(
+            palette,
+            'panelBackground',
+        ),
+        '--settings-scrollbar-thumb': settingsPaletteColor(
+            palette,
+            'scrollbarThumb',
+        ),
+        '--settings-sidebar-background': settingsPaletteColor(
+            palette,
+            'sidebarBackground',
+        ),
+    } as CSSProperties;
+}
+
 export const defaultPublicPalette: Record<
     ThemeMode,
     PublicPaletteModeSettings
@@ -365,9 +459,85 @@ export const defaultPublicPalette: Record<
     },
 };
 
+export const defaultSettingsPalette: Record<
+    ThemeMode,
+    SettingsPaletteModeSettings
+> = {
+    dark: {
+        accent: '#2dd4bf',
+        accentOpacity: 100,
+        accentForeground: '#042f2e',
+        accentForegroundOpacity: 100,
+        activeBackground: '#2dd4bf',
+        activeBackgroundOpacity: 10,
+        appearanceSwitchBackground: '#020617',
+        appearanceSwitchBackgroundOpacity: 55,
+        appearanceSwitchActiveBackground: '#111820',
+        appearanceSwitchActiveBackgroundOpacity: 100,
+        appearanceSwitchActiveText: '#f8fafc',
+        appearanceSwitchActiveTextOpacity: 100,
+        appearanceSwitchInactiveText: '#94a3b8',
+        appearanceSwitchInactiveTextOpacity: 100,
+        borderColor: '#ffffff',
+        borderColorOpacity: 10,
+        contentBackground: '#0b1117',
+        contentBackgroundOpacity: 100,
+        mutedText: '#94a3b8',
+        mutedTextOpacity: 100,
+        nestedSidebarBackground: '#050816',
+        nestedSidebarBackgroundOpacity: 96,
+        panelBackground: '#111820',
+        panelBackgroundOpacity: 100,
+        scrollbarThumb: '#94a3b8',
+        scrollbarThumbOpacity: 54,
+        sidebarBackground: '#111820',
+        sidebarBackgroundOpacity: 95,
+    },
+    light: {
+        accent: '#0f766e',
+        accentOpacity: 100,
+        accentForeground: '#f8fafc',
+        accentForegroundOpacity: 100,
+        activeBackground: '#0f766e',
+        activeBackgroundOpacity: 10,
+        appearanceSwitchBackground: '#e2e8f0',
+        appearanceSwitchBackgroundOpacity: 80,
+        appearanceSwitchActiveBackground: '#ffffff',
+        appearanceSwitchActiveBackgroundOpacity: 100,
+        appearanceSwitchActiveText: '#0f172a',
+        appearanceSwitchActiveTextOpacity: 100,
+        appearanceSwitchInactiveText: '#64748b',
+        appearanceSwitchInactiveTextOpacity: 100,
+        borderColor: '#e2e8f0',
+        borderColorOpacity: 100,
+        contentBackground: '#f1f5f9',
+        contentBackgroundOpacity: 100,
+        mutedText: '#64748b',
+        mutedTextOpacity: 100,
+        nestedSidebarBackground: '#f8fafc',
+        nestedSidebarBackgroundOpacity: 96,
+        panelBackground: '#ffffff',
+        panelBackgroundOpacity: 100,
+        scrollbarThumb: '#64748b',
+        scrollbarThumbOpacity: 54,
+        sidebarBackground: '#ffffff',
+        sidebarBackgroundOpacity: 90,
+    },
+};
+
 export function publicPaletteColor(
     palette: PublicPaletteModeSettings,
     field: PublicPaletteField,
+): string {
+    const color = palette[field];
+    const opacity = palette[`${field}Opacity`];
+
+    return applyOpacity(color, opacity);
+}
+
+export function settingsPaletteColor(
+    palette: SettingsPaletteModeSettings,
+    field: SettingsPaletteField,
 ): string {
     const color = palette[field];
     const opacity = palette[`${field}Opacity`];

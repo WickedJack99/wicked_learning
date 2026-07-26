@@ -1,4 +1,3 @@
-import { Head } from '@inertiajs/react';
 import {
     Bell,
     Brush,
@@ -11,10 +10,10 @@ import {
 import { useEffect, useState } from 'react';
 import DeleteUser from '@/components/delete-user';
 import {
-    SettingsConfigurationShell,
-    SettingsContentPane,
+    SettingsNestedWorkspace,
     SettingsSectionNavigation,
-    SettingsSidebar,
+    SettingsSaveButton,
+    type SettingsSaveAction,
     type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { AppearanceSettingsPanel } from '@/features/settings/appearance-settings-panel';
@@ -129,73 +128,65 @@ export type PersonalSettingsProps = {
     status?: string;
 } & SecuritySettingsProps;
 
-export default function PersonalSettings({
-    initialSection,
-    ...props
-}: PersonalSettingsProps) {
-    const t = usePlatformTranslation();
-    const [section, setSection] = useState<PersonalSection>(initialSection);
-
-    useEffect(() => setSection(initialSection), [initialSection]);
-
-    return (
-        <>
-            <Head title={t('settings.personal.title', 'Personal settings')} />
-            <SettingsConfigurationShell
-                eyebrow={t('settings.personal.eyebrow', 'Personal')}
-                sidebar={
-                    <SettingsSidebar>
-                        <PersonalSettingsSectionNavigation
-                            activeSection={section}
-                            onChange={setSection}
-                        />
-                    </SettingsSidebar>
-                }
-                title={t('settings.personal.title', 'Personal settings')}
-            >
-                <SettingsContentPane>
-                    <PersonalSettingsSectionContent
-                        {...props}
-                        activeSection={section}
-                    />
-                </SettingsContentPane>
-            </SettingsConfigurationShell>
-        </>
-    );
-}
-
 export function PersonalSettingsContent({
+    activeSection,
     availableLanguages,
     initialSection,
     locale,
     mustVerifyEmail,
+    onSelectSection,
     soundPreferences,
     status,
     ...security
-}: PersonalSettingsProps) {
+}: PersonalSettingsProps & {
+    activeSection?: PersonalSection;
+    onSelectSection?: (section: PersonalSection) => void;
+}) {
+    const t = usePlatformTranslation();
     const [section, setSection] = useState<PersonalSection>(initialSection);
+    const [saveAction, setSaveAction] = useState<SettingsSaveAction | null>(
+        null,
+    );
+    const resolvedSection = activeSection ?? section;
 
     useEffect(() => setSection(initialSection), [initialSection]);
+    useEffect(() => setSaveAction(null), [resolvedSection]);
+
+    const selectSection = (nextSection: PersonalSection) => {
+        if (!activeSection) {
+            setSection(nextSection);
+        }
+
+        onSelectSection?.(nextSection);
+    };
 
     return (
-        <div className="grid h-full min-h-0 gap-4 p-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-            <PersonalSettingsSectionNavigation
-                activeSection={section}
-                onChange={setSection}
-            />
-
-            <SettingsContentPane>
-                <PersonalSettingsSectionContent
-                    availableLanguages={availableLanguages}
-                    locale={locale}
-                    mustVerifyEmail={mustVerifyEmail}
-                    soundPreferences={soundPreferences}
-                    status={status}
-                    activeSection={section}
-                    {...security}
+        <SettingsNestedWorkspace
+            action={<SettingsSaveButton action={saveAction} />}
+            description={t(
+                'settings.personal.description',
+                'Profile, appearance, language, notifications and account safety.',
+            )}
+            icon={UserRound}
+            sidebar={
+                <PersonalSettingsSectionNavigation
+                    activeSection={resolvedSection}
+                    onChange={selectSection}
                 />
-            </SettingsContentPane>
-        </div>
+            }
+            title={t('settings.personal.title_short', 'Personal')}
+        >
+            <PersonalSettingsSectionContent
+                availableLanguages={availableLanguages}
+                locale={locale}
+                mustVerifyEmail={mustVerifyEmail}
+                onSaveActionChange={setSaveAction}
+                soundPreferences={soundPreferences}
+                status={status}
+                activeSection={resolvedSection}
+                {...security}
+            />
+        </SettingsNestedWorkspace>
     );
 }
 
@@ -226,17 +217,22 @@ function PersonalSettingsSectionContent({
     availableLanguages,
     locale,
     mustVerifyEmail,
+    onSaveActionChange,
     soundPreferences,
     status,
     ...security
 }: Omit<PersonalSettingsProps, 'initialSection'> & {
     activeSection: PersonalSection;
+    onSaveActionChange: (action: SettingsSaveAction | null) => void;
 }) {
     return (
         <>
             {activeSection === 'profile' ? (
                 <ProfileSettingsPanel
+                    formId="personal-profile-form"
+                    hideSaveButton
                     mustVerifyEmail={mustVerifyEmail}
+                    onSaveActionChange={onSaveActionChange}
                     status={status}
                 />
             ) : null}
@@ -246,15 +242,26 @@ function PersonalSettingsSectionContent({
             {activeSection === 'language' ? (
                 <LanguageSettingsPanel
                     availableLanguages={availableLanguages}
+                    hideSaveButton
                     locale={locale}
+                    onSaveActionChange={onSaveActionChange}
                 />
             ) : null}
             {activeSection === 'notifications' ? <NotificationsPanel /> : null}
             {activeSection === 'sound' ? (
-                <SoundSettingsPanel preferences={soundPreferences} />
+                <SoundSettingsPanel
+                    hideSaveButton
+                    onSaveActionChange={onSaveActionChange}
+                    preferences={soundPreferences}
+                />
             ) : null}
             {activeSection === 'security' ? (
-                <SecuritySettingsPanel {...security} />
+                <SecuritySettingsPanel
+                    {...security}
+                    formId="personal-security-form"
+                    hideSaveButton
+                    onSaveActionChange={onSaveActionChange}
+                />
             ) : null}
             {activeSection === 'delete-account' ? <DeleteAccountPanel /> : null}
         </>
@@ -263,7 +270,7 @@ function PersonalSettingsSectionContent({
 
 function DeleteAccountPanel() {
     return (
-        <section className="rounded-2xl border border-red-200 bg-red-50/70 p-5 dark:border-red-400/20 dark:bg-red-950/15">
+        <section className="border-t border-red-400/30 pt-5">
             <DeleteUser />
         </section>
     );
@@ -273,7 +280,7 @@ function NotificationsPanel() {
     const t = usePlatformTranslation();
 
     return (
-        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-4">
             <div>
                 <p
                     className="text-xs font-medium tracking-[0.18em] uppercase"

@@ -6,7 +6,7 @@ export function AppearanceSettingsPanel() {
     const t = usePlatformTranslation();
 
     return (
-        <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-5">
             <SettingsPanelHeader
                 description={t(
                     'settings.personal.appearance.description',

@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Save } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { SettingsSaveAction } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -10,6 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type AvailableLanguage = {
@@ -20,16 +22,25 @@ type AvailableLanguage = {
 
 export function LanguageSettingsPanel({
     availableLanguages,
+    hideSaveButton = false,
     locale,
+    onSaveActionChange,
 }: {
     availableLanguages: AvailableLanguage[];
+    hideSaveButton?: boolean;
     locale: string;
+    onSaveActionChange?: (action: SettingsSaveAction | null) => void;
 }) {
     const t = usePlatformTranslation();
     const [selectedLocale, setSelectedLocale] = useState(locale);
     const [saving, setSaving] = useState(false);
+    const hasChanges = useDirtyState(selectedLocale, locale);
 
-    const save = () => {
+    const save = useCallback(() => {
+        if (!hasChanges) {
+            return;
+        }
+
         setSaving(true);
         router.patch(
             '/settings/language',
@@ -39,10 +50,26 @@ export function LanguageSettingsPanel({
                 preserveScroll: true,
             },
         );
-    };
+    }, [hasChanges, selectedLocale]);
+
+    useEffect(() => {
+        if (!onSaveActionChange) {
+            return;
+        }
+
+        onSaveActionChange({
+            disabled: saving || !hasChanges,
+            label: t('common.save', 'Save'),
+            onClick: save,
+            saving,
+            savingLabel: t('common.saving', 'Saving...'),
+        });
+
+        return () => onSaveActionChange(null);
+    }, [hasChanges, onSaveActionChange, save, saving, t]);
 
     return (
-        <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-5">
             <div>
                 <p
                     className="text-xs font-medium tracking-[0.18em] uppercase"
@@ -89,10 +116,16 @@ export function LanguageSettingsPanel({
                     </SelectContent>
                 </Select>
             </div>
-            <Button disabled={saving} onClick={save} type="button">
-                <Save className="size-4" />
-                {t('settings.personal.language.save', 'Save language')}
-            </Button>
+            {!hideSaveButton ? (
+                <Button
+                    disabled={saving || !hasChanges}
+                    onClick={save}
+                    type="button"
+                >
+                    <Save className="size-4" />
+                    {t('settings.personal.language.save', 'Save language')}
+                </Button>
+            ) : null}
         </section>
     );
 }

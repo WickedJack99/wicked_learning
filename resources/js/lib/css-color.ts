@@ -22,16 +22,20 @@ export function parseCssColor(value: string): ParsedCssColor {
         return { hex: '#000000', opacity: '100' };
     }
 
-    const parts = rgbaMatch[1].split(',').map((part) => part.trim());
-    const red = Number.parseInt(parts[0] ?? '', 10);
-    const green = Number.parseInt(parts[1] ?? '', 10);
-    const blue = Number.parseInt(parts[2] ?? '', 10);
+    const parts = rgbaMatch[1]
+        .replace(/\s*\/\s*/, ' ')
+        .split(/[\s,]+/)
+        .filter(Boolean);
+    const red = parseRgbChannel(parts[0] ?? '');
+    const green = parseRgbChannel(parts[1] ?? '');
+    const blue = parseRgbChannel(parts[2] ?? '');
     const alpha = parts[3] === undefined ? 1 : Number.parseFloat(parts[3]);
 
     if (
-        [red, green, blue, alpha].some(
-            (valuePart) => !Number.isFinite(valuePart),
-        )
+        red === null ||
+        green === null ||
+        blue === null ||
+        !Number.isFinite(alpha)
     ) {
         return { hex: '#000000', opacity: '100' };
     }
@@ -40,6 +44,26 @@ export function parseCssColor(value: string): ParsedCssColor {
         hex: rgbToHex(red, green, blue),
         opacity: Math.round(Math.min(1, Math.max(0, alpha)) * 100).toString(),
     };
+}
+
+function parseRgbChannel(value: string): number | null {
+    if (value.endsWith('%')) {
+        const percent = Number.parseFloat(value);
+
+        if (!Number.isFinite(percent)) {
+            return null;
+        }
+
+        return Math.round((Math.min(100, Math.max(0, percent)) / 100) * 255);
+    }
+
+    const channel = Number.parseFloat(value);
+
+    if (!Number.isFinite(channel)) {
+        return null;
+    }
+
+    return Math.round(channel);
 }
 
 export function cssColorFromPicker(hexColor: string, opacity: string): string {

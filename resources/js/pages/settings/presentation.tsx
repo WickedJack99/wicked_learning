@@ -30,6 +30,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import {
@@ -54,7 +55,7 @@ import type {
 } from '@/theme/presentation';
 
 type ThemeMode = 'dark' | 'light';
-type SectionKey = 'auth' | 'colors' | 'cursors' | 'info' | 'source' | 'welcome';
+type SectionKey = 'auth' | 'info' | 'source' | 'welcome';
 type CursorKey = keyof PublicPresentationSettings['cursors'];
 type PaletteField = PublicPaletteField;
 
@@ -71,8 +72,6 @@ const sections: Array<{
     { key: 'auth', label: 'Register and Login', icon: LogIn },
     { key: 'info', label: 'Platform information pages', icon: FileText },
     { key: 'source', label: 'Source code links', icon: Github },
-    { key: 'cursors', label: 'Cursors', icon: MousePointer2 },
-    { key: 'colors', label: 'Public colors', icon: Palette },
 ];
 
 const cursorRoles: Array<{
@@ -155,8 +154,26 @@ export default function PresentationSettingsPage({
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploading, setUploading] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const baseline = useMemo<PublicPresentationSettings>(
+        () => ({
+            ...structuredClone(publicPresentation),
+            welcome: {
+                ...publicPresentation.welcome,
+                pages: getWelcomePages(publicPresentation),
+            },
+            infoPages: {
+                pages: getPlatformInformationPages(publicPresentation),
+            },
+        }),
+        [publicPresentation],
+    );
+    const hasChanges = useDirtyState(draft, baseline);
 
     const save = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         setSaving(true);
         router.patch('/settings/presentation', draft, {
             preserveScroll: true,
@@ -200,7 +217,7 @@ export default function PresentationSettingsPage({
             <Head title="Public presentation" />
             <SettingsConfigurationShell
                 action={
-                    <Button disabled={saving} onClick={save}>
+                    <Button disabled={saving || !hasChanges} onClick={save}>
                         <Save className="size-4" />
                         Save changes
                     </Button>
@@ -264,24 +281,6 @@ export default function PresentationSettingsPage({
                             <SourceLinksEditor
                                 draft={draft}
                                 errors={errors}
-                                onChange={setDraft}
-                            />
-                        ) : null}
-                        {activeSection === 'cursors' ? (
-                            <CursorEditor
-                                configMode={configMode}
-                                draft={draft}
-                                errors={errors}
-                                onChange={setDraft}
-                                onUpload={uploadImage}
-                                uploading={uploading}
-                            />
-                        ) : null}
-                        {activeSection === 'colors' ? (
-                            <PublicPaletteEditor
-                                draft={draft}
-                                errors={errors}
-                                mode={configMode}
                                 onChange={setDraft}
                             />
                         ) : null}

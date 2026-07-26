@@ -16,7 +16,6 @@ use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\ColorPaletteController;
 use App\Http\Controllers\Settings\JournalSettingsController;
 use App\Http\Controllers\Settings\LanguageController;
-use App\Http\Controllers\Settings\PersonalSettingsController;
 use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -45,8 +44,6 @@ Route::middleware(['auth'])->group(function () {
         ->name('settings.language.edit');
     Route::patch('settings/language', [LanguageController::class, 'update'])
         ->name('settings.language.update');
-    Route::get('settings/personal', [PersonalSettingsController::class, 'edit'])
-        ->name('settings.personal.edit');
     Route::patch('settings/sound-preferences', [SoundPreferenceController::class, 'update'])
         ->name('settings.sound-preferences.update');
 });

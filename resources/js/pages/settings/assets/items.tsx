@@ -17,8 +17,10 @@ import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
+import type { Auth } from '@/types';
 
 export type AdminItem = {
     description: string | null;
@@ -52,7 +54,10 @@ export default function AdminItemsPage({
     embedded?: boolean;
     items: AdminItem[];
 }) {
-    const { url } = usePage();
+    const page = usePage<{ auth: Auth }>();
+    const { auth } = page.props;
+    const { url } = page;
+    const canViewPath = auth.canViewMediaPaths;
     const selectedFromUrl = useMemo(() => selectedItemIdFromUrl(url), [url]);
     const [selectedItemId, setSelectedItemId] = useState<number | null>(
         () => selectedFromUrl ?? items[0]?.id ?? null,
@@ -112,6 +117,7 @@ export default function AdminItemsPage({
                     >
                         <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
                             <ItemFormPanel
+                                canViewPath={canViewPath}
                                 key={selectedItem?.id ?? 'new'}
                                 selectedItem={selectedItem}
                             />
@@ -131,7 +137,13 @@ export default function AdminItemsPage({
     );
 }
 
-function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
+function ItemFormPanel({
+    canViewPath,
+    selectedItem,
+}: {
+    canViewPath: boolean;
+    selectedItem: AdminItem | null;
+}) {
     const [form, setForm] = useState<ItemForm>(() =>
         selectedItem ? formFromItem(selectedItem) : emptyForm,
     );
@@ -143,10 +155,16 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
     const [uploadingField, setUploadingField] = useState<keyof ItemForm | null>(
         null,
     );
+    const baseline = selectedItem ? formFromItem(selectedItem) : emptyForm;
+    const hasChanges = useDirtyState(form, baseline);
     const updateField = (field: keyof ItemForm, value: string) =>
         setForm((current) => ({ ...current, [field]: value }));
 
     const saveItem = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         setSaving(true);
         setErrors({});
 
@@ -250,6 +268,7 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
                                 }
                                 uploading={uploadingField === 'image_dark'}
                                 value={form.image_dark}
+                                canViewPath={canViewPath}
                             />
                             <MediaField
                                 error={
@@ -265,13 +284,18 @@ function ItemFormPanel({ selectedItem }: { selectedItem: AdminItem | null }) {
                                 }
                                 uploading={uploadingField === 'image_light'}
                                 value={form.image_light}
+                                canViewPath={canViewPath}
                             />
                         </div>
                     </div>
                 </div>
 
                 <footer className="flex shrink-0 justify-end border-t border-slate-200 p-4 dark:border-white/10">
-                    <Button disabled={saving} onClick={saveItem} type="button">
+                    <Button
+                        disabled={saving || !hasChanges}
+                        onClick={saveItem}
+                        type="button"
+                    >
                         {saving ? (
                             <LoaderCircle className="size-4 animate-spin" />
                         ) : (
@@ -392,6 +416,7 @@ function TextField({
 }
 
 function MediaField({
+    canViewPath,
     error,
     label,
     onChange,
@@ -399,6 +424,7 @@ function MediaField({
     uploading,
     value,
 }: {
+    canViewPath: boolean;
     error?: string;
     label: string;
     onChange: (value: string) => void;
@@ -416,10 +442,16 @@ function MediaField({
                 </span>
                 <Label>{label}</Label>
             </div>
-            <Input
-                onChange={(event) => onChange(event.currentTarget.value)}
-                value={value}
-            />
+            {canViewPath ? (
+                <Input
+                    onChange={(event) => onChange(event.currentTarget.value)}
+                    value={value}
+                />
+            ) : value ? (
+                <p className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-400">
+                    Path hidden by role permissions.
+                </p>
+            ) : null}
             {value ? (
                 <div className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/70">
                     <img

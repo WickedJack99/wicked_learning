@@ -22,8 +22,10 @@ import { Label } from '@/components/ui/label';
 import { ToolCursorImage } from '@/features/tools/tool-cursor-overlay';
 import { toolAnimationWidthStyle } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
+import type { Auth } from '@/types';
 
 export type AdminTool = {
     animationDark: string | null;
@@ -74,7 +76,10 @@ export default function AdminToolsPage({
     embedded?: boolean;
     tools: AdminTool[];
 }) {
-    const { url } = usePage();
+    const page = usePage<{ auth: Auth }>();
+    const { auth } = page.props;
+    const { url } = page;
+    const canViewPath = auth.canViewMediaPaths;
     const querySelectedToolId = useMemo(
         () => selectedToolIdFromUrl(url),
         [url],
@@ -150,6 +155,7 @@ export default function AdminToolsPage({
                     >
                         <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
                             <ToolFormPanel
+                                canViewPath={canViewPath}
                                 key={selectedTool?.id ?? 'new'}
                                 isNew={!selectedTool}
                                 selectedTool={selectedTool}
@@ -171,9 +177,11 @@ export default function AdminToolsPage({
 }
 
 function ToolFormPanel({
+    canViewPath,
     isNew,
     selectedTool,
 }: {
+    canViewPath: boolean;
     isNew: boolean;
     selectedTool: AdminTool | null;
 }) {
@@ -189,10 +197,16 @@ function ToolFormPanel({
         {},
     );
     const { resolvedAppearance } = useAppearance();
+    const baseline = selectedTool ? formFromTool(selectedTool) : emptyForm;
+    const hasChanges = useDirtyState(form, baseline);
     const updateField = (field: keyof ToolForm, value: string) => {
         setForm((current) => ({ ...current, [field]: value }));
     };
     const saveTool = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         setSaving(true);
         setErrors({});
 
@@ -323,6 +337,7 @@ function ToolFormPanel({
                                 onUpload={uploadMedia}
                                 uploading={uploadingField === 'image_dark'}
                                 value={form.image_dark}
+                                canViewPath={canViewPath}
                             />
                             <MediaField
                                 error={
@@ -335,6 +350,7 @@ function ToolFormPanel({
                                 onUpload={uploadMedia}
                                 uploading={uploadingField === 'image_light'}
                                 value={form.image_light}
+                                canViewPath={canViewPath}
                             />
                             <MediaField
                                 error={
@@ -347,6 +363,7 @@ function ToolFormPanel({
                                 onUpload={uploadMedia}
                                 uploading={uploadingField === 'animation_dark'}
                                 value={form.animation_dark}
+                                canViewPath={canViewPath}
                             />
                             <MediaField
                                 error={
@@ -359,6 +376,7 @@ function ToolFormPanel({
                                 onUpload={uploadMedia}
                                 uploading={uploadingField === 'animation_light'}
                                 value={form.animation_light}
+                                canViewPath={canViewPath}
                             />
                         </div>
 
@@ -411,7 +429,7 @@ function ToolFormPanel({
                 </div>
 
                 <div className="shrink-0 border-t border-slate-200 p-4 dark:border-white/10">
-                    <Button disabled={saving} onClick={saveTool}>
+                    <Button disabled={saving || !hasChanges} onClick={saveTool}>
                         {saving ? (
                             <LoaderCircle className="size-4 animate-spin" />
                         ) : (
@@ -712,6 +730,7 @@ function TextField({
 }
 
 function MediaField({
+    canViewPath,
     error,
     field,
     label,
@@ -720,6 +739,7 @@ function MediaField({
     uploading,
     value,
 }: {
+    canViewPath: boolean;
     error?: string;
     field: keyof ToolForm;
     label: string;
@@ -734,14 +754,16 @@ function MediaField({
         <div className="grid gap-2">
             <Label htmlFor={field}>{label}</Label>
             <div className="flex gap-2">
-                <Input
-                    className="min-w-0"
-                    id={field}
-                    onChange={(event) =>
-                        onChange(field, event.currentTarget.value)
-                    }
-                    value={value}
-                />
+                {canViewPath ? (
+                    <Input
+                        className="min-w-0"
+                        id={field}
+                        onChange={(event) =>
+                            onChange(field, event.currentTarget.value)
+                        }
+                        value={value}
+                    />
+                ) : null}
                 <label className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-slate-200">
                     {uploading ? (
                         <LoaderCircle className="size-4 animate-spin" />
@@ -784,7 +806,9 @@ function MediaField({
                 <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
                     <Image className="size-4 shrink-0 text-[var(--settings-accent)]" />
                     <span className="truncate text-xs text-slate-500 dark:text-slate-400">
-                        {value}
+                        {canViewPath
+                            ? value
+                            : 'Path hidden by role permissions.'}
                     </span>
                 </div>
             ) : null}

@@ -1,13 +1,36 @@
+import { router } from '@inertiajs/react';
 import { Github } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+function currentPath(): string {
+    return typeof window === 'undefined' ? '/' : window.location.pathname;
+}
 
 export function SourceCodeLink() {
-    const path = typeof window === 'undefined' ? '/' : window.location.pathname;
+    const [path, setPath] = useState(currentPath);
     const isPublicSurface =
         path === '/' ||
         path === '/about' ||
         path === '/imprint' ||
         path === '/data-protection' ||
         path === '/source';
+    const isSettingsSurface = path.startsWith('/settings');
+
+    useEffect(() => {
+        const updatePath = () => setPath(currentPath());
+        const unsubscribe = router.on('navigate', updatePath);
+
+        window.addEventListener('popstate', updatePath);
+
+        return () => {
+            unsubscribe();
+            window.removeEventListener('popstate', updatePath);
+        };
+    }, []);
+
+    if (isSettingsSurface) {
+        return null;
+    }
 
     return (
         <a

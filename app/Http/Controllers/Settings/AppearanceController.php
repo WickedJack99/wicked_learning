@@ -14,7 +14,10 @@ class AppearanceController extends Controller
 {
     public function edit(): RedirectResponse
     {
-        return to_route('settings.personal.edit', ['section' => 'appearance']);
+        return to_route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'appearance',
+        ]);
     }
 
     public function update(Request $request): Response

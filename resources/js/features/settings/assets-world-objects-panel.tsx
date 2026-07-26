@@ -1,4 +1,4 @@
-import { Hammer, Image, Music, Package } from 'lucide-react';
+import { Hammer, Image, MousePointer2, Music, Package } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
     SettingsConfigurationLayout,
@@ -11,9 +11,12 @@ import AdminMediaAssets, {
 } from '@/pages/settings/assets/media';
 import AdminSoundsPage from '@/pages/settings/assets/sounds';
 import AdminToolsPage, { type AdminTool } from '@/pages/settings/assets/tools';
+import { CursorImageSettingsPanel } from '@/features/settings/cursor-image-settings-panel';
+import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { LearningSound } from '@/types';
 
 export type AssetsWorldObjectsSection =
+    | 'cursors'
     | 'items'
     | 'sounds'
     | 'tools'
@@ -30,8 +33,10 @@ type Props = {
     activeSection: AssetsWorldObjectsSection;
     assets: AssetsWorldObjectsSettings;
     canViewAssets: boolean;
+    canViewCursors: boolean;
     canViewSounds: boolean;
     onSelectSection: (section: AssetsWorldObjectsSection) => void;
+    publicPresentation: PublicPresentationSettings | null;
 };
 
 const sections = [
@@ -46,6 +51,12 @@ const sections = [
         icon: Music,
         key: 'sounds',
         label: 'Sounds',
+    },
+    {
+        description: 'Normal, action, grab, text and denied cursor images.',
+        icon: MousePointer2,
+        key: 'cursors',
+        label: 'Cursor images',
     },
     {
         description: 'Inspectable tools and map interaction helpers.',
@@ -70,12 +81,22 @@ export function AssetsWorldObjectsPanel({
     activeSection,
     assets,
     canViewAssets,
+    canViewCursors,
     canViewSounds,
     onSelectSection,
+    publicPresentation,
 }: Props) {
-    const visibleSections = sections.filter((section) =>
-        section.key === 'sounds' ? canViewSounds : canViewAssets,
-    );
+    const visibleSections = sections.filter((section) => {
+        if (section.key === 'sounds') {
+            return canViewSounds;
+        }
+
+        if (section.key === 'cursors') {
+            return canViewCursors && publicPresentation !== null;
+        }
+
+        return canViewAssets;
+    });
     const resolvedSection = visibleSections.some(
         (section) => section.key === activeSection,
     )
@@ -119,6 +140,12 @@ export function AssetsWorldObjectsPanel({
 
                 {resolvedSection === 'sounds' ? (
                     <AdminSoundsPage embedded sounds={assets.sounds} />
+                ) : null}
+
+                {resolvedSection === 'cursors' && publicPresentation ? (
+                    <CursorImageSettingsPanel
+                        presentation={publicPresentation}
+                    />
                 ) : null}
 
                 {resolvedSection === 'tools' ? (

@@ -99,6 +99,7 @@ export function AppBottomNav() {
         [url],
     );
     const isSettingsActive = useMemo(() => url.startsWith('/settings'), [url]);
+    const shouldHideOnSettings = isSettingsActive;
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
             {
@@ -170,6 +171,11 @@ export function AppBottomNav() {
         shouldAnimateActiveActivity,
         t,
     ]);
+
+    if (shouldHideOnSettings) {
+        return null;
+    }
+
     const navWidth =
         navPadding +
         items.length * navItemSize +

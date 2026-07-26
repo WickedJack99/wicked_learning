@@ -30,6 +30,7 @@ import {
     instructionFilename,
     parseAgentInstructionFile,
 } from '@/features/ai/agent-instruction-files';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
@@ -389,6 +390,12 @@ function ProviderCredentialsPanel({
             ? providerFormFromCredential(selectedCredential)
             : blankProviderForm(providerOptions[0]?.value),
     );
+    const hasChanges = useDirtyState(
+        form,
+        selectedCredential
+            ? providerFormFromCredential(selectedCredential)
+            : blankProviderForm(providerOptions[0]?.value),
+    );
 
     const selectCredential = (credential: ProviderCredential | null) => {
         setSelectedId(credential?.id ?? 'new');
@@ -400,6 +407,10 @@ function ProviderCredentialsPanel({
     };
 
     const submit = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         const url =
             selectedCredential === undefined
                 ? '/settings/ai/credentials'
@@ -624,6 +635,7 @@ function ProviderCredentialsPanel({
                         deleteDisabled={!selectedCredential}
                         onDelete={destroy}
                         onSave={submit}
+                        saveDisabled={!hasChanges}
                     />
                 </section>
             }
@@ -675,6 +687,12 @@ function AgentTemplatesPanel({
             ? templateFormFromTemplate(selectedTemplate)
             : blankTemplateForm(purposeOptions[0]?.value),
     );
+    const hasChanges = useDirtyState(
+        form,
+        selectedTemplate
+            ? templateFormFromTemplate(selectedTemplate)
+            : blankTemplateForm(purposeOptions[0]?.value),
+    );
     const instructionInputRef = useRef<HTMLInputElement>(null);
     const selectedPurpose = useMemo(
         () => purposeOptions.find((option) => option.value === form.purpose),
@@ -691,6 +709,10 @@ function AgentTemplatesPanel({
     };
 
     const submit = () => {
+        if (!hasChanges) {
+            return;
+        }
+
         const url =
             selectedTemplate === undefined
                 ? '/settings/ai/templates'
@@ -1112,6 +1134,7 @@ function AgentTemplatesPanel({
                         deleteDisabled={!selectedTemplate}
                         onDelete={destroy}
                         onSave={submit}
+                        saveDisabled={!hasChanges}
                     />
                     <AgentTemplateTestPanel template={selectedTemplate} />
                 </section>
@@ -1459,10 +1482,12 @@ function EditorActions({
     deleteDisabled,
     onDelete,
     onSave,
+    saveDisabled,
 }: {
     deleteDisabled: boolean;
     onDelete: () => void;
     onSave: () => void;
+    saveDisabled: boolean;
 }) {
     const t = usePlatformTranslation();
 
@@ -1477,7 +1502,7 @@ function EditorActions({
                 <Trash2 className="size-4" />
                 {t('common.delete', 'Delete')}
             </Button>
-            <Button type="button" onClick={onSave}>
+            <Button disabled={saveDisabled} type="button" onClick={onSave}>
                 <Save className="size-4" />
                 {t('common.save', 'Save')}
             </Button>

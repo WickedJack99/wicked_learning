@@ -1,13 +1,7 @@
 import { router } from '@inertiajs/react';
-import {
-    Bell,
-    ChevronDown,
-    HelpCircle,
-    NotebookPen,
-    Search,
-    Shield,
-} from 'lucide-react';
+import { Bell, HelpCircle, NotebookPen, Search, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { NavigationLoadingIndicator } from '@/components/navigation-loading-indicator';
 import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
@@ -16,7 +10,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { UserInfo } from '@/components/user-info';
-import { UserMenuContent } from '@/components/user-menu-content';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import {
     isActiveSettingsItem,
@@ -78,7 +71,7 @@ export function SettingsSidebarNavigation({
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
             {sections.map((section) => (
                 <section className="mb-5" key={section.key}>
-                    <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                    <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                         {section.label}
                     </h2>
                     <div className="grid gap-2">
@@ -92,15 +85,24 @@ export function SettingsSidebarNavigation({
                             return (
                                 <button
                                     className={cn(
-                                        'grid h-12 grid-cols-[2rem_minmax(0,1fr)] items-center rounded-lg px-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                                        'relative grid h-12 grid-cols-[2rem_minmax(0,1fr)] items-center overflow-hidden rounded-lg px-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                         active
-                                            ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
-                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                                            ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                            : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
                                     )}
                                     key={item.key}
                                     onClick={() => onOpenItem(item)}
                                     type="button"
                                 >
+                                    <span
+                                        aria-hidden="true"
+                                        className={cn(
+                                            'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                            active
+                                                ? 'opacity-100'
+                                                : 'opacity-0',
+                                        )}
+                                    />
                                     <Icon className="size-4" />
                                     <span className="truncate">
                                         {settingsItemLabel(item, t)}
@@ -126,7 +128,7 @@ export function SettingsTopBar({
     const t = usePlatformTranslation();
 
     return (
-        <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-[#111820]">
+        <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between">
             <SettingsBreadcrumb
                 activeItem={activeItem}
                 worldBreadcrumb={worldBreadcrumb}
@@ -137,9 +139,9 @@ export function SettingsTopBar({
                     <span className="sr-only">
                         {t('settings.search', 'Search settings')}
                     </span>
-                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--settings-muted-text)]" />
                     <Input
-                        className="h-10 rounded-lg border-slate-200 bg-slate-50 pl-9 dark:border-white/10 dark:bg-white/5"
+                        className="h-10 rounded-lg border-[var(--settings-border-color)] bg-[var(--settings-active-background)] pl-9"
                         onChange={(event) => onSearchChange(event.target.value)}
                         placeholder={t(
                             'settings.search_placeholder',
@@ -153,7 +155,7 @@ export function SettingsTopBar({
 
                 <a
                     aria-label={t('settings.help', 'Help')}
-                    className="grid size-10 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                    className="grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                     href="https://github.com/WickedJack99/wicked_learning"
                     rel="noreferrer"
                     target="_blank"
@@ -162,24 +164,12 @@ export function SettingsTopBar({
                 </a>
 
                 {currentUser ? (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button
-                                className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 text-left transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                                type="button"
-                            >
-                                <UserInfo user={currentUser} />
-                                <ChevronDown className="size-4 shrink-0 text-slate-500 dark:text-slate-400" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                        >
-                            <UserMenuContent user={currentUser} />
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-2 text-left">
+                        <UserInfo user={currentUser} />
+                    </div>
                 ) : null}
+
+                <NavigationLoadingIndicator />
             </div>
         </header>
     );
@@ -206,7 +196,7 @@ function SettingsBreadcrumb({
             {activeItem ? (
                 <button
                     className={cn(
-                        'truncate text-slate-600 transition hover:text-[var(--settings-accent)] dark:text-slate-300',
+                        'truncate text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]',
                         isWorldBuilder &&
                             'font-medium text-[var(--settings-accent)]',
                     )}
@@ -222,9 +212,9 @@ function SettingsBreadcrumb({
             ) : null}
             {isWorldBuilder && selectedMap ? (
                 <>
-                    <span className="text-slate-400">/</span>
+                    <span className="text-[var(--settings-muted-text)]">/</span>
                     <button
-                        className="truncate text-slate-600 transition hover:text-[var(--settings-accent)] dark:text-slate-300"
+                        className="truncate text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                         onClick={() =>
                             router.visit(
                                 `/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=nodes`,
@@ -238,16 +228,16 @@ function SettingsBreadcrumb({
             ) : null}
             {isWorldBuilder && selectedNode ? (
                 <>
-                    <span className="text-slate-400">/</span>
-                    <span className="truncate text-slate-600 dark:text-slate-300">
+                    <span className="text-[var(--settings-muted-text)]">/</span>
+                    <span className="truncate text-[var(--settings-muted-text)]">
                         {selectedNode.title}
                     </span>
                 </>
             ) : null}
             {isWorldBuilder && selectedMap && !selectedNode && selectedView ? (
                 <>
-                    <span className="text-slate-400">/</span>
-                    <span className="truncate text-slate-600 dark:text-slate-300">
+                    <span className="text-[var(--settings-muted-text)]">/</span>
+                    <span className="truncate text-[var(--settings-muted-text)]">
                         {selectedView === 'configure'
                             ? t(
                                   'settings.world_builder.breadcrumb.configure',
@@ -279,7 +269,7 @@ function SettingsNotificationsMenu({
             <DropdownMenuTrigger asChild>
                 <button
                     aria-label={t('settings.notifications', 'Notifications')}
-                    className="relative grid size-10 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                    className="relative grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                     type="button"
                 >
                     <Bell className="size-4" />
@@ -330,8 +320,8 @@ function SettingsNotificationsMenu({
                 </div>
 
                 {notifications.reportedOrganizations.length > 0 ? (
-                    <div className="mt-3 border-t border-slate-200 pt-3 dark:border-white/10">
-                        <p className="mb-2 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
+                    <div className="mt-3 border-t border-[var(--settings-border-color)] pt-3">
+                        <p className="mb-2 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
                             {t(
                                 'settings.notifications.organizations',
                                 'Organizations',
@@ -369,7 +359,7 @@ function NotificationSummaryRow({
 }) {
     return (
         <button
-            className="flex items-center gap-3 rounded-md p-2 text-left transition hover:bg-slate-100 dark:hover:bg-white/10"
+            className="flex items-center gap-3 rounded-md p-2 text-left transition hover:bg-[var(--settings-active-background)]"
             onClick={() => router.visit(href)}
             type="button"
         >

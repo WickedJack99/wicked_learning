@@ -14,7 +14,10 @@ test('a user can persist an enabled language preference', function () {
 
     $this->actingAs($user)
         ->patch(route('settings.language.update'), ['locale' => 'ja'])
-        ->assertRedirect(route('settings.personal.edit', ['section' => 'language']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'language',
+        ]));
 
     expect($user->refresh()->preference?->settings)->toMatchArray([
         'locale' => 'ja',

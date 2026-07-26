@@ -14,18 +14,21 @@ test('personal settings compose profile, language and security data', function (
     ]);
 
     $this->actingAs($user)
-        ->get(route('settings.personal.edit', ['section' => 'language']))
+        ->get(route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'language',
+        ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->component('settings/personal')
-            ->where('initialSection', 'language')
-            ->where('locale', 'en')
-            ->has('availableLanguages', 2)
-            ->has('passwordRules')
-            ->has('passkeys')
-            ->where('soundPreferences.muted', false)
-            ->where('soundPreferences.effectsVolume', 100)
-            ->where('soundPreferences.ambienceVolume', 100)
+            ->component('settings/index')
+            ->where('personalSettings.initialSection', 'profile')
+            ->where('personalSettings.locale', 'en')
+            ->has('personalSettings.availableLanguages', 2)
+            ->has('personalSettings.passwordRules')
+            ->has('personalSettings.passkeys')
+            ->where('personalSettings.soundPreferences.muted', false)
+            ->where('personalSettings.soundPreferences.effectsVolume', 100)
+            ->where('personalSettings.soundPreferences.ambienceVolume', 100)
         );
 });
 

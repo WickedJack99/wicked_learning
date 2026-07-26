@@ -14,7 +14,41 @@ const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 // resolves the same light or dark theme on its first render.
 initializeTheme();
 
+function shouldPreserveSettingsUrl(
+    href: string,
+    method: string | undefined,
+): boolean {
+    if ((method ?? 'get').toLowerCase() === 'get') {
+        return false;
+    }
+
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    if (
+        window.location.pathname !== '/settings' &&
+        !window.location.pathname.startsWith('/settings/')
+    ) {
+        return false;
+    }
+
+    const targetPath = href.startsWith('http')
+        ? new URL(href).pathname
+        : href.split('?')[0];
+
+    return targetPath === '/settings' || targetPath.startsWith('/settings/');
+}
+
 createInertiaApp({
+    defaults: {
+        visitOptions: (href, options) => ({
+            ...options,
+            preserveUrl:
+                options.preserveUrl ??
+                shouldPreserveSettingsUrl(href, options.method),
+        }),
+    },
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
@@ -54,7 +88,5 @@ createInertiaApp({
             </TooltipProvider>
         );
     },
-    progress: {
-        color: '#4B5563',
-    },
+    progress: false,
 });

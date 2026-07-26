@@ -1,5 +1,5 @@
-import { Check, Copy } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Check, Copy, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ export function ColorField({
     onChange,
     pickerClassName,
     placeholder,
+    resetValue,
     showClear = false,
     value,
 }: {
@@ -37,29 +38,40 @@ export function ColorField({
     onChange: (value: string) => void;
     pickerClassName?: string;
     placeholder?: string;
+    resetValue?: string;
     showClear?: boolean;
     value: string;
 }) {
     const inputId = id ?? fieldId(label);
     const t = usePlatformTranslation();
-    const pickerValue = isHexColor(value) ? value : fallback;
+    const { pickerValue, scopeRef } = useResolvedPickerColor(value, fallback);
     const [copied, setCopied] = useState(false);
     const [showAvailableColors, setShowAvailableColors] = useState(false);
+    const canReset = resetValue !== undefined && value !== resetValue;
 
     return (
-        <div className={cn('grid gap-2', className)}>
+        <div className={cn('grid gap-2', className)} ref={scopeRef}>
             <Label htmlFor={inputId}>{label}</Label>
             <div
                 className={cn(
                     showClear
                         ? 'flex gap-2'
-                        : 'grid grid-cols-[auto_minmax(0,1fr)_auto] gap-2',
+                        : cn(
+                              'grid gap-2',
+                              canReset
+                                  ? 'grid-cols-[auto_minmax(0,1fr)_auto_auto]'
+                                  : 'grid-cols-[auto_minmax(0,1fr)_auto]',
+                          ),
                 )}
             >
                 <Input
-                    aria-label={t('common.color.picker_label', ':label picker', {
-                        label,
-                    })}
+                    aria-label={t(
+                        'common.color.picker_label',
+                        ':label picker',
+                        {
+                            label,
+                        },
+                    )}
                     className={cn(
                         'h-9 w-12 shrink-0 cursor-pointer p-1',
                         pickerClassName,
@@ -96,6 +108,25 @@ export function ColorField({
                         <Copy className="size-4" />
                     )}
                 </button>
+                {canReset ? (
+                    <button
+                        aria-label={t(
+                            'common.color.reset_label',
+                            'Reset :label to last saved value',
+                            { label },
+                        )}
+                        className="grid size-9 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                        onClick={() => onChange(resetValue)}
+                        title={t(
+                            'common.color.reset_label',
+                            'Reset :label to last saved value',
+                            { label },
+                        )}
+                        type="button"
+                    >
+                        <RotateCcw className="size-4" />
+                    </button>
+                ) : null}
                 {showClear ? (
                     <Button
                         onClick={() => onChange('')}
@@ -127,8 +158,11 @@ export function ColorOpacityField({
     label,
     onColorChange,
     onOpacityChange,
+    onReset,
     opacityError,
     opacityValue,
+    resetColorValue,
+    resetOpacityValue,
 }: {
     availableColors?: AvailableColorOption[];
     colorError?: string;
@@ -136,33 +170,69 @@ export function ColorOpacityField({
     label: string;
     onColorChange: (value: string) => void;
     onOpacityChange: (value: string) => void;
+    onReset?: () => void;
     opacityError?: string;
     opacityValue: string;
+    resetColorValue?: string;
+    resetOpacityValue?: string;
 }) {
     const id = fieldId(label);
     const t = usePlatformTranslation();
     const resolvedOpacity = opacityValue || '100';
+    const resolvedResetOpacity = resetOpacityValue || '100';
+    const { pickerValue, scopeRef } = useResolvedPickerColor(
+        colorValue,
+        '#000000',
+    );
     const [copied, setCopied] = useState(false);
     const [showAvailableColors, setShowAvailableColors] = useState(false);
     const availableColorOptions = useMemo(
         () => dedupeColorOptions(availableColors),
         [availableColors],
     );
+    const canReset =
+        onReset !== undefined ||
+        (resetColorValue !== undefined &&
+            (colorValue !== resetColorValue ||
+                resolvedOpacity !== resolvedResetOpacity));
+    const reset = () => {
+        if (onReset) {
+            onReset();
+
+            return;
+        }
+
+        if (resetColorValue !== undefined) {
+            onColorChange(resetColorValue);
+            onOpacityChange(resolvedResetOpacity);
+        }
+    };
 
     return (
-        <div className="grid gap-2">
+        <div className="grid gap-2" ref={scopeRef}>
             <Label htmlFor={id}>{label}</Label>
-            <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] gap-2">
+            <div
+                className={cn(
+                    'grid min-w-0 gap-2',
+                    canReset
+                        ? 'grid-cols-[auto_minmax(0,1fr)_auto_auto]'
+                        : 'grid-cols-[auto_minmax(0,1fr)_auto]',
+                )}
+            >
                 <Input
-                    aria-label={t('common.color.picker_label', ':label picker', {
-                        label,
-                    })}
+                    aria-label={t(
+                        'common.color.picker_label',
+                        ':label picker',
+                        {
+                            label,
+                        },
+                    )}
                     className="h-9 w-12 shrink-0 cursor-pointer p-1"
                     onChange={(event) =>
                         onColorChange(event.currentTarget.value)
                     }
                     type="color"
-                    value={isHexColor(colorValue) ? colorValue : '#000000'}
+                    value={pickerValue}
                 />
                 <Input
                     id={id}
@@ -192,6 +262,25 @@ export function ColorOpacityField({
                         <Copy className="size-4" />
                     )}
                 </button>
+                {canReset ? (
+                    <button
+                        aria-label={t(
+                            'common.color.reset_label',
+                            'Reset :label to last saved value',
+                            { label },
+                        )}
+                        className="grid size-9 shrink-0 place-items-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                        onClick={reset}
+                        title={t(
+                            'common.color.reset_label',
+                            'Reset :label to last saved value',
+                            { label },
+                        )}
+                        type="button"
+                    >
+                        <RotateCcw className="size-4" />
+                    </button>
+                ) : null}
             </div>
             {availableColorOptions.length > 0 ? (
                 <AvailableColorSelector
@@ -312,6 +401,184 @@ export function isHexColor(value: string): boolean {
     return /^#[0-9a-fA-F]{6}$/.test(value);
 }
 
+function useResolvedPickerColor(value: string, fallback: string) {
+    const scopeRef = useRef<HTMLDivElement>(null);
+    const [pickerValue, setPickerValue] = useState(() =>
+        resolveCssColorToPickerValue(value, fallback),
+    );
+
+    useEffect(() => {
+        setPickerValue(
+            resolveCssColorToPickerValue(value, fallback, scopeRef.current),
+        );
+    }, [fallback, value]);
+
+    return { pickerValue, scopeRef };
+}
+
+function resolveCssColorToPickerValue(
+    value: string,
+    fallback: string,
+    scope?: HTMLElement | null,
+): string {
+    const fallbackHex =
+        normalizeHexColor(fallback) ?? parseRgbColor(fallback) ?? '#000000';
+    const normalizedHex = normalizeHexColor(value);
+
+    if (normalizedHex) {
+        return normalizedHex;
+    }
+
+    const parsedRgb = parseRgbColor(value);
+
+    if (parsedRgb) {
+        return parsedRgb;
+    }
+
+    if (typeof document === 'undefined') {
+        return fallbackHex;
+    }
+
+    const resolvedValue = resolveColorInBrowser(value, scope);
+
+    return (
+        normalizeHexColor(resolvedValue) ??
+        parseRgbColor(resolvedValue) ??
+        parseColorFunction(resolvedValue) ??
+        fallbackHex
+    );
+}
+
+function normalizeHexColor(value: string): string | null {
+    const trimmedValue = value.trim();
+    const shortHexMatch = /^#([0-9a-fA-F]{3})$/.exec(trimmedValue);
+
+    if (shortHexMatch) {
+        return `#${shortHexMatch[1]
+            .split('')
+            .map((part) => `${part}${part}`)
+            .join('')}`.toLowerCase();
+    }
+
+    const fullHexMatch = /^#([0-9a-fA-F]{6})(?:[0-9a-fA-F]{2})?$/.exec(
+        trimmedValue,
+    );
+
+    if (fullHexMatch) {
+        return `#${fullHexMatch[1]}`.toLowerCase();
+    }
+
+    return null;
+}
+
+function resolveColorInBrowser(
+    value: string,
+    scope?: HTMLElement | null,
+): string {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+        return '';
+    }
+
+    const host = scope ?? document.body ?? document.documentElement;
+    const probe = document.createElement('span');
+
+    probe.style.color = trimmedValue;
+
+    if (!probe.style.color && !trimmedValue.includes('var(')) {
+        return '';
+    }
+
+    probe.style.position = 'absolute';
+    probe.style.pointerEvents = 'none';
+    probe.style.visibility = 'hidden';
+    probe.style.inset = '0';
+    probe.textContent = 'color';
+    host.appendChild(probe);
+
+    const resolvedColor = window.getComputedStyle(probe).color;
+
+    probe.remove();
+
+    return resolvedColor;
+}
+
+function parseRgbColor(value: string): string | null {
+    const match = /^rgba?\(([^)]+)\)$/i.exec(value.trim());
+
+    if (!match) {
+        return null;
+    }
+
+    const colorParts = match[1]
+        .replace(/\s*\/\s*/, ' ')
+        .split(/[\s,]+/)
+        .filter(Boolean)
+        .slice(0, 3)
+        .map(parseCssRgbChannel);
+
+    if (colorParts.length < 3 || colorParts.some((part) => part === null)) {
+        return null;
+    }
+
+    const [red, green, blue] = colorParts;
+
+    if (red === null || green === null || blue === null) {
+        return null;
+    }
+
+    return rgbToHex(red, green, blue);
+}
+
+function parseColorFunction(value: string): string | null {
+    const match = /^color\(\s*srgb\s+([^)]+)\)$/i.exec(value.trim());
+
+    if (!match) {
+        return null;
+    }
+
+    const colorParts = match[1]
+        .replace(/\s*\/\s*/, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 3)
+        .map((part) => Number.parseFloat(part));
+
+    if (
+        colorParts.length < 3 ||
+        colorParts.some((part) => !Number.isFinite(part))
+    ) {
+        return null;
+    }
+
+    return rgbToHex(
+        Math.round(colorParts[0] * 255),
+        Math.round(colorParts[1] * 255),
+        Math.round(colorParts[2] * 255),
+    );
+}
+
+function parseCssRgbChannel(value: string): number | null {
+    if (value.endsWith('%')) {
+        const percent = Number.parseFloat(value);
+
+        if (!Number.isFinite(percent)) {
+            return null;
+        }
+
+        return Math.round((Math.min(100, Math.max(0, percent)) / 100) * 255);
+    }
+
+    const channel = Number.parseFloat(value);
+
+    if (!Number.isFinite(channel)) {
+        return null;
+    }
+
+    return Math.round(channel);
+}
+
 function colorPreviewValue(color: AvailableColorOption): string {
     if (color.opacity === undefined) {
         return color.value;
@@ -336,6 +603,14 @@ function colorPreviewValue(color: AvailableColorOption): string {
     const blue = bigint & 255;
 
     return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function rgbToHex(red: number, green: number, blue: number): string {
+    return `#${[red, green, blue]
+        .map((part) =>
+            Math.min(255, Math.max(0, part)).toString(16).padStart(2, '0'),
+        )
+        .join('')}`;
 }
 
 function copyToClipboard(value: string, onCopied: () => void): void {

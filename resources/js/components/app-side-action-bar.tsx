@@ -124,7 +124,7 @@ export function AppSideActionBar() {
                     label="Open personal settings"
                     onClick={() => {
                         setOverlay(null);
-                        router.visit('/settings/personal?section=profile');
+                        router.visit('/settings?panel=personal');
                     }}
                 >
                     <ProfileActionAvatar user={user} />

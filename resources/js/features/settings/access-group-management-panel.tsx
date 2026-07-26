@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatMessageTime } from '@/features/messages/message-time';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { cn } from '@/lib/utils';
 
 export type AccessGroupUser = {
@@ -74,6 +75,14 @@ export function AccessGroupManagementPanel({
             ),
         [users],
     );
+    const hasGroupChanges = useDirtyState(
+        form,
+        selectedGroup ? formFromGroup(selectedGroup) : blankForm(),
+    );
+    const hasMemberChanges = useDirtyState(
+        sortedIds(memberIds),
+        sortedIds(selectedGroup?.memberIds ?? []),
+    );
 
     const selectGroup = (group: AccessLearningGroup | null) => {
         setSelectedGroupId(group?.id ?? 'new');
@@ -83,6 +92,10 @@ export function AccessGroupManagementPanel({
     };
 
     const saveGroup = () => {
+        if (!hasGroupChanges) {
+            return;
+        }
+
         const isNew = selectedGroup === null;
         const url = isNew
             ? '/settings/groups'
@@ -108,7 +121,7 @@ export function AccessGroupManagementPanel({
     };
 
     const saveMembers = () => {
-        if (!selectedGroup) {
+        if (!selectedGroup || !hasMemberChanges) {
             return;
         }
 
@@ -163,6 +176,8 @@ export function AccessGroupManagementPanel({
                     onSaveGroup={saveGroup}
                     onSaveMembers={saveMembers}
                     onToggleMember={toggleMember}
+                    hasGroupChanges={hasGroupChanges}
+                    hasMemberChanges={hasMemberChanges}
                     saving={saving}
                     selectedGroup={selectedGroup}
                     users={sortedUsers}
@@ -186,6 +201,8 @@ function GroupEditor({
     onSaveGroup,
     onSaveMembers,
     onToggleMember,
+    hasGroupChanges,
+    hasMemberChanges,
     saving,
     selectedGroup,
     users,
@@ -197,6 +214,8 @@ function GroupEditor({
     onSaveGroup: () => void;
     onSaveMembers: () => void;
     onToggleMember: (userId: number, checked: boolean) => void;
+    hasGroupChanges: boolean;
+    hasMemberChanges: boolean;
     saving: boolean;
     selectedGroup: AccessLearningGroup | null;
     users: AccessGroupUser[];
@@ -267,12 +286,15 @@ function GroupEditor({
                 </Field>
 
                 <div className="flex flex-wrap gap-2">
-                    <Button disabled={saving} onClick={onSaveGroup}>
+                    <Button
+                        disabled={saving || !hasGroupChanges}
+                        onClick={onSaveGroup}
+                    >
                         <Save className="size-4" />
                         Save group
                     </Button>
                     <Button
-                        disabled={!selectedGroup || saving}
+                        disabled={!selectedGroup || saving || !hasMemberChanges}
                         onClick={onSaveMembers}
                         variant="secondary"
                     >
@@ -474,6 +496,10 @@ function formFromGroup(group: AccessLearningGroup): GroupForm {
         slug: group.slug,
         study_topic: group.studyTopic ?? '',
     };
+}
+
+function sortedIds(ids: number[]): number[] {
+    return [...ids].sort((left, right) => left - right);
 }
 
 function formatDate(value: string): string {

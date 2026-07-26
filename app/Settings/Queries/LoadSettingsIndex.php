@@ -103,7 +103,7 @@ class LoadSettingsIndex
                 'initialSection' => 'profile',
             ],
             'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
-            'assetsWorldObjects' => $this->assetsWorldObjects($accessCapabilities),
+            'assetsWorldObjects' => $this->assetsWorldObjects($accessCapabilities, $user),
             'aiSettings' => $this->aiSettings($accessCapabilities),
             'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
             'adminRoles' => $canManageRoles ? $this->accessRoles() : [],
@@ -112,7 +112,7 @@ class LoadSettingsIndex
             'languages' => $this->languages($accessCapabilities),
             'learningSupportSettings' => $this->loadLearningSupportSettings->handle($user),
             'platformInfoPages' => $canManagePresentation ? $this->platformInfoPages() : [],
-            'publicPresentation' => $canManagePresentation ? PlatformPresentationSetting::current() : null,
+            'publicPresentation' => PlatformPresentationSetting::current(),
             'createdRegistrationToken' => $createdRegistrationToken,
             'settingsNotifications' => $this->settingsNotifications($accessCapabilities),
             'worldGraph' => $this->worldGraph($user, $accessCapabilities),
@@ -294,7 +294,7 @@ class LoadSettingsIndex
      * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
      * @return array{items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>, visuals: array<int, array<string, mixed>>}
      */
-    private function assetsWorldObjects(array $capabilities): array
+    private function assetsWorldObjects(array $capabilities, User $user): array
     {
         $canReadAssets = $capabilities[PermissionCatalog::ASSETS]['read'] ?? false;
         $canReadSounds = $capabilities[PermissionCatalog::SOUNDS]['read'] ?? false;
@@ -322,7 +322,7 @@ class LoadSettingsIndex
                     ->all()
                 : [],
             'visuals' => $canReadAssets
-                ? $this->loadReusableImageAssets->handle()
+                ? $this->loadReusableImageAssets->handle(user: $user)
                 : [],
         ];
     }

@@ -180,16 +180,82 @@
     #app {
         cursor: var(--platform-cursor, default);
     }
+
+    * {
+        scrollbar-color: color-mix(
+                in srgb,
+                var(--settings-scrollbar-thumb, rgb(100 116 139)) 100%,
+                transparent
+            )
+            transparent;
+        scrollbar-width: thin;
+    }
+
+    *::-webkit-scrollbar {
+        width: 0.65rem;
+        height: 0.65rem;
+    }
+
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        border: 0.2rem solid transparent;
+        border-radius: 999px;
+        background: color-mix(
+            in srgb,
+            var(--settings-scrollbar-thumb, rgb(100 116 139)) 100%,
+            transparent
+        );
+        background-clip: content-box;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background: color-mix(
+            in srgb,
+            var(--settings-accent, rgb(14 116 144)) 72%,
+            transparent
+        );
+        background-clip: content-box;
+    }
 }
 
 @layer utilities {
+    .settings-surface {
+        --settings-accent: #0f766e;
+        --settings-accent-foreground: #f8fafc;
+        --settings-active-background: rgba(15, 118, 110, 0.1);
+        --settings-border-color: #e2e8f0;
+        --settings-content-background: #f1f5f9;
+        --settings-muted-text: #64748b;
+        --settings-nested-sidebar-background: rgb(248 250 252 / 0.96);
+        --settings-panel-background: #ffffff;
+        --settings-scrollbar-thumb: rgb(100 116 139 / 0.54);
+        --settings-sidebar-background: rgba(255, 255, 255, 0.9);
+    }
+
+    .dark .settings-surface {
+        --settings-accent: #2dd4bf;
+        --settings-accent-foreground: #042f2e;
+        --settings-active-background: rgba(45, 212, 191, 0.1);
+        --settings-border-color: rgba(255, 255, 255, 0.1);
+        --settings-content-background: #0b1117;
+        --settings-muted-text: #94a3b8;
+        --settings-nested-sidebar-background: rgb(2 6 23 / 0.96);
+        --settings-panel-background: #111820;
+        --settings-scrollbar-thumb: rgb(148 163 184 / 0.54);
+        --settings-sidebar-background: rgba(17, 24, 32, 0.95);
+    }
+
     .dark .settings-surface [data-slot='button'][data-variant='default'] {
         border: 1px solid
             color-mix(in srgb, var(--settings-accent, #2dd4bf) 42%, transparent);
         background: color-mix(
             in srgb,
             var(--settings-accent, #2dd4bf) 34%,
-            #0b1117
+            var(--settings-content-background, #0b1117)
         );
         color: rgb(226 232 240);
         box-shadow: none;
@@ -201,7 +267,7 @@
         background: color-mix(
             in srgb,
             var(--settings-accent, #2dd4bf) 44%,
-            #0b1117
+            var(--settings-content-background, #0b1117)
         );
         color: rgb(248 250 252);
     }
@@ -329,7 +395,8 @@
     }
 
     .route-options-scroll {
-        scrollbar-color: rgb(14 116 144 / 0.68) transparent;
+        scrollbar-color: var(--settings-scrollbar-thumb, rgb(14 116 144 / 0.68))
+            transparent;
         scrollbar-width: thin;
     }
 
@@ -337,13 +404,11 @@
         width: 0.45rem;
     }
 
-    .route-options-scroll::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
     .route-options-scroll::-webkit-scrollbar-thumb {
-        background: rgb(14 116 144 / 0.68);
+        border: 0.12rem solid transparent;
         border-radius: 999px;
+        background: var(--settings-scrollbar-thumb, rgb(14 116 144 / 0.68));
+        background-clip: content-box;
     }
 
     .platform-shell {

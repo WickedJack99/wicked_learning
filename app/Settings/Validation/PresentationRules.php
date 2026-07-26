@@ -15,6 +15,7 @@ class PresentationRules
             ...$this->welcomePages(),
             ...$this->informationPages(),
             ...$this->publicPalette(),
+            ...$this->settingsPalette(),
             ...$this->sourceLinks(),
         ];
     }
@@ -114,6 +115,38 @@ class PresentationRules
             ] as $field) {
                 $rules["publicPalette.{$mode}.{$field}"] = ['nullable', 'string', 'max:64'];
                 $rules["publicPalette.{$mode}.{$field}Opacity"] = ['nullable', 'integer', 'min:0', 'max:100'];
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function settingsPalette(): array
+    {
+        $rules = [];
+
+        foreach (['dark', 'light'] as $mode) {
+            foreach ([
+                'accent',
+                'accentForeground',
+                'activeBackground',
+                'appearanceSwitchBackground',
+                'appearanceSwitchActiveBackground',
+                'appearanceSwitchActiveText',
+                'appearanceSwitchInactiveText',
+                'sidebarBackground',
+                'contentBackground',
+                'panelBackground',
+                'nestedSidebarBackground',
+                'borderColor',
+                'mutedText',
+                'scrollbarThumb',
+            ] as $field) {
+                $rules["settingsPalette.{$mode}.{$field}"] = ['nullable', 'string', 'max:64'];
+                $rules["settingsPalette.{$mode}.{$field}Opacity"] = ['nullable', 'integer', 'min:0', 'max:100'];
             }
         }
 

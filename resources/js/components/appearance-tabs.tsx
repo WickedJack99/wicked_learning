@@ -34,7 +34,7 @@ export default function AppearanceToggleTab({
                 'inline-flex gap-1 rounded-lg p-1',
                 variant === 'subtle'
                     ? 'border bg-white/7 backdrop-blur-md'
-                    : 'bg-neutral-100 dark:bg-neutral-800',
+                    : 'border border-[var(--settings-border-color,transparent)] bg-[var(--settings-appearance-switch-background,var(--settings-active-background,#f5f5f5))]',
                 className,
             )}
             style={
@@ -61,8 +61,8 @@ export default function AppearanceToggleTab({
                                 ? 'bg-current/12 shadow-xs'
                                 : 'opacity-70 hover:bg-current/8 hover:opacity-100'
                             : resolvedAppearance === value
-                              ? 'bg-white shadow-xs dark:bg-neutral-700 dark:text-neutral-100'
-                              : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
+                              ? 'bg-[var(--settings-appearance-switch-active-background,var(--settings-panel-background,#ffffff))] text-[var(--settings-appearance-switch-active-text,var(--settings-accent,#111827))] shadow-xs'
+                              : 'text-[var(--settings-appearance-switch-inactive-text,var(--settings-muted-text,#737373))] hover:bg-[var(--settings-active-background,rgba(0,0,0,0.08))] hover:text-[var(--settings-accent,#111827)]',
                     )}
                 >
                     <Icon className="-ml-1 h-4 w-4" />

@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 export type ReusableMediaAsset = {
     canDelete: boolean;
+    canViewPath: boolean;
     extension: string;
     label: string;
     source: string;
@@ -47,7 +48,12 @@ export default function AdminMediaAssets({
         }
 
         return assets.filter((asset) =>
-            [asset.label, asset.source, asset.extension, asset.url]
+            [
+                asset.label,
+                asset.source,
+                asset.extension,
+                asset.canViewPath ? asset.url : '',
+            ]
                 .join(' ')
                 .toLowerCase()
                 .includes(needle),
@@ -265,11 +271,13 @@ function AssetDetails({
                             {asset.label}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            {asset.source} · {asset.extension.toUpperCase()}
+                            {asset.source} / {asset.extension.toUpperCase()}
                         </p>
-                        <p className="mt-2 text-xs break-all text-slate-400 dark:text-slate-500">
-                            {asset.url}
-                        </p>
+                        {asset.canViewPath ? (
+                            <p className="mt-2 text-xs break-all text-slate-400 dark:text-slate-500">
+                                {asset.url}
+                            </p>
+                        ) : null}
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Button

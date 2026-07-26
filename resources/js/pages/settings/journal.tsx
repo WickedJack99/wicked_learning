@@ -30,6 +30,7 @@ import type {
     JournalThemeModeSettings,
     JournalThemeSettings,
 } from '@/features/journal/theme';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
@@ -140,6 +141,16 @@ export default function JournalSettings({
     const [uploading, setUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const activeMode = draftTheme[configMode];
+    const hasChanges = useDirtyState(
+        {
+            allowExpertAccessRequests: allowExpertAccess,
+            theme: draftTheme,
+        },
+        {
+            allowExpertAccessRequests,
+            theme,
+        },
+    );
 
     function updateThemeMode(
         updater: (
@@ -153,6 +164,10 @@ export default function JournalSettings({
     }
 
     function save() {
+        if (!hasChanges) {
+            return;
+        }
+
         setIsSaving(true);
         router.patch(
             '/settings/journal',
@@ -187,7 +202,7 @@ export default function JournalSettings({
     }
 
     const saveButton = (
-        <Button disabled={isSaving} onClick={save} type="button">
+        <Button disabled={isSaving || !hasChanges} onClick={save} type="button">
             <Save className="size-4" />
             Save changes
         </Button>

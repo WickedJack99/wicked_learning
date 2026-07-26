@@ -21,7 +21,10 @@ class ProfileController extends Controller
      */
     public function edit(): RedirectResponse
     {
-        return to_route('settings.personal.edit', ['section' => 'profile']);
+        return to_route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'profile',
+        ]);
     }
 
     /**
@@ -39,7 +42,10 @@ class ProfileController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Profile updated.')]);
 
-        return to_route('settings.personal.edit', ['section' => 'profile']);
+        return to_route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'profile',
+        ]);
     }
 
     public function uploadImage(ProfileImageUploadRequest $request): JsonResponse

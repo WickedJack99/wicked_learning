@@ -38,12 +38,9 @@ import {
     type AssetsWorldObjectsSection,
     type AssetsWorldObjectsSettings,
 } from '@/features/settings/assets-world-objects-panel';
+import { AdminPresentationPanel } from '@/features/platform-presentation/admin-presentation-panel';
 import { AccessManagementNavigation } from '@/features/settings/access-management-navigation';
 import type { AccessManagementSection } from '@/features/settings/access-management-navigation';
-import {
-    PresentationLocalizationPanel,
-    type PresentationLocalizationSection,
-} from '@/features/settings/presentation-localization-panel';
 import {
     LearningSupportPanel,
     type LearningSupportSection,
@@ -82,13 +79,16 @@ import {
     SettingsPlaceholderPanel,
     SettingsRouteGroupPanel,
 } from '@/features/settings/settings-panel-directory';
+import { SettingsCornerNavigation } from '@/features/settings/settings-corner-navigation';
 import {
     SettingsSidebarNavigation,
     SettingsTopBar,
     type SettingsNotificationSummary,
     type SettingsWorldBreadcrumb,
 } from '@/features/settings/settings-workspace-shell';
+import { isDirtyState, useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import AiSettings, {
     type AiSection,
@@ -96,10 +96,15 @@ import AiSettings, {
 } from '@/pages/settings/ai';
 import {
     PersonalSettingsContent,
+    type PersonalSection,
     type PersonalSettingsProps,
 } from '@/pages/settings/personal';
-import type { ColorPaletteProps } from '@/pages/settings/color-palette';
-import type { Language } from '@/pages/settings/languages';
+import ColorPaletteSettings, {
+    type ColorPaletteProps,
+} from '@/pages/settings/color-palette';
+import LanguageAdministration, {
+    type Language,
+} from '@/pages/settings/languages';
 import { WorldBuilderPanel, type WorldGraph } from '@/pages/settings/worlds';
 import ConfigureMap from '@/pages/settings/worlds/configure-map';
 import EditWorldMap, {
@@ -114,6 +119,7 @@ import type {
     EditableTool,
 } from '@/pages/settings/worlds/edit-node-activity-types';
 import type { PublicPresentationSettings } from '@/theme/presentation';
+import { getSettingsPresentationStyle } from '@/theme/presentation';
 import type { LearningTool, User as AuthUser } from '@/types';
 
 type SettingsIndexProps = {
@@ -167,10 +173,10 @@ type SelectedWorldNode = {
 };
 
 type WorldBuilderView = 'configure' | 'nodes';
-type PresentationView = PresentationLocalizationSection;
 type AssetView = AssetsWorldObjectsSection;
 type LearningSupportView = LearningSupportSection;
 type AiView = AiSection;
+type PersonalView = PersonalSection;
 
 type PlatformInfoContent = {
     key: PlatformInfoPageKey;
@@ -186,7 +192,12 @@ function readPanelFromUrl(
         return null;
     }
 
-    const panel = new URL(window.location.href).searchParams.get('panel');
+    const url = new URL(window.location.href);
+    const rawPanel = url.searchParams.get('panel');
+    const panel =
+        rawPanel === 'admin-presentation-localization'
+            ? panelFromLegacyPresentationParam(url.searchParams)
+            : rawPanel;
 
     if (
         !isSettingsPanelKey(panel) ||
@@ -196,6 +207,22 @@ function readPanelFromUrl(
     }
 
     return panel;
+}
+
+function panelFromLegacyPresentationParam(
+    searchParams: URLSearchParams,
+): SettingsPanelKey {
+    const presentation = searchParams.get('presentation');
+
+    if (presentation === 'palette') {
+        return 'admin-color-palettes';
+    }
+
+    if (presentation === 'languages') {
+        return 'admin-translations';
+    }
+
+    return 'admin-public-pages';
 }
 
 function writePanelToUrl(panel: SettingsPanelKey | null): void {
@@ -217,9 +244,7 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
         url.searchParams.delete('worldView');
     }
 
-    if (panel !== 'admin-presentation-localization') {
-        url.searchParams.delete('presentation');
-    }
+    url.searchParams.delete('presentation');
 
     if (panel !== 'admin-assets-world-objects') {
         url.searchParams.delete('asset');
@@ -236,7 +261,39 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
         url.searchParams.delete('ai');
     }
 
+    if (panel !== 'personal') {
+        url.searchParams.delete('personal');
+    }
+
     window.history.pushState({ panel }, '', url);
+}
+
+function readPersonalViewFromUrl(): PersonalView {
+    if (typeof window === 'undefined') {
+        return 'profile';
+    }
+
+    const value = new URL(window.location.href).searchParams.get('personal');
+
+    return value === 'appearance' ||
+        value === 'delete-account' ||
+        value === 'language' ||
+        value === 'notifications' ||
+        value === 'security' ||
+        value === 'sound'
+        ? value
+        : 'profile';
+}
+
+function writePersonalViewToUrl(section: PersonalView): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('panel', 'personal');
+    url.searchParams.set('personal', section);
+    window.history.pushState({ panel: 'personal' }, '', url);
 }
 
 function readAiViewFromUrl(): AiView {
@@ -269,7 +326,10 @@ function readAssetViewFromUrl(): AssetView {
 
     const value = new URL(window.location.href).searchParams.get('asset');
 
-    return value === 'sounds' || value === 'tools' || value === 'items'
+    return value === 'sounds' ||
+        value === 'tools' ||
+        value === 'items' ||
+        value === 'cursors'
         ? value
         : 'visuals';
 }
@@ -305,33 +365,6 @@ function writeLearningSupportViewToUrl(section: LearningSupportView): void {
     url.searchParams.set('panel', 'admin-learning-support');
     url.searchParams.set('support', section);
     window.history.pushState({ panel: 'admin-learning-support' }, '', url);
-}
-
-function readPresentationViewFromUrl(): PresentationView {
-    if (typeof window === 'undefined') {
-        return 'public';
-    }
-
-    const value = new URL(window.location.href).searchParams.get(
-        'presentation',
-    );
-
-    return value === 'palette' || value === 'languages' ? value : 'public';
-}
-
-function writePresentationViewToUrl(section: PresentationView): void {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    const url = new URL(window.location.href);
-    url.searchParams.set('panel', 'admin-presentation-localization');
-    url.searchParams.set('presentation', section);
-    window.history.pushState(
-        { panel: 'admin-presentation-localization' },
-        '',
-        url,
-    );
 }
 
 function readWorldBuilderViewFromUrl(): WorldBuilderView {
@@ -370,17 +403,18 @@ export default function SettingsIndex({
     worldGraph,
 }: SettingsIndexProps) {
     const t = usePlatformTranslation();
+    const { resolvedAppearance } = useAppearance();
     const { props, url: pageUrl } = usePage();
     const currentUser = props.auth.user as AuthUser | null;
     const [menuQuery, setMenuQuery] = useState('');
     const [selectedPanel, setSelectedPanel] = useState<SettingsPanelKey | null>(
         () => readPanelFromUrl(canAccessAdministration) ?? 'personal',
     );
+    const [personalView, setPersonalView] = useState<PersonalView>(() =>
+        readPersonalViewFromUrl(),
+    );
     const [worldBuilderView, setWorldBuilderView] = useState<WorldBuilderView>(
         () => readWorldBuilderViewFromUrl(),
-    );
-    const [presentationView, setPresentationView] = useState<PresentationView>(
-        () => readPresentationViewFromUrl(),
     );
     const [assetView, setAssetView] = useState<AssetView>(() =>
         readAssetViewFromUrl(),
@@ -398,8 +432,8 @@ export default function SettingsIndex({
             setSelectedPanel(
                 readPanelFromUrl(canAccessAdministration) ?? 'personal',
             );
+            setPersonalView(readPersonalViewFromUrl());
             setWorldBuilderView(readWorldBuilderViewFromUrl());
-            setPresentationView(readPresentationViewFromUrl());
             setAssetView(readAssetViewFromUrl());
             setLearningSupportView(readLearningSupportViewFromUrl());
             setAiView(readAiViewFromUrl());
@@ -457,9 +491,15 @@ export default function SettingsIndex({
     return (
         <>
             <Head title={t('settings.title', 'Settings')} />
-            <main className="settings-surface h-full min-h-0 overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+            <main
+                className="settings-surface h-full min-h-0 overflow-hidden bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
+                style={getSettingsPresentationStyle(
+                    publicPresentation,
+                    resolvedAppearance,
+                )}
+            >
                 <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-row">
-                    <aside className="flex shrink-0 flex-col border-b border-slate-200 bg-white/90 lg:w-72 lg:border-r lg:border-b-0 dark:border-white/10 dark:bg-[#111820]/95">
+                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
                         <div className="shrink-0 px-5 pt-5 pb-4">
                             <p
                                 className="text-xs font-medium tracking-[0.18em] uppercase"
@@ -477,6 +517,7 @@ export default function SettingsIndex({
                             onOpenItem={openItem}
                             sections={sections}
                         />
+                        <SettingsCornerNavigation />
                     </aside>
 
                     <section className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -489,65 +530,55 @@ export default function SettingsIndex({
                             worldBreadcrumb={worldBreadcrumb}
                         />
 
-                        <div className="min-h-0 flex-1 overflow-hidden p-4">
-                            <section className="h-full min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
-                                {selectedPanel ? (
-                                    <SettingsDetail
-                                        accessCapabilities={accessCapabilities}
-                                        accessGroupUsers={accessGroupUsers}
-                                        accessGroups={accessGroups}
-                                        adminRoles={adminRoles}
-                                        adminUsers={adminUsers}
-                                        aiSettings={aiSettings}
-                                        assetsWorldObjects={assetsWorldObjects}
-                                        colorPaletteSettings={
-                                            colorPaletteSettings
-                                        }
-                                        createdRegistrationToken={
-                                            createdRegistrationToken
-                                        }
-                                        languages={languages}
-                                        learningSupportSettings={
-                                            learningSupportSettings
-                                        }
-                                        permissionResources={
-                                            permissionResources
-                                        }
-                                        personalSettings={personalSettings}
-                                        platformInfoPages={platformInfoPages}
-                                        presentationView={presentationView}
-                                        publicPresentation={publicPresentation}
-                                        assignableRegistrationRoles={
-                                            assignableRegistrationRoles
-                                        }
-                                        registrationTokens={registrationTokens}
-                                        selectedWorldMap={selectedWorldMap}
-                                        selectedWorldNode={selectedWorldNode}
-                                        assetView={assetView}
-                                        aiView={aiView}
-                                        learningSupportView={
-                                            learningSupportView
-                                        }
-                                        setAssetView={setAssetView}
-                                        setAiView={setAiView}
-                                        setLearningSupportView={
-                                            setLearningSupportView
-                                        }
-                                        setPresentationView={
-                                            setPresentationView
-                                        }
-                                        selectedPanel={selectedPanel}
-                                        worldBuilderView={worldBuilderView}
-                                        worldGraph={worldGraph}
-                                    />
-                                ) : (
-                                    <SettingsOverview
-                                        accessCapabilities={accessCapabilities}
-                                        onOpenItem={openItem}
-                                        sections={sections}
-                                    />
-                                )}
-                            </section>
+                        <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-panel-background)]">
+                            {selectedPanel ? (
+                                <SettingsDetail
+                                    accessCapabilities={accessCapabilities}
+                                    accessGroupUsers={accessGroupUsers}
+                                    accessGroups={accessGroups}
+                                    adminRoles={adminRoles}
+                                    adminUsers={adminUsers}
+                                    aiSettings={aiSettings}
+                                    assetsWorldObjects={assetsWorldObjects}
+                                    colorPaletteSettings={colorPaletteSettings}
+                                    createdRegistrationToken={
+                                        createdRegistrationToken
+                                    }
+                                    languages={languages}
+                                    learningSupportSettings={
+                                        learningSupportSettings
+                                    }
+                                    permissionResources={permissionResources}
+                                    personalSettings={personalSettings}
+                                    personalView={personalView}
+                                    platformInfoPages={platformInfoPages}
+                                    publicPresentation={publicPresentation}
+                                    assignableRegistrationRoles={
+                                        assignableRegistrationRoles
+                                    }
+                                    registrationTokens={registrationTokens}
+                                    selectedWorldMap={selectedWorldMap}
+                                    selectedWorldNode={selectedWorldNode}
+                                    assetView={assetView}
+                                    aiView={aiView}
+                                    learningSupportView={learningSupportView}
+                                    setAssetView={setAssetView}
+                                    setAiView={setAiView}
+                                    setLearningSupportView={
+                                        setLearningSupportView
+                                    }
+                                    setPersonalView={setPersonalView}
+                                    selectedPanel={selectedPanel}
+                                    worldBuilderView={worldBuilderView}
+                                    worldGraph={worldGraph}
+                                />
+                            ) : (
+                                <SettingsOverview
+                                    accessCapabilities={accessCapabilities}
+                                    onOpenItem={openItem}
+                                    sections={sections}
+                                />
+                            )}
                         </div>
                     </section>
                 </div>
@@ -583,8 +614,8 @@ function SettingsDetail({
     learningSupportView,
     permissionResources,
     personalSettings,
+    personalView,
     platformInfoPages,
-    presentationView,
     registrationTokens,
     publicPresentation,
     selectedWorldMap,
@@ -593,7 +624,7 @@ function SettingsDetail({
     setAiView,
     setAssetView,
     setLearningSupportView,
-    setPresentationView,
+    setPersonalView,
     worldBuilderView,
     worldGraph,
 }: {
@@ -614,10 +645,10 @@ function SettingsDetail({
     learningSupportView: LearningSupportView;
     permissionResources: PermissionResource[];
     personalSettings: PersonalSettingsProps;
+    personalView: PersonalView;
     platformInfoPages: Partial<
         Record<PlatformInfoPageKey, PlatformInfoContent>
     >;
-    presentationView: PresentationView;
     registrationTokens: RegistrationTokenSummary[];
     publicPresentation: PublicPresentationSettings | null;
     selectedWorldMap: SelectedWorldMap | null;
@@ -626,7 +657,7 @@ function SettingsDetail({
     setAiView: (view: AiView) => void;
     setAssetView: (view: AssetView) => void;
     setLearningSupportView: (view: LearningSupportView) => void;
-    setPresentationView: (view: PresentationView) => void;
+    setPersonalView: (view: PersonalView) => void;
     worldBuilderView: WorldBuilderView;
     worldGraph: WorldGraph | null;
 }) {
@@ -634,9 +665,16 @@ function SettingsDetail({
     const selectedItem = findSettingsItemForPanel(selectedPanel);
 
     return (
-        <div className="h-full overflow-hidden bg-white dark:bg-[#111820]">
+        <div className="h-full overflow-hidden bg-[var(--settings-panel-background)]">
             {selectedPanel === 'personal' ? (
-                <PersonalSettingsContent {...personalSettings} />
+                <PersonalSettingsContent
+                    {...personalSettings}
+                    activeSection={personalView}
+                    onSelectSection={(section) => {
+                        setPersonalView(section);
+                        writePersonalViewToUrl(section);
+                    }}
+                />
             ) : selectedPanel === 'admin-ai-integrations' && aiSettings ? (
                 <div className="h-full min-h-0 p-4">
                     <AiSettings
@@ -675,24 +713,39 @@ function SettingsDetail({
                     activeSection={assetView}
                     assets={assetsWorldObjects}
                     canViewAssets={accessCapabilities.assets?.read ?? false}
+                    canViewCursors={
+                        accessCapabilities.presentation?.read ?? false
+                    }
                     canViewSounds={accessCapabilities.sounds?.read ?? false}
                     onSelectSection={(section) => {
                         setAssetView(section);
                         writeAssetViewToUrl(section);
                     }}
-                />
-            ) : selectedPanel === 'admin-presentation-localization' ? (
-                <PresentationLocalizationPanel
-                    activeSection={presentationView}
-                    colorPaletteSettings={colorPaletteSettings}
-                    languages={languages}
-                    onSelectSection={(section) => {
-                        setPresentationView(section);
-                        writePresentationViewToUrl(section);
-                    }}
-                    platformInfoPages={platformInfoPages}
                     publicPresentation={publicPresentation}
                 />
+            ) : selectedPanel === 'admin-public-pages' && publicPresentation ? (
+                <div className="h-full min-h-0">
+                    <AdminPresentationPanel
+                        platformInfoContent={platformInfoPages}
+                        presentation={publicPresentation}
+                    />
+                </div>
+            ) : selectedPanel === 'admin-public-pages' ? (
+                <SettingsUnavailablePanel label="Public pages" />
+            ) : selectedPanel === 'admin-color-palettes' &&
+              colorPaletteSettings ? (
+                <div className="h-full min-h-0 p-4">
+                    <ColorPaletteSettings {...colorPaletteSettings} embedded />
+                </div>
+            ) : selectedPanel === 'admin-color-palettes' ? (
+                <SettingsUnavailablePanel label="Color palettes" />
+            ) : selectedPanel === 'admin-translations' &&
+              languages.length > 0 ? (
+                <div className="h-full min-h-0 p-4">
+                    <LanguageAdministration embedded languages={languages} />
+                </div>
+            ) : selectedPanel === 'admin-translations' ? (
+                <SettingsUnavailablePanel label="Translations" />
             ) : selectedPanel === 'admin-world-builder' && selectedWorldNode ? (
                 <EditNodeActivities
                     activityGraph={selectedWorldNode.activityGraph}
@@ -753,7 +806,7 @@ function SettingsDetail({
 function SettingsUnavailablePanel({ label }: { label: string }) {
     return (
         <section className="grid h-full place-items-center p-6 text-center">
-            <p className="max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="max-w-lg text-sm leading-6 text-[var(--settings-muted-text)]">
                 {label} settings are not available with the current permissions.
             </p>
         </section>
@@ -995,8 +1048,16 @@ function AdminUsersPanel({
 
     const saveAccess = (user: AdminUser) => {
         const form = forms[user.id];
+        const defaultForm = defaultForms[user.id];
 
-        if (!form) {
+        if (
+            !form ||
+            !defaultForm ||
+            !isDirtyState(
+                normalizedAccessForm(form),
+                normalizedAccessForm(defaultForm),
+            )
+        ) {
             return;
         }
 
@@ -1034,7 +1095,7 @@ function AdminUsersPanel({
 
     return (
         <div>
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between dark:border-white/10">
+            <div className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
@@ -1042,7 +1103,7 @@ function AdminUsersPanel({
                             {t('settings.access.users.title', 'Users')}
                         </h2>
                     </div>
-                    <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <p className="max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
                         {t(
                             'settings.access.users.description',
                             'Manage registration tokens and account access. Token plaintext is shown only once after creation.',
@@ -1130,7 +1191,7 @@ function AdminUsersPanel({
                         )}
                     </p>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-white px-3 py-2 text-sm dark:bg-slate-950/70">
+                        <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-[var(--settings-content-background)] px-3 py-2 text-sm">
                             {createdRegistrationToken}
                         </code>
                         <Button onClick={copyCreatedToken} variant="secondary">
@@ -1171,8 +1232,8 @@ function AdminUsersPanel({
                 />
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
-                <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase lg:grid dark:bg-white/5 dark:text-slate-400">
+            <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
+                <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase lg:grid">
                     <span>{t('settings.access.users.table.user', 'User')}</span>
                     <span>
                         {t('settings.access.users.table.roles', 'Roles')}
@@ -1190,9 +1251,15 @@ function AdminUsersPanel({
                         {t('settings.access.users.table.actions', 'Actions')}
                     </span>
                 </div>
-                <div className="divide-y divide-slate-200 dark:divide-white/10">
+                <div className="divide-y divide-[var(--settings-border-color)]">
                     {users.map((user) => {
                         const form = forms[user.id];
+                        const hasUserChanges = form
+                            ? isDirtyState(
+                                  normalizedAccessForm(form),
+                                  normalizedAccessForm(defaultForms[user.id]),
+                              )
+                            : false;
                         const isCurrentUser = currentUser?.id === user.id;
 
                         return (
@@ -1208,7 +1275,7 @@ function AdminUsersPanel({
                                     <span className="block truncate text-sm font-medium text-slate-950 dark:text-white">
                                         {user.name}
                                     </span>
-                                    <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                                    <span className="block truncate text-xs text-[var(--settings-muted-text)]">
                                         {user.email}
                                     </span>
                                 </button>
@@ -1274,7 +1341,9 @@ function AdminUsersPanel({
                                 <div className="flex flex-wrap gap-2">
                                     <Button
                                         disabled={
-                                            isCurrentUser || !canUpdateUsers
+                                            isCurrentUser ||
+                                            !canUpdateUsers ||
+                                            !hasUserChanges
                                         }
                                         onClick={() => saveAccess(user)}
                                         size="sm"
@@ -1300,7 +1369,7 @@ function AdminUsersPanel({
                 </div>
             </div>
 
-            <div className="mt-5 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+            <div className="mt-5 rounded-lg border border-[var(--settings-border-color)] p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-950 dark:text-white">
                     <KeyRound className="size-4 text-[var(--settings-accent)]" />
                     {t(
@@ -1311,7 +1380,7 @@ function AdminUsersPanel({
                 <div className="grid gap-2">
                     {registrationTokens.map((token) => (
                         <div
-                            className="flex flex-col gap-2 rounded-md bg-slate-50 p-3 text-sm sm:flex-row sm:items-center sm:justify-between dark:bg-white/5"
+                            className="flex flex-col gap-2 rounded-md bg-[var(--settings-active-background)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
                             key={token.id}
                         >
                             <div>
@@ -1322,7 +1391,7 @@ function AdminUsersPanel({
                                         { id: token.id },
                                     )}
                                 </span>
-                                <span className="ml-2 text-slate-500 dark:text-slate-400">
+                                <span className="ml-2 text-[var(--settings-muted-text)]">
                                     {t(
                                         'settings.access.tokens.created_by',
                                         'created by :name',
@@ -1363,7 +1432,7 @@ function AdminUsersPanel({
                                                 'Unused',
                                             )}
                                 </Badge>
-                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                <span className="text-xs text-[var(--settings-muted-text)]">
                                     {formatDate(token.created_at, t)}
                                 </span>
                             </div>
@@ -1395,11 +1464,11 @@ function AdminUsersPanel({
 
 function AdminMetric({ label, value }: { label: string; value: number }) {
     return (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+        <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4">
             <p className="text-2xl font-semibold text-slate-950 dark:text-white">
                 {value}
             </p>
-            <p className="mt-1 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
+            <p className="mt-1 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
                 {label}
             </p>
         </div>
@@ -1461,7 +1530,7 @@ function RoleEditor({
             <div className="flex flex-wrap gap-1.5">
                 {roles.map((role) => (
                     <span
-                        className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-slate-950/70 dark:text-slate-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-2 py-1 text-xs font-medium"
                         key={role}
                     >
                         {roleLabel(role, roleOptions)}
@@ -1472,7 +1541,7 @@ function RoleEditor({
                                     'Remove :role role',
                                     { role: roleLabel(role, roleOptions) },
                                 )}
-                                className="rounded text-slate-500 transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:text-slate-400 dark:hover:text-red-300"
+                                className="rounded text-[var(--settings-muted-text)] transition hover:text-red-600 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:hover:text-red-300"
                                 onClick={() => removeRole(role)}
                                 type="button"
                             >
@@ -1486,7 +1555,7 @@ function RoleEditor({
             {!disabled && addableRoles.length > 0 ? (
                 <div className="flex gap-2">
                     <select
-                        className="h-9 min-w-0 flex-1 rounded-md border border-input bg-white px-3 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                        className="h-9 min-w-0 flex-1 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-3 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:text-slate-100"
                         id={`${idPrefix}-role`}
                         onChange={(event) =>
                             setSelectedRoleToAdd(
@@ -1497,7 +1566,7 @@ function RoleEditor({
                     >
                         {addableRoles.map((role) => (
                             <option
-                                className="bg-white text-slate-950 dark:bg-slate-950 dark:text-slate-100"
+                                className="bg-[var(--settings-content-background)] text-slate-950 dark:text-slate-100"
                                 key={role}
                                 value={role}
                             >
@@ -1526,13 +1595,13 @@ function LoginToggle({
     const t = usePlatformTranslation();
 
     return (
-        <div className="inline-grid grid-cols-2 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium dark:border-white/10 dark:bg-slate-950/70">
+        <div className="inline-grid grid-cols-2 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-1 text-xs font-medium">
             <button
                 className={cn(
                     'rounded-md px-2 py-1.5 transition',
                     !isDisabled
                         ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
-                        : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
+                        : 'text-[var(--settings-muted-text)] hover:text-[var(--settings-accent)]',
                 )}
                 disabled={disabled}
                 onClick={() => onChange(false)}
@@ -1545,7 +1614,7 @@ function LoginToggle({
                     'rounded-md px-2 py-1.5 transition',
                     isDisabled
                         ? 'bg-red-600 text-white shadow-sm dark:bg-red-400 dark:text-slate-950'
-                        : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
+                        : 'text-[var(--settings-muted-text)] hover:text-[var(--settings-accent)]',
                 )}
                 disabled={disabled}
                 onClick={() => onChange(true)}
@@ -1610,7 +1679,7 @@ function UserDetailsDialog({
                     value={formatDate(user.banned_until, t)}
                 />
 
-                <div className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <div className="rounded-lg border border-[var(--settings-border-color)] p-4">
                     <div className="mb-3 flex items-center gap-2 font-medium">
                         <CalendarClock className="size-4 text-[var(--settings-accent)]" />
                         {t(
@@ -1671,7 +1740,7 @@ function UserDetailsDialog({
                             />
                         </div>
                     ) : (
-                        <p className="text-slate-500 dark:text-slate-400">
+                        <p className="text-[var(--settings-muted-text)]">
                             {t(
                                 'settings.access.users.details.no_token',
                                 'No registration token is linked to this account.',
@@ -1706,6 +1775,11 @@ function RoleManagementPanel({
     const [form, setForm] = useState<RoleFormState>(() =>
         roleFormFromRole(selectedRole, permissionResources),
     );
+    const roleBaseline = useMemo(
+        () => roleFormFromRole(selectedRole, permissionResources),
+        [permissionResources, selectedRole],
+    );
+    const hasRoleChanges = useDirtyState(form, roleBaseline);
     const groupedResources = useMemo(
         () => groupPermissionResources(permissionResources),
         [permissionResources],
@@ -1720,6 +1794,10 @@ function RoleManagementPanel({
         setForm(roleFormFromRole(null, permissionResources));
     };
     const saveRole = () => {
+        if (!hasRoleChanges) {
+            return;
+        }
+
         const payload = {
             ...form,
             level: Number(form.level || 10),
@@ -1784,13 +1862,13 @@ function RoleManagementPanel({
 
     return (
         <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside className="flex min-h-0 flex-col rounded-lg border border-slate-200 dark:border-white/10">
-                <div className="flex items-center justify-between border-b border-slate-200 p-3 dark:border-white/10">
+            <aside className="flex min-h-0 flex-col rounded-lg border border-[var(--settings-border-color)]">
+                <div className="flex items-center justify-between border-b border-[var(--settings-border-color)] p-3">
                     <div>
                         <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                             {t('settings.access.roles.title', 'Roles')}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <p className="text-xs text-[var(--settings-muted-text)]">
                             {t(
                                 'settings.access.roles.description',
                                 'Select a role to inspect or edit.',
@@ -1809,8 +1887,8 @@ function RoleManagementPanel({
                             className={cn(
                                 'mb-2 w-full rounded-lg border p-3 text-left transition',
                                 selectedRoleId === role.id
-                                    ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] text-slate-950 dark:text-slate-50'
-                                    : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5 dark:text-slate-100',
+                                    ? 'border-[var(--settings-accent)] bg-[var(--settings-active-background)] text-slate-950 dark:text-slate-50'
+                                    : 'border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-slate-800 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] dark:text-slate-100',
                             )}
                             key={role.id}
                             onClick={() => selectRole(role)}
@@ -1819,7 +1897,7 @@ function RoleManagementPanel({
                             <span className="block text-sm font-medium">
                                 {role.name}
                             </span>
-                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                            <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
                                 {role.slug}
                             </span>
                         </button>
@@ -1827,7 +1905,7 @@ function RoleManagementPanel({
                 </div>
             </aside>
 
-            <section className="min-h-0 rounded-lg border border-slate-200 p-4 dark:border-white/10">
+            <section className="min-h-0 rounded-lg border border-[var(--settings-border-color)] p-4">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
@@ -1852,7 +1930,10 @@ function RoleManagementPanel({
                     </div>
                     <div className="flex gap-2">
                         {canUpdateRoles ? (
-                            <Button onClick={saveRole}>
+                            <Button
+                                disabled={!hasRoleChanges}
+                                onClick={saveRole}
+                            >
                                 {selectedRole
                                     ? t('common.save', 'Save')
                                     : t('common.create', 'Create')}
@@ -1950,8 +2031,8 @@ function RoleManagementPanel({
                     </div>
                 </div>
 
-                <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10">
-                    <div className="grid grid-cols-[minmax(12rem,1fr)_18rem_14rem] bg-slate-100 px-4 py-3 text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
+                    <div className="grid grid-cols-[minmax(12rem,1fr)_18rem_14rem] bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
                         <span>{t('settings.access.roles.area', 'Area')}</span>
                         <span>
                             {t(
@@ -1964,19 +2045,19 @@ function RoleManagementPanel({
                     <div className="max-h-96 overflow-y-auto">
                         {groupedResources.map((group) => (
                             <div key={group.name}>
-                                <div className="border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                                <div className="border-t border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-4 py-2 text-xs font-semibold tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
                                     {group.name}
                                 </div>
                                 {group.resources.map((resource) => (
                                     <div
-                                        className="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-[minmax(12rem,1fr)_18rem_14rem] sm:items-center dark:border-white/10"
+                                        className="grid gap-3 border-t border-[var(--settings-border-color)] p-4 sm:grid-cols-[minmax(12rem,1fr)_18rem_14rem] sm:items-center"
                                         key={resource.key}
                                     >
                                         <div>
                                             <p className="text-sm font-medium text-slate-950 dark:text-white">
                                                 {resource.label}
                                             </p>
-                                            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                            <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
                                                 {resource.description}
                                             </p>
                                         </div>
@@ -2015,7 +2096,7 @@ function RoleManagementPanel({
                     </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 rounded-lg bg-slate-50 p-3 text-xs leading-5 text-slate-600 dark:bg-white/5 dark:text-slate-300">
+                <div className="mt-4 grid gap-2 rounded-lg bg-[var(--settings-active-background)] p-3 text-xs leading-5 text-[var(--settings-muted-text)]">
                     <p>
                         <strong>
                             {t('settings.access.permissions.ro', 'RO')}
@@ -2076,14 +2157,14 @@ function PermissionButtonGroup({
     ];
 
     return (
-        <div className="inline-grid grid-cols-4 rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-medium dark:border-white/10 dark:bg-slate-950/70">
+        <div className="inline-grid grid-cols-4 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-1 text-xs font-medium">
             {options.map((option) => (
                 <button
                     className={cn(
                         'rounded-md px-3 py-2 transition',
                         level === option.value
                             ? 'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)] shadow-sm'
-                            : 'text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white',
+                            : 'text-[var(--settings-muted-text)] hover:text-[var(--settings-accent)]',
                     )}
                     disabled={disabled}
                     key={option.value}
@@ -2116,7 +2197,7 @@ function PermissionScopeSelect({
 
     return (
         <select
-            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950"
+            className="h-9 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-3 text-sm"
             disabled={disabled}
             onChange={(event) =>
                 onChange(event.currentTarget.value as PermissionScope)
@@ -2152,7 +2233,7 @@ function groupPermissionResources(resources: PermissionResource[]): {
 function DetailRow({ label, value }: { label: string; value: string }) {
     return (
         <div className="grid gap-1 sm:grid-cols-[160px_minmax(0,1fr)] sm:gap-4">
-            <dt className="text-xs font-medium tracking-[0.14em] text-slate-500 uppercase dark:text-slate-400">
+            <dt className="text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
                 {label}
             </dt>
             <dd className="min-w-0 break-words text-slate-800 dark:text-slate-100">
@@ -2206,6 +2287,13 @@ function firstAddableRole(
     currentRoles: UserRole[],
 ): UserRole | null {
     return assignableRoles.find((role) => !currentRoles.includes(role)) ?? null;
+}
+
+function normalizedAccessForm(form: AccessFormState): AccessFormState {
+    return {
+        ...form,
+        roles: [...form.roles].sort((left, right) => left.localeCompare(right)),
+    };
 }
 
 function roleFormFromRole(

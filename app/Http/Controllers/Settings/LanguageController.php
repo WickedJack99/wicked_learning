@@ -15,13 +15,19 @@ class LanguageController extends Controller
 
     public function edit(): RedirectResponse
     {
-        return to_route('settings.personal.edit', ['section' => 'language']);
+        return to_route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'language',
+        ]);
     }
 
     public function update(UpdateLocalePreferenceRequest $request): RedirectResponse
     {
         $this->updatePreference->handle($request->user(), $request->string('locale')->toString());
 
-        return to_route('settings.personal.edit', ['section' => 'language']);
+        return to_route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'language',
+        ]);
     }
 }

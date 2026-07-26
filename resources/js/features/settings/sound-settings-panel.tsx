@@ -1,22 +1,33 @@
 import { router } from '@inertiajs/react';
 import { Save, Volume2, VolumeX } from 'lucide-react';
-import { type ChangeEvent, useEffect, useState } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 
-import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
+import {
+    SettingsPanelHeader,
+    type SettingsSaveAction,
+} from '@/components/settings-configuration-shell';
 import { type SoundPreferences } from '@/features/sounds/sound-player';
+import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import soundPreferences from '@/routes/settings/sound-preferences';
 
 type SoundSettingsPanelProps = {
+    hideSaveButton?: boolean;
+    onSaveActionChange?: (action: SettingsSaveAction | null) => void;
     preferences: SoundPreferences;
 };
 
 type VolumeKey = 'ambienceVolume' | 'effectsVolume';
 
-export function SoundSettingsPanel({ preferences }: SoundSettingsPanelProps) {
+export function SoundSettingsPanel({
+    hideSaveButton = false,
+    onSaveActionChange,
+    preferences,
+}: SoundSettingsPanelProps) {
     const t = usePlatformTranslation();
     const [form, setForm] = useState<SoundPreferences>(preferences);
     const [saving, setSaving] = useState(false);
+    const hasChanges = useDirtyState(form, preferences);
 
     useEffect(() => setForm(preferences), [preferences]);
 
@@ -28,16 +39,36 @@ export function SoundSettingsPanel({ preferences }: SoundSettingsPanelProps) {
             }));
         };
 
-    const save = () => {
+    const save = useCallback(() => {
+        if (!hasChanges) {
+            return;
+        }
+
         router.patch(soundPreferences.update.url(), form, {
             onFinish: () => setSaving(false),
             onStart: () => setSaving(true),
             preserveScroll: true,
         });
-    };
+    }, [form, hasChanges]);
+
+    useEffect(() => {
+        if (!onSaveActionChange) {
+            return;
+        }
+
+        onSaveActionChange({
+            disabled: saving || !hasChanges,
+            label: t('common.save', 'Save'),
+            onClick: save,
+            saving,
+            savingLabel: t('settings.personal.sound.saving', 'Saving...'),
+        });
+
+        return () => onSaveActionChange(null);
+    }, [hasChanges, onSaveActionChange, save, saving, t]);
 
     return (
-        <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-5">
             <SettingsPanelHeader
                 action={
                     <button
@@ -104,7 +135,7 @@ export function SoundSettingsPanel({ preferences }: SoundSettingsPanelProps) {
                     />
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-[#050816]/80">
+                <div className="border-b border-[var(--settings-border-color)] pb-4 lg:border-b-0 lg:border-l lg:pb-0 lg:pl-5">
                     <p
                         className="text-xs font-medium tracking-[0.18em] uppercase"
                         style={{ color: 'var(--settings-accent)' }}
@@ -138,22 +169,24 @@ export function SoundSettingsPanel({ preferences }: SoundSettingsPanelProps) {
                 </div>
             </div>
 
-            <div className="flex justify-end">
-                <button
-                    className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-white dark:text-slate-950"
-                    disabled={saving}
-                    onClick={save}
-                    type="button"
-                >
-                    <Save className="size-4" />
-                    {saving
-                        ? t('settings.personal.sound.saving', 'Saving...')
-                        : t(
-                              'settings.personal.sound.save',
-                              'Save sound preferences',
-                          )}
-                </button>
-            </div>
+            {!hideSaveButton ? (
+                <div className="flex justify-end">
+                    <button
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-white dark:text-slate-950"
+                        disabled={saving || !hasChanges}
+                        onClick={save}
+                        type="button"
+                    >
+                        <Save className="size-4" />
+                        {saving
+                            ? t('settings.personal.sound.saving', 'Saving...')
+                            : t(
+                                  'settings.personal.sound.save',
+                                  'Save sound preferences',
+                              )}
+                    </button>
+                </div>
+            ) : null}
         </section>
     );
 }
@@ -170,7 +203,7 @@ function VolumeControl({
     value: number;
 }) {
     return (
-        <label className="grid gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-[#050816]/70">
+        <label className="grid gap-3 border-b border-[var(--settings-border-color)] pb-4">
             <span>
                 <span className="block text-sm font-semibold">{label}</span>
                 <span className="mt-1 block text-sm leading-6 text-slate-500 dark:text-slate-400">

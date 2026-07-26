@@ -11,7 +11,10 @@ test('profile page is displayed', function () {
         ->actingAs($user)
         ->get(route('profile.edit'));
 
-    $response->assertRedirect(route('settings.personal.edit', ['section' => 'profile']));
+    $response->assertRedirect(route('settings.index', [
+        'panel' => 'personal',
+        'personal' => 'profile',
+    ]));
 });
 
 test('profile information can be updated', function () {
@@ -28,7 +31,10 @@ test('profile information can be updated', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.personal.edit', ['section' => 'profile']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'profile',
+        ]));
 
     $user->refresh();
 
@@ -84,7 +90,10 @@ test('email verification status is unchanged when the email address is unchanged
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('settings.personal.edit', ['section' => 'profile']));
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'personal',
+            'personal' => 'profile',
+        ]));
 
     expect($user->refresh()->email_verified_at)->not->toBeNull();
 });
