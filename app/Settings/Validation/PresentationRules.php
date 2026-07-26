@@ -139,6 +139,8 @@ class PresentationRules
                 'appearanceSwitchInactiveText',
                 'sidebarBackground',
                 'contentBackground',
+                'inputBackground',
+                'inputBorderColor',
                 'panelBackground',
                 'nestedSidebarBackground',
                 'borderColor',

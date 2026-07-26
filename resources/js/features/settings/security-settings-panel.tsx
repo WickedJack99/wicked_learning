@@ -9,6 +9,7 @@ import ManageTwoFactor from '@/components/manage-two-factor';
 import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
 import {
+    SettingsFormColumn,
     SettingsPanelHeader,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
@@ -46,51 +47,57 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                         'Update password',
                     )}
                 />
-                <Form
-                    {...SecurityController.update.form()}
-                    className="grid gap-5"
-                    id={props.formId}
-                    onError={(errors) => {
-                        if (errors.password) {
-                            passwordInput.current?.focus();
-                        }
+                <SettingsFormColumn>
+                    <Form
+                        {...SecurityController.update.form()}
+                        className="grid gap-5"
+                        id={props.formId}
+                        onError={(errors) => {
+                            if (errors.password) {
+                                passwordInput.current?.focus();
+                            }
 
-                        if (errors.current_password) {
-                            currentPasswordInput.current?.focus();
-                        }
-                    }}
-                    options={{ preserveScroll: true }}
-                    resetOnError={[
-                        'password',
-                        'password_confirmation',
-                        'current_password',
-                    ]}
-                    resetOnSuccess
-                >
-                    {({ errors, processing, isDirty }) => (
-                        <SecurityPasswordFormContent
-                            errors={errors}
-                            formId={props.formId}
-                            hideSaveButton={props.hideSaveButton ?? false}
-                            isDirty={isDirty}
-                            onSaveActionChange={props.onSaveActionChange}
-                            passwordInput={passwordInput}
-                            passwordRules={props.passwordRules}
-                            processing={processing}
-                            currentPasswordInput={currentPasswordInput}
-                        />
-                    )}
-                </Form>
+                            if (errors.current_password) {
+                                currentPasswordInput.current?.focus();
+                            }
+                        }}
+                        options={{ preserveScroll: true }}
+                        resetOnError={[
+                            'password',
+                            'password_confirmation',
+                            'current_password',
+                        ]}
+                        resetOnSuccess
+                    >
+                        {({ errors, processing, isDirty }) => (
+                            <SecurityPasswordFormContent
+                                errors={errors}
+                                formId={props.formId}
+                                hideSaveButton={props.hideSaveButton ?? false}
+                                isDirty={isDirty}
+                                onSaveActionChange={props.onSaveActionChange}
+                                passwordInput={passwordInput}
+                                passwordRules={props.passwordRules}
+                                processing={processing}
+                                currentPasswordInput={currentPasswordInput}
+                            />
+                        )}
+                    </Form>
+                </SettingsFormColumn>
             </section>
             {props.canManageTwoFactor ? (
-                <section className="border-t border-[var(--settings-border-color)] pt-5">
-                    <ManageTwoFactor {...props} />
-                </section>
+                <SettingsFormColumn>
+                    <section className="border-t border-[var(--settings-border-color)] pt-5">
+                        <ManageTwoFactor {...props} />
+                    </section>
+                </SettingsFormColumn>
             ) : null}
             {props.canManagePasskeys ? (
-                <section className="border-t border-[var(--settings-border-color)] pt-5">
-                    <ManagePasskeys {...props} />
-                </section>
+                <SettingsFormColumn>
+                    <section className="border-t border-[var(--settings-border-color)] pt-5">
+                        <ManagePasskeys {...props} />
+                    </section>
+                </SettingsFormColumn>
             ) : null}
         </div>
     );

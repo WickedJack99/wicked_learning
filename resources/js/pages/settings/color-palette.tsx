@@ -112,6 +112,8 @@ const settingsFields: Array<{ field: SettingsPaletteField; label: string }> = [
     { field: 'nestedSidebarBackground', label: 'Nested menu background' },
     { field: 'contentBackground', label: 'Content background' },
     { field: 'panelBackground', label: 'Panel background' },
+    { field: 'inputBackground', label: 'Input field background' },
+    { field: 'inputBorderColor', label: 'Input field border' },
     { field: 'borderColor', label: 'Border color' },
     { field: 'mutedText', label: 'Muted text' },
     { field: 'scrollbarThumb', label: 'Scrollbar thumb' },
@@ -216,12 +218,24 @@ export default function ColorPaletteSettings({
         publicPresentation ? 'presentation' : journal ? 'journal' : 'maps',
     );
     const [mode, setMode] = useState<ConfigThemeMode>('dark');
-    const [presentationDraft, setPresentationDraft] =
-        useState(publicPresentation);
-    const [journalThemeDraft, setJournalThemeDraft] = useState(
-        journal?.theme ?? null,
+    const [presentationDraft, setPresentationDraft] = useState(() =>
+        cloneSettingsValue(publicPresentation),
     );
-    const [mapDrafts, setMapDrafts] = useState(maps);
+    const [journalThemeDraft, setJournalThemeDraft] = useState(() =>
+        cloneSettingsValue(journal?.theme ?? null),
+    );
+    const [mapDrafts, setMapDrafts] = useState(() =>
+        cloneSettingsValue(maps),
+    );
+    const [lastSavedPresentation, setLastSavedPresentation] = useState(() =>
+        cloneSettingsValue(publicPresentation),
+    );
+    const [lastSavedJournalTheme, setLastSavedJournalTheme] = useState(() =>
+        cloneSettingsValue(journal?.theme ?? null),
+    );
+    const [lastSavedMaps, setLastSavedMaps] = useState(() =>
+        cloneSettingsValue(maps),
+    );
     const [selectedMapId, setSelectedMapId] = useState(maps[0]?.id ?? null);
     const [selectedMapGroup, setSelectedMapGroup] = useState(
         mapFieldGroups[0].id,
@@ -234,9 +248,9 @@ export default function ColorPaletteSettings({
             publicPresentation: presentationDraft,
         },
         {
-            journalTheme: journal?.theme ?? null,
-            mapBackgroundConfigs: maps,
-            publicPresentation,
+            journalTheme: lastSavedJournalTheme,
+            mapBackgroundConfigs: lastSavedMaps,
+            publicPresentation: lastSavedPresentation,
         },
     );
     const availableColors = useMemo(
@@ -271,6 +285,13 @@ export default function ColorPaletteSettings({
 
         router.patch('/settings/color-palette', payload, {
             onFinish: () => setSaving(false),
+            onSuccess: () => {
+                setLastSavedPresentation(
+                    cloneSettingsValue(presentationDraft),
+                );
+                setLastSavedJournalTheme(cloneSettingsValue(journalThemeDraft));
+                setLastSavedMaps(cloneSettingsValue(mapDrafts));
+            },
             preserveScroll: true,
         });
     }
@@ -359,7 +380,7 @@ export default function ColorPaletteSettings({
                         onChange={setPresentationDraft}
                         presentation={presentationDraft}
                         storedPresentation={
-                            publicPresentation ?? presentationDraft
+                            lastSavedPresentation ?? presentationDraft
                         }
                         workbenchTheme={workbenchTheme}
                     />
@@ -372,7 +393,7 @@ export default function ColorPaletteSettings({
                         onChange={setPresentationDraft}
                         presentation={presentationDraft}
                         storedPresentation={
-                            publicPresentation ?? presentationDraft
+                            lastSavedPresentation ?? presentationDraft
                         }
                         workbenchTheme={workbenchTheme}
                     />
@@ -383,7 +404,7 @@ export default function ColorPaletteSettings({
                         canUpdate={canUpdate.journal}
                         mode={mode}
                         onChange={setJournalThemeDraft}
-                        storedTheme={journal?.theme ?? journalThemeDraft}
+                        storedTheme={lastSavedJournalTheme ?? journalThemeDraft}
                         theme={journalThemeDraft}
                         workbenchTheme={workbenchTheme}
                     />
@@ -399,7 +420,7 @@ export default function ColorPaletteSettings({
                         onGroupChange={setSelectedMapGroup}
                         onMapChange={setSelectedMapId}
                         onMapsChange={setMapDrafts}
-                        storedMaps={maps}
+                        storedMaps={lastSavedMaps}
                         workbenchTheme={workbenchTheme}
                     />
                 ) : null}
@@ -1204,7 +1225,8 @@ function SettingsControlsPreview({
                 <div
                     className="mt-2 h-10 rounded-md border px-3 py-2 text-sm"
                     style={{
-                        borderColor: colors.accent,
+                        background: colors.inputBackground,
+                        borderColor: colors.inputBorderColor,
                         color: colors.mutedText,
                     }}
                 >
@@ -1600,6 +1622,8 @@ function settingsPreviewColors(
         ),
         borderColor: settingsPaletteColor(palette, 'borderColor'),
         contentBackground: settingsPaletteColor(palette, 'contentBackground'),
+        inputBackground: settingsPaletteColor(palette, 'inputBackground'),
+        inputBorderColor: settingsPaletteColor(palette, 'inputBorderColor'),
         mutedText: settingsPaletteColor(palette, 'mutedText'),
         nestedSidebarBackground: settingsPaletteColor(
             palette,
@@ -1819,6 +1843,10 @@ function collectAvailableColors(
 
         return true;
     });
+}
+
+function cloneSettingsValue<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function sectionTitle(section: PaletteSection): string {

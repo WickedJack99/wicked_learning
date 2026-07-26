@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react';
 import DeleteUser from '@/components/delete-user';
 import {
+    SettingsFormColumn,
     SettingsNestedWorkspace,
     SettingsSectionNavigation,
     SettingsSaveButton,
@@ -270,9 +271,11 @@ function PersonalSettingsSectionContent({
 
 function DeleteAccountPanel() {
     return (
-        <section className="border-t border-red-400/30 pt-5">
-            <DeleteUser />
-        </section>
+        <SettingsFormColumn>
+            <section className="border-t border-red-400/30 pt-5">
+                <DeleteUser />
+            </section>
+        </SettingsFormColumn>
     );
 }
 

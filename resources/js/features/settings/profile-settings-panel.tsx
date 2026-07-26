@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import InputError from '@/components/input-error';
 import {
+    SettingsFormColumn,
     SettingsPanelHeader,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
@@ -97,33 +98,35 @@ export function ProfileSettingsPanel({
                     )}
                 />
 
-                <Form
-                    {...ProfileController.update.form()}
-                    className="grid gap-5"
-                    id={formId}
-                    options={{ preserveScroll: true }}
-                >
-                    {({ processing, errors, isDirty }) => (
-                        <ProfileFormContent
-                            canViewPath={auth.canViewMediaPaths}
-                            errors={errors}
-                            formId={formId}
-                            hasProfileImageChanges={hasProfileImageChanges}
-                            hideSaveButton={hideSaveButton}
-                            isDirty={isDirty}
-                            mustVerifyEmail={mustVerifyEmail}
-                            onProfileImageChange={setProfileImage}
-                            onProfileImageUpload={uploadProfileImage}
-                            onSaveActionChange={onSaveActionChange}
-                            processing={processing}
-                            profileImage={profileImage}
-                            profileImageError={profileImageError}
-                            status={status}
-                            uploadingProfileImage={isUploadingProfileImage}
-                            user={auth.user}
-                        />
-                    )}
-                </Form>
+                <SettingsFormColumn>
+                    <Form
+                        {...ProfileController.update.form()}
+                        className="grid gap-5"
+                        id={formId}
+                        options={{ preserveScroll: true }}
+                    >
+                        {({ processing, errors, isDirty }) => (
+                            <ProfileFormContent
+                                canViewPath={auth.canViewMediaPaths}
+                                errors={errors}
+                                formId={formId}
+                                hasProfileImageChanges={hasProfileImageChanges}
+                                hideSaveButton={hideSaveButton}
+                                isDirty={isDirty}
+                                mustVerifyEmail={mustVerifyEmail}
+                                onProfileImageChange={setProfileImage}
+                                onProfileImageUpload={uploadProfileImage}
+                                onSaveActionChange={onSaveActionChange}
+                                processing={processing}
+                                profileImage={profileImage}
+                                profileImageError={profileImageError}
+                                status={status}
+                                uploadingProfileImage={isUploadingProfileImage}
+                                user={auth.user}
+                            />
+                        )}
+                    </Form>
+                </SettingsFormColumn>
             </section>
         </div>
     );

@@ -1,5 +1,8 @@
 import AppearanceTabs from '@/components/appearance-tabs';
-import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
+import {
+    SettingsFormColumn,
+    SettingsPanelHeader,
+} from '@/components/settings-configuration-shell';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export function AppearanceSettingsPanel() {
@@ -18,7 +21,9 @@ export function AppearanceSettingsPanel() {
                 )}
                 title={t('settings.personal.appearance.title', 'Visual mode')}
             />
-            <AppearanceTabs />
+            <SettingsFormColumn>
+                <AppearanceTabs />
+            </SettingsFormColumn>
         </section>
     );
 }

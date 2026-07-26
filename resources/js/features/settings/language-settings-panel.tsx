@@ -1,7 +1,10 @@
 import { router } from '@inertiajs/react';
 import { Save } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import type { SettingsSaveAction } from '@/components/settings-configuration-shell';
+import {
+    SettingsFormColumn,
+    type SettingsSaveAction,
+} from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -90,32 +93,34 @@ export function LanguageSettingsPanel({
                     )}
                 </p>
             </div>
-            <div className="grid max-w-xl gap-2">
-                <Label htmlFor="language">
-                    {t(
-                        'settings.personal.language.current',
-                        'Current language',
-                    )}
-                </Label>
-                <Select
-                    onValueChange={setSelectedLocale}
-                    value={selectedLocale}
-                >
-                    <SelectTrigger id="language">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {availableLanguages.map((language) => (
-                            <SelectItem
-                                key={language.code}
-                                value={language.code}
-                            >
-                                {language.name} ({language.nativeName})
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+            <SettingsFormColumn>
+                <div className="grid gap-2">
+                    <Label htmlFor="language">
+                        {t(
+                            'settings.personal.language.current',
+                            'Current language',
+                        )}
+                    </Label>
+                    <Select
+                        onValueChange={setSelectedLocale}
+                        value={selectedLocale}
+                    >
+                        <SelectTrigger id="language">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableLanguages.map((language) => (
+                                <SelectItem
+                                    key={language.code}
+                                    value={language.code}
+                                >
+                                    {language.name} ({language.nativeName})
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </SettingsFormColumn>
             {!hideSaveButton ? (
                 <Button
                     disabled={saving || !hasChanges}

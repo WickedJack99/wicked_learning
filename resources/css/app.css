@@ -229,6 +229,8 @@
         --settings-active-background: rgba(15, 118, 110, 0.1);
         --settings-border-color: #e2e8f0;
         --settings-content-background: #f1f5f9;
+        --settings-input-background: #ffffff;
+        --settings-input-border-color: #cbd5e1;
         --settings-muted-text: #64748b;
         --settings-nested-sidebar-background: rgb(248 250 252 / 0.96);
         --settings-panel-background: #ffffff;
@@ -242,6 +244,8 @@
         --settings-active-background: rgba(45, 212, 191, 0.1);
         --settings-border-color: rgba(255, 255, 255, 0.1);
         --settings-content-background: #0b1117;
+        --settings-input-background: rgb(2 6 23 / 0.38);
+        --settings-input-border-color: rgba(255, 255, 255, 0.1);
         --settings-muted-text: #94a3b8;
         --settings-nested-sidebar-background: rgb(2 6 23 / 0.96);
         --settings-panel-background: #111820;
@@ -270,6 +274,17 @@
             var(--settings-content-background, #0b1117)
         );
         color: rgb(248 250 252);
+    }
+
+    .settings-surface
+        :is(
+            [data-slot='input'],
+            [data-slot='select-trigger'],
+            textarea,
+            select
+        ) {
+        border-color: var(--settings-input-border-color);
+        background-color: var(--settings-input-background);
     }
 
     @keyframes nav-inserted-item {

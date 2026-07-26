@@ -52,6 +52,8 @@ export type SettingsPaletteField =
     | 'appearanceSwitchInactiveText'
     | 'borderColor'
     | 'contentBackground'
+    | 'inputBackground'
+    | 'inputBorderColor'
     | 'mutedText'
     | 'nestedSidebarBackground'
     | 'panelBackground'
@@ -401,6 +403,14 @@ export function getSettingsPresentationStyle(
             palette,
             'contentBackground',
         ),
+        '--settings-input-background': settingsPaletteColor(
+            palette,
+            'inputBackground',
+        ),
+        '--settings-input-border-color': settingsPaletteColor(
+            palette,
+            'inputBorderColor',
+        ),
         '--settings-muted-text': settingsPaletteColor(palette, 'mutedText'),
         '--settings-nested-sidebar-background': settingsPaletteColor(
             palette,
@@ -482,6 +492,10 @@ export const defaultSettingsPalette: Record<
         borderColorOpacity: 10,
         contentBackground: '#0b1117',
         contentBackgroundOpacity: 100,
+        inputBackground: '#020617',
+        inputBackgroundOpacity: 38,
+        inputBorderColor: '#ffffff',
+        inputBorderColorOpacity: 10,
         mutedText: '#94a3b8',
         mutedTextOpacity: 100,
         nestedSidebarBackground: '#050816',
@@ -512,6 +526,10 @@ export const defaultSettingsPalette: Record<
         borderColorOpacity: 100,
         contentBackground: '#f1f5f9',
         contentBackgroundOpacity: 100,
+        inputBackground: '#ffffff',
+        inputBackgroundOpacity: 100,
+        inputBorderColor: '#cbd5e1',
+        inputBorderColorOpacity: 100,
         mutedText: '#64748b',
         mutedTextOpacity: 100,
         nestedSidebarBackground: '#f8fafc',

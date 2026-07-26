@@ -141,6 +141,8 @@ test('settings page shares platform color palette with normal users', function (
         'settingsPalette' => [
             'dark' => [
                 'accent' => '#ff4fd8',
+                'inputBackground' => '#180a24',
+                'inputBorderColor' => '#b46cff',
                 'sidebarBackground' => '#101820',
             ],
             'light' => [
@@ -155,6 +157,8 @@ test('settings page shares platform color palette with normal users', function (
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/index')
             ->where('publicPresentation.settingsPalette.dark.accent', '#ff4fd8')
+            ->where('publicPresentation.settingsPalette.dark.inputBackground', '#180a24')
+            ->where('publicPresentation.settingsPalette.dark.inputBorderColor', '#b46cff')
             ->where('publicPresentation.settingsPalette.dark.sidebarBackground', '#101820')
         );
 });

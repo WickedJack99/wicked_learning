@@ -48,6 +48,11 @@ type SettingsGroupedPaneProps = {
     className?: string;
 };
 
+type SettingsFormColumnProps = {
+    children: ReactNode;
+    className?: string;
+};
+
 type SettingsNestedWorkspaceProps = {
     action?: ReactNode;
     children: ReactNode;
@@ -68,6 +73,7 @@ export type SettingsSaveAction = {
 
 type SettingsPanelHeaderProps = {
     action?: ReactNode;
+    constrainActionToContent?: boolean;
     description?: ReactNode;
     eyebrow?: ReactNode;
     icon?: LucideIcon;
@@ -201,13 +207,14 @@ export function SettingsContentPane({ children }: { children: ReactNode }) {
 
 export function SettingsPanelHeader({
     action,
+    constrainActionToContent = false,
     description,
     eyebrow,
     icon: Icon,
     title,
 }: SettingsPanelHeaderProps) {
-    return (
-        <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
+    const content = (
+        <>
             <div className="min-w-0">
                 {eyebrow ? (
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
@@ -227,6 +234,22 @@ export function SettingsPanelHeader({
                 ) : null}
             </div>
             {action ? <div className="shrink-0">{action}</div> : null}
+        </>
+    );
+
+    if (constrainActionToContent) {
+        return (
+            <header className="border-b border-[var(--settings-border-color)] pb-5">
+                <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:max-w-[45%]">
+                    {content}
+                </div>
+            </header>
+        );
+    }
+
+    return (
+        <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
+            {content}
         </header>
     );
 }
@@ -244,6 +267,17 @@ export function SettingsGroupedPane({
         >
             {children}
         </section>
+    );
+}
+
+export function SettingsFormColumn({
+    children,
+    className,
+}: SettingsFormColumnProps) {
+    return (
+        <div className={cn('grid w-full gap-5 lg:max-w-[45%]', className)}>
+            {children}
+        </div>
     );
 }
 
@@ -265,21 +299,23 @@ export function SettingsNestedWorkspace({
                 </aside>
             }
         >
-            <header className="flex shrink-0 flex-col gap-4 border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-3 text-[var(--settings-accent)]">
-                        {Icon ? <Icon className="size-5" /> : null}
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                            {title}
-                        </h2>
+            <header className="shrink-0 border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-4 py-4 sm:px-5">
+                <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-[45%]">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-3 text-[var(--settings-accent)]">
+                            {Icon ? <Icon className="size-5" /> : null}
+                            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                                {title}
+                            </h2>
+                        </div>
+                        {description ? (
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                                {description}
+                            </p>
+                        ) : null}
                     </div>
-                    {description ? (
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                            {description}
-                        </p>
-                    ) : null}
+                    {action ? <div className="shrink-0">{action}</div> : null}
                 </div>
-                {action ? <div className="shrink-0">{action}</div> : null}
             </header>
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
