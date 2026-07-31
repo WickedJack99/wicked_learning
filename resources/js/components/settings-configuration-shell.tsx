@@ -61,8 +61,9 @@ type SettingsNestedWorkspaceProps = {
     eyebrow?: ReactNode;
     headerContentClassName?: string;
     icon?: LucideIcon;
+    item?: SettingsNavigationItem<string>;
     sidebar: ReactNode;
-    title: ReactNode;
+    title?: ReactNode;
 };
 
 export type SettingsSaveAction = {
@@ -74,12 +75,25 @@ export type SettingsSaveAction = {
     savingLabel?: ReactNode;
 };
 
-type SettingsPanelHeaderProps = {
+type SettingsLevelBannerProps = {
     action?: ReactNode;
-    constrainActionToContent?: boolean;
+    className?: string;
+    contentClassName?: string;
     description?: ReactNode;
     eyebrow?: ReactNode;
     icon?: LucideIcon;
+    item?: SettingsNavigationItem<string>;
+    title?: ReactNode;
+};
+
+export type SettingsPanelHeaderProps = {
+    action?: ReactNode;
+    constrainActionToContent?: boolean;
+    danger?: boolean;
+    description?: ReactNode;
+    eyebrow?: ReactNode;
+    icon?: LucideIcon;
+    item?: SettingsNavigationItem<string>;
     title: ReactNode;
 };
 
@@ -211,19 +225,32 @@ export function SettingsContentPane({ children }: { children: ReactNode }) {
 export function SettingsPanelHeader({
     action,
     constrainActionToContent = false,
+    danger = false,
     description,
     eyebrow,
     icon: Icon,
+    item,
     title,
 }: SettingsPanelHeaderProps) {
+    const HeaderIcon = item?.icon ?? Icon;
+    const headerEyebrow = eyebrow ?? item?.label;
+    const headerDanger = danger || item?.danger === true;
+
     const content = (
         <>
             <div className="min-w-0">
-                {eyebrow ? (
-                    <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
-                        {Icon ? <Icon className="size-5" /> : null}
+                {headerEyebrow ? (
+                    <div
+                        className={cn(
+                            'mb-3 flex items-center gap-3',
+                            headerDanger
+                                ? 'text-red-500 dark:text-red-200'
+                                : 'text-[var(--settings-accent)]',
+                        )}
+                    >
+                        {HeaderIcon ? <HeaderIcon className="size-5" /> : null}
                         <p className="text-xs font-medium tracking-[0.18em] uppercase">
-                            {eyebrow}
+                            {headerEyebrow}
                         </p>
                     </div>
                 ) : null}
@@ -257,6 +284,15 @@ export function SettingsPanelHeader({
     );
 }
 
+export function SettingsItemPanelHeader<T extends string>({
+    item,
+    ...props
+}: Omit<SettingsPanelHeaderProps, 'item'> & {
+    item: SettingsNavigationItem<T>;
+}) {
+    return <SettingsPanelHeader {...props} item={item} />;
+}
+
 export function SettingsGroupedPane({
     children,
     className,
@@ -278,7 +314,9 @@ export function SettingsFormColumn({
     className,
 }: SettingsFormColumnProps) {
     return (
-        <div className={cn('grid w-full gap-5 lg:max-w-[45%]', className)}>
+        <div
+            className={cn('grid min-w-0 w-full gap-5 lg:max-w-[45%]', className)}
+        >
             {children}
         </div>
     );
@@ -292,9 +330,14 @@ export function SettingsNestedWorkspace({
     eyebrow,
     headerContentClassName,
     icon: Icon,
+    item,
     sidebar,
     title,
 }: SettingsNestedWorkspaceProps) {
+    const bannerTitle = title ?? item?.label;
+    const bannerDescription = description ?? item?.description;
+    const BannerIcon = item?.icon ?? Icon;
+
     return (
         <SettingsConfigurationLayout
             className="h-full gap-0"
@@ -305,34 +348,15 @@ export function SettingsNestedWorkspace({
                 </aside>
             }
         >
-            <header className="shrink-0 border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-4 py-4 sm:px-5">
-                <div
-                    className={cn(
-                        'flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-[45%]',
-                        headerContentClassName,
-                    )}
-                >
-                    <div className="min-w-0">
-                        {eyebrow ? (
-                            <p className="mb-2 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                {eyebrow}
-                            </p>
-                        ) : null}
-                        <div className="flex items-center gap-3 text-[var(--settings-accent)]">
-                            {Icon ? <Icon className="size-5" /> : null}
-                            <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
-                                {title}
-                            </h2>
-                        </div>
-                        {description ? (
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                                {description}
-                            </p>
-                        ) : null}
-                    </div>
-                    {action ? <div className="shrink-0">{action}</div> : null}
-                </div>
-            </header>
+            <SettingsLevelBanner
+                action={action}
+                contentClassName={headerContentClassName}
+                description={bannerDescription}
+                eyebrow={eyebrow}
+                icon={BannerIcon}
+                item={item}
+                title={bannerTitle}
+            />
 
             <div
                 className={cn(
@@ -343,6 +367,72 @@ export function SettingsNestedWorkspace({
                 {children}
             </div>
         </SettingsConfigurationLayout>
+    );
+}
+
+export function SettingsLevelBanner({
+    action,
+    className,
+    contentClassName,
+    description,
+    eyebrow,
+    icon: Icon,
+    item,
+    title,
+}: SettingsLevelBannerProps) {
+    const BannerIcon = item?.icon ?? Icon;
+    const bannerTitle = title ?? item?.label;
+    const bannerDescription = description ?? item?.description;
+    const bannerDanger = item?.danger === true;
+
+    return (
+        <header
+            className={cn(
+                'shrink-0 border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] px-4 py-4 sm:px-5',
+                className,
+            )}
+        >
+            <div
+                className={cn(
+                    'flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:max-w-[45%]',
+                    contentClassName,
+                )}
+            >
+                <div className="min-w-0">
+                    {eyebrow ? (
+                        <p
+                            className={cn(
+                                'mb-2 text-xs font-medium tracking-[0.18em] uppercase',
+                                bannerDanger
+                                    ? 'text-red-500 dark:text-red-200'
+                                    : 'text-[var(--settings-accent)]',
+                            )}
+                        >
+                            {eyebrow}
+                        </p>
+                    ) : null}
+                    <div
+                        className={cn(
+                            'flex items-center gap-3',
+                            bannerDanger
+                                ? 'text-red-500 dark:text-red-200'
+                                : 'text-[var(--settings-accent)]',
+                        )}
+                    >
+                        {BannerIcon ? <BannerIcon className="size-5" /> : null}
+                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                            {bannerTitle}
+                        </h2>
+                    </div>
+                    {bannerDescription ? (
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                            {bannerDescription}
+                        </p>
+                    ) : null}
+                </div>
+                {action ? <div className="shrink-0">{action}</div> : null}
+            </div>
+        </header>
     );
 }
 
