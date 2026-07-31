@@ -3,6 +3,8 @@ import { Save } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import {
     SettingsFormColumn,
+    SettingsPanelHeader,
+    type SettingsNavigationItem,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
@@ -25,11 +27,13 @@ type AvailableLanguage = {
 
 export function LanguageSettingsPanel({
     availableLanguages,
+    headingItem,
     hideSaveButton = false,
     locale,
     onSaveActionChange,
 }: {
     availableLanguages: AvailableLanguage[];
+    headingItem?: SettingsNavigationItem<string>;
     hideSaveButton?: boolean;
     locale: string;
     onSaveActionChange?: (action: SettingsSaveAction | null) => void;
@@ -73,26 +77,22 @@ export function LanguageSettingsPanel({
 
     return (
         <section className="grid gap-5">
-            <div>
-                <p
-                    className="text-xs font-medium tracking-[0.18em] uppercase"
-                    style={{ color: 'var(--settings-accent)' }}
-                >
-                    {t('settings.personal.preference', 'Personal preference')}
-                </p>
-                <h2 className="mt-2 text-xl font-semibold">
-                    {t(
-                        'settings.personal.language.current',
-                        'Current language',
-                    )}
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {t(
-                        'settings.personal.language.description',
-                        'Choose the language used for platform controls and learner-visible activity copy.',
-                    )}
-                </p>
-            </div>
+            <SettingsPanelHeader
+                description={t(
+                    'settings.personal.language.description',
+                    'Choose the language used for platform controls and learner-visible activity copy.',
+                )}
+                eyebrow={
+                    headingItem
+                        ? undefined
+                        : t('settings.personal.sections.language', 'Language')
+                }
+                item={headingItem}
+                title={t(
+                    'settings.personal.language.current',
+                    'Current language',
+                )}
+            />
             <SettingsFormColumn>
                 <div className="grid gap-2">
                     <Label htmlFor="language">

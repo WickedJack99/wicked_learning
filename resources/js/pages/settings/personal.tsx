@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import DeleteUser from '@/components/delete-user';
 import {
     SettingsFormColumn,
+    SettingsItemPanelHeader,
     SettingsNestedWorkspace,
     SettingsSectionNavigation,
     SettingsSaveButton,
@@ -149,6 +150,19 @@ export function PersonalSettingsContent({
         null,
     );
     const resolvedSection = activeSection ?? section;
+    const personalItem: SettingsNavigationItem<'personal'> = {
+        description: t(
+            'settings.personal.description',
+            'Profile, appearance, language, notifications and account safety.',
+        ),
+        icon: UserRound,
+        key: 'personal',
+        label: t('settings.personal.title_short', 'Personal'),
+    };
+    const sectionItems = buildPersonalSections(t);
+    const activeSectionItem =
+        sectionItems.find((item) => item.key === resolvedSection) ??
+        sectionItems[0];
 
     useEffect(() => setSection(initialSection), [initialSection]);
     useEffect(() => setSaveAction(null), [resolvedSection]);
@@ -164,20 +178,17 @@ export function PersonalSettingsContent({
     return (
         <SettingsNestedWorkspace
             action={<SettingsSaveButton action={saveAction} />}
-            description={t(
-                'settings.personal.description',
-                'Profile, appearance, language, notifications and account safety.',
-            )}
-            icon={UserRound}
+            item={personalItem}
             sidebar={
                 <PersonalSettingsSectionNavigation
                     activeSection={resolvedSection}
+                    items={sectionItems}
                     onChange={selectSection}
                 />
             }
-            title={t('settings.personal.title_short', 'Personal')}
         >
             <PersonalSettingsSectionContent
+                activeItem={activeSectionItem}
                 availableLanguages={availableLanguages}
                 locale={locale}
                 mustVerifyEmail={mustVerifyEmail}
@@ -193,9 +204,11 @@ export function PersonalSettingsContent({
 
 function PersonalSettingsSectionNavigation({
     activeSection,
+    items,
     onChange,
 }: {
     activeSection: PersonalSection;
+    items: SettingsNavigationItem<PersonalSection>[];
     onChange: (section: PersonalSection) => void;
 }) {
     const t = usePlatformTranslation();
@@ -207,7 +220,7 @@ function PersonalSettingsSectionNavigation({
                 'settings.personal.sections.aria',
                 'Personal settings sections',
             )}
-            items={buildPersonalSections(t)}
+            items={items}
             onChange={onChange}
         />
     );
@@ -215,6 +228,7 @@ function PersonalSettingsSectionNavigation({
 
 function PersonalSettingsSectionContent({
     activeSection,
+    activeItem,
     availableLanguages,
     locale,
     mustVerifyEmail,
@@ -224,6 +238,7 @@ function PersonalSettingsSectionContent({
     ...security
 }: Omit<PersonalSettingsProps, 'initialSection'> & {
     activeSection: PersonalSection;
+    activeItem: SettingsNavigationItem<PersonalSection>;
     onSaveActionChange: (action: SettingsSaveAction | null) => void;
 }) {
     return (
@@ -231,6 +246,7 @@ function PersonalSettingsSectionContent({
             {activeSection === 'profile' ? (
                 <ProfileSettingsPanel
                     formId="personal-profile-form"
+                    headingItem={activeItem}
                     hideSaveButton
                     mustVerifyEmail={mustVerifyEmail}
                     onSaveActionChange={onSaveActionChange}
@@ -238,19 +254,23 @@ function PersonalSettingsSectionContent({
                 />
             ) : null}
             {activeSection === 'appearance' ? (
-                <AppearanceSettingsPanel />
+                <AppearanceSettingsPanel headingItem={activeItem} />
             ) : null}
             {activeSection === 'language' ? (
                 <LanguageSettingsPanel
                     availableLanguages={availableLanguages}
+                    headingItem={activeItem}
                     hideSaveButton
                     locale={locale}
                     onSaveActionChange={onSaveActionChange}
                 />
             ) : null}
-            {activeSection === 'notifications' ? <NotificationsPanel /> : null}
+            {activeSection === 'notifications' ? (
+                <NotificationsPanel headingItem={activeItem} />
+            ) : null}
             {activeSection === 'sound' ? (
                 <SoundSettingsPanel
+                    headingItem={activeItem}
                     hideSaveButton
                     onSaveActionChange={onSaveActionChange}
                     preferences={soundPreferences}
@@ -260,53 +280,70 @@ function PersonalSettingsSectionContent({
                 <SecuritySettingsPanel
                     {...security}
                     formId="personal-security-form"
+                    headingItem={activeItem}
                     hideSaveButton
                     onSaveActionChange={onSaveActionChange}
                 />
             ) : null}
-            {activeSection === 'delete-account' ? <DeleteAccountPanel /> : null}
+            {activeSection === 'delete-account' ? (
+                <DeleteAccountPanel headingItem={activeItem} />
+            ) : null}
         </>
     );
 }
 
-function DeleteAccountPanel() {
-    return (
-        <SettingsFormColumn>
-            <section className="border-t border-red-400/30 pt-5">
-                <DeleteUser />
-            </section>
-        </SettingsFormColumn>
-    );
-}
-
-function NotificationsPanel() {
+function DeleteAccountPanel({
+    headingItem,
+}: {
+    headingItem: SettingsNavigationItem<PersonalSection>;
+}) {
     const t = usePlatformTranslation();
 
     return (
-        <section className="grid gap-4">
-            <div>
-                <p
-                    className="text-xs font-medium tracking-[0.18em] uppercase"
-                    style={{ color: 'var(--settings-accent)' }}
-                >
-                    {t(
-                        'settings.personal.notifications.eyebrow',
-                        'Notifications',
+        <div className="grid gap-5">
+            <section className="grid gap-5">
+                <SettingsItemPanelHeader
+                    description={t(
+                        'settings.personal.delete_account.description',
+                        'Delete your account and all of its resources.',
                     )}
-                </p>
-                <h2 className="mt-2 text-xl font-semibold">
-                    {t(
-                        'settings.personal.notifications.title',
-                        'Communication preferences',
+                    item={headingItem}
+                    title={t(
+                        'settings.personal.delete_account.title',
+                        'Delete account',
                     )}
-                </h2>
-                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {t(
-                        'settings.personal.notifications.description',
-                        'This area will hold optional reminders, quiet hours and communication preferences. It will remain opt-in and avoid pressure-based learning loops.',
-                    )}
-                </p>
-            </div>
+                />
+
+                <SettingsFormColumn>
+                    <div className="border-t border-red-400/30 pt-5">
+                        <DeleteUser hideHeading />
+                    </div>
+                </SettingsFormColumn>
+            </section>
+        </div>
+    );
+}
+
+function NotificationsPanel({
+    headingItem,
+}: {
+    headingItem: SettingsNavigationItem<PersonalSection>;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <section className="grid gap-5">
+            <SettingsItemPanelHeader
+                description={t(
+                    'settings.personal.notifications.description',
+                    'This area will hold optional reminders, quiet hours and communication preferences. It will remain opt-in and avoid pressure-based learning loops.',
+                )}
+                item={headingItem}
+                title={t(
+                    'settings.personal.notifications.title',
+                    'Communication preferences',
+                )}
+            />
         </section>
     );
 }

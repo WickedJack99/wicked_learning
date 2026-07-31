@@ -7,6 +7,7 @@ import InputError from '@/components/input-error';
 import {
     SettingsFormColumn,
     SettingsPanelHeader,
+    type SettingsNavigationItem,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import type { User } from '@/types';
 
 type ProfileSettingsPanelProps = {
     formId?: string;
+    headingItem?: SettingsNavigationItem<string>;
     hideSaveButton?: boolean;
     mustVerifyEmail: boolean;
     onSaveActionChange?: (action: SettingsSaveAction | null) => void;
@@ -36,6 +38,7 @@ type PageProps = {
 
 export function ProfileSettingsPanel({
     formId,
+    headingItem,
     hideSaveButton = false,
     mustVerifyEmail,
     onSaveActionChange,
@@ -91,7 +94,12 @@ export function ProfileSettingsPanel({
                         'settings.personal.profile.description',
                         'Update account details and the public identity shown to other people later on.',
                     )}
-                    eyebrow={t('settings.personal.profile.eyebrow', 'Account')}
+                    eyebrow={
+                        headingItem
+                            ? undefined
+                            : t('settings.personal.sections.profile', 'Profile')
+                    }
+                    item={headingItem}
                     title={t(
                         'settings.personal.profile.title',
                         'Profile details',
@@ -227,7 +235,7 @@ function ProfileFormContent({
                 name="username"
                 placeholder={t(
                     'settings.personal.profile.username.placeholder',
-                    'Visible handle, for example WickedJack99',
+                    'Visible handle, for example LearnerName',
                 )}
             />
             <Field

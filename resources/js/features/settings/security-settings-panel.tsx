@@ -11,6 +11,7 @@ import PasswordInput from '@/components/password-input';
 import {
     SettingsFormColumn,
     SettingsPanelHeader,
+    type SettingsNavigationItem,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type SecuritySettingsProps = {
     formId?: string;
+    headingItem?: SettingsNavigationItem<string>;
     hideSaveButton?: boolean;
     onSaveActionChange?: (action: SettingsSaveAction | null) => void;
     passwordRules: string;
@@ -38,10 +40,15 @@ export function SecuritySettingsPanel(props: SecuritySettingsProps) {
                         'settings.personal.security.description',
                         'Use a long, random password to keep your account secure.',
                     )}
-                    eyebrow={t(
-                        'settings.personal.security.eyebrow',
-                        'Security',
-                    )}
+                    eyebrow={
+                        props.headingItem
+                            ? undefined
+                            : t(
+                                  'settings.personal.security.eyebrow',
+                                  'Security',
+                              )
+                    }
+                    item={props.headingItem}
                     title={t(
                         'settings.personal.security.title',
                         'Update password',

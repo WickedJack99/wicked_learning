@@ -53,9 +53,9 @@ export default function TwoFactorRecoveryCodes({
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
 
     return (
-        <Card>
+        <Card className="w-full min-w-0 max-w-full">
             <CardHeader>
-                <CardTitle className="flex gap-3">
+                <CardTitle className="flex min-w-0 gap-3">
                     <LockKeyhole className="size-4" aria-hidden="true" />
                     2FA recovery codes
                 </CardTitle>
@@ -65,7 +65,7 @@ export default function TwoFactorRecoveryCodes({
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col gap-3 select-none sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-col gap-3 select-none sm:flex-row sm:items-center sm:justify-between">
                     <Button
                         onClick={toggleCodesVisibility}
                         className="w-fit"
@@ -100,17 +100,17 @@ export default function TwoFactorRecoveryCodes({
                 </div>
                 <div
                     id="recovery-codes-section"
-                    className={`relative overflow-hidden transition-all duration-300 ${codesAreVisible ? 'h-auto opacity-100' : 'h-0 opacity-0'}`}
+                    className={`relative min-w-0 overflow-hidden transition-all duration-300 ${codesAreVisible ? 'h-auto opacity-100' : 'h-0 opacity-0'}`}
                     aria-hidden={!codesAreVisible}
                 >
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-3 min-w-0 space-y-3">
                         {errors?.length ? (
                             <AlertError errors={errors} />
                         ) : (
                             <>
                                 <div
                                     ref={codesSectionRef}
-                                    className="grid gap-1 rounded-lg bg-muted p-4 font-mono text-sm"
+                                    className="grid min-w-0 gap-1 overflow-hidden rounded-lg bg-muted p-4 font-mono text-sm"
                                     role="list"
                                     aria-label="Recovery codes"
                                 >
@@ -119,7 +119,7 @@ export default function TwoFactorRecoveryCodes({
                                             <div
                                                 key={index}
                                                 role="listitem"
-                                                className="select-text"
+                                                className="select-text break-all"
                                             >
                                                 {code}
                                             </div>

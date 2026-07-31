@@ -5,6 +5,7 @@ import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import {
     SettingsFormColumn,
     SettingsPanelHeader,
+    type SettingsNavigationItem,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
 import { type SoundPreferences } from '@/features/sounds/sound-player';
@@ -13,6 +14,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import soundPreferences from '@/routes/settings/sound-preferences';
 
 type SoundSettingsPanelProps = {
+    headingItem?: SettingsNavigationItem<string>;
     hideSaveButton?: boolean;
     onSaveActionChange?: (action: SettingsSaveAction | null) => void;
     preferences: SoundPreferences;
@@ -21,6 +23,7 @@ type SoundSettingsPanelProps = {
 type VolumeKey = 'ambienceVolume' | 'effectsVolume';
 
 export function SoundSettingsPanel({
+    headingItem,
     hideSaveButton = false,
     onSaveActionChange,
     preferences,
@@ -105,7 +108,12 @@ export function SoundSettingsPanel({
                     'Control optional effects and ambient sound for your own session without changing the learning world for others.',
                 )}
                 constrainActionToContent
-                eyebrow={t('settings.personal.sound.eyebrow', 'Sound comfort')}
+                eyebrow={
+                    headingItem
+                        ? undefined
+                        : t('settings.personal.sections.sound', 'Sound')
+                }
+                item={headingItem}
                 title={t('settings.personal.sound.title', 'Audio preferences')}
             />
 

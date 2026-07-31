@@ -2,10 +2,15 @@ import AppearanceTabs from '@/components/appearance-tabs';
 import {
     SettingsFormColumn,
     SettingsPanelHeader,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
-export function AppearanceSettingsPanel() {
+export function AppearanceSettingsPanel({
+    headingItem,
+}: {
+    headingItem?: SettingsNavigationItem<string>;
+}) {
     const t = usePlatformTranslation();
 
     return (
@@ -15,10 +20,15 @@ export function AppearanceSettingsPanel() {
                     'settings.personal.appearance.description',
                     'Choose the appearance used after signing in.',
                 )}
-                eyebrow={t(
-                    'settings.personal.appearance.eyebrow',
-                    'Appearance',
-                )}
+                eyebrow={
+                    headingItem
+                        ? undefined
+                        : t(
+                              'settings.personal.appearance.eyebrow',
+                              'Appearance',
+                          )
+                }
+                item={headingItem}
                 title={t('settings.personal.appearance.title', 'Visual mode')}
             />
             <SettingsFormColumn>

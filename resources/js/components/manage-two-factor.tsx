@@ -45,14 +45,14 @@ export default function ManageTwoFactor(props: Props) {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
             <Heading
                 variant="small"
                 title="Two-factor authentication"
                 description="Manage your two-factor authentication settings"
             />
             {twoFactorEnabled ? (
-                <div className="flex flex-col items-start justify-start space-y-4">
+                <div className="flex min-w-0 flex-col items-start justify-start space-y-4">
                     <p className="text-sm text-muted-foreground">
                         You will be prompted for a secure, random pin during
                         login, which you can retrieve from the TOTP-supported
@@ -80,7 +80,7 @@ export default function ManageTwoFactor(props: Props) {
                     />
                 </div>
             ) : (
-                <div className="flex flex-col items-start justify-start space-y-4">
+                <div className="flex min-w-0 flex-col items-start justify-start space-y-4">
                     <p className="text-sm text-muted-foreground">
                         When you enable two-factor authentication, you will be
                         prompted for a secure pin during login. This pin can be
