@@ -414,6 +414,16 @@ function writeWorldBuilderRootViewToUrl(section: WorldBuilderRootView): void {
     window.history.pushState({ panel: 'admin-world-builder' }, '', url);
 }
 
+function hasWorldBuilderDetailSelectionInUrl(): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const searchParams = new URL(window.location.href).searchParams;
+
+    return searchParams.has('map') || searchParams.has('node');
+}
+
 export default function SettingsIndex({
     accessCapabilities,
     accessGroupUsers,
@@ -454,6 +464,10 @@ export default function SettingsIndex({
     );
     const [worldBuilderRootView, setWorldBuilderRootView] =
         useState<WorldBuilderRootView>(() => readWorldBuilderRootViewFromUrl());
+    const [
+        worldBuilderHasDetailSelection,
+        setWorldBuilderHasDetailSelection,
+    ] = useState(() => hasWorldBuilderDetailSelectionInUrl());
     const [assetView, setAssetView] = useState<AssetView>(() =>
         readAssetViewFromUrl(),
     );
@@ -473,6 +487,9 @@ export default function SettingsIndex({
             setPersonalView(readPersonalViewFromUrl());
             setWorldBuilderView(readWorldBuilderViewFromUrl());
             setWorldBuilderRootView(readWorldBuilderRootViewFromUrl());
+            setWorldBuilderHasDetailSelection(
+                hasWorldBuilderDetailSelectionInUrl(),
+            );
             setAssetView(readAssetViewFromUrl());
             setLearningSupportView(readLearningSupportViewFromUrl());
             setAiView(readAiViewFromUrl());
@@ -503,14 +520,29 @@ export default function SettingsIndex({
     const worldBreadcrumb = useMemo<SettingsWorldBreadcrumb>(
         () => ({
             map:
-                selectedWorldMap?.editableMap.map ??
-                selectedWorldNode?.activityGraph.map ??
-                null,
-            node: selectedWorldNode?.activityGraph.node ?? null,
+                worldBuilderHasDetailSelection
+                    ? (selectedWorldMap?.editableMap.map ??
+                      selectedWorldNode?.activityGraph.map ??
+                      null)
+                    : null,
+            node:
+                worldBuilderHasDetailSelection && selectedWorldNode
+                    ? selectedWorldNode.activityGraph.node
+                    : null,
+            section: worldBuilderRootView,
             view:
-                selectedWorldMap || selectedWorldNode ? worldBuilderView : null,
+                worldBuilderHasDetailSelection &&
+                (selectedWorldMap || selectedWorldNode)
+                    ? worldBuilderView
+                    : null,
         }),
-        [selectedWorldMap, selectedWorldNode, worldBuilderView],
+        [
+            selectedWorldMap,
+            selectedWorldNode,
+            worldBuilderHasDetailSelection,
+            worldBuilderRootView,
+            worldBuilderView,
+        ],
     );
     const openItem = useCallback(
         (item: SettingsListItem) => {
@@ -610,7 +642,13 @@ export default function SettingsIndex({
                                     setWorldBuilderRootView={
                                         setWorldBuilderRootView
                                     }
+                                    setWorldBuilderHasDetailSelection={
+                                        setWorldBuilderHasDetailSelection
+                                    }
                                     selectedPanel={selectedPanel}
+                                    worldBuilderHasDetailSelection={
+                                        worldBuilderHasDetailSelection
+                                    }
                                     worldBuilderRootView={worldBuilderRootView}
                                     worldBuilderView={worldBuilderView}
                                     worldGraph={worldGraph}
@@ -668,8 +706,10 @@ function SettingsDetail({
     setAssetView,
     setLearningSupportView,
     setPersonalView,
+    setWorldBuilderHasDetailSelection,
     setWorldBuilderRootView,
     worldBuilderView,
+    worldBuilderHasDetailSelection,
     worldBuilderRootView,
     worldGraph,
 }: {
@@ -703,15 +743,20 @@ function SettingsDetail({
     setAssetView: (view: AssetView) => void;
     setLearningSupportView: (view: LearningSupportView) => void;
     setPersonalView: (view: PersonalView) => void;
+    setWorldBuilderHasDetailSelection: (selected: boolean) => void;
     setWorldBuilderRootView: (view: WorldBuilderRootView) => void;
+    worldBuilderHasDetailSelection: boolean;
     worldBuilderView: WorldBuilderView;
     worldBuilderRootView: WorldBuilderRootView;
     worldGraph: WorldGraph | null;
 }) {
     const content = panelContent[selectedPanel];
     const selectedItem = findSettingsItemForPanel(selectedPanel);
+    const showWorldBuilderMapDetail =
+        selectedPanel === 'admin-world-builder' &&
+        worldBuilderHasDetailSelection;
     const worldBuilderMapDetail =
-        selectedPanel === 'admin-world-builder' && selectedWorldNode
+        showWorldBuilderMapDetail && selectedWorldNode
             ? {
                   activeView: 'nodes' as WorldBuilderMapView,
                   content: (
@@ -725,8 +770,10 @@ function SettingsDetail({
                   ),
                   mapId: selectedWorldNode.activityGraph.map.id,
                   mapTitle: selectedWorldNode.activityGraph.map.title,
+                  nodeId: selectedWorldNode.activityGraph.node.id,
+                  nodeTitle: selectedWorldNode.activityGraph.node.title,
               }
-            : selectedPanel === 'admin-world-builder' && selectedWorldMap
+            : showWorldBuilderMapDetail && selectedWorldMap
               ? {
                     activeView:
                         worldBuilderView === 'configure'
@@ -850,6 +897,7 @@ function SettingsDetail({
                     }
                     onSelectSection={(section) => {
                         setWorldBuilderRootView(section);
+                        setWorldBuilderHasDetailSelection(false);
                         writeWorldBuilderRootViewToUrl(section);
                     }}
                     selectedMapDetail={worldBuilderMapDetail}

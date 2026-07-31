@@ -7,7 +7,11 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { SettingsSectionButton } from '@/components/settings-configuration-shell';
+import {
+    SettingsLevelBanner,
+    SettingsSectionButton,
+    type SettingsNavigationItem,
+} from '@/components/settings-configuration-shell';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
 import { WorldBuilderPanel, type WorldGraph } from '@/pages/settings/worlds';
 
@@ -28,6 +32,8 @@ type WorldBuilderMapDetail = {
     content: ReactNode;
     mapId: number;
     mapTitle: string;
+    nodeId?: number;
+    nodeTitle?: string;
 };
 
 const sections = [
@@ -43,12 +49,7 @@ const sections = [
         key: 'structural',
         label: 'Structural',
     },
-] satisfies {
-    description: string;
-    icon: LucideIcon;
-    key: WorldBuilderSection;
-    label: string;
-}[];
+] satisfies SettingsNavigationItem<WorldBuilderSection>[];
 
 const mapViewSections = [
     {
@@ -86,6 +87,9 @@ export function WorldBuilderSettingsPanel({
     )
         ? activeSection
         : visibleSections[0]?.key;
+    const activeSectionMeta = sections.find(
+        (section) => section.key === resolvedSection,
+    );
 
     if (!resolvedSection) {
         return <UnavailableWorldBuilder />;
@@ -110,30 +114,55 @@ export function WorldBuilderSettingsPanel({
             </aside>
 
             <div className="min-h-0 overflow-hidden bg-[var(--settings-panel-background)]">
-                {selectedMapDetail ? (
+                {selectedMapDetail && resolvedSection === 'graph' ? (
                     <WorldBuilderMapWorkspace
                         activeSection={resolvedSection}
                         detail={selectedMapDetail}
                     />
                 ) : null}
 
-                {!selectedMapDetail &&
+                {(!selectedMapDetail || resolvedSection !== 'graph') &&
                 resolvedSection === 'graph' &&
-                worldGraph ? (
-                    <WorldBuilderPanel worldGraph={worldGraph} />
+                worldGraph &&
+                activeSectionMeta ? (
+                    <WorldBuilderSectionWorkspace section={activeSectionMeta}>
+                        <WorldBuilderPanel worldGraph={worldGraph} />
+                    </WorldBuilderSectionWorkspace>
                 ) : null}
 
-                {!selectedMapDetail &&
-                resolvedSection === 'structural' &&
-                worldGraph ? (
-                    <WorldMapManagementPanel maps={worldGraph.maps} />
+                {resolvedSection === 'structural' &&
+                worldGraph &&
+                activeSectionMeta ? (
+                    <WorldBuilderSectionWorkspace section={activeSectionMeta}>
+                        <WorldMapManagementPanel
+                            detail={selectedMapDetail}
+                            maps={worldGraph.maps}
+                        />
+                    </WorldBuilderSectionWorkspace>
                 ) : null}
 
-                {!selectedMapDetail && !worldGraph ? (
+                {(!selectedMapDetail || resolvedSection !== 'graph') &&
+                !worldGraph ? (
                     <UnavailableWorldBuilder />
                 ) : null}
             </div>
         </div>
+    );
+}
+
+function WorldBuilderSectionWorkspace({
+    children,
+    section,
+}: {
+    children: ReactNode;
+    section: (typeof sections)[number];
+}) {
+    return (
+        <section className="flex h-full min-h-0 flex-col overflow-hidden">
+            <SettingsLevelBanner item={section} />
+
+            <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        </section>
     );
 }
 

@@ -42,6 +42,7 @@ export type SettingsWorldBreadcrumb = {
     node: {
         title: string;
     } | null;
+    section: 'graph' | 'structural';
     view: 'configure' | 'nodes' | null;
 };
 
@@ -185,6 +186,7 @@ function SettingsBreadcrumb({
     const t = usePlatformTranslation();
     const isWorldBuilder = activeItem?.panel === 'admin-world-builder';
     const selectedMap = worldBreadcrumb.map;
+    const selectedNode = worldBreadcrumb.node;
     const selectedView = worldBreadcrumb.view;
 
     return (
@@ -216,7 +218,7 @@ function SettingsBreadcrumb({
                         className="truncate text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                         onClick={() =>
                             router.visit(
-                                `/settings?panel=admin-world-builder&map=${selectedMap.id}&worldView=nodes`,
+                                `/settings?panel=admin-world-builder&worldSection=${worldBreadcrumb.section}&map=${selectedMap.id}`,
                             )
                         }
                         type="button"
@@ -229,15 +231,17 @@ function SettingsBreadcrumb({
                 <>
                     <span className="text-[var(--settings-muted-text)]">/</span>
                     <span className="truncate text-[var(--settings-muted-text)]">
-                        {selectedView === 'configure'
-                            ? t(
-                                  'settings.world_builder.breadcrumb.configure',
-                                  'Configure map',
-                              )
-                            : t(
-                                  'settings.world_builder.breadcrumb.nodes',
-                                  'Configure nodes',
-                              )}
+                        {selectedNode
+                            ? selectedNode.title
+                            : selectedView === 'configure'
+                              ? t(
+                                    'settings.world_builder.breadcrumb.configure',
+                                    'Configure map',
+                                )
+                              : t(
+                                    'settings.world_builder.breadcrumb.nodes',
+                                    'Configure nodes',
+                                )}
                     </span>
                 </>
             ) : null}
