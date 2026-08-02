@@ -2,10 +2,16 @@
 
 namespace App\Learning\Queries;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\CompetenceTopicDefinition;
+use App\Models\LearningActivity;
 
 class LoadCompetenceTopicDefinitions
 {
+    public function __construct(
+        private readonly ActivityCompetenceConfiguration $activityCompetence,
+    ) {}
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -29,6 +35,53 @@ class LoadCompetenceTopicDefinitions
                 ];
             });
 
+        if (! $activeOnly) {
+            $this->appendActivityTopics($definitions);
+        }
+
+        usort(
+            $definitions,
+            fn (array $a, array $b): int => strnatcasecmp((string) $a['name'], (string) $b['name']),
+        );
+
         return $definitions;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $definitions
+     */
+    private function appendActivityTopics(array &$definitions): void
+    {
+        $knownSlugs = [];
+
+        foreach ($definitions as $definition) {
+            $slug = (string) ($definition['slug'] ?? '');
+
+            if ($slug !== '') {
+                $knownSlugs[$slug] = true;
+            }
+        }
+
+        LearningActivity::query()
+            ->whereNotNull('config')
+            ->get()
+            ->each(function (LearningActivity $activity) use (&$definitions, &$knownSlugs): void {
+                foreach ($this->activityCompetence->topicsForActivity($activity) as $topic) {
+                    if (isset($knownSlugs[$topic['slug']])) {
+                        continue;
+                    }
+
+                    $knownSlugs[$topic['slug']] = true;
+                    $definitions[] = [
+                        'auraThreshold' => 10,
+                        'description' => null,
+                        'emittanceThreshold' => 20,
+                        'growthThreshold' => 20,
+                        'isActive' => true,
+                        'name' => $topic['topic'],
+                        'slug' => $topic['slug'],
+                    ];
+                }
+            });
     }
 }

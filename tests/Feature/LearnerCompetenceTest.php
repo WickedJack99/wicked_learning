@@ -1,10 +1,12 @@
 <?php
 
+use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceActivityAward;
 use App\Models\LearnerCompetenceTopic;
 use App\Models\LearnerCompetenceTopicMonth;
 use App\Models\LearnerCompetenceTopicTransition;
-use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -89,7 +91,24 @@ test('admins can configure competence topics on any activity', function () {
             'slug' => 'creative-problem-solving',
             'weight' => 4,
         ],
+    ])
+        ->and(CompetenceTopicDefinition::query()
+            ->where('slug', 'creative-problem-solving')
+            ->value('name'))->toBe('Creative Problem Solving');
+});
+
+test('competence topic settings include topics configured on activities', function () {
+    competenceRoute([
+        ['topic' => 'Activity Only Topic', 'weight' => 2],
     ]);
+
+    $topics = app(LoadCompetenceTopicDefinitions::class)->handle();
+    $activityTopic = collect($topics)->firstWhere('slug', 'activity-only-topic');
+
+    expect($activityTopic)
+        ->not->toBeNull()
+        ->and($activityTopic['name'] ?? null)
+        ->toBe('Activity Only Topic');
 });
 
 test('route play activity movement records topic transitions', function () {
@@ -252,6 +271,60 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')
             ->where('competenceMap.transitions.0.toTopicSlug', 'geometry')
         );
+});
+
+test('learning support signals show scoped competence values without ranking learners', function () {
+    Carbon::setTestNow('2026-07-21 10:00:00');
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create([
+        'name' => 'Ada Learner',
+    ]);
+    [, $activity] = competenceRoute([]);
+
+    LearnerCompetenceTopic::query()->create([
+        'user_id' => $learner->id,
+        'topic_slug' => 'systems-thinking',
+        'topic_name' => 'Systems Thinking',
+        'total_points' => 12,
+    ]);
+    LearnerCompetenceTopicMonth::query()->create([
+        'user_id' => $learner->id,
+        'topic_slug' => 'systems-thinking',
+        'topic_name' => 'Systems Thinking',
+        'month_key' => '2026-07',
+        'points' => 4,
+    ]);
+    $award = LearnerCompetenceActivityAward::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'systems-thinking',
+        'topic_name' => 'Systems Thinking',
+        'points' => 4,
+    ]);
+    $award->forceFill([
+        'created_at' => Carbon::parse('2026-07-20 11:00:00'),
+        'updated_at' => Carbon::parse('2026-07-20 11:00:00'),
+    ])->save();
+
+    $signals = app(LoadLearnerSupportSignals::class)->handle($admin);
+    $learnerSignals = collect($signals['learners'])->firstWhere('id', $learner->id);
+    $activityBucket = collect($signals['activityOverview30Days'])->firstWhere('date', '2026-07-20');
+
+    expect($signals['monthKey'])->toBe('2026-07')
+        ->and($signals['summary']['learnersWithSignals'])->toBe(1)
+        ->and($signals['activityOverview30Days'])->toHaveCount(30)
+        ->and($activityBucket['activeLearners'] ?? null)->toBe(1)
+        ->and($activityBucket['topicAwards'] ?? null)->toBe(1)
+        ->and($activityBucket['pointsAwarded'] ?? null)->toBe(4.0)
+        ->and($learnerSignals['lastActivityAt'] ?? null)->not->toBeNull()
+        ->and($learnerSignals['topics'][0]['name'])->toBe('Systems Thinking')
+        ->and($learnerSignals['topics'][0]['totalPoints'])->toBe(12.0)
+        ->and($learnerSignals['topics'][0]['monthlyPoints'])->toBe(4.0)
+        ->and($learnerSignals)->not->toHaveKey('rank');
 });
 
 /**

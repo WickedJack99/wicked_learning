@@ -42,6 +42,8 @@ class PermissionCatalog
 
     public const COMPETENCE_TOPICS = 'competence_topics';
 
+    public const LEARNER_SUPPORT_SIGNALS = 'learner_support_signals';
+
     public const ORGANIZATION_MODERATION = 'organization_moderation';
 
     public const AI = 'ai';
@@ -137,6 +139,11 @@ class PermissionCatalog
                 'description' => 'Define learner competence topics and star-map thresholds.',
                 'group' => 'Learning support',
             ],
+            self::LEARNER_SUPPORT_SIGNALS => [
+                'label' => 'Support signals',
+                'description' => 'View scoped learner competence signals for timely support without rankings.',
+                'group' => 'Learning support',
+            ],
             self::ORGANIZATION_MODERATION => [
                 'label' => 'Organization moderation',
                 'description' => 'Review reported organization icons and platform organization limits.',
@@ -177,6 +184,7 @@ class PermissionCatalog
                 self::JOURNAL_SETTINGS,
                 self::JOURNAL_FEEDBACK,
                 self::COMPETENCE_TOPICS,
+                self::LEARNER_SUPPORT_SIGNALS,
                 self::ORGANIZATION_MODERATION,
             ],
             'users' => [

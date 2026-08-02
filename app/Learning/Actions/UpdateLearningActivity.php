@@ -21,6 +21,7 @@ class UpdateLearningActivity
     public function __construct(
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
@@ -43,6 +44,7 @@ class UpdateLearningActivity
         $activity->forceFill($updates)->save();
         $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
         $this->syncPortalLinkWhenNeeded($activity, $data);
+        $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));
 
         return $activity;
     }

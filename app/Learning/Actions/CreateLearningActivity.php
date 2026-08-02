@@ -22,6 +22,7 @@ class CreateLearningActivity
     public function __construct(
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
@@ -54,6 +55,7 @@ class CreateLearningActivity
 
         $this->portalLinkService->syncForActivity($activity, $data['target_portal_activity_id'] ?? null);
         $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
+        $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));
 
         return $activity;
     }
