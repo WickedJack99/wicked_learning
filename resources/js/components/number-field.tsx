@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function NumberField({
+    id,
     label,
     max,
     min,
@@ -10,6 +11,7 @@ export function NumberField({
     suffix,
     value,
 }: {
+    id?: string;
     label: string;
     max?: string;
     min?: string;
@@ -18,14 +20,14 @@ export function NumberField({
     suffix?: string;
     value: string;
 }) {
-    const id = label.toLowerCase().replaceAll(' ', '-');
+    const fieldId = id ?? label.toLowerCase().replaceAll(' ', '-');
 
     return (
         <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
+            <Label htmlFor={fieldId}>{label}</Label>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
                 <Input
-                    id={id}
+                    id={fieldId}
                     max={max}
                     min={min}
                     onChange={(event) => onChange(event.currentTarget.value)}

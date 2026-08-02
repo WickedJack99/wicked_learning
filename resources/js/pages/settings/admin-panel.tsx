@@ -210,38 +210,58 @@ export default function AdminPanel({
             {hideNavigation ? null : (
                 <SettingsLevelBanner item={activeSectionItem} />
             )}
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-                <div className="grid gap-4">
-                    {hideNavigation ? (
-                        <SettingsPanelHeader
-                            description={embeddedHeading.description}
-                            item={embeddedHeadingItem}
-                            title={embeddedHeading.title}
-                        />
-                    ) : null}
-                    <SectionStats
-                        metrics={metrics}
-                        section={section}
-                        topics={competenceTopics}
-                        t={t}
-                    />
-                    {section === 'feedback-requests' ? (
-                        <FeedbackRequestsSection
-                            feedbackRequests={feedbackRequests}
+            {section === 'feedback-requests' ? (
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                    <div className="shrink-0 px-4 pt-4 sm:px-5 sm:pt-5">
+                        {hideNavigation ? (
+                            <SettingsPanelHeader
+                                description={embeddedHeading.description}
+                                item={embeddedHeadingItem}
+                                title={embeddedHeading.title}
+                            />
+                        ) : null}
+                        <SectionStats
+                            metrics={metrics}
+                            section={section}
+                            topics={competenceTopics}
                             t={t}
                         />
-                    ) : null}
-                    {section === 'organization-icons' ? (
-                        <OrganizationModerationSection
-                            reports={organizationIconReports}
-                            settings={organizationSettings}
-                        />
-                    ) : null}
-                    {section === 'competence-topics' ? (
-                        <CompetenceTopicsSection topics={competenceTopics} />
-                    ) : null}
+                    </div>
+                    <FeedbackRequestsSection
+                        feedbackRequests={feedbackRequests}
+                        t={t}
+                    />
                 </div>
-            </div>
+            ) : (
+                <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+                    <div className="grid gap-4">
+                        {hideNavigation ? (
+                            <SettingsPanelHeader
+                                description={embeddedHeading.description}
+                                item={embeddedHeadingItem}
+                                title={embeddedHeading.title}
+                            />
+                        ) : null}
+                        <SectionStats
+                            metrics={metrics}
+                            section={section}
+                            topics={competenceTopics}
+                            t={t}
+                        />
+                        {section === 'organization-icons' ? (
+                            <OrganizationModerationSection
+                                reports={organizationIconReports}
+                                settings={organizationSettings}
+                            />
+                        ) : null}
+                        {section === 'competence-topics' ? (
+                            <CompetenceTopicsSection
+                                topics={competenceTopics}
+                            />
+                        ) : null}
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -353,7 +373,7 @@ function CompetenceTopicsSection({
 
     return (
         <form className="grid gap-4" onSubmit={saveTopics}>
-            <section className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <section className="border-b border-[var(--settings-border-color)] pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2">
@@ -390,10 +410,10 @@ function CompetenceTopicsSection({
             <div className="grid gap-3">
                 {drafts.map((topic, index) => (
                     <article
-                        className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+                        className="grid gap-3 border-b border-[var(--settings-border-color)] py-4"
                         key={`${topic.slug || 'new'}-${index}`}
                     >
-                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_8rem_8rem_8rem_auto] lg:items-start">
+                        <div className="grid w-full gap-3 lg:max-w-[45%]">
                             <div className="grid gap-2">
                                 <label
                                     className="text-sm font-medium"
@@ -414,6 +434,29 @@ function CompetenceTopicsSection({
                                     value={topic.name}
                                 />
                             </div>
+                            <div className="grid gap-2">
+                                <label
+                                    className="text-sm font-medium"
+                                    htmlFor={`competence-description-${index}`}
+                                >
+                                    Description
+                                </label>
+                                <textarea
+                                    className="min-h-20 rounded-md border px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:text-white"
+                                    id={`competence-description-${index}`}
+                                    onChange={(event) =>
+                                        updateTopic(
+                                            index,
+                                            'description',
+                                            event.target.value,
+                                        )
+                                    }
+                                    value={topic.description}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-3 pt-1 lg:grid-cols-[8rem_8rem_8rem_auto] lg:items-end">
                             <ThresholdInput
                                 id={`competence-growth-${index}`}
                                 label="Growth"
@@ -442,51 +485,29 @@ function CompetenceTopicsSection({
                                 }
                                 value={topic.auraThreshold}
                             />
-                            <Button
-                                aria-label="Remove competence topic"
-                                className="lg:mt-7"
-                                onClick={() => removeTopic(index)}
-                                type="button"
-                                variant="ghost"
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
-                        </div>
-
-                        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_12rem]">
-                            <div className="grid gap-2">
-                                <label
-                                    className="text-sm font-medium"
-                                    htmlFor={`competence-description-${index}`}
-                                >
-                                    Description
+                            <div className="flex items-center gap-2 lg:justify-self-start">
+                                <label className="flex items-center gap-3 py-3 text-sm font-medium">
+                                    <Checkbox
+                                        checked={topic.isActive}
+                                        onCheckedChange={(checked) =>
+                                            updateTopic(
+                                                index,
+                                                'isActive',
+                                                checked === true,
+                                            )
+                                        }
+                                    />
+                                    Active
                                 </label>
-                                <textarea
-                                    className="min-h-20 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:border-white/10 dark:bg-slate-950 dark:text-white"
-                                    id={`competence-description-${index}`}
-                                    onChange={(event) =>
-                                        updateTopic(
-                                            index,
-                                            'description',
-                                            event.target.value,
-                                        )
-                                    }
-                                    value={topic.description}
-                                />
+                                <Button
+                                    aria-label="Remove competence topic"
+                                    onClick={() => removeTopic(index)}
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <Trash2 className="size-4" />
+                                </Button>
                             </div>
-                            <label className="flex items-center gap-3 self-end rounded-lg border border-slate-200 p-3 text-sm font-medium dark:border-white/10">
-                                <Checkbox
-                                    checked={topic.isActive}
-                                    onCheckedChange={(checked) =>
-                                        updateTopic(
-                                            index,
-                                            'isActive',
-                                            checked === true,
-                                        )
-                                    }
-                                />
-                                Active
-                            </label>
                         </div>
                     </article>
                 ))}
@@ -623,14 +644,16 @@ function SectionStats({
     } satisfies Record<AdminPanelSection, { label: string; value: number }[]>;
 
     return (
-        <section className="grid max-w-4xl gap-5 border-b border-[var(--settings-border-color)] pb-4 sm:grid-cols-2 xl:grid-cols-3">
-            {metricItems[section].map((metric) => (
-                <SectionStatItem
-                    key={metric.label}
-                    label={metric.label}
-                    value={metric.value}
-                />
-            ))}
+        <section className="border-b border-[var(--settings-border-color)] py-4">
+            <div className="grid max-w-4xl gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {metricItems[section].map((metric) => (
+                    <SectionStatItem
+                        key={metric.label}
+                        label={metric.label}
+                        value={metric.value}
+                    />
+                ))}
+            </div>
         </section>
     );
 }
@@ -707,9 +730,9 @@ function FeedbackRequestsSection({
     }
 
     return (
-        <section className="grid min-h-[28rem] gap-4 lg:grid-cols-[22rem_minmax(0,1fr)]">
-            <div className="min-h-0 rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-white/5">
-                <div className="flex items-center gap-2 border-b border-slate-200 p-4 dark:border-white/10">
+        <section className="mt-4 grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[22rem_minmax(0,1fr)]">
+            <aside className="flex min-h-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:border-r lg:border-b-0">
+                <header className="flex items-center gap-2 border-b border-[var(--settings-border-color)] px-4 py-4">
                     <Inbox
                         className="size-4"
                         style={{ color: 'var(--settings-accent)' }}
@@ -720,17 +743,17 @@ function FeedbackRequestsSection({
                             'Feedback Requests',
                         )}
                     </h2>
-                </div>
-                <div className="max-h-[32rem] overflow-y-auto p-3">
+                </header>
+                <div className="min-h-0 flex-1 overflow-y-auto">
                     {feedbackRequests.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                        <p className="p-4 text-sm text-[var(--settings-muted-text)]">
                             {t(
                                 'settings.admin_panel.no_feedback_requests',
                                 'No feedback requests yet.',
                             )}
                         </p>
                     ) : (
-                        <div className="grid gap-2">
+                        <div>
                             {feedbackRequests.map((request) => (
                                 <FeedbackRequestButton
                                     active={selectedRequest?.id === request.id}
@@ -743,27 +766,28 @@ function FeedbackRequestsSection({
                         </div>
                     )}
                 </div>
-            </div>
+            </aside>
 
-            <div className="min-h-0 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="min-h-0">
                 {selectedRequest ? (
                     <form
-                        className="grid h-full min-h-0 gap-4"
+                        className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]"
                         onSubmit={sendFeedback}
                     >
                         <FeedbackRequestHeader
+                            className="border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-4 sm:px-5"
                             request={selectedRequest}
                             t={t}
                         />
-                        <div className="grid min-h-0 gap-4 xl:grid-cols-2">
-                            <section className="min-h-0 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#070b14]">
+                        <div className="grid min-h-0 gap-5 p-4 sm:p-5 xl:grid-cols-2">
+                            <section className="flex min-h-0 flex-col border-b border-[var(--settings-border-color)] pb-4 xl:border-r xl:border-b-0 xl:pr-5 xl:pb-0">
                                 <h3 className="font-semibold">
                                     {t(
                                         'settings.admin_panel.reflection',
                                         'Reflection',
                                     )}
                                 </h3>
-                                <div className="mt-3 max-h-[26rem] overflow-y-auto text-sm leading-6 whitespace-pre-wrap text-slate-700 dark:text-slate-200">
+                                <div className="mt-3 min-h-0 flex-1 overflow-y-auto text-sm leading-6 whitespace-pre-wrap text-slate-700 dark:text-slate-200">
                                     {selectedRequest.page.markdown ||
                                         t(
                                             'settings.admin_panel.empty_reflection',
@@ -772,7 +796,7 @@ function FeedbackRequestsSection({
                                 </div>
                             </section>
 
-                            <section className="grid min-h-0 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#070b14]">
+                            <section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
                                 <label
                                     className="font-semibold"
                                     htmlFor="feedback"
@@ -783,7 +807,7 @@ function FeedbackRequestsSection({
                                     )}
                                 </label>
                                 <textarea
-                                    className="min-h-[18rem] rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-950 outline-none focus:border-[var(--settings-accent)] dark:border-white/10 dark:bg-[#020617] dark:text-white"
+                                    className="h-full min-h-[18rem] w-full resize-none rounded-md border p-3 text-sm text-slate-950 outline-none focus:border-[var(--settings-accent)] dark:text-white"
                                     disabled={
                                         selectedRequest.respondedAt !== null
                                     }
@@ -799,7 +823,7 @@ function FeedbackRequestsSection({
                                 />
                             </section>
                         </div>
-                        <div className="flex justify-end">
+                        <div className="flex shrink-0 justify-end px-4 pb-4 sm:px-5 sm:pb-5">
                             <Button
                                 disabled={
                                     selectedRequest.respondedAt !== null ||
@@ -839,10 +863,10 @@ function FeedbackRequestButton({
     return (
         <button
             className={cn(
-                'rounded-lg border p-3 text-left transition hover:bg-slate-50 dark:hover:bg-white/10',
+                'relative w-full border-b border-[var(--settings-border-color)] px-4 py-3 text-left transition hover:bg-[var(--settings-active-background)]',
                 active
-                    ? 'border-[var(--settings-accent)] bg-slate-50 dark:bg-white/10'
-                    : 'border-slate-200 dark:border-white/10',
+                    ? 'border-l-2 border-l-[var(--settings-accent)] bg-[var(--settings-active-background)]'
+                    : 'border-l-2 border-l-transparent',
             )}
             onClick={onSelect}
             type="button"
@@ -884,14 +908,21 @@ function FeedbackRequestButton({
 }
 
 function FeedbackRequestHeader({
+    className,
     request,
     t,
 }: {
+    className?: string;
     request: FeedbackRequest;
     t: ReturnType<typeof usePlatformTranslation>;
 }) {
     return (
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div
+            className={cn(
+                'flex flex-wrap items-start justify-between gap-3',
+                className,
+            )}
+        >
             <div>
                 <p
                     className="text-xs font-semibold tracking-[0.16em] uppercase"
@@ -991,7 +1022,7 @@ function OrganizationModerationSection({
     return (
         <section className="grid gap-4">
             <form
-                className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-[minmax(0,1fr)_10rem_max-content] md:items-end dark:border-white/10 dark:bg-white/5"
+                className="grid gap-3 border-b border-[var(--settings-border-color)] pb-4 md:grid-cols-[minmax(0,1fr)_10rem_max-content] md:items-end"
                 onSubmit={saveLimit}
             >
                 <div>
@@ -1021,15 +1052,15 @@ function OrganizationModerationSection({
                 </Button>
             </form>
 
-            <div className="grid gap-3">
+            <div className="grid">
                 {reports.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                    <p className="border-b border-dashed border-[var(--settings-border-color)] py-5 text-sm text-[var(--settings-muted-text)]">
                         No pending organization icon reports.
                     </p>
                 ) : null}
                 {reports.map((report) => (
                     <article
-                        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-[5rem_minmax(0,1fr)_max-content] dark:border-white/10 dark:bg-white/5"
+                        className="grid gap-4 border-b border-[var(--settings-border-color)] py-4 md:grid-cols-[5rem_minmax(0,1fr)_max-content]"
                         key={report.id}
                     >
                         <OrganizationIcon

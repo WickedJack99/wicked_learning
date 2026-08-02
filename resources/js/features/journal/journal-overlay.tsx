@@ -29,8 +29,12 @@ import type {
 } from '@/features/journal/journal-client';
 import {
     DEFAULT_JOURNAL_THEME,
+    journalThemeBackgroundUrl,
+    journalThemeBackgroundAssets,
     journalThemeCssVariables,
+    journalThemeForMode,
 } from '@/features/journal/theme';
+import type { JournalBackgroundAsset } from '@/features/journal/theme';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -87,13 +91,22 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                 : null,
         [draftsById, payload?.pages, selectedId],
     );
+    const activeTheme = payload?.theme ?? journalTheme ?? DEFAULT_JOURNAL_THEME;
     const themeStyle = useMemo(
-        () =>
-            journalThemeCssVariables(
-                payload?.theme ?? journalTheme ?? DEFAULT_JOURNAL_THEME,
-                resolvedAppearance,
-            ),
-        [journalTheme, payload, resolvedAppearance],
+        () => journalThemeCssVariables(activeTheme, resolvedAppearance),
+        [activeTheme, resolvedAppearance],
+    );
+    const activeThemeMode = useMemo(
+        () => journalThemeForMode(activeTheme, resolvedAppearance),
+        [activeTheme, resolvedAppearance],
+    );
+    const backgroundImageUrl = useMemo(
+        () => journalThemeBackgroundUrl(activeThemeMode.backgroundImage),
+        [activeThemeMode],
+    );
+    const backgroundAssets = useMemo(
+        () => journalThemeBackgroundAssets(activeThemeMode),
+        [activeThemeMode],
     );
 
     useEffect(() => {
@@ -273,27 +286,25 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
             role="dialog"
             style={themeStyle}
         >
-            <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-[image:var(--journal-background-image)] bg-cover bg-center backdrop-blur-md"
-            />
-            <div
-                aria-hidden="true"
-                className="absolute inset-0"
-                style={{ background: 'var(--journal-background-overlay)' }}
-            />
             <section
                 aria-label="Journal"
-                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[92rem] flex-col overflow-hidden rounded-xl border shadow-2xl shadow-slate-950/30 backdrop-blur-xl sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
+                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border shadow-2xl shadow-slate-950/30 sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
                 onMouseDown={(event) => event.stopPropagation()}
                 style={{
-                    background: 'var(--journal-panel-background)',
+                    backgroundColor: 'var(--journal-panel-background)',
                     borderColor: 'var(--journal-panel-border)',
                     color: 'var(--journal-body-text)',
                 }}
             >
+                <JournalBackgroundImage source={backgroundImageUrl} />
+                <JournalBackgroundAssets assets={backgroundAssets} />
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 z-0"
+                    style={{ background: 'var(--journal-background-overlay)' }}
+                />
                 <header
-                    className="flex shrink-0 items-center gap-4 border-b p-4"
+                    className="relative z-10 flex shrink-0 items-center gap-4 border-b p-4"
                     style={{
                         background: 'var(--journal-header-background)',
                         borderColor: 'var(--journal-panel-border)',
@@ -338,7 +349,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                     </Button>
                 </header>
 
-                <div className="grid min-h-0 flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
+                <div className="relative z-10 grid min-h-0 flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
                     <aside
                         className="flex min-h-0 flex-col border-b p-3 lg:border-r lg:border-b-0"
                         style={{
@@ -484,6 +495,64 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
             </section>
         </div>,
         document.body,
+    );
+}
+
+function JournalBackgroundImage({ source }: { source?: string }) {
+    if (!source) {
+        return null;
+    }
+
+    return (
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        >
+            <img
+                alt=""
+                className="size-full max-w-none object-cover"
+                draggable={false}
+                src={source}
+                style={{
+                    objectPosition: 'var(--journal-background-position)',
+                    transform: 'scale(var(--journal-background-zoom))',
+                    transformOrigin: 'var(--journal-background-position)',
+                }}
+            />
+        </div>
+    );
+}
+
+function JournalBackgroundAssets({
+    assets,
+}: {
+    assets: JournalBackgroundAsset[];
+}) {
+    return (
+        <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        >
+            {assets.map((asset) => {
+                const source = journalThemeBackgroundUrl(asset.image);
+
+                return source ? (
+                    <img
+                        alt=""
+                        className="absolute max-w-none"
+                        draggable={false}
+                        key={asset.id}
+                        src={source}
+                        style={{
+                            left: `${asset.positionX}%`,
+                            top: `${asset.positionY}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: `${asset.zoom}%`,
+                        }}
+                    />
+                ) : null;
+            })}
+        </div>
     );
 }
 

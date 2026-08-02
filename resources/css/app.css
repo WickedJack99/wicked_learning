@@ -236,6 +236,15 @@
         --settings-panel-background: #ffffff;
         --settings-scrollbar-thumb: rgb(100 116 139 / 0.54);
         --settings-sidebar-background: rgba(255, 255, 255, 0.9);
+        --background: var(--settings-content-background);
+        --border: var(--settings-border-color);
+        --card: var(--settings-panel-background);
+        --card-foreground: var(--foreground);
+        --input: var(--settings-input-border-color);
+        --muted-foreground: var(--settings-muted-text);
+        --primary: var(--settings-accent);
+        --primary-foreground: var(--settings-accent-foreground);
+        --ring: var(--settings-accent);
     }
 
     .dark .settings-surface {

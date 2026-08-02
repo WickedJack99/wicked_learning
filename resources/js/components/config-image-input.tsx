@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
+import { cn } from '@/lib/utils';
 import type { Auth } from '@/types';
 
 type ConfigImageInputProps = {
+    className?: string;
     description?: string;
     error?: string;
     id: string;
@@ -23,6 +25,7 @@ type ConfigImageInputProps = {
 };
 
 export function ConfigImageInput({
+    className,
     description,
     error,
     id,
@@ -41,7 +44,12 @@ export function ConfigImageInput({
     const previewUrl = normalizeMediaUrl(value);
 
     return (
-        <div className="grid min-w-0 gap-2 overflow-hidden rounded-md bg-slate-50 p-3 dark:bg-white/5">
+        <div
+            className={cn(
+                'grid min-w-0 gap-2 overflow-hidden rounded-md bg-slate-50 p-3 dark:bg-white/5',
+                className,
+            )}
+        >
             <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                     <Image className="size-4" />

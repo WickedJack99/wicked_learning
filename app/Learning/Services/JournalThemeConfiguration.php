@@ -3,6 +3,7 @@
 namespace App\Learning\Services;
 
 use App\Models\PlatformJournalSetting;
+use Illuminate\Support\Str;
 
 /** Normalizes platform journal visuals for admin editing and learner display. */
 class JournalThemeConfiguration
@@ -13,6 +14,10 @@ class JournalThemeConfiguration
         return [
             'dark' => [
                 'backgroundImage' => '',
+                'backgroundPositionX' => 50,
+                'backgroundPositionY' => 50,
+                'backgroundZoom' => 100,
+                'backgroundAssets' => [],
                 'backgroundOverlay' => '#020617',
                 'backgroundOverlayOpacity' => 72,
                 'panelBackground' => '#0b1117',
@@ -52,6 +57,10 @@ class JournalThemeConfiguration
             ],
             'light' => [
                 'backgroundImage' => '',
+                'backgroundPositionX' => 50,
+                'backgroundPositionY' => 50,
+                'backgroundZoom' => 100,
+                'backgroundAssets' => [],
                 'backgroundOverlay' => '#f8fafc',
                 'backgroundOverlayOpacity' => 68,
                 'panelBackground' => '#ffffff',
@@ -124,8 +133,59 @@ class JournalThemeConfiguration
 
         return collect($defaults)
             ->mapWithKeys(fn (mixed $default, string $key): array => [
-                $key => array_key_exists($key, $data) ? $data[$key] : $default,
+                $key => $this->normalizedValue($key, $data[$key] ?? null, $default),
             ])
             ->all();
+    }
+
+    private function normalizedValue(string $key, mixed $value, mixed $default): mixed
+    {
+        if ($key === 'backgroundPositionX' || $key === 'backgroundPositionY') {
+            return $this->normalizedNumber($value, (int) $default, 0, 100);
+        }
+
+        if ($key === 'backgroundZoom') {
+            return $this->normalizedNumber($value, (int) $default, 25, 300);
+        }
+
+        if ($key === 'backgroundAssets') {
+            return $this->normalizedBackgroundAssets($value);
+        }
+
+        return $value ?? $default;
+    }
+
+    /** @return list<array{id: string, image: string, positionX: int, positionY: int, zoom: int}> */
+    private function normalizedBackgroundAssets(mixed $assets): array
+    {
+        if (! is_array($assets)) {
+            return [];
+        }
+
+        return collect($assets)
+            ->filter(fn (mixed $asset): bool => is_array($asset))
+            ->take(12)
+            ->values()
+            ->map(function (array $asset): array {
+                $id = trim((string) ($asset['id'] ?? ''));
+
+                return [
+                    'id' => $id !== '' ? mb_substr($id, 0, 64) : (string) Str::uuid(),
+                    'image' => mb_substr(trim((string) ($asset['image'] ?? '')), 0, 2048),
+                    'positionX' => $this->normalizedNumber($asset['positionX'] ?? null, 50, 0, 100),
+                    'positionY' => $this->normalizedNumber($asset['positionY'] ?? null, 50, 0, 100),
+                    'zoom' => $this->normalizedNumber($asset['zoom'] ?? null, 100, 25, 300),
+                ];
+            })
+            ->all();
+    }
+
+    private function normalizedNumber(mixed $value, int $default, int $minimum, int $maximum): int
+    {
+        if (! is_numeric($value)) {
+            return $default;
+        }
+
+        return max($minimum, min($maximum, (int) $value));
     }
 }

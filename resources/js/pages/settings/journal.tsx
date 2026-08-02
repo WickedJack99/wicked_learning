@@ -1,40 +1,41 @@
 import { Head, router } from '@inertiajs/react';
-import type { BookOpenCheck } from 'lucide-react';
 import {
-    Highlighter,
+    BookOpenCheck,
     Image,
-    LayoutPanelTop,
-    Palette,
+    Plus,
     Save,
     ShieldCheck,
-    SquareMousePointer,
-    Type,
+    Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { ColorOpacityField } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import type { ConfigThemeMode } from '@/components/config-mode-switch';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
     SettingsLevelBanner,
+    SettingsPanelHeader,
     SettingsSectionNavigation,
     type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-    journalThemeColors,
+    journalThemeBackgroundUrl,
+    journalThemeBackgroundAssets,
     journalThemeCssVariables,
 } from '@/features/journal/theme';
 import type {
+    JournalBackgroundAsset,
     JournalThemeModeSettings,
     JournalThemeSettings,
 } from '@/features/journal/theme';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
-import { cn } from '@/lib/utils';
-import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
+import {
+    ConfigImageInput,
+    NumberField,
+} from '@/pages/settings/worlds/activity-config-fields';
 
 export type JournalSettingsProps = {
     allowExpertAccessRequests: boolean;
@@ -42,15 +43,7 @@ export type JournalSettingsProps = {
     theme: JournalThemeSettings;
 };
 
-type JournalSection =
-    | 'policy'
-    | 'background'
-    | 'shell'
-    | 'typography'
-    | 'buttons'
-    | 'selection';
-
-type ThemeField = Exclude<keyof JournalThemeModeSettings, 'backgroundImage'>;
+type JournalSection = 'policy' | 'background';
 
 const sections = [
     {
@@ -65,62 +58,7 @@ const sections = [
         key: 'background',
         label: 'Background',
     },
-    {
-        description: 'Journal panel, header, sidebar and writing area.',
-        icon: LayoutPanelTop,
-        key: 'shell',
-        label: 'Journal shell',
-    },
-    {
-        description: 'Headings, body copy and muted helper text.',
-        icon: Type,
-        key: 'typography',
-        label: 'Typography',
-    },
-    {
-        description: 'Action buttons, active mode and highlighted controls.',
-        icon: SquareMousePointer,
-        key: 'buttons',
-        label: 'Buttons',
-    },
-    {
-        description: 'Selected journal page colors in the page list.',
-        icon: Highlighter,
-        key: 'selection',
-        label: 'Page highlight',
-    },
 ] satisfies SettingsNavigationItem<JournalSection>[];
-
-const fieldsBySection: Record<
-    Exclude<JournalSection, 'policy' | 'background'>,
-    { field: ThemeField; label: string }[]
-> = {
-    shell: [
-        { field: 'panelBackground', label: 'Panel background' },
-        { field: 'panelBorder', label: 'Panel border' },
-        { field: 'headerBackground', label: 'Header background' },
-        { field: 'sidebarBackground', label: 'Sidebar background' },
-        { field: 'contentBackground', label: 'Content background' },
-        { field: 'inputBackground', label: 'Input background' },
-    ],
-    typography: [
-        { field: 'headingText', label: 'Heading text' },
-        { field: 'bodyText', label: 'Body text' },
-        { field: 'mutedText', label: 'Muted text' },
-    ],
-    buttons: [
-        { field: 'accent', label: 'Accent / active background' },
-        { field: 'accentText', label: 'Accent text' },
-        { field: 'buttonBackground', label: 'Button background' },
-        { field: 'buttonText', label: 'Button text' },
-        { field: 'buttonBorder', label: 'Button border' },
-    ],
-    selection: [
-        { field: 'selectedBackground', label: 'Selected page background' },
-        { field: 'selectedBorder', label: 'Selected page border' },
-        { field: 'selectedText', label: 'Selected page text' },
-    ],
-};
 
 /** Platform journal policy and visual configuration. */
 export default function JournalSettings({
@@ -139,6 +77,12 @@ export default function JournalSettings({
     const activeMode = draftTheme[configMode];
     const activeSectionItem =
         sections.find((item) => item.key === section) ?? sections[0];
+    const journalItem: SettingsNavigationItem<'journal'> = {
+        description: 'Journal policy and background image.',
+        icon: BookOpenCheck,
+        key: 'journal',
+        label: 'Journal',
+    };
     const hasChanges = useDirtyState(
         {
             allowExpertAccessRequests: allowExpertAccess,
@@ -180,7 +124,10 @@ export default function JournalSettings({
         );
     }
 
-    async function uploadBackground(file: File) {
+    async function uploadJournalImage(
+        file: File,
+        onUploaded: (url: string) => void,
+    ) {
         setUploading(true);
 
         try {
@@ -190,10 +137,7 @@ export default function JournalSettings({
                 file,
             });
 
-            updateThemeMode((current) => ({
-                ...current,
-                backgroundImage: payload.url,
-            }));
+            onUploaded(payload.url);
         } finally {
             setUploading(false);
         }
@@ -207,7 +151,7 @@ export default function JournalSettings({
     );
 
     const sidebar = (
-        <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+        <aside className="h-full min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
             <SettingsSectionNavigation
                 activeSection={section}
                 ariaLabel="Journal settings sections"
@@ -222,7 +166,6 @@ export default function JournalSettings({
             <SettingsLevelBanner
                 action={
                     <div className="flex shrink-0 items-center gap-2">
-                        {embedded ? saveButton : null}
                         {section !== 'policy' ? (
                             <ConfigModeSwitch
                                 mode={configMode}
@@ -230,37 +173,37 @@ export default function JournalSettings({
                                 size="large"
                             />
                         ) : null}
+                        {embedded ? saveButton : null}
                     </div>
                 }
                 className="!bg-[var(--settings-sidebar-background)]"
+                contentClassName="!max-w-none"
                 description="Configure learner journal behavior and visuals for the selected appearance mode."
-                item={activeSectionItem}
+                item={journalItem}
             />
 
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-                {section === 'policy' ? (
-                    <PolicySection
-                        allowExpertAccess={allowExpertAccess}
-                        onChange={setAllowExpertAccess}
+                <div className="grid gap-4">
+                    <SettingsPanelHeader
+                        item={activeSectionItem}
+                        title={activeSectionItem.label}
                     />
-                ) : null}
-                {section === 'background' ? (
-                    <BackgroundSection
-                        mode={configMode}
-                        onChange={updateThemeMode}
-                        onUpload={uploadBackground}
-                        theme={activeMode}
-                        uploading={uploading}
-                    />
-                ) : null}
-                {section !== 'policy' && section !== 'background' ? (
-                    <ColorSection
-                        fields={fieldsBySection[section]}
-                        mode={configMode}
-                        onChange={updateThemeMode}
-                        theme={activeMode}
-                    />
-                ) : null}
+                    {section === 'policy' ? (
+                        <PolicySection
+                            allowExpertAccess={allowExpertAccess}
+                            onChange={setAllowExpertAccess}
+                        />
+                    ) : null}
+                    {section === 'background' ? (
+                        <BackgroundSection
+                            mode={configMode}
+                            onChange={updateThemeMode}
+                            onUpload={uploadJournalImage}
+                            theme={activeMode}
+                            uploading={uploading}
+                        />
+                    ) : null}
+                </div>
             </div>
         </div>
     );
@@ -300,43 +243,39 @@ function PolicySection({
     onChange: (value: boolean) => void;
 }) {
     return (
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem]">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/5">
-                <div className="flex items-start gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
-                        <ShieldCheck className="size-5" />
-                    </span>
-                    <div>
-                        <h3 className="font-semibold text-slate-950 dark:text-white">
-                            Optional expert access
-                        </h3>
-                        <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            Learners can explicitly request informational
-                            feedback on their private journal pages. This only
-                            records consent and does not send entries anywhere
-                            by itself.
-                        </p>
-                    </div>
+        <section className="max-w-4xl border-b border-[var(--settings-border-color)] pb-5">
+            <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
+                    <ShieldCheck className="size-5" />
+                </span>
+                <div>
+                    <h3 className="font-semibold text-slate-950 dark:text-white">
+                        Optional expert access
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Learners can explicitly request informational feedback
+                        on their private journal pages. This only records
+                        consent and does not send entries anywhere by itself.
+                    </p>
                 </div>
-
-                <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm dark:border-white/10 dark:bg-slate-950/40">
-                    <Checkbox
-                        checked={allowExpertAccess}
-                        className="mt-0.5"
-                        onCheckedChange={(value) => onChange(value === true)}
-                    />
-                    <span>
-                        <span className="block font-medium text-slate-950 dark:text-white">
-                            Allow learners to request informational feedback
-                        </span>
-                        <span className="mt-1 block leading-6 text-slate-500 dark:text-slate-400">
-                            Future feedback workflows can read this consent
-                            before involving an expert or AI service.
-                        </span>
-                    </span>
-                </label>
             </div>
-            <PolicyPreview allowExpertAccess={allowExpertAccess} />
+
+            <label className="mt-6 flex cursor-pointer items-start gap-3 border-y border-[var(--settings-border-color)] py-4 text-sm">
+                <Checkbox
+                    checked={allowExpertAccess}
+                    className="mt-0.5"
+                    onCheckedChange={(value) => onChange(value === true)}
+                />
+                <span>
+                    <span className="block font-medium text-slate-950 dark:text-white">
+                        Allow learners to request informational feedback
+                    </span>
+                    <span className="mt-1 block leading-6 text-slate-500 dark:text-slate-400">
+                        Future feedback workflows can read this consent before
+                        involving an expert or AI service.
+                    </span>
+                </span>
+            </label>
         </section>
     );
 }
@@ -354,14 +293,15 @@ function BackgroundSection({
             current: JournalThemeModeSettings,
         ) => JournalThemeModeSettings,
     ) => void;
-    onUpload: (file: File) => void;
+    onUpload: (file: File, onUploaded: (url: string) => void) => void;
     theme: JournalThemeModeSettings;
     uploading: boolean;
 }) {
     return (
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
-            <div className="grid gap-4">
+        <section className="grid min-w-0 items-stretch gap-4 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+            <div className="grid min-w-0 content-start border-b border-[var(--settings-border-color)] pb-5">
                 <ConfigImageInput
+                    className="!rounded-none !bg-transparent !p-0"
                     description={`Displayed behind the journal in ${mode} mode. A book page, desk, parchment or subtle texture works well.`}
                     id={`journal-${mode}-background`}
                     label={`${capitalize(mode)} mode background image`}
@@ -371,26 +311,72 @@ function BackgroundSection({
                             backgroundImage: value,
                         }))
                     }
-                    onUpload={onUpload}
+                    onUpload={(file) =>
+                        onUpload(file, (url) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundImage: url,
+                            })),
+                        )
+                    }
                     uploading={uploading}
                     value={theme.backgroundImage}
                 />
-                <ColorOpacityField
-                    colorValue={theme.backgroundOverlay}
-                    label="Background overlay"
-                    onColorChange={(value) =>
-                        onChange((current) => ({
-                            ...current,
-                            backgroundOverlay: value,
-                        }))
-                    }
-                    onOpacityChange={(value) =>
-                        onChange((current) => ({
-                            ...current,
-                            backgroundOverlayOpacity: value,
-                        }))
-                    }
-                    opacityValue={String(theme.backgroundOverlayOpacity)}
+                <div className="mt-5 grid gap-4 border-t border-[var(--settings-border-color)] pt-4 sm:grid-cols-3">
+                    <NumberField
+                        label="Horizontal position"
+                        max="100"
+                        min="0"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundPositionX: value,
+                            }))
+                        }
+                        step="1"
+                        suffix="%"
+                        value={String(theme.backgroundPositionX)}
+                    />
+                    <NumberField
+                        label="Vertical position"
+                        max="100"
+                        min="0"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundPositionY: value,
+                            }))
+                        }
+                        step="1"
+                        suffix="%"
+                        value={String(theme.backgroundPositionY)}
+                    />
+                    <NumberField
+                        label="Zoom"
+                        max="300"
+                        min="25"
+                        onChange={(value) =>
+                            onChange((current) => ({
+                                ...current,
+                                backgroundZoom: value,
+                            }))
+                        }
+                        step="1"
+                        suffix="%"
+                        value={String(theme.backgroundZoom)}
+                    />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--settings-muted-text)]">
+                    100% keeps the normal cover fit. Lower values shrink the
+                    image; higher values zoom in without changing its aspect
+                    ratio.
+                </p>
+                <BackgroundAssetsSection
+                    mode={mode}
+                    onChange={onChange}
+                    onUpload={onUpload}
+                    theme={theme}
+                    uploading={uploading}
                 />
             </div>
             <JournalPreview mode={mode} theme={theme} />
@@ -398,102 +384,192 @@ function BackgroundSection({
     );
 }
 
-function ColorSection({
-    fields,
+function BackgroundAssetsSection({
     mode,
     onChange,
+    onUpload,
     theme,
+    uploading,
 }: {
-    fields: { field: ThemeField; label: string }[];
     mode: ConfigThemeMode;
     onChange: (
         updater: (
             current: JournalThemeModeSettings,
         ) => JournalThemeModeSettings,
     ) => void;
+    onUpload: (file: File, onUploaded: (url: string) => void) => void;
     theme: JournalThemeModeSettings;
+    uploading: boolean;
 }) {
-    const [selectedField, setSelectedField] = useState(fields[0].field);
-    const activeField =
-        fields.find((field) => field.field === selectedField) ?? fields[0];
-    const opacityField = `${activeField.field}Opacity` as ThemeField;
+    function updateAsset(
+        assetId: string,
+        updater: (asset: JournalBackgroundAsset) => JournalBackgroundAsset,
+    ) {
+        onChange((current) => ({
+            ...current,
+            backgroundAssets: current.backgroundAssets.map((asset) =>
+                asset.id === assetId ? updater(asset) : asset,
+            ),
+        }));
+    }
+
+    function addAsset() {
+        onChange((current) => ({
+            ...current,
+            backgroundAssets: [
+                ...current.backgroundAssets,
+                {
+                    id: newJournalBackgroundAssetId(),
+                    image: '',
+                    positionX: 50,
+                    positionY: 50,
+                    zoom: 100,
+                },
+            ],
+        }));
+    }
+
+    function removeAsset(assetId: string) {
+        onChange((current) => ({
+            ...current,
+            backgroundAssets: current.backgroundAssets.filter(
+                (asset) => asset.id !== assetId,
+            ),
+        }));
+    }
 
     return (
-        <section className="grid gap-4 xl:grid-cols-[17rem_minmax(0,1fr)]">
-            <aside className="grid h-fit gap-2 border-r border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3">
-                {fields.map((field) => (
-                    <button
-                        className={cn(
-                            'relative px-3 py-3 text-left text-sm font-medium transition',
-                            selectedField === field.field
-                                ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
-                                : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
-                        )}
-                        key={field.field}
-                        onClick={() => setSelectedField(field.field)}
-                        type="button"
-                    >
-                        <span
-                            aria-hidden="true"
-                            className={cn(
-                                'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
-                                selectedField === field.field
-                                    ? 'opacity-100'
-                                    : 'opacity-0',
-                            )}
-                        />
-                        {field.label}
-                    </button>
-                ))}
-            </aside>
-
-            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
-                <div className="border-b border-[var(--settings-border-color)] pb-5">
-                    <div className="mb-5 flex items-center gap-3">
-                        <Palette className="size-5 text-[var(--settings-accent)]" />
-                        <div>
-                            <h3 className="font-semibold text-slate-950 dark:text-white">
-                                {activeField.label}
-                            </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Editing {mode} mode journal colors.
-                            </p>
-                        </div>
-                    </div>
-                    <ColorOpacityField
-                        colorValue={String(theme[activeField.field] ?? '')}
-                        label={activeField.label}
-                        onColorChange={(value) =>
-                            onChange((current) => ({
-                                ...current,
-                                [activeField.field]: value,
-                            }))
-                        }
-                        onOpacityChange={(value) =>
-                            onChange((current) => ({
-                                ...current,
-                                [opacityField]: value,
-                            }))
-                        }
-                        opacityValue={String(theme[opacityField] ?? 100)}
-                    />
+        <section className="mt-6 border-t border-[var(--settings-border-color)] pt-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 className="font-semibold text-slate-950 dark:text-white">
+                        Decorative assets
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
+                        Place ornaments, bookmarks or other images over the base
+                        background in {mode} mode.
+                    </p>
                 </div>
-                <JournalPreview
-                    focus={activeField.field}
-                    mode={mode}
-                    theme={theme}
-                />
+                <Button
+                    disabled={theme.backgroundAssets.length >= 12}
+                    onClick={addAsset}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                >
+                    <Plus className="size-4" />
+                    Add asset
+                </Button>
             </div>
+
+            {theme.backgroundAssets.length === 0 ? (
+                <p className="mt-4 text-sm text-[var(--settings-muted-text)]">
+                    No decorative assets yet.
+                </p>
+            ) : null}
+
+            {theme.backgroundAssets.map((asset, index) => (
+                <div
+                    className="mt-5 border-t border-[var(--settings-border-color)] pt-4"
+                    key={asset.id}
+                >
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                        <h4 className="font-medium text-slate-950 dark:text-white">
+                            Asset {index + 1}
+                        </h4>
+                        <Button
+                            aria-label={`Remove asset ${index + 1}`}
+                            onClick={() => removeAsset(asset.id)}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </div>
+                    <ConfigImageInput
+                        className="!rounded-none !bg-transparent !p-0"
+                        description="Placed behind journal controls and above the base background."
+                        id={`journal-${mode}-asset-${asset.id}`}
+                        label={`Asset ${index + 1} image`}
+                        onChange={(image) =>
+                            updateAsset(asset.id, (current) => ({
+                                ...current,
+                                image,
+                            }))
+                        }
+                        onUpload={(file) =>
+                            onUpload(file, (image) =>
+                                updateAsset(asset.id, (current) => ({
+                                    ...current,
+                                    image,
+                                })),
+                            )
+                        }
+                        uploading={uploading}
+                        value={asset.image}
+                    />
+                    <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                        <NumberField
+                            id={`journal-${mode}-asset-${asset.id}-x`}
+                            label="Horizontal position"
+                            max="100"
+                            min="0"
+                            onChange={(positionX) =>
+                                updateAsset(asset.id, (current) => ({
+                                    ...current,
+                                    positionX,
+                                }))
+                            }
+                            step="1"
+                            suffix="%"
+                            value={String(asset.positionX)}
+                        />
+                        <NumberField
+                            id={`journal-${mode}-asset-${asset.id}-y`}
+                            label="Vertical position"
+                            max="100"
+                            min="0"
+                            onChange={(positionY) =>
+                                updateAsset(asset.id, (current) => ({
+                                    ...current,
+                                    positionY,
+                                }))
+                            }
+                            step="1"
+                            suffix="%"
+                            value={String(asset.positionY)}
+                        />
+                        <NumberField
+                            id={`journal-${mode}-asset-${asset.id}-zoom`}
+                            label="Zoom"
+                            max="300"
+                            min="25"
+                            onChange={(zoom) =>
+                                updateAsset(asset.id, (current) => ({
+                                    ...current,
+                                    zoom,
+                                }))
+                            }
+                            step="1"
+                            suffix="%"
+                            value={String(asset.zoom)}
+                        />
+                    </div>
+                    <p className="mt-3 text-sm text-[var(--settings-muted-text)]">
+                        Position refers to the center of the asset. Zoom sets
+                        its width and preserves its aspect ratio.
+                    </p>
+                </div>
+            ))}
         </section>
     );
 }
 
 function JournalPreview({
-    focus,
     mode,
     theme,
 }: {
-    focus?: ThemeField;
     mode: ConfigThemeMode;
     theme: JournalThemeModeSettings;
 }) {
@@ -501,138 +577,172 @@ function JournalPreview({
         () => journalThemeCssVariables({ dark: theme, light: theme }, mode),
         [mode, theme],
     );
-    const colors = journalThemeColors(theme);
+    const backgroundImageUrl = journalThemeBackgroundUrl(theme.backgroundImage);
+    const backgroundAssets = journalThemeBackgroundAssets(theme);
 
     return (
         <div
-            className="overflow-hidden rounded-xl border p-4"
+            className="relative flex aspect-[3/2] w-full max-w-[28rem] flex-col self-start justify-self-center overflow-hidden rounded-xl border 2xl:justify-self-end"
             style={{
                 ...cssVariables,
-                backgroundImage: 'var(--journal-background-image)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundColor: 'var(--journal-panel-background)',
                 borderColor: 'var(--journal-panel-border)',
             }}
         >
-            <div
-                className="rounded-lg p-4"
-                style={{ background: 'var(--journal-background-overlay)' }}
-            >
-                <p
-                    className="text-xs font-medium tracking-[0.16em] uppercase"
-                    style={{ color: 'var(--journal-accent)' }}
-                >
-                    Preview
-                </p>
+            {backgroundImageUrl ? (
                 <div
-                    className="mt-3 overflow-hidden rounded-lg border"
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 overflow-hidden"
+                >
+                    <img
+                        alt=""
+                        className="size-full max-w-none object-cover"
+                        draggable={false}
+                        src={backgroundImageUrl}
+                        style={{
+                            objectPosition:
+                                'var(--journal-background-position)',
+                            transform: 'scale(var(--journal-background-zoom))',
+                            transformOrigin:
+                                'var(--journal-background-position)',
+                        }}
+                    />
+                </div>
+            ) : null}
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden"
+            >
+                {backgroundAssets.map((asset) => {
+                    const imageUrl = journalThemeBackgroundUrl(asset.image);
+
+                    return imageUrl ? (
+                        <img
+                            alt=""
+                            className="absolute max-w-none"
+                            draggable={false}
+                            key={asset.id}
+                            src={imageUrl}
+                            style={{
+                                left: `${asset.positionX}%`,
+                                top: `${asset.positionY}%`,
+                                transform: 'translate(-50%, -50%)',
+                                width: `${asset.zoom}%`,
+                            }}
+                        />
+                    ) : null;
+                })}
+            </div>
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-0"
+                style={{ background: 'var(--journal-background-overlay)' }}
+            />
+            <header
+                className="relative z-10 flex h-[7%] shrink-0 items-center justify-between overflow-hidden border-b px-2 py-0.5"
+                style={{
+                    background: 'var(--journal-header-background)',
+                    borderColor: 'var(--journal-panel-border)',
+                }}
+            >
+                <div>
+                    <p
+                        className="text-[0.45rem] leading-none font-medium tracking-[0.16em] uppercase"
+                        style={{ color: 'var(--journal-accent)' }}
+                    >
+                        Journal
+                    </p>
+                    <p
+                        className="mt-0.5 text-[0.65rem] leading-none font-semibold"
+                        style={{ color: 'var(--journal-heading-text)' }}
+                    >
+                        Reflections and notes
+                    </p>
+                </div>
+                <span
+                    className="rounded border px-1.5 py-0.5 text-[0.5rem]"
                     style={{
-                        background: 'var(--journal-panel-background)',
-                        borderColor: outlineColor(focus, 'panelBorder', colors),
+                        borderColor: 'var(--journal-button-border)',
+                        color: 'var(--journal-button-text)',
+                    }}
+                >
+                    Export
+                </span>
+            </header>
+            <div className="relative z-10 grid min-h-0 flex-1 grid-cols-[16.1%_minmax(0,1fr)]">
+                <div
+                    className="border-r p-2"
+                    style={{
+                        background: 'var(--journal-sidebar-background)',
+                        borderColor: 'var(--journal-panel-border)',
                     }}
                 >
                     <div
-                        className="border-b p-3"
+                        className="rounded border p-1.5"
                         style={{
-                            background: 'var(--journal-header-background)',
-                            borderColor: 'var(--journal-panel-border)',
+                            background: 'var(--journal-selected-background)',
+                            borderColor: 'var(--journal-selected-border)',
+                            color: 'var(--journal-selected-text)',
                         }}
                     >
                         <p
-                            className="font-semibold"
-                            style={{ color: 'var(--journal-heading-text)' }}
+                            className="truncate text-[0.6rem] font-semibold"
+                            style={{ color: 'var(--journal-selected-text)' }}
                         >
-                            Reflections and notes
+                            Field notes
                         </p>
                         <p
-                            className="text-xs"
-                            style={{ color: 'var(--journal-muted-text)' }}
+                            className="mt-0.5 truncate text-[0.5rem]"
+                            style={{ color: 'var(--journal-selected-text)' }}
                         >
-                            Journal header area
+                            General / Week 1
                         </p>
                     </div>
-                    <div className="grid grid-cols-[9rem_minmax(0,1fr)]">
+                </div>
+                <div
+                    className="min-w-0 p-2"
+                    style={{ background: 'var(--journal-content-background)' }}
+                >
+                    <div className="flex h-full min-h-0 flex-col">
                         <div
-                            className="border-r p-2"
+                            className="flex shrink-0 items-start justify-between gap-2"
                             style={{
-                                background: 'var(--journal-sidebar-background)',
-                                borderColor: 'var(--journal-panel-border)',
+                                color: 'var(--journal-heading-text)',
                             }}
                         >
-                            <div
-                                className="rounded-md border p-2"
+                            <div className="min-w-0 text-[0.6rem] font-semibold">
+                                Test Reflection
+                            </div>
+                            <span
+                                className="rounded px-1.5 py-0.5 text-[0.5rem]"
                                 style={{
-                                    background:
-                                        'var(--journal-selected-background)',
-                                    borderColor:
-                                        'var(--journal-selected-border)',
-                                    color: 'var(--journal-selected-text)',
+                                    background: 'var(--journal-accent)',
+                                    color: 'var(--journal-accent-text)',
                                 }}
                             >
-                                <p className="truncate text-xs font-semibold">
-                                    Field notes
-                                </p>
-                                <p className="mt-1 truncate text-[0.68rem] opacity-80">
-                                    General / Week 1
-                                </p>
-                            </div>
+                                Edit
+                            </span>
                         </div>
                         <div
-                            className="p-3"
+                            className="mt-2 min-h-0 flex-1 overflow-hidden rounded border p-2"
                             style={{
-                                background: 'var(--journal-content-background)',
+                                background: 'var(--journal-input-background)',
+                                borderColor: 'var(--journal-button-border)',
                             }}
                         >
-                            <div
-                                className="rounded-md border p-3"
-                                style={{
-                                    background:
-                                        'var(--journal-input-background)',
-                                    borderColor: 'var(--journal-button-border)',
-                                }}
+                            <p
+                                className="text-[0.6rem] font-semibold"
+                                style={{ color: 'var(--journal-heading-text)' }}
                             >
-                                <p
-                                    className="text-sm font-semibold"
-                                    style={{
-                                        color: 'var(--journal-heading-text)',
-                                    }}
-                                >
-                                    A clear thought
-                                </p>
-                                <p
-                                    className="mt-2 text-xs leading-5"
-                                    style={{
-                                        color: 'var(--journal-body-text)',
-                                    }}
-                                >
-                                    Markdown reflections use the journal text
-                                    palette and can contain headings, notes and
-                                    media.
-                                </p>
-                                <button
-                                    className="mt-3 rounded-md border px-3 py-1.5 text-xs font-semibold"
-                                    style={{
-                                        background:
-                                            'var(--journal-button-background)',
-                                        borderColor:
-                                            'var(--journal-button-border)',
-                                        color: 'var(--journal-button-text)',
-                                    }}
-                                    type="button"
-                                >
-                                    Save changes
-                                </button>
-                                <button
-                                    className="mt-3 ml-2 rounded-md px-3 py-1.5 text-xs font-semibold"
-                                    style={{
-                                        background: 'var(--journal-accent)',
-                                        color: 'var(--journal-accent-text)',
-                                    }}
-                                    type="button"
-                                >
-                                    Edit
-                                </button>
-                            </div>
+                                A clear thought
+                            </p>
+                            <p
+                                className="mt-1 text-[0.55rem] leading-3"
+                                style={{ color: 'var(--journal-body-text)' }}
+                            >
+                                Markdown reflections appear in this writing
+                                area.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -641,32 +751,8 @@ function JournalPreview({
     );
 }
 
-function PolicyPreview({ allowExpertAccess }: { allowExpertAccess: boolean }) {
-    return (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
-            <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                Preview
-            </p>
-            <div className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-white/10">
-                <p className="font-semibold text-slate-950 dark:text-white">
-                    Journal page
-                </p>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                    {allowExpertAccess
-                        ? 'Learners can opt into future informational feedback per page.'
-                        : 'Expert access requests stay hidden while this policy is disabled.'}
-                </p>
-            </div>
-        </div>
-    );
-}
-
-function outlineColor(
-    focus: ThemeField | undefined,
-    field: ThemeField,
-    colors: ReturnType<typeof journalThemeColors>,
-) {
-    return focus === field ? colors.accent : colors.panelBorder;
+function newJournalBackgroundAssetId(): string {
+    return globalThis.crypto?.randomUUID?.() ?? `asset-${Date.now()}`;
 }
 
 function capitalize(value: string): string {

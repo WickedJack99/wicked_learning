@@ -4,14 +4,26 @@ import type { ResolvedAppearance } from '@/theme/appearance';
 
 export type JournalThemeMode = 'dark' | 'light';
 
+export type JournalBackgroundAsset = {
+    id: string;
+    image: string;
+    positionX: number | string;
+    positionY: number | string;
+    zoom: number | string;
+};
+
 export type JournalThemeModeSettings = {
     accent: string;
     accentOpacity: number | string;
     accentText: string;
     accentTextOpacity: number | string;
     backgroundImage: string;
+    backgroundPositionX: number | string;
+    backgroundPositionY: number | string;
     backgroundOverlay: string;
     backgroundOverlayOpacity: number | string;
+    backgroundAssets: JournalBackgroundAsset[];
+    backgroundZoom: number | string;
     bodyText: string;
     bodyTextOpacity: number | string;
     buttonBackground: string;
@@ -56,8 +68,12 @@ export const DEFAULT_JOURNAL_THEME: JournalThemeSettings = {
         accentText: '#020617',
         accentTextOpacity: 100,
         backgroundImage: '',
+        backgroundPositionX: 50,
+        backgroundPositionY: 50,
         backgroundOverlay: '#020617',
         backgroundOverlayOpacity: 72,
+        backgroundAssets: [],
+        backgroundZoom: 100,
         bodyText: '#e2e8f0',
         bodyTextOpacity: 92,
         buttonBackground: '#0f172a',
@@ -95,8 +111,12 @@ export const DEFAULT_JOURNAL_THEME: JournalThemeSettings = {
         accentText: '#ffffff',
         accentTextOpacity: 100,
         backgroundImage: '',
+        backgroundPositionX: 50,
+        backgroundPositionY: 50,
         backgroundOverlay: '#f8fafc',
         backgroundOverlayOpacity: 68,
+        backgroundAssets: [],
+        backgroundZoom: 100,
         bodyText: '#334155',
         bodyTextOpacity: 100,
         buttonBackground: '#ffffff',
@@ -141,12 +161,17 @@ export function journalThemeCssVariables(
     theme: JournalThemeSettings,
     mode: ResolvedAppearance | JournalThemeMode,
 ): CSSProperties {
-    const colors = journalThemeColors(journalThemeForMode(theme, mode));
+    const themeMode = journalThemeForMode(theme, mode);
+    const colors = journalThemeColors(themeMode);
 
     return {
         '--journal-accent': colors.accent,
         '--journal-accent-text': colors.accentText,
         '--journal-background-image': themeUrl(colors.backgroundImage),
+        '--journal-background-position': `${normalizedPercentage(themeMode.backgroundPositionX)}% ${normalizedPercentage(themeMode.backgroundPositionY)}%`,
+        '--journal-background-zoom': String(
+            normalizedZoom(themeMode.backgroundZoom) / 100,
+        ),
         '--journal-background-overlay': colors.backgroundOverlay,
         '--journal-body-text': colors.bodyText,
         '--journal-button-background': colors.buttonBackground,
@@ -217,10 +242,61 @@ export function journalThemeColors(mode: JournalThemeModeSettings) {
     };
 }
 
+export function journalThemeBackgroundAssets(
+    mode: JournalThemeModeSettings,
+): JournalBackgroundAsset[] {
+    return mode.backgroundAssets.map((asset, index) => ({
+        id: asset.id || `asset-${index}`,
+        image: asset.image,
+        positionX: normalizedPercentage(asset.positionX),
+        positionY: normalizedPercentage(asset.positionY),
+        zoom: normalizedZoom(asset.zoom),
+    }));
+}
+
 function themeUrl(value: string): string | undefined {
+    const imageUrl = journalThemeBackgroundUrl(value);
+
+    if (!imageUrl) {
+        return undefined;
+    }
+
+    return `url("${imageUrl}")`;
+}
+
+export function journalThemeBackgroundUrl(value: string): string | undefined {
     const normalized = normalizeMediaUrl(value);
 
-    return normalized ? `url("${normalized}")` : undefined;
+    if (!normalized) {
+        return undefined;
+    }
+
+    return typeof window === 'undefined'
+        ? normalized
+        : new URL(normalized, window.location.origin).toString();
+}
+
+function normalizedPercentage(value: number | string): number {
+    return normalizedNumber(value, 50, 0, 100);
+}
+
+function normalizedZoom(value: number | string): number {
+    return normalizedNumber(value, 100, 25, 300);
+}
+
+function normalizedNumber(
+    value: number | string,
+    fallback: number,
+    minimum: number,
+    maximum: number,
+): number {
+    const parsed = Number.parseFloat(String(value));
+
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+
+    return Math.min(maximum, Math.max(minimum, parsed));
 }
 
 function withOpacity(color: string, opacity: number | string): string {

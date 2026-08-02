@@ -8,6 +8,7 @@ import {
     type SettingsNavigationItem,
     type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
+import { Button } from '@/components/ui/button';
 import { type SoundPreferences } from '@/features/sounds/sound-player';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -90,8 +91,10 @@ export function SoundSettingsPanel({
                                 : 'transparent',
                             borderColor: form.muted
                                 ? 'var(--settings-accent)'
-                                : 'rgb(148 163 184 / 0.35)',
-                            color: form.muted ? '#050f16' : 'inherit',
+                                : 'var(--settings-border-color)',
+                            color: form.muted
+                                ? 'var(--settings-accent-foreground)'
+                                : 'inherit',
                         }}
                         type="button"
                     >
@@ -162,8 +165,7 @@ export function SoundSettingsPanel({
 
             {!hideSaveButton ? (
                 <div className="flex justify-end">
-                    <button
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-white dark:text-slate-950"
+                    <Button
                         disabled={saving || !hasChanges}
                         onClick={save}
                         type="button"
@@ -175,7 +177,7 @@ export function SoundSettingsPanel({
                                   'settings.personal.sound.save',
                                   'Save sound preferences',
                               )}
-                    </button>
+                    </Button>
                 </div>
             ) : null}
         </section>
@@ -211,7 +213,7 @@ function VolumeControl({
                     value={value}
                 />
                 <input
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#0b1117]"
+                    className="rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 py-2 text-sm"
                     max="100"
                     min="0"
                     onChange={onChange}

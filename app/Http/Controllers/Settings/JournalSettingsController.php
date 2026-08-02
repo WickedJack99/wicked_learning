@@ -54,6 +54,15 @@ class JournalSettingsController extends Controller
 
         foreach (['dark', 'light'] as $mode) {
             $rules["theme.{$mode}.backgroundImage"] = ['nullable', 'string', 'max:2048'];
+            $rules["theme.{$mode}.backgroundPositionX"] = ['nullable', 'numeric', 'between:0,100'];
+            $rules["theme.{$mode}.backgroundPositionY"] = ['nullable', 'numeric', 'between:0,100'];
+            $rules["theme.{$mode}.backgroundZoom"] = ['nullable', 'numeric', 'between:25,300'];
+            $rules["theme.{$mode}.backgroundAssets"] = ['nullable', 'array', 'max:12'];
+            $rules["theme.{$mode}.backgroundAssets.*.id"] = ['required', 'string', 'max:64'];
+            $rules["theme.{$mode}.backgroundAssets.*.image"] = ['nullable', 'string', 'max:2048'];
+            $rules["theme.{$mode}.backgroundAssets.*.positionX"] = ['nullable', 'numeric', 'between:0,100'];
+            $rules["theme.{$mode}.backgroundAssets.*.positionY"] = ['nullable', 'numeric', 'between:0,100'];
+            $rules["theme.{$mode}.backgroundAssets.*.zoom"] = ['nullable', 'numeric', 'between:25,300'];
 
             foreach ($this->themeColorFields() as $field) {
                 $rules["theme.{$mode}.{$field}"] = ['nullable', 'string', 'max:64'];

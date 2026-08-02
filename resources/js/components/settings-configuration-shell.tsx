@@ -99,6 +99,7 @@ type SettingsLevelBannerProps = {
 
 export type SettingsPanelHeaderProps = {
     action?: ReactNode;
+    className?: string;
     constrainActionToContent?: boolean;
     danger?: boolean;
     description?: ReactNode;
@@ -235,6 +236,7 @@ export function SettingsContentPane({ children }: { children: ReactNode }) {
 
 export function SettingsPanelHeader({
     action,
+    className,
     constrainActionToContent = false,
     danger = false,
     description,
@@ -280,7 +282,12 @@ export function SettingsPanelHeader({
 
     if (constrainActionToContent) {
         return (
-            <header className="border-b border-[var(--settings-border-color)] pb-5">
+            <header
+                className={cn(
+                    'border-b border-[var(--settings-border-color)] pb-5',
+                    className,
+                )}
+            >
                 <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-start sm:justify-between lg:max-w-[45%]">
                     {content}
                 </div>
@@ -289,7 +296,12 @@ export function SettingsPanelHeader({
     }
 
     return (
-        <header className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <header
+            className={cn(
+                'flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between',
+                className,
+            )}
+        >
             {content}
         </header>
     );
