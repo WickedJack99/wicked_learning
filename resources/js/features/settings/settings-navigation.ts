@@ -103,13 +103,34 @@ export const adminSettings: SettingsListItem[] = [
         descriptionKey: 'settings.navigation.learning_support.description',
         icon: NotebookPen,
         panel: 'admin-learning-support',
-        resources: ['journal_settings', 'journal_feedback'],
+        resources: [
+            'journal_settings',
+            'journal_feedback',
+            'learner_support_signals',
+        ],
         children: [
             {
-                label: 'Admin Panel',
+                label: 'Support Signals',
+                labelKey:
+                    'settings.navigation.learning_support.support_signals',
+                href: '/settings?panel=admin-learning-support&support=support-signals',
+                resources: ['learner_support_signals'],
+            },
+            {
+                label: 'Feedback',
                 labelKey: 'settings.navigation.learning_support.admin_panel',
-                href: '/settings?panel=admin-learning-support&support=admin-panel',
-                resources: ['journal_feedback', 'organization_moderation'],
+                href: '/settings?panel=admin-learning-support&support=feedback-requests',
+                resources: ['journal_feedback'],
+            },
+            {
+                label: 'Organization Icons',
+                href: '/settings?panel=admin-learning-support&support=organization-icons',
+                resources: ['organization_moderation'],
+            },
+            {
+                label: 'Competence Topics',
+                href: '/settings?panel=admin-learning-support&support=competence-topics',
+                resources: ['competence_topics'],
             },
             {
                 label: 'Journal',

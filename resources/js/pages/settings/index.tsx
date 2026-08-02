@@ -356,13 +356,17 @@ function writeAssetViewToUrl(section: AssetView): void {
 
 function readLearningSupportViewFromUrl(): LearningSupportView {
     if (typeof window === 'undefined') {
-        return 'admin-panel';
+        return 'feedback-requests';
     }
 
-    return new URL(window.location.href).searchParams.get('support') ===
-        'journal'
-        ? 'journal'
-        : 'admin-panel';
+    const value = new URL(window.location.href).searchParams.get('support');
+
+    return value === 'journal' ||
+        value === 'support-signals' ||
+        value === 'organization-icons' ||
+        value === 'competence-topics'
+        ? value
+        : 'feedback-requests';
 }
 
 function writeLearningSupportViewToUrl(section: LearningSupportView): void {
@@ -464,10 +468,8 @@ export default function SettingsIndex({
     );
     const [worldBuilderRootView, setWorldBuilderRootView] =
         useState<WorldBuilderRootView>(() => readWorldBuilderRootViewFromUrl());
-    const [
-        worldBuilderHasDetailSelection,
-        setWorldBuilderHasDetailSelection,
-    ] = useState(() => hasWorldBuilderDetailSelectionInUrl());
+    const [worldBuilderHasDetailSelection, setWorldBuilderHasDetailSelection] =
+        useState(() => hasWorldBuilderDetailSelectionInUrl());
     const [assetView, setAssetView] = useState<AssetView>(() =>
         readAssetViewFromUrl(),
     );
@@ -519,12 +521,11 @@ export default function SettingsIndex({
     );
     const worldBreadcrumb = useMemo<SettingsWorldBreadcrumb>(
         () => ({
-            map:
-                worldBuilderHasDetailSelection
-                    ? (selectedWorldMap?.editableMap.map ??
-                      selectedWorldNode?.activityGraph.map ??
-                      null)
-                    : null,
+            map: worldBuilderHasDetailSelection
+                ? (selectedWorldMap?.editableMap.map ??
+                  selectedWorldNode?.activityGraph.map ??
+                  null)
+                : null,
             node:
                 worldBuilderHasDetailSelection && selectedWorldNode
                     ? selectedWorldNode.activityGraph.node
@@ -839,6 +840,10 @@ function SettingsDetail({
                     }
                     canViewJournal={
                         accessCapabilities.journal_settings?.read ?? false
+                    }
+                    canViewSupportSignals={
+                        accessCapabilities.learner_support_signals?.read ??
+                        false
                     }
                     onSelectSection={(section) => {
                         setLearningSupportView(section);

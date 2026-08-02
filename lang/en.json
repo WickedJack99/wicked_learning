@@ -55,6 +55,7 @@
     "settings.navigation.journal.description": "Learner reflection pages and optional expert feedback consent.",
     "settings.navigation.learning_support": "Learning Support",
     "settings.navigation.learning_support.description": "Journal settings, reflection support and future competence views.",
+    "settings.navigation.learning_support.support_signals": "Support Signals",
     "settings.navigation.languages": "Languages",
     "settings.navigation.languages.description": "Import and maintain platform and activity translations.",
     "settings.navigation.ai": "AI support",
@@ -364,7 +365,10 @@
     "settings.admin_panel.feedback_requests": "Feedback Requests",
     "settings.admin_panel.feedback_requests.description": "Review learner journal feedback requests.",
     "settings.admin_panel.journal_page": "Journal page",
+    "settings.admin_panel.metrics.active_topics": "Active topics",
+    "settings.admin_panel.metrics.configured_topics": "Configured topics",
     "settings.admin_panel.metrics.feedback_requests": "Feedback requests",
+    "settings.admin_panel.metrics.icon_reports": "Icon reports",
     "settings.admin_panel.metrics.journal_pages": "Journal pages",
     "settings.admin_panel.metrics.pending_feedback": "Pending feedback",
     "settings.admin_panel.metrics.users": "Registered users",
@@ -377,5 +381,5 @@
     "settings.admin_panel.status.responded": "Responded",
     "settings.admin_panel.title": "Admin Panel",
     "settings.admin_panel.unknown_requester": "Unknown requester",
-    "settings.navigation.learning_support.admin_panel": "Admin Panel"
+    "settings.navigation.learning_support.admin_panel": "Feedback"
 }

@@ -296,7 +296,7 @@ function SettingsNotificationsMenu({
                 <div className="grid gap-2 text-sm">
                     <NotificationSummaryRow
                         count={notifications.pendingFeedbackRequests}
-                        href="/settings?panel=admin-learning-support&support=admin-panel"
+                        href="/settings?panel=admin-learning-support&support=feedback-requests"
                         icon={NotebookPen}
                         label={t(
                             'settings.notifications.feedback_requests',
@@ -305,7 +305,7 @@ function SettingsNotificationsMenu({
                     />
                     <NotificationSummaryRow
                         count={notifications.pendingOrganizationIconReports}
-                        href="/settings?panel=admin-learning-support&support=admin-panel"
+                        href="/settings?panel=admin-learning-support&support=organization-icons"
                         icon={Shield}
                         label={t(
                             'settings.notifications.organization_reports',

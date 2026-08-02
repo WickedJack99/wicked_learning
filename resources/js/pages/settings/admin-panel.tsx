@@ -14,14 +14,15 @@ import {
     Users,
     X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsContentPane,
-    SettingsSectionButton,
-    SettingsSidebar,
+    SettingsLevelBanner,
+    SettingsPanelHeader,
+    SettingsSectionNavigation,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -108,94 +109,153 @@ type CompetenceTopicDraft = {
 };
 
 export type AdminPanelProps = {
+    activeSection?: AdminPanelSection;
     competenceTopics: CompetenceTopicDefinition[];
     embedded?: boolean;
     feedbackRequests: FeedbackRequest[];
+    hideNavigation?: boolean;
     metrics: AdminPanelMetrics;
+    onSelectSection?: (section: AdminPanelSection) => void;
     organizationIconReports: OrganizationIconReport[];
     organizationSettings: {
         maxMembershipsPerUser: number;
     };
 };
 
-type AdminPanelSection =
+export type AdminPanelSection =
     | 'competence-topics'
     | 'feedback-requests'
     | 'organization-icons';
 
+const adminPanelSections = [
+    {
+        description: 'Review learner journal feedback requests.',
+        icon: MessageSquareText,
+        key: 'feedback-requests',
+        label: 'Feedback Requests',
+    },
+    {
+        description: 'Review reported icons and organization limits.',
+        icon: Flag,
+        key: 'organization-icons',
+        label: 'Organization Icons',
+    },
+    {
+        description: 'Define topics and star-map thresholds.',
+        icon: Sparkles,
+        key: 'competence-topics',
+        label: 'Competence Topics',
+    },
+] satisfies SettingsNavigationItem<AdminPanelSection>[];
+
+const embeddedSectionHeadings = {
+    'competence-topics': {
+        description: 'Define topic thresholds for competence star growth.',
+        eyebrow: 'Competence',
+        title: 'Competence Topics',
+    },
+    'feedback-requests': {
+        description: 'Review learner journal feedback requests.',
+        eyebrow: 'Feedback',
+        title: 'Feedback Requests',
+    },
+    'organization-icons': {
+        description: 'Review reported icons and organization limits.',
+        eyebrow: 'Organizations',
+        title: 'Organization Icons',
+    },
+} satisfies Record<
+    AdminPanelSection,
+    { description: string; eyebrow: string; title: string }
+>;
+
 export default function AdminPanel({
+    activeSection,
     competenceTopics,
     embedded = false,
     feedbackRequests,
+    hideNavigation = false,
     metrics,
+    onSelectSection,
     organizationIconReports,
     organizationSettings,
 }: AdminPanelProps) {
     const t = usePlatformTranslation();
-    const [section, setSection] =
+    const [internalSection, setInternalSection] =
         useState<AdminPanelSection>('feedback-requests');
+    const section = activeSection ?? internalSection;
+    const setSection = onSelectSection ?? setInternalSection;
+    const activeSectionItem =
+        adminPanelSections.find((item) => item.key === section) ??
+        adminPanelSections[0];
+    const embeddedHeading = embeddedSectionHeadings[section];
+    const embeddedHeadingItem: SettingsNavigationItem<AdminPanelSection> = {
+        ...activeSectionItem,
+        label: embeddedHeading.eyebrow,
+    };
 
     const sidebar = (
-        <SettingsSidebar>
-            <SettingsSectionButton<AdminPanelSection>
-                active={section === 'feedback-requests'}
-                description={t(
-                    'settings.admin_panel.feedback_requests.description',
-                    'Review learner journal feedback requests.',
-                )}
-                icon={MessageSquareText}
-                id="feedback-requests"
-                label={t(
-                    'settings.admin_panel.feedback_requests',
-                    'Feedback Requests',
-                )}
-                onSelect={setSection}
+        <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+            <SettingsSectionNavigation
+                activeSection={section}
+                ariaLabel="Admin panel sections"
+                items={adminPanelSections}
+                onChange={setSection}
             />
-            <SettingsSectionButton<AdminPanelSection>
-                active={section === 'organization-icons'}
-                description="Review reported icons and organization limits."
-                icon={Flag}
-                id="organization-icons"
-                label="Organization Icons"
-                onSelect={setSection}
-            />
-            <SettingsSectionButton<AdminPanelSection>
-                active={section === 'competence-topics'}
-                description="Define topics and star-map thresholds."
-                icon={Sparkles}
-                id="competence-topics"
-                label="Competence Topics"
-                onSelect={setSection}
-            />
-        </SettingsSidebar>
+        </aside>
     );
 
     const content = (
-        <SettingsContentPane>
-            <div className="grid gap-4">
-                <MetricGrid metrics={metrics} t={t} />
-                {section === 'feedback-requests' ? (
-                    <FeedbackRequestsSection
-                        feedbackRequests={feedbackRequests}
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--settings-panel-background)]">
+            {hideNavigation ? null : (
+                <SettingsLevelBanner item={activeSectionItem} />
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+                <div className="grid gap-4">
+                    {hideNavigation ? (
+                        <SettingsPanelHeader
+                            description={embeddedHeading.description}
+                            item={embeddedHeadingItem}
+                            title={embeddedHeading.title}
+                        />
+                    ) : null}
+                    <SectionStats
+                        metrics={metrics}
+                        section={section}
+                        topics={competenceTopics}
                         t={t}
                     />
-                ) : null}
-                {section === 'organization-icons' ? (
-                    <OrganizationModerationSection
-                        reports={organizationIconReports}
-                        settings={organizationSettings}
-                    />
-                ) : null}
-                {section === 'competence-topics' ? (
-                    <CompetenceTopicsSection topics={competenceTopics} />
-                ) : null}
+                    {section === 'feedback-requests' ? (
+                        <FeedbackRequestsSection
+                            feedbackRequests={feedbackRequests}
+                            t={t}
+                        />
+                    ) : null}
+                    {section === 'organization-icons' ? (
+                        <OrganizationModerationSection
+                            reports={organizationIconReports}
+                            settings={organizationSettings}
+                        />
+                    ) : null}
+                    {section === 'competence-topics' ? (
+                        <CompetenceTopicsSection topics={competenceTopics} />
+                    ) : null}
+                </div>
             </div>
-        </SettingsContentPane>
+        </div>
     );
 
     if (embedded) {
+        if (hideNavigation) {
+            return content;
+        }
+
         return (
-            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+            <SettingsConfigurationLayout
+                className="h-full gap-0"
+                contentClassName="min-h-0 overflow-hidden"
+                sidebar={sidebar}
+            >
                 {content}
             </SettingsConfigurationLayout>
         );
@@ -221,13 +281,24 @@ function CompetenceTopicsSection({
 }: {
     topics: CompetenceTopicDefinition[];
 }) {
-    const [drafts, setDrafts] = useState<CompetenceTopicDraft[]>(() =>
-        topics.length > 0 ? topics.map(topicDraft) : [emptyCompetenceTopic()],
+    const baselineDrafts = useMemo(() => topicDrafts(topics), [topics]);
+    const [drafts, setDrafts] = useState<CompetenceTopicDraft[]>(
+        () => baselineDrafts,
     );
-    const hasChanges = useDirtyState(
-        drafts,
-        topics.length > 0 ? topics.map(topicDraft) : [emptyCompetenceTopic()],
-    );
+    const syncedDraftsRef = useRef<CompetenceTopicDraft[]>(baselineDrafts);
+    const hasChanges = useDirtyState(drafts, baselineDrafts);
+
+    useEffect(() => {
+        const hasLocalEdits =
+            draftSnapshot(drafts) !== draftSnapshot(syncedDraftsRef.current);
+
+        if (hasLocalEdits) {
+            return;
+        }
+
+        syncedDraftsRef.current = baselineDrafts;
+        setDrafts(baselineDrafts);
+    }, [baselineDrafts, drafts]);
 
     function updateTopic(
         index: number,
@@ -464,6 +535,18 @@ function topicDraft(topic: CompetenceTopicDefinition): CompetenceTopicDraft {
     };
 }
 
+function topicDrafts(
+    topics: CompetenceTopicDefinition[],
+): CompetenceTopicDraft[] {
+    return topics.length > 0
+        ? topics.map(topicDraft)
+        : [emptyCompetenceTopic()];
+}
+
+function draftSnapshot(drafts: CompetenceTopicDraft[]): string {
+    return JSON.stringify(drafts);
+}
+
 function emptyCompetenceTopic(): CompetenceTopicDraft {
     return {
         auraThreshold: '10',
@@ -476,59 +559,92 @@ function emptyCompetenceTopic(): CompetenceTopicDraft {
     };
 }
 
-function MetricGrid({
+function SectionStats({
     metrics,
+    section,
+    topics,
     t,
 }: {
     metrics: AdminPanelMetrics;
+    section: AdminPanelSection;
+    topics: CompetenceTopicDefinition[];
     t: ReturnType<typeof usePlatformTranslation>;
 }) {
-    const metricCards = [
-        {
-            label: t('settings.admin_panel.metrics.users', 'Registered users'),
-            value: metrics.registeredUsers,
-        },
-        {
-            label: t(
-                'settings.admin_panel.metrics.journal_pages',
-                'Journal pages',
-            ),
-            value: metrics.journalPages,
-        },
-        {
-            label: t(
-                'settings.admin_panel.metrics.feedback_requests',
-                'Feedback requests',
-            ),
-            value: metrics.feedbackRequests,
-        },
-        {
-            label: t(
-                'settings.admin_panel.metrics.pending_feedback',
-                'Pending feedback',
-            ),
-            value: metrics.pendingFeedbackRequests,
-        },
-        {
-            label: 'Icon reports',
-            value: metrics.pendingOrganizationIconReports,
-        },
-    ];
+    const activeTopics = topics.filter((topic) => topic.isActive).length;
+    const metricItems = {
+        'competence-topics': [
+            {
+                label: t(
+                    'settings.admin_panel.metrics.configured_topics',
+                    'Configured topics',
+                ),
+                value: topics.length,
+            },
+            {
+                label: t(
+                    'settings.admin_panel.metrics.active_topics',
+                    'Active topics',
+                ),
+                value: activeTopics,
+            },
+        ],
+        'feedback-requests': [
+            {
+                label: t(
+                    'settings.admin_panel.metrics.feedback_requests',
+                    'Feedback requests',
+                ),
+                value: metrics.feedbackRequests,
+            },
+            {
+                label: t(
+                    'settings.admin_panel.metrics.pending_feedback',
+                    'Pending feedback',
+                ),
+                value: metrics.pendingFeedbackRequests,
+            },
+            {
+                label: t(
+                    'settings.admin_panel.metrics.journal_pages',
+                    'Journal pages',
+                ),
+                value: metrics.journalPages,
+            },
+        ],
+        'organization-icons': [
+            {
+                label: t(
+                    'settings.admin_panel.metrics.icon_reports',
+                    'Icon reports',
+                ),
+                value: metrics.pendingOrganizationIconReports,
+            },
+        ],
+    } satisfies Record<AdminPanelSection, { label: string; value: number }[]>;
 
     return (
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {metricCards.map((metric) => (
-                <div
-                    className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+        <section className="grid max-w-4xl gap-5 border-b border-[var(--settings-border-color)] pb-4 sm:grid-cols-2 xl:grid-cols-3">
+            {metricItems[section].map((metric) => (
+                <SectionStatItem
                     key={metric.label}
-                >
-                    <p className="text-2xl font-semibold">{metric.value}</p>
-                    <p className="mt-1 text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                        {metric.label}
-                    </p>
-                </div>
+                    label={metric.label}
+                    value={metric.value}
+                />
             ))}
         </section>
+    );
+}
+
+function SectionStatItem({ label, value }: { label: string; value: number }) {
+    return (
+        <div className="border-l border-[var(--settings-accent-color)] pl-4">
+            <p className="text-2xl font-semibold text-[var(--settings-primary-text)]">
+                {value}
+            </p>
+            <p className="mt-1 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                {label}
+            </p>
+        </div>
     );
 }
 

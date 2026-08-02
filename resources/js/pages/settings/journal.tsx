@@ -17,8 +17,9 @@ import type { ConfigThemeMode } from '@/components/config-mode-switch';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsSectionButton,
-    SettingsSidebar,
+    SettingsLevelBanner,
+    SettingsSectionNavigation,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -51,49 +52,44 @@ type JournalSection =
 
 type ThemeField = Exclude<keyof JournalThemeModeSettings, 'backgroundImage'>;
 
-const sections: {
-    description: string;
-    icon: typeof BookOpenCheck;
-    id: JournalSection;
-    label: string;
-}[] = [
+const sections = [
     {
         description: 'Expert access consent and journal safeguards.',
         icon: ShieldCheck,
-        id: 'policy',
+        key: 'policy',
         label: 'Policy',
     },
     {
         description: 'Book, parchment or other journal backdrop.',
         icon: Image,
-        id: 'background',
+        key: 'background',
         label: 'Background',
     },
     {
         description: 'Journal panel, header, sidebar and writing area.',
         icon: LayoutPanelTop,
-        id: 'shell',
+        key: 'shell',
         label: 'Journal shell',
     },
     {
         description: 'Headings, body copy and muted helper text.',
         icon: Type,
-        id: 'typography',
+        key: 'typography',
         label: 'Typography',
     },
     {
         description: 'Action buttons, active mode and highlighted controls.',
         icon: SquareMousePointer,
-        id: 'buttons',
+        key: 'buttons',
         label: 'Buttons',
     },
     {
         description: 'Selected journal page colors in the page list.',
         icon: Highlighter,
-        id: 'selection',
+        key: 'selection',
         label: 'Page highlight',
     },
-];
+] satisfies SettingsNavigationItem<JournalSection>[];
 
 const fieldsBySection: Record<
     Exclude<JournalSection, 'policy' | 'background'>,
@@ -141,6 +137,8 @@ export default function JournalSettings({
     const [uploading, setUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const activeMode = draftTheme[configMode];
+    const activeSectionItem =
+        sections.find((item) => item.key === section) ?? sections[0];
     const hasChanges = useDirtyState(
         {
             allowExpertAccessRequests: allowExpertAccess,
@@ -209,47 +207,37 @@ export default function JournalSettings({
     );
 
     const sidebar = (
-        <SettingsSidebar>
-            {sections.map((item) => (
-                <SettingsSectionButton
-                    active={section === item.id}
-                    description={item.description}
-                    icon={item.icon}
-                    id={item.id}
-                    key={item.id}
-                    label={item.label}
-                    onSelect={setSection}
-                />
-            ))}
-        </SettingsSidebar>
+        <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+            <SettingsSectionNavigation
+                activeSection={section}
+                ariaLabel="Journal settings sections"
+                items={sections}
+                onChange={setSection}
+            />
+        </aside>
     );
 
     const content = (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
-                <div>
-                    <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
-                        {sections.find((item) => item.id === section)?.label ??
-                            'Journal'}
-                    </h2>
-                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Configure learner journal behavior and visuals for the
-                        selected appearance mode.
-                    </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    {embedded ? saveButton : null}
-                    {section !== 'policy' ? (
-                        <ConfigModeSwitch
-                            mode={configMode}
-                            onChange={setConfigMode}
-                            size="large"
-                        />
-                    ) : null}
-                </div>
-            </div>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--settings-panel-background)]">
+            <SettingsLevelBanner
+                action={
+                    <div className="flex shrink-0 items-center gap-2">
+                        {embedded ? saveButton : null}
+                        {section !== 'policy' ? (
+                            <ConfigModeSwitch
+                                mode={configMode}
+                                onChange={setConfigMode}
+                                size="large"
+                            />
+                        ) : null}
+                    </div>
+                }
+                className="!bg-[var(--settings-sidebar-background)]"
+                description="Configure learner journal behavior and visuals for the selected appearance mode."
+                item={activeSectionItem}
+            />
 
-            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                 {section === 'policy' ? (
                     <PolicySection
                         allowExpertAccess={allowExpertAccess}
@@ -279,7 +267,11 @@ export default function JournalSettings({
 
     if (embedded) {
         return (
-            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+            <SettingsConfigurationLayout
+                className="h-full gap-0"
+                contentClassName="min-h-0 overflow-hidden"
+                sidebar={sidebar}
+            >
                 {content}
             </SettingsConfigurationLayout>
         );
@@ -428,34 +420,35 @@ function ColorSection({
 
     return (
         <section className="grid gap-4 xl:grid-cols-[17rem_minmax(0,1fr)]">
-            <aside className="grid h-fit gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-white/5">
+            <aside className="grid h-fit gap-2 border-r border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3">
                 {fields.map((field) => (
                     <button
                         className={cn(
-                            'rounded-lg px-3 py-3 text-left text-sm font-medium transition',
+                            'relative px-3 py-3 text-left text-sm font-medium transition',
                             selectedField === field.field
-                                ? 'text-white dark:text-slate-950'
-                                : 'text-slate-600 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
+                                ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
                         )}
                         key={field.field}
                         onClick={() => setSelectedField(field.field)}
-                        style={
-                            selectedField === field.field
-                                ? {
-                                      background: 'var(--settings-accent)',
-                                      color: 'var(--settings-accent-foreground)',
-                                  }
-                                : undefined
-                        }
                         type="button"
                     >
+                        <span
+                            aria-hidden="true"
+                            className={cn(
+                                'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                selectedField === field.field
+                                    ? 'opacity-100'
+                                    : 'opacity-0',
+                            )}
+                        />
                         {field.label}
                     </button>
                 ))}
             </aside>
 
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
-                <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/5">
+                <div className="border-b border-[var(--settings-border-color)] pb-5">
                     <div className="mb-5 flex items-center gap-3">
                         <Palette className="size-5 text-[var(--settings-accent)]" />
                         <div>

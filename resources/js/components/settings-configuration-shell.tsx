@@ -66,6 +66,17 @@ type SettingsNestedWorkspaceProps = {
     title?: ReactNode;
 };
 
+type SettingsSectionWorkspaceProps<T extends string> = {
+    activeItem: SettingsNavigationItem<T>;
+    ariaLabel: string;
+    bannerClassName?: string;
+    bannerItem?: SettingsNavigationItem<string>;
+    children: ReactNode;
+    contentClassName?: string;
+    items: SettingsNavigationItem<T>[];
+    onChange: (section: T) => void;
+};
+
 export type SettingsSaveAction = {
     disabled?: boolean;
     form?: string;
@@ -315,7 +326,10 @@ export function SettingsFormColumn({
 }: SettingsFormColumnProps) {
     return (
         <div
-            className={cn('grid min-w-0 w-full gap-5 lg:max-w-[45%]', className)}
+            className={cn(
+                'grid w-full min-w-0 gap-5 lg:max-w-[45%]',
+                className,
+            )}
         >
             {children}
         </div>
@@ -356,6 +370,54 @@ export function SettingsNestedWorkspace({
                 icon={BannerIcon}
                 item={item}
                 title={bannerTitle}
+            />
+
+            <div
+                className={cn(
+                    'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5',
+                    contentClassName,
+                )}
+            >
+                {children}
+            </div>
+        </SettingsConfigurationLayout>
+    );
+}
+
+/**
+ * Use this for nested Settings levels where the parent selection owns the
+ * banner and the inner selection owns the content heading. Example: Level 2
+ * "Support Signals" stays in the Level 3 banner, while Level 3 "Individual
+ * Support" is rendered inside the content area by the feature panel.
+ */
+export function SettingsSectionWorkspace<T extends string>({
+    activeItem,
+    ariaLabel,
+    bannerClassName,
+    bannerItem,
+    children,
+    contentClassName,
+    items,
+    onChange,
+}: SettingsSectionWorkspaceProps<T>) {
+    return (
+        <SettingsConfigurationLayout
+            className="h-full gap-0"
+            contentClassName="flex min-h-0 flex-col bg-[var(--settings-panel-background)]"
+            sidebar={
+                <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
+                    <SettingsSectionNavigation
+                        activeSection={activeItem.key}
+                        ariaLabel={ariaLabel}
+                        items={items}
+                        onChange={onChange}
+                    />
+                </aside>
+            }
+        >
+            <SettingsLevelBanner
+                className={bannerClassName}
+                item={bannerItem ?? activeItem}
             />
 
             <div
