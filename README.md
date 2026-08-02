@@ -99,6 +99,10 @@ The development seeder creates:
 
 The Composer `dev` script starts the Laravel server, queue listener and Vite together. You can also run the pieces separately with `php artisan serve`, `php artisan queue:listen` and `npm run dev`.
 
+## Docker and deployment
+
+The repository includes a production Dockerfile for Coolify and a local Docker Compose smoke test with PostgreSQL. See [documentation/deployment.md](documentation/deployment.md) for the exact commands, Coolify settings and the safe first-deploy steps for a temporary public test instance.
+
 ## Quality checks
 
 Useful checks before committing:

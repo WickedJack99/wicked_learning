@@ -1,0 +1,92 @@
+# Deployment
+
+The repository contains a production Docker image. It builds the Laravel application and its Vite assets, runs migrations when the container starts, creates the public storage link and caches Laravel's production configuration.
+
+The application container deliberately does not include PostgreSQL. Keep the database as its own managed Coolify resource so backups, credentials and its persistent data stay independent of application deployments.
+
+## Quick local production check
+
+Docker Desktop is enough; PHP, Composer and Node.js do not need to be installed on the host for this check.
+
+1. Create the normal local `.env` file and application key if it does not exist yet:
+
+   ```powershell
+   Copy-Item .env.example .env
+   php artisan key:generate
+   ```
+
+2. Start the production-like application and PostgreSQL:
+
+   ```powershell
+   docker compose up --build
+   ```
+
+3. Open [http://localhost:8080](http://localhost:8080). On first use, create the included demo content once:
+
+   ```powershell
+   docker compose exec app php artisan db:seed --force
+   ```
+
+   The demo administrator is `test@example.com` with password `password`. Do not expose that account on a public instance; change or remove it immediately.
+
+The Compose volumes retain database data and uploads. Reset only this disposable local test instance with:
+
+```powershell
+docker compose down -v
+```
+
+## Coolify application
+
+Create a **Dockerfile** application from this repository. Set the Dockerfile location to `/Dockerfile`, the application port to `80`, and the health-check path to `/up`.
+
+Create PostgreSQL as a separate Coolify database resource and use its internal hostname and generated credentials in the application environment. Do not expose PostgreSQL publicly.
+
+Add persistent storage for user uploads:
+
+```text
+/app/storage/app/public
+```
+
+The remainder of `storage` contains logs and temporary framework files and should not be persisted.
+
+Use environment variables similar to these, replacing every placeholder with the value generated for that particular deployment:
+
+```dotenv
+APP_NAME="Learning Worlds"
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:generated-per-deployment-key
+APP_URL=https://learning.example.example
+
+LOG_CHANNEL=stderr
+LOG_LEVEL=info
+
+DB_CONNECTION=pgsql
+DB_HOST=the-internal-coolify-postgres-host
+DB_PORT=5432
+DB_DATABASE=learning
+DB_USERNAME=learning
+DB_PASSWORD=generated-database-password
+
+SESSION_DRIVER=database
+CACHE_STORE=database
+QUEUE_CONNECTION=sync
+FILESYSTEM_DISK=public
+
+PASSKEYS_ALLOWED_ORIGINS=https://learning.example.example
+RUN_MIGRATIONS=true
+```
+
+`APP_KEY`, database credentials and other secrets belong in Coolify, never in Git. Generate a separate `APP_KEY` for every independently deployed instance. `trustProxies(at: '*')` is already configured in `bootstrap/app.php`, so HTTPS URLs and secure cookies work behind Coolify's reverse proxy.
+
+## First public test instance
+
+For a short-lived public test, create a separate Coolify application and a separate PostgreSQL database from the same repository. Give it its own subdomain, `APP_KEY`, database credentials and upload volume. Deploy it, then seed it **once** through Coolify's application terminal:
+
+```sh
+php artisan db:seed --force
+```
+
+The included seeder is for demo data and is intentionally not run automatically: rerunning it on a database with real data would not be a safe deployment action. Before sharing the test URL, change or delete the seeded administrator account.
+
+For the current single-container setup, `RUN_MIGRATIONS=true` is convenient. If the application is later scaled to multiple containers, set it to `false` and run migrations once as a dedicated deployment job instead.

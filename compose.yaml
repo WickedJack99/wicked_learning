@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "Learning Worlds"
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:?Set APP_KEY in .env before starting Compose.}
+      APP_URL: http://localhost:8080
+      PASSKEYS_ALLOWED_ORIGINS: http://localhost:8080
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: info
+      DB_CONNECTION: pgsql
+      DB_HOST: database
+      DB_PORT: 5432
+      DB_DATABASE: learning
+      DB_USERNAME: learning
+      DB_PASSWORD: ${DOCKER_DB_PASSWORD:-learning}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: sync
+      FILESYSTEM_DISK: public
+      RUN_MIGRATIONS: "true"
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - learning_uploads:/app/storage/app/public
+
+  database:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_DB: learning
+      POSTGRES_USER: learning
+      POSTGRES_PASSWORD: ${DOCKER_DB_PASSWORD:-learning}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U learning -d learning"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - learning_database:/var/lib/postgresql/data
+
+volumes:
+  learning_database:
+  learning_uploads:
