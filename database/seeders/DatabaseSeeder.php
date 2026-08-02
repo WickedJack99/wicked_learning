@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,11 +18,17 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        $user = User::factory()->create([
+        // Do not use the User factory here. Faker is a development dependency
+        // and production Docker images intentionally install Composer without it.
+        $user = User::query()->updateOrCreate(['email' => 'test@example.com'], [
             'name' => 'Test User',
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
             'email' => 'test@example.com',
             'role' => User::ROLE_ADMIN,
             'roles' => [User::ROLE_ADMIN],
+            'login_disabled_at' => null,
+            'banned_until' => null,
         ]);
         $user->setAssignedRoles([User::ROLE_ADMIN]);
         $user->save();
