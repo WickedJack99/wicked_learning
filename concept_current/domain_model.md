@@ -1,65 +1,72 @@
 # Domain Model
 
-## Current Tables
+## Core Learning Structure
 
 - `learning_worlds`: top-level themed learning spaces.
-- `learning_maps`: hex-map learning areas inside a world.
-- `learning_nodes`: places on a map, positioned with axial `q` and `r` coordinates.
-- `learning_portal_links`: links between portal nodes, usually across maps.
-- `learning_activities`: interactions inside nodes, including generic graph position data for the admin activity editor.
-- `learning_activity_starts`: route starts from a node's Start connector to first activities.
-- `activity_transitions`: graph edges from one activity connector to another activity connector or to the special end point.
-- `dialogue_stages`: staged NPC dialogue content.
-- `learning_questions`: question configuration for question activities.
-- `learning_question_options`: answer options with optional outcome keys and weights.
-- `npc_dialogue_nodes`: nested NPC dialogue graph nodes, including interactions, answer nodes and end nodes.
-- `npc_dialogue_transitions`: nested NPC dialogue graph edges.
-- `npc_dialogue_answers`: stored learner answers for NPC dialogue questions.
-- `learner_activity_progress`: minimal reached/completed activity state.
-- `learner_question_answers`: selected answers and feedback history.
-- `learning_tools`: reusable tools that learners can acquire and use.
-- `user_learning_tools`: learner-owned tool assignments.
-- `learning_items`: reusable consumable item definitions.
-- `user_learning_items`: learner-owned item quantities.
-- `learner_node_discoveries`: learner-specific hidden-node discovery state.
-- `learning_sounds`: reusable sound assets with playback metadata.
-- `user_preferences`: authenticated user preferences such as appearance.
-- `registration_tokens`: one-use tokens for controlled registration.
-- `access_roles`: configurable roles seeded with system `admin` and `user` roles.
-- `access_role_permissions`: resource permission levels per role.
-- `access_role_user`: many-to-many assignments between users and access roles.
-- `platform_info_pages`: editable Markdown-backed public/settings information pages.
-- `platform_presentation_settings`: backend-stored public presentation configuration such as auth backgrounds and welcome-page text.
+- `learning_maps`: spatial learning areas inside a world.
+- `learning_map_assets`: the product-level visual and functional objects placed
+  on maps. They own placement, imagery, focusability and presentation config.
+- `learning_nodes`: internal compatibility records used by activities,
+  progression and portals. A MapAsset owns at most one node record; admins do
+  not manage MapAssets and nodes as separate concepts.
+- `learning_activities`: interactions belonging to a MapAsset through its
+  internal node record.
+- `learning_activity_starts`: learner-facing route choices.
+- `activity_transitions`: graph edges between activities or a route end.
+- `learning_portal_links`: travel relationships between MapAssets/activities.
+- `learner_activity_progress` and `learner_route_progress`: reached, completed
+  and current-run learner state.
+- `learning_message_topics`: reusable MapAsset-scoped topics that connect a
+  message prompt Activity with one or more message wall Activities.
+- `learner_messages`: one short learner contribution per topic and user,
+  including moderation visibility and author attribution.
 
-## Current User And Access Fields
+## Activity-Specific Structure
 
-- `users.role`: legacy primary role kept for compatibility and seeding bridges.
-- `users.roles`: legacy JSON role list kept while configurable role assignments mature.
-- `users.login_disabled_at`: disables login when set.
-- `users.banned_until`: blocks login until the chosen date when set in the future.
-- `registration_tokens.role`: legacy primary role granted by a token.
-- `registration_tokens.roles`: JSON role list granted by a token.
-- `registration_tokens.created_by_user_id`: user who created the token.
-- `registration_tokens.used_by_user_id`: user who registered with the token.
-- `registration_tokens.used_at`: timestamp when the token was consumed.
-- `registration_tokens.expires_at`: optional token expiration timestamp.
+- `dialogue_stages`: staged dialogue content.
+- `learning_questions` and `learning_question_options`: questions, answers and
+  informational feedback.
+- `npc_dialogue_nodes`, `npc_dialogue_transitions` and
+  `npc_dialogue_answers`: nested NPC conversation graphs and learner answers.
+- `learning_shared_task_submissions`: contributions to shared activities.
+- `learner_reflections`, journal pages and feedback requests: private learner
+  reflection and requested support.
 
-## Design Direction
+## Reusable World Objects
 
-Nodes are places. Activities are what happens there.
+- `learning_tools` and `user_learning_tools`: reusable learner capabilities and
+  ownership.
+- `learning_items` and `user_learning_items`: consumable definitions and
+  learner quantities.
+- `learning_sounds`: reusable audio assets with playback metadata.
+- Reusable visual media is selected through shared media pickers and reference
+  paths rather than duplicated uploads.
 
-This keeps the system generic enough for any learning domain. Nodes, maps, tools, activities, media and presentation settings can take on the terminology and visual language of a deployment without changing the core model.
+## Accounts, Access And Presentation
 
-Activity types are registered as data-shaped definitions with at least one input connector and one output connector. Dialogue, question, reflection, placeholder and portal activities share the same graph foundation even when their detailed configuration forms differ later.
+- `users` and `user_preferences`: accounts and persistent personal settings.
+- `access_roles`, `access_role_permissions` and `access_role_user`: configurable
+  permission bundles and assignments.
+- `registration_tokens`: controlled invitations and their usage records.
+- `platform_info_pages` and `platform_presentation_settings`: editable public
+  copy, legal information and presentation configuration.
 
-Portal links connect two portal nodes. The current prototype treats them as sibling tiles so the admin graph can show relationships between maps before learner travel behavior is finalized.
+## Design Rules
 
-Users are accounts. Roles are configurable permission bundles. Tokens are invitations and audit records.
+MapAssets are places; Activities are what happens there.
 
-This keeps public registration intentional without turning access management into a separate learning incentive system.
+Activity types are registered as small data-shaped definitions with connectors
+so every type can participate in the same route graph. Runtime mutations such
+as progress, item quantities and shared-task contributions stay backend-owned.
 
-Tools are learner capabilities. They may be granted by activities or NPC dialogue nodes, then used against obstacles or hidden map nodes. Tool ownership should support exploration and competence, not public status.
+Learner messages use the same Activity graph instead of a route-completion
+special case. A `message_prompt` Activity asks for one contribution per user
+and topic. A `message_wall` Activity presents visible contributions as
+dismissible cards. Both Activities link the same MapAsset-scoped message topic.
 
-Items are consumables. They can be granted by activities and spent in item-obstacle interactions. Inventory mutation should stay server-side because quantities are part of learner state.
+Users are accounts, roles are permission bundles, and registration tokens are
+invitations. None of these should become learning rewards.
 
-Reusable media is split by behavior. Visual assets are selected through image/animation pickers, while sounds have their own model because volume, looping, previewing and layered playback are sound-specific concerns.
+Tools increase capability or interpretation. Items are consumable world
+objects. Sounds and visual media remain separate because their playback and
+preview behavior differs.

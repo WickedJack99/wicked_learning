@@ -41,6 +41,10 @@ This repository is no longer only a concept archive. It contains a working verti
 - portal activities that can move learners between nodes and maps
 - NPC dialogue, markdown, tool-grant, item-grant, obstacle and item-obstacle activity prototypes
 - learner tool and item side controls for selecting acquired tools and viewing consumable inventory
+- learner journal pages with Markdown editing, search, autosaved drafts and export
+- optional learner requests for journal feedback from permitted review domains
+- learner-facing competence history and non-competitive support signals for authorised staff
+- organizations, learning groups and shared-task activity prototypes
 
 The prototype intentionally avoids point totals, streak pressure and ranking loops. The interaction goal is exploration first, reward-chasing last.
 

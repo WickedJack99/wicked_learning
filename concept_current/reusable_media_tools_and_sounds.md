@@ -10,7 +10,7 @@ They should stay separate because they answer different questions.
 
 ## Reusable media assets
 
-Reusable media assets are files that can be referenced by many configuration forms. A background image, node image, NPC portrait, route preview or animation should not need to be uploaded again every time it is reused.
+Reusable media assets are files that can be referenced by many configuration forms. A background image, MapAsset image, NPC portrait, route preview or animation should not need to be uploaded again every time it is reused.
 
 Current behavior:
 
@@ -78,7 +78,6 @@ Design notes:
 
 Future direction:
 
-- Add sound picker fields to activity editors.
-- Add map ambience and activity ambience.
-- Add interaction sound effects for portals, tool use, dialogue typing and obstacle clearing.
+- Add map ambience.
+- Add dedicated interaction sound effects for portal travel, tool use and dialogue typing. Generic activity ambience, MapAsset interaction sounds and item-obstacle state sounds already exist.
 - Add richer accessible controls if learners need more than the current mute and category-volume settings.

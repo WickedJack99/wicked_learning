@@ -36,6 +36,20 @@ The map search is server-side, so it can find visible nodes on other maps. Searc
 
 Learners can bookmark nodes. Bookmarked nodes appear on a personal bookmark map arranged in a spiral layout. Selecting a bookmark opens the same style of node panel with orientation text and a button to go to the original node.
 
+### Journal and reflection
+
+The learner journal is a private Markdown workspace. Reflection activities can add structured pages, and learners can create their own pages, search them, switch between writing and rendered views, and export their journal.
+
+Drafts save automatically while writing and show their current save state. If a save cannot complete, the draft remains open so the learner can continue rather than losing text. On narrow screens, the page list stays above the editor instead of competing for a small side column.
+
+Where the deployment enables it, a learner can request feedback on one journal page and choose an eligible journal, group or organization domain. The page then shows a clear pending or responded state. This is an explicit request by the learner; journal pages are not a general staff-reading surface.
+
+### Competence and collaboration
+
+Competence topics can be attached to activities with configurable weights. Learners can view their own learning history, while authorised support staff can see aggregated or scoped support signals designed for conversations and orientation rather than comparison or ranking.
+
+Learners can also create or join organizations, participate in learning groups, and complete shared-task activities. These are early collaboration prototypes: their goal is to make space for contributions and coordination, not public scoring.
+
 ### Activities and routes
 
 A node can have multiple start routes. The learner chooses a route from the node panel and then plays activities on a separate page, keeping the world map lighter.
@@ -199,6 +213,7 @@ The current activity editor includes:
 - item-grant activity configuration with server-side probability rolls
 - item-obstacle activity configuration with item slots, sounds and optional retry lockouts
 - markdown page-graph editing with page colors, images and video embeds
+- optional reusable scene ambience for every activity type
 - route progress persistence with current activity and completion timestamps
 
 Obstacle activities can persist per learner. Admins can choose whether a solved obstacle reappears on replay or stays cleared for the learner. If it stays cleared, a separate revisit state can show its own background, cleared obstacle image and text bubble.

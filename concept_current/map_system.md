@@ -2,82 +2,64 @@
 
 The map is a spatial representation of knowledge, not a course list.
 
-Current behavior:
+## Current Product Model
 
-- A map has hex tiles.
-- Each node uses axial `q` and `r` coordinates.
-- Unused tiles are not rendered.
-- The map can be dragged with the pointer.
-- Mobile dragging uses touch/pointer behavior instead of scroll.
-- Each tile has dark/light configurable colors, label, highlight color and tile image.
-- Node images are intended to be full-tile artwork, not only small symbols. Later domains can use these images to form a landscape across the map.
-- Generated source node/tile artwork should usually be square, high-detail, borderless scene imagery. The React hex tile component clips the image into the rendered hex shape, so future image generation should avoid baking a hex mask, border or rim into the source asset unless a standalone export explicitly needs that.
-- Node images can be hidden without deleting the configured dark/light image paths.
-- Tile labels can be hidden while still appearing in the side panel.
-- Tile labels that are hidden in the normal image view still appear while hovered or selected, so image-first maps remain readable on intent.
-- Locked nodes can be configured in the map editor. Locked tiles show their lock state without hover lift/highlight behavior.
-- Completed nodes are dimmed rather than marked with a check badge on the tile image, keeping full-tile artwork cleaner.
-- Hidden nodes can be revealed per learner by using the configured tool at the node position.
-- Locked nodes can define unlock conditions from completed nodes, tool use or chained rules. Admins can reset per-user unlock state with `Lock for all users`.
-- Clicking a tile focuses its node and opens the node/activity panel.
-- Clicking empty map space or closing the panel clears node focus and URL focus state.
-- The active activity return button can navigate back to the related map and focus the related node.
-- The map button can return the learner to the last map stored for them on the backend, so navigation through settings or activity pages does not erase their current world orientation.
-- The top-left map panel describes the current map, not the selected node.
-- The right-side detail panel describes the focused node and shows available activity routes.
-- The right-side detail panel can show completed state and bookmark controls without polluting the node tile artwork.
-- The right-side detail panel does not play activities directly anymore; route playback happens on a separate page.
-- On mobile, the focused-node panel uses the full screen and can be closed explicitly.
-- Users can bookmark nodes. Bookmarked nodes appear on a personal bookmark map in a simple spiral layout. Selecting a bookmark opens the same node detail panel with a `Go to node` action.
-- The map has server-side search. Results can include visible nodes from other maps and jump to the relevant map/node.
-- Equipped tools can be used on the map. A successful configured tool use can reveal a hidden node; unsuccessful tool use only plays the tool animation and then clears the equipped cursor.
-- Map access can be limited by access roles. The current default is authenticated `user` and `admin`; a public role exists for later unauthenticated map access.
-- Maps can be deleted by admins. Deletion should clean related nodes, portal links, learner state references and stale unlock-rule references.
+A MapAsset is the visible and functional place on a map. A focusable MapAsset
+owns its title, description, learner panel, activity routes, progress rules and
+visual representation. A non-focusable MapAsset is decorative and does not open
+learner content.
 
-Rendering note:
+The backend still uses `learning_nodes` as an internal compatibility record for
+activity, progress and portal relations. This is an implementation detail, not
+a second object that administrators should have to create or connect manually.
+Every MapAsset has at most one internal node and every learner-facing node is
+represented by one MapAsset.
 
-The hover edge effect is handled by CSS on the tile overlay layer. React does not store hover state, so moving the pointer across the map does not trigger a React state update for each tile hover.
+Current learner behavior:
 
-The map component has been split into feature files under `resources/js/features/world` so theme resolution, active activity state, activity panels, bookmark/search behavior and map rendering can evolve separately.
+- MapAssets use freely configurable percentage-based X/Y positions, Z depth,
+  size and opacity.
+- Transparent PNG and WebP images can form irregular, overlapping map surfaces.
+- Normal, hover and focused visuals share one renderer between learner map and
+  editor preview.
+- Hover and focus can use colors or a configured highlight image.
+- Hover/focused labels render inside the MapAsset rather than below it.
+- Focusable MapAssets open a right-side learner panel with their title,
+  description and activity routes.
+- Non-focusable MapAssets remain visual-only and cannot be selected by learners.
+- Locked, hidden, hinted, available, recommended and completed states are
+  resolved per learner.
+- Unlock rules currently support completed MapAssets, tool use, time conditions
+  and nested AND/OR rule groups.
+- Hidden MapAssets can be revealed by configured tools.
+- MapAssets can be bookmarked and found through server-side map search.
+- Activity playback runs on a dedicated page and returns to the related map.
+- Maps can restrict learner access by role.
+- The learner surface does not allow dragging MapAssets.
 
-## Admin Editing Direction
+## Current Admin Editing
 
-Admins are also learners, so editing controls should not appear inside the normal learner map view.
+- World Builder separates graph editing from structural navigation.
+- Selecting a map opens the MapAsset surface or map configuration.
+- The MapAsset surface uses the available workspace and has a floating
+  `Add MapAsset` action.
+- New MapAssets start in the center and can be moved through X/Y values.
+- Selecting a MapAsset opens the full MapAsset editor.
+- The editor contains surface and placement, text, learner panel, activities,
+  rules, visuals, sounds and deletion controls.
+- Image fields reuse the shared upload, download, select-existing and clear
+  component.
+- Visual previews use the same `MapAssetVisual` renderer as the learner map.
+- A map can lock its MapAsset surface so placement cannot be changed.
+- Map-level configuration separates details, visuals, access and deletion.
+- Admin dragging of the map surface is disabled; MapAsset placement is explicit.
+- Portal relationships remain visible in the world graph.
 
-Current admin editing slice:
+## Future Editing Direction
 
-- Settings links to a separate world-editing workbench.
-- The workbench displays maps as graph nodes.
-- Portal links between maps are displayed as edges.
-- Hovering or selecting a portal edge highlights it and shows the linked portal tiles.
-- Selecting a map opens a details panel with an `Edit World` action.
-- The edit page displays the selected map as a hex grid.
-- The edit page uses the full app workspace instead of the compact settings subpanel.
-- The edit hex grid can be dragged, matching the learner map interaction model.
-- Dragging can start on tiles or the empty editor surface, and editor text is not selectable during map manipulation.
-- The editor grows from existing nodes instead of rendering a large endless grid of empty plus cells.
-- Empty neighboring coordinates show compact `+` buttons.
-- Clicking `+` opens an overlay panel for configuring a new tile or adding an editor-only empty-space node.
-- Clicking an existing tile opens the same overlay in edit mode.
-- The tile create/edit overlay uses accordion sections so activity editing, basic metadata, display options and dark/light visuals are separated.
-- Map-level configuration uses a larger dedicated configuration page instead of several small overlay buttons. The page separates map details, map visuals, access and deletion.
-- The map visual configuration page lets admins switch between editing dark and light values without changing the admin screen's own appearance.
-- Map visual configuration groups controls by rendered element, such as the title panel, node side panel, bottom nav, right control bar, background image and decorative map assets.
-- Map decorative assets can be added independently from nodes. They support image selection plus x/y placement, size and opacity so a map can have atmosphere without baking everything into one background.
-- Existing tiles expose `Edit activities` at the top of the overlay.
-- Tile image editing is now mode-specific: dark and light images are the main source. The older fallback-image field was removed.
-- Tile image fields can upload, download, select an existing reusable image and clear the current reference.
-- Node image fields expose image visibility, position, width and rotation so square source art can be tuned inside the runtime hex mask.
-- Fallback tile color controls were removed from the editor. New nodes receive default dark/light color sets instead.
-- Node lock state, hover text, image visibility, label visibility and hidden-node reveal configuration belong in the node overlay.
-- Unlock condition configuration belongs in the node overlay and can combine completion requirements with tool-based unlocking.
-- Map visuals include completed-node dimming settings for dark and light mode.
-- Existing tiles show directional arrow controls; clicking an arrow swaps the tile with the neighboring tile in that direction.
-- Adjacent occupied tiles show a compact line button between their facing edges; inserting there pushes the neighbor chain outward and creates a real hex coordinate for the new node.
-- The graph view is implemented with React Flow so future activity tags can drive grouping and layout behavior.
-- The graph view uses the same resolved appearance state as the rest of the app.
-
-Future admin editing:
-
-- Improve tile artwork ergonomics for landscape-style maps, including better crop/position controls.
-- Continue moving dense overlay settings toward larger pages where previews and keyboard navigation have enough room.
+- Improve crop, anchor and position ergonomics for irregular transparent art.
+- Add version history and safe rollback for world edits.
+- Add collaborative edit locks when several authors work on the same map.
+- Add bulk import/export for maps and MapAssets.
+- Continue moving dense configuration into full-height workspaces with stable
+  navigation, previews and keyboard access.

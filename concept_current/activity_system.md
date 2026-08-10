@@ -19,9 +19,26 @@ The MVP uses this for:
 
 The admin activity editor now uses a graph view for a single map node. It has a special Start node, a special End node, and activity nodes with Entry and Exit connectors. Dragging from one connector to another creates a connection. Clicking an existing normal connection removes it.
 
-The Start node can connect to multiple first activities. Each Start-to-activity connection becomes a learner-facing route option in the node detail panel. A route option can have dark/light preview images and dark/light overlay button colors. If no image is configured, it still appears as a compact button. If enough route options exist, the route list scrolls inside the panel.
+The synthetic Start node can connect to multiple first activities. Each Start-to-activity connection becomes a learner-facing route option in the focused MapAsset panel. A route option can have dark/light preview images and dark/light overlay button colors. If no image is configured, it still appears as a compact button. If enough route options exist, the route list scrolls inside the panel.
 
 The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections and portals without replacing the graph itself.
+
+Learner-message activities use that same graph instead of being a hardcoded
+route-completion modal:
+
+- A `message_prompt` Activity invites the learner to leave a short helpful or
+  encouraging message. It only asks while that learner has not contributed to
+  the linked topic.
+- A `message_wall` Activity displays visible contributions as cards over its
+  Activity surface. Closing the wall completes the Activity and follows its
+  configured output.
+- Both Activity types link a reusable message topic scoped to the current
+  MapAsset. This allows one prompt and several wall placements to share the
+  same content without coupling it to another MapAsset.
+- Their surface, card, card-border, text and accent colors are configurable for
+  dark and light appearance in the normal Activity editor with a live preview.
+- Learning Support sees the author context. Learners viewing the wall do not
+  receive author data.
 
 NPC dialogue activities now use the same graph idea at a nested level:
 
@@ -41,7 +58,6 @@ NPC dialogue activities now use the same graph idea at a nested level:
 - Feedback is authored as normal follow-up monologue/question nodes instead of appearing as a special feedback card. This keeps the conversation fluid and lets admins decide how correction, hints or confirmation should feel.
 - Question interactions block normal forward/back controls until an answer is selected. After the answer is confirmed, correctness is stored privately and the graph continues through the selected answer node.
 - Keyboard playback controls are part of runtime: left arrow moves back where allowed, right arrow or space continues, and enter confirms a question answer.
-- The demo seed includes a second Pattern Gate route named `Guided pattern dialogue`. It uses simple dark/light NPC and background SVG assets, a question interaction with multiple answer output connectors, answer nodes, correctness tracking, a review loop and a successful end connector.
 
 Planned deeper dialogue layers:
 
@@ -62,12 +78,12 @@ Portal visual settings belong to the portal activity. They include dark/light ba
 
 Current UI behavior:
 
-- The node detail panel shows route choices, not the activity player itself.
+- The focused MapAsset panel shows route choices, not the activity player itself.
 - Starting a route navigates to a separate node-play page so the map does not keep unnecessary listeners and rendering work active during activity playback.
 - When an activity becomes active, the bottom navigation can show an activity-return button.
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
-- Admins edit activity graphs from the map editor by opening an existing tile and selecting `Edit activities`.
+- Admins edit activity graphs by selecting a MapAsset and opening its `Activities` section.
 - Activity playback pages reserve space for the bottom navigation instead of letting activity controls disappear behind it.
 - Route playback stores learner-specific run state on the backend. Refreshing the browser should resume the current activity or current dialogue bubble instead of replaying the first activity by accident.
 - A learner can intentionally restart a route from the beginning. Restarting from inside a run should not duplicate grants already made in that run, while resetting from the node panel can create a fresh run according to the route rules.

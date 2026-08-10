@@ -1,52 +1,41 @@
 # Theme System
 
-The platform should not hard-code one genre.
+The platform must not hard-code one genre. A deployment can replace terminology,
+maps, MapAsset art, characters, media and story framing without changing the
+learning logic.
 
-Current configurable visual fields include:
+## Current Configuration
 
-- Global platform theme tokens in `resources/js/theme/platform-theme.json`.
-- Separate dark and light mode theme values where useful.
+- Shared platform and Settings palette tokens with dark/light variants.
 - World accent and surface colors.
-- Map background image and overlay.
-- Node tile color.
-- Node tile opacity.
-- Node foreground color.
-- Node hover highlight color.
-- Node tile image, with dark/light variants.
-- Node image position, width and rotation inside the runtime hex mask.
-- Node image visibility.
-- Node lock, completed and hidden/revealed visual states.
-- Dialogue portrait image per stage.
-- Dialogue text and speaker metadata.
-- Cursor assets for the themed map/settings experience.
-- Separate cursor assets for default cursor, pointer cursor and drag/grab cursor states.
-- Authentication and welcome-page color treatment.
-- Admin-editable login, registration and welcome background image paths.
-- Admin-editable public welcome text colors, accent colors and button/link treatment.
-- Admin-uploaded background images stored through Laravel's public storage disk.
-- Admin-editable welcome page text blocks.
-- Route preview images and overlay button/frame colors per dark/light mode.
-- Tool images and tool animation images, with dark/light variants and configurable display widths.
-- Item images, with dark/light variants.
-- Obstacle activity backgrounds, obstacle images and cleared-state images, with dark/light variants.
-- Markdown page colors and embedded media.
-- Reusable visual assets that can be selected by multiple forms instead of uploaded repeatedly.
-- Reusable sound assets with icon, volume, loop and optional playback-duration metadata.
+- Map background image, overlay, title panel and navigation surfaces.
+- MapAsset border, highlight, highlighted border, label and highlighted label
+  colors.
+- Normal and highlighted MapAsset images with shared learner/editor preview.
+- MapAsset image size, opacity, free position and Z depth.
+- Locked, hidden, hinted, recommended, focused and completed visual states.
+- Dialogue backgrounds, portraits, speech bubbles and authored text.
+- Route preview images and overlay colors.
+- Tool and item images with dark/light variants.
+- Tool animation images, widths and duration.
+- Item-obstacle backgrounds, overlays and state visuals.
+- Markdown activity surfaces, colors and embedded media.
+- Journal paper, leather edge, text and interaction colors.
+- Reusable visual and sound assets.
+- Configurable default, pointer, text, grab and unavailable cursors.
+- Authentication, welcome and public-page presentation settings.
 
-Appearance behavior:
+## Appearance Behavior
 
-- Authenticated users store their resolved appearance preference in the backend user preference table.
-- The earlier `system` option was removed from authenticated settings to avoid ambiguous backend state.
-- Public pages use a local unauthenticated preference before login.
-- When a user registers or logs in, authenticated state should become the source of truth.
-- Public presentation settings are stored in the backend and shared through Inertia so welcome/auth pages can render configured content without code changes.
-- Uploaded public presentation images are stored below `/storage/presentation/backgrounds/...` and can be downloaded again from the admin panel.
-- Node tile images are now the primary visual source for map tiles and render as full hex artwork.
-- Admin editing exposes dark/light node image fields directly and no longer exposes the older fallback node image field.
-- Image fields should support upload, download, selecting an existing asset and clearing the current reference.
-- Sounds are modeled separately from images because playback requires volume, loop and duration behavior.
-- Cursor settings are global presentation settings. They include default cursor, action pointer, text cursor, grab cursor and unavailable/denied cursor states with configurable image sizes and preview areas. Equipped tools are a special override and may temporarily replace the cursor with a tool image or animation.
-- Public pages should expose a subtle source-code link so AGPL network deployments can point visitors to the corresponding source.
-- Bundled default media can use a permissive public-domain dedication such as CC0, while the application code can remain AGPL. This keeps default demo assets reusable without weakening the network-copyleft license for the platform code.
+- Authenticated appearance is stored in user preferences.
+- Public pages use a local preference until authentication.
+- Image inputs share upload, download, select-existing and clear behavior.
+- Sounds remain separate assets because volume, looping and duration are
+  sound-specific.
+- Optional sound can be muted and adjusted by each learner.
+- Equipped tools may temporarily override the configured cursor.
+- Public pages expose the deployment source link required by the project
+  licensing direction.
 
-Future deployments should be able to replace these with any domain-specific visual language without changing the learning logic.
+Default media may use a permissive public-domain dedication such as CC0 while
+the application code remains AGPL.

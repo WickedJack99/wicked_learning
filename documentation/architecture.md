@@ -52,6 +52,12 @@ Activity models:
 - `LearnerQuestionAnswer`
 - `LearningTool`
 - `LearningSound`
+- `LearnerJournalPage`
+- `LearnerJournalFeedbackRequest`
+- `CompetenceTopicDefinition`
+- `LearnerCompetenceTopic`
+- `Organization`
+- `LearningGroup`
 
 ## Frontend areas
 
@@ -71,6 +77,7 @@ Important React areas:
 - `resources/js/features/world` - shared world and activity-panel pieces
 - `resources/js/features/tools` - equipped-tool state, cursor overlays and tool visual sizing
 - `resources/js/features/sounds` - layered browser audio playback
+- `resources/js/features/journal` - private journal data, theme and overlay
 - `resources/js/theme` - appearance and presentation helpers
 
 ## Theme and visuals
@@ -88,7 +95,7 @@ World visuals are intended to be configurable per deployment. Current node visua
 
 Reusable visual asset inputs should use the shared image picker pattern: upload, download, select existing and clear field. Clearing a field should remove the reference from the current form only; it should not delete the reusable asset.
 
-Reusable sounds are stored separately from visual assets. The frontend sound player is intentionally layered, so later activities can play ambience, voice, effects and UI sounds at the same time without replacing one another by default.
+Reusable sounds are stored separately from visual assets. The frontend sound player is intentionally layered, so activities can play ambience, voice, effects and UI sounds at the same time without replacing one another by default. Any activity can reference one optional reusable ambience sound; activity renderers start it on entry and stop that layer when the learner leaves.
 
 ## Activity graph model
 
