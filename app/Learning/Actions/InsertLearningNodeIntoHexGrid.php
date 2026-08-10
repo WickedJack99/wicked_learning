@@ -11,6 +11,7 @@ class InsertLearningNodeIntoHexGrid
     public function __construct(
         private readonly HexGridPositionService $positions,
         private readonly LearningNodeVisualConfig $nodeVisualConfig,
+        private readonly CreateLearningMapAsset $createMapAsset,
     ) {}
 
     /**
@@ -41,5 +42,14 @@ class InsertLearningNodeIntoHexGrid
 
         $this->nodeVisualConfig->fillNode($node, $origin->map, $data);
         $node->save();
+        $this->createMapAsset->handle($origin->map, [
+            'learning_node_id' => $node->id,
+            'position_x' => 50,
+            'position_y' => 50,
+            'position_z' => 0,
+            'width' => 14,
+            'opacity' => 1,
+            'locked' => false,
+        ]);
     }
 }

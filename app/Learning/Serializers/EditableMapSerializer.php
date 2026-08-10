@@ -3,6 +3,7 @@
 namespace App\Learning\Serializers;
 
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 
 class EditableMapSerializer
@@ -25,12 +26,37 @@ class EditableMapSerializer
                     ->values()
                     ->all(),
                 'gridConfig' => $map->grid_config ?? [],
+                'mapAssetsLocked' => (bool) $map->map_assets_locked,
+                'mapAssets' => $map->assets
+                    ->map(fn (LearningMapAsset $asset): array => $this->asset($asset))
+                    ->values()
+                    ->all(),
                 'nodes' => $map->nodes
                     ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
                     ->values()
                     ->map(fn (LearningNode $node): array => $this->summary->node($node))
                     ->all(),
             ],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function asset(LearningMapAsset $asset): array
+    {
+        return [
+            'id' => $asset->id,
+            'nodeId' => $asset->learning_node_id,
+            'imageUrl' => $asset->image_url,
+            'text' => $asset->text,
+            'x' => $asset->position_x,
+            'y' => $asset->position_y,
+            'z' => $asset->position_z,
+            'width' => $asset->width,
+            'opacity' => $asset->opacity,
+            'locked' => $asset->locked,
+            'focusable' => $asset->focusable,
+            'visualConfig' => $asset->visual_config ?? [],
+            'soundConfig' => $asset->sound_config ?? [],
         ];
     }
 }

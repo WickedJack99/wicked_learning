@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'grid_config',
     'access_roles',
     'time_background_enabled',
+    'map_assets_locked',
 ])]
 class LearningMap extends Model
 {
@@ -38,6 +39,7 @@ class LearningMap extends Model
             'grid_config' => 'array',
             'access_roles' => 'array',
             'time_background_enabled' => 'boolean',
+            'map_assets_locked' => 'boolean',
         ];
     }
 
@@ -71,6 +73,12 @@ class LearningMap extends Model
     public function nodes(): HasMany
     {
         return $this->hasMany(LearningNode::class);
+    }
+
+    /** @return HasMany<LearningMapAsset, $this> */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(LearningMapAsset::class)->orderBy('position_z')->orderBy('id');
     }
 
     /**

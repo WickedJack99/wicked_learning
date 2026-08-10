@@ -6,6 +6,7 @@ use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
@@ -81,10 +82,12 @@ class ReusableMediaAssetManager
             + $this->replaceDialogueStageReferences($oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningActivity::class, 'config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningMap::class, 'background_config', $oldUrl, $newUrl)
+            + $this->replaceJsonColumnReferences(LearningMapAsset::class, 'visual_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningNode::class, 'visual_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(NpcDialogueNode::class, 'config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(DialogueStage::class, 'visual_config', $oldUrl, $newUrl)
-            + $this->replaceJsonColumnReferences(PlatformPresentationSetting::class, 'value', $oldUrl, $newUrl);
+            + $this->replaceJsonColumnReferences(PlatformPresentationSetting::class, 'value', $oldUrl, $newUrl)
+            + $this->replaceStringColumns(LearningMapAsset::class, ['image_url'], $oldUrl, $newUrl);
     }
 
     private function replaceToolReferences(string $oldUrl, string $newUrl): int

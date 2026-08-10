@@ -5,7 +5,7 @@ import {
     Orbit,
     RadioTower,
 } from 'lucide-react';
-import { memo, useMemo, useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import type { CSSProperties, ElementType, PointerEvent } from 'react';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
 import type { PlayableSound } from '@/features/sounds/sound-player';
@@ -22,7 +22,9 @@ import type {
     LearningNode,
     LearningProgress,
     LearningTool,
+    MapAsset,
 } from '@/types';
+import { MapAssetVisual } from './map-asset-visual';
 import { HEX_TILE_CLIP_PATH, resolveThemeVariant, withOpacity } from './theme';
 import type { ResolvedAppearance, TileStyle } from './types';
 
@@ -34,7 +36,6 @@ const nodeIcons: Record<string, ElementType> = {
 };
 
 export function WorldMap({
-    activityProgress,
     allowLockedSelection = false,
     map,
     mode,
@@ -56,10 +57,11 @@ export function WorldMap({
     selectedNode: LearningNode | null;
     selectedTool: LearningTool | null;
 }) {
-    const [pan, setPan] = useState({ x: 0, y: 0 });
     const [toolAnimation, setToolAnimation] = useState<ToolUseAnimation | null>(
         null,
     );
+    const [temporarilyRemovedAssetIds, setTemporarilyRemovedAssetIds] =
+        useState<number[]>([]);
     const [drag, setDrag] = useState<{
         hasMoved: boolean;
         pointerId: number;
@@ -71,61 +73,10 @@ export function WorldMap({
         y: number;
     } | null>(null);
     const suppressTileClick = useRef(false);
-    const soundPlayer = useLayeredSoundPlayer();
-    const tileWidth = map.gridConfig.tileWidth ?? 132;
-    const tileHeight = map.gridConfig.tileHeight ?? 116;
-    const gap = map.gridConfig.gap ?? 12;
-    const gapScale = (tileHeight + gap) / tileHeight;
-    const horizontalStep = tileWidth * 0.75 * gapScale;
-    const tilePositions = useMemo(
-        () =>
-            map.nodes.map((node) => ({
-                node,
-                x: node.position.q * horizontalStep,
-                y:
-                    (node.position.r * tileHeight +
-                        node.position.q * (tileHeight / 2)) *
-                    gapScale,
-            })),
-        [gapScale, horizontalStep, map.nodes, tileHeight],
-    );
-    const minimumX = Math.min(...tilePositions.map((tile) => tile.x));
-    const minimumY = Math.min(...tilePositions.map((tile) => tile.y));
-    const maximumX = Math.max(...tilePositions.map((tile) => tile.x));
-    const maximumY = Math.max(...tilePositions.map((tile) => tile.y));
-    const stagePadding = Math.max(gap * 2, 24);
-    const stageWidth = maximumX - minimumX + tileWidth + stagePadding * 2;
-    const stageHeight = maximumY - minimumY + tileHeight + stagePadding * 2;
-    const tileLayouts = useMemo(
-        () =>
-            tilePositions.map(({ node, x, y }) => ({
-                node,
-                style: {
-                    left: x - minimumX + stagePadding,
-                    top: y - minimumY + stagePadding,
-                    width: tileWidth,
-                    height: tileHeight,
-                },
-            })),
-        [
-            minimumX,
-            minimumY,
-            stagePadding,
-            tileHeight,
-            tilePositions,
-            tileWidth,
-        ],
-    );
     const mapTheme = resolveThemeVariant(map.backgroundConfig, mode);
-    const completedDimOpacity = percentConfig(
-        mapTheme.completedDimOpacity,
-        mode === 'light' ? 12 : 18,
-    );
     const mapCursor = selectedTool
         ? 'var(--platform-cursor)'
-        : drag
-          ? 'var(--platform-grab-cursor)'
-          : 'var(--platform-cursor)';
+        : 'var(--platform-cursor)';
 
     const handleSelectedToolAtPointer = (
         event: PointerEvent<HTMLDivElement>,
@@ -186,41 +137,9 @@ export function WorldMap({
                     y: event.clientY,
                 });
             }}
-            onPointerMove={(event) => {
-                if (!drag || drag.pointerId !== event.pointerId) {
-                    return;
-                }
-
-                if ((event.buttons & 1) !== 1) {
-                    setDrag(null);
-
-                    return;
-                }
-
-                const hasMoved =
-                    drag.hasMoved ||
-                    Math.abs(event.clientX - drag.startX) > 4 ||
-                    Math.abs(event.clientY - drag.startY) > 4;
-
-                if (hasMoved) {
-                    suppressTileClick.current = true;
-                }
-
-                setPan((current) => ({
-                    x: current.x + event.clientX - drag.x,
-                    y: current.y + event.clientY - drag.y,
-                }));
-                setDrag({
-                    hasMoved,
-                    pointerId: event.pointerId,
-                    startedNodeId: drag.startedNodeId,
-                    startedOnTile: drag.startedOnTile,
-                    startX: drag.startX,
-                    startY: drag.startY,
-                    x: event.clientX,
-                    y: event.clientY,
-                });
-            }}
+            // MapAssets are positioned through their editor fields. The
+            // learner surface intentionally stays fixed and cannot pan.
+            onPointerMove={() => undefined}
             onPointerCancel={() => setDrag(null)}
             onPointerUp={(event) => {
                 if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -283,6 +202,25 @@ export function WorldMap({
                 }}
             />
             <MapVisualAssetLayers assets={mapTheme.assets} />
+            <MapAssetLayers
+                assets={(map.mapAssets ?? []).filter(
+                    (asset) => !temporarilyRemovedAssetIds.includes(asset.id),
+                )}
+                map={map}
+                mode={mode}
+                onRemoveAsset={(assetId) => {
+                    setTemporarilyRemovedAssetIds((current) =>
+                        current.includes(assetId)
+                            ? current
+                            : [...current, assetId],
+                    );
+                    onClearEquippedTool?.();
+                }}
+                onSelectNode={onSelectNode}
+                onUseToolOnNode={onUseToolOnNode}
+                selectedNode={selectedNode}
+                selectedTool={selectedTool}
+            />
 
             <div
                 className="pointer-events-none absolute top-5 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md md:top-8 md:left-8 md:w-auto md:translate-x-0"
@@ -322,50 +260,6 @@ export function WorldMap({
                 ) : null}
             </div>
 
-            <div
-                className="absolute top-1/2 left-1/2"
-                style={{
-                    transform: `translate(calc(-50% + ${pan.x}px), calc(-45% + ${pan.y}px))`,
-                    width: stageWidth,
-                    height: stageHeight,
-                }}
-            >
-                {tileLayouts.map(({ node, style }) => {
-                    const isSelected = selectedNode?.id === node.id;
-                    const hasCompletedActivity = node.activities.some(
-                        (activity) =>
-                            activityProgress[activity.id]?.status ===
-                            'completed',
-                    );
-
-                    return (
-                        <HexTile
-                            isCompleted={hasCompletedActivity}
-                            isSelected={isSelected}
-                            allowLockedSelection={allowLockedSelection}
-                            key={node.id}
-                            mode={mode}
-                            node={node}
-                            onSelectNode={onSelectNode}
-                            onPlayNodeSound={(node, trigger) =>
-                                playNodeInteractionSound(
-                                    soundPlayer,
-                                    node,
-                                    trigger,
-                                )
-                            }
-                            onUseToolOnNode={onUseToolOnNode}
-                            shouldSuppressClick={() =>
-                                suppressTileClick.current
-                            }
-                            style={style}
-                            completedDimOpacity={completedDimOpacity}
-                            selectedTool={selectedTool}
-                            tileCursor="var(--platform-action-cursor)"
-                        />
-                    );
-                })}
-            </div>
             {toolAnimation ? (
                 <ToolUseAnimation animation={toolAnimation} />
             ) : null}
@@ -373,7 +267,241 @@ export function WorldMap({
     );
 }
 
-const HexTile = memo(function HexTile({
+function MapAssetLayers({
+    assets,
+    map,
+    mode,
+    onRemoveAsset,
+    onSelectNode,
+    onUseToolOnNode,
+    selectedNode,
+    selectedTool,
+}: {
+    assets: MapAsset[];
+    map: LearningMap;
+    mode: ResolvedAppearance;
+    onRemoveAsset: (assetId: number) => void;
+    onSelectNode: (node: LearningNode) => void;
+    onUseToolOnNode: (node: LearningNode) => Promise<void> | void;
+    selectedNode: LearningNode | null;
+    selectedTool: LearningTool | null;
+}) {
+    const [hoveredAssetId, setHoveredAssetId] = useState<number | null>(null);
+    const soundPlayer = useLayeredSoundPlayer();
+
+    return (
+        <div className="pointer-events-none absolute inset-0 z-20">
+            {assets.map((asset) => {
+                const node = asset.nodeId
+                    ? map.nodes.find(
+                          (candidate) => candidate.id === asset.nodeId,
+                      )
+                    : null;
+                const nodeVisualConfig = node
+                    ? resolveThemeVariant(node.visualConfig, mode)
+                    : {};
+                const assetVisualConfig = resolveAssetVisualConfig(
+                    asset.visualConfig,
+                    mode,
+                );
+                const visualConfig = {
+                    ...nodeVisualConfig,
+                    ...assetVisualConfig,
+                };
+                const label =
+                    (typeof visualConfig.label === 'string' &&
+                        visualConfig.label) ||
+                    (node ? node.title : asset.text);
+                const isHovered = hoveredAssetId === asset.id;
+                const isSelected = Boolean(
+                    node && selectedNode?.id === node.id,
+                );
+                const isHighlighted = isHovered || isSelected;
+                const borderColor = withOpacity(
+                    visualConfig.borderColor ??
+                        visualConfig.tileColor ??
+                        '#12343b',
+                    visualConfig.borderOpacity ?? visualConfig.tileOpacity,
+                );
+                const highlightColor = withOpacity(
+                    visualConfig.highlightColor ?? '#7dd3fc',
+                    visualConfig.highlightOpacity,
+                );
+                const highlightBorderColor = withOpacity(
+                    visualConfig.highlightBorderColor ??
+                        visualConfig.highlightColor ??
+                        '#7dd3fc',
+                    visualConfig.highlightBorderOpacity ??
+                        visualConfig.highlightOpacity,
+                );
+                const labelColor = withOpacity(
+                    visualConfig.labelColor ?? '#ffffff',
+                    visualConfig.labelOpacity,
+                );
+                const highlightedLabelColor = withOpacity(
+                    visualConfig.highlightedLabelColor ??
+                        visualConfig.labelColor ??
+                        '#ffffff',
+                    visualConfig.highlightedLabelOpacity ??
+                        visualConfig.labelOpacity,
+                );
+                const style = {
+                    left: `${asset.x}%`,
+                    opacity: asset.opacity,
+                    top: `${asset.y}%`,
+                    width: `${asset.width}%`,
+                    zIndex: asset.z,
+                } as CSSProperties;
+
+                if (!node) {
+                    return (
+                        <div
+                            aria-hidden={
+                                selectedTool?.config.mapAssetRemove !== true
+                            }
+                            className={cn(
+                                'absolute -translate-x-1/2 -translate-y-1/2 text-center',
+                                selectedTool?.config.mapAssetRemove === true
+                                    ? 'pointer-events-auto cursor-pointer'
+                                    : 'pointer-events-none',
+                            )}
+                            key={asset.id}
+                            onClick={() => {
+                                if (
+                                    selectedTool?.config.mapAssetRemove === true
+                                ) {
+                                    onRemoveAsset(asset.id);
+                                }
+                            }}
+                            onMouseEnter={() => setHoveredAssetId(asset.id)}
+                            onMouseLeave={() =>
+                                setHoveredAssetId((current) =>
+                                    current === asset.id ? null : current,
+                                )
+                            }
+                            style={style}
+                        >
+                            <MapAssetVisual
+                                imageUrl={asset.imageUrl}
+                                backgroundColor={borderColor}
+                                highlighted={isHighlighted}
+                                highlightColor={highlightColor}
+                                highlightBorderColor={highlightBorderColor}
+                                highlightImageEnabled={
+                                    visualConfig.highlightImageEnabled === true
+                                }
+                                highlightImageUrl={
+                                    typeof visualConfig.highlightImageUrl ===
+                                    'string'
+                                        ? visualConfig.highlightImageUrl
+                                        : null
+                                }
+                                labelColor={labelColor}
+                                highlightedLabelColor={highlightedLabelColor}
+                                label={label}
+                            />
+                        </div>
+                    );
+                }
+
+                return (
+                    <button
+                        disabled={!asset.focusable}
+                        aria-label={label ?? node.title}
+                        className={cn(
+                            'pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:outline-none',
+                        )}
+                        key={asset.id}
+                        onClick={(event) => {
+                            event.stopPropagation();
+
+                            if (selectedTool?.config.mapAssetRemove === true) {
+                                onRemoveAsset(asset.id);
+
+                                return;
+                            }
+
+                            if (!asset.focusable) {
+                                return;
+                            }
+
+                            if (selectedTool) {
+                                void onUseToolOnNode(node);
+                            } else {
+                                if (canSelectNode(node, false)) {
+                                    onSelectNode(node);
+                                }
+                            }
+                        }}
+                        onMouseEnter={() => {
+                            setHoveredAssetId(asset.id);
+                            playNodeInteractionSound(
+                                soundPlayer,
+                                node,
+                                'mouseEnter',
+                            );
+                        }}
+                        onFocus={() => setHoveredAssetId(asset.id)}
+                        onBlur={() =>
+                            setHoveredAssetId((current) =>
+                                current === asset.id ? null : current,
+                            )
+                        }
+                        onMouseLeave={() => {
+                            setHoveredAssetId((current) =>
+                                current === asset.id ? null : current,
+                            );
+                            playNodeInteractionSound(
+                                soundPlayer,
+                                node,
+                                'mouseLeave',
+                            );
+                        }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                        style={style}
+                        type="button"
+                    >
+                        <MapAssetVisual
+                            imageUrl={asset.imageUrl}
+                            backgroundColor={borderColor}
+                            highlighted={isHighlighted}
+                            highlightColor={highlightColor}
+                            highlightBorderColor={highlightBorderColor}
+                            highlightImageEnabled={
+                                visualConfig.highlightImageEnabled === true
+                            }
+                            highlightImageUrl={
+                                typeof visualConfig.highlightImageUrl ===
+                                'string'
+                                    ? visualConfig.highlightImageUrl
+                                    : null
+                            }
+                            labelColor={labelColor}
+                            highlightedLabelColor={highlightedLabelColor}
+                            label={label}
+                        />
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function resolveAssetVisualConfig(
+    config: Record<string, unknown>,
+    appearance: ResolvedAppearance,
+): Record<string, unknown> {
+    const variant = config[appearance];
+
+    return {
+        ...config,
+        ...(variant && typeof variant === 'object'
+            ? (variant as Record<string, unknown>)
+            : {}),
+    };
+}
+
+export const HexTile = memo(function HexTile({
     isCompleted,
     isSelected,
     allowLockedSelection,
@@ -466,10 +594,15 @@ const HexTile = memo(function HexTile({
         cursor: resolvedTileCursor,
         '--tile-highlight': highlight,
     };
+    const accessibleLabel = canUseWithTool
+        ? `Use ${selectedTool?.title ?? 'equipped tool'} on ${node.title}`
+        : isLocked
+          ? `${node.title}, locked`
+          : `${node.title}, open location`;
 
     return (
         <button
-            aria-label={node.title}
+            aria-label={accessibleLabel}
             className={cn(
                 'group absolute isolate flex items-center justify-center overflow-hidden text-left transition-transform duration-200 focus-visible:z-20 focus-visible:outline-none',
                 canInteract && 'hover:z-20 hover:-translate-y-1',

@@ -4,6 +4,7 @@ namespace App\Learning\Serializers;
 
 use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use App\Models\User;
@@ -45,11 +46,35 @@ class LearningWorldSerializer
             'accessRoles' => $this->mapAccess->rolesForMap($map),
             'backgroundConfig' => $map->background_config ?? [],
             'gridConfig' => $map->grid_config ?? [],
+            'mapAssetsLocked' => (bool) $map->map_assets_locked,
+            'mapAssets' => $map->assets
+                ->map(fn (LearningMapAsset $asset): array => $this->asset($asset))
+                ->values(),
             'nodes' => $map->nodes
                 ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
                 ->values()
                 ->map(fn (LearningNode $node): array => $this->nodeSerializer->serialize($node, $user))
                 ->values(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function asset(LearningMapAsset $asset): array
+    {
+        return [
+            'id' => $asset->id,
+            'nodeId' => $asset->learning_node_id,
+            'imageUrl' => $asset->image_url,
+            'text' => $asset->text,
+            'x' => $asset->position_x,
+            'y' => $asset->position_y,
+            'z' => $asset->position_z,
+            'width' => $asset->width,
+            'opacity' => $asset->opacity,
+            'locked' => $asset->locked,
+            'focusable' => $asset->focusable,
+            'visualConfig' => $asset->visual_config ?? [],
+            'soundConfig' => $asset->sound_config ?? [],
         ];
     }
 }

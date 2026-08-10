@@ -19,6 +19,7 @@ class LoadLearningWorld
         $world = $this->worldResolver
             ->query()
             ->with([
+                'maps.assets.node',
                 'maps.nodes.activities.dialogueStages',
                 'maps.nodes.activities.question.options',
                 'maps.nodes.activities.transitions',

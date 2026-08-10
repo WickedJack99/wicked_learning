@@ -209,7 +209,11 @@ test('assigned group members can configure a map but cannot delete it', function
 
     $this->actingAs($member)
         ->get(route('settings.worlds.maps.configure', $map))
-        ->assertOk();
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'configure',
+        ]));
 
     $this->actingAs($member)
         ->patch(route('settings.worlds.maps.details.update', $map), [

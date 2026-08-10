@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -33,6 +34,15 @@ class DatabaseSeeder extends Seeder
         $user->setAssignedRoles([User::ROLE_ADMIN]);
         $user->save();
 
-        $this->call(DemoLearningWorldSeeder::class);
+        LearningWorld::query()->firstOrCreate(
+            ['slug' => 'demo-learning-world'],
+            [
+                'title' => 'Learning World',
+                'description' => 'Start by creating a map for this learning world.',
+            ],
+        );
+
+        // Learning worlds, maps, nodes and activities start empty. Administrators
+        // can create the first world and place MapAssets through the UI.
     }
 }

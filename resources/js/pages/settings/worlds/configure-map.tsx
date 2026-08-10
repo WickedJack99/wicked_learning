@@ -13,6 +13,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
@@ -36,7 +37,6 @@ import { Label } from '@/components/ui/label';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { normalizeMediaUrl } from '@/lib/media-url';
-import { cn } from '@/lib/utils';
 import { ConfigImageInput } from '@/pages/settings/worlds/activity-config-fields';
 import type { MapVisualAsset } from '@/types/learning';
 
@@ -53,6 +53,7 @@ type EditableMap = {
     description: string | null;
     editingGroupIds: number[];
     id: number;
+    mapAssetsLocked: boolean;
     nodeCount: number;
     slug: string;
     title: string;
@@ -140,6 +141,7 @@ type MapVisualForm = {
 
 type DetailsForm = {
     description: string;
+    map_assets_locked: boolean;
     title: string;
 };
 
@@ -174,10 +176,10 @@ const visualSections: {
         label: 'Map title panel',
     },
     {
-        description: 'The focused node description panel.',
+        description: 'The focused MapAsset description panel.',
         icon: PanelRight,
         id: 'sidePanel',
-        label: 'Node description side panel',
+        label: 'MapAsset side panel',
     },
     {
         description: 'The floating primary navigation at the bottom.',
@@ -305,11 +307,13 @@ export default function ConfigureMap({
     const [mainSection, setMainSection] = useState<MainSection>(() =>
         readMainSectionFromUrl(),
     );
-    const [visualSection, setVisualSection] =
-        useState<VisualSection>(() => readVisualSectionFromUrl());
+    const [visualSection, setVisualSection] = useState<VisualSection>(() =>
+        readVisualSectionFromUrl(),
+    );
     const [mode, setMode] = useState<ThemeMode>('dark');
     const [detailsForm, setDetailsForm] = useState<DetailsForm>({
         description: map.description ?? '',
+        map_assets_locked: map.mapAssetsLocked,
         title: map.title,
     });
     const [visualForm, setVisualForm] = useState<MapVisualForm>(() =>
@@ -335,6 +339,7 @@ export default function ConfigureMap({
     );
     const hasDetailsChanges = useDirtyState(detailsForm, {
         description: map.description ?? '',
+        map_assets_locked: map.mapAssetsLocked,
         title: map.title,
     });
     const hasVisualChanges = useDirtyState(
@@ -481,6 +486,7 @@ export default function ConfigureMap({
         <div className="h-full min-h-0 overflow-hidden bg-[var(--settings-panel-background)]">
             {mainSection === 'details' ? (
                 <MapDetailsSection
+                    action={action}
                     errors={errors}
                     form={detailsForm}
                     onChange={setDetailsForm}
@@ -489,6 +495,7 @@ export default function ConfigureMap({
             ) : null}
             {mainSection === 'visuals' ? (
                 <MapVisualsSection
+                    action={action}
                     errors={errors}
                     imageErrors={imageErrors}
                     mode={mode}
@@ -504,6 +511,7 @@ export default function ConfigureMap({
             ) : null}
             {mainSection === 'access' ? (
                 <AccessSection
+                    action={action}
                     accessGroups={accessGroups}
                     editingGroupIds={editingGroupIds}
                     errors={errors}
@@ -529,7 +537,6 @@ export default function ConfigureMap({
             {!embedded ? <Head title={`Configure ${map.title}`} /> : null}
             {embedded ? (
                 <SettingsNestedWorkspace
-                    action={action}
                     contentClassName="p-0 sm:p-0"
                     description={
                         map.description ??
@@ -545,7 +552,6 @@ export default function ConfigureMap({
                 </SettingsNestedWorkspace>
             ) : (
                 <SettingsConfigurationShell
-                    action={action}
                     backHref={`/settings?panel=admin-world-builder&map=${map.id}&worldView=nodes`}
                     backLabel="Back to map editor"
                     eyebrow={world.title}
@@ -606,57 +612,82 @@ export default function ConfigureMap({
 }
 
 function MapDetailsSection({
+    action,
     errors,
     form,
     onChange,
     previewTheme,
 }: {
+    action: ReactNode;
     errors: Record<string, string>;
     form: DetailsForm;
     onChange: (form: DetailsForm) => void;
     previewTheme: MapVisualThemeFields;
 }) {
     return (
-        <div className="grid h-full min-h-0 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
-            <div className="grid min-w-0 content-start gap-5">
-                <div>
-                    <h2 className="text-xl font-semibold">Map details</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        These fields are shown in the top-left map title panel.
-                    </p>
-                </div>
-                <TextField
-                    error={errors.title}
-                    label="Title"
-                    onChange={(title) => onChange({ ...form, title })}
-                    value={form.title}
-                />
-                <div className="grid gap-2">
-                    <Label htmlFor="map-description">Description</Label>
-                    <textarea
-                        className="min-h-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
-                        id="map-description"
-                        onChange={(event) =>
-                            onChange({
-                                ...form,
-                                description: event.currentTarget.value,
-                            })
-                        }
-                        value={form.description}
-                    />
-                    <InputError message={errors.description} />
-                </div>
-            </div>
-            <MapTitlePanelPreview
-                description={form.description}
-                theme={previewTheme}
-                title={form.title}
+        <div className="flex h-full min-h-0 flex-col">
+            <ConfigureMapSectionHeader
+                description="These fields are shown in the top-left map title panel."
+                title="Map details"
             />
+            <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+                <div className="grid min-w-0 content-start gap-5">
+                    <TextField
+                        error={errors.title}
+                        label="Title"
+                        onChange={(title) => onChange({ ...form, title })}
+                        value={form.title}
+                    />
+                    <div className="grid gap-2">
+                        <Label htmlFor="map-description">Description</Label>
+                        <textarea
+                            className="min-h-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                            id="map-description"
+                            onChange={(event) =>
+                                onChange({
+                                    ...form,
+                                    description: event.currentTarget.value,
+                                })
+                            }
+                            value={form.description}
+                        />
+                        <InputError message={errors.description} />
+                    </div>
+                    <label className="flex items-start gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-3 text-sm">
+                        <Checkbox
+                            checked={form.map_assets_locked}
+                            onCheckedChange={(checked) =>
+                                onChange({
+                                    ...form,
+                                    map_assets_locked: checked === true,
+                                })
+                            }
+                        />
+                        <span>
+                            <span className="block font-semibold">
+                                Lock MapAsset surface
+                            </span>
+                            <span className="mt-1 block text-xs leading-5 text-[var(--settings-muted-text)]">
+                                Keep the surface fixed in editor and learner
+                                view. Position changes remain available through
+                                the edit fields.
+                            </span>
+                        </span>
+                    </label>
+                </div>
+                <MapTitlePanelPreview
+                    description={form.description}
+                    theme={previewTheme}
+                    title={form.title}
+                />
+            </div>
+            <ConfigureMapSectionFooter action={action} />
         </div>
     );
 }
 
 function MapVisualsSection({
+    action,
     errors,
     imageErrors,
     mode,
@@ -669,6 +700,7 @@ function MapVisualsSection({
     visualForm,
     visualSection,
 }: {
+    action: ReactNode;
     errors: Record<string, string>;
     imageErrors: Record<string, string>;
     mode: ThemeMode;
@@ -689,20 +721,28 @@ function MapVisualsSection({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--settings-border-color)] p-4">
-                <div>
-                    <h2 className="text-xl font-semibold">Map visuals</h2>
-                    <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
-                        Switch between light and dark configuration, then select
-                        the map element you want to tune.
-                    </p>
-                </div>
-                <ConfigModeSwitch
-                    mode={mode}
-                    onChange={onModeChange}
-                    size="large"
-                />
-            </div>
+            <ConfigureMapSectionHeader
+                action={
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        {visualSection === 'assets' ? (
+                            <Button
+                                onClick={() => addMapAsset(setForm, mode)}
+                                type="button"
+                            >
+                                <Plus className="size-4" />
+                                Add asset
+                            </Button>
+                        ) : null}
+                        <ConfigModeSwitch
+                            mode={mode}
+                            onChange={onModeChange}
+                            size="large"
+                        />
+                    </div>
+                }
+                description="Switch between light and dark configuration, then select the map element you want to tune."
+                title="Map visuals"
+            />
 
             <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
                 <nav className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
@@ -735,6 +775,7 @@ function MapVisualsSection({
                     />
                 </div>
             </div>
+            <ConfigureMapSectionFooter action={action} />
         </div>
     );
 }
@@ -861,20 +902,13 @@ function MapAssetsEditor({
     return (
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_30rem]">
             <div className="grid content-start gap-4">
-                <div className="flex items-center justify-between gap-3">
+                <div>
                     <div>
                         <h3 className="text-lg font-semibold">Map assets</h3>
                         <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
                             Add decorative layers over the map background.
                         </p>
                     </div>
-                    <Button
-                        onClick={() => addMapAsset(setForm, mode)}
-                        type="button"
-                    >
-                        <Plus className="size-4" />
-                        Add asset
-                    </Button>
                 </div>
                 {values.assets.length === 0 ? (
                     <div className="border border-dashed border-[var(--settings-border-color)] p-5 text-sm text-[var(--settings-muted-text)]">
@@ -995,6 +1029,7 @@ function MapAssetsEditor({
 }
 
 function AccessSection({
+    action,
     accessGroups,
     editingGroupIds,
     errors,
@@ -1003,6 +1038,7 @@ function AccessSection({
     setEditingGroupIds,
     setRoles,
 }: {
+    action: ReactNode;
     accessGroups: AccessGroup[];
     editingGroupIds: number[];
     errors: Record<string, string>;
@@ -1012,89 +1048,95 @@ function AccessSection({
     setRoles: React.Dispatch<React.SetStateAction<string[]>>;
 }) {
     return (
-        <div className="grid h-full min-h-0 content-start gap-5 overflow-y-auto p-5">
-            <div>
-                <h2 className="text-xl font-semibold">Access</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Every available access group appears here automatically.
-                    Public maps can be visited without logging in.
-                </p>
-            </div>
-            <div className="grid gap-3 lg:grid-cols-2">
-                {accessGroups.map((group) => (
-                    <label
-                        className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
-                        key={group.slug}
-                    >
-                        <Checkbox
-                            checked={roles.includes(group.slug)}
-                            onCheckedChange={(checked) =>
-                                setRoles((current) =>
-                                    toggleRole(
-                                        current,
-                                        group.slug,
-                                        checked === true,
-                                    ),
-                                )
-                            }
-                        />
-                        <span className="grid gap-1">
-                            <span className="font-semibold">{group.label}</span>
-                            {group.description ? (
-                                <span className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                    {group.description}
-                                </span>
-                            ) : null}
-                        </span>
-                    </label>
-                ))}
-            </div>
-            <InputError
-                message={errors.access_roles ?? errors['access_roles.0']}
+        <div className="flex h-full min-h-0 flex-col">
+            <ConfigureMapSectionHeader
+                description="Every available access group appears here automatically. Public maps can be visited without logging in."
+                title="Access"
             />
-            <div className="border-t border-slate-200 pt-5 dark:border-white/10">
-                <h3 className="text-sm font-semibold">Group editors</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Selected groups can configure this map and its nodes, but
-                    they cannot delete the map.
-                </p>
-            </div>
-            <div className="grid gap-3 lg:grid-cols-2">
-                {learningGroups.map((group) => (
-                    <label
-                        className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
-                        key={group.id}
-                    >
-                        <Checkbox
-                            checked={editingGroupIds.includes(group.id)}
-                            onCheckedChange={(checked) =>
-                                setEditingGroupIds((current) =>
-                                    toggleNumber(
-                                        current,
-                                        group.id,
-                                        checked === true,
-                                    ),
-                                )
-                            }
-                        />
-                        <span className="grid gap-1">
-                            <span className="font-semibold">{group.name}</span>
-                            {group.description ? (
-                                <span className="text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                    {group.description}
+            <div className="grid min-h-0 flex-1 content-start gap-5 overflow-y-auto p-5">
+                <div className="grid gap-3 lg:grid-cols-2">
+                    {accessGroups.map((group) => (
+                        <label
+                            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
+                            key={group.slug}
+                        >
+                            <Checkbox
+                                checked={roles.includes(group.slug)}
+                                onCheckedChange={(checked) =>
+                                    setRoles((current) =>
+                                        toggleRole(
+                                            current,
+                                            group.slug,
+                                            checked === true,
+                                        ),
+                                    )
+                                }
+                            />
+                            <span className="grid gap-1">
+                                <span className="font-semibold">
+                                    {group.label}
                                 </span>
-                            ) : null}
-                        </span>
-                    </label>
-                ))}
-                {learningGroups.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                        Create groups from Settings before assigning map
-                        editors.
+                                {group.description ? (
+                                    <span className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                        {group.description}
+                                    </span>
+                                ) : null}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+                <InputError
+                    message={errors.access_roles ?? errors['access_roles.0']}
+                />
+                <div className="border-t border-slate-200 pt-5 dark:border-white/10">
+                    <h3 className="text-sm font-semibold">Group editors</h3>
+                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        Selected groups can configure this map and its nodes,
+                        but they cannot delete the map.
                     </p>
-                ) : null}
+                </div>
+                <div className="grid gap-3 lg:grid-cols-2">
+                    {learningGroups.map((group) => (
+                        <label
+                            className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/5"
+                            key={group.id}
+                        >
+                            <Checkbox
+                                checked={editingGroupIds.includes(group.id)}
+                                onCheckedChange={(checked) =>
+                                    setEditingGroupIds((current) =>
+                                        toggleNumber(
+                                            current,
+                                            group.id,
+                                            checked === true,
+                                        ),
+                                    )
+                                }
+                            />
+                            <span className="grid gap-1">
+                                <span className="font-semibold">
+                                    {group.name}
+                                </span>
+                                {group.description ? (
+                                    <span className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                        {group.description}
+                                    </span>
+                                ) : null}
+                            </span>
+                        </label>
+                    ))}
+                    {learningGroups.length === 0 ? (
+                        <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                            Create groups from Settings before assigning map
+                            editors.
+                        </p>
+                    ) : null}
+                </div>
+                <InputError
+                    message={errors.group_ids ?? errors['group_ids.0']}
+                />
             </div>
-            <InputError message={errors.group_ids ?? errors['group_ids.0']} />
+            <ConfigureMapSectionFooter action={action} />
         </div>
     );
 }
@@ -1111,50 +1153,79 @@ function DeleteWorldSection({
     onDelete: () => void;
 }) {
     return (
-        <div className="grid h-full min-h-0 content-start gap-5 overflow-y-auto p-5">
-            <div>
-                <h2 className="text-xl font-semibold">Delete world</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    Remove this map and all content that belongs to it.
-                </p>
-            </div>
-
-            <div className="max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-950 dark:border-red-400/30 dark:bg-red-950/25 dark:text-red-100">
-                <div className="flex items-start gap-4">
-                    <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-red-600 text-white dark:bg-red-500">
-                        <Trash2 className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                        <h3 className="text-lg font-semibold">
-                            Delete {map.title}
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-red-800 dark:text-red-100/80">
-                            This deletes {map.nodeCount} tile
-                            {map.nodeCount === 1 ? '' : 's'}, activities, portal
-                            links and learner progress connected to this map.
-                            This action cannot be undone.
-                        </p>
-                        {canDelete ? (
-                            <Button
-                                className="mt-5"
-                                disabled={deleting}
-                                onClick={onDelete}
-                                type="button"
-                                variant="destructive"
-                            >
-                                <Trash2 className="size-4" />
-                                Delete world map
-                            </Button>
-                        ) : (
-                            <p className="mt-5 rounded-lg border border-red-200 bg-white/70 p-3 text-sm text-red-900 dark:border-red-300/20 dark:bg-black/20 dark:text-red-100">
-                                Your current access level can read or update
-                                this world, but cannot delete maps.
+        <div className="flex h-full min-h-0 flex-col">
+            <ConfigureMapSectionHeader
+                description="Remove this map and all content that belongs to it."
+                title="Delete world"
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                <div className="max-w-3xl rounded-2xl border border-red-200 bg-red-50 p-5 text-red-950 dark:border-red-400/30 dark:bg-red-950/25 dark:text-red-100">
+                    <div className="flex items-start gap-4">
+                        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-red-600 text-white dark:bg-red-500">
+                            <Trash2 className="size-5" />
+                        </span>
+                        <div className="min-w-0">
+                            <h3 className="text-lg font-semibold">
+                                Delete {map.title}
+                            </h3>
+                            <p className="mt-2 text-sm leading-6 text-red-800 dark:text-red-100/80">
+                                This deletes {map.nodeCount} tile
+                                {map.nodeCount === 1 ? '' : 's'}, activities,
+                                portal links and learner progress connected to
+                                this map. This action cannot be undone.
                             </p>
-                        )}
+                            {canDelete ? (
+                                <Button
+                                    className="mt-5"
+                                    disabled={deleting}
+                                    onClick={onDelete}
+                                    type="button"
+                                    variant="destructive"
+                                >
+                                    <Trash2 className="size-4" />
+                                    Delete world map
+                                </Button>
+                            ) : (
+                                <p className="mt-5 rounded-lg border border-red-200 bg-white/70 p-3 text-sm text-red-900 dark:border-red-300/20 dark:bg-black/20 dark:text-red-100">
+                                    Your current access level can read or update
+                                    this world, but cannot delete maps.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    );
+}
+
+function ConfigureMapSectionHeader({
+    action,
+    description,
+    title,
+}: {
+    action?: ReactNode;
+    description: string;
+    title: string;
+}) {
+    return (
+        <header className="flex shrink-0 flex-col gap-4 border-b border-[var(--settings-border-color)] px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+                <h2 className="text-xl font-semibold">{title}</h2>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {description}
+                </p>
+            </div>
+            {action ? <div className="shrink-0">{action}</div> : null}
+        </header>
+    );
+}
+
+function ConfigureMapSectionFooter({ action }: { action: ReactNode }) {
+    return (
+        <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] px-5 py-4">
+            {action}
+        </footer>
     );
 }
 
@@ -1296,11 +1367,11 @@ function MapTitlePanelPreview({
                     <MapIcon className="size-4" />
                     Current map
                 </div>
-                <h3 className="break-words text-3xl font-semibold tracking-normal">
+                <h3 className="text-3xl font-semibold tracking-normal break-words">
                     {title || 'Untitled map'}
                 </h3>
                 <p
-                    className="mt-3 break-words text-sm leading-6"
+                    className="mt-3 text-sm leading-6 break-words"
                     style={{
                         color:
                             theme.panelMutedTextColor ||
@@ -1356,7 +1427,7 @@ function SidePanelPreview({ theme }: { theme: MapVisualThemeFields }) {
                             '#cbd5e1',
                     }}
                 >
-                    A focused node description lives here.
+                    A focused MapAsset description lives here.
                 </p>
             </div>
         </PreviewFrame>

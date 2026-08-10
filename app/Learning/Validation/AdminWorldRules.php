@@ -156,6 +156,25 @@ class AdminWorldRules
         return [
             'title' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'map_assets_locked' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function mapAsset(LearningMap $map, ?int $assetId = null): array
+    {
+        return [
+            'image_url' => ['nullable', 'string', 'max:2048'],
+            'text' => ['nullable', 'string', 'max:255'],
+            'position_x' => ['required', 'numeric', 'min:0', 'max:100'],
+            'position_y' => ['required', 'numeric', 'min:0', 'max:100'],
+            'position_z' => ['required', 'integer', 'min:-10000', 'max:10000'],
+            'width' => ['required', 'numeric', 'min:1', 'max:100'],
+            'opacity' => ['required', 'numeric', 'min:0', 'max:1'],
+            'locked' => ['sometimes', 'boolean'],
+            'focusable' => ['sometimes', 'boolean'],
+            'visual_config' => ['nullable', 'array'],
+            'sound_config' => ['nullable', 'array'],
         ];
     }
 
@@ -253,13 +272,16 @@ class AdminWorldRules
             $rules["visual_config.{$mode}.foregroundColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.labelColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.highlightColor"] = ['nullable', 'string', 'max:40'];
+            $rules["visual_config.{$mode}.borderColor"] = ['nullable', 'string', 'max:40'];
+            $rules["visual_config.{$mode}.highlightBorderColor"] = ['nullable', 'string', 'max:40'];
+            $rules["visual_config.{$mode}.highlightedLabelColor"] = ['nullable', 'string', 'max:40'];
             $rules["visual_config.{$mode}.imageUrl"] = ['nullable', 'string', 'max:2048'];
             $rules["visual_config.{$mode}.imageRotation"] = ['nullable', 'numeric', 'min:-360', 'max:360'];
             $rules["visual_config.{$mode}.imageWidth"] = ['nullable', 'numeric', 'min:10', 'max:200'];
             $rules["visual_config.{$mode}.imageX"] = ['nullable', 'numeric', 'min:0', 'max:100'];
             $rules["visual_config.{$mode}.imageY"] = ['nullable', 'numeric', 'min:0', 'max:100'];
 
-            foreach (['tileOpacity', 'foregroundOpacity', 'labelOpacity', 'highlightOpacity'] as $field) {
+            foreach (['tileOpacity', 'foregroundOpacity', 'labelOpacity', 'highlightOpacity', 'borderOpacity', 'highlightBorderOpacity', 'highlightedLabelOpacity'] as $field) {
                 $rules["visual_config.{$mode}.{$field}"] = ['nullable', 'numeric', 'min:0', 'max:100'];
             }
         }

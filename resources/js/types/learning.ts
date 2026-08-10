@@ -61,7 +61,25 @@ export type LearningMap = {
         tileHeight?: number;
         gap?: number;
     };
+    mapAssets?: MapAsset[];
+    mapAssetsLocked?: boolean;
     nodes: LearningNode[];
+};
+
+export type MapAsset = {
+    id: number;
+    nodeId: number | null;
+    imageUrl: string | null;
+    text: string | null;
+    x: number;
+    y: number;
+    z: number;
+    width: number;
+    opacity: number;
+    locked: boolean;
+    focusable: boolean;
+    visualConfig: Record<string, unknown>;
+    soundConfig: Record<string, unknown>;
 };
 
 export type MapVisualAsset = {
@@ -94,17 +112,24 @@ export type LearningNode = {
         | 'locked'
         | 'recommended';
     visualConfig: ThemeVariant<{
-        borderColor?: string;
         icon?: string;
         label?: string;
         labelColor?: string;
         labelOpacity?: string;
+        borderColor?: string;
+        borderOpacity?: string;
+        highlightBorderColor?: string;
+        highlightBorderOpacity?: string;
+        highlightedLabelColor?: string;
+        highlightedLabelOpacity?: string;
         tileColor?: string;
         tileOpacity?: string;
         foregroundColor?: string;
         foregroundOpacity?: string;
         highlightColor?: string;
         highlightOpacity?: string;
+        highlightImageEnabled?: boolean;
+        highlightImageUrl?: string;
         imageRotation?: string;
         imageWidth?: string;
         imageX?: string;

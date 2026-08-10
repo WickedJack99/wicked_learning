@@ -6,13 +6,16 @@ use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\CreateLearningMap;
+use App\Learning\Actions\CreateLearningMapAsset;
 use App\Learning\Actions\CreateLearningNode;
 use App\Learning\Actions\DeleteLearningMap;
+use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\SwapLearningNode;
 use App\Learning\Actions\UpdateLearningMapAccess;
+use App\Learning\Actions\UpdateLearningMapAsset;
 use App\Learning\Actions\UpdateLearningMapDetails;
 use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
@@ -23,6 +26,7 @@ use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use Illuminate\Http\JsonResponse;
@@ -35,11 +39,14 @@ class AdminWorldController extends Controller
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
+        private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
         private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
         private readonly UpdateLearningMapDetails $updateLearningMapDetails,
         private readonly UpdateLearningMapVisuals $updateLearningMapVisuals,
         private readonly DeleteLearningMap $deleteLearningMap,
+        private readonly DeleteLearningMapAsset $deleteLearningMapAsset,
+        private readonly UpdateLearningMapAsset $updateLearningMapAsset,
         private readonly CreateLearningNode $createLearningNode,
         private readonly UpdateLearningNode $updateLearningNode,
         private readonly DeleteLearningNode $deleteLearningNode,
@@ -94,6 +101,41 @@ class AdminWorldController extends Controller
         );
 
         return $this->redirectToWorldGraph($request);
+    }
+
+    public function storeMapAsset(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+
+        $this->createLearningMapAsset->handle(
+            $map,
+            $request->validate($this->rules->mapAsset($map)),
+        );
+
+        return $this->redirectToMap($map);
+    }
+
+    public function updateMapAsset(Request $request, LearningMapAsset $asset): RedirectResponse
+    {
+        $asset->loadMissing('map');
+        $this->authorizeMapEdit($request, $asset->map);
+
+        $this->updateLearningMapAsset->handle(
+            $asset,
+            $request->validate($this->rules->mapAsset($asset->map, $asset->id)),
+        );
+
+        return $this->redirectToMap($asset->map);
+    }
+
+    public function destroyMapAsset(Request $request, LearningMapAsset $asset): RedirectResponse
+    {
+        $asset->loadMissing('map');
+        $map = $asset->map;
+        $this->authorizeMapEdit($request, $map);
+        $this->deleteLearningMapAsset->handle($asset);
+
+        return $this->redirectToMap($map);
     }
 
     public function storePortalLink(Request $request): RedirectResponse

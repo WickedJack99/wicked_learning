@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property array<string, mixed>|null $visual_config
@@ -42,6 +43,12 @@ class LearningNode extends Model
     public function map(): BelongsTo
     {
         return $this->belongsTo(LearningMap::class, 'learning_map_id');
+    }
+
+    /** @return HasOne<LearningMapAsset, $this> */
+    public function mapAsset(): HasOne
+    {
+        return $this->hasOne(LearningMapAsset::class, 'learning_node_id');
     }
 
     /**

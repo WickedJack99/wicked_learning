@@ -82,6 +82,15 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::post('settings/worlds/maps', [AdminWorldController::class, 'storeMap'])
         ->name('settings.worlds.maps.store');
 
+    Route::post('settings/worlds/maps/{map}/assets', [AdminWorldController::class, 'storeMapAsset'])
+        ->name('settings.worlds.maps.assets.store');
+
+    Route::patch('settings/worlds/assets/{asset}', [AdminWorldController::class, 'updateMapAsset'])
+        ->name('settings.worlds.assets.update');
+
+    Route::delete('settings/worlds/assets/{asset}', [AdminWorldController::class, 'destroyMapAsset'])
+        ->name('settings.worlds.assets.destroy');
+
     Route::post('settings/worlds/portal-links', [AdminWorldController::class, 'storePortalLink'])
         ->name('settings.worlds.portal-links.store');
 

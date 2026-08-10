@@ -534,7 +534,7 @@ function MapDetails({ map }: { map: MapSummary }) {
                     href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&worldView=nodes`}
                 >
                     <Pencil className="size-4" />
-                    Configure nodes
+                    Configure MapAssets
                 </Link>
             </Button>
             <Button asChild className="mt-2 w-full" variant="secondary">

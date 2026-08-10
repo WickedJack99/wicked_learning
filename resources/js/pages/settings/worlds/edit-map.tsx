@@ -4,6 +4,8 @@ import {
     ChevronRight,
     Eye,
     GitBranch,
+    Image,
+    Layers3,
     LockKeyhole,
     Map as MapIcon,
     Palette,
@@ -29,9 +31,9 @@ import { SettingsConfigurationSection } from '@/components/settings-configuratio
 import {
     SettingsConfigurationLayout,
     SettingsContentPane,
-    SettingsSectionNavigation,
-    type SettingsNavigationItem,
+    SettingsSectionButton,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { SoundAssetInput } from '@/components/sound-asset-input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -56,13 +58,23 @@ import {
     tileControlWidth,
 } from '@/features/admin-worlds/hex-grid-geometry';
 import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
+import {
+    assetForm,
+    assetPayload,
+    MapAssetEditor,
+    MapAssetFields,
+} from '@/features/settings/map-asset-editor';
+import type { AssetForm } from '@/features/settings/map-asset-editor';
+import { MapAssetVisual } from '@/features/world/map-asset-visual';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
 import { getSettingsPresentationStyle } from '@/theme/presentation';
 import type { LearningTool } from '@/types';
+import type { MapAsset } from '@/types/learning';
 import { ConfigImageInput as NodeImageInput } from './activity-config-fields';
 
 type EditableWorld = {
@@ -96,6 +108,8 @@ type EditableMap = {
         tileWidth?: number;
     };
     id: number;
+    mapAssets: MapAsset[];
+    mapAssetsLocked: boolean;
     nodeCount: number;
     nodes: EditableNode[];
     slug: string;
@@ -127,10 +141,16 @@ type VisualConfig = Record<string, VisualConfigValue>;
 type ThemeMode = 'dark' | 'light';
 
 type NodeVisualThemeFields = {
+    borderColor: string;
+    borderOpacity: string;
     foregroundColor: string;
     foregroundOpacity: string;
     highlightColor: string;
     highlightOpacity: string;
+    highlightBorderColor: string;
+    highlightBorderOpacity: string;
+    highlightedLabelColor: string;
+    highlightedLabelOpacity: string;
     imageRotation: string;
     imageUrl: string;
     imageWidth: string;
@@ -276,11 +296,13 @@ type MapDetailsForm = {
 };
 
 type NodeSettingsSection =
+    | 'surface'
     | 'activities'
     | 'tile-text'
     | 'right-panel'
     | 'availability'
     | 'visuals'
+    | 'highlight-image'
     | 'sounds'
     | 'danger';
 
@@ -296,6 +318,7 @@ export default function EditWorldMap({
     tools: LearningTool[];
 }) {
     const { map, world } = editableMap;
+    const t = usePlatformTranslation();
     const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
     const settingsPresentationStyle = getSettingsPresentationStyle(
@@ -333,7 +356,10 @@ export default function EditWorldMap({
             : {}),
     } as CSSProperties;
     const [selectedNode, setSelectedNode] = useState<EditableNode | null>(null);
-    const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
+    const [selectedMapAsset, setSelectedMapAsset] = useState<MapAsset | null>(
+        null,
+    );
+    const [, setSelectedCell] = useState<GridCell | null>(null);
     const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -379,6 +405,9 @@ export default function EditWorldMap({
         Record<string, string>
     >({});
     const [form, setForm] = useState<NodeForm>(() => emptyNodeForm(0, 0));
+    const [mapAssetForm, setMapAssetForm] = useState<AssetForm>(() =>
+        assetForm(null),
+    );
     const [insertionContext, setInsertionContext] =
         useState<InsertionContext | null>(null);
     const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -412,6 +441,40 @@ export default function EditWorldMap({
         map.accessRoles.length > 0 ? map.accessRoles : ['user', 'admin'],
     );
 
+    const livePreviewNode = selectedNode
+        ? {
+              id: selectedNode.id,
+              label: form.visual_config.label,
+              title: form.title,
+              visualConfig: form.visual_config[
+                  nodeVisualMode
+              ] as unknown as Record<string, unknown>,
+          }
+        : undefined;
+    const livePreviewAsset = selectedMapAsset
+        ? {
+              ...selectedMapAsset,
+              focusable: mapAssetForm.focusable,
+              imageUrl: mapAssetForm.image_url || null,
+              locked: mapAssetForm.locked,
+              nodeId: selectedNode?.id ?? selectedMapAsset.nodeId,
+              opacity: Number(mapAssetForm.opacity),
+              text: mapAssetForm.text || null,
+              width: Number(mapAssetForm.width),
+              x: Number(mapAssetForm.position_x),
+              y: Number(mapAssetForm.position_y),
+              z: Number(mapAssetForm.position_z),
+              visualConfig:
+                  Object.keys(mapAssetForm.visual_config ?? {}).length > 0
+                      ? mapAssetForm.visual_config
+                      : form.visual_config,
+          }
+        : undefined;
+    const highlightImageConfig = mapAssetHighlightImageConfig(
+        mapAssetForm,
+        nodeVisualMode,
+    );
+
     const openCreateTile = (cell: GridCell) => {
         if (consumeSuppressedClick()) {
             return;
@@ -419,6 +482,8 @@ export default function EditWorldMap({
 
         clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         setSelectedNode(null);
+        setSelectedMapAsset(null);
+        setMapAssetForm(assetForm(null));
         setSelectedCell(cell);
         setNodeDialogOpen(true);
         setInsertionContext(null);
@@ -446,6 +511,8 @@ export default function EditWorldMap({
         const { x, y } = axialToPoint(position.q, position.r);
 
         setSelectedNode(null);
+        setSelectedMapAsset(null);
+        setMapAssetForm(assetForm(null));
         setSelectedCell({
             occupiedNode: null,
             q: position.q,
@@ -465,21 +532,50 @@ export default function EditWorldMap({
         setForm(emptyNodeForm(position.q, position.r));
     };
 
-    const openEditTile = (node: EditableNode) => {
+    const openEditTile = (node: EditableNode, mapAsset?: MapAsset) => {
         if (consumeSuppressedClick()) {
             return;
         }
 
         clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         setSelectedNode(node);
+        setSelectedMapAsset(mapAsset ?? null);
+        setMapAssetForm(assetForm(mapAsset ?? null));
         setSelectedCell(null);
         setNodeDialogOpen(true);
         setInsertionContext(null);
         setErrors({});
         setImageUploadErrors({});
         setSoundUploadErrors({});
-        setActiveNodeSettingsSection('activities');
+        setActiveNodeSettingsSection(mapAsset ? 'surface' : 'activities');
         setForm(nodeFormFromNode(node));
+    };
+
+    const openEditMapAsset = (mapAsset: MapAsset) => {
+        if (mapAsset.nodeId) {
+            const node = map.nodes.find(
+                (candidate) => candidate.id === mapAsset.nodeId,
+            );
+
+            if (node) {
+                openEditTile(node, mapAsset);
+
+                return;
+            }
+        }
+
+        clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
+        setSelectedNode(null);
+        setSelectedMapAsset(mapAsset);
+        setSelectedCell(null);
+        setNodeDialogOpen(true);
+        setInsertionContext(null);
+        setErrors({});
+        setImageUploadErrors({});
+        setSoundUploadErrors({});
+        setActiveNodeSettingsSection('surface');
+        setMapAssetForm(assetForm(mapAsset));
+        setForm(nodeFormFromMapAsset(mapAsset));
     };
 
     const closeDialog = () => {
@@ -488,6 +584,8 @@ export default function EditWorldMap({
         closeNodeDialogTimeoutRef.current = window.setTimeout(() => {
             setSelectedCell(null);
             setSelectedNode(null);
+            setSelectedMapAsset(null);
+            setMapAssetForm(assetForm(null));
             setInsertionContext(null);
             closeNodeDialogTimeoutRef.current = null;
         }, 220);
@@ -531,6 +629,38 @@ export default function EditWorldMap({
                 });
 
         void request;
+    };
+
+    const saveMapAsset = () => {
+        if (!selectedMapAsset) {
+            saveNode();
+
+            return;
+        }
+
+        setProcessing(true);
+        const payload = assetPayload({
+            ...mapAssetForm,
+            visual_config: selectedNode
+                ? mapAssetForm.visual_config
+                : form.visual_config,
+        });
+        router.patch(
+            `/settings/worlds/assets/${selectedMapAsset.id}`,
+            payload,
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setErrors(nextErrors),
+                onSuccess: () => {
+                    if (selectedNode) {
+                        saveNode();
+                    } else {
+                        closeDialog();
+                    }
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
     };
 
     const saveEmptySpace = () => {
@@ -864,15 +994,38 @@ export default function EditWorldMap({
                             </div>
                         </div>
                         <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
-                            Drag from any tile or empty area. Use plus buttons
-                            to grow the map, and arrow buttons to swap adjacent
-                            tiles.
+                            Place MapAssets on the surface and edit their
+                            position and visual settings from the in-map menu.
                         </p>
                     </header>
 
+                    <MapAssetEditor
+                        appearance={resolvedAppearance}
+                        assets={map.mapAssets}
+                        mapId={map.id}
+                        mapLocked={map.mapAssetsLocked}
+                        nodes={map.nodes.map((node) => ({
+                            id: node.id,
+                            label:
+                                typeof node.visualConfig.label === 'string'
+                                    ? node.visualConfig.label
+                                    : undefined,
+                            title: node.title,
+                            visualConfig: resolveThemeVariant(
+                                node.visualConfig,
+                                resolvedAppearance,
+                            ) as Record<string, unknown>,
+                        }))}
+                        onSelectAsset={openEditMapAsset}
+                        previewAsset={livePreviewAsset}
+                        previewNode={livePreviewNode}
+                        previewImage={previewMapTheme.imageUrl}
+                        previewOverlay={previewMapTheme.overlay}
+                    />
+
                     <section
                         className={cn(
-                            'relative min-h-0 flex-1 touch-none overflow-hidden bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] select-none dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]',
+                            'relative hidden min-h-0 flex-1 touch-none overflow-hidden bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] select-none dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]',
                             !embedded &&
                                 'rounded-[2rem] border border-slate-200 shadow-2xl dark:border-white/10',
                         )}
@@ -1188,7 +1341,13 @@ export default function EditWorldMap({
                         server-side learning state starts after login.
                     </div>
 
-                    <DialogFooter>
+                    <DialogFooter
+                        className={cn(
+                            'shrink-0',
+                            embedded &&
+                                'border-t border-[var(--settings-border-color)] px-4 py-3 sm:px-5 sm:py-4',
+                        )}
+                    >
                         <Button
                             onClick={() => setMapAccessOpen(false)}
                             type="button"
@@ -1233,12 +1392,15 @@ export default function EditWorldMap({
                         )}
                     >
                         <DialogTitle>
-                            {isEditingNode ? 'Edit tile' : 'Add tile'}
+                            {selectedMapAsset
+                                ? 'Edit MapAsset'
+                                : isEditingNode
+                                  ? 'Edit MapAsset'
+                                  : 'Add MapAsset'}
                         </DialogTitle>
                         <DialogDescription>
-                            Configure the first basic fields for this tile, or
-                            add it as an empty space to extend the editable map
-                            without showing a learner-facing activity.
+                            Configure the MapAsset and its learner-facing
+                            behavior, or add a visual-only MapAsset.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1251,6 +1413,7 @@ export default function EditWorldMap({
                         sidebar={
                             <NodeSettingsSwitcher
                                 activeSection={activeNodeSettingsSection}
+                                hasMapAsset={Boolean(selectedMapAsset)}
                                 isEditingNode={Boolean(selectedNode)}
                                 onChange={setActiveNodeSettingsSection}
                             />
@@ -1263,10 +1426,25 @@ export default function EditWorldMap({
                                     embedded && 'p-4 sm:p-5',
                                 )}
                             >
+                                {activeNodeSettingsSection === 'surface' &&
+                                selectedMapAsset ? (
+                                    <SettingsConfigurationSection
+                                        description="Configure the image, placement and surface behavior for this MapAsset."
+                                        title="MapAsset surface"
+                                    >
+                                        <MapAssetFields
+                                            form={mapAssetForm}
+                                            mapId={map.id}
+                                            onChange={setMapAssetForm}
+                                            errors={errors}
+                                        />
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
                                 {activeNodeSettingsSection === 'activities' &&
                                 selectedNode ? (
                                     <SettingsConfigurationSection
-                                        description="Open the activity graph for this tile."
+                                        description="Open the activity graph for this MapAsset."
                                         title="Activities"
                                     >
                                         <Button
@@ -1286,60 +1464,76 @@ export default function EditWorldMap({
 
                                 {activeNodeSettingsSection === 'tile-text' ? (
                                     <SettingsConfigurationSection
-                                        description="Learner-facing tile title, hover text and map label visibility."
-                                        title="Tile text"
+                                        description="Configure the learner-facing label, hover text and any visual-only fallback text."
+                                        title="MapAsset text"
                                     >
-                                        <TextField
-                                            error={
-                                                errors['visual_config.label']
-                                            }
-                                            label="Tile label"
-                                            onChange={(value) =>
-                                                setVisualTextConfig(
-                                                    setForm,
-                                                    'label',
-                                                    value,
-                                                )
-                                            }
-                                            value={form.visual_config.label}
-                                        />
-                                        <TextField
-                                            error={
-                                                errors['visual_config.tooltip']
-                                            }
-                                            label="Hover text"
-                                            onChange={(value) =>
-                                                setVisualTextConfig(
-                                                    setForm,
-                                                    'tooltip',
-                                                    value,
-                                                )
-                                            }
-                                            placeholder="Shown when learners hover the tile"
-                                            value={form.visual_config.tooltip}
-                                        />
-                                        <CheckboxField
-                                            checked={
-                                                form.visual_config.hideLabel
-                                            }
-                                            description="The title still appears when hovered or selected and in the side panel."
-                                            id="hide-label"
-                                            label="Hide tile label on world map"
-                                            onCheckedChange={(checked) =>
-                                                setVisualBooleanConfig(
-                                                    setForm,
-                                                    'hideLabel',
-                                                    checked,
-                                                )
-                                            }
-                                        />
+                                        {selectedNode ? (
+                                            <>
+                                                <TextField
+                                                    error={
+                                                        errors[
+                                                            'visual_config.label'
+                                                        ]
+                                                    }
+                                                    label="MapAsset label"
+                                                    onChange={(value) =>
+                                                        setVisualTextConfig(
+                                                            setForm,
+                                                            'label',
+                                                            value,
+                                                        )
+                                                    }
+                                                    value={
+                                                        form.visual_config.label
+                                                    }
+                                                />
+                                                <TextField
+                                                    error={
+                                                        errors[
+                                                            'visual_config.tooltip'
+                                                        ]
+                                                    }
+                                                    label="Hover text"
+                                                    onChange={(value) =>
+                                                        setVisualTextConfig(
+                                                            setForm,
+                                                            'tooltip',
+                                                            value,
+                                                        )
+                                                    }
+                                                    placeholder="Shown when learners hover the MapAsset"
+                                                    value={
+                                                        form.visual_config
+                                                            .tooltip
+                                                    }
+                                                />
+                                                <CheckboxField
+                                                    checked={
+                                                        form.visual_config
+                                                            .hideLabel
+                                                    }
+                                                    description="The label remains available in the learner panel and when the MapAsset is selected."
+                                                    id="hide-label"
+                                                    label="Hide MapAsset label on world map"
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        setVisualBooleanConfig(
+                                                            setForm,
+                                                            'hideLabel',
+                                                            checked,
+                                                        )
+                                                    }
+                                                />
+                                            </>
+                                        ) : null}
                                     </SettingsConfigurationSection>
                                 ) : null}
 
                                 {activeNodeSettingsSection === 'right-panel' ? (
                                     <SettingsConfigurationSection
                                         description="Name, URL slug and learner-facing summary."
-                                        title="Right panel"
+                                        title="Learner panel"
                                     >
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <TextField
@@ -1405,8 +1599,8 @@ export default function EditWorldMap({
                                 'availability' ? (
                                     <>
                                         <SettingsConfigurationSection
-                                            description="Learner-facing lock and visibility behavior for the tile."
-                                            title="Tile availability"
+                                            description="Learner-facing focus, lock and visibility behavior for this MapAsset."
+                                            title="Availability & rules"
                                         >
                                             <div className="grid gap-3">
                                                 {form.state !== 'hidden' ? (
@@ -1417,7 +1611,7 @@ export default function EditWorldMap({
                                                         }
                                                         description="Locked nodes stay visible with their configured visuals, but learners cannot open them yet."
                                                         id="lock-node"
-                                                        label="Lock node for learners"
+                                                        label="Lock MapAsset for learners"
                                                         onCheckedChange={(
                                                             checked,
                                                         ) =>
@@ -1428,31 +1622,35 @@ export default function EditWorldMap({
                                                         }
                                                     />
                                                 ) : null}
-                                                <CheckboxField
-                                                    checked={
-                                                        form.visual_config
-                                                            .hideImage
-                                                    }
-                                                    description="The configured dark and light images stay saved, but the world map shows no image or icon fallback."
-                                                    id="hide-image"
-                                                    label="Hide node image on world map"
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        setVisualBooleanConfig(
-                                                            setForm,
-                                                            'hideImage',
+                                                {selectedMapAsset ? (
+                                                    <CheckboxField
+                                                        checked={
+                                                            !mapAssetForm.focusable
+                                                        }
+                                                        description="Learners can still see this MapAsset, but selecting it will not open the learner panel."
+                                                        id="map-asset-not-focusable"
+                                                        label="Make MapAsset visual-only"
+                                                        onCheckedChange={(
                                                             checked,
-                                                        )
-                                                    }
-                                                />
+                                                        ) =>
+                                                            setMapAssetForm(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    focusable:
+                                                                        checked !==
+                                                                        true,
+                                                                }),
+                                                            )
+                                                        }
+                                                    />
+                                                ) : null}
                                                 {form.state === 'hidden' ? (
                                                     <CheckboxField
                                                         checked={
                                                             form.visual_config
                                                                 .hideEmptySpace
                                                         }
-                                                        description="The tile keeps its coordinate and spacing, but learners do not see or click it."
+                                                        description="The MapAsset keeps its coordinate and spacing, but learners do not see or click it."
                                                         id="hide-empty-space"
                                                         label="Hide this empty space on learner map"
                                                         onCheckedChange={(
@@ -1917,7 +2115,7 @@ export default function EditWorldMap({
 
                                 {activeNodeSettingsSection === 'visuals' ? (
                                     <SettingsConfigurationSection
-                                        description="Switch between dark and light tile visuals, then preview the learner-facing tile."
+                                        description="Switch between dark and light colors for the MapAsset border, labels and hover state. The MapAsset image is configured under MapAsset surface."
                                         title="Visuals"
                                     >
                                         <div className="mb-4 flex justify-end">
@@ -1926,47 +2124,150 @@ export default function EditWorldMap({
                                                 onChange={setNodeVisualMode}
                                             />
                                         </div>
-                                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-                                            <NodeVisualModeFields
-                                                errors={errors}
-                                                imageError={
-                                                    nodeVisualMode === 'dark'
-                                                        ? imageUploadErrors.nodeDark
-                                                        : imageUploadErrors.nodeLight
-                                                }
-                                                mode={nodeVisualMode}
-                                                onImageUpload={(file) =>
-                                                    void uploadWorldImage(
-                                                        nodeVisualMode ===
-                                                            'dark'
-                                                            ? 'nodeDark'
-                                                            : 'nodeLight',
-                                                        file,
-                                                        (url) =>
-                                                            setVisualThemeTextConfig(
-                                                                setForm,
-                                                                nodeVisualMode,
-                                                                'imageUrl',
-                                                                url,
-                                                            ),
-                                                    )
-                                                }
-                                                setForm={setForm}
-                                                uploadingImage={
-                                                    nodeVisualMode === 'dark'
-                                                        ? uploadingImageKey ===
-                                                          'nodeDark'
-                                                        : uploadingImageKey ===
-                                                          'nodeLight'
-                                                }
-                                                values={
-                                                    form.visual_config[
-                                                        nodeVisualMode
-                                                    ]
-                                                }
-                                            />
+                                        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                            <div className="max-h-[28rem] min-h-0 overflow-y-auto overscroll-contain pr-2">
+                                                <NodeVisualModeFields
+                                                    errors={errors}
+                                                    mode={nodeVisualMode}
+                                                    setForm={setForm}
+                                                    values={
+                                                        form.visual_config[
+                                                            nodeVisualMode
+                                                        ]
+                                                    }
+                                                />
+                                            </div>
                                             <NodeVisualPreview
                                                 form={form}
+                                                highlightImageEnabled={
+                                                    highlightImageConfig.enabled
+                                                }
+                                                highlightImageUrl={
+                                                    highlightImageConfig.url
+                                                }
+                                                imageUrl={
+                                                    selectedMapAsset
+                                                        ? mapAssetForm.image_url
+                                                        : form.visual_config[
+                                                              nodeVisualMode
+                                                          ].imageUrl
+                                                }
+                                                mode={nodeVisualMode}
+                                            />
+                                        </div>
+                                    </SettingsConfigurationSection>
+                                ) : null}
+
+                                {activeNodeSettingsSection ===
+                                    'highlight-image' && selectedMapAsset ? (
+                                    <SettingsConfigurationSection
+                                        description={t(
+                                            'settings.world_builder.map_asset.highlight_image.description',
+                                            'Use a complete image overlay for the hovered and focused state instead of the configured highlight colors.',
+                                        )}
+                                        title={t(
+                                            'settings.world_builder.map_asset.highlight_image.title',
+                                            'Highlight image',
+                                        )}
+                                    >
+                                        <div className="mb-4 flex justify-end">
+                                            <ConfigModeSwitch
+                                                mode={nodeVisualMode}
+                                                onChange={setNodeVisualMode}
+                                            />
+                                        </div>
+                                        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                            <div className="grid content-start gap-5">
+                                                <CheckboxField
+                                                    checked={
+                                                        highlightImageConfig.enabled
+                                                    }
+                                                    description={t(
+                                                        'settings.world_builder.map_asset.highlight_image.toggle_description',
+                                                        'When enabled, hover and focus use the overlay image instead of highlight fill and border colors.',
+                                                    )}
+                                                    id={`map-asset-${nodeVisualMode}-highlight-image-enabled`}
+                                                    label={t(
+                                                        'settings.world_builder.map_asset.highlight_image.toggle_label',
+                                                        'Use highlight image',
+                                                    )}
+                                                    onCheckedChange={(
+                                                        enabled,
+                                                    ) =>
+                                                        setMapAssetVisualThemeConfig(
+                                                            setMapAssetForm,
+                                                            nodeVisualMode,
+                                                            'highlightImageEnabled',
+                                                            enabled,
+                                                        )
+                                                    }
+                                                />
+                                                <NodeImageInput
+                                                    description={t(
+                                                        'settings.world_builder.map_asset.highlight_image.input_description',
+                                                        'Upload an overlay or select one from the reusable image library.',
+                                                    )}
+                                                    error={
+                                                        imageUploadErrors[
+                                                            `mapAssetHighlight-${nodeVisualMode}`
+                                                        ] ??
+                                                        errors[
+                                                            `visual_config.${nodeVisualMode}.highlightImageUrl`
+                                                        ]
+                                                    }
+                                                    id={`map-asset-${nodeVisualMode}-highlight-image`}
+                                                    label={t(
+                                                        'settings.world_builder.map_asset.highlight_image.input_label',
+                                                        `${nodeVisualMode === 'dark' ? 'Dark' : 'Light'} highlight image`,
+                                                        {
+                                                            mode:
+                                                                nodeVisualMode ===
+                                                                'dark'
+                                                                    ? 'Dark'
+                                                                    : 'Light',
+                                                        },
+                                                    )}
+                                                    onChange={(url) =>
+                                                        setMapAssetVisualThemeConfig(
+                                                            setMapAssetForm,
+                                                            nodeVisualMode,
+                                                            'highlightImageUrl',
+                                                            url,
+                                                        )
+                                                    }
+                                                    onUpload={(file) =>
+                                                        void uploadWorldImage(
+                                                            `mapAssetHighlight-${nodeVisualMode}`,
+                                                            file,
+                                                            (url) =>
+                                                                setMapAssetVisualThemeConfig(
+                                                                    setMapAssetForm,
+                                                                    nodeVisualMode,
+                                                                    'highlightImageUrl',
+                                                                    url,
+                                                                ),
+                                                        )
+                                                    }
+                                                    uploading={
+                                                        uploadingImageKey ===
+                                                        `mapAssetHighlight-${nodeVisualMode}`
+                                                    }
+                                                    value={
+                                                        highlightImageConfig.url
+                                                    }
+                                                />
+                                            </div>
+                                            <NodeVisualPreview
+                                                form={form}
+                                                highlightImageEnabled={
+                                                    highlightImageConfig.enabled
+                                                }
+                                                highlightImageUrl={
+                                                    highlightImageConfig.url
+                                                }
+                                                imageUrl={
+                                                    mapAssetForm.image_url
+                                                }
                                                 mode={nodeVisualMode}
                                             />
                                         </div>
@@ -1975,13 +2276,13 @@ export default function EditWorldMap({
 
                                 {activeNodeSettingsSection === 'sounds' ? (
                                     <SettingsConfigurationSection
-                                        description="Optional learner-map sounds for pointer and unlock interactions."
-                                        title="Node sounds"
+                                        description="Optional sounds for pointer, selection and unlock interactions on this MapAsset."
+                                        title="MapAsset sounds"
                                     >
-                                        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_18rem]">
                                             <div className="grid gap-4">
                                                 <NodeSoundTriggerField
-                                                    description="Played when the pointer enters this tile."
+                                                    description="Played when the pointer enters this MapAsset."
                                                     error={
                                                         errors[
                                                             'visual_config.sounds.mouseEnter.url'
@@ -2016,7 +2317,7 @@ export default function EditWorldMap({
                                                     }
                                                 />
                                                 <NodeSoundTriggerField
-                                                    description="Played when learners click or tap this tile."
+                                                    description="Played when learners click or tap this MapAsset."
                                                     error={
                                                         errors[
                                                             'visual_config.sounds.click.url'
@@ -2051,7 +2352,7 @@ export default function EditWorldMap({
                                                     }
                                                 />
                                                 <NodeSoundTriggerField
-                                                    description="Played when the pointer leaves this tile."
+                                                    description="Played when the pointer leaves this MapAsset."
                                                     error={
                                                         errors[
                                                             'visual_config.sounds.mouseLeave.url'
@@ -2086,7 +2387,7 @@ export default function EditWorldMap({
                                                     }
                                                 />
                                                 <NodeSoundTriggerField
-                                                    description="Played after the backend confirms this node was unlocked."
+                                                    description="Played after the backend confirms this MapAsset was unlocked."
                                                     error={
                                                         errors[
                                                             'visual_config.sounds.unlock.url'
@@ -2133,18 +2434,19 @@ export default function EditWorldMap({
                                 {activeNodeSettingsSection === 'danger' &&
                                 selectedNode ? (
                                     <SettingsConfigurationSection
-                                        description="Remove this tile and its activities from the map."
+                                        description="Remove this MapAsset, its activities and learner progress from the map."
                                         title="Danger zone"
                                     >
                                         <div className="rounded-md border border-red-500/25 bg-red-50 p-3 dark:border-red-300/20 dark:bg-red-500/10">
                                             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                 <div className="grid gap-1 text-sm">
                                                     <p className="font-medium text-red-950 dark:text-red-50">
-                                                        Delete this tile
+                                                        Delete MapAsset
                                                     </p>
                                                     <p className="text-xs text-red-800 dark:text-red-100/75">
-                                                        This removes the tile,
-                                                        its activities, route
+                                                        This removes the
+                                                        MapAsset, its
+                                                        activities, route
                                                         buttons, portal links,
                                                         bookmarks and learner
                                                         progress. This cannot be
@@ -2163,7 +2465,7 @@ export default function EditWorldMap({
                                                     variant="outline"
                                                 >
                                                     <Trash2 className="size-4" />
-                                                    Delete tile
+                                                    Delete MapAsset
                                                 </Button>
                                             </div>
                                         </div>
@@ -2173,7 +2475,13 @@ export default function EditWorldMap({
                         </SettingsContentPane>
                     </SettingsConfigurationLayout>
 
-                    <DialogFooter>
+                    <DialogFooter
+                        className={cn(
+                            'shrink-0',
+                            embedded &&
+                                'border-t border-[var(--settings-border-color)] px-4 py-3 sm:px-5 sm:py-4',
+                        )}
+                    >
                         <Button
                             onClick={closeDialog}
                             type="button"
@@ -2181,7 +2489,7 @@ export default function EditWorldMap({
                         >
                             Cancel
                         </Button>
-                        {!isEditingNode && (
+                        {!isEditingNode && !selectedMapAsset && (
                             <Button
                                 disabled={processing}
                                 onClick={saveEmptySpace}
@@ -2193,11 +2501,13 @@ export default function EditWorldMap({
                         )}
                         <Button
                             disabled={processing}
-                            onClick={() => saveNode()}
+                            onClick={() =>
+                                selectedMapAsset ? saveMapAsset() : saveNode()
+                            }
                             type="button"
                         >
                             <Save className="size-4" />
-                            Save tile
+                            Save MapAsset
                         </Button>
                     </DialogFooter>
                 </SettingsConfigurationDialog>
@@ -2213,11 +2523,11 @@ export default function EditWorldMap({
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete tile?</DialogTitle>
+                        <DialogTitle>Delete MapAsset?</DialogTitle>
                         <DialogDescription>
                             {pendingDeleteNode
                                 ? `This removes "${pendingDeleteNode.title}" from the map, including its activities and connected learner progress. This cannot be undone.`
-                                : 'This tile will be removed.'}
+                                : 'This MapAsset will be removed.'}
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -2235,7 +2545,7 @@ export default function EditWorldMap({
                             variant="destructive"
                         >
                             <Trash2 className="size-4" />
-                            Delete tile
+                            Delete MapAsset
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2244,74 +2554,233 @@ export default function EditWorldMap({
     );
 }
 
-const nodeSettingsSections: SettingsNavigationItem<NodeSettingsSection>[] = [
-    {
-        description: 'Open the activity graph for this tile.',
-        icon: GitBranch,
-        key: 'activities',
-        label: 'Activities',
-    },
-    {
-        description: 'Tile label, hover text and map label visibility.',
-        icon: Type,
-        key: 'tile-text',
-        label: 'Tile text',
-    },
-    {
-        description: 'Title, slug and description shown in the side panel.',
-        icon: PanelRight,
-        key: 'right-panel',
-        label: 'Right panel',
-    },
-    {
-        description: 'Locking, discovery and unlock rules.',
-        icon: Eye,
-        key: 'availability',
-        label: 'Rules',
-    },
-    {
-        description: 'Colors and dark/light tile images.',
-        icon: Palette,
-        key: 'visuals',
-        label: 'Visuals',
-    },
-    {
-        description: 'Mouse and unlock sounds.',
-        icon: Volume2,
-        key: 'sounds',
-        label: 'Sounds',
-    },
-    {
-        description: 'Remove the tile and linked learner data.',
-        icon: Trash2,
-        key: 'danger',
-        label: 'Danger zone',
-    },
-];
+function nodeSettingsSections(
+    t: ReturnType<typeof usePlatformTranslation>,
+): Array<
+    SettingsNavigationItem<NodeSettingsSection> & {
+        group: 'map-asset' | 'learning' | 'presentation' | 'maintenance';
+    }
+> {
+    return [
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.surface_description',
+                'Image, placement and surface behavior.',
+            ),
+            group: 'map-asset',
+            icon: Image,
+            key: 'surface',
+            label: t(
+                'settings.world_builder.map_asset.navigation.surface',
+                'Surface & placement',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.text_description',
+                'MapAsset label, hover text and visibility.',
+            ),
+            group: 'map-asset',
+            icon: Type,
+            key: 'tile-text',
+            label: t(
+                'settings.world_builder.map_asset.navigation.text',
+                'MapAsset text',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.learner_panel_description',
+                'Title, slug and description shown in the learner panel.',
+            ),
+            group: 'map-asset',
+            icon: PanelRight,
+            key: 'right-panel',
+            label: t(
+                'settings.world_builder.map_asset.navigation.learner_panel',
+                'Learner panel',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.activities_description',
+                'Open the activity graph for this MapAsset.',
+            ),
+            group: 'learning',
+            icon: GitBranch,
+            key: 'activities',
+            label: t(
+                'settings.world_builder.map_asset.navigation.activities',
+                'Activities',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.availability_description',
+                'Focus, locking, discovery and unlock rules.',
+            ),
+            group: 'learning',
+            icon: Eye,
+            key: 'availability',
+            label: t(
+                'settings.world_builder.map_asset.navigation.availability',
+                'Availability & rules',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.visuals_description',
+                'Border, label and hover colors with contour-aware preview.',
+            ),
+            group: 'presentation',
+            icon: Palette,
+            key: 'visuals',
+            label: t(
+                'settings.world_builder.map_asset.navigation.visuals',
+                'Visuals',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.highlight_image.navigation_description',
+                'Overlay image for hover and focus.',
+            ),
+            group: 'presentation',
+            icon: Layers3,
+            key: 'highlight-image',
+            label: t(
+                'settings.world_builder.map_asset.highlight_image.navigation_label',
+                'Highlight image',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.sounds_description',
+                'Pointer, selection and unlock sounds for this MapAsset.',
+            ),
+            group: 'presentation',
+            icon: Volume2,
+            key: 'sounds',
+            label: t(
+                'settings.world_builder.map_asset.navigation.sounds',
+                'Sounds',
+            ),
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.navigation.danger_description',
+                'Remove the MapAsset and its learner data.',
+            ),
+            group: 'maintenance',
+            icon: Trash2,
+            key: 'danger',
+            label: t(
+                'settings.world_builder.map_asset.navigation.danger',
+                'Danger zone',
+            ),
+        },
+    ];
+}
 
 function NodeSettingsSwitcher({
     activeSection,
+    hasMapAsset,
     isEditingNode,
     onChange,
 }: {
     activeSection: NodeSettingsSection;
+    hasMapAsset: boolean;
     isEditingNode: boolean;
     onChange: (section: NodeSettingsSection) => void;
 }) {
-    const visibleSections = nodeSettingsSections.filter(
-        (section) =>
+    const t = usePlatformTranslation();
+    const visibleSections = nodeSettingsSections(t).filter((section) => {
+        if (hasMapAsset && !isEditingNode) {
+            return !['activities', 'tile-text', 'right-panel'].includes(
+                section.key,
+            );
+        }
+
+        if (hasMapAsset) {
+            return true;
+        }
+
+        return (
             isEditingNode ||
-            (section.key !== 'activities' && section.key !== 'danger'),
-    );
+            (section.key !== 'activities' && section.key !== 'danger')
+        );
+    });
+    const groups = [
+        {
+            key: 'map-asset' as const,
+            label: t(
+                'settings.world_builder.map_asset.navigation.group_map_asset',
+                'MapAsset',
+            ),
+        },
+        {
+            key: 'learning' as const,
+            label: t(
+                'settings.world_builder.map_asset.navigation.group_learning',
+                'Learning',
+            ),
+        },
+        {
+            key: 'presentation' as const,
+            label: t(
+                'settings.world_builder.map_asset.navigation.group_presentation',
+                'Presentation',
+            ),
+        },
+        {
+            key: 'maintenance' as const,
+            label: t(
+                'settings.world_builder.map_asset.navigation.group_maintenance',
+                'Maintenance',
+            ),
+        },
+    ];
 
     return (
         <aside className="min-h-0 overflow-y-auto border-r border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3">
-            <SettingsSectionNavigation
-                activeSection={activeSection}
-                ariaLabel="Tile settings sections"
-                items={visibleSections}
-                onChange={onChange}
-            />
+            <div
+                aria-label={t(
+                    'settings.world_builder.map_asset.navigation.aria_label',
+                    'MapAsset settings sections',
+                )}
+                className="grid gap-5"
+                role="tablist"
+            >
+                {groups.map((group) => {
+                    const items = visibleSections.filter(
+                        (section) => section.group === group.key,
+                    );
+
+                    if (items.length === 0) {
+                        return null;
+                    }
+
+                    return (
+                        <section className="grid gap-2" key={group.key}>
+                            <p className="px-3 text-[0.68rem] font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                                {group.label}
+                            </p>
+                            {items.map((item) => (
+                                <SettingsSectionButton
+                                    active={activeSection === item.key}
+                                    danger={item.danger}
+                                    description={item.description}
+                                    icon={item.icon}
+                                    id={item.key}
+                                    key={item.key}
+                                    label={item.label}
+                                    onSelect={onChange}
+                                />
+                            ))}
+                        </section>
+                    );
+                })}
+            </div>
         </aside>
     );
 }
@@ -2764,9 +3233,9 @@ function NodeSoundPreview({ sounds }: { sounds: NodeSoundFields }) {
                 type="button"
             >
                 <span>
-                    Preview tile
+                    Preview MapAsset
                     <span className="mt-2 block text-xs font-normal text-slate-500 dark:text-slate-400">
-                        Hover, click, and leave this tile to test configured
+                        Hover, click, and leave this MapAsset to test configured
                         sounds.
                     </span>
                 </span>
@@ -2795,33 +3264,40 @@ async function playNodeSound(sound: NodeSoundTriggerConfig): Promise<void> {
 }
 
 type NodeVisualColorKey =
-    | 'foregroundColor'
+    | 'borderColor'
     | 'highlightColor'
+    | 'highlightBorderColor'
     | 'labelColor'
-    | 'tileColor';
+    | 'highlightedLabelColor';
 
 type NodeVisualOpacityKey =
-    | 'foregroundOpacity'
+    | 'borderOpacity'
     | 'highlightOpacity'
+    | 'highlightBorderOpacity'
     | 'labelOpacity'
-    | 'tileOpacity';
+    | 'highlightedLabelOpacity';
 
 const nodeVisualFields: {
     key: NodeVisualColorKey;
     label: string;
     opacityKey: NodeVisualOpacityKey;
 }[] = [
-    { key: 'tileColor', label: 'Tile color', opacityKey: 'tileOpacity' },
-    {
-        key: 'foregroundColor',
-        label: 'Icon/text color',
-        opacityKey: 'foregroundOpacity',
-    },
+    { key: 'borderColor', label: 'Border color', opacityKey: 'borderOpacity' },
     { key: 'labelColor', label: 'Label color', opacityKey: 'labelOpacity' },
     {
         key: 'highlightColor',
-        label: 'Highlight color',
+        label: 'Highlight fill color',
         opacityKey: 'highlightOpacity',
+    },
+    {
+        key: 'highlightBorderColor',
+        label: 'Highlight border color',
+        opacityKey: 'highlightBorderOpacity',
+    },
+    {
+        key: 'highlightedLabelColor',
+        label: 'Highlighted label color',
+        opacityKey: 'highlightedLabelOpacity',
     },
 ];
 
@@ -2864,19 +3340,13 @@ const mapVisualFields: {
 
 function NodeVisualModeFields({
     errors,
-    imageError,
     mode,
-    onImageUpload,
     setForm,
-    uploadingImage,
     values,
 }: {
     errors: Record<string, string>;
-    imageError?: string;
     mode: ThemeMode;
-    onImageUpload: (file: File) => void;
     setForm: Dispatch<SetStateAction<NodeForm>>;
-    uploadingImage: boolean;
     values: NodeVisualThemeFields;
 }) {
     const labelPrefix = mode === 'dark' ? 'Dark mode' : 'Light mode';
@@ -2886,10 +3356,10 @@ function NodeVisualModeFields({
             <div>
                 <h3 className="text-sm font-semibold">{labelPrefix}</h3>
                 <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                    These values define how the tile appears in this mode.
+                    These values define how the MapAsset appears in this mode.
                 </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
                 {nodeVisualFields.map((field) => (
                     <ColorOpacityField
                         colorError={
@@ -2921,93 +3391,28 @@ function NodeVisualModeFields({
                     />
                 ))}
             </div>
-            <NodeImageInput
-                description={`${labelPrefix} image displayed on this tile in the world map.`}
-                error={imageError || errors[`visual_config.${mode}.imageUrl`]}
-                id={`node-${mode}-image-url`}
-                label={`${labelPrefix} node image`}
-                onChange={(value) =>
-                    setVisualThemeTextConfig(setForm, mode, 'imageUrl', value)
-                }
-                onUpload={onImageUpload}
-                uploading={uploadingImage}
-                value={values.imageUrl}
-            />
-            <div className="grid gap-3 sm:grid-cols-4">
-                <NodeImageNumberField
-                    error={errors[`visual_config.${mode}.imageX`]}
-                    id={`node-${mode}-image-x`}
-                    label={`${labelPrefix} image X`}
-                    max={100}
-                    min={0}
-                    onChange={(value) =>
-                        setVisualThemeTextConfig(setForm, mode, 'imageX', value)
-                    }
-                    suffix="%"
-                    value={values.imageX}
-                />
-                <NodeImageNumberField
-                    error={errors[`visual_config.${mode}.imageY`]}
-                    id={`node-${mode}-image-y`}
-                    label={`${labelPrefix} image Y`}
-                    max={100}
-                    min={0}
-                    onChange={(value) =>
-                        setVisualThemeTextConfig(setForm, mode, 'imageY', value)
-                    }
-                    suffix="%"
-                    value={values.imageY}
-                />
-                <NodeImageNumberField
-                    error={errors[`visual_config.${mode}.imageWidth`]}
-                    id={`node-${mode}-image-width`}
-                    label={`${labelPrefix} image width`}
-                    max={200}
-                    min={10}
-                    onChange={(value) =>
-                        setVisualThemeTextConfig(
-                            setForm,
-                            mode,
-                            'imageWidth',
-                            value,
-                        )
-                    }
-                    suffix="%"
-                    value={values.imageWidth}
-                />
-                <NodeImageNumberField
-                    error={errors[`visual_config.${mode}.imageRotation`]}
-                    id={`node-${mode}-image-rotation`}
-                    label={`${labelPrefix} rotation`}
-                    max={360}
-                    min={-360}
-                    onChange={(value) =>
-                        setVisualThemeTextConfig(
-                            setForm,
-                            mode,
-                            'imageRotation',
-                            value,
-                        )
-                    }
-                    suffix="deg"
-                    value={values.imageRotation}
-                />
-            </div>
         </div>
     );
 }
 
 function NodeVisualPreview({
     form,
+    highlightImageEnabled = false,
+    highlightImageUrl,
+    imageUrl,
     mode,
 }: {
     form: NodeForm;
+    highlightImageEnabled?: boolean;
+    highlightImageUrl?: string;
+    imageUrl?: string;
     mode: ThemeMode;
 }) {
+    const [isHovered, setIsHovered] = useState(false);
     const values = form.visual_config[mode];
-    const tileColor =
-        withOpacity(values.tileColor || '#253047', values.tileOpacity) ??
-        '#253047';
+    const borderColor =
+        withOpacity(values.borderColor || '#12343b', values.borderOpacity) ??
+        '#12343b';
     const labelColor =
         withOpacity(values.labelColor || '#ffffff', values.labelOpacity) ??
         '#ffffff';
@@ -3016,10 +3421,16 @@ function NodeVisualPreview({
             values.highlightColor || '#7dd3fc',
             values.highlightOpacity,
         ) ?? '#7dd3fc';
-    const imageX = percentConfig(values.imageX, 50);
-    const imageY = percentConfig(values.imageY, 50);
-    const imageWidth = percentConfig(values.imageWidth, 100, 10, 200);
-    const imageRotation = rotationConfig(values.imageRotation);
+    const highlightBorderColor =
+        withOpacity(
+            values.highlightBorderColor || values.highlightColor || '#7dd3fc',
+            values.highlightBorderOpacity ?? values.highlightOpacity,
+        ) ?? '#7dd3fc';
+    const highlightedLabelColor =
+        withOpacity(
+            values.highlightedLabelColor || '#ffffff',
+            values.highlightedLabelOpacity,
+        ) ?? '#ffffff';
     const previewLabel =
         form.visual_config.label || form.title || 'Preview tile';
 
@@ -3030,92 +3441,36 @@ function NodeVisualPreview({
             </p>
             <div className="mt-4 grid min-h-72 place-items-center rounded-lg bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_58%)]">
                 <div
-                    className="group relative grid h-[156px] w-[180px] place-items-center overflow-hidden px-5 text-center text-sm font-semibold shadow-xl transition hover:-translate-y-1"
-                    style={{
-                        background: tileColor,
-                        clipPath:
-                            'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-                        color: labelColor,
-                    }}
+                    aria-label="MapAsset image hover preview"
+                    className="group relative grid h-[180px] w-[180px] place-items-center overflow-hidden text-center focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
+                    onBlur={() => setIsHovered(false)}
+                    onFocus={() => setIsHovered(true)}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    tabIndex={0}
                 >
-                    {values.imageUrl && !form.visual_config.hideImage ? (
-                        <span
-                            className="absolute inset-[8px] overflow-hidden"
-                            style={{
-                                clipPath:
-                                    'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-                            }}
-                        >
-                            <img
-                                alt=""
-                                className="absolute inset-0 size-full object-cover"
-                                draggable={false}
-                                src={values.imageUrl}
-                                style={{
-                                    objectPosition: `${imageX}% ${imageY}%`,
-                                    transform: `scale(${imageWidth / 100}) rotate(${imageRotation}deg)`,
-                                }}
-                            />
-                        </span>
-                    ) : null}
-                    <span
-                        className="pointer-events-none absolute inset-[7px] opacity-0 transition-opacity group-hover:opacity-100"
-                        style={{
-                            background: highlightColor,
-                            clipPath:
-                                'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
-                            filter: 'drop-shadow(0 0 12px currentColor)',
-                        }}
+                    <MapAssetVisual
+                        backgroundColor={borderColor}
+                        highlighted={isHovered}
+                        highlightColor={highlightColor}
+                        highlightBorderColor={highlightBorderColor}
+                        highlightImageEnabled={highlightImageEnabled}
+                        highlightImageUrl={highlightImageUrl}
+                        highlightedLabelColor={highlightedLabelColor}
+                        imageUrl={imageUrl}
+                        label={previewLabel}
+                        labelColor={labelColor}
                     />
-                    {!form.visual_config.hideLabel ? (
-                        <span className="relative z-10">{previewLabel}</span>
-                    ) : null}
                     {form.state === 'locked' ? (
                         <LockKeyhole className="relative z-20 size-9 text-white/70 drop-shadow" />
                     ) : null}
                 </div>
             </div>
-        </div>
-    );
-}
-
-function NodeImageNumberField({
-    error,
-    id,
-    label,
-    max,
-    min,
-    onChange,
-    suffix,
-    value,
-}: {
-    error?: string;
-    id: string;
-    label: string;
-    max: number;
-    min: number;
-    onChange: (value: string) => void;
-    suffix: string;
-    value: string;
-}) {
-    return (
-        <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
-            <div className="flex items-center gap-2">
-                <Input
-                    id={id}
-                    max={max}
-                    min={min}
-                    onChange={(event) => onChange(event.currentTarget.value)}
-                    step={1}
-                    type="number"
-                    value={value}
-                />
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {suffix}
-                </span>
-            </div>
-            <InputError message={error} />
+            <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {imageUrl
+                    ? 'Hover or focus the image to test the highlight and label colors.'
+                    : 'Select a MapAsset image under Surface & placement to preview it here.'}
+            </p>
         </div>
     );
 }
@@ -3313,6 +3668,49 @@ function setVisualThemeTextConfig(
             },
         },
     }));
+}
+
+function setMapAssetVisualThemeConfig(
+    setForm: Dispatch<SetStateAction<AssetForm>>,
+    mode: ThemeMode,
+    key: 'highlightImageEnabled' | 'highlightImageUrl',
+    value: boolean | string,
+) {
+    setForm((current) => {
+        const currentTheme = visualConfigRecord(current.visual_config[mode]);
+
+        return {
+            ...current,
+            visual_config: {
+                ...current.visual_config,
+                [mode]: {
+                    ...currentTheme,
+                    [key]: value,
+                },
+            },
+        };
+    });
+}
+
+function mapAssetHighlightImageConfig(
+    form: AssetForm,
+    mode: ThemeMode,
+): { enabled: boolean; url: string } {
+    const theme = visualConfigRecord(form.visual_config[mode]);
+
+    return {
+        enabled: theme.highlightImageEnabled === true,
+        url:
+            typeof theme.highlightImageUrl === 'string'
+                ? theme.highlightImageUrl
+                : '',
+    };
+}
+
+function visualConfigRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object'
+        ? (value as Record<string, unknown>)
+        : {};
 }
 
 function setVisualBooleanConfig(
@@ -3560,10 +3958,16 @@ function setMapVisualThemeTextConfig(
 function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
     if (mode === 'light') {
         return {
+            borderColor: '#dbeafe',
+            borderOpacity: '100',
             foregroundColor: '#1d4ed8',
             foregroundOpacity: '100',
             highlightColor: '#2563eb',
             highlightOpacity: '100',
+            highlightBorderColor: '#1d4ed8',
+            highlightBorderOpacity: '100',
+            highlightedLabelColor: '#ffffff',
+            highlightedLabelOpacity: '100',
             imageRotation: '0',
             imageUrl: '',
             imageWidth: '100',
@@ -3577,10 +3981,16 @@ function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
     }
 
     return {
+        borderColor: '#253047',
+        borderOpacity: '100',
         foregroundColor: '#bfdbfe',
         foregroundOpacity: '100',
         highlightColor: '#7dd3fc',
         highlightOpacity: '100',
+        highlightBorderColor: '#bfdbfe',
+        highlightBorderOpacity: '100',
+        highlightedLabelColor: '#ffffff',
+        highlightedLabelOpacity: '100',
         imageRotation: '0',
         imageUrl: '',
         imageWidth: '100',
@@ -3595,10 +4005,16 @@ function defaultNodeVisualThemeFields(mode: ThemeMode): NodeVisualThemeFields {
 
 function emptyNodeVisualThemeFields(): NodeVisualThemeFields {
     return {
+        borderColor: '',
+        borderOpacity: '',
         foregroundColor: '',
         foregroundOpacity: '',
         highlightColor: '',
         highlightOpacity: '',
+        highlightBorderColor: '',
+        highlightBorderOpacity: '',
+        highlightedLabelColor: '',
+        highlightedLabelOpacity: '',
         imageRotation: '0',
         imageUrl: '',
         imageWidth: '100',
@@ -3707,10 +4123,16 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
         state: 'hidden',
         visual_config: {
             dark: {
+                borderColor: '#f8fafc',
+                borderOpacity: '100',
                 foregroundColor: '#94a3b8',
                 foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
                 highlightOpacity: '100',
+                highlightBorderColor: '#94a3b8',
+                highlightBorderOpacity: '100',
+                highlightedLabelColor: '#64748b',
+                highlightedLabelOpacity: '100',
                 imageRotation: '0',
                 imageUrl: '',
                 imageWidth: '100',
@@ -3726,10 +4148,16 @@ function emptySpaceOverride(q: number, r: number): Partial<NodeForm> {
             hideImage: false,
             hideLabel: true,
             light: {
+                borderColor: '#f8fafc',
+                borderOpacity: '100',
                 foregroundColor: '#94a3b8',
                 foregroundOpacity: '100',
                 highlightColor: '#94a3b8',
                 highlightOpacity: '100',
+                highlightBorderColor: '#94a3b8',
+                highlightBorderOpacity: '100',
+                highlightedLabelColor: '#64748b',
+                highlightedLabelOpacity: '100',
                 imageRotation: '0',
                 imageUrl: '',
                 imageWidth: '100',
@@ -3781,6 +4209,35 @@ function nodeFormFromNode(node: EditableNode): NodeForm {
             sounds: nodeSoundFieldsFromConfig(node.visualConfig.sounds),
             tooltip: stringConfig(node.visualConfig.tooltip, ''),
             unlock: unlockConfigFromNode(node.visualConfig.unlock),
+        },
+    };
+}
+
+function nodeFormFromMapAsset(asset: MapAsset): NodeForm {
+    const form = emptyNodeForm(0, 0);
+    const config = (asset.visualConfig ?? {}) as unknown as VisualConfig;
+    const hasThemeVariants =
+        isVisualConfig(config.dark) || isVisualConfig(config.light);
+    const darkConfig = hasThemeVariants ? config.dark : config;
+    const lightConfig = hasThemeVariants ? config.light : config;
+
+    return {
+        ...form,
+        title: asset.text ?? '',
+        visual_config: {
+            ...form.visual_config,
+            dark: nodeVisualThemeFieldsFromConfig(
+                darkConfig,
+                defaultNodeVisualThemeFields('dark'),
+            ),
+            label: stringConfig(config.label, asset.text ?? ''),
+            hideLabel: booleanConfig(config.hideLabel, false),
+            hideImage: booleanConfig(config.hideImage, false),
+            light: nodeVisualThemeFieldsFromConfig(
+                lightConfig,
+                defaultNodeVisualThemeFields('light'),
+            ),
+            tooltip: stringConfig(config.tooltip, ''),
         },
     };
 }
@@ -3896,6 +4353,14 @@ function nodeVisualThemeFieldsFromConfig(
     const themeConfig = isVisualConfig(config) ? config : {};
 
     return {
+        borderColor: stringConfig(
+            themeConfig.borderColor,
+            stringConfig(themeConfig.tileColor, fallback.borderColor),
+        ),
+        borderOpacity: stringConfig(
+            themeConfig.borderOpacity,
+            stringConfig(themeConfig.tileOpacity, fallback.borderOpacity),
+        ),
         foregroundColor: stringConfig(
             themeConfig.foregroundColor,
             fallback.foregroundColor,
@@ -3911,6 +4376,28 @@ function nodeVisualThemeFieldsFromConfig(
         highlightOpacity: stringConfig(
             themeConfig.highlightOpacity,
             fallback.highlightOpacity,
+        ),
+        highlightBorderColor: stringConfig(
+            themeConfig.highlightBorderColor,
+            stringConfig(
+                themeConfig.highlightColor,
+                fallback.highlightBorderColor,
+            ),
+        ),
+        highlightBorderOpacity: stringConfig(
+            themeConfig.highlightBorderOpacity,
+            stringConfig(
+                themeConfig.highlightOpacity,
+                fallback.highlightBorderOpacity,
+            ),
+        ),
+        highlightedLabelColor: stringConfig(
+            themeConfig.highlightedLabelColor,
+            fallback.highlightedLabelColor,
+        ),
+        highlightedLabelOpacity: stringConfig(
+            themeConfig.highlightedLabelOpacity,
+            fallback.highlightedLabelOpacity,
         ),
         imageRotation: stringConfig(
             themeConfig.imageRotation,
