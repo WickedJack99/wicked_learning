@@ -64,9 +64,7 @@ export function CursorImageSettingsPanel({
     const activeCursorKeys = Object.keys(draft.cursors) as CursorKey[];
     const availableRoles = useMemo(
         () =>
-            cursorRoles.filter(
-                (role) => !activeCursorKeys.includes(role.key),
-            ),
+            cursorRoles.filter((role) => !activeCursorKeys.includes(role.key)),
         [activeCursorKeys],
     );
 
@@ -169,8 +167,8 @@ export function CursorImageSettingsPanel({
     }
 
     return (
-        <div className="flex h-full min-h-0 flex-col gap-5">
-            <div className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex h-full min-h-0 flex-col">
+            <div className="border-b border-[var(--settings-border-color)] pb-5">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <MousePointer2 className="size-5" />
@@ -183,26 +181,22 @@ export function CursorImageSettingsPanel({
                         action, grab, text and denied states.
                     </p>
                 </div>
-                <Button disabled={saving || !hasChanges} onClick={save}>
-                    <Save className="size-4" />
-                    Save cursors
+            </div>
+
+            <div className="flex shrink-0 justify-end border-b border-[var(--settings-border-color)] py-4">
+                <Button
+                    disabled={!availableRoles.length}
+                    onClick={addCursorRole}
+                    type="button"
+                    variant="secondary"
+                >
+                    <Plus className="size-4" />
+                    Add cursor role
                 </Button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-5 pr-1">
                 <div className="grid gap-4">
-                    <div className="flex justify-end">
-                        <Button
-                            disabled={!availableRoles.length}
-                            onClick={addCursorRole}
-                            type="button"
-                            variant="secondary"
-                        >
-                            <Plus className="size-4" />
-                            Add cursor role
-                        </Button>
-                    </div>
-
                     {activeCursorKeys.map((cursorKey) => {
                         const role = cursorRoles.find(
                             (item) => item.key === cursorKey,
@@ -210,7 +204,7 @@ export function CursorImageSettingsPanel({
 
                         return (
                             <article
-                                className="rounded-xl border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4"
+                                className="border-t border-[var(--settings-border-color)] py-5 first:border-t-0 first:pt-0"
                                 key={cursorKey}
                             >
                                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -394,6 +388,12 @@ export function CursorImageSettingsPanel({
                     })}
                 </div>
             </div>
+            <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
+                <Button disabled={saving || !hasChanges} onClick={save}>
+                    <Save className="size-4" />
+                    Save cursors
+                </Button>
+            </footer>
         </div>
     );
 }
@@ -423,7 +423,9 @@ function CursorNumberInput({
                 max={max}
                 min={min}
                 onChange={(event) =>
-                    onChange(Number.parseInt(event.currentTarget.value, 10) || 0)
+                    onChange(
+                        Number.parseInt(event.currentTarget.value, 10) || 0,
+                    )
                 }
                 type="number"
                 value={value}
@@ -477,7 +479,7 @@ function CursorPreview({ cursor }: { cursor: CursorImageSettings }) {
                     The tiny pointer tip marks the real click point.
                 </p>
             </div>
-            <div className="relative h-44 overflow-hidden rounded-xl border border-[var(--settings-border-color)] bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_12%,transparent),var(--settings-content-background))]">
+            <div className="relative h-44 overflow-hidden border border-[var(--settings-border-color)] bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_12%,transparent),var(--settings-content-background))]">
                 <div
                     className="absolute h-px w-full bg-[var(--settings-border-color)]"
                     style={{ top: markerY }}

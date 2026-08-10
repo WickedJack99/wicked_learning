@@ -269,7 +269,7 @@ class PlatformPresentationSetting extends Model
                     'inputBackground' => '#020617',
                     'inputBackgroundOpacity' => 38,
                     'inputBorderColor' => '#ffffff',
-                    'inputBorderColorOpacity' => 10,
+                    'inputBorderColorOpacity' => 42,
                     'panelBackground' => '#111820',
                     'panelBackgroundOpacity' => 100,
                     'borderColor' => '#ffffff',

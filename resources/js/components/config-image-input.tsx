@@ -44,12 +44,7 @@ export function ConfigImageInput({
     const previewUrl = normalizeMediaUrl(value);
 
     return (
-        <div
-            className={cn(
-                'grid min-w-0 gap-2 overflow-hidden rounded-md bg-slate-50 p-3 dark:bg-white/5',
-                className,
-            )}
-        >
+        <div className={cn('grid min-w-0 gap-2 overflow-hidden', className)}>
             <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
                     <Image className="size-4" />
@@ -76,7 +71,7 @@ export function ConfigImageInput({
             <InputError message={error} />
 
             {previewUrl ? (
-                <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-3 overflow-hidden rounded-md bg-white p-2 dark:bg-slate-950/70">
+                <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-3 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-2">
                     <img
                         alt=""
                         className="size-12 rounded object-contain"

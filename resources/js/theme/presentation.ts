@@ -495,7 +495,7 @@ export const defaultSettingsPalette: Record<
         inputBackground: '#020617',
         inputBackgroundOpacity: 38,
         inputBorderColor: '#ffffff',
-        inputBorderColorOpacity: 10,
+        inputBorderColorOpacity: 42,
         mutedText: '#94a3b8',
         mutedTextOpacity: 100,
         nestedSidebarBackground: '#050816',

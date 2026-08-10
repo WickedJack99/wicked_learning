@@ -15,13 +15,15 @@ import type { LucideIcon } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import {
-    SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsContentPane,
+    SettingsNestedWorkspace,
     SettingsSectionButton,
+    SettingsSectionNavigation,
     SettingsSidebar,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -326,9 +328,26 @@ export default function AiSettings({
             ))}
         </SettingsSidebar>
     );
+    const navigationItems = sectionItems.map(
+        (item): SettingsNavigationItem<AiSection> => ({
+            description: t(item.descriptionKey, item.descriptionFallback),
+            icon: item.icon,
+            key: item.key,
+            label: t(item.labelKey, item.labelFallback),
+        }),
+    );
+    const aiItem: SettingsNavigationItem<'ai'> = {
+        description: t(
+            'settings.ai.description',
+            'Provider credentials, agent templates and instruction guardrails.',
+        ),
+        icon: Bot,
+        key: 'ai',
+        label: t('settings.ai.title', 'AI support'),
+    };
 
     const content = (
-        <SettingsContentPane>
+        <div className="h-full min-h-0 overflow-hidden">
             {activeSection === 'providers' ? (
                 <ProviderCredentialsPanel
                     providerCredentials={providerCredentials}
@@ -343,16 +362,36 @@ export default function AiSettings({
                 />
             ) : null}
             {activeSection === 'guardrails' ? (
-                <GuardrailsPanel notes={guardrailNotes} />
+                <div className="h-full overflow-y-auto pr-1">
+                    <GuardrailsPanel notes={guardrailNotes} />
+                </div>
             ) : null}
-        </SettingsContentPane>
+        </div>
     );
 
     if (embedded) {
         return (
-            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+            <SettingsNestedWorkspace
+                action={action}
+                item={
+                    navigationItems.find(
+                        (item) => item.key === activeSection,
+                    ) ?? aiItem
+                }
+                sidebar={
+                    <SettingsSectionNavigation
+                        activeSection={activeSection}
+                        ariaLabel={t(
+                            'settings.ai.sections.aria',
+                            'AI settings sections',
+                        )}
+                        items={navigationItems}
+                        onChange={selectSection}
+                    />
+                }
+            >
                 {content}
-            </SettingsConfigurationLayout>
+            </SettingsNestedWorkspace>
         );
     }
 
@@ -438,199 +477,210 @@ function ProviderCredentialsPanel({
     return (
         <TwoPaneEditor
             detail={
-                <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-                    <PanelHeader
-                        icon={KeyRound}
-                        eyebrow={t('settings.ai.providers.eyebrow', 'Provider')}
-                        title={
-                            selectedCredential?.label ??
-                            t(
-                                'settings.ai.providers.new_title',
-                                'New provider key',
-                            )
-                        }
-                        description={t(
-                            'settings.ai.providers.description',
-                            'Store encrypted credentials and coarse budgets for one AI provider account.',
-                        )}
-                    />
-
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.label',
-                                'Label',
-                            )}
-                        >
-                            <Input
-                                value={form.label}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        label: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.provider',
+                <section className="flex h-full min-h-0 flex-col overflow-hidden border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-5">
+                        <PanelHeader
+                            icon={KeyRound}
+                            eyebrow={t(
+                                'settings.ai.providers.eyebrow',
                                 'Provider',
                             )}
-                        >
-                            <select
-                                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
-                                value={form.provider}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        provider: event.target.value,
-                                    })
-                                }
-                            >
-                                {providerOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.base_url',
-                                'Base URL',
-                            )}
-                        >
-                            <Input
-                                placeholder={t(
-                                    'settings.ai.providers.placeholders.base_url',
-                                    'Optional for local or compatible providers',
-                                )}
-                                value={form.base_url}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        base_url: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.organization',
-                                'Organization',
-                            )}
-                        >
-                            <Input
-                                value={form.organization}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        organization: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.api_key',
-                                'API key',
-                            )}
-                        >
-                            <Input
-                                autoComplete="off"
-                                placeholder={
-                                    selectedCredential?.hasApiKey
-                                        ? t(
-                                              'settings.ai.providers.placeholders.api_key_stored',
-                                              'Stored key ending in :lastFour',
-                                              {
-                                                  lastFour:
-                                                      selectedCredential.apiKeyLastFour ??
-                                                      '',
-                                              },
-                                          )
-                                        : t(
-                                              'settings.ai.providers.placeholders.api_key_new',
-                                              'Paste a key to store it encrypted',
-                                          )
-                                }
-                                type="password"
-                                value={form.api_key}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        api_key: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.monthly_token_limit',
-                                'Monthly token limit',
-                            )}
-                        >
-                            <Input
-                                inputMode="numeric"
-                                value={form.monthly_token_limit}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        monthly_token_limit: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.providers.fields.monthly_cost_limit',
-                                'Monthly cost limit in cents',
-                            )}
-                        >
-                            <Input
-                                inputMode="numeric"
-                                value={form.monthly_cost_limit_cents}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        monthly_cost_limit_cents:
-                                            event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
-                            <input
-                                checked={form.enabled}
-                                type="checkbox"
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        enabled: event.target.checked,
-                                    })
-                                }
-                            />
-                            {t(
-                                'settings.ai.providers.enabled_label',
-                                'Provider may be used by enabled templates',
-                            )}
-                        </label>
-                    </div>
-                    <Field
-                        label={t('settings.ai.providers.fields.notes', 'Notes')}
-                    >
-                        <textarea
-                            className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
-                            value={form.notes}
-                            onChange={(event) =>
-                                setForm({ ...form, notes: event.target.value })
+                            title={
+                                selectedCredential?.label ??
+                                t(
+                                    'settings.ai.providers.new_title',
+                                    'New provider key',
+                                )
                             }
+                            description={t(
+                                'settings.ai.providers.description',
+                                'Store encrypted credentials and coarse budgets for one AI provider account.',
+                            )}
                         />
-                    </Field>
+
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.label',
+                                    'Label',
+                                )}
+                            >
+                                <Input
+                                    value={form.label}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            label: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.provider',
+                                    'Provider',
+                                )}
+                            >
+                                <select
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                    value={form.provider}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            provider: event.target.value,
+                                        })
+                                    }
+                                >
+                                    {providerOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.base_url',
+                                    'Base URL',
+                                )}
+                            >
+                                <Input
+                                    placeholder={t(
+                                        'settings.ai.providers.placeholders.base_url',
+                                        'Optional for local or compatible providers',
+                                    )}
+                                    value={form.base_url}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            base_url: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.organization',
+                                    'Organization',
+                                )}
+                            >
+                                <Input
+                                    value={form.organization}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            organization: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.api_key',
+                                    'API key',
+                                )}
+                            >
+                                <Input
+                                    autoComplete="off"
+                                    placeholder={
+                                        selectedCredential?.hasApiKey
+                                            ? t(
+                                                  'settings.ai.providers.placeholders.api_key_stored',
+                                                  'Stored key ending in :lastFour',
+                                                  {
+                                                      lastFour:
+                                                          selectedCredential.apiKeyLastFour ??
+                                                          '',
+                                                  },
+                                              )
+                                            : t(
+                                                  'settings.ai.providers.placeholders.api_key_new',
+                                                  'Paste a key to store it encrypted',
+                                              )
+                                    }
+                                    type="password"
+                                    value={form.api_key}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            api_key: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.monthly_token_limit',
+                                    'Monthly token limit',
+                                )}
+                            >
+                                <Input
+                                    inputMode="numeric"
+                                    value={form.monthly_token_limit}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            monthly_token_limit:
+                                                event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.providers.fields.monthly_cost_limit',
+                                    'Monthly cost limit in cents',
+                                )}
+                            >
+                                <Input
+                                    inputMode="numeric"
+                                    value={form.monthly_cost_limit_cents}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            monthly_cost_limit_cents:
+                                                event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
+                                <Checkbox
+                                    checked={form.enabled}
+                                    onCheckedChange={(checked) =>
+                                        setForm({
+                                            ...form,
+                                            enabled: checked === true,
+                                        })
+                                    }
+                                />
+                                {t(
+                                    'settings.ai.providers.enabled_label',
+                                    'Provider may be used by enabled templates',
+                                )}
+                            </label>
+                        </div>
+                        <Field
+                            label={t(
+                                'settings.ai.providers.fields.notes',
+                                'Notes',
+                            )}
+                        >
+                            <textarea
+                                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                value={form.notes}
+                                onChange={(event) =>
+                                    setForm({
+                                        ...form,
+                                        notes: event.target.value,
+                                    })
+                                }
+                            />
+                        </Field>
+                    </div>
                     <EditorActions
                         deleteDisabled={!selectedCredential}
                         onDelete={destroy}
@@ -790,345 +840,349 @@ function AgentTemplatesPanel({
     return (
         <TwoPaneEditor
             detail={
-                <section className="grid gap-5 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-                    <PanelHeader
-                        icon={BrainCircuit}
-                        eyebrow={t(
-                            'settings.ai.templates.eyebrow',
-                            'Agent template',
-                        )}
-                        title={
-                            selectedTemplate?.name ??
-                            t(
-                                'settings.ai.templates.new_title',
-                                'New agent template',
-                            )
-                        }
-                        description={t(
-                            'settings.ai.templates.description',
-                            'Define a reusable behavior. Runtime jobs can later execute these templates with guarded context.',
-                        )}
-                    />
+                <section className="flex h-full min-h-0 flex-col overflow-hidden border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-5">
+                        <PanelHeader
+                            icon={BrainCircuit}
+                            eyebrow={t(
+                                'settings.ai.templates.eyebrow',
+                                'Agent template',
+                            )}
+                            title={
+                                selectedTemplate?.name ??
+                                t(
+                                    'settings.ai.templates.new_title',
+                                    'New agent template',
+                                )
+                            }
+                            description={t(
+                                'settings.ai.templates.description',
+                                'Define a reusable behavior. Runtime jobs can later execute these templates with guarded context.',
+                            )}
+                        />
 
-                    <div className="grid gap-4 lg:grid-cols-2">
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.name',
-                                'Name',
-                            )}
-                        >
-                            <Input
-                                value={form.name}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        name: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.slug',
-                                'Slug',
-                            )}
-                        >
-                            <Input
-                                placeholder={t(
-                                    'settings.ai.templates.placeholders.slug',
-                                    'Generated from the name when empty',
+                        <div className="grid gap-4 lg:grid-cols-2">
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.name',
+                                    'Name',
                                 )}
-                                value={form.slug}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        slug: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.purpose',
-                                'Purpose',
-                            )}
-                        >
-                            <select
-                                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
-                                value={form.purpose}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        purpose: event.target.value,
-                                    })
-                                }
                             >
-                                {purposeOptions.map((option) => (
-                                    <option
-                                        key={option.value}
-                                        value={option.value}
-                                    >
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                            {selectedPurpose?.description ? (
-                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                    {selectedPurpose.description}
-                                </p>
-                            ) : null}
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.provider_key',
-                                'Provider key',
-                            )}
-                        >
-                            <select
-                                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
-                                value={form.ai_provider_credential_id}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        ai_provider_credential_id:
-                                            event.target.value,
-                                    })
-                                }
-                            >
-                                <option value="">
-                                    {t(
-                                        'settings.ai.templates.placeholders.provider',
-                                        'No provider selected',
-                                    )}
-                                </option>
-                                {providerCredentials.map((credential) => (
-                                    <option
-                                        key={credential.id}
-                                        value={credential.id.toString()}
-                                    >
-                                        {credential.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.model',
-                                'Model',
-                            )}
-                        >
-                            <Input
-                                placeholder={t(
-                                    'settings.ai.templates.placeholders.model',
-                                    'gpt-4.1, gpt-5, local-model...',
-                                )}
-                                value={form.model}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        model: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.temperature',
-                                'Temperature',
-                            )}
-                        >
-                            <Input
-                                inputMode="decimal"
-                                value={form.temperature}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        temperature: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.max_output_tokens',
-                                'Max output tokens',
-                            )}
-                        >
-                            <Input
-                                inputMode="numeric"
-                                value={form.max_output_tokens}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        max_output_tokens: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.concurrency_limit',
-                                'Concurrency limit',
-                            )}
-                        >
-                            <Input
-                                inputMode="numeric"
-                                value={form.concurrency_limit}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        concurrency_limit: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                        <Field
-                            label={t(
-                                'settings.ai.templates.fields.monthly_token_limit',
-                                'Monthly token limit',
-                            )}
-                        >
-                            <Input
-                                inputMode="numeric"
-                                value={form.monthly_token_limit}
-                                onChange={(event) =>
-                                    setForm({
-                                        ...form,
-                                        monthly_token_limit: event.target.value,
-                                    })
-                                }
-                            />
-                        </Field>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                                <h3 className="text-sm font-semibold">
-                                    {t(
-                                        'settings.ai.templates.instructions.title',
-                                        'Agent instructions',
-                                    )}
-                                </h3>
-                                <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500 dark:text-slate-400">
-                                    {t(
-                                        'settings.ai.templates.instructions.description_before_path',
-                                        'Download these prompts as a Markdown file, edit them elsewhere, or upload a prepared instruction set. Shared examples live in ',
-                                    )}
-                                    <code>agent-instruction-sets/</code>.
-                                    {t(
-                                        'settings.ai.templates.instructions.description_after_path',
-                                        '',
-                                    )}
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={downloadInstructions}
-                                >
-                                    <Download className="size-4" />
-                                    {t(
-                                        'settings.ai.templates.instructions.download',
-                                        'Download instructions',
-                                    )}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() =>
-                                        instructionInputRef.current?.click()
-                                    }
-                                >
-                                    <Upload className="size-4" />
-                                    {t(
-                                        'settings.ai.templates.instructions.upload',
-                                        'Upload instructions',
-                                    )}
-                                </Button>
-                                <input
-                                    accept=".md,.txt,.json,text/markdown,text/plain,application/json"
-                                    className="hidden"
-                                    ref={instructionInputRef}
-                                    type="file"
+                                <Input
+                                    value={form.name}
                                     onChange={(event) =>
-                                        uploadInstructions(
-                                            event.target.files?.[0],
-                                        )
+                                        setForm({
+                                            ...form,
+                                            name: event.target.value,
+                                        })
                                     }
                                 />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.slug',
+                                    'Slug',
+                                )}
+                            >
+                                <Input
+                                    placeholder={t(
+                                        'settings.ai.templates.placeholders.slug',
+                                        'Generated from the name when empty',
+                                    )}
+                                    value={form.slug}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            slug: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.purpose',
+                                    'Purpose',
+                                )}
+                            >
+                                <select
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                    value={form.purpose}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            purpose: event.target.value,
+                                        })
+                                    }
+                                >
+                                    {purposeOptions.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedPurpose?.description ? (
+                                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {selectedPurpose.description}
+                                    </p>
+                                ) : null}
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.provider_key',
+                                    'Provider key',
+                                )}
+                            >
+                                <select
+                                    className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                    value={form.ai_provider_credential_id}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            ai_provider_credential_id:
+                                                event.target.value,
+                                        })
+                                    }
+                                >
+                                    <option value="">
+                                        {t(
+                                            'settings.ai.templates.placeholders.provider',
+                                            'No provider selected',
+                                        )}
+                                    </option>
+                                    {providerCredentials.map((credential) => (
+                                        <option
+                                            key={credential.id}
+                                            value={credential.id.toString()}
+                                        >
+                                            {credential.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.model',
+                                    'Model',
+                                )}
+                            >
+                                <Input
+                                    placeholder={t(
+                                        'settings.ai.templates.placeholders.model',
+                                        'gpt-4.1, gpt-5, local-model...',
+                                    )}
+                                    value={form.model}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            model: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.temperature',
+                                    'Temperature',
+                                )}
+                            >
+                                <Input
+                                    inputMode="decimal"
+                                    value={form.temperature}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            temperature: event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.max_output_tokens',
+                                    'Max output tokens',
+                                )}
+                            >
+                                <Input
+                                    inputMode="numeric"
+                                    value={form.max_output_tokens}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            max_output_tokens:
+                                                event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.concurrency_limit',
+                                    'Concurrency limit',
+                                )}
+                            >
+                                <Input
+                                    inputMode="numeric"
+                                    value={form.concurrency_limit}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            concurrency_limit:
+                                                event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                            <Field
+                                label={t(
+                                    'settings.ai.templates.fields.monthly_token_limit',
+                                    'Monthly token limit',
+                                )}
+                            >
+                                <Input
+                                    inputMode="numeric"
+                                    value={form.monthly_token_limit}
+                                    onChange={(event) =>
+                                        setForm({
+                                            ...form,
+                                            monthly_token_limit:
+                                                event.target.value,
+                                        })
+                                    }
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="text-sm font-semibold">
+                                        {t(
+                                            'settings.ai.templates.instructions.title',
+                                            'Agent instructions',
+                                        )}
+                                    </h3>
+                                    <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.ai.templates.instructions.description_before_path',
+                                            'Download these prompts as a Markdown file, edit them elsewhere, or upload a prepared instruction set. Shared examples live in ',
+                                        )}
+                                        <code>agent-instruction-sets/</code>.
+                                        {t(
+                                            'settings.ai.templates.instructions.description_after_path',
+                                            '',
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={downloadInstructions}
+                                    >
+                                        <Download className="size-4" />
+                                        {t(
+                                            'settings.ai.templates.instructions.download',
+                                            'Download instructions',
+                                        )}
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() =>
+                                            instructionInputRef.current?.click()
+                                        }
+                                    >
+                                        <Upload className="size-4" />
+                                        {t(
+                                            'settings.ai.templates.instructions.upload',
+                                            'Upload instructions',
+                                        )}
+                                    </Button>
+                                    <input
+                                        accept=".md,.txt,.json,text/markdown,text/plain,application/json"
+                                        className="hidden"
+                                        ref={instructionInputRef}
+                                        type="file"
+                                        onChange={(event) =>
+                                            uploadInstructions(
+                                                event.target.files?.[0],
+                                            )
+                                        }
+                                    />
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <Field
-                        label={t(
-                            'settings.ai.templates.fields.system_prompt',
-                            'System prompt',
-                        )}
-                    >
-                        <textarea
-                            className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
-                            value={form.system_prompt}
-                            onChange={(event) =>
-                                setForm({
-                                    ...form,
-                                    system_prompt: event.target.value,
-                                })
-                            }
-                        />
-                    </Field>
-                    <Field
-                        label={t(
-                            'settings.ai.templates.fields.task_prompt',
-                            'Task prompt',
-                        )}
-                    >
-                        <textarea
-                            className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
-                            value={form.task_prompt}
-                            onChange={(event) =>
-                                setForm({
-                                    ...form,
-                                    task_prompt: event.target.value,
-                                })
-                            }
-                        />
-                    </Field>
-                    <div className="grid gap-3 md:grid-cols-2">
-                        <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
-                            <input
-                                checked={form.enabled}
-                                type="checkbox"
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.system_prompt',
+                                'System prompt',
+                            )}
+                        >
+                            <textarea
+                                className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                value={form.system_prompt}
                                 onChange={(event) =>
                                     setForm({
                                         ...form,
-                                        enabled: event.target.checked,
+                                        system_prompt: event.target.value,
                                     })
                                 }
                             />
-                            {t(
-                                'settings.ai.templates.enabled_label',
-                                'Template may be used by future runtime jobs',
+                        </Field>
+                        <Field
+                            label={t(
+                                'settings.ai.templates.fields.task_prompt',
+                                'Task prompt',
                             )}
-                        </label>
-                        <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
-                            <input
-                                checked={form.guarded_context}
-                                type="checkbox"
+                        >
+                            <textarea
+                                className="min-h-32 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                value={form.task_prompt}
                                 onChange={(event) =>
                                     setForm({
                                         ...form,
-                                        guarded_context: event.target.checked,
+                                        task_prompt: event.target.value,
                                     })
                                 }
                             />
-                            {t(
-                                'settings.ai.templates.guarded_context_label',
-                                'Requires explicit guarded learner context',
-                            )}
-                        </label>
+                        </Field>
+                        <div className="grid gap-3 md:grid-cols-2">
+                            <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
+                                <Checkbox
+                                    checked={form.enabled}
+                                    onCheckedChange={(checked) =>
+                                        setForm({
+                                            ...form,
+                                            enabled: checked === true,
+                                        })
+                                    }
+                                />
+                                {t(
+                                    'settings.ai.templates.enabled_label',
+                                    'Template may be used by future runtime jobs',
+                                )}
+                            </label>
+                            <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">
+                                <Checkbox
+                                    checked={form.guarded_context}
+                                    onCheckedChange={(checked) =>
+                                        setForm({
+                                            ...form,
+                                            guarded_context: checked === true,
+                                        })
+                                    }
+                                />
+                                {t(
+                                    'settings.ai.templates.guarded_context_label',
+                                    'Requires explicit guarded learner context',
+                                )}
+                            </label>
+                        </div>
+                        <AgentTemplateTestPanel template={selectedTemplate} />
                     </div>
                     <EditorActions
                         deleteDisabled={!selectedTemplate}
@@ -1136,7 +1190,6 @@ function AgentTemplatesPanel({
                         onSave={submit}
                         saveDisabled={!hasChanges}
                     />
-                    <AgentTemplateTestPanel template={selectedTemplate} />
                 </section>
             }
             list={
@@ -1357,8 +1410,8 @@ function TwoPaneEditor({
     list: ReactNode;
 }) {
     return (
-        <div className="grid min-h-full gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="min-w-0">{detail}</div>
+        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="min-h-0 min-w-0 overflow-hidden">{detail}</div>
             {list}
         </div>
     );
@@ -1492,7 +1545,7 @@ function EditorActions({
     const t = usePlatformTranslation();
 
     return (
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-4 dark:border-white/10">
+        <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 p-4 dark:border-white/10">
             <Button
                 disabled={deleteDisabled}
                 type="button"
@@ -1506,7 +1559,7 @@ function EditorActions({
                 <Save className="size-4" />
                 {t('common.save', 'Save')}
             </Button>
-        </div>
+        </footer>
     );
 }
 

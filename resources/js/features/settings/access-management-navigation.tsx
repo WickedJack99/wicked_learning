@@ -1,11 +1,32 @@
 import { router } from '@inertiajs/react';
 import { KeyRound, Shield, Users } from 'lucide-react';
 import {
-    SettingsSectionButton,
-    SettingsSidebar,
+    SettingsSectionNavigation,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 
 export type AccessManagementSection = 'groups' | 'roles' | 'users';
+
+export const accessManagementSections = [
+    {
+        description: 'Users, roles and registration tokens.',
+        icon: Shield,
+        key: 'users',
+        label: 'User management',
+    },
+    {
+        description: 'Permission roles and access levels.',
+        icon: KeyRound,
+        key: 'roles',
+        label: 'Role management',
+    },
+    {
+        description: 'Shared learner groups and memberships.',
+        icon: Users,
+        key: 'groups',
+        label: 'Groups',
+    },
+] satisfies SettingsNavigationItem<AccessManagementSection>[];
 
 export function AccessManagementNavigation({
     activeSection,
@@ -29,40 +50,21 @@ export function AccessManagementNavigation({
 
         router.visit(accessSectionHref(section));
     };
+    const visibleSections = accessManagementSections.filter((section) =>
+        section.key === 'users'
+            ? canViewUsers
+            : section.key === 'roles'
+              ? canViewRoles
+              : canViewGroups,
+    );
 
     return (
-        <SettingsSidebar>
-            {canViewUsers ? (
-                <SettingsSectionButton<AccessManagementSection>
-                    active={activeSection === 'users'}
-                    description="Users, roles and registration tokens."
-                    icon={Shield}
-                    id="users"
-                    label="User management"
-                    onSelect={selectSection}
-                />
-            ) : null}
-            {canViewRoles ? (
-                <SettingsSectionButton<AccessManagementSection>
-                    active={activeSection === 'roles'}
-                    description="Permission roles and access levels."
-                    icon={KeyRound}
-                    id="roles"
-                    label="Role management"
-                    onSelect={selectSection}
-                />
-            ) : null}
-            {canViewGroups ? (
-                <SettingsSectionButton<AccessManagementSection>
-                    active={activeSection === 'groups'}
-                    description="Shared learner groups and memberships."
-                    icon={Users}
-                    id="groups"
-                    label="Groups"
-                    onSelect={selectSection}
-                />
-            ) : null}
-        </SettingsSidebar>
+        <SettingsSectionNavigation
+            activeSection={activeSection}
+            ariaLabel="Access management sections"
+            items={visibleSections}
+            onChange={selectSection}
+        />
     );
 }
 

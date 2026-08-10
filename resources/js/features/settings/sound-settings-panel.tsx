@@ -164,8 +164,9 @@ export function SoundSettingsPanel({
             </SettingsFormColumn>
 
             {!hideSaveButton ? (
-                <div className="flex justify-end">
+                <div className="w-full lg:max-w-[45%]">
                     <Button
+                        className="w-full"
                         disabled={saving || !hasChanges}
                         onClick={save}
                         type="button"
@@ -271,10 +272,7 @@ function clampVolume(value: number): number {
     return Math.min(100, Math.max(0, Math.round(value)));
 }
 
-function playSyntheticSound(
-    type: 'ambience' | 'effect',
-    volume: number,
-): void {
+function playSyntheticSound(type: 'ambience' | 'effect', volume: number): void {
     const audioWindow = window as typeof window & {
         webkitAudioContext?: typeof AudioContext;
     };

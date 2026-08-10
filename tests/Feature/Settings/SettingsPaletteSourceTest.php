@@ -40,7 +40,8 @@ test('shared settings controls inherit the configurable color palette', function
         ->toContain('--primary-foreground: var(--settings-accent-foreground);')
         ->toContain('--card: var(--settings-panel-background);')
         ->toContain('--input: var(--settings-input-border-color);')
-        ->toContain('border-color: var(--settings-input-border-color);')
+        ->toContain('--settings-control-border: color-mix(')
+        ->toContain('border-color: var(--settings-control-border);')
         ->toContain('background-color: var(--settings-input-background);');
 });
 

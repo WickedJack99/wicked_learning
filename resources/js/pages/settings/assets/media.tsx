@@ -10,9 +10,9 @@ import {
     Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
 import { cn } from '@/lib/utils';
 
 export type ReusableMediaAsset = {
@@ -139,29 +139,10 @@ export default function AdminMediaAssets({
                         </header>
                     ) : null}
 
-                    <SettingsGroupedPane
-                        className={embedded ? 'shadow-none' : undefined}
-                    >
-                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                            <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
-                                {selectedAsset ? (
-                                    <AssetDetails
-                                        asset={selectedAsset}
-                                        busy={busyUrl === selectedAsset.url}
-                                        onDelete={deleteSelectedAsset}
-                                        onReplace={() =>
-                                            replaceInputRef.current?.click()
-                                        }
-                                    />
-                                ) : (
-                                    <div className="grid h-full place-items-center p-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                                        No media assets are available yet.
-                                    </div>
-                                )}
-                            </div>
-
-                            <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
-                                <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
+                    <AssetLibraryWorkspace
+                        library={
+                            <aside className="flex h-full min-h-0 flex-col overflow-hidden">
+                                <div className="shrink-0 border-b border-[var(--settings-border-color)] p-3">
                                     <div className="relative">
                                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
                                         <Input
@@ -195,7 +176,7 @@ export default function AdminMediaAssets({
                                     </div>
                                 </div>
 
-                                <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
+                                <div className="shrink-0 border-t border-[var(--settings-border-color)] p-3">
                                     <Button
                                         className="w-full"
                                         disabled={isAdding}
@@ -213,8 +194,25 @@ export default function AdminMediaAssets({
                                     </Button>
                                 </div>
                             </aside>
+                        }
+                    >
+                        <div className="h-full min-h-0 overflow-hidden">
+                            {selectedAsset ? (
+                                <AssetDetails
+                                    asset={selectedAsset}
+                                    busy={busyUrl === selectedAsset.url}
+                                    onDelete={deleteSelectedAsset}
+                                    onReplace={() =>
+                                        replaceInputRef.current?.click()
+                                    }
+                                />
+                            ) : (
+                                <div className="grid h-full place-items-center p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    No media assets are available yet.
+                                </div>
+                            )}
                         </div>
-                    </SettingsGroupedPane>
+                    </AssetLibraryWorkspace>
                 </div>
 
                 <input
@@ -255,7 +253,7 @@ function AssetDetails({
 }) {
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className="grid min-h-0 flex-1 place-items-center overflow-hidden bg-slate-50 p-6 dark:bg-slate-950/50">
+            <div className="grid min-h-0 flex-1 place-items-center overflow-hidden bg-[var(--settings-content-background)] p-6">
                 <img
                     alt=""
                     className="max-h-full max-w-full rounded-lg object-contain"

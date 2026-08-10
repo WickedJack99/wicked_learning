@@ -8,28 +8,31 @@ import {
 import {
     SettingsNestedWorkspace,
     SettingsSectionNavigation,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
-import AdminPanel, {
-    type AdminPanelProps,
-    type AdminPanelSection,
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import AdminPanel from '@/pages/settings/admin-panel';
+import type {
+    AdminPanelProps,
+    AdminPanelSection,
 } from '@/pages/settings/admin-panel';
-import JournalSettings, {
-    type JournalSettingsProps,
-} from '@/pages/settings/journal';
-import {
-    SupportSignalsPanel,
-    type SupportSignalsSettings,
-} from './support-signals-panel';
+import JournalSettings from '@/pages/settings/journal';
+import type { JournalSettingsProps } from '@/pages/settings/journal';
+import { LearnerMessageModerationPanel } from './learner-message-moderation-panel';
+import type { LearnerMessageModerationTopic } from './learner-message-moderation-panel';
+import { SupportSignalsPanel } from './support-signals-panel';
+import type { SupportSignalsSettings } from './support-signals-panel';
 
 export type LearningSupportSection =
     | AdminPanelSection
     | 'journal'
+    | 'learner-messages'
     | 'support-signals';
 
 export type LearningSupportSettings = {
     adminPanel: Omit<AdminPanelProps, 'embedded'> | null;
     journal: Omit<JournalSettingsProps, 'embedded'> | null;
+    learnerMessages: LearnerMessageModerationTopic[] | null;
     supportSignals: SupportSignalsSettings | null;
 };
 
@@ -37,12 +40,20 @@ type Props = {
     activeSection: LearningSupportSection;
     canViewAdminPanel: boolean;
     canViewJournal: boolean;
+    canViewLearnerMessages: boolean;
     canViewSupportSignals: boolean;
     onSelectSection: (section: LearningSupportSection) => void;
     settings: LearningSupportSettings;
 };
 
 const sections = [
+    {
+        description:
+            'Review short messages shared through MapAsset activities.',
+        icon: MessageSquareText,
+        key: 'learner-messages',
+        label: 'Learner Messages',
+    },
     {
         description: 'Read scoped learner signals as prompts for support.',
         icon: HeartHandshake,
@@ -79,16 +90,32 @@ export function LearningSupportPanel({
     activeSection,
     canViewAdminPanel,
     canViewJournal,
+    canViewLearnerMessages,
     canViewSupportSignals,
     onSelectSection,
     settings,
 }: Props) {
-    const visibleSections = sections.filter((section) =>
+    const t = usePlatformTranslation();
+    const localizedSections = sections.map((section) =>
+        section.key === 'learner-messages'
+            ? {
+                  ...section,
+                  description: t(
+                      'settings.learner_messages.description',
+                      section.description,
+                  ),
+                  label: t('settings.learner_messages.eyebrow', section.label),
+              }
+            : section,
+    );
+    const visibleSections = localizedSections.filter((section) =>
         section.key === 'journal'
             ? canViewJournal
-            : section.key === 'support-signals'
-              ? canViewSupportSignals
-              : canViewAdminPanel,
+            : section.key === 'learner-messages'
+              ? canViewLearnerMessages
+              : section.key === 'support-signals'
+                ? canViewSupportSignals
+                : canViewAdminPanel,
     );
     const resolvedSection = visibleSections.some(
         (section) => section.key === activeSection,
@@ -121,7 +148,7 @@ export function LearningSupportPanel({
     return (
         <SettingsNestedWorkspace
             contentClassName="p-0 sm:p-0"
-            item={learningSupportItem}
+            item={resolvedSectionItem ?? learningSupportItem}
             sidebar={
                 <SettingsSectionNavigation
                     activeSection={resolvedSection}
@@ -139,7 +166,15 @@ export function LearningSupportPanel({
                 />
             ) : null}
 
+            {resolvedSection === 'learner-messages' &&
+            settings.learnerMessages ? (
+                <LearnerMessageModerationPanel
+                    topics={settings.learnerMessages}
+                />
+            ) : null}
+
             {resolvedSection !== 'journal' &&
+            resolvedSection !== 'learner-messages' &&
             resolvedSection !== 'support-signals' &&
             settings.adminPanel ? (
                 <AdminPanel
@@ -156,6 +191,7 @@ export function LearningSupportPanel({
             ) : null}
 
             {resolvedSection !== 'journal' &&
+            resolvedSection !== 'learner-messages' &&
             resolvedSection !== 'support-signals' &&
             !settings.adminPanel ? (
                 <UnavailableSection label={resolvedSection} />
@@ -168,6 +204,11 @@ export function LearningSupportPanel({
             {resolvedSection === 'support-signals' &&
             !settings.supportSignals ? (
                 <UnavailableSection label="Support Signals" />
+            ) : null}
+
+            {resolvedSection === 'learner-messages' &&
+            !settings.learnerMessages ? (
+                <UnavailableSection label="Learner Messages" />
             ) : null}
         </SettingsNestedWorkspace>
     );

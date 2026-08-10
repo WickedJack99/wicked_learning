@@ -184,6 +184,55 @@ export default function PresentationSettingsPage({
         });
     };
 
+    const addActiveItem = () => {
+        setDraft((current) => {
+            if (activeSection === 'welcome') {
+                return {
+                    ...current,
+                    welcome: {
+                        ...current.welcome,
+                        pages: [
+                            ...current.welcome.pages,
+                            structuredClone(blankWelcomePage),
+                        ],
+                    },
+                };
+            }
+
+            if (activeSection === 'info') {
+                const pages = current.infoPages?.pages ?? [];
+
+                return {
+                    ...current,
+                    infoPages: {
+                        pages: [
+                            ...pages,
+                            {
+                                ...structuredClone(blankInfoPage),
+                                key: uniqueInfoKey(pages),
+                            },
+                        ],
+                    },
+                };
+            }
+
+            if (activeSection === 'source') {
+                return {
+                    ...current,
+                    sourceLinks: {
+                        ...current.sourceLinks,
+                        custom: [
+                            ...current.sourceLinks.custom,
+                            structuredClone(blankSourceLink),
+                        ],
+                    },
+                };
+            }
+
+            return current;
+        });
+    };
+
     const uploadImage = async (
         fieldKey: string,
         file: File,
@@ -216,7 +265,7 @@ export default function PresentationSettingsPage({
         <>
             <Head title="Public presentation" />
             <SettingsConfigurationShell
-                action={
+                footerAction={
                     <Button disabled={saving || !hasChanges} onClick={save}>
                         <Save className="size-4" />
                         Save changes
@@ -240,7 +289,15 @@ export default function PresentationSettingsPage({
                 title="Public presentation"
             >
                 <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                    <div className="mb-4 flex shrink-0 justify-end">
+                    <div className="mb-4 flex shrink-0 items-center justify-end gap-2">
+                        {activeSection !== 'auth' ? (
+                            <Button onClick={addActiveItem}>
+                                <Plus className="size-4" />
+                                {activeSection === 'source'
+                                    ? 'Add source link'
+                                    : 'Add page'}
+                            </Button>
+                        ) : null}
                         <ConfigModeSwitch
                             mode={configMode}
                             onChange={setConfigMode}
@@ -328,25 +385,6 @@ function WelcomePagesEditor({
     return (
         <section className="grid gap-4">
             <SectionHeader
-                action={
-                    <Button
-                        onClick={() =>
-                            onChange((current) => ({
-                                ...current,
-                                welcome: {
-                                    ...current.welcome,
-                                    pages: [
-                                        ...current.welcome.pages,
-                                        structuredClone(blankWelcomePage),
-                                    ],
-                                },
-                            }))
-                        }
-                    >
-                        <Plus className="size-4" />
-                        Add
-                    </Button>
-                }
                 description={`Editing ${configMode} mode page backgrounds. Copy and buttons apply to both modes.`}
                 title="Welcome pages"
             />
@@ -615,29 +653,6 @@ function InformationPagesEditor({
     return (
         <section className="grid gap-4">
             <SectionHeader
-                action={
-                    <Button
-                        onClick={() =>
-                            onChange((current) => ({
-                                ...current,
-                                infoPages: {
-                                    pages: [
-                                        ...(current.infoPages?.pages ?? []),
-                                        {
-                                            ...structuredClone(blankInfoPage),
-                                            key: uniqueInfoKey(
-                                                current.infoPages?.pages ?? [],
-                                            ),
-                                        },
-                                    ],
-                                },
-                            }))
-                        }
-                    >
-                        <Plus className="size-4" />
-                        Add
-                    </Button>
-                }
                 description={`Drag by reordering controls. Editing ${configMode} mode backgrounds.`}
                 title="Platform information pages"
             />
@@ -967,25 +982,6 @@ function SourceLinksEditor({
     return (
         <section className="grid gap-4">
             <SectionHeader
-                action={
-                    <Button
-                        onClick={() =>
-                            onChange((current) => ({
-                                ...current,
-                                sourceLinks: {
-                                    ...current.sourceLinks,
-                                    custom: [
-                                        ...current.sourceLinks.custom,
-                                        structuredClone(blankSourceLink),
-                                    ],
-                                },
-                            }))
-                        }
-                    >
-                        <Plus className="size-4" />
-                        Add
-                    </Button>
-                }
                 description="Public AGPL source links for the original project and modified deployments."
                 title="Source code links"
             />

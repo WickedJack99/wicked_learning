@@ -14,6 +14,7 @@ type SettingsConfigurationShellProps = {
     backLabel?: string;
     children: ReactNode;
     eyebrow: string;
+    footerAction?: ReactNode;
     sidebar: ReactNode;
     title: string;
 };
@@ -59,6 +60,7 @@ type SettingsNestedWorkspaceProps = {
     contentClassName?: string;
     description?: ReactNode;
     eyebrow?: ReactNode;
+    footerAction?: ReactNode;
     headerContentClassName?: string;
     icon?: LucideIcon;
     item?: SettingsNavigationItem<string>;
@@ -122,6 +124,7 @@ export function SettingsConfigurationShell({
     backLabel,
     children,
     eyebrow,
+    footerAction,
     sidebar,
     title,
 }: SettingsConfigurationShellProps) {
@@ -160,9 +163,18 @@ export function SettingsConfigurationShell({
                     {action}
                 </header>
 
-                <section className="grid min-h-0 flex-1 gap-4 overflow-hidden rounded-2xl border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4 shadow-2xl md:grid-cols-[16rem_minmax(0,1fr)]">
+                <section className="grid min-h-0 flex-1 gap-4 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4 md:grid-cols-[16rem_minmax(0,1fr)]">
                     {sidebar}
-                    <div className="min-h-0 overflow-hidden">{children}</div>
+                    <div className="flex min-h-0 flex-col overflow-hidden">
+                        <div className="min-h-0 flex-1 overflow-hidden">
+                            {children}
+                        </div>
+                        {footerAction ? (
+                            <footer className="shrink-0 border-t border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4">
+                                {footerAction}
+                            </footer>
+                        ) : null}
+                    </div>
                 </section>
             </div>
         </main>
@@ -171,7 +183,7 @@ export function SettingsConfigurationShell({
 
 export function SettingsSidebar({ children }: { children: ReactNode }) {
     return (
-        <aside className="h-full min-h-0 overflow-hidden rounded-xl border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-2">
+        <aside className="h-full min-h-0 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-2">
             <nav className="grid gap-2">{children}</nav>
         </aside>
     );
@@ -231,7 +243,9 @@ export function SettingsSectionButton<T extends string>({
 }
 
 export function SettingsContentPane({ children }: { children: ReactNode }) {
-    return <div className="h-full overflow-y-auto pr-1">{children}</div>;
+    return (
+        <div className="h-full min-w-0 overflow-y-auto pr-1">{children}</div>
+    );
 }
 
 export function SettingsPanelHeader({
@@ -323,7 +337,7 @@ export function SettingsGroupedPane({
     return (
         <section
             className={cn(
-                'min-h-0 flex-1 overflow-hidden rounded-2xl border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4 shadow-2xl',
+                'min-h-0 flex-1 overflow-hidden border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4',
                 className,
             )}
         >
@@ -352,45 +366,38 @@ export function SettingsNestedWorkspace({
     action,
     children,
     contentClassName,
-    description,
-    eyebrow,
-    headerContentClassName,
-    icon: Icon,
-    item,
+    footerAction,
     sidebar,
-    title,
 }: SettingsNestedWorkspaceProps) {
-    const bannerTitle = title ?? item?.label;
-    const bannerDescription = description ?? item?.description;
-    const BannerIcon = item?.icon ?? Icon;
-
     return (
         <SettingsConfigurationLayout
             className="h-full gap-0"
-            contentClassName="flex min-h-0 flex-col bg-[var(--settings-panel-background)]"
+            contentClassName="flex min-h-0 flex-col bg-[var(--settings-content-background)]"
             sidebar={
                 <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
                     <nav className="grid gap-2">{sidebar}</nav>
                 </aside>
             }
         >
-            <SettingsLevelBanner
-                action={action}
-                contentClassName={headerContentClassName}
-                description={bannerDescription}
-                eyebrow={eyebrow}
-                icon={BannerIcon}
-                item={item}
-                title={bannerTitle}
-            />
-
-            <div
-                className={cn(
-                    'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5',
-                    contentClassName,
-                )}
-            >
-                {children}
+            <div className="flex min-h-0 flex-1 flex-col">
+                {action ? (
+                    <div className="flex shrink-0 justify-end border-b border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
+                        {action}
+                    </div>
+                ) : null}
+                <div
+                    className={cn(
+                        'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5',
+                        contentClassName,
+                    )}
+                >
+                    {children}
+                </div>
+                {footerAction ? (
+                    <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
+                        {footerAction}
+                    </footer>
+                ) : null}
             </div>
         </SettingsConfigurationLayout>
     );
@@ -405,8 +412,6 @@ export function SettingsNestedWorkspace({
 export function SettingsSectionWorkspace<T extends string>({
     activeItem,
     ariaLabel,
-    bannerClassName,
-    bannerItem,
     children,
     contentClassName,
     items,
@@ -415,7 +420,7 @@ export function SettingsSectionWorkspace<T extends string>({
     return (
         <SettingsConfigurationLayout
             className="h-full gap-0"
-            contentClassName="flex min-h-0 flex-col bg-[var(--settings-panel-background)]"
+            contentClassName="flex min-h-0 flex-col bg-[var(--settings-content-background)]"
             sidebar={
                 <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
                     <SettingsSectionNavigation
@@ -427,11 +432,6 @@ export function SettingsSectionWorkspace<T extends string>({
                 </aside>
             }
         >
-            <SettingsLevelBanner
-                className={bannerClassName}
-                item={bannerItem ?? activeItem}
-            />
-
             <div
                 className={cn(
                     'min-h-0 flex-1 overflow-y-auto p-4 sm:p-5',
@@ -548,7 +548,12 @@ export function SettingsConfigurationLayout({
             )}
         >
             {sidebar}
-            <div className={cn('min-h-0 overflow-hidden', contentClassName)}>
+            <div
+                className={cn(
+                    'min-h-0 min-w-0 overflow-hidden',
+                    contentClassName,
+                )}
+            >
                 {children}
             </div>
         </div>

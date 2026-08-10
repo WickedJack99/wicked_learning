@@ -163,11 +163,19 @@ export function PersonalSettingsContent({
     const activeSectionItem =
         sectionItems.find((item) => item.key === resolvedSection) ??
         sectionItems[0];
-
+    const resolvedSaveAction =
+        saveAction ??
+        (resolvedSection === 'profile'
+            ? {
+                  form: 'personal-profile-form',
+                  label: t('common.save', 'Save'),
+              }
+            : null);
     useEffect(() => setSection(initialSection), [initialSection]);
-    useEffect(() => setSaveAction(null), [resolvedSection]);
 
     const selectSection = (nextSection: PersonalSection) => {
+        setSaveAction(null);
+
         if (!activeSection) {
             setSection(nextSection);
         }
@@ -177,8 +185,14 @@ export function PersonalSettingsContent({
 
     return (
         <SettingsNestedWorkspace
-            action={<SettingsSaveButton action={saveAction} />}
-            item={personalItem}
+            footerAction={
+                resolvedSaveAction ? (
+                    <div className="w-full lg:max-w-[45%] [&_button]:w-full">
+                        <SettingsSaveButton action={resolvedSaveAction} />
+                    </div>
+                ) : undefined
+            }
+            item={activeSectionItem ?? personalItem}
             sidebar={
                 <PersonalSettingsSectionNavigation
                     activeSection={resolvedSection}
@@ -239,7 +253,7 @@ function PersonalSettingsSectionContent({
 }: Omit<PersonalSettingsProps, 'initialSection'> & {
     activeSection: PersonalSection;
     activeItem: SettingsNavigationItem<PersonalSection>;
-    onSaveActionChange: (action: SettingsSaveAction | null) => void;
+    onSaveActionChange?: (action: SettingsSaveAction | null) => void;
 }) {
     return (
         <>

@@ -15,10 +15,10 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 import InputError from '@/components/input-error';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
-import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
 import { ToolCursorImage } from '@/features/tools/tool-cursor-overlay';
 import { toolAnimationWidthStyle } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -150,26 +150,22 @@ export default function AdminToolsPage({
                         </header>
                     ) : null}
 
-                    <SettingsGroupedPane
-                        className={embedded ? 'shadow-none' : undefined}
-                    >
-                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                            <ToolFormPanel
-                                canViewPath={canViewPath}
-                                key={selectedTool?.id ?? 'new'}
-                                isNew={!selectedTool}
-                                selectedTool={selectedTool}
-                            />
-                            <ToolListPanel
-                                filteredTools={filteredTools}
-                                onCreate={createNewTool}
-                                onSearch={setSearch}
-                                onSelect={setSelectedToolId}
-                                search={search}
-                                selectedToolId={selectedToolId}
-                            />
-                        </div>
-                    </SettingsGroupedPane>
+                    <AssetLibraryWorkspace>
+                        <ToolFormPanel
+                            canViewPath={canViewPath}
+                            key={selectedTool?.id ?? 'new'}
+                            isNew={!selectedTool}
+                            selectedTool={selectedTool}
+                        />
+                        <ToolListPanel
+                            filteredTools={filteredTools}
+                            onCreate={createNewTool}
+                            onSearch={setSearch}
+                            onSelect={setSelectedToolId}
+                            search={search}
+                            selectedToolId={selectedToolId}
+                        />
+                    </AssetLibraryWorkspace>
                 </div>
             </main>
         </>
@@ -266,7 +262,7 @@ function ToolFormPanel({
     };
 
     return (
-        <div className="min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
+        <div className="min-h-0 overflow-hidden">
             <div className="flex h-full flex-col">
                 <div className="shrink-0 border-b border-slate-200 p-4 dark:border-white/10">
                     <div className="flex items-center gap-3">
@@ -593,7 +589,7 @@ function ToolListPanel({
     selectedToolId: number | null;
 }) {
     return (
-        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
+        <aside className="flex min-h-0 flex-col overflow-hidden">
             <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
                 <div className="relative">
                     <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />

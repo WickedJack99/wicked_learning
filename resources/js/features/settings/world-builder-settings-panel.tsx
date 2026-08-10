@@ -8,8 +8,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import {
-    SettingsLevelBanner,
+    SettingsNestedWorkspace,
     SettingsSectionButton,
+    SettingsSectionNavigation,
     type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
@@ -44,7 +45,7 @@ const sections = [
         label: 'Graph',
     },
     {
-        description: 'Choose maps and open map or node configuration.',
+        description: 'Choose maps and open map or MapAsset configuration.',
         icon: Network,
         key: 'structural',
         label: 'Structural',
@@ -53,10 +54,10 @@ const sections = [
 
 const mapViewSections = [
     {
-        description: 'Edit tiles, node placement and node activities.',
+        description: 'Edit MapAssets, placement and connected activities.',
         icon: GitBranch,
         key: 'nodes',
-        label: 'Configure nodes',
+        label: 'Configure MapAssets',
     },
     {
         description: 'Edit map details, visuals and access.',
@@ -87,33 +88,23 @@ export function WorldBuilderSettingsPanel({
     )
         ? activeSection
         : visibleSections[0]?.key;
-    const activeSectionMeta = sections.find(
-        (section) => section.key === resolvedSection,
-    );
-
     if (!resolvedSection) {
         return <UnavailableWorldBuilder />;
     }
 
     return (
-        <div className="grid h-full min-h-0 gap-0 overflow-hidden lg:grid-cols-[16rem_minmax(0,1fr)]">
-            <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
-                <nav className="grid gap-2">
-                    {visibleSections.map((section) => (
-                        <SettingsSectionButton
-                            active={resolvedSection === section.key}
-                            description={section.description}
-                            icon={section.icon}
-                            id={section.key}
-                            key={section.key}
-                            label={section.label}
-                            onSelect={onSelectSection}
-                        />
-                    ))}
-                </nav>
-            </aside>
-
-            <div className="min-h-0 overflow-hidden bg-[var(--settings-panel-background)]">
+        <SettingsNestedWorkspace
+            contentClassName="p-0 sm:p-0"
+            sidebar={
+                <SettingsSectionNavigation
+                    activeSection={resolvedSection}
+                    ariaLabel="World builder sections"
+                    items={visibleSections}
+                    onChange={onSelectSection}
+                />
+            }
+        >
+            <div className="h-full min-h-0 overflow-hidden bg-[var(--settings-content-background)]">
                 {selectedMapDetail && resolvedSection === 'graph' ? (
                     <WorldBuilderMapWorkspace
                         activeSection={resolvedSection}
@@ -123,17 +114,14 @@ export function WorldBuilderSettingsPanel({
 
                 {(!selectedMapDetail || resolvedSection !== 'graph') &&
                 resolvedSection === 'graph' &&
-                worldGraph &&
-                activeSectionMeta ? (
-                    <WorldBuilderSectionWorkspace section={activeSectionMeta}>
+                worldGraph ? (
+                    <WorldBuilderSectionWorkspace>
                         <WorldBuilderPanel worldGraph={worldGraph} />
                     </WorldBuilderSectionWorkspace>
                 ) : null}
 
-                {resolvedSection === 'structural' &&
-                worldGraph &&
-                activeSectionMeta ? (
-                    <WorldBuilderSectionWorkspace section={activeSectionMeta}>
+                {resolvedSection === 'structural' && worldGraph ? (
+                    <WorldBuilderSectionWorkspace>
                         <WorldMapManagementPanel
                             detail={selectedMapDetail}
                             maps={worldGraph.maps}
@@ -146,23 +134,13 @@ export function WorldBuilderSettingsPanel({
                     <UnavailableWorldBuilder />
                 ) : null}
             </div>
-        </div>
+        </SettingsNestedWorkspace>
     );
 }
 
-function WorldBuilderSectionWorkspace({
-    children,
-    section,
-}: {
-    children: ReactNode;
-    section: (typeof sections)[number];
-}) {
+function WorldBuilderSectionWorkspace({ children }: { children: ReactNode }) {
     return (
-        <section className="flex h-full min-h-0 flex-col overflow-hidden">
-            <SettingsLevelBanner item={section} />
-
-            <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-        </section>
+        <section className="h-full min-h-0 overflow-hidden">{children}</section>
     );
 }
 
@@ -203,7 +181,7 @@ function WorldBuilderMapWorkspace({
                 </nav>
             </aside>
 
-            <div className="min-h-0 overflow-hidden bg-[var(--settings-panel-background)]">
+            <div className="min-h-0 overflow-hidden bg-[var(--settings-content-background)]">
                 {detail.content}
             </div>
         </section>

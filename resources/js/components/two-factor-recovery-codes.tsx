@@ -53,7 +53,7 @@ export default function TwoFactorRecoveryCodes({
     const RecoveryCodeIconComponent = codesAreVisible ? EyeOff : Eye;
 
     return (
-        <Card className="w-full min-w-0 max-w-full">
+        <Card className="settings-rounded-control w-full max-w-full min-w-0">
             <CardHeader>
                 <CardTitle className="flex min-w-0 gap-3">
                     <LockKeyhole className="size-4" aria-hidden="true" />
@@ -110,7 +110,7 @@ export default function TwoFactorRecoveryCodes({
                             <>
                                 <div
                                     ref={codesSectionRef}
-                                    className="grid min-w-0 gap-1 overflow-hidden rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] p-4 font-mono text-sm"
+                                    className="settings-rounded-control grid min-w-0 gap-1 overflow-hidden rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] p-4 font-mono text-sm"
                                     role="list"
                                     aria-label="Recovery codes"
                                 >
@@ -119,7 +119,7 @@ export default function TwoFactorRecoveryCodes({
                                             <div
                                                 key={index}
                                                 role="listitem"
-                                                className="select-text break-all"
+                                                className="break-all select-text"
                                             >
                                                 {code}
                                             </div>

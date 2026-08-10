@@ -421,16 +421,43 @@ export function AdminPresentationPanel({
 
     return (
         <SettingsNestedWorkspace
-            action={<SettingsSaveButton action={saveAction} />}
+            action={
+                activeSection === 'welcome' ? (
+                    <Button
+                        onClick={addWelcomePage}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                    >
+                        <Plus className="size-4" />
+                        Add page
+                    </Button>
+                ) : activeSection === 'source' ? (
+                    <Button
+                        onClick={addCustomSourceLink}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                    >
+                        <Plus className="size-4" />
+                        Add source link
+                    </Button>
+                ) : undefined
+            }
             description="Configure authentication backgrounds, welcome copy, information pages and source links without touching code."
+            footerAction={<SettingsSaveButton action={saveAction} />}
             icon={Image}
+            item={
+                presentationSections.find(
+                    (section) => section.key === activeSection,
+                ) ?? presentationSections[0]
+            }
             sidebar={
                 <PresentationSectionNavigation
                     activeSection={activeSection}
                     onSelectSection={setActiveSection}
                 />
             }
-            title="Public pages"
         >
             <div className="grid gap-5">
                 {activeSection === 'backgrounds' ? (
@@ -532,7 +559,7 @@ export function AdminPresentationPanel({
 
                 {activeSection === 'welcome' ? (
                     <section className="grid gap-4">
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="mb-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                                     Welcome pages
@@ -542,14 +569,6 @@ export function AdminPresentationPanel({
                                     welcome sequence.
                                 </p>
                             </div>
-                            <Button
-                                onClick={addWelcomePage}
-                                size="sm"
-                                variant="secondary"
-                            >
-                                <Plus className="size-4" />
-                                Add page
-                            </Button>
                         </div>
                         <div className="grid gap-4">
                             {welcomePages.map((page, index) => (
@@ -714,7 +733,7 @@ export function AdminPresentationPanel({
 
                 {activeSection === 'source' ? (
                     <section className="grid gap-4">
-                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="mb-4">
                             <div>
                                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
                                     <Github className="size-4 text-cyan-700 dark:text-teal-200" />
@@ -728,15 +747,6 @@ export function AdminPresentationPanel({
                                     archives.
                                 </p>
                             </div>
-                            <Button
-                                onClick={addCustomSourceLink}
-                                size="sm"
-                                type="button"
-                                variant="secondary"
-                            >
-                                <Plus className="size-4" />
-                                Add source link
-                            </Button>
                         </div>
 
                         <div className="grid gap-4">

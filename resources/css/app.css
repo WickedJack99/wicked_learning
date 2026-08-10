@@ -177,6 +177,11 @@
         cursor: var(--platform-cursor, default);
     }
 
+    html:has(.settings-surface),
+    body:has(.settings-surface) {
+        overflow: hidden;
+    }
+
     #app {
         cursor: var(--platform-cursor, default);
     }
@@ -231,6 +236,11 @@
         --settings-content-background: #f1f5f9;
         --settings-input-background: #ffffff;
         --settings-input-border-color: #cbd5e1;
+        --settings-control-border: color-mix(
+            in srgb,
+            var(--settings-input-border-color) 50%,
+            var(--settings-muted-text) 50%
+        );
         --settings-muted-text: #64748b;
         --settings-nested-sidebar-background: rgb(248 250 252 / 0.96);
         --settings-panel-background: #ffffff;
@@ -254,7 +264,7 @@
         --settings-border-color: rgba(255, 255, 255, 0.1);
         --settings-content-background: #0b1117;
         --settings-input-background: rgb(2 6 23 / 0.38);
-        --settings-input-border-color: rgba(255, 255, 255, 0.1);
+        --settings-input-border-color: rgba(255, 255, 255, 0.42);
         --settings-muted-text: #94a3b8;
         --settings-nested-sidebar-background: rgb(2 6 23 / 0.96);
         --settings-panel-background: #111820;
@@ -289,11 +299,78 @@
         :is(
             [data-slot='input'],
             [data-slot='select-trigger'],
+            input:not([type='checkbox']):not([type='color']):not(
+                    [type='radio']
+                ):not([type='range']):not([type='file']),
             textarea,
             select
         ) {
-        border-color: var(--settings-input-border-color);
+        border-color: var(--settings-control-border);
         background-color: var(--settings-input-background);
+    }
+
+    .settings-surface [data-slot='checkbox'] {
+        border-color: var(--settings-control-border);
+        background-color: var(--settings-input-background);
+        box-shadow: none;
+    }
+
+    .settings-surface [data-slot='checkbox'][data-state='checked'] {
+        border-color: var(--settings-accent);
+        background-color: var(--settings-accent);
+        color: var(--settings-accent-foreground);
+    }
+
+    .settings-surface
+        :is(
+            [data-slot='input'],
+            [data-slot='select-trigger'],
+            [data-slot='checkbox'],
+            input:not([type='color']):not([type='range']):not([type='file']),
+            textarea,
+            select
+        ):focus-visible {
+        border-color: var(--settings-accent);
+    }
+
+    .settings-surface .settings-topbar-control {
+        background-color: var(--settings-active-background);
+        border-color: var(--settings-border-color);
+    }
+
+    /* Long configuration dialogs keep their context and actions visible while only the body scrolls. */
+    .settings-surface[data-slot='dialog-content'] [data-slot='dialog-header'] {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--settings-content-background);
+    }
+
+    .settings-surface[data-slot='dialog-content'] [data-slot='dialog-footer'] {
+        position: sticky;
+        bottom: 0;
+        z-index: 10;
+        margin-top: 0.5rem;
+        border-top: 1px solid var(--settings-border-color);
+        background: var(--settings-content-background);
+        padding-block: 1rem;
+    }
+
+    /* Settings use borders and spacing to communicate hierarchy, rather than card-like rounded groups. */
+    .settings-surface
+        :is(
+            section,
+            article,
+            aside,
+            div,
+            form,
+            label
+        )[class*='rounded'][class*='border']:not(
+            [data-slot='dialog-content']
+        ):not(.settings-topbar-control):not(.settings-floating-panel):not(
+            .settings-rounded-control
+        ) {
+        border-radius: 0;
     }
 
     @keyframes nav-inserted-item {

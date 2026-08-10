@@ -14,7 +14,7 @@ export function SettingsConfigurationDialog({
     return (
         <DialogContent
             className={cn(
-                'max-h-[calc(100svh-8rem)] overflow-hidden sm:max-w-[92rem]',
+                'settings-surface max-h-[calc(100svh-8rem)] overflow-hidden sm:max-w-[92rem]',
                 className,
             )}
             {...props}

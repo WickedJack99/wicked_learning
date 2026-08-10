@@ -10,11 +10,8 @@ import {
     X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    SettingsConfigurationLayout,
-    SettingsContentPane,
-    SettingsPanelHeader,
-} from '@/components/settings-configuration-shell';
+import { SettingsNestedWorkspace } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,24 +25,31 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
+import { AdminPresentationPanel } from '@/features/platform-presentation/admin-presentation-panel';
 import { AccessGroupManagementPanel } from '@/features/settings/access-group-management-panel';
 import type {
     AccessGroupUser,
     AccessLearningGroup,
 } from '@/features/settings/access-group-management-panel';
 import {
-    AssetsWorldObjectsPanel,
-    type AssetsWorldObjectsSection,
-    type AssetsWorldObjectsSettings,
-} from '@/features/settings/assets-world-objects-panel';
-import { AdminPresentationPanel } from '@/features/platform-presentation/admin-presentation-panel';
-import { AccessManagementNavigation } from '@/features/settings/access-management-navigation';
+    AccessManagementNavigation,
+    accessManagementSections,
+} from '@/features/settings/access-management-navigation';
 import type { AccessManagementSection } from '@/features/settings/access-management-navigation';
-import {
-    LearningSupportPanel,
-    type LearningSupportSection,
-    type LearningSupportSettings,
+import { AssetsWorldObjectsPanel } from '@/features/settings/assets-world-objects-panel';
+import type {
+    AssetsWorldObjectsSection,
+    AssetsWorldObjectsSettings,
+} from '@/features/settings/assets-world-objects-panel';
+import { LearningSupportPanel } from '@/features/settings/learning-support-panel';
+import type {
+    LearningSupportSection,
+    LearningSupportSettings,
 } from '@/features/settings/learning-support-panel';
+import {
+    readAccessSectionFromUrl,
+    writeAccessSectionToUrl,
+} from '@/features/settings/settings-access-navigation-state';
 import type {
     AccessFormState,
     AccessRoleSummary,
@@ -58,63 +62,59 @@ import type {
     UserReference,
     UserRole,
 } from '@/features/settings/settings-access-types';
-import {
-    readAccessSectionFromUrl,
-    writeAccessSectionToUrl,
-} from '@/features/settings/settings-access-navigation-state';
+import { SettingsCornerNavigation } from '@/features/settings/settings-corner-navigation';
 import {
     canOpenPanel,
     findSettingsItemForPanel,
-    isActiveSettingsItem,
     isSettingsPanelKey,
     panelContent,
     settingsSections,
-    type AccessCapability,
-    type SettingsListItem,
-    type SettingsPanelKey,
-    type SettingsTranslator,
+} from '@/features/settings/settings-navigation';
+import type {
+    AccessCapability,
+    SettingsListItem,
+    SettingsPanelKey,
+    SettingsTranslator,
 } from '@/features/settings/settings-navigation';
 import {
     SettingsOverview,
     SettingsPlaceholderPanel,
     SettingsRouteGroupPanel,
 } from '@/features/settings/settings-panel-directory';
-import { SettingsCornerNavigation } from '@/features/settings/settings-corner-navigation';
 import {
     SettingsSidebarNavigation,
     SettingsTopBar,
-    type SettingsNotificationSummary,
-    type SettingsWorldBreadcrumb,
 } from '@/features/settings/settings-workspace-shell';
-import {
-    WorldBuilderSettingsPanel,
-    type WorldBuilderMapView,
-    type WorldBuilderSection,
+import type {
+    SettingsNotificationSummary,
+    SettingsWorldBreadcrumb,
+} from '@/features/settings/settings-workspace-shell';
+import { WorldBuilderSettingsPanel } from '@/features/settings/world-builder-settings-panel';
+import type {
+    WorldBuilderMapView,
+    WorldBuilderSection,
 } from '@/features/settings/world-builder-settings-panel';
+import { useAppearance } from '@/hooks/use-appearance';
 import { isDirtyState, useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
-import AiSettings, {
-    type AiSection,
-    type AiSettingsProps,
-} from '@/pages/settings/ai';
-import {
-    PersonalSettingsContent,
-    type PersonalSection,
-    type PersonalSettingsProps,
+import AiSettings from '@/pages/settings/ai';
+import type { AiSection, AiSettingsProps } from '@/pages/settings/ai';
+import ColorPaletteSettings from '@/pages/settings/color-palette';
+import type { ColorPaletteProps } from '@/pages/settings/color-palette';
+import LanguageAdministration from '@/pages/settings/languages';
+import type { Language } from '@/pages/settings/languages';
+import { PersonalSettingsContent } from '@/pages/settings/personal';
+import type {
+    PersonalSection,
+    PersonalSettingsProps,
 } from '@/pages/settings/personal';
-import ColorPaletteSettings, {
-    type ColorPaletteProps,
-} from '@/pages/settings/color-palette';
-import LanguageAdministration, {
-    type Language,
-} from '@/pages/settings/languages';
 import type { WorldGraph } from '@/pages/settings/worlds';
 import ConfigureMap from '@/pages/settings/worlds/configure-map';
-import EditWorldMap, {
-    type AccessGroup as WorldMapAccessGroup,
-    type EditableMapPayload,
+import EditWorldMap from '@/pages/settings/worlds/edit-map';
+import type {
+    AccessGroup as WorldMapAccessGroup,
+    EditableMapPayload,
 } from '@/pages/settings/worlds/edit-map';
 import EditNodeActivities from '@/pages/settings/worlds/edit-node-activities';
 import type {
@@ -362,6 +362,8 @@ function readLearningSupportViewFromUrl(): LearningSupportView {
     const value = new URL(window.location.href).searchParams.get('support');
 
     return value === 'journal' ||
+        value === 'learner-messages' ||
+        value === 'feedback-requests' ||
         value === 'support-signals' ||
         value === 'organization-icons' ||
         value === 'competence-topics'
@@ -570,39 +572,27 @@ export default function SettingsIndex({
                     resolvedAppearance,
                 )}
             >
-                <div className="flex h-full min-h-0 w-full flex-col overflow-hidden lg:flex-row">
-                    <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
-                        <div className="shrink-0 px-5 pt-5 pb-4">
-                            <p
-                                className="text-xs font-medium tracking-[0.18em] uppercase"
-                                style={{ color: 'var(--settings-accent)' }}
-                            >
-                                {t('settings.eyebrow', 'Platform')}
-                            </p>
-                            <h1 className="mt-2 text-3xl font-semibold tracking-normal">
-                                {t('settings.title', 'Settings')}
-                            </h1>
-                        </div>
+                <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+                    <SettingsTopBar
+                        activeItem={activeItem}
+                        currentUser={currentUser}
+                        menuQuery={menuQuery}
+                        notifications={settingsNotifications}
+                        onSearchChange={setMenuQuery}
+                        worldBreadcrumb={worldBreadcrumb}
+                    />
 
-                        <SettingsSidebarNavigation
-                            activePanel={selectedPanel}
-                            onOpenItem={openItem}
-                            sections={sections}
-                        />
-                        <SettingsCornerNavigation />
-                    </aside>
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+                        <aside className="flex shrink-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:w-72 lg:border-r lg:border-b-0">
+                            <SettingsSidebarNavigation
+                                activePanel={selectedPanel}
+                                onOpenItem={openItem}
+                                sections={sections}
+                            />
+                            <SettingsCornerNavigation />
+                        </aside>
 
-                    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
-                        <SettingsTopBar
-                            activeItem={activeItem}
-                            currentUser={currentUser}
-                            menuQuery={menuQuery}
-                            notifications={settingsNotifications}
-                            onSearchChange={setMenuQuery}
-                            worldBreadcrumb={worldBreadcrumb}
-                        />
-
-                        <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-panel-background)]">
+                        <div className="min-h-0 flex-1 overflow-hidden bg-[var(--settings-content-background)]">
                             {selectedPanel ? (
                                 <SettingsDetail
                                     accessCapabilities={accessCapabilities}
@@ -662,7 +652,7 @@ export default function SettingsIndex({
                                 />
                             )}
                         </div>
-                    </section>
+                    </div>
                 </div>
             </main>
         </>
@@ -805,7 +795,7 @@ function SettingsDetail({
               : null;
 
     return (
-        <div className="h-full overflow-hidden bg-[var(--settings-panel-background)]">
+        <div className="h-full overflow-hidden bg-[var(--settings-content-background)]">
             {selectedPanel === 'personal' ? (
                 <PersonalSettingsContent
                     {...personalSettings}
@@ -816,7 +806,7 @@ function SettingsDetail({
                     }}
                 />
             ) : selectedPanel === 'admin-ai-integrations' && aiSettings ? (
-                <div className="h-full min-h-0 p-4">
+                <div className="h-full min-h-0">
                     <AiSettings
                         {...aiSettings}
                         activeSection={aiView}
@@ -840,6 +830,9 @@ function SettingsDetail({
                     }
                     canViewJournal={
                         accessCapabilities.journal_settings?.read ?? false
+                    }
+                    canViewLearnerMessages={
+                        accessCapabilities.learner_messages?.read ?? false
                     }
                     canViewSupportSignals={
                         accessCapabilities.learner_support_signals?.read ??
@@ -877,14 +870,14 @@ function SettingsDetail({
                 <SettingsUnavailablePanel label="Public pages" />
             ) : selectedPanel === 'admin-color-palettes' &&
               colorPaletteSettings ? (
-                <div className="h-full min-h-0 p-4">
+                <div className="h-full min-h-0">
                     <ColorPaletteSettings {...colorPaletteSettings} embedded />
                 </div>
             ) : selectedPanel === 'admin-color-palettes' ? (
                 <SettingsUnavailablePanel label="Color palettes" />
             ) : selectedPanel === 'admin-translations' &&
               languages.length > 0 ? (
-                <div className="h-full min-h-0 p-4">
+                <div className="h-full min-h-0">
                     <LanguageAdministration embedded languages={languages} />
                 </div>
             ) : selectedPanel === 'admin-translations' ? (
@@ -996,9 +989,23 @@ function AccessManagementPanel({
         };
     }, [accessCapabilities]);
 
+    const accessItem: SettingsNavigationItem<'access-management'> = {
+        description: t(
+            'settings.access.description',
+            'Configure who can read, update or delete administration areas. Default roles stay available.',
+        ),
+        icon: Shield,
+        key: 'access-management',
+        label: t('settings.access.title', 'Access management'),
+    };
+    const activeSectionItem =
+        accessManagementSections.find((item) => item.key === section) ??
+        accessManagementSections[0];
+
     return (
-        <SettingsConfigurationLayout
-            className="h-full"
+        <SettingsNestedWorkspace
+            contentClassName="overflow-hidden"
+            item={activeSectionItem ?? accessItem}
             sidebar={
                 <AccessManagementNavigation
                     activeSection={section}
@@ -1009,22 +1016,9 @@ function AccessManagementPanel({
                 />
             }
         >
-            <SettingsContentPane>
-                <div className="grid gap-5">
-                    <SettingsPanelHeader
-                        description={t(
-                            'settings.access.description',
-                            'Configure who can read, update or delete administration areas. Default roles stay available.',
-                        )}
-                        eyebrow={t(
-                            'settings.access.title',
-                            'Access management',
-                        )}
-                        icon={Shield}
-                        title={t('settings.access.title', 'Access management')}
-                    />
-
-                    {section === 'users' && accessCapabilities.users?.read ? (
+            <div className="h-full min-h-0 overflow-hidden">
+                {section === 'users' && accessCapabilities.users?.read ? (
+                    <div className="h-full overflow-hidden">
                         <AdminUsersPanel
                             assignableRegistrationRoles={
                                 assignableRegistrationRoles
@@ -1040,30 +1034,30 @@ function AccessManagementPanel({
                             roles={roles}
                             users={users}
                         />
-                    ) : null}
+                    </div>
+                ) : null}
 
-                    {section === 'roles' && accessCapabilities.roles?.read ? (
-                        <RoleManagementPanel
-                            canDeleteRoles={
-                                accessCapabilities.roles?.delete ?? false
-                            }
-                            canUpdateRoles={
-                                accessCapabilities.roles?.update ?? false
-                            }
-                            permissionResources={permissionResources}
-                            roles={roles}
-                        />
-                    ) : null}
+                {section === 'roles' && accessCapabilities.roles?.read ? (
+                    <RoleManagementPanel
+                        canDeleteRoles={
+                            accessCapabilities.roles?.delete ?? false
+                        }
+                        canUpdateRoles={
+                            accessCapabilities.roles?.update ?? false
+                        }
+                        permissionResources={permissionResources}
+                        roles={roles}
+                    />
+                ) : null}
 
-                    {section === 'groups' && accessCapabilities.groups?.read ? (
-                        <AccessGroupManagementPanel
-                            groups={accessGroups}
-                            users={accessGroupUsers}
-                        />
-                    ) : null}
-                </div>
-            </SettingsContentPane>
-        </SettingsConfigurationLayout>
+                {section === 'groups' && accessCapabilities.groups?.read ? (
+                    <AccessGroupManagementPanel
+                        groups={accessGroups}
+                        users={accessGroupUsers}
+                    />
+                ) : null}
+            </div>
+        </SettingsNestedWorkspace>
     );
 }
 
@@ -1229,8 +1223,8 @@ function AdminUsersPanel({
     };
 
     return (
-        <div>
-            <div className="flex flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="flex shrink-0 flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
@@ -1317,262 +1311,280 @@ function AdminUsersPanel({
                 </DialogContent>
             </Dialog>
 
-            {createdRegistrationToken ? (
-                <div className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] p-4 text-slate-950 dark:text-slate-50">
-                    <p className="text-sm font-medium">
-                        {t(
-                            'settings.access.tokens.new',
-                            'New registration token',
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                {createdRegistrationToken ? (
+                    <div className="mt-4 rounded-lg border border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] p-4 text-slate-950 dark:text-slate-50">
+                        <p className="text-sm font-medium">
+                            {t(
+                                'settings.access.tokens.new',
+                                'New registration token',
+                            )}
+                        </p>
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                            <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-[var(--settings-content-background)] px-3 py-2 text-sm">
+                                {createdRegistrationToken}
+                            </code>
+                            <Button
+                                onClick={copyCreatedToken}
+                                variant="secondary"
+                            >
+                                <Copy className="size-4" />
+                                {t('common.copy', 'Copy')}
+                            </Button>
+                        </div>
+                    </div>
+                ) : null}
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                    <AdminMetric
+                        label={t(
+                            'settings.access.metrics.registered_users',
+                            'Registered users',
                         )}
-                    </p>
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <code className="min-w-0 flex-1 overflow-x-auto rounded-md bg-[var(--settings-content-background)] px-3 py-2 text-sm">
-                            {createdRegistrationToken}
-                        </code>
-                        <Button onClick={copyCreatedToken} variant="secondary">
-                            <Copy className="size-4" />
-                            {t('common.copy', 'Copy')}
-                        </Button>
+                        value={users.length}
+                    />
+                    <AdminMetric
+                        label={t(
+                            'settings.access.metrics.unused_tokens',
+                            'Unused tokens',
+                        )}
+                        value={unusedTokenCount}
+                    />
+                    <AdminMetric
+                        label={t(
+                            'settings.access.metrics.blocked_users',
+                            'Blocked users',
+                        )}
+                        value={
+                            users.filter(
+                                (user) =>
+                                    user.is_login_disabled ||
+                                    user.is_currently_banned,
+                            ).length
+                        }
+                    />
+                </div>
+
+                <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
+                    <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase lg:grid">
+                        <span>
+                            {t('settings.access.users.table.user', 'User')}
+                        </span>
+                        <span>
+                            {t('settings.access.users.table.roles', 'Roles')}
+                        </span>
+                        <span>
+                            {t('settings.access.users.table.status', 'Status')}
+                        </span>
+                        <span>
+                            {t(
+                                'settings.access.users.table.ban_until',
+                                'Ban until',
+                            )}
+                        </span>
+                        <span>
+                            {t(
+                                'settings.access.users.table.actions',
+                                'Actions',
+                            )}
+                        </span>
+                    </div>
+                    <div className="divide-y divide-[var(--settings-border-color)]">
+                        {users.map((user) => {
+                            const form = forms[user.id];
+                            const hasUserChanges = form
+                                ? isDirtyState(
+                                      normalizedAccessForm(form),
+                                      normalizedAccessForm(
+                                          defaultForms[user.id],
+                                      ),
+                                  )
+                                : false;
+                            const isCurrentUser = currentUser?.id === user.id;
+
+                            return (
+                                <div
+                                    className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] lg:items-center"
+                                    key={user.id}
+                                >
+                                    <button
+                                        className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                                        onClick={() => setSelectedUser(user)}
+                                        type="button"
+                                    >
+                                        <span className="block truncate text-sm font-medium text-slate-950 dark:text-white">
+                                            {user.name}
+                                        </span>
+                                        <span className="block truncate text-xs text-[var(--settings-muted-text)]">
+                                            {user.email}
+                                        </span>
+                                    </button>
+
+                                    <RoleEditor
+                                        assignableRoles={
+                                            assignableRegistrationRoles
+                                        }
+                                        disabled={
+                                            isCurrentUser || !canUpdateUsers
+                                        }
+                                        idPrefix={`user-${user.id}`}
+                                        onChange={(roles) =>
+                                            updateForm(user.id, { roles })
+                                        }
+                                        roleOptions={roles}
+                                        roleToAdd={
+                                            firstAddableRole(
+                                                assignableRegistrationRoles,
+                                                form?.roles ?? user.roles,
+                                            ) ?? assignableRegistrationRoles[0]
+                                        }
+                                        roles={form?.roles ?? user.roles}
+                                    />
+
+                                    <div className="flex flex-col gap-2">
+                                        <StatusBadges user={user} />
+                                        <LoginToggle
+                                            disabled={isCurrentUser}
+                                            isDisabled={
+                                                form?.loginDisabled ?? false
+                                            }
+                                            onChange={(loginDisabled) =>
+                                                updateForm(user.id, {
+                                                    loginDisabled,
+                                                })
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-1">
+                                        <Label
+                                            className="text-xs lg:hidden"
+                                            htmlFor={`banned-until-${user.id}`}
+                                        >
+                                            {t(
+                                                'settings.access.users.table.ban_until',
+                                                'Ban until',
+                                            )}
+                                        </Label>
+                                        <Input
+                                            disabled={isCurrentUser}
+                                            id={`banned-until-${user.id}`}
+                                            onChange={(event) =>
+                                                updateForm(user.id, {
+                                                    bannedUntil:
+                                                        event.currentTarget
+                                                            .value,
+                                                })
+                                            }
+                                            type="datetime-local"
+                                            value={form?.bannedUntil ?? ''}
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            disabled={
+                                                isCurrentUser ||
+                                                !canUpdateUsers ||
+                                                !hasUserChanges
+                                            }
+                                            onClick={() => saveAccess(user)}
+                                            size="sm"
+                                            variant="secondary"
+                                        >
+                                            {t('common.save', 'Save')}
+                                        </Button>
+                                        <Button
+                                            disabled={
+                                                isCurrentUser || !canDeleteUsers
+                                            }
+                                            onClick={() => deleteUser(user)}
+                                            size="sm"
+                                            variant="destructive"
+                                        >
+                                            <Trash2 className="size-4" />
+                                            {t('common.delete', 'Delete')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
-            ) : null}
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <AdminMetric
-                    label={t(
-                        'settings.access.metrics.registered_users',
-                        'Registered users',
-                    )}
-                    value={users.length}
-                />
-                <AdminMetric
-                    label={t(
-                        'settings.access.metrics.unused_tokens',
-                        'Unused tokens',
-                    )}
-                    value={unusedTokenCount}
-                />
-                <AdminMetric
-                    label={t(
-                        'settings.access.metrics.blocked_users',
-                        'Blocked users',
-                    )}
-                    value={
-                        users.filter(
-                            (user) =>
-                                user.is_login_disabled ||
-                                user.is_currently_banned,
-                        ).length
-                    }
-                />
-            </div>
-
-            <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
-                <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] gap-3 bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase lg:grid">
-                    <span>{t('settings.access.users.table.user', 'User')}</span>
-                    <span>
-                        {t('settings.access.users.table.roles', 'Roles')}
-                    </span>
-                    <span>
-                        {t('settings.access.users.table.status', 'Status')}
-                    </span>
-                    <span>
+                <div className="mt-5 rounded-lg border border-[var(--settings-border-color)] p-4">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-950 dark:text-white">
+                        <KeyRound className="size-4 text-[var(--settings-accent)]" />
                         {t(
-                            'settings.access.users.table.ban_until',
-                            'Ban until',
+                            'settings.access.tokens.latest',
+                            'Latest registration tokens',
                         )}
-                    </span>
-                    <span>
-                        {t('settings.access.users.table.actions', 'Actions')}
-                    </span>
-                </div>
-                <div className="divide-y divide-[var(--settings-border-color)]">
-                    {users.map((user) => {
-                        const form = forms[user.id];
-                        const hasUserChanges = form
-                            ? isDirtyState(
-                                  normalizedAccessForm(form),
-                                  normalizedAccessForm(defaultForms[user.id]),
-                              )
-                            : false;
-                        const isCurrentUser = currentUser?.id === user.id;
-
-                        return (
+                    </div>
+                    <div className="grid gap-2">
+                        {registrationTokens.map((token) => (
                             <div
-                                className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_150px_minmax(0,1fr)_180px] lg:items-center"
-                                key={user.id}
+                                className="flex flex-col gap-2 rounded-md bg-[var(--settings-active-background)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                                key={token.id}
                             >
-                                <button
-                                    className="min-w-0 text-left focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
-                                    onClick={() => setSelectedUser(user)}
-                                    type="button"
-                                >
-                                    <span className="block truncate text-sm font-medium text-slate-950 dark:text-white">
-                                        {user.name}
-                                    </span>
-                                    <span className="block truncate text-xs text-[var(--settings-muted-text)]">
-                                        {user.email}
-                                    </span>
-                                </button>
-
-                                <RoleEditor
-                                    assignableRoles={
-                                        assignableRegistrationRoles
-                                    }
-                                    disabled={isCurrentUser || !canUpdateUsers}
-                                    idPrefix={`user-${user.id}`}
-                                    onChange={(roles) =>
-                                        updateForm(user.id, { roles })
-                                    }
-                                    roleOptions={roles}
-                                    roleToAdd={
-                                        firstAddableRole(
-                                            assignableRegistrationRoles,
-                                            form?.roles ?? user.roles,
-                                        ) ?? assignableRegistrationRoles[0]
-                                    }
-                                    roles={form?.roles ?? user.roles}
-                                />
-
-                                <div className="flex flex-col gap-2">
-                                    <StatusBadges user={user} />
-                                    <LoginToggle
-                                        disabled={isCurrentUser}
-                                        isDisabled={
-                                            form?.loginDisabled ?? false
-                                        }
-                                        onChange={(loginDisabled) =>
-                                            updateForm(user.id, {
-                                                loginDisabled,
-                                            })
-                                        }
-                                    />
-                                </div>
-
-                                <div className="grid gap-1">
-                                    <Label
-                                        className="text-xs lg:hidden"
-                                        htmlFor={`banned-until-${user.id}`}
-                                    >
+                                <div>
+                                    <span className="font-medium">
                                         {t(
-                                            'settings.access.users.table.ban_until',
-                                            'Ban until',
+                                            'settings.access.tokens.number',
+                                            'Token #:id',
+                                            { id: token.id },
                                         )}
-                                    </Label>
-                                    <Input
-                                        disabled={isCurrentUser}
-                                        id={`banned-until-${user.id}`}
-                                        onChange={(event) =>
-                                            updateForm(user.id, {
-                                                bannedUntil:
-                                                    event.currentTarget.value,
-                                            })
-                                        }
-                                        type="datetime-local"
-                                        value={form?.bannedUntil ?? ''}
+                                    </span>
+                                    <span className="ml-2 text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.access.tokens.created_by',
+                                            'created by :name',
+                                            {
+                                                name:
+                                                    token.created_by?.name ??
+                                                    t(
+                                                        'common.unknown',
+                                                        'Unknown',
+                                                    ),
+                                            },
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <RoleBadges
+                                        roleOptions={roles}
+                                        roles={token.roles}
                                     />
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        disabled={
-                                            isCurrentUser ||
-                                            !canUpdateUsers ||
-                                            !hasUserChanges
+                                    <Badge
+                                        variant={
+                                            token.is_expired
+                                                ? 'destructive'
+                                                : token.is_used
+                                                  ? 'secondary'
+                                                  : 'default'
                                         }
-                                        onClick={() => saveAccess(user)}
-                                        size="sm"
-                                        variant="secondary"
                                     >
-                                        {t('common.save', 'Save')}
-                                    </Button>
-                                    <Button
-                                        disabled={
-                                            isCurrentUser || !canDeleteUsers
-                                        }
-                                        onClick={() => deleteUser(user)}
-                                        size="sm"
-                                        variant="destructive"
-                                    >
-                                        <Trash2 className="size-4" />
-                                        {t('common.delete', 'Delete')}
-                                    </Button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div className="mt-5 rounded-lg border border-[var(--settings-border-color)] p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-950 dark:text-white">
-                    <KeyRound className="size-4 text-[var(--settings-accent)]" />
-                    {t(
-                        'settings.access.tokens.latest',
-                        'Latest registration tokens',
-                    )}
-                </div>
-                <div className="grid gap-2">
-                    {registrationTokens.map((token) => (
-                        <div
-                            className="flex flex-col gap-2 rounded-md bg-[var(--settings-active-background)] p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
-                            key={token.id}
-                        >
-                            <div>
-                                <span className="font-medium">
-                                    {t(
-                                        'settings.access.tokens.number',
-                                        'Token #:id',
-                                        { id: token.id },
-                                    )}
-                                </span>
-                                <span className="ml-2 text-[var(--settings-muted-text)]">
-                                    {t(
-                                        'settings.access.tokens.created_by',
-                                        'created by :name',
-                                        {
-                                            name:
-                                                token.created_by?.name ??
-                                                t('common.unknown', 'Unknown'),
-                                        },
-                                    )}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <RoleBadges
-                                    roleOptions={roles}
-                                    roles={token.roles}
-                                />
-                                <Badge
-                                    variant={
-                                        token.is_expired
-                                            ? 'destructive'
+                                        {token.is_expired
+                                            ? t(
+                                                  'settings.access.tokens.expired',
+                                                  'Expired',
+                                              )
                                             : token.is_used
-                                              ? 'secondary'
-                                              : 'default'
-                                    }
-                                >
-                                    {token.is_expired
-                                        ? t(
-                                              'settings.access.tokens.expired',
-                                              'Expired',
-                                          )
-                                        : token.is_used
-                                          ? t(
-                                                'settings.access.tokens.used',
-                                                'Used',
-                                            )
-                                          : t(
-                                                'settings.access.tokens.unused',
-                                                'Unused',
-                                            )}
-                                </Badge>
-                                <span className="text-xs text-[var(--settings-muted-text)]">
-                                    {formatDate(token.created_at, t)}
-                                </span>
+                                              ? t(
+                                                    'settings.access.tokens.used',
+                                                    'Used',
+                                                )
+                                              : t(
+                                                    'settings.access.tokens.unused',
+                                                    'Unused',
+                                                )}
+                                    </Badge>
+                                    <span className="text-xs text-[var(--settings-muted-text)]">
+                                        {formatDate(token.created_at, t)}
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -1996,7 +2008,7 @@ function RoleManagementPanel({
     };
 
     return (
-        <div className="grid min-h-[32rem] gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[18rem_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col rounded-lg border border-[var(--settings-border-color)]">
                 <div className="flex items-center justify-between border-b border-[var(--settings-border-color)] p-3">
                     <div>
@@ -2040,8 +2052,8 @@ function RoleManagementPanel({
                 </div>
             </aside>
 
-            <section className="min-h-0 rounded-lg border border-[var(--settings-border-color)] p-4">
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
+                <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] p-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
                             {selectedRole
@@ -2063,21 +2075,197 @@ function RoleManagementPanel({
                                   )}
                         </h3>
                     </div>
-                    <div className="flex gap-2">
-                        {canUpdateRoles ? (
-                            <Button
-                                disabled={!hasRoleChanges}
-                                onClick={saveRole}
-                            >
-                                {selectedRole
-                                    ? t('common.save', 'Save')
-                                    : t('common.create', 'Create')}
-                            </Button>
-                        ) : (
-                            <Button disabled variant="secondary">
-                                {t('common.read_only', 'Read only')}
-                            </Button>
-                        )}
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="grid gap-1">
+                            <Label htmlFor="role-name">
+                                {t('settings.access.roles.name', 'Name')}
+                            </Label>
+                            <Input
+                                disabled={!canUpdateRoles}
+                                id="role-name"
+                                onChange={(event) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        name: event.currentTarget.value,
+                                    }))
+                                }
+                                value={form.name}
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="role-slug">
+                                {t('settings.access.roles.slug', 'Slug')}
+                            </Label>
+                            <Input
+                                disabled={
+                                    !canUpdateRoles || Boolean(selectedRole)
+                                }
+                                id="role-slug"
+                                onChange={(event) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        slug: event.currentTarget.value,
+                                    }))
+                                }
+                                value={form.slug}
+                            />
+                        </div>
+                        <div className="grid gap-1 sm:col-span-2">
+                            <Label htmlFor="role-description">
+                                {t(
+                                    'settings.access.roles.role_description',
+                                    'Description',
+                                )}
+                            </Label>
+                            <Input
+                                disabled={!canUpdateRoles}
+                                id="role-description"
+                                onChange={(event) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        description: event.currentTarget.value,
+                                    }))
+                                }
+                                value={form.description}
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="role-level">
+                                {t(
+                                    'settings.access.roles.assignment_level',
+                                    'Assignment level',
+                                )}
+                            </Label>
+                            <Input
+                                disabled={!canUpdateRoles}
+                                id="role-level"
+                                max="100"
+                                min="1"
+                                onChange={(event) =>
+                                    setForm((current) => ({
+                                        ...current,
+                                        level: event.currentTarget.value,
+                                    }))
+                                }
+                                type="number"
+                                value={form.level}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
+                        <div className="grid grid-cols-[minmax(12rem,1fr)_18rem_14rem] bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
+                            <span>
+                                {t('settings.access.roles.area', 'Area')}
+                            </span>
+                            <span>
+                                {t(
+                                    'settings.access.roles.permission_level',
+                                    'Permission level',
+                                )}
+                            </span>
+                            <span>
+                                {t('settings.access.roles.scope', 'Scope')}
+                            </span>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                            {groupedResources.map((group) => (
+                                <div key={group.name}>
+                                    <div className="border-t border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-4 py-2 text-xs font-semibold tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
+                                        {group.name}
+                                    </div>
+                                    {group.resources.map((resource) => (
+                                        <div
+                                            className="grid gap-3 border-t border-[var(--settings-border-color)] p-4 sm:grid-cols-[minmax(12rem,1fr)_18rem_14rem] sm:items-center"
+                                            key={resource.key}
+                                        >
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-950 dark:text-white">
+                                                    {resource.label}
+                                                </p>
+                                                <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                                    {resource.description}
+                                                </p>
+                                            </div>
+                                            <PermissionButtonGroup
+                                                disabled={!canUpdateRoles}
+                                                level={
+                                                    form.permissions[
+                                                        resource.key
+                                                    ] ?? 'none'
+                                                }
+                                                onChange={(level) =>
+                                                    setPermission(
+                                                        resource.key,
+                                                        level,
+                                                    )
+                                                }
+                                            />
+                                            <PermissionScopeSelect
+                                                disabled={!canUpdateRoles}
+                                                onChange={(scope) =>
+                                                    setPermissionScope(
+                                                        resource.key,
+                                                        scope,
+                                                    )
+                                                }
+                                                scope={
+                                                    form.permissionScopes[
+                                                        resource.key
+                                                    ] ?? 'all'
+                                                }
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-2 rounded-lg bg-[var(--settings-active-background)] p-3 text-xs leading-5 text-[var(--settings-muted-text)]">
+                        <p>
+                            <strong>
+                                {t('settings.access.permissions.ro', 'RO')}
+                            </strong>
+                            :{' '}
+                            {t(
+                                'settings.access.permissions.ro_legend',
+                                'read only. The role may inspect the area but not save changes.',
+                            )}
+                        </p>
+                        <p>
+                            <strong>
+                                {t('settings.access.permissions.ru', 'RU')}
+                            </strong>
+                            :{' '}
+                            {t(
+                                'settings.access.permissions.ru_legend',
+                                'read and update. The role may edit existing content and create new content.',
+                            )}
+                        </p>
+                        <p>
+                            <strong>
+                                {t('settings.access.permissions.rud', 'RUD')}
+                            </strong>
+                            :{' '}
+                            {t(
+                                'settings.access.permissions.rud_legend',
+                                'read, update and delete. The role may remove records where the feature supports deletion.',
+                            )}
+                        </p>
+                        <p>
+                            {t(
+                                'settings.access.permissions.scope_legend',
+                                'Scope limits where the level applies: own records, assigned records, group records or all records.',
+                            )}
+                        </p>
+                    </div>
+                </div>
+                <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-[var(--settings-border-color)] p-4">
+                    <div>
                         {selectedRole && canDeleteRoles ? (
                             <Button
                                 disabled={selectedRole.is_system}
@@ -2085,190 +2273,22 @@ function RoleManagementPanel({
                                 variant="destructive"
                             >
                                 <Trash2 className="size-4" />
+                                {t('common.delete', 'Delete')}
                             </Button>
                         ) : null}
                     </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="grid gap-1">
-                        <Label htmlFor="role-name">
-                            {t('settings.access.roles.name', 'Name')}
-                        </Label>
-                        <Input
-                            disabled={!canUpdateRoles}
-                            id="role-name"
-                            onChange={(event) =>
-                                setForm((current) => ({
-                                    ...current,
-                                    name: event.currentTarget.value,
-                                }))
-                            }
-                            value={form.name}
-                        />
-                    </div>
-                    <div className="grid gap-1">
-                        <Label htmlFor="role-slug">
-                            {t('settings.access.roles.slug', 'Slug')}
-                        </Label>
-                        <Input
-                            disabled={!canUpdateRoles || Boolean(selectedRole)}
-                            id="role-slug"
-                            onChange={(event) =>
-                                setForm((current) => ({
-                                    ...current,
-                                    slug: event.currentTarget.value,
-                                }))
-                            }
-                            value={form.slug}
-                        />
-                    </div>
-                    <div className="grid gap-1 sm:col-span-2">
-                        <Label htmlFor="role-description">
-                            {t(
-                                'settings.access.roles.role_description',
-                                'Description',
-                            )}
-                        </Label>
-                        <Input
-                            disabled={!canUpdateRoles}
-                            id="role-description"
-                            onChange={(event) =>
-                                setForm((current) => ({
-                                    ...current,
-                                    description: event.currentTarget.value,
-                                }))
-                            }
-                            value={form.description}
-                        />
-                    </div>
-                    <div className="grid gap-1">
-                        <Label htmlFor="role-level">
-                            {t(
-                                'settings.access.roles.assignment_level',
-                                'Assignment level',
-                            )}
-                        </Label>
-                        <Input
-                            disabled={!canUpdateRoles}
-                            id="role-level"
-                            max="100"
-                            min="1"
-                            onChange={(event) =>
-                                setForm((current) => ({
-                                    ...current,
-                                    level: event.currentTarget.value,
-                                }))
-                            }
-                            type="number"
-                            value={form.level}
-                        />
-                    </div>
-                </div>
-
-                <div className="mt-5 overflow-hidden rounded-lg border border-[var(--settings-border-color)]">
-                    <div className="grid grid-cols-[minmax(12rem,1fr)_18rem_14rem] bg-[var(--settings-active-background)] px-4 py-3 text-xs font-medium tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
-                        <span>{t('settings.access.roles.area', 'Area')}</span>
-                        <span>
-                            {t(
-                                'settings.access.roles.permission_level',
-                                'Permission level',
-                            )}
-                        </span>
-                        <span>{t('settings.access.roles.scope', 'Scope')}</span>
-                    </div>
-                    <div className="max-h-96 overflow-y-auto">
-                        {groupedResources.map((group) => (
-                            <div key={group.name}>
-                                <div className="border-t border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-4 py-2 text-xs font-semibold tracking-[0.14em] text-[var(--settings-muted-text)] uppercase">
-                                    {group.name}
-                                </div>
-                                {group.resources.map((resource) => (
-                                    <div
-                                        className="grid gap-3 border-t border-[var(--settings-border-color)] p-4 sm:grid-cols-[minmax(12rem,1fr)_18rem_14rem] sm:items-center"
-                                        key={resource.key}
-                                    >
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-950 dark:text-white">
-                                                {resource.label}
-                                            </p>
-                                            <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
-                                                {resource.description}
-                                            </p>
-                                        </div>
-                                        <PermissionButtonGroup
-                                            disabled={!canUpdateRoles}
-                                            level={
-                                                form.permissions[
-                                                    resource.key
-                                                ] ?? 'none'
-                                            }
-                                            onChange={(level) =>
-                                                setPermission(
-                                                    resource.key,
-                                                    level,
-                                                )
-                                            }
-                                        />
-                                        <PermissionScopeSelect
-                                            disabled={!canUpdateRoles}
-                                            onChange={(scope) =>
-                                                setPermissionScope(
-                                                    resource.key,
-                                                    scope,
-                                                )
-                                            }
-                                            scope={
-                                                form.permissionScopes[
-                                                    resource.key
-                                                ] ?? 'all'
-                                            }
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 rounded-lg bg-[var(--settings-active-background)] p-3 text-xs leading-5 text-[var(--settings-muted-text)]">
-                    <p>
-                        <strong>
-                            {t('settings.access.permissions.ro', 'RO')}
-                        </strong>
-                        :{' '}
-                        {t(
-                            'settings.access.permissions.ro_legend',
-                            'read only. The role may inspect the area but not save changes.',
-                        )}
-                    </p>
-                    <p>
-                        <strong>
-                            {t('settings.access.permissions.ru', 'RU')}
-                        </strong>
-                        :{' '}
-                        {t(
-                            'settings.access.permissions.ru_legend',
-                            'read and update. The role may edit existing content and create new content.',
-                        )}
-                    </p>
-                    <p>
-                        <strong>
-                            {t('settings.access.permissions.rud', 'RUD')}
-                        </strong>
-                        :{' '}
-                        {t(
-                            'settings.access.permissions.rud_legend',
-                            'read, update and delete. The role may remove records where the feature supports deletion.',
-                        )}
-                    </p>
-                    <p>
-                        {t(
-                            'settings.access.permissions.scope_legend',
-                            'Scope limits where the level applies: own records, assigned records, group records or all records.',
-                        )}
-                    </p>
-                </div>
+                    {canUpdateRoles ? (
+                        <Button disabled={!hasRoleChanges} onClick={saveRole}>
+                            {selectedRole
+                                ? t('common.save', 'Save')
+                                : t('common.create', 'Create')}
+                        </Button>
+                    ) : (
+                        <Button disabled variant="secondary">
+                            {t('common.read_only', 'Read only')}
+                        </Button>
+                    )}
+                </footer>
             </section>
         </div>
     );

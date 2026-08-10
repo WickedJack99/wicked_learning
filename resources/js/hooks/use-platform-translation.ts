@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import { useCallback } from 'react';
 
 type ReplacementValues = Record<string, number | string>;
 
@@ -9,17 +10,20 @@ type ReplacementValues = Record<string, number | string>;
 export function usePlatformTranslation() {
     const { localization } = usePage().props;
 
-    return (
-        key: string,
-        fallback: string = key,
-        replacements: ReplacementValues = {},
-    ): string => {
-        const template = localization.translations[key] ?? fallback;
+    return useCallback(
+        (
+            key: string,
+            fallback: string = key,
+            replacements: ReplacementValues = {},
+        ): string => {
+            const template = localization.translations[key] ?? fallback;
 
-        return Object.entries(replacements).reduce(
-            (translated, [name, value]) =>
-                translated.replaceAll(`:${name}`, value.toString()),
-            template,
-        );
-    };
+            return Object.entries(replacements).reduce(
+                (translated, [name, value]) =>
+                    translated.replaceAll(`:${name}`, value.toString()),
+                template,
+            );
+        },
+        [localization.translations],
+    );
 }

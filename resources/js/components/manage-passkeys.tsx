@@ -51,7 +51,7 @@ export default function ManagePasskeys(props: Props) {
                 description="Manage your passkeys for passwordless sign-in"
             />
 
-            <div className="overflow-hidden rounded-lg border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)]">
+            <div className="settings-rounded-control overflow-hidden rounded-lg border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)]">
                 {passkeys.length > 0 ? (
                     passkeys.map((passkey) => (
                         <PasskeyItem

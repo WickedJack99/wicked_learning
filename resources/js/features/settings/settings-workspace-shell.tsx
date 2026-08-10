@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Bell, HelpCircle, NotebookPen, Search, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import { NavigationLoadingIndicator } from '@/components/navigation-loading-indicator';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -69,7 +70,7 @@ export function SettingsSidebarNavigation({
     const t = usePlatformTranslation();
 
     return (
-        <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 pt-4 pb-4">
             {sections.map((section) => (
                 <section className="mb-5" key={section.key}>
                     <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
@@ -119,21 +120,26 @@ export function SettingsSidebarNavigation({
 }
 
 export function SettingsTopBar({
-    activeItem,
     currentUser,
     menuQuery,
     notifications,
     onSearchChange,
-    worldBreadcrumb,
 }: SettingsTopBarProps) {
     const t = usePlatformTranslation();
+    const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(
+        null,
+    );
 
     return (
-        <header className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between">
-            <SettingsBreadcrumb
-                activeItem={activeItem}
-                worldBreadcrumb={worldBreadcrumb}
-            />
+        <header
+            className="flex h-auto shrink-0 flex-col gap-3 border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] px-4 py-3 md:h-16 md:flex-row md:items-center md:justify-between"
+            ref={setPortalContainer}
+        >
+            <div className="flex min-w-0 items-center">
+                <span className="shrink-0 text-2xl leading-none font-semibold text-white dark:text-white">
+                    {t('settings.title', 'Settings')}
+                </span>
+            </div>
 
             <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-end">
                 <label className="relative min-w-0 flex-1 md:w-72 md:flex-none">
@@ -142,30 +148,46 @@ export function SettingsTopBar({
                     </span>
                     <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--settings-muted-text)]" />
                     <Input
-                        className="h-10 rounded-lg border-[var(--settings-border-color)] bg-[var(--settings-active-background)] pl-9"
+                        className="settings-topbar-control h-10 rounded-lg border-[var(--settings-border-color)] pl-9"
                         onChange={(event) => onSearchChange(event.target.value)}
                         placeholder={t(
                             'settings.search_placeholder',
                             'Search settings...',
                         )}
+                        style={{
+                            backgroundColor:
+                                'var(--settings-active-background)',
+                        }}
                         value={menuQuery}
                     />
                 </label>
 
-                <SettingsNotificationsMenu notifications={notifications} />
+                <SettingsNotificationsMenu
+                    notifications={notifications}
+                    portalContainer={portalContainer}
+                />
 
                 <a
                     aria-label={t('settings.help', 'Help')}
-                    className="grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
+                    className="settings-topbar-control grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                     href="https://github.com/WickedJack99/wicked_learning"
                     rel="noreferrer"
+                    style={{
+                        backgroundColor: 'var(--settings-active-background)',
+                    }}
                     target="_blank"
                 >
                     <HelpCircle className="size-4" />
                 </a>
 
                 {currentUser ? (
-                    <div className="flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-2 text-left">
+                    <div
+                        className="settings-topbar-control flex h-10 min-w-0 items-center gap-2 rounded-lg border border-[var(--settings-border-color)] px-2 text-left"
+                        style={{
+                            backgroundColor:
+                                'var(--settings-active-background)',
+                        }}
+                    >
                         <UserInfo user={currentUser} />
                     </div>
                 ) : null}
@@ -176,83 +198,12 @@ export function SettingsTopBar({
     );
 }
 
-function SettingsBreadcrumb({
-    activeItem,
-    worldBreadcrumb,
-}: {
-    activeItem: SettingsListItem | null;
-    worldBreadcrumb: SettingsWorldBreadcrumb;
-}) {
-    const t = usePlatformTranslation();
-    const isWorldBuilder = activeItem?.panel === 'admin-world-builder';
-    const selectedMap = worldBreadcrumb.map;
-    const selectedNode = worldBreadcrumb.node;
-    const selectedView = worldBreadcrumb.view;
-
-    return (
-        <nav
-            aria-label={t('settings.breadcrumb', 'Settings navigation')}
-            className="flex min-w-0 items-center gap-2 text-sm"
-        >
-            {activeItem ? (
-                <button
-                    className={cn(
-                        'truncate text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]',
-                        isWorldBuilder &&
-                            'font-medium text-[var(--settings-accent)]',
-                    )}
-                    onClick={() => {
-                        if (isWorldBuilder) {
-                            router.visit('/settings?panel=admin-world-builder');
-                        }
-                    }}
-                    type="button"
-                >
-                    {settingsItemLabel(activeItem, t)}
-                </button>
-            ) : null}
-            {isWorldBuilder && selectedMap ? (
-                <>
-                    <span className="text-[var(--settings-muted-text)]">/</span>
-                    <button
-                        className="truncate text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
-                        onClick={() =>
-                            router.visit(
-                                `/settings?panel=admin-world-builder&worldSection=${worldBreadcrumb.section}&map=${selectedMap.id}`,
-                            )
-                        }
-                        type="button"
-                    >
-                        {selectedMap.title}
-                    </button>
-                </>
-            ) : null}
-            {isWorldBuilder && selectedMap && selectedView ? (
-                <>
-                    <span className="text-[var(--settings-muted-text)]">/</span>
-                    <span className="truncate text-[var(--settings-muted-text)]">
-                        {selectedNode
-                            ? selectedNode.title
-                            : selectedView === 'configure'
-                              ? t(
-                                    'settings.world_builder.breadcrumb.configure',
-                                    'Configure map',
-                                )
-                              : t(
-                                    'settings.world_builder.breadcrumb.nodes',
-                                    'Configure nodes',
-                                )}
-                    </span>
-                </>
-            ) : null}
-        </nav>
-    );
-}
-
 function SettingsNotificationsMenu({
     notifications,
+    portalContainer,
 }: {
     notifications: SettingsNotificationSummary;
+    portalContainer: HTMLElement | null;
 }) {
     const t = usePlatformTranslation();
     const total =
@@ -264,7 +215,10 @@ function SettingsNotificationsMenu({
             <DropdownMenuTrigger asChild>
                 <button
                     aria-label={t('settings.notifications', 'Notifications')}
-                    className="relative grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
+                    className="settings-topbar-control relative grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
+                    style={{
+                        backgroundColor: 'var(--settings-active-background)',
+                    }}
                     type="button"
                 >
                     <Bell className="size-4" />
@@ -275,7 +229,20 @@ function SettingsNotificationsMenu({
                     ) : null}
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 rounded-lg p-3">
+            <DropdownMenuContent
+                align="end"
+                className="settings-floating-panel w-[21rem] max-w-[calc(100vw-2rem)] rounded-lg p-3"
+                alignOffset={0}
+                container={portalContainer}
+                side="bottom"
+                sideOffset={23}
+                style={{
+                    backgroundColor: 'var(--settings-sidebar-background)',
+                    backgroundImage:
+                        'linear-gradient(var(--settings-active-background), var(--settings-active-background))',
+                    borderColor: 'var(--settings-border-color)',
+                }}
+            >
                 <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold">
                         {t('settings.notifications', 'Notifications')}
@@ -358,7 +325,7 @@ function NotificationSummaryRow({
             onClick={() => router.visit(href)}
             type="button"
         >
-            <span className="grid size-8 place-items-center rounded-md bg-[color-mix(in_srgb,var(--settings-accent)_14%,transparent)] text-[var(--settings-accent)]">
+            <span className="grid size-8 place-items-center rounded-md bg-[color-mix(in_srgb,var(--settings-muted-text)_12%,transparent)] text-[var(--settings-muted-text)]">
                 <Icon className="size-4" />
             </span>
             <span className="min-w-0 flex-1">

@@ -13,7 +13,6 @@ import type { ConfigThemeMode } from '@/components/config-mode-switch';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsLevelBanner,
     SettingsPanelHeader,
     SettingsSectionNavigation,
     type SettingsNavigationItem,
@@ -77,12 +76,6 @@ export default function JournalSettings({
     const activeMode = draftTheme[configMode];
     const activeSectionItem =
         sections.find((item) => item.key === section) ?? sections[0];
-    const journalItem: SettingsNavigationItem<'journal'> = {
-        description: 'Journal policy and background image.',
-        icon: BookOpenCheck,
-        key: 'journal',
-        label: 'Journal',
-    };
     const hasChanges = useDirtyState(
         {
             allowExpertAccessRequests: allowExpertAccess,
@@ -163,28 +156,48 @@ export default function JournalSettings({
 
     const content = (
         <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--settings-panel-background)]">
-            <SettingsLevelBanner
-                action={
-                    <div className="flex shrink-0 items-center gap-2">
-                        {section !== 'policy' ? (
-                            <ConfigModeSwitch
-                                mode={configMode}
-                                onChange={setConfigMode}
-                                size="large"
-                            />
-                        ) : null}
-                        {embedded ? saveButton : null}
-                    </div>
-                }
-                className="!bg-[var(--settings-sidebar-background)]"
-                contentClassName="!max-w-none"
-                description="Configure learner journal behavior and visuals for the selected appearance mode."
-                item={journalItem}
-            />
-
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
                 <div className="grid gap-4">
                     <SettingsPanelHeader
+                        action={
+                            section !== 'policy' ? (
+                                <div className="flex flex-wrap items-center justify-end gap-2">
+                                    <Button
+                                        disabled={
+                                            activeMode.backgroundAssets
+                                                .length >= 12
+                                        }
+                                        onClick={() =>
+                                            updateThemeMode((current) => ({
+                                                ...current,
+                                                backgroundAssets: [
+                                                    ...current.backgroundAssets,
+                                                    {
+                                                        id: newJournalBackgroundAssetId(),
+                                                        image: '',
+                                                        positionX: 50,
+                                                        positionY: 50,
+                                                        zoom: 100,
+                                                    },
+                                                ],
+                                            }))
+                                        }
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        <Plus className="size-4" />
+                                        Add asset
+                                    </Button>
+                                    <ConfigModeSwitch
+                                        mode={configMode}
+                                        onChange={setConfigMode}
+                                        size="large"
+                                    />
+                                </div>
+                            ) : null
+                        }
+                        description="Configure learner journal behavior and visuals for the selected appearance mode."
                         item={activeSectionItem}
                         title={activeSectionItem.label}
                     />
@@ -205,6 +218,9 @@ export default function JournalSettings({
                     ) : null}
                 </div>
             </div>
+            <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] px-4 py-4 sm:px-5">
+                {saveButton}
+            </footer>
         </div>
     );
 
@@ -224,7 +240,6 @@ export default function JournalSettings({
         <>
             <Head title="Journal settings" />
             <SettingsConfigurationShell
-                action={saveButton}
                 eyebrow="Administration"
                 sidebar={sidebar}
                 title="Journal"
@@ -413,22 +428,6 @@ function BackgroundAssetsSection({
         }));
     }
 
-    function addAsset() {
-        onChange((current) => ({
-            ...current,
-            backgroundAssets: [
-                ...current.backgroundAssets,
-                {
-                    id: newJournalBackgroundAssetId(),
-                    image: '',
-                    positionX: 50,
-                    positionY: 50,
-                    zoom: 100,
-                },
-            ],
-        }));
-    }
-
     function removeAsset(assetId: string) {
         onChange((current) => ({
             ...current,
@@ -440,7 +439,7 @@ function BackgroundAssetsSection({
 
     return (
         <section className="mt-6 border-t border-[var(--settings-border-color)] pt-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
                 <div>
                     <h3 className="font-semibold text-slate-950 dark:text-white">
                         Decorative assets
@@ -450,16 +449,6 @@ function BackgroundAssetsSection({
                         background in {mode} mode.
                     </p>
                 </div>
-                <Button
-                    disabled={theme.backgroundAssets.length >= 12}
-                    onClick={addAsset}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                >
-                    <Plus className="size-4" />
-                    Add asset
-                </Button>
             </div>
 
             {theme.backgroundAssets.length === 0 ? (

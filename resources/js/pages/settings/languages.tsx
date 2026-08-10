@@ -3,11 +3,14 @@ import { Download, FileUp, Languages, Plus, Save } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
     SettingsConfigurationShell,
-    SettingsContentPane,
+    SettingsNestedWorkspace,
     SettingsSectionButton,
+    SettingsSectionNavigation,
     SettingsSidebar,
+    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useDirtyState } from '@/hooks/use-dirty-state';
@@ -109,9 +112,9 @@ export default function LanguageAdministration({
     };
 
     const content = (
-        <SettingsContentPane>
-            <section className="grid min-h-full gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-                <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-white/5">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <section className="grid min-h-0 flex-1 gap-4 overflow-hidden lg:grid-cols-[18rem_minmax(0,1fr)]">
+                <aside className="flex min-h-0 flex-col overflow-hidden border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-white/5">
                     <div className="mb-3 flex items-center justify-between gap-2">
                         <div>
                             <h2 className="text-sm font-semibold">
@@ -137,7 +140,7 @@ export default function LanguageAdministration({
                     </div>
 
                     {createOpen ? (
-                        <div className="mb-3 grid gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
+                        <div className="mb-3 grid gap-2 border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
                             <Input
                                 onChange={(event) =>
                                     updateCreateForm(
@@ -221,173 +224,201 @@ export default function LanguageAdministration({
                 </aside>
 
                 {selected ? (
-                    <section className="grid content-start gap-5 rounded-xl border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                                <p
-                                    className="text-xs font-medium tracking-[0.18em] uppercase"
-                                    style={{
-                                        color: 'var(--settings-accent)',
-                                    }}
-                                >
-                                    {t(
-                                        'settings.administration.languages.catalog',
-                                        'Translation catalog',
-                                    )}
-                                </p>
-                                <h2 className="mt-2 text-xl font-semibold">
-                                    {selected.name}
-                                </h2>
-                                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                    {t(
-                                        'settings.administration.languages.catalog_description',
-                                        'Export English, translate its JSON values, then upload it here. The import keeps only learner-visible activity copy and ignores answer correctness or graph behavior.',
-                                    )}
-                                </p>
-                            </div>
-                            <Button asChild variant="secondary">
-                                <a href="/settings/languages/export/english">
-                                    <Download className="size-4" />
-                                    {t(
-                                        'settings.administration.languages.download_english',
-                                        'Download English',
-                                    )}
-                                </a>
-                            </Button>
-                        </div>
-
-                        {selected.isDefault ? (
-                            <div className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-white/15 dark:text-slate-300">
-                                {t(
-                                    'settings.administration.languages.default_notice',
-                                    'English is the canonical source. Download it to prepare another language.',
-                                )}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="language-name">
-                                            {t(
-                                                'settings.administration.languages.name',
-                                                'Language name',
-                                            )}
-                                        </Label>
-                                        <Input
-                                            id="language-name"
-                                            onChange={(event) =>
-                                                setName(
-                                                    event.currentTarget.value,
-                                                )
-                                            }
-                                            value={name}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="language-native-name">
-                                            {t(
-                                                'settings.administration.languages.native_name',
-                                                'Native name',
-                                            )}
-                                        </Label>
-                                        <Input
-                                            id="language-native-name"
-                                            onChange={(event) =>
-                                                setNativeName(
-                                                    event.currentTarget.value,
-                                                )
-                                            }
-                                            value={nativeName}
-                                        />
-                                    </div>
-                                </div>
-
-                                <label className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/70">
-                                    <span>
-                                        <span className="block text-sm font-medium">
-                                            {t(
-                                                'settings.administration.languages.enabled',
-                                                'Enabled for learners',
-                                            )}
-                                        </span>
-                                        <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                            {t(
-                                                'settings.administration.languages.enabled_description',
-                                                'Disabled languages remain editable but cannot be selected by learners.',
-                                            )}
-                                        </span>
-                                    </span>
-                                    <input
-                                        className="size-5 accent-[var(--settings-accent)]"
-                                        checked={isEnabled}
-                                        onChange={(event) =>
-                                            setIsEnabled(
-                                                event.currentTarget.checked,
-                                            )
-                                        }
-                                        type="checkbox"
-                                    />
-                                </label>
-
-                                <div className="flex flex-wrap gap-2">
-                                    <Button
-                                        disabled={!hasChanges}
-                                        onClick={save}
-                                        type="button"
-                                    >
-                                        <Save className="size-4" />
-                                        {t(
-                                            'settings.administration.languages.save',
-                                            'Save language',
-                                        )}
-                                    </Button>
-                                    <Button asChild variant="secondary">
-                                        <a
-                                            href={`/settings/languages/${selected.code}/export`}
-                                        >
-                                            <Download className="size-4" />
-                                            {t(
-                                                'settings.administration.languages.download_current',
-                                                'Download current catalog',
-                                            )}
-                                        </a>
-                                    </Button>
-                                    <Button asChild variant="secondary">
-                                        <label htmlFor="translation-catalog">
-                                            <FileUp className="size-4" />
-                                            {t(
-                                                'settings.administration.languages.import',
-                                                'Upload translation catalog',
-                                            )}
-                                        </label>
-                                    </Button>
-                                    <input
-                                        accept="application/json,.json"
-                                        className="sr-only"
-                                        id="translation-catalog"
-                                        onChange={(event) => {
-                                            const file =
-                                                event.currentTarget.files?.[0];
-
-                                            if (file) {
-                                                importCatalog(file);
-                                            }
-
-                                            event.currentTarget.value = '';
+                    <section className="min-h-0 overflow-y-auto border border-slate-200 bg-slate-50/80 p-5 dark:border-white/10 dark:bg-[#0b1117]/80">
+                        <div className="grid content-start gap-5">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                    <p
+                                        className="text-xs font-medium tracking-[0.18em] uppercase"
+                                        style={{
+                                            color: 'var(--settings-accent)',
                                         }}
-                                        type="file"
-                                    />
+                                    >
+                                        {t(
+                                            'settings.administration.languages.catalog',
+                                            'Translation catalog',
+                                        )}
+                                    </p>
+                                    <h2 className="mt-2 text-xl font-semibold">
+                                        {selected.name}
+                                    </h2>
+                                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.administration.languages.catalog_description',
+                                            'Export English, translate its JSON values, then upload it here. The import keeps only learner-visible activity copy and ignores answer correctness or graph behavior.',
+                                        )}
+                                    </p>
                                 </div>
-                            </>
-                        )}
+                                <Button asChild variant="secondary">
+                                    <a href="/settings/languages/export/english">
+                                        <Download className="size-4" />
+                                        {t(
+                                            'settings.administration.languages.download_english',
+                                            'Download English',
+                                        )}
+                                    </a>
+                                </Button>
+                            </div>
+
+                            {selected.isDefault ? (
+                                <div className="border border-dashed border-slate-300 p-4 text-sm text-slate-600 dark:border-white/15 dark:text-slate-300">
+                                    {t(
+                                        'settings.administration.languages.default_notice',
+                                        'English is the canonical source. Download it to prepare another language.',
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid gap-4 md:grid-cols-2">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="language-name">
+                                                {t(
+                                                    'settings.administration.languages.name',
+                                                    'Language name',
+                                                )}
+                                            </Label>
+                                            <Input
+                                                id="language-name"
+                                                onChange={(event) =>
+                                                    setName(
+                                                        event.currentTarget
+                                                            .value,
+                                                    )
+                                                }
+                                                value={name}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="language-native-name">
+                                                {t(
+                                                    'settings.administration.languages.native_name',
+                                                    'Native name',
+                                                )}
+                                            </Label>
+                                            <Input
+                                                id="language-native-name"
+                                                onChange={(event) =>
+                                                    setNativeName(
+                                                        event.currentTarget
+                                                            .value,
+                                                    )
+                                                }
+                                                value={nativeName}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <label className="flex items-center justify-between border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/70">
+                                        <span>
+                                            <span className="block text-sm font-medium">
+                                                {t(
+                                                    'settings.administration.languages.enabled',
+                                                    'Enabled for learners',
+                                                )}
+                                            </span>
+                                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                                {t(
+                                                    'settings.administration.languages.enabled_description',
+                                                    'Disabled languages remain editable but cannot be selected by learners.',
+                                                )}
+                                            </span>
+                                        </span>
+                                        <Checkbox
+                                            checked={isEnabled}
+                                            onCheckedChange={(checked) =>
+                                                setIsEnabled(checked === true)
+                                            }
+                                        />
+                                    </label>
+
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button asChild variant="secondary">
+                                            <a
+                                                href={`/settings/languages/${selected.code}/export`}
+                                            >
+                                                <Download className="size-4" />
+                                                {t(
+                                                    'settings.administration.languages.download_current',
+                                                    'Download current catalog',
+                                                )}
+                                            </a>
+                                        </Button>
+                                        <Button asChild variant="secondary">
+                                            <label htmlFor="translation-catalog">
+                                                <FileUp className="size-4" />
+                                                {t(
+                                                    'settings.administration.languages.import',
+                                                    'Upload translation catalog',
+                                                )}
+                                            </label>
+                                        </Button>
+                                        <input
+                                            accept="application/json,.json"
+                                            className="sr-only"
+                                            id="translation-catalog"
+                                            onChange={(event) => {
+                                                const file =
+                                                    event.currentTarget
+                                                        .files?.[0];
+
+                                                if (file) {
+                                                    importCatalog(file);
+                                                }
+
+                                                event.currentTarget.value = '';
+                                            }}
+                                            type="file"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </section>
                 ) : null}
             </section>
-        </SettingsContentPane>
+            {selected && !selected.isDefault ? (
+                <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
+                    <Button disabled={!hasChanges} onClick={save} type="button">
+                        <Save className="size-4" />
+                        {t(
+                            'settings.administration.languages.save',
+                            'Save language',
+                        )}
+                    </Button>
+                </footer>
+            ) : null}
+        </div>
     );
 
+    const languageItem: SettingsNavigationItem<'languages'> = {
+        description: t(
+            'settings.administration.languages.sidebar_description',
+            'Catalogs and learner copy.',
+        ),
+        icon: Languages,
+        key: 'languages',
+        label: t('settings.administration.languages', 'Languages'),
+    };
+
     if (embedded) {
-        return content;
+        return (
+            <SettingsNestedWorkspace
+                item={languageItem}
+                sidebar={
+                    <SettingsSectionNavigation
+                        activeSection="languages"
+                        ariaLabel={t(
+                            'settings.administration.languages.aria',
+                            'Language administration sections',
+                        )}
+                        items={[languageItem]}
+                        onChange={() => undefined}
+                    />
+                }
+            >
+                {content}
+            </SettingsNestedWorkspace>
+        );
     }
 
     return (

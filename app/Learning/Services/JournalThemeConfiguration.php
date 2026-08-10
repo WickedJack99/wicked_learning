@@ -13,7 +13,7 @@ class JournalThemeConfiguration
     {
         return [
             'dark' => [
-                'backgroundImage' => '',
+                'backgroundImage' => '/images/themes/journal-paper-leather-background.png',
                 'backgroundPositionX' => 50,
                 'backgroundPositionY' => 50,
                 'backgroundZoom' => 100,
@@ -56,7 +56,7 @@ class JournalThemeConfiguration
                 'selectedTextOpacity' => 100,
             ],
             'light' => [
-                'backgroundImage' => '',
+                'backgroundImage' => '/images/themes/journal-paper-leather-background.png',
                 'backgroundPositionX' => 50,
                 'backgroundPositionY' => 50,
                 'backgroundZoom' => 100,

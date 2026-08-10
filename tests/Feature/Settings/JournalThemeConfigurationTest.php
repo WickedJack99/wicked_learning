@@ -49,3 +49,12 @@ test('journal background framing is normalized for both appearance modes', funct
             'backgroundZoom' => 25,
         ]);
 });
+
+test('the journal defaults use the paper and leather background', function () {
+    $theme = app(JournalThemeConfiguration::class)->defaults();
+
+    expect($theme['dark']['backgroundImage'])
+        ->toBe('/images/themes/journal-paper-leather-background.png')
+        ->and($theme['light']['backgroundImage'])
+        ->toBe('/images/themes/journal-paper-leather-background.png');
+});

@@ -1,24 +1,22 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/react';
 import { BookOpen, Map, Save, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { type CSSProperties, useMemo, useState } from 'react';
-import {
-    type AvailableColorOption,
-    ColorOpacityField,
-    isHexColor,
-} from '@/components/color-input';
+import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { ColorOpacityField, isHexColor } from '@/components/color-input';
+import type { AvailableColorOption } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import type { ConfigThemeMode } from '@/components/config-mode-switch';
+import { PaletteWorkbench } from '@/components/palette-workbench';
+import type { PaletteWorkbenchTheme } from '@/components/palette-workbench';
 import {
-    PaletteWorkbench,
-    type PaletteWorkbenchTheme,
-} from '@/components/palette-workbench';
-import {
-    SettingsConfigurationLayout,
     SettingsConfigurationShell,
+    SettingsNestedWorkspace,
     SettingsSectionButton,
+    SettingsSectionNavigation,
     SettingsSidebar,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { cssColorFromPicker, parseCssColor } from '@/lib/css-color';
@@ -224,9 +222,7 @@ export default function ColorPaletteSettings({
     const [journalThemeDraft, setJournalThemeDraft] = useState(() =>
         cloneSettingsValue(journal?.theme ?? null),
     );
-    const [mapDrafts, setMapDrafts] = useState(() =>
-        cloneSettingsValue(maps),
-    );
+    const [mapDrafts, setMapDrafts] = useState(() => cloneSettingsValue(maps));
     const [lastSavedPresentation, setLastSavedPresentation] = useState(() =>
         cloneSettingsValue(publicPresentation),
     );
@@ -286,9 +282,7 @@ export default function ColorPaletteSettings({
         router.patch('/settings/color-palette', payload, {
             onFinish: () => setSaving(false),
             onSuccess: () => {
-                setLastSavedPresentation(
-                    cloneSettingsValue(presentationDraft),
-                );
+                setLastSavedPresentation(cloneSettingsValue(presentationDraft));
                 setLastSavedJournalTheme(cloneSettingsValue(journalThemeDraft));
                 setLastSavedMaps(cloneSettingsValue(mapDrafts));
             },
@@ -347,31 +341,68 @@ export default function ColorPaletteSettings({
             ) : null}
         </SettingsSidebar>
     );
-
+    const navigationItems = [
+        ...(presentationDraft
+            ? [
+                  {
+                      description:
+                          'Welcome, auth and public information text and overlay colors.',
+                      icon: Sparkles,
+                      key: 'presentation' as const,
+                      label: 'Public text colors',
+                  },
+                  {
+                      description:
+                          'Settings accent and active control contrast.',
+                      icon: SlidersHorizontal,
+                      key: 'settings' as const,
+                      label: 'Settings UI',
+                  },
+              ]
+            : []),
+        ...(journalThemeDraft
+            ? [
+                  {
+                      description:
+                          'Journal shell, text, buttons and selected pages.',
+                      icon: BookOpen,
+                      key: 'journal' as const,
+                      label: 'Journal',
+                  },
+              ]
+            : []),
+        ...(mapDrafts.length > 0
+            ? [
+                  {
+                      description:
+                          'Map controls, panels and navigation colors.',
+                      icon: Map,
+                      key: 'maps' as const,
+                      label: 'Map visuals',
+                  },
+              ]
+            : []),
+    ] satisfies SettingsNavigationItem<PaletteSection>[];
     const content = (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-white/10">
-                <div>
-                    <h2 className="text-xl font-semibold">
-                        {sectionTitle(section)}
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                        Edit color picker values across menus from one place.
-                        The original menus remain available for detailed
-                        configuration and previews.
-                    </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                    {embedded ? saveButton : null}
+            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
+                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h2 className="text-xl font-semibold">
+                            {sectionTitle(section)}
+                        </h2>
+                        <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                            Edit color picker values across menus from one
+                            place. The original menus remain available for
+                            detailed configuration and previews.
+                        </p>
+                    </div>
                     <ConfigModeSwitch
                         mode={mode}
                         onChange={setMode}
                         size="large"
                     />
                 </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
                 {section === 'presentation' && presentationDraft ? (
                     <PublicPresentationPalette
                         availableColors={availableColors}
@@ -425,14 +456,26 @@ export default function ColorPaletteSettings({
                     />
                 ) : null}
             </div>
+            <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
+                {saveButton}
+            </footer>
         </div>
     );
 
     if (embedded) {
         return (
-            <SettingsConfigurationLayout className="h-full" sidebar={sidebar}>
+            <SettingsNestedWorkspace
+                sidebar={
+                    <SettingsSectionNavigation
+                        activeSection={section}
+                        ariaLabel="Color palette sections"
+                        items={navigationItems}
+                        onChange={setSection}
+                    />
+                }
+            >
                 {content}
-            </SettingsConfigurationLayout>
+            </SettingsNestedWorkspace>
         );
     }
 
@@ -440,10 +483,9 @@ export default function ColorPaletteSettings({
         <>
             <Head title="Color palette" />
             <SettingsConfigurationShell
-                action={saveButton}
                 eyebrow="Administration"
                 sidebar={sidebar}
-                title="Color palette"
+                title={sectionTitle(section)}
             >
                 {content}
             </SettingsConfigurationShell>

@@ -9,7 +9,7 @@ import {
     Trash2,
     X,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,6 +64,10 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const [requestingFeedbackForId, setRequestingFeedbackForId] = useState<
         number | null
     >(null);
+    const [saveError, setSaveError] = useState('');
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+    const isSavingRef = useRef(false);
     const isLoading = payload === null;
 
     const visiblePages = useMemo(
@@ -145,6 +149,16 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         return () => window.removeEventListener('keydown', closeOnEscape);
     }, [onClose]);
 
+    useEffect(() => {
+        previousFocusRef.current =
+            document.activeElement instanceof HTMLElement
+                ? document.activeElement
+                : null;
+        searchInputRef.current?.focus();
+
+        return () => previousFocusRef.current?.focus();
+    }, []);
+
     async function createPage() {
         const page = await createJournalPage();
 
@@ -158,12 +172,14 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         setSelectedId(page.id);
     }
 
-    async function savePage(next: JournalPage) {
-        if (isSaving) {
+    const savePage = useCallback(async (next: JournalPage) => {
+        if (isSavingRef.current) {
             return;
         }
 
+        isSavingRef.current = true;
         setIsSaving(true);
+        setSaveError('');
 
         try {
             const page = await updateJournalPage(next);
@@ -185,10 +201,27 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                 ...current,
                 [page.id]: false,
             }));
+        } catch {
+            setSaveError(
+                'Your changes are still here. Saving will retry when you continue editing.',
+            );
         } finally {
+            isSavingRef.current = false;
             setIsSaving(false);
         }
-    }
+    }, []);
+
+    useEffect(() => {
+        if (!selected || !dirtyById[selected.id] || isSaving) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            void savePage(selected);
+        }, 900);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [dirtyById, isSaving, savePage, selected]);
 
     async function requestFeedback(page: JournalPage, domainKey: string) {
         if (page.feedbackRequest !== null || requestingFeedbackForId !== null) {
@@ -304,7 +337,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                     style={{ background: 'var(--journal-background-overlay)' }}
                 />
                 <header
-                    className="relative z-10 flex shrink-0 items-center gap-4 border-b p-4"
+                    className="relative z-10 flex shrink-0 items-center gap-2 border-b p-3 sm:gap-4 sm:p-4"
                     style={{
                         background: 'var(--journal-header-background)',
                         borderColor: 'var(--journal-panel-border)',
@@ -335,7 +368,8 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                         variant="outline"
                     >
                         <a href="/learning/journal/export">
-                            <Download className="size-4" /> Export
+                            <Download className="size-4" />
+                            <span className="hidden sm:inline">Export</span>
                         </a>
                     </Button>
                     <Button
@@ -349,7 +383,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                     </Button>
                 </header>
 
-                <div className="relative z-10 grid min-h-0 flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
+                <div className="relative z-10 grid min-h-0 flex-1 grid-rows-[minmax(11rem,32svh)_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-none">
                     <aside
                         className="flex min-h-0 flex-col border-b p-3 lg:border-r lg:border-b-0"
                         style={{
@@ -367,10 +401,12 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 />
                                 <Input
                                     className="pl-9"
+                                    aria-label="Search journal pages"
                                     onChange={(event) =>
                                         setSearch(event.target.value)
                                     }
                                     placeholder="Search pages"
+                                    ref={searchInputRef}
                                     style={{
                                         background:
                                             'var(--journal-input-background)',
@@ -400,7 +436,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                             {visiblePages.map((page) => (
                                 <button
                                     className={cn(
-                                        'w-full rounded-lg border p-3 text-left transition-none',
+                                        'w-full rounded-lg border p-3 text-left transition-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)] focus-visible:outline-none',
                                         selectedId === page.id
                                             ? ''
                                             : 'border-transparent hover:bg-slate-100/70 dark:hover:bg-white/6',
@@ -466,6 +502,18 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                     page now.
                                 </p>
                             ) : null}
+                            {payload &&
+                            payload.pages.length > 0 &&
+                            visiblePages.length === 0 ? (
+                                <p
+                                    className="p-3 text-sm leading-6"
+                                    style={{
+                                        color: 'var(--journal-muted-text)',
+                                    }}
+                                >
+                                    No pages match “{search.trim()}”.
+                                </p>
+                            ) : null}
                         </div>
                     </aside>
 
@@ -485,6 +533,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 ? requestingFeedbackForId === selected.id
                                 : false
                         }
+                        saveError={saveError}
                         onDraftChange={updateDraft}
                         onDelete={deletePage}
                         onRequestFeedback={requestFeedback}
@@ -589,6 +638,7 @@ function JournalPageEditor({
     onRequestFeedback,
     onSave,
     page,
+    saveError,
 }: {
     allowExpertAccess: boolean;
     deletingPageId: number | null;
@@ -602,6 +652,7 @@ function JournalPageEditor({
     onRequestFeedback: (page: JournalPage, domainKey: string) => Promise<void>;
     onSave: (next: JournalPage) => Promise<void>;
     page: JournalPage | null;
+    saveError: string;
 }) {
     if (isLoading) {
         return <JournalEditorSkeleton />;
@@ -632,11 +683,11 @@ function JournalPageEditor({
 
     return (
         <main
-            className="flex min-h-0 flex-col p-4 md:p-6"
+            className="flex min-h-0 flex-col p-3 sm:p-4 md:p-6"
             style={{ background: 'var(--journal-content-background)' }}
         >
-            <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
-                <div className="grid min-w-0 flex-1 gap-3 md:grid-cols-3">
+            <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+                <div className="grid w-full gap-3 sm:min-w-0 sm:flex-1 sm:grid-cols-3">
                     <label
                         className="grid gap-1 text-sm font-medium"
                         style={{ color: 'var(--journal-heading-text)' }}
@@ -770,6 +821,21 @@ function JournalPageEditor({
                 >
                     <Trash2 className="size-4" />
                 </Button>
+            </div>
+            <div
+                aria-live="polite"
+                className="mt-2 min-h-5 text-xs"
+                style={{
+                    color: saveError ? '#dc2626' : 'var(--journal-muted-text)',
+                }}
+            >
+                {saveError
+                    ? saveError
+                    : isSaving
+                      ? 'Saving your draft…'
+                      : isDirty
+                        ? 'Saving your draft…'
+                        : 'All changes saved.'}
             </div>
             <JournalFeedbackPanel
                 allowExpertAccess={allowExpertAccess}

@@ -1,17 +1,17 @@
 import { Hammer, Image, MousePointer2, Music, Package } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
 import {
-    SettingsConfigurationLayout,
-    SettingsSectionButton,
-    SettingsSidebar,
+    SettingsNestedWorkspace,
+    SettingsSectionNavigation,
 } from '@/components/settings-configuration-shell';
-import AdminItemsPage, { type AdminItem } from '@/pages/settings/assets/items';
-import AdminMediaAssets, {
-    type ReusableMediaAsset,
-} from '@/pages/settings/assets/media';
-import AdminSoundsPage from '@/pages/settings/assets/sounds';
-import AdminToolsPage, { type AdminTool } from '@/pages/settings/assets/tools';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { CursorImageSettingsPanel } from '@/features/settings/cursor-image-settings-panel';
+import AdminItemsPage from '@/pages/settings/assets/items';
+import type { AdminItem } from '@/pages/settings/assets/items';
+import AdminMediaAssets from '@/pages/settings/assets/media';
+import type { ReusableMediaAsset } from '@/pages/settings/assets/media';
+import AdminSoundsPage from '@/pages/settings/assets/sounds';
+import AdminToolsPage from '@/pages/settings/assets/tools';
+import type { AdminTool } from '@/pages/settings/assets/tools';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { LearningSound } from '@/types';
 
@@ -53,12 +53,6 @@ const sections = [
         label: 'Sounds',
     },
     {
-        description: 'Normal, action, grab, text and denied cursor images.',
-        icon: MousePointer2,
-        key: 'cursors',
-        label: 'Cursor images',
-    },
-    {
         description: 'Inspectable tools and map interaction helpers.',
         icon: Hammer,
         key: 'tools',
@@ -70,12 +64,13 @@ const sections = [
         key: 'items',
         label: 'Items',
     },
-] satisfies {
-    description: string;
-    icon: LucideIcon;
-    key: AssetsWorldObjectsSection;
-    label: string;
-}[];
+    {
+        description: 'Normal, action, grab, text and denied cursor images.',
+        icon: MousePointer2,
+        key: 'cursors',
+        label: 'Cursor images',
+    },
+] satisfies SettingsNavigationItem<AssetsWorldObjectsSection>[];
 
 export function AssetsWorldObjectsPanel({
     activeSection,
@@ -114,48 +109,49 @@ export function AssetsWorldObjectsPanel({
         );
     }
 
+    const assetsItem: SettingsNavigationItem<'assets-world-objects'> = {
+        description:
+            'Media, sounds, cursor images, reusable tools and consumable items.',
+        icon: Package,
+        key: 'assets-world-objects',
+        label: 'Assets & World Objects',
+    };
+    const activeSectionItem =
+        visibleSections.find((section) => section.key === resolvedSection) ??
+        assetsItem;
+
     return (
-        <div className="h-full min-h-0 p-4">
-            <SettingsConfigurationLayout
-                className="h-full"
-                sidebar={
-                    <SettingsSidebar>
-                        {visibleSections.map((section) => (
-                            <SettingsSectionButton
-                                active={resolvedSection === section.key}
-                                description={section.description}
-                                icon={section.icon}
-                                id={section.key}
-                                key={section.key}
-                                label={section.label}
-                                onSelect={onSelectSection}
-                            />
-                        ))}
-                    </SettingsSidebar>
-                }
-            >
-                {resolvedSection === 'visuals' ? (
-                    <AdminMediaAssets assets={assets.visuals} embedded />
-                ) : null}
+        <SettingsNestedWorkspace
+            contentClassName="h-full overflow-hidden"
+            item={activeSectionItem}
+            sidebar={
+                <SettingsSectionNavigation
+                    activeSection={resolvedSection}
+                    ariaLabel="Assets and world objects sections"
+                    items={visibleSections}
+                    onChange={onSelectSection}
+                />
+            }
+        >
+            {resolvedSection === 'visuals' ? (
+                <AdminMediaAssets assets={assets.visuals} embedded />
+            ) : null}
 
-                {resolvedSection === 'sounds' ? (
-                    <AdminSoundsPage embedded sounds={assets.sounds} />
-                ) : null}
+            {resolvedSection === 'sounds' ? (
+                <AdminSoundsPage embedded sounds={assets.sounds} />
+            ) : null}
 
-                {resolvedSection === 'cursors' && publicPresentation ? (
-                    <CursorImageSettingsPanel
-                        presentation={publicPresentation}
-                    />
-                ) : null}
+            {resolvedSection === 'cursors' && publicPresentation ? (
+                <CursorImageSettingsPanel presentation={publicPresentation} />
+            ) : null}
 
-                {resolvedSection === 'tools' ? (
-                    <AdminToolsPage embedded tools={assets.tools} />
-                ) : null}
+            {resolvedSection === 'tools' ? (
+                <AdminToolsPage embedded tools={assets.tools} />
+            ) : null}
 
-                {resolvedSection === 'items' ? (
-                    <AdminItemsPage embedded items={assets.items} />
-                ) : null}
-            </SettingsConfigurationLayout>
-        </div>
+            {resolvedSection === 'items' ? (
+                <AdminItemsPage embedded items={assets.items} />
+            ) : null}
+        </SettingsNestedWorkspace>
     );
 }

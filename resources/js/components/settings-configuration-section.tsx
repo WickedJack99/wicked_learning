@@ -16,7 +16,7 @@ export function SettingsConfigurationSection({
     title: string;
 }) {
     return (
-        <section className="rounded-xl border border-slate-200 bg-slate-50/70 dark:border-white/10 dark:bg-white/5">
+        <section className="border border-slate-200 bg-slate-50/70 dark:border-white/10 dark:bg-white/5">
             <header className="border-b border-slate-200 px-4 py-3 dark:border-white/10">
                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                     {title}
@@ -38,7 +38,7 @@ export function SettingsEmptyStateSection({
     title: string;
 }) {
     return (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+        <div className="border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
             <p className="text-sm font-semibold text-slate-950 dark:text-white">
                 {title}
             </p>

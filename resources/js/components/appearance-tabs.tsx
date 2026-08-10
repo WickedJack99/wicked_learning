@@ -31,7 +31,7 @@ export default function AppearanceToggleTab({
     return (
         <div
             className={cn(
-                'inline-flex gap-1 rounded-lg p-1',
+                'settings-rounded-control inline-flex gap-1 rounded-lg p-1',
                 variant === 'subtle'
                     ? 'border bg-white/7 backdrop-blur-md'
                     : 'border border-[var(--settings-border-color,transparent)] bg-[var(--settings-appearance-switch-background,var(--settings-active-background,#f5f5f5))]',

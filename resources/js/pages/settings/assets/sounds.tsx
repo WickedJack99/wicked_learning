@@ -9,6 +9,7 @@ import {
     Play,
     Plus,
     Radio,
+    Save,
     Search,
     Square,
     Trash2,
@@ -16,10 +17,11 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { SoundAssetInput } from '@/components/sound-asset-input';
-import { SettingsGroupedPane } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { uploadMediaFile } from '@/lib/media-upload';
@@ -187,11 +189,9 @@ export default function AdminSoundsPage({
                         </header>
                     ) : null}
 
-                    <SettingsGroupedPane
-                        className={embedded ? 'shadow-none' : undefined}
-                    >
-                        <div className="grid h-full min-h-0 gap-4 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem]">
-                            <div className="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-950/30">
+                    <AssetLibraryWorkspace>
+                        <div className="flex min-h-0 flex-col overflow-hidden">
+                            <div className="min-h-0 flex-1 overflow-y-auto p-5">
                                 <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
                                         <h2 className="text-xl font-semibold text-slate-950 dark:text-white">
@@ -357,19 +357,15 @@ export default function AdminSoundsPage({
                                             value={form.playSeconds}
                                         />
                                         <div className="flex items-center gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                                            <input
+                                            <Checkbox
                                                 checked={form.loop}
-                                                className="size-4"
                                                 id="sound-loop"
-                                                onChange={(event) =>
+                                                onCheckedChange={(checked) =>
                                                     setForm((current) => ({
                                                         ...current,
-                                                        loop: event
-                                                            .currentTarget
-                                                            .checked,
+                                                        loop: checked === true,
                                                     }))
                                                 }
-                                                type="checkbox"
                                             />
                                             <div>
                                                 <Label htmlFor="sound-loop">
@@ -408,82 +404,82 @@ export default function AdminSoundsPage({
                                         uploading={isUploading}
                                         value={form.url}
                                     />
-
-                                    <div className="flex flex-wrap justify-end gap-2">
-                                        {selectedSound ? (
-                                            <Button
-                                                onClick={deleteSound}
-                                                type="button"
-                                                variant="destructive"
-                                            >
-                                                <Trash2 className="size-4" />
-                                                Delete
-                                            </Button>
-                                        ) : null}
+                                </div>
+                            </div>
+                            <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--settings-border-color)] p-4">
+                                <div>
+                                    {selectedSound ? (
                                         <Button
-                                            disabled={!hasChanges}
-                                            onClick={saveSound}
+                                            onClick={deleteSound}
                                             type="button"
+                                            variant="destructive"
                                         >
-                                            {isUploading ? (
-                                                <LoaderCircle className="size-4 animate-spin" />
-                                            ) : (
-                                                <Plus className="size-4" />
-                                            )}
-                                            {selectedSound ? 'Save' : 'Create'}
+                                            <Trash2 className="size-4" />
+                                            Delete sound
                                         </Button>
-                                    </div>
+                                    ) : null}
+                                </div>
+                                <Button
+                                    disabled={!hasChanges || isUploading}
+                                    onClick={saveSound}
+                                    type="button"
+                                >
+                                    {isUploading ? (
+                                        <LoaderCircle className="size-4 animate-spin" />
+                                    ) : selectedSound ? (
+                                        <Save className="size-4" />
+                                    ) : (
+                                        <Plus className="size-4" />
+                                    )}
+                                    {selectedSound
+                                        ? 'Save sound'
+                                        : 'Create sound'}
+                                </Button>
+                            </footer>
+                        </div>
+
+                        <aside className="flex min-h-0 flex-col overflow-hidden">
+                            <div className="shrink-0 border-b border-[var(--settings-border-color)] p-3">
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+                                    <Input
+                                        className="pl-9"
+                                        onChange={(event) =>
+                                            setSearch(event.currentTarget.value)
+                                        }
+                                        placeholder="Search sounds"
+                                        value={search}
+                                    />
                                 </div>
                             </div>
 
-                            <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/30">
-                                <div className="shrink-0 border-b border-slate-200 p-3 dark:border-white/10">
-                                    <div className="relative">
-                                        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
-                                        <Input
-                                            className="pl-9"
-                                            onChange={(event) =>
-                                                setSearch(
-                                                    event.currentTarget.value,
-                                                )
+                            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                                <div className="grid gap-2">
+                                    {filteredSounds.map((sound) => (
+                                        <SoundListItem
+                                            isSelected={
+                                                selectedSound?.id === sound.id
                                             }
-                                            placeholder="Search sounds"
-                                            value={search}
+                                            key={sound.id}
+                                            onSelect={() => selectSound(sound)}
+                                            sound={sound}
                                         />
-                                    </div>
+                                    ))}
                                 </div>
+                            </div>
 
-                                <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                                    <div className="grid gap-2">
-                                        {filteredSounds.map((sound) => (
-                                            <SoundListItem
-                                                isSelected={
-                                                    selectedSound?.id ===
-                                                    sound.id
-                                                }
-                                                key={sound.id}
-                                                onSelect={() =>
-                                                    selectSound(sound)
-                                                }
-                                                sound={sound}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">
-                                    <Button
-                                        className="w-full"
-                                        onClick={startCreate}
-                                        type="button"
-                                    >
-                                        <Plus className="size-4" />
-                                        Create sound
-                                    </Button>
-                                </div>
-                            </aside>
-                        </div>
-                    </SettingsGroupedPane>
+                            <div className="shrink-0 border-t border-[var(--settings-border-color)] p-3">
+                                <Button
+                                    className="w-full"
+                                    onClick={startCreate}
+                                    type="button"
+                                >
+                                    <Plus className="size-4" />
+                                    Create sound
+                                </Button>
+                            </div>
+                        </aside>
+                    </AssetLibraryWorkspace>
                 </div>
             </main>
         </>

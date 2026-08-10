@@ -1,8 +1,7 @@
 import { Link } from '@inertiajs/react';
-import { GitBranch, Map as MapIcon, SlidersHorizontal } from 'lucide-react';
+import { GitBranch, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { SettingsLevelBanner } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -99,17 +98,18 @@ export function WorldMapManagementPanel({
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] lg:border-r lg:border-b-0">
                 {selectedMap ? (
                     <>
-                        <SettingsLevelBanner
-                            className="bg-transparent px-4"
-                            contentClassName="lg:max-w-none"
-                            description={
-                                selectedMap.description ??
-                                'No map description yet.'
-                            }
-                            eyebrow="Selected map"
-                            icon={MapIcon}
-                            title={selectedMap.title}
-                        />
+                        <div className="shrink-0 border-b border-[var(--settings-border-color)] px-4 py-4">
+                            <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                                Selected map
+                            </p>
+                            <h2 className="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
+                                {selectedMap.title}
+                            </h2>
+                            <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
+                                {selectedMap.description ??
+                                    'No map description yet.'}
+                            </p>
+                        </div>
 
                         <nav className="min-h-0 flex-1 overflow-y-auto p-3">
                             <Link
@@ -142,7 +142,7 @@ export function WorldMapManagementPanel({
                             </Link>
 
                             <p className="px-3 pt-3 pb-2 text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
-                                Nodes
+                                MapAssets
                             </p>
                             <div className="grid gap-2">
                                 {selectedMap.nodes.map((node) => (
@@ -186,7 +186,7 @@ export function WorldMapManagementPanel({
                     </>
                 ) : (
                     <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
-                        Create a map before configuring map or node access.
+                        Create a map before configuring map or MapAsset access.
                     </p>
                 )}
             </div>
@@ -195,27 +195,33 @@ export function WorldMapManagementPanel({
                 {selectedMap && showDetailContent && detail ? (
                     detail.content
                 ) : selectedMap ? (
-                    <div className="flex h-full min-h-0 flex-col overflow-hidden">
-                        <SettingsLevelBanner
-                            className="bg-[var(--settings-sidebar-background)]"
-                            action={
-                                <Button asChild variant="secondary">
-                                    <Link
-                                        href={`/settings?panel=admin-world-builder&worldSection=structural&map=${selectedMap.id}&worldView=configure`}
-                                    >
-                                        Configure map
-                                    </Link>
-                                </Button>
-                            }
-                            description="Select a node to edit its activities, or open the map configuration for details, visuals and access."
-                            eyebrow="Node activity editing"
-                            icon={GitBranch}
-                            title={selectedMap.title}
-                        />
+                    <div className="grid h-full min-h-0 place-items-center overflow-hidden p-5 text-center">
+                        <div className="max-w-xl">
+                            <GitBranch className="mx-auto size-8 text-[var(--settings-accent)]" />
+                            <h2 className="mt-4 text-xl font-semibold text-slate-950 dark:text-white">
+                                {selectedMap.title}
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                                Select a MapAsset to edit its activities, or
+                                open the map configuration for details, visuals
+                                and access.
+                            </p>
+                            <Button
+                                asChild
+                                className="mt-5"
+                                variant="secondary"
+                            >
+                                <Link
+                                    href={`/settings?panel=admin-world-builder&worldSection=structural&map=${selectedMap.id}&worldView=configure`}
+                                >
+                                    Configure map
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <p className="m-4 border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)] sm:m-5">
-                        Create a map before configuring map or node access.
+                        Create a map before configuring map or MapAsset access.
                     </p>
                 )}
             </div>

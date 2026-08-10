@@ -19,7 +19,6 @@ import type { FormEvent } from 'react';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
-    SettingsLevelBanner,
     SettingsPanelHeader,
     SettingsSectionNavigation,
     type SettingsNavigationItem,
@@ -207,19 +206,14 @@ export default function AdminPanel({
 
     const content = (
         <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--settings-panel-background)]">
-            {hideNavigation ? null : (
-                <SettingsLevelBanner item={activeSectionItem} />
-            )}
             {section === 'feedback-requests' ? (
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                     <div className="shrink-0 px-4 pt-4 sm:px-5 sm:pt-5">
-                        {hideNavigation ? (
-                            <SettingsPanelHeader
-                                description={embeddedHeading.description}
-                                item={embeddedHeadingItem}
-                                title={embeddedHeading.title}
-                            />
-                        ) : null}
+                        <SettingsPanelHeader
+                            description={embeddedHeading.description}
+                            item={embeddedHeadingItem}
+                            title={embeddedHeading.title}
+                        />
                         <SectionStats
                             metrics={metrics}
                             section={section}
@@ -233,15 +227,28 @@ export default function AdminPanel({
                     />
                 </div>
             ) : (
-                <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-                    <div className="grid gap-4">
-                        {hideNavigation ? (
-                            <SettingsPanelHeader
-                                description={embeddedHeading.description}
-                                item={embeddedHeadingItem}
-                                title={embeddedHeading.title}
-                            />
-                        ) : null}
+                <div
+                    className={cn(
+                        'min-h-0 flex-1 p-4 sm:p-5',
+                        section === 'competence-topics' ||
+                            section === 'organization-icons'
+                            ? 'overflow-hidden'
+                            : 'overflow-y-auto',
+                    )}
+                >
+                    <div
+                        className={cn(
+                            'grid gap-4',
+                            (section === 'competence-topics' ||
+                                section === 'organization-icons') &&
+                                'h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)]',
+                        )}
+                    >
+                        <SettingsPanelHeader
+                            description={embeddedHeading.description}
+                            item={embeddedHeadingItem}
+                            title={embeddedHeading.title}
+                        />
                         <SectionStats
                             metrics={metrics}
                             section={section}
@@ -372,8 +379,8 @@ function CompetenceTopicsSection({
     }
 
     return (
-        <form className="grid gap-4" onSubmit={saveTopics}>
-            <section className="border-b border-[var(--settings-border-color)] pb-4">
+        <form className="flex h-full min-h-0 flex-col" onSubmit={saveTopics}>
+            <section className="shrink-0 border-b border-[var(--settings-border-color)] pb-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <div className="flex items-center gap-2">
@@ -399,119 +406,131 @@ function CompetenceTopicsSection({
                             <Plus className="size-4" />
                             Add topic
                         </Button>
-                        <Button disabled={!hasChanges} type="submit">
-                            <Save className="size-4" />
-                            Save
-                        </Button>
                     </div>
                 </div>
             </section>
 
-            <div className="grid gap-3">
-                {drafts.map((topic, index) => (
-                    <article
-                        className="grid gap-3 border-b border-[var(--settings-border-color)] py-4"
-                        key={`${topic.slug || 'new'}-${index}`}
-                    >
-                        <div className="grid w-full gap-3 lg:max-w-[45%]">
-                            <div className="grid gap-2">
-                                <label
-                                    className="text-sm font-medium"
-                                    htmlFor={`competence-topic-name-${index}`}
-                                >
-                                    Topic
-                                </label>
-                                <Input
-                                    id={`competence-topic-name-${index}`}
-                                    onChange={(event) =>
-                                        updateTopic(
-                                            index,
-                                            'name',
-                                            event.target.value,
-                                        )
-                                    }
-                                    placeholder="e.g. Algebra"
-                                    value={topic.name}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <label
-                                    className="text-sm font-medium"
-                                    htmlFor={`competence-description-${index}`}
-                                >
-                                    Description
-                                </label>
-                                <textarea
-                                    className="min-h-20 rounded-md border px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:text-white"
-                                    id={`competence-description-${index}`}
-                                    onChange={(event) =>
-                                        updateTopic(
-                                            index,
-                                            'description',
-                                            event.target.value,
-                                        )
-                                    }
-                                    value={topic.description}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid gap-3 pt-1 lg:grid-cols-[8rem_8rem_8rem_auto] lg:items-end">
-                            <ThresholdInput
-                                id={`competence-growth-${index}`}
-                                label="Growth"
-                                onChange={(value) =>
-                                    updateTopic(index, 'growthThreshold', value)
-                                }
-                                value={topic.growthThreshold}
-                            />
-                            <ThresholdInput
-                                id={`competence-emittance-${index}`}
-                                label="Emittance"
-                                onChange={(value) =>
-                                    updateTopic(
-                                        index,
-                                        'emittanceThreshold',
-                                        value,
-                                    )
-                                }
-                                value={topic.emittanceThreshold}
-                            />
-                            <ThresholdInput
-                                id={`competence-aura-${index}`}
-                                label="Aura"
-                                onChange={(value) =>
-                                    updateTopic(index, 'auraThreshold', value)
-                                }
-                                value={topic.auraThreshold}
-                            />
-                            <div className="flex items-center gap-2 lg:justify-self-start">
-                                <label className="flex items-center gap-3 py-3 text-sm font-medium">
-                                    <Checkbox
-                                        checked={topic.isActive}
-                                        onCheckedChange={(checked) =>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="grid gap-3">
+                    {drafts.map((topic, index) => (
+                        <article
+                            className="grid gap-3 border-b border-[var(--settings-border-color)] py-4"
+                            key={`${topic.slug || 'new'}-${index}`}
+                        >
+                            <div className="grid w-full gap-3 lg:max-w-[45%]">
+                                <div className="grid gap-2">
+                                    <label
+                                        className="text-sm font-medium"
+                                        htmlFor={`competence-topic-name-${index}`}
+                                    >
+                                        Topic
+                                    </label>
+                                    <Input
+                                        id={`competence-topic-name-${index}`}
+                                        onChange={(event) =>
                                             updateTopic(
                                                 index,
-                                                'isActive',
-                                                checked === true,
+                                                'name',
+                                                event.target.value,
                                             )
                                         }
+                                        placeholder="e.g. Algebra"
+                                        value={topic.name}
                                     />
-                                    Active
-                                </label>
-                                <Button
-                                    aria-label="Remove competence topic"
-                                    onClick={() => removeTopic(index)}
-                                    type="button"
-                                    variant="ghost"
-                                >
-                                    <Trash2 className="size-4" />
-                                </Button>
+                                </div>
+                                <div className="grid gap-2">
+                                    <label
+                                        className="text-sm font-medium"
+                                        htmlFor={`competence-description-${index}`}
+                                    >
+                                        Description
+                                    </label>
+                                    <textarea
+                                        className="min-h-20 rounded-md border px-3 py-2 text-sm text-slate-950 shadow-sm transition outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] dark:text-white"
+                                        id={`competence-description-${index}`}
+                                        onChange={(event) =>
+                                            updateTopic(
+                                                index,
+                                                'description',
+                                                event.target.value,
+                                            )
+                                        }
+                                        value={topic.description}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    </article>
-                ))}
+
+                            <div className="grid gap-3 pt-1 lg:grid-cols-[8rem_8rem_8rem_auto] lg:items-end">
+                                <ThresholdInput
+                                    id={`competence-growth-${index}`}
+                                    label="Growth"
+                                    onChange={(value) =>
+                                        updateTopic(
+                                            index,
+                                            'growthThreshold',
+                                            value,
+                                        )
+                                    }
+                                    value={topic.growthThreshold}
+                                />
+                                <ThresholdInput
+                                    id={`competence-emittance-${index}`}
+                                    label="Emittance"
+                                    onChange={(value) =>
+                                        updateTopic(
+                                            index,
+                                            'emittanceThreshold',
+                                            value,
+                                        )
+                                    }
+                                    value={topic.emittanceThreshold}
+                                />
+                                <ThresholdInput
+                                    id={`competence-aura-${index}`}
+                                    label="Aura"
+                                    onChange={(value) =>
+                                        updateTopic(
+                                            index,
+                                            'auraThreshold',
+                                            value,
+                                        )
+                                    }
+                                    value={topic.auraThreshold}
+                                />
+                                <div className="flex items-center gap-2 lg:justify-self-start">
+                                    <label className="flex items-center gap-3 py-3 text-sm font-medium">
+                                        <Checkbox
+                                            checked={topic.isActive}
+                                            onCheckedChange={(checked) =>
+                                                updateTopic(
+                                                    index,
+                                                    'isActive',
+                                                    checked === true,
+                                                )
+                                            }
+                                        />
+                                        Active
+                                    </label>
+                                    <Button
+                                        aria-label="Remove competence topic"
+                                        onClick={() => removeTopic(index)}
+                                        type="button"
+                                        variant="ghost"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+                </div>
             </div>
+            <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
+                <Button disabled={!hasChanges} type="submit">
+                    <Save className="size-4" />
+                    Save topics
+                </Button>
+            </footer>
         </form>
     );
 }
@@ -1020,11 +1039,8 @@ function OrganizationModerationSection({
     }
 
     return (
-        <section className="grid gap-4">
-            <form
-                className="grid gap-3 border-b border-[var(--settings-border-color)] pb-4 md:grid-cols-[minmax(0,1fr)_10rem_max-content] md:items-end"
-                onSubmit={saveLimit}
-            >
+        <form className="flex h-full min-h-0 flex-col" onSubmit={saveLimit}>
+            <section className="grid shrink-0 gap-3 border-b border-[var(--settings-border-color)] pb-4 md:grid-cols-[minmax(0,1fr)_10rem] md:items-end">
                 <div>
                     <div className="flex items-center gap-2">
                         <Building2
@@ -1046,69 +1062,73 @@ function OrganizationModerationSection({
                     value={limit}
                     onChange={(event) => setLimit(event.target.value)}
                 />
+            </section>
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="grid">
+                    {reports.length === 0 ? (
+                        <p className="border-b border-dashed border-[var(--settings-border-color)] py-5 text-sm text-[var(--settings-muted-text)]">
+                            No pending organization icon reports.
+                        </p>
+                    ) : null}
+                    {reports.map((report) => (
+                        <article
+                            className="grid gap-4 border-b border-[var(--settings-border-color)] py-4 md:grid-cols-[5rem_minmax(0,1fr)_max-content]"
+                            key={report.id}
+                        >
+                            <OrganizationIcon
+                                className="size-20"
+                                iconUrl={report.iconUrl}
+                                name={report.organization.name}
+                            />
+                            <div className="min-w-0">
+                                <h3 className="font-semibold">
+                                    {report.organization.name}
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                    Reported by {report.reporter.name} (
+                                    {report.reporter.email})
+                                </p>
+                                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                    Icon set by{' '}
+                                    {report.iconSetter
+                                        ? `${report.iconSetter.name} (${report.iconSetter.email})`
+                                        : 'unknown user'}
+                                </p>
+                                {report.reason ? (
+                                    <p className="mt-2 text-sm leading-6">
+                                        {report.reason}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div className="flex flex-wrap gap-2 md:flex-col">
+                                <Button
+                                    onClick={() => resolveReport(report, true)}
+                                    type="button"
+                                    variant="destructive"
+                                >
+                                    <ShieldCheck className="size-4" />
+                                    Remove icon
+                                </Button>
+                                <Button
+                                    onClick={() => resolveReport(report, false)}
+                                    type="button"
+                                    variant="secondary"
+                                >
+                                    <X className="size-4" />
+                                    Dismiss
+                                </Button>
+                            </div>
+                        </article>
+                    ))}
+                </div>
+            </div>
+            <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
                 <Button disabled={!hasLimitChanges} type="submit">
                     <Save className="size-4" />
-                    Save
+                    Save organization limit
                 </Button>
-            </form>
-
-            <div className="grid">
-                {reports.length === 0 ? (
-                    <p className="border-b border-dashed border-[var(--settings-border-color)] py-5 text-sm text-[var(--settings-muted-text)]">
-                        No pending organization icon reports.
-                    </p>
-                ) : null}
-                {reports.map((report) => (
-                    <article
-                        className="grid gap-4 border-b border-[var(--settings-border-color)] py-4 md:grid-cols-[5rem_minmax(0,1fr)_max-content]"
-                        key={report.id}
-                    >
-                        <OrganizationIcon
-                            className="size-20"
-                            iconUrl={report.iconUrl}
-                            name={report.organization.name}
-                        />
-                        <div className="min-w-0">
-                            <h3 className="font-semibold">
-                                {report.organization.name}
-                            </h3>
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                Reported by {report.reporter.name} (
-                                {report.reporter.email})
-                            </p>
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                Icon set by{' '}
-                                {report.iconSetter
-                                    ? `${report.iconSetter.name} (${report.iconSetter.email})`
-                                    : 'unknown user'}
-                            </p>
-                            {report.reason ? (
-                                <p className="mt-2 text-sm leading-6">
-                                    {report.reason}
-                                </p>
-                            ) : null}
-                        </div>
-                        <div className="flex flex-wrap gap-2 md:flex-col">
-                            <Button
-                                onClick={() => resolveReport(report, true)}
-                                type="button"
-                                variant="destructive"
-                            >
-                                <ShieldCheck className="size-4" />
-                                Remove icon
-                            </Button>
-                            <Button
-                                onClick={() => resolveReport(report, false)}
-                                type="button"
-                                variant="secondary"
-                            >
-                                <X className="size-4" />
-                                Dismiss
-                            </Button>
-                        </div>
-                    </article>
-                ))}
-            </div>
-        </section>
+            </footer>
+        </form>
     );
 }

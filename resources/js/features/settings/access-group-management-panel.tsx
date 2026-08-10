@@ -147,8 +147,8 @@ export function AccessGroupManagementPanel({
     };
 
     return (
-        <div className="grid gap-5">
-            <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+        <div className="flex h-full min-h-0 flex-col">
+            <div className="flex shrink-0 flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
@@ -167,7 +167,7 @@ export function AccessGroupManagementPanel({
                 </Button>
             </div>
 
-            <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <section className="grid min-h-0 flex-1 gap-4 pt-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <GroupEditor
                     errors={errors}
                     form={form}
@@ -221,97 +221,100 @@ function GroupEditor({
     users: AccessGroupUser[];
 }) {
     return (
-        <div className="grid gap-5">
-            <section className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
-                <div>
-                    <h2 className="text-lg font-semibold">
-                        {selectedGroup ? selectedGroup.name : 'New group'}
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                        Groups can share chat, activity state and selected map
-                        editing permissions.
-                    </p>
-                </div>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
+                <section className="grid gap-4 border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
+                    <div>
+                        <h2 className="text-lg font-semibold">
+                            {selectedGroup ? selectedGroup.name : 'New group'}
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            Groups can share chat, activity state and selected
+                            map editing permissions.
+                        </p>
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="Name" message={errors.name}>
-                        <Input
-                            value={form.name}
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <Field label="Name" message={errors.name}>
+                            <Input
+                                value={form.name}
+                                onChange={(event) =>
+                                    onFormChange({
+                                        ...form,
+                                        name: event.target.value,
+                                    })
+                                }
+                            />
+                        </Field>
+                        <Field label="Slug" message={errors.slug}>
+                            <Input
+                                placeholder="Generated from name"
+                                value={form.slug}
+                                onChange={(event) =>
+                                    onFormChange({
+                                        ...form,
+                                        slug: event.target.value,
+                                    })
+                                }
+                            />
+                        </Field>
+                    </div>
+
+                    <Field label="Description" message={errors.description}>
+                        <textarea
+                            className="min-h-24 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950"
+                            value={form.description}
                             onChange={(event) =>
                                 onFormChange({
                                     ...form,
-                                    name: event.target.value,
+                                    description: event.target.value,
                                 })
                             }
                         />
                     </Field>
-                    <Field label="Slug" message={errors.slug}>
+
+                    <Field label="Study topic" message={errors.study_topic}>
                         <Input
-                            placeholder="Generated from name"
-                            value={form.slug}
+                            placeholder="What should this group study or build?"
+                            value={form.study_topic}
                             onChange={(event) =>
                                 onFormChange({
                                     ...form,
-                                    slug: event.target.value,
+                                    study_topic: event.target.value,
                                 })
                             }
                         />
                     </Field>
-                </div>
+                </section>
 
-                <Field label="Description" message={errors.description}>
-                    <textarea
-                        className="min-h-24 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950"
-                        value={form.description}
-                        onChange={(event) =>
-                            onFormChange({
-                                ...form,
-                                description: event.target.value,
-                            })
-                        }
-                    />
-                </Field>
+                <MembersPanel
+                    errors={errors}
+                    memberIds={memberIds}
+                    onToggleMember={onToggleMember}
+                    users={users}
+                />
 
-                <Field label="Study topic" message={errors.study_topic}>
-                    <Input
-                        placeholder="What should this group study or build?"
-                        value={form.study_topic}
-                        onChange={(event) =>
-                            onFormChange({
-                                ...form,
-                                study_topic: event.target.value,
-                            })
-                        }
-                    />
-                </Field>
-
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        disabled={saving || !hasGroupChanges}
-                        onClick={onSaveGroup}
-                    >
-                        <Save className="size-4" />
-                        Save group
-                    </Button>
-                    <Button
-                        disabled={!selectedGroup || saving || !hasMemberChanges}
-                        onClick={onSaveMembers}
-                        variant="secondary"
-                    >
-                        <Users className="size-4" />
-                        Save members
-                    </Button>
-                </div>
-            </section>
-
-            <MembersPanel
-                errors={errors}
-                memberIds={memberIds}
-                onToggleMember={onToggleMember}
-                users={users}
-            />
-
-            {selectedGroup ? <AdminChatPreview group={selectedGroup} /> : null}
+                {selectedGroup ? (
+                    <AdminChatPreview group={selectedGroup} />
+                ) : null}
+            </div>
+            <footer className="flex shrink-0 flex-wrap gap-2 border-t border-slate-200 py-4 dark:border-white/10">
+                <Button
+                    disabled={saving || !hasGroupChanges}
+                    onClick={onSaveGroup}
+                >
+                    <Save className="size-4" />
+                    Save group
+                </Button>
+                <Button
+                    disabled={!selectedGroup || saving || !hasMemberChanges}
+                    onClick={onSaveMembers}
+                    variant="secondary"
+                >
+                    <Users className="size-4" />
+                    Save members
+                </Button>
+            </footer>
         </div>
     );
 }
@@ -328,14 +331,14 @@ function MembersPanel({
     users: AccessGroupUser[];
 }) {
     return (
-        <section className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-3 border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
             <div>
                 <h2 className="text-sm font-semibold">Members</h2>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Assign any number of users to this group.
                 </p>
             </div>
-            <div className="grid max-h-80 gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
+            <div className="grid max-h-80 gap-2 overflow-y-auto border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
                 {users.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
                         No users available.
@@ -378,7 +381,7 @@ function GroupList({
     selectedGroupId: number | 'new';
 }) {
     return (
-        <aside className="grid content-start gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <aside className="grid h-full min-h-0 content-start gap-2 overflow-y-auto border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-[#0b1117]/80">
             {groups.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
                     No groups yet.
@@ -408,7 +411,7 @@ function GroupList({
 
 function AdminChatPreview({ group }: { group: AccessLearningGroup }) {
     return (
-        <section className="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-white/10">
+        <section className="grid gap-3 border border-slate-200 p-4 dark:border-white/10">
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <h2 className="flex items-center gap-2 text-sm font-semibold">

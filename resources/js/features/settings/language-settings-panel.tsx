@@ -122,14 +122,17 @@ export function LanguageSettingsPanel({
                 </div>
             </SettingsFormColumn>
             {!hideSaveButton ? (
-                <Button
-                    disabled={saving || !hasChanges}
-                    onClick={save}
-                    type="button"
-                >
-                    <Save className="size-4" />
-                    {t('settings.personal.language.save', 'Save language')}
-                </Button>
+                <div className="w-full lg:max-w-[45%]">
+                    <Button
+                        className="w-full"
+                        disabled={saving || !hasChanges}
+                        onClick={save}
+                        type="button"
+                    >
+                        <Save className="size-4" />
+                        {t('settings.personal.language.save', 'Save language')}
+                    </Button>
+                </div>
             ) : null}
         </section>
     );
