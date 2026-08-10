@@ -3,6 +3,7 @@
 namespace App\Learning\Validation;
 
 use App\Learning\ActivityTypeRegistry;
+use App\Learning\Services\MessageActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
 use Illuminate\Validation\Rule;
@@ -21,11 +22,13 @@ class AdminActivityRules
             ...$this->itemGrantRules(),
             ...$this->itemObstacleRules(),
             ...$this->markdownRules(),
+            ...$this->messageRules($node),
             ...$this->obstacleRules(),
             ...$this->portalRules(),
             ...$this->reflectionRules(),
             ...$this->sharedTaskRules(),
             ...$this->toolGrantRules(),
+            ...$this->ambientSoundRules(),
             ...$this->competenceRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
@@ -53,11 +56,13 @@ class AdminActivityRules
             ...$this->itemGrantRules('sometimes'),
             ...$this->itemObstacleRules('sometimes'),
             ...$this->markdownRules('sometimes'),
+            ...$this->messageRules($activity->node, 'sometimes'),
             ...$this->obstacleRules('sometimes'),
             ...$this->portalRules('sometimes'),
             ...$this->reflectionRules('sometimes'),
             ...$this->sharedTaskRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
+            ...$this->ambientSoundRules('sometimes'),
             ...$this->competenceRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
@@ -147,6 +152,42 @@ class AdminActivityRules
             'competence_topics' => [$modifier, 'array', 'max:20'],
             'competence_topics.*.topic' => $this->optional($modifier, ['string', 'max:120']),
             'competence_topics.*.weight' => $this->optional($modifier, ['numeric', 'min:0', 'max:1000']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function ambientSoundRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'activity_sound_enabled' => [$modifier, 'boolean'],
+            'activity_sound_id' => $this->optional($modifier, ['integer', 'exists:learning_sounds,id']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function messageRules(LearningNode $node, string $modifier = 'nullable'): array
+    {
+        $assetId = (int) ($node->mapAsset()->value('id') ?? 0);
+        $needsNewTopic = in_array((string) request('type'), MessageActivityConfiguration::TYPES, true)
+            && ! is_numeric(request('message_topic_id'));
+        $color = ['string', 'regex:/^#[0-9a-fA-F]{6}$/'];
+
+        return [
+            'message_topic_id' => [$modifier, 'nullable', 'integer', Rule::exists('learning_message_topics', 'id')
+                ->where('learning_map_asset_id', $assetId)],
+            'message_topic_title' => [$modifier, Rule::requiredIf($needsNewTopic), 'nullable', 'string', 'max:120'],
+            'message_prompt_text' => [$modifier, 'nullable', 'string', 'max:1000'],
+            'message_input_label' => [$modifier, 'nullable', 'string', 'max:120'],
+            'message_surface_color_dark' => $this->optional($modifier, $color),
+            'message_surface_color_light' => $this->optional($modifier, $color),
+            'message_card_color_dark' => $this->optional($modifier, $color),
+            'message_card_color_light' => $this->optional($modifier, $color),
+            'message_card_border_color_dark' => $this->optional($modifier, $color),
+            'message_card_border_color_light' => $this->optional($modifier, $color),
+            'message_text_color_dark' => $this->optional($modifier, $color),
+            'message_text_color_light' => $this->optional($modifier, $color),
+            'message_accent_color_dark' => $this->optional($modifier, $color),
+            'message_accent_color_light' => $this->optional($modifier, $color),
         ];
     }
 

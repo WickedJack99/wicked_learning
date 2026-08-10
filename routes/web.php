@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LearnerCompetenceController;
 use App\Http\Controllers\LearnerJournalController;
+use App\Http\Controllers\LearnerMessageController;
 use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningGroupController;
@@ -87,6 +88,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.nodes.unlock-tool');
     Route::post('learning/activities/{activity}/progress', [LearningWorldController::class, 'markActivity'])
         ->name('learning.activities.progress');
+    Route::get('learning/activities/{activity}/messages', [LearnerMessageController::class, 'index'])
+        ->name('learning.activities.messages.index');
+    Route::post('learning/activities/{activity}/messages', [LearnerMessageController::class, 'store'])
+        ->name('learning.activities.messages.store');
     Route::get('learning/journal', [LearnerJournalController::class, 'index'])
         ->name('learning.journal.index');
     Route::get('learning/journal/export', [LearnerJournalController::class, 'export'])

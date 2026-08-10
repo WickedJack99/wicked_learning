@@ -81,7 +81,7 @@ export function AppSideActionBar() {
     return (
         <aside
             aria-label="Player actions"
-            className="fixed top-1/2 right-3 z-40 flex -translate-y-1/2 items-center gap-3 md:right-5"
+            className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 md:top-1/2 md:right-5 md:bottom-auto md:left-auto md:translate-x-0 md:-translate-y-1/2 md:flex-row"
             ref={sideActionRef}
         >
             {overlay === 'inventory' ? (
@@ -112,7 +112,7 @@ export function AppSideActionBar() {
             ) : null}
 
             <nav
-                className="grid gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
+                className="grid grid-flow-col gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:grid-flow-row dark:shadow-black/35"
                 style={{
                     background: 'var(--map-side-control-background)',
                     borderColor: 'var(--map-side-control-border-color)',
@@ -373,7 +373,7 @@ function SideOverlay({
 }) {
     return (
         <div
-            className="w-72 rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
+            className="w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
             style={{
                 background: 'var(--map-side-control-panel-background)',
                 borderColor: 'var(--map-side-control-panel-border-color)',

@@ -2,10 +2,12 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\MarkdownActivityConfiguration;
+use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
@@ -20,10 +22,12 @@ use App\Models\LearningNode;
 class CreateLearningActivity
 {
     public function __construct(
+        private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
+        private readonly MessageActivityConfiguration $messageConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
         private readonly ObstacleActivityConfiguration $obstacleConfig,
@@ -47,7 +51,7 @@ class CreateLearningActivity
             'type' => $type,
             'title' => $data['title'],
             'introduction' => $data['introduction'] ?? null,
-            'config' => $this->configFor($type, $data),
+            'config' => $this->configFor($node, $type, $data),
             'sort_order' => $this->nextSortOrder($node),
             'graph_position_x' => $data['graph_position_x'] ?? null,
             'graph_position_y' => $data['graph_position_y'] ?? null,
@@ -64,12 +68,13 @@ class CreateLearningActivity
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function configFor(string $type, array $data): array
+    private function configFor(LearningNode $node, string $type, array $data): array
     {
         $config = match ($type) {
             'item_grant' => $this->itemGrantConfig->fromData($data),
             'item_obstacle' => $this->itemObstacleConfig->fromData($data),
             'markdown' => $this->markdownConfig->fromData($data),
+            'message_prompt', 'message_wall' => $this->messageConfig->fromData($node, $data),
             'obstacle' => $this->obstacleConfig->fromData($data),
             'portal' => $this->portalConfig->fromData($data),
             'reflection' => $this->reflectionConfig->fromData($data),
@@ -78,7 +83,10 @@ class CreateLearningActivity
             default => [],
         };
 
-        return $this->competenceConfig->mergeInto($config, $data);
+        return $this->competenceConfig->mergeInto(
+            $this->ambientSoundConfig->mergeInto($config, $data),
+            $data,
+        );
     }
 
     private function nextSortOrder(LearningNode $node): int

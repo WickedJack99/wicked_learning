@@ -16,6 +16,7 @@ use App\Http\Controllers\Settings\AppearanceController;
 use App\Http\Controllers\Settings\ColorPaletteController;
 use App\Http\Controllers\Settings\JournalSettingsController;
 use App\Http\Controllers\Settings\LanguageController;
+use App\Http\Controllers\Settings\LearnerMessageModerationController;
 use App\Http\Controllers\Settings\PresentationController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -73,6 +74,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('settings/admin-panel', [AdminPanelController::class, 'index'])
         ->name('settings.admin-panel.index');
+});
+
+Route::middleware(['auth', 'verified', 'can:learner_messages.ru'])->group(function () {
+    Route::patch('settings/learning-support/messages/{message}/visibility', [LearnerMessageModerationController::class, 'updateVisibility'])
+        ->name('settings.learning-support.messages.visibility.update');
+});
+
+Route::middleware(['auth', 'verified', 'can:learner_messages.rud'])->group(function () {
+    Route::delete('settings/learning-support/messages/{message}', [LearnerMessageModerationController::class, 'destroy'])
+        ->name('settings.learning-support.messages.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () {

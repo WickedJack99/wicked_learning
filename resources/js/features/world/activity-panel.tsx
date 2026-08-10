@@ -21,10 +21,15 @@ import type {
     LearningProgress,
     QuestionAnswerProgress,
 } from '@/types';
+import { ActivityAmbientSound } from './activity-ambient-sound';
 import { postJson } from './api';
 import { ItemGrantActivity } from './item-grant-activity';
 import { ItemObstacleActivity } from './item-obstacle-activity';
 import { MarkdownActivity } from './markdown-activity';
+import {
+    MessagePromptActivity,
+    MessageWallActivity,
+} from './message-activities';
 import { NpcDialogueActivity } from './npc-dialogue-player';
 import { ObstacleActivity } from './obstacle-activity';
 import { SharedTaskActivity } from './shared-task-activity';
@@ -383,6 +388,7 @@ export function ActivityPlayer({
 
     return (
         <ActivityFrame activity={activity}>
+            <ActivityAmbientSound activity={activity} />
             {activity.type === 'dialogue' ? (
                 <DialogueActivity
                     activity={activity}
@@ -428,6 +434,26 @@ export function ActivityPlayer({
                     onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'message_prompt' ? (
+                <MessagePromptActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
+                    transition={completedTransition}
+                />
+            ) : null}
+
+            {activity.type === 'message_wall' ? (
+                <MessageWallActivity
+                    activity={activity}
+                    key={activity.id}
+                    onComplete={completeActivity}
+                    onMoveToActivity={onMoveToActivity}
                     transition={completedTransition}
                 />
             ) : null}

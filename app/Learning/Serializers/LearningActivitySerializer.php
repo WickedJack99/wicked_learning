@@ -59,15 +59,13 @@ class LearningActivitySerializer
      */
     private function configuredSounds(LearningActivity $activity): array
     {
-        if ($activity->type !== 'item_obstacle') {
-            return [];
-        }
-
         $config = is_array($activity->config) ? $activity->config : [];
-        $sounds = is_array($config['sounds'] ?? null) ? $config['sounds'] : [];
-        $ids = collect($sounds)
+        $itemObstacleSounds = is_array($config['sounds'] ?? null) ? $config['sounds'] : [];
+        $ambientSound = is_array($config['ambientSound'] ?? null) ? $config['ambientSound'] : [];
+        $ids = collect($itemObstacleSounds)
             ->filter(fn (mixed $sound): bool => is_array($sound))
             ->map(fn (mixed $sound): int => (int) ($sound['soundId'] ?? 0))
+            ->push((int) ($ambientSound['soundId'] ?? 0))
             ->filter()
             ->unique()
             ->values();

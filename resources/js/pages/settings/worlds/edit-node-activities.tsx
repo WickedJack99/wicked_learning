@@ -521,8 +521,8 @@ export default function EditNodeActivities({
             </main>
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <SettingsConfigurationDialog className="overflow-y-auto">
-                    <DialogHeader>
+                <SettingsConfigurationDialog className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0">
                         <DialogTitle>Add activity</DialogTitle>
                         <DialogDescription>
                             Create a generic activity node. Specialized editing
@@ -532,7 +532,7 @@ export default function EditNodeActivities({
                     </DialogHeader>
 
                     <form
-                        className="grid gap-4"
+                        className="flex min-h-0 flex-1 flex-col gap-4"
                         onSubmit={(event) => {
                             event.preventDefault();
                             createActivity();
@@ -544,6 +544,7 @@ export default function EditNodeActivities({
                             errors={errors}
                             form={form}
                             imageUploadErrors={imageUploadErrors}
+                            messageTopics={activityGraph.messageTopics}
                             onChange={setForm}
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
@@ -554,7 +555,7 @@ export default function EditNodeActivities({
                             uploadingImageKey={uploadingImageKey}
                         />
 
-                        <DialogFooter>
+                        <DialogFooter className="shrink-0">
                             <Button
                                 disabled={creating}
                                 onClick={() => setCreateOpen(false)}
@@ -572,8 +573,8 @@ export default function EditNodeActivities({
             </Dialog>
 
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                <SettingsConfigurationDialog className="overflow-y-auto">
-                    <DialogHeader>
+                <SettingsConfigurationDialog className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0">
                         <DialogTitle>Edit activity</DialogTitle>
                         <DialogDescription>
                             Update the generic activity fields. Detailed content
@@ -582,23 +583,26 @@ export default function EditNodeActivities({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <ActivityFormFields
-                        activityTypes={activityGraph.activityTypes}
-                        editingActivityId={editingActivity?.id ?? null}
-                        errors={editErrors}
-                        form={editForm}
-                        imageUploadErrors={imageUploadErrors}
-                        onChange={setEditForm}
-                        onUploadPortalImage={uploadNodeImage}
-                        portalCandidates={activityGraph.portalCandidates}
-                        selectedType={selectedEditType}
-                        items={items}
-                        sounds={sounds}
-                        tools={tools}
-                        uploadingImageKey={uploadingImageKey}
-                    />
+                    <div className="min-h-0 flex-1 overflow-hidden">
+                        <ActivityFormFields
+                            activityTypes={activityGraph.activityTypes}
+                            editingActivityId={editingActivity?.id ?? null}
+                            errors={editErrors}
+                            form={editForm}
+                            imageUploadErrors={imageUploadErrors}
+                            messageTopics={activityGraph.messageTopics}
+                            onChange={setEditForm}
+                            onUploadPortalImage={uploadNodeImage}
+                            portalCandidates={activityGraph.portalCandidates}
+                            selectedType={selectedEditType}
+                            items={items}
+                            sounds={sounds}
+                            tools={tools}
+                            uploadingImageKey={uploadingImageKey}
+                        />
+                    </div>
 
-                    <DialogFooter>
+                    <DialogFooter className="shrink-0">
                         <Button
                             disabled={updating}
                             onClick={() => setEditOpen(false)}

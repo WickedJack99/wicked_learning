@@ -79,6 +79,23 @@ const markdownFields: Array<keyof ActivityForm> = [
     'markdown_transitions',
 ];
 
+const messageFields: Array<keyof ActivityForm> = [
+    'message_topic_id',
+    'message_topic_title',
+    'message_prompt_text',
+    'message_input_label',
+    'message_surface_color_dark',
+    'message_surface_color_light',
+    'message_card_color_dark',
+    'message_card_color_light',
+    'message_card_border_color_dark',
+    'message_card_border_color_light',
+    'message_text_color_dark',
+    'message_text_color_light',
+    'message_accent_color_dark',
+    'message_accent_color_light',
+];
+
 const portalFields: Array<keyof ActivityForm> = [
     'portal_background_dark',
     'portal_background_light',
@@ -165,6 +182,10 @@ function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
 
     if (type === 'markdown') {
         return markdownFields;
+    }
+
+    if (type === 'message_prompt' || type === 'message_wall') {
+        return messageFields;
     }
 
     if (type === 'portal') {

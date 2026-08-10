@@ -111,6 +111,7 @@ export type ActivityGraphPayload = {
         slug: string;
         title: string;
     };
+    messageTopics: MessageTopicOption[];
     node: {
         description: string | null;
         graphLayout: GraphLayout;
@@ -127,6 +128,11 @@ export type ActivityGraphPayload = {
         slug: string;
         title: string;
     };
+};
+
+export type MessageTopicOption = {
+    id: number;
+    title: string;
 };
 
 export type GraphLayout = {
@@ -232,6 +238,8 @@ export type ActivityGraphEdge = Edge<
 >;
 
 export type CreateActivityForm = {
+    activity_sound_enabled: boolean;
+    activity_sound_id: string;
     competence_topics: CompetenceTopicForm[];
     introduction: string;
     item_grant_background_dark: string;
@@ -271,6 +279,20 @@ export type CreateActivityForm = {
     markdown_pages: MarkdownPageForm[];
     markdown_graph_layout: GraphLayout;
     markdown_transitions: MarkdownTransitionForm[];
+    message_accent_color_dark: string;
+    message_accent_color_light: string;
+    message_card_border_color_dark: string;
+    message_card_border_color_light: string;
+    message_card_color_dark: string;
+    message_card_color_light: string;
+    message_input_label: string;
+    message_prompt_text: string;
+    message_surface_color_dark: string;
+    message_surface_color_light: string;
+    message_text_color_dark: string;
+    message_text_color_light: string;
+    message_topic_id: string;
+    message_topic_title: string;
     obstacle_allowed_tool_ids: string;
     obstacle_background_dark: string;
     obstacle_background_light: string;

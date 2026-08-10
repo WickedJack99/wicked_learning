@@ -41,6 +41,20 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],
             [
+                'key' => 'message_prompt',
+                'label' => 'Message prompt',
+                'description' => 'Invites a learner to leave one short message for a linked MapAsset topic.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
+                'key' => 'message_wall',
+                'label' => 'Message wall',
+                'description' => 'Displays visible learner messages from a linked topic as dismissible cards.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
                 'key' => 'npc_dialogue',
                 'label' => 'NPC dialogue',
                 'description' => 'A graph-based NPC conversation with one entry and exits defined by dialogue end nodes.',

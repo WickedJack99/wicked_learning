@@ -2,13 +2,11 @@ import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { applyActivityTranslation } from '@/features/localization/activity-translation';
+import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPlayer } from '@/features/world/activity-panel';
 import { getJson, postJson } from '@/features/world/api';
-import {
-    applyActivityTranslation,
-    type LearningActivityTranslation,
-} from '@/features/localization/activity-translation';
 import { useAppearance } from '@/hooks/use-appearance';
 import type {
     LearningActivity,
@@ -56,8 +54,10 @@ export default function NodePlay({
     const [activityPlayState, setActivityPlayState] =
         useState(initialPlayState);
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
-    const [activityTranslation, setActivityTranslation] =
-        useState<LearningActivityTranslation | null>(null);
+    const [activityTranslation, setActivityTranslation] = useState<{
+        activityId: number;
+        translation: LearningActivityTranslation | null;
+    } | null>(null);
     const activeActivity = useMemo(
         () => getActivityById(node, activeActivityId),
         [activeActivityId, node],
@@ -65,14 +65,17 @@ export default function NodePlay({
     const displayedActivity = useMemo(
         () =>
             activeActivity
-                ? applyActivityTranslation(activeActivity, activityTranslation)
+                ? applyActivityTranslation(
+                      activeActivity,
+                      activityTranslation?.activityId === activeActivity.id
+                          ? activityTranslation.translation
+                          : null,
+                  )
                 : null,
         [activeActivity, activityTranslation],
     );
 
     useEffect(() => {
-        setActivityTranslation(null);
-
         if (!activeActivity) {
             return;
         }
@@ -99,7 +102,10 @@ export default function NodePlay({
                         `/learning/activities/${activeActivity.id}/translation?play_run_id=${encodeURIComponent(playRunId)}`,
                     );
 
-                    setActivityTranslation(response.translation);
+                    setActivityTranslation({
+                        activityId: activeActivity.id,
+                        translation: response.translation,
+                    });
                 })
                 // English has no alternate payload, and a stale request may no
                 // longer match the active activity. Both should keep source copy.
@@ -114,10 +120,7 @@ export default function NodePlay({
     }, [node.mapSlug, node.slug]);
 
     const markCompleted = useCallback(
-        async (
-            activity: LearningActivity,
-            options: CompletionOptions = {},
-        ) => {
+        async (activity: LearningActivity, options: CompletionOptions = {}) => {
             if (!isAuthenticated) {
                 setActivityProgress((current) => ({
                     ...current,
@@ -167,23 +170,6 @@ export default function NodePlay({
         [isAuthenticated, playRunId],
     );
 
-    const markReached = useCallback(
-        (activity: LearningActivity) => {
-            persistActiveActivity(node, activity, { useCleanPlayHref: true });
-            replacePlayUrl(node.id);
-
-            if (!isAuthenticated) {
-                return;
-            }
-
-            void postJson(`/learning/activities/${activity.id}/progress`, {
-                play_run_id: playRunId,
-                status: 'reached',
-            }).catch(() => undefined);
-        },
-        [isAuthenticated, node, playRunId],
-    );
-
     const moveToActivity = useCallback(
         (activityId: number | null) => {
             setTravelBlockedMessage('');
@@ -200,15 +186,9 @@ export default function NodePlay({
                 return;
             }
 
-            const nextActivity = getActivityById(node, activityId);
-
-            if (nextActivity) {
-                markReached(nextActivity);
-            }
-
             setActiveActivityId(activityId);
         },
-        [activeActivity, markCompleted, markReached, node, returnToMap],
+        [activeActivity, markCompleted, returnToMap],
     );
 
     const restartFromBeginning = useCallback(async () => {
@@ -268,12 +248,18 @@ export default function NodePlay({
                 className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
             >
-                <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur dark:border-white/10 dark:bg-slate-950/80">
-                    <Button onClick={returnToMap} type="button" variant="ghost">
+                <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white/90 px-3 py-3 backdrop-blur sm:gap-4 sm:px-4 dark:border-white/10 dark:bg-slate-950/80">
+                    <Button
+                        className="shrink-0"
+                        onClick={returnToMap}
+                        type="button"
+                        variant="ghost"
+                    >
                         <ArrowLeft className="size-4" />
                         Map
                     </Button>
                     <Button
+                        className="shrink-0"
                         onClick={() => void restartFromBeginning()}
                         type="button"
                         variant="ghost"
@@ -281,7 +267,7 @@ export default function NodePlay({
                         <RotateCcw className="size-4" />
                         From beginning
                     </Button>
-                    <div className="min-w-0 text-right">
+                    <div className="order-last min-w-0 basis-full text-left sm:order-none sm:ml-auto sm:basis-auto sm:text-right">
                         <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                             {node.mapTitle}
                         </p>
@@ -291,9 +277,12 @@ export default function NodePlay({
                     </div>
                 </header>
 
-                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-4 pt-4 pb-24 md:w-[75vw] md:px-6 md:pt-6 md:pb-28">
+                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-24 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6 md:pb-28">
                     {travelBlockedMessage ? (
-                        <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
+                        <p
+                            aria-live="polite"
+                            className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
+                        >
                             {travelBlockedMessage}
                         </p>
                     ) : null}

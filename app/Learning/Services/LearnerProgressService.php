@@ -22,19 +22,20 @@ class LearnerProgressService
         ?string $playRunId = null,
         ?bool $endsRoute = null,
     ): LearnerActivityProgress {
-        $progress = LearnerActivityProgress::query()->firstOrNew([
+        $now = Carbon::now();
+        $progress = LearnerActivityProgress::query()->firstOrCreate([
             'user_id' => $userId,
             'learning_activity_id' => $activity->id,
+        ], [
+            'learning_node_id' => $activity->learning_node_id,
+            'status' => 'reached',
+            'attempt_count' => 1,
+            'reached_at' => $now,
         ]);
 
-        $now = Carbon::now();
         $progress->learning_node_id = $activity->learning_node_id;
         $progress->status = $status === 'completed' ? 'completed' : ($progress->status ?: 'reached');
         $progress->reached_at ??= $now;
-
-        if (! $progress->exists) {
-            $progress->attempt_count = 1;
-        }
 
         if ($status === 'completed') {
             $progress->completed_at ??= $now;

@@ -8,6 +8,8 @@ import type {
 } from './edit-node-activity-types';
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
+        activity_sound_enabled: false,
+        activity_sound_id: '',
         competence_topics: [{ topic: '', weight: '1' }],
         introduction: '',
         item_grant_background_dark: '',
@@ -50,6 +52,21 @@ export function emptyCreateForm(type: string): CreateActivityForm {
                 to: 'end',
             },
         ],
+        message_accent_color_dark: '#5eead4',
+        message_accent_color_light: '#0f766e',
+        message_card_border_color_dark: '#2dd4bf',
+        message_card_border_color_light: '#0f766e',
+        message_card_color_dark: '#13262d',
+        message_card_color_light: '#ffffff',
+        message_input_label: 'Your message',
+        message_prompt_text:
+            'Leave a helpful note or an encouraging thought for the next learner.',
+        message_surface_color_dark: '#071018',
+        message_surface_color_light: '#e6f5f2',
+        message_text_color_dark: '#f1f5f9',
+        message_text_color_light: '#0f172a',
+        message_topic_id: '',
+        message_topic_title: '',
         obstacle_allowed_tool_ids: '',
         obstacle_background_dark: '',
         obstacle_background_light: '',
@@ -144,8 +161,17 @@ export function activityFormFromActivity(
     fallbackType: string,
 ): ActivityForm {
     const portalMode = activity.config.portalMode;
+    const messageUi: Record<string, unknown> = isRecord(
+        activity.config.messageUi,
+    )
+        ? (activity.config.messageUi as Record<string, unknown>)
+        : {};
 
     return {
+        activity_sound_enabled: ambientSoundEnabled(
+            activity.config.ambientSound,
+        ),
+        activity_sound_id: ambientSoundId(activity.config.ambientSound),
         competence_topics: competenceTopics(activity.config.competenceTopics),
         introduction: activity.introduction ?? '',
         item_grant_background_dark: stringConfig(
@@ -230,6 +256,56 @@ export function activityFormFromActivity(
         markdown_transitions: markdownTransitions(
             activity.config.markdownTransitions,
         ),
+        message_accent_color_dark: stringConfig(
+            messageUi.accentColorDark,
+            '#5eead4',
+        ),
+        message_accent_color_light: stringConfig(
+            messageUi.accentColorLight,
+            '#0f766e',
+        ),
+        message_card_border_color_dark: stringConfig(
+            messageUi.cardBorderColorDark,
+            '#2dd4bf',
+        ),
+        message_card_border_color_light: stringConfig(
+            messageUi.cardBorderColorLight,
+            '#0f766e',
+        ),
+        message_card_color_dark: stringConfig(
+            messageUi.cardColorDark,
+            '#13262d',
+        ),
+        message_card_color_light: stringConfig(
+            messageUi.cardColorLight,
+            '#ffffff',
+        ),
+        message_input_label: stringConfig(
+            activity.config.messageInputLabel,
+            'Your message',
+        ),
+        message_prompt_text: stringConfig(
+            activity.config.messagePrompt,
+            'Leave a helpful note or an encouraging thought for the next learner.',
+        ),
+        message_surface_color_dark: stringConfig(
+            messageUi.surfaceColorDark,
+            '#071018',
+        ),
+        message_surface_color_light: stringConfig(
+            messageUi.surfaceColorLight,
+            '#e6f5f2',
+        ),
+        message_text_color_dark: stringConfig(
+            messageUi.textColorDark,
+            '#f1f5f9',
+        ),
+        message_text_color_light: stringConfig(
+            messageUi.textColorLight,
+            '#0f172a',
+        ),
+        message_topic_id: stringConfig(activity.config.messageTopicId),
+        message_topic_title: '',
         obstacle_allowed_tool_ids: arrayConfig(
             activity.config.allowedToolIds,
         ).join(', '),
@@ -493,6 +569,14 @@ function competenceTopics(value: unknown): ActivityForm['competence_topics'] {
         .filter((topic) => topic.topic.trim().length > 0);
 
     return topics.length > 0 ? topics : [{ topic: '', weight: '1' }];
+}
+
+function ambientSoundEnabled(value: unknown): boolean {
+    return isRecord(value) && value.enabled === true;
+}
+
+function ambientSoundId(value: unknown): string {
+    return isRecord(value) ? stringConfig(value.soundId) : '';
 }
 
 function graphLayout(value: unknown): ActivityForm['markdown_graph_layout'] {

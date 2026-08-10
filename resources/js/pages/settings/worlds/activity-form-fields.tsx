@@ -3,6 +3,7 @@ import {
     FileText,
     GitBranch,
     Info,
+    Music2,
     Palette,
     SlidersHorizontal,
     Star,
@@ -32,12 +33,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { ActivityAmbientSoundFields } from './activity-ambient-sound-fields';
 import type {
     ActivityForm,
     ActivityTypeDefinition,
     EditableItem,
     EditableSound,
     EditableTool,
+    MessageTopicOption,
     PortalCandidate,
 } from './edit-node-activity-types';
 import {
@@ -46,6 +49,10 @@ import {
     ItemObstacleFlowFields,
     ItemObstacleVisualFields,
 } from './item-activity-fields';
+import {
+    MessageActivityFlowFields,
+    MessageActivityVisualFields,
+} from './message-activity-fields';
 import {
     ObstacleFlowFields,
     ObstacleVisualFields,
@@ -63,6 +70,7 @@ import {
 
 type ActivitySettingsSection =
     | 'basics'
+    | 'sound'
     | 'flow'
     | 'visuals'
     | 'competence'
@@ -74,6 +82,7 @@ export function ActivityFormFields({
     editingActivityId = null,
     form,
     imageUploadErrors,
+    messageTopics,
     onChange,
     onUploadPortalImage,
     portalCandidates,
@@ -88,6 +97,7 @@ export function ActivityFormFields({
     errors: Record<string, string>;
     form: ActivityForm;
     imageUploadErrors: Record<string, string>;
+    messageTopics: MessageTopicOption[];
     onChange: Dispatch<SetStateAction<ActivityForm>>;
     onUploadPortalImage: (
         key: string,
@@ -111,13 +121,17 @@ export function ActivityFormFields({
         form.type === 'obstacle' ||
         form.type === 'tool_grant' ||
         form.type === 'shared_task' ||
-        form.type === 'reflection';
+        form.type === 'reflection' ||
+        form.type === 'message_prompt' ||
+        form.type === 'message_wall';
     const hasPresentationSettings =
         form.type === 'portal' ||
         form.type === 'item_grant' ||
         form.type === 'item_obstacle' ||
         form.type === 'obstacle' ||
-        form.type === 'tool_grant';
+        form.type === 'tool_grant' ||
+        form.type === 'message_prompt' ||
+        form.type === 'message_wall';
 
     return (
         <SettingsConfigurationLayout
@@ -426,6 +440,21 @@ export function ActivityFormFields({
                                     />
                                 </SettingsConfigurationSection>
                             ) : null}
+
+                            {form.type === 'message_prompt' ||
+                            form.type === 'message_wall' ? (
+                                <SettingsConfigurationSection
+                                    description="Link prompt and wall activities through a reusable topic inside this MapAsset."
+                                    title="Learner messages"
+                                >
+                                    <MessageActivityFlowFields
+                                        errors={errors}
+                                        form={form}
+                                        onChange={onChange}
+                                        topics={messageTopics}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
                         </>
                     ) : null}
 
@@ -504,6 +533,19 @@ export function ActivityFormFields({
                                     />
                                 </SettingsConfigurationSection>
                             ) : null}
+
+                            {form.type === 'message_prompt' ||
+                            form.type === 'message_wall' ? (
+                                <SettingsConfigurationSection
+                                    description="Colors are stored with this activity and previewed in the current appearance."
+                                    title="Message surface"
+                                >
+                                    <MessageActivityVisualFields
+                                        form={form}
+                                        onChange={onChange}
+                                    />
+                                </SettingsConfigurationSection>
+                            ) : null}
                         </>
                     ) : null}
 
@@ -516,6 +558,19 @@ export function ActivityFormFields({
                                 errors={errors}
                                 form={form}
                                 onChange={onChange}
+                            />
+                        </SettingsConfigurationSection>
+                    ) : null}
+
+                    {activeSection === 'sound' ? (
+                        <SettingsConfigurationSection
+                            description="Choose optional reusable ambience for this learner-facing activity."
+                            title="Scene sound"
+                        >
+                            <ActivityAmbientSoundFields
+                                form={form}
+                                onChange={onChange}
+                                sounds={sounds}
                             />
                         </SettingsConfigurationSection>
                     ) : null}
@@ -588,6 +643,12 @@ const activitySettingsSections: SettingsNavigationItem<ActivitySettingsSection>[
             icon: Palette,
             key: 'visuals',
             label: 'Visuals',
+        },
+        {
+            description: 'Optional reusable scene ambience during playback.',
+            icon: Music2,
+            key: 'sound',
+            label: 'Sound',
         },
         {
             description: 'Topics and weights awarded on route completion.',

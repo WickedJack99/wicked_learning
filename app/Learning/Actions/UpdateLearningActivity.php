@@ -2,10 +2,12 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\MarkdownActivityConfiguration;
+use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
@@ -15,14 +17,17 @@ use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Learning\Services\ToolGrantActivityConfiguration;
 use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
+use App\Models\LearningNode;
 
 class UpdateLearningActivity
 {
     public function __construct(
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
+        private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
+        private readonly MessageActivityConfiguration $messageConfig,
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
         private readonly ObstacleActivityConfiguration $obstacleConfig,
@@ -61,16 +66,18 @@ class UpdateLearningActivity
         if (
             $this->portalConfig->shouldUpdate($data, $updates)
             || $this->markdownConfig->shouldUpdate($data, $updates)
+            || $this->messageConfig->shouldUpdate($data, $updates)
             || $this->itemGrantConfig->shouldUpdate($data, $updates)
             || $this->itemObstacleConfig->shouldUpdate($data, $updates)
             || $this->obstacleConfig->shouldUpdate($data, $updates)
             || $this->toolGrantConfig->shouldUpdate($data, $updates)
             || $this->reflectionConfig->shouldUpdate($data, $updates)
             || $this->sharedTaskConfig->shouldUpdate($data, $updates)
+            || $this->ambientSoundConfig->shouldUpdate($data)
             || $this->competenceConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
-            $updates['config'] = $this->configFor($type, $data, $config);
+            $updates['config'] = $this->configFor($activity->node, $type, $data, $config);
         }
 
         return $updates;
@@ -81,12 +88,13 @@ class UpdateLearningActivity
      * @param  array<string, mixed>  $existing
      * @return array<string, mixed>
      */
-    private function configFor(string $type, array $data, array $existing): array
+    private function configFor(LearningNode $node, string $type, array $data, array $existing): array
     {
         $config = match ($type) {
             'item_grant' => $this->itemGrantConfig->fromData($data, $existing),
             'item_obstacle' => $this->itemObstacleConfig->fromData($data, $existing),
             'markdown' => $this->markdownConfig->fromData($data, $existing),
+            'message_prompt', 'message_wall' => $this->messageConfig->fromData($node, $data, $existing),
             'obstacle' => $this->obstacleConfig->fromData($data, $existing),
             'portal' => $this->portalConfig->fromData($data, $existing),
             'reflection' => $this->reflectionConfig->fromData($data, $existing),
@@ -95,7 +103,10 @@ class UpdateLearningActivity
             default => [],
         };
 
-        return $this->competenceConfig->mergeInto($config, $data);
+        return $this->competenceConfig->mergeInto(
+            $this->ambientSoundConfig->mergeInto($config, $data),
+            $data,
+        );
     }
 
     /**

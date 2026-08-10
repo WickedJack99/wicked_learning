@@ -7,6 +7,7 @@ use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
 use App\Learning\Queries\LoadAdminPanelMetrics;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Queries\LoadLearnerMessageModeration;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
@@ -24,6 +25,7 @@ class LoadLearningSupportSettings
         private readonly LoadAdminPanelMetrics $metrics,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
         private readonly LoadLearnerSupportSignals $supportSignals,
+        private readonly LoadLearnerMessageModeration $learnerMessages,
         private readonly LoadAdminJournalFeedbackRequests $feedbackRequests,
         private readonly AdminJournalFeedbackRequestSerializer $feedbackSerializer,
         private readonly LoadPendingOrganizationIconReports $iconReports,
@@ -32,15 +34,24 @@ class LoadLearningSupportSettings
     ) {}
 
     /**
-     * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, supportSignals: array<string, mixed>|null}
+     * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array<int, array<string, mixed>>|null, supportSignals: array<string, mixed>|null}
      */
     public function handle(User $user): array
     {
         return [
             'adminPanel' => $this->adminPanel($user),
             'journal' => $this->journal($user),
+            'learnerMessages' => $this->learnerMessages($user),
             'supportSignals' => $this->supportSignals($user),
         ];
+    }
+
+    /** @return array<int, array<string, mixed>>|null */
+    private function learnerMessages(User $user): ?array
+    {
+        return $user->can(PermissionCatalog::ability(PermissionCatalog::LEARNER_MESSAGES, AccessLevel::READ))
+            ? $this->learnerMessages->handle()
+            : null;
     }
 
     /**

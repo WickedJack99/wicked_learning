@@ -85,7 +85,7 @@ export default function EditMarkdownActivity({
                                     href={`/settings/worlds/nodes/${markdownActivity.node.id}/activities`}
                                 >
                                     <ArrowLeft className="size-4" />
-                                    Back to node
+                                    Back to MapAsset
                                 </Link>
                             </Button>
                             <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
@@ -95,21 +95,6 @@ export default function EditMarkdownActivity({
                             <h1 className="mt-1 truncate text-2xl font-semibold tracking-normal">
                                 {markdownActivity.activity.title} pages
                             </h1>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {saved ? (
-                                <p className="text-sm text-[var(--settings-accent)]">
-                                    Saved
-                                </p>
-                            ) : null}
-                            <Button
-                                disabled={saving}
-                                onClick={save}
-                                type="button"
-                            >
-                                <Save className="size-4" />
-                                Save pages
-                            </Button>
                         </div>
                     </header>
 
@@ -124,6 +109,19 @@ export default function EditMarkdownActivity({
                             uploadingImageKey={uploadingImageKey}
                         />
                     </section>
+                    <footer className="flex shrink-0 items-center justify-between border-t border-[var(--settings-border-color)] py-4">
+                        <div>
+                            {saved ? (
+                                <p className="text-sm text-[var(--settings-accent)]">
+                                    Saved
+                                </p>
+                            ) : null}
+                        </div>
+                        <Button disabled={saving} onClick={save} type="button">
+                            <Save className="size-4" />
+                            Save pages
+                        </Button>
+                    </footer>
                 </div>
             </main>
         </>

@@ -30,6 +30,13 @@ class AdminActivityGraphSerializer
             'node' => $this->node($node),
             'activityTypes' => $this->activityTypes->definitions(),
             'portalCandidates' => $this->portalLinkService->candidatesForNode($node),
+            'messageTopics' => $node->mapAsset?->messageTopics
+                ?->map(fn ($topic): array => [
+                    'id' => $topic->id,
+                    'title' => $topic->title,
+                ])
+                ->values()
+                ->all() ?? [],
             'activities' => $node->activities
                 ->values()
                 ->map(fn (LearningActivity $activity): array => $this->activity($activity))

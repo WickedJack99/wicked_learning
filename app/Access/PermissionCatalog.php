@@ -44,6 +44,8 @@ class PermissionCatalog
 
     public const LEARNER_SUPPORT_SIGNALS = 'learner_support_signals';
 
+    public const LEARNER_MESSAGES = 'learner_messages';
+
     public const ORGANIZATION_MODERATION = 'organization_moderation';
 
     public const AI = 'ai';
@@ -144,6 +146,11 @@ class PermissionCatalog
                 'description' => 'View scoped learner competence signals for timely support without rankings.',
                 'group' => 'Learning support',
             ],
+            self::LEARNER_MESSAGES => [
+                'label' => 'Learner messages',
+                'description' => 'Review, hide and delete messages shared through MapAsset activities.',
+                'group' => 'Learning support',
+            ],
             self::ORGANIZATION_MODERATION => [
                 'label' => 'Organization moderation',
                 'description' => 'Review reported organization icons and platform organization limits.',
@@ -185,6 +192,7 @@ class PermissionCatalog
                 self::JOURNAL_FEEDBACK,
                 self::COMPETENCE_TOPICS,
                 self::LEARNER_SUPPORT_SIGNALS,
+                self::LEARNER_MESSAGES,
                 self::ORGANIZATION_MODERATION,
             ],
             'users' => [

@@ -501,4 +501,10 @@ class User extends Authenticatable implements PasskeyUser
     {
         return $this->hasMany(LearnerReflection::class);
     }
+
+    /** Short, moderated messages contributed to learning topics. */
+    public function learnerMessages(): HasMany
+    {
+        return $this->hasMany(LearnerMessage::class);
+    }
 }
