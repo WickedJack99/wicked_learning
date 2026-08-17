@@ -7,12 +7,34 @@ The platform can support AI-assisted authoring and learner-facing feedback, but 
 Admins can configure:
 
 - provider credentials
-- model and budget metadata
+- model, reasoning, token and supported generation controls
 - reusable agent templates
 - system and task instructions
 - whether a template requires guarded learner context
+- a content-authoring purpose for reviewable MapAsset drafts
 
-The first implementation focuses on configuration and authoring infrastructure. Runtime execution, job queues and provider-specific adapters can be added behind the template boundary later.
+The current provider path can execute and test Responses-compatible templates.
+It applies connection/read timeouts, bounded transient retries, request IDs,
+model-aware parameter filtering and sanitized error categories. Longer jobs are
+still synchronous and should move behind a queue later.
+
+## Current Content Authoring
+
+World Builder can invoke an enabled `content_authoring` template for one map.
+The administrator supplies a learning goal, optional audience and prior
+knowledge, route length and allowed Activity types. The model receives scoped
+map context plus a strict, versioned ContentPlan schema.
+
+The resulting draft is stored with warnings, contract versions, provider/model
+metadata and token usage. The admin reviews it before applying. Apply revalidates
+the plan and creates one focusable MapAsset plus a short linear
+Markdown/Reflection route in one transaction. Human approval is mandatory;
+generation alone never mutates the map.
+
+The separate Content API publishes its live contract and supports scoped
+read/create operations through an administration console. It uses the existing
+session, CSRF and resource-permission boundaries rather than bypassing the World
+Builder rules.
 
 ## Agent Instruction Files
 
@@ -38,7 +60,7 @@ Depending on the administrator-selected scope, the agent should receive or load 
 
 - existing worlds and maps
 - existing topics and subtopics
-- nodes and their learning purpose
+- MapAssets and their learning purpose
 - current activity routes
 - portal connections
 - prerequisites and unlock conditions
@@ -63,7 +85,7 @@ Using that context, the agent should decide whether the requested topic should:
 - extend an existing map
 - become a new map inside an existing world
 - become a separate world
-- reuse existing nodes, activities, tools, items or characters
+- reuse existing MapAssets, activities, tools, items or characters
 - connect to existing topics through portals or prerequisites
 - replace, merge with or clarify overlapping content
 - remain separate because its purpose or audience is materially different
@@ -80,7 +102,9 @@ The proposal should explicitly identify:
 
 The current implementation data may not fully represent the creator's intended future direction. The agent should treat existing platform structure as context, not as an immutable specification. When current content, draft concepts or the administrator's request conflict, the agent should surface the uncertainty instead of silently preserving every existing design decision.
 
-This section describes concept direction only. It does not require implementation of data loading, retrieval, prompt assembly, APIs or database changes yet.
+The broad world-design agent in this section remains future direction. The
+implemented authoring slice currently loads only one map and its MapAsset
+summaries and creates one reviewed linear route.
 
 ## Design Constraints
 

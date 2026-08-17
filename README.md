@@ -2,7 +2,7 @@
 
 An open-source experiment in building an explorable learning environment around intrinsic motivation instead of points, streaks, badges or leaderboards.
 
-Wicked Learning is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, nodes, activities, media and public text while the core learning model stays reusable.
+Wicked Learning is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, MapAssets, activities, media and public text while the core learning model stays reusable.
 
 The concept direction comes from the project creator. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
 
@@ -23,28 +23,34 @@ This repository is no longer only a concept archive. It contains a working verti
 - Laravel authentication with registration tokens
 - configurable access roles seeded with `admin` and `user`
 - admin user management with role assignment, bans, disabled login and deletion
-- a draggable hex-based world map
-- focus panels for map nodes
+- freeform world maps composed from transparent MapAsset images
+- focus panels for interactive MapAssets
 - bookmarks and a personal bookmark map
-- server-side map and node search
-- editable worlds, maps and map nodes
-- dark and light node visuals, including full-tile images
-- discoverable hidden nodes that can be revealed with tools
-- locked nodes with configurable unlock conditions and optional tool unlocks
+- server-side map and MapAsset search
+- editable worlds, maps and freely positioned MapAssets
+- focusable, decorative, hide-on-hover and two-state MapAsset interactions
+- image-alpha-aware hit areas for irregular transparent artwork
+- configurable MapAsset labels, borders, highlights and alternate highlight images
+- discoverable hidden MapAssets that can be revealed with tools
+- locked MapAssets with configurable unlock conditions and optional tool unlocks
 - editable public presentation content and auth page backgrounds
 - reusable visual and sound libraries for uploaded assets
-- configurable cursor images for default, pointer and drag states
+- configurable cursor images for normal, action, grab, text and denied states
 - public source-code links for AGPL network deployments
-- graph-based activity editing with multiple route starts per node
+- graph-based activity editing with multiple route starts per MapAsset
 - route cards with optional light and dark images
 - activity playback on a separate page with backend route progress
-- portal activities that can move learners between nodes and maps
+- portal activities that can move learners between MapAssets and maps
 - NPC dialogue, markdown, tool-grant, item-grant, obstacle and item-obstacle activity prototypes
 - learner tool and item side controls for selecting acquired tools and viewing consumable inventory
 - learner journal pages with Markdown editing, search, autosaved drafts and export
 - optional learner requests for journal feedback from permitted review domains
+- learner-message prompt and message-wall activities with moderation tools
 - learner-facing competence history and non-competitive support signals for authorised staff
 - organizations, learning groups and shared-task activity prototypes
+- configurable AI providers and reusable agent templates with structured provider errors
+- reviewable AI content drafts that create a MapAsset and short activity route only after admin approval
+- a permission-controlled Content API console and machine-readable authoring contract
 
 The prototype intentionally avoids point totals, streak pressure and ranking loops. The interaction goal is exploration first, reward-chasing last.
 
@@ -52,19 +58,19 @@ The prototype intentionally avoids point totals, streak pressure and ranking loo
 
 ### Learning as exploration
 
-Learners move through maps made of hexagonal nodes. A node can represent a topic, scenario, conversation, portal, exercise, reflection or any other configured learning place.
+Learners explore maps made from freely positioned MapAssets. A MapAsset can represent a topic, scenario, conversation, portal, exercise, reflection or a purely visual layer. Transparent PNG or WebP artwork can overlap to form a domain-specific surface instead of being forced into a fixed tile grid.
 
 ### Generic worlds
 
-The same structure is intended to work for any subject area. A deployment can configure its own visual language, story framing, map access, node artwork, activities, cursors, sounds and public text without changing the platform's learning logic.
+The same structure is intended to work for any subject area. A deployment can configure its own visual language, story framing, map access, MapAsset artwork, activities, cursors, sounds and public text without changing the platform's learning logic.
 
 ### Activity routes
 
-Nodes can contain multiple activity routes. A route starts from the node panel and then plays activities in the configured order. Activities are modeled as graph nodes, so future activity types can be added without forcing every node into one fixed sequence.
+Focusable MapAssets can contain multiple activity routes. A route starts from the MapAsset panel and then plays activities in the configured order. Activities are modeled as graph nodes, so future activity types can be added without forcing every MapAsset into one fixed sequence.
 
 ### Admins are also learners
 
-World editing lives in settings instead of on the learner map. Admins can use the platform normally, then switch into editing when they want to prepare maps, nodes, activities or public pages.
+World editing lives in settings instead of on the learner map. Admins can use the platform normally, then switch into editing when they want to prepare maps, MapAssets, activities or public pages.
 
 ## Tech stack
 
@@ -95,11 +101,14 @@ php artisan migrate --seed
 composer run dev
 ```
 
-The development seeder creates:
+The bootstrap seeder creates:
 
 - an admin user: `test@example.com`
 - password: `password`
-- a demo world called `Learning Grove`
+- an empty world shell called `Learning World`
+
+It deliberately creates no maps, MapAssets or activities. Change the seeded
+password before exposing any instance outside a disposable local environment.
 
 The Composer `dev` script starts the Laravel server, queue listener and Vite together. You can also run the pieces separately with `php artisan serve`, `php artisan queue:listen` and `npm run dev`.
 
@@ -144,16 +153,18 @@ route to the corresponding source code for the deployed version.
 
 Important areas:
 
-- `app/Models` - learning worlds, maps, nodes, activities, bookmarks, users and preferences
+- `app/Models` - learning worlds, maps, MapAssets, internal content nodes, activities, users and preferences
+- `app/Ai` - provider transport, agent templates and reviewable content authoring
+- `app/ContentApi` - the versioned content-authoring contract and serializers
 - `app/Access` - configurable role and permission-level support
 - `app/Learning` - actions, queries, serializers, services and validation for learning features
 - `app/Http/Controllers` - learner views, admin world editing, settings and public pages
 - `database/migrations` - schema changes for the evolving prototype
-- `database/seeders` - demo admin user and demo learning world
+- `database/seeders` - bootstrap admin, empty world shell and optional legacy demo seeder
 - `resources/js/pages` - Inertia pages
 - `resources/js/features` - larger React feature areas
 - `resources/js/theme` - appearance and presentation configuration helpers
-- `public/images` - CC0 demo cursors, route images, node images and theme assets
+- `public/images` - CC0 cursors, route images, MapAsset images and theme assets
 - `public/sounds` - CC0 demo sound effects and background loops
 - `concept*` - concept notes and evolving project ideas
 - `conversations` - archived development conversations
@@ -166,6 +177,8 @@ The `documentation` folder contains slower-moving project documentation:
 - [Local setup](documentation/setup.md)
 - [Feature overview](documentation/features.md)
 - [Architecture notes](documentation/architecture.md)
+- [AI-assisted authoring](documentation/ai-authoring.md)
+- [Content API](documentation/content-api.md)
 
 This repository also documents both implementation and thinking. Older concept files may contain ideas that changed or were discarded. The most useful concept documents should be treated as living notes rather than a fixed specification.
 

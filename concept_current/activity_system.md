@@ -42,7 +42,7 @@ route-completion modal:
 
 NPC dialogue activities now use the same graph idea at a nested level:
 
-- The node-level activity graph contains an `NPC dialogue` activity with one Entry connector.
+- The MapAsset Activity graph contains an `NPC dialogue` Activity with one Entry connector.
 - The activity exposes one Exit connector per End node inside the NPC dialogue graph.
 - End nodes have a color and a letter/number symbol so the matching activity-level connector remains understandable for colorblind admins.
 - The nested NPC dialogue editor has a synthetic Start node, configurable NPC interaction nodes and configurable End nodes.
@@ -86,7 +86,10 @@ Current UI behavior:
 - Admins edit activity graphs by selecting a MapAsset and opening its `Activities` section.
 - Activity playback pages reserve space for the bottom navigation instead of letting activity controls disappear behind it.
 - Route playback stores learner-specific run state on the backend. Refreshing the browser should resume the current activity or current dialogue bubble instead of replaying the first activity by accident.
-- A learner can intentionally restart a route from the beginning. Restarting from inside a run should not duplicate grants already made in that run, while resetting from the node panel can create a fresh run according to the route rules.
+- A learner can intentionally restart a route from the beginning. Restarting
+  from inside a run should not duplicate grants already made in that run, while
+  resetting from the focused MapAsset panel can create a fresh run according to
+  the route rules.
 - The URL should stay as clean as practical. Backend run state is preferred over exposing activity internals in query parameters.
 
 Route visual notes:

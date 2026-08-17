@@ -1,6 +1,6 @@
 # Platform Vision
 
-Learning Worlds is an open-source learning platform focused on intrinsic
+Wicked Learning is an open-source learning platform focused on intrinsic
 motivation and exploratory learning.
 
 The platform should help learners explore knowledge through configurable

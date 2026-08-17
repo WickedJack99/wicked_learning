@@ -1,8 +1,8 @@
 # Discarded Or Changed Ideas
 
-## Linear node activity sequence
+## Linear MapAsset activity sequence
 
-Changed to node activity graph.
+Changed to an Activity graph with multiple route starts per MapAsset.
 
 Reason: a graph supports autonomy and richer learning encounters. A learner can review a clue, branch to a different activity, retry, or continue forward based on what happened.
 
@@ -22,7 +22,10 @@ Reason: leaderboards create social comparison and status pressure. Future relate
 
 Changed.
 
-Reason: full content administration is still deferred, but concrete user administration is now needed early because registration tokens, roles, bans and disabled login shape how a public deployment can be operated safely.
+Reason: administration grew incrementally beside usable learner slices. World
+Builder, access, presentation, support, AI and API tools now exist, but each
+area should still follow an exercised learner or authoring need rather than a
+speculative all-purpose admin suite.
 
 ## Authenticated system appearance option
 
@@ -48,17 +51,22 @@ Rejected for now.
 
 Reason: admins are also normal learners. Editing tools inside the learner map would make the learning view feel like a workbench. World editing now starts from Settings and uses separate admin pages.
 
-## Node fallback image as primary visual source
+## Node/tile fallback image as primary visual source
 
-Changed to dark/light node images.
+Changed first to image-first tiles and then to freeform MapAsset artwork.
 
-Reason: the fallback image concept came from the early icon-based tile prototype. The current visual direction needs images to be the main node artwork, with separate dark and light variants for theming. The old fallback image field was removed from the node editor.
+Reason: the fallback concept came from the early icon-based hex prototype. The
+current surface uses transparent MapAsset images with optional highlighted
+images and alpha-aware interaction. The old fallback field is not part of the
+MapAsset editor.
 
 ## Icon key as the main tile visual
 
-Changed to image-first tile visuals.
+Changed to image-first, freely positioned MapAssets.
 
-Reason: the long-term platform direction is configurable landscape/map artwork rather than small symbols. If an admin hides a node image, the map should not quietly replace it with an unrelated default icon.
+Reason: configurable map artwork should follow the visual shape of the learning
+domain rather than a fixed icon or hexagon. Transparent MapAssets can overlap,
+act as decorative layers or open learner content.
 
 ## Static admin/user-only permission model
 
@@ -76,13 +84,17 @@ Reason: tools, items and currencies are world objects. Images, animations and so
 
 Changed to reusable media selection.
 
-Reason: admins will often reuse backgrounds, portraits, node art and animations. Upload fields should offer upload, download, select existing and clear current reference so assets can be reused without duplication.
+Reason: admins will often reuse backgrounds, portraits, MapAsset art and
+animations. Upload fields should offer upload, download, select existing and
+clear current reference so assets can be reused without duplication.
 
 ## Playing activities inside the map side panel
 
-Changed to a separate node-play page.
+Changed to a separate Activity playback page.
 
-Reason: keeping the full map active while playing activities adds visual and browser complexity. The map side panel now describes the node and offers route starts; the activity player runs on a separate page.
+Reason: keeping the full map active while playing Activities adds visual and
+browser complexity. The focused MapAsset panel describes the place and offers
+route starts; the Activity player runs on a separate page.
 
 ## Obstacle activity as one-time skipped activity after clearing
 

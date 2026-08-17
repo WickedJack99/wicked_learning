@@ -26,7 +26,13 @@ Current learner behavior:
 - Hover/focused labels render inside the MapAsset rather than below it.
 - Focusable MapAssets open a right-side learner panel with their title,
   description and activity routes.
-- Non-focusable MapAssets remain visual-only and cannot be selected by learners.
+- Decorative MapAssets remain visual-only and cannot be selected by learners.
+- Hide-on-hover MapAssets become pointer-transparent to reveal underlying
+  content and remain hidden while an overlapping MapAsset stays focused.
+- Toggle-state MapAssets switch between two configured images on click; each
+  state can use its own image, X/Y position and size.
+- Pointer hit areas use the rendered image alpha mask so irregular transparent
+  artwork does not behave like a rectangle or historical hex tile.
 - Locked, hidden, hinted, available, recommended and completed states are
   resolved per learner.
 - Unlock rules currently support completed MapAssets, tool use, time conditions
@@ -50,6 +56,7 @@ Current learner behavior:
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.
+- Editor and learner interaction use the same responsive alpha-mask geometry.
 - A map can lock its MapAsset surface so placement cannot be changed.
 - Map-level configuration separates details, visuals, access and deletion.
 - Admin dragging of the map surface is disabled; MapAsset placement is explicit.

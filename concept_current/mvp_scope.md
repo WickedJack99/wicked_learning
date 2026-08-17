@@ -9,6 +9,9 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
   maps on desktop and mobile.
 - Focusable MapAssets open learner panels with title, description, bookmark
   state and multiple activity routes.
+- Decorative, hide-on-hover and two-state MapAssets support layered visual
+  exploration without opening learner panels. Transparent-image interaction
+  follows visible pixels rather than rectangular image bounds.
 - Activities run on dedicated playback pages and support graph transitions,
   route restarts and persisted progress.
 - Implemented activity types include item grant, item obstacle, Markdown, NPC
@@ -39,7 +42,12 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
 - Learning Support can review learner messages grouped by MapAsset and topic,
   see their authors, temporarily hide them or permanently delete them.
 - AI provider credentials and reusable agent templates can be configured and
-  tested, but productive AI authoring workflows are not implemented yet.
+  tested with model-aware controls and structured provider errors.
+- Enabled content-authoring templates can generate a contract-validated draft
+  for one MapAsset and a short Markdown/Reflection route. Nothing is created
+  until the admin reviews and applies the draft.
+- A permission-controlled Content API exposes a versioned machine contract,
+  read/create operations, an interactive console and readable documentation.
 
 ## Deliberate Boundaries
 

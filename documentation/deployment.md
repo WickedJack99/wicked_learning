@@ -10,24 +10,26 @@ Docker Desktop is enough; PHP, Composer and Node.js do not need to be installed 
 
 1. Create the normal local `.env` file and application key if it does not exist yet:
 
-   ```powershell
-   Copy-Item .env.example .env
-   php artisan key:generate
-   ```
+    ```powershell
+    Copy-Item .env.example .env
+    php artisan key:generate
+    ```
 
 2. Start the production-like application and PostgreSQL:
 
-   ```powershell
-   docker compose up --build
-   ```
+    ```powershell
+    docker compose up --build
+    ```
 
-3. Open [http://localhost:8080](http://localhost:8080). On first use, create the included demo content once:
+3. Open [http://localhost:8080](http://localhost:8080). On first use, create the bootstrap account and empty world shell once:
 
-   ```powershell
-   docker compose exec app php artisan db:seed --force
-   ```
+    ```powershell
+    docker compose exec app php artisan db:seed --force
+    ```
 
-   The demo administrator is `test@example.com` with password `password`. Do not expose that account on a public instance; change or remove it immediately.
+    The bootstrap administrator is `test@example.com` with password `password`.
+    The seeder creates no maps, MapAssets or Activities. Do not expose that
+    account on a public instance; change or remove it immediately.
 
 The Compose volumes retain database data and uploads. Reset only this disposable local test instance with:
 
@@ -52,7 +54,7 @@ The remainder of `storage` contains logs and temporary framework files and shoul
 Use environment variables similar to these, replacing every placeholder with the value generated for that particular deployment:
 
 ```dotenv
-APP_NAME="Learning Worlds"
+APP_NAME="Wicked Learning"
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:generated-per-deployment-key
@@ -81,12 +83,16 @@ RUN_MIGRATIONS=true
 
 ## First public test instance
 
-For a short-lived public test, create a separate Coolify application and a separate PostgreSQL database from the same repository. Give it its own subdomain, `APP_KEY`, database credentials and upload volume. Deploy it, then seed it **once** through Coolify's application terminal:
+For a short-lived public test, create a separate Coolify application and a separate PostgreSQL database from the same repository. Give it its own subdomain, `APP_KEY`, database credentials and upload volume. Deploy it, then bootstrap it **once** through Coolify's application terminal:
 
 ```sh
 php artisan db:seed --force
 ```
 
-The included seeder is for demo data and is intentionally not run automatically: rerunning it on a database with real data would not be a safe deployment action. Before sharing the test URL, change or delete the seeded administrator account.
+The included seeder creates the bootstrap administrator and an empty world shell
+and is intentionally not run automatically. Rerunning it resets fields on the
+well-known bootstrap account, including its password, so it is not a safe normal
+deployment action. Before sharing the test URL, change or delete that account and
+author the desired maps through World Builder.
 
 For the current single-container setup, `RUN_MIGRATIONS=true` is convenient. If the application is later scaled to multiple containers, set it to `false` and run migrations once as a dedicated deployment job instead.

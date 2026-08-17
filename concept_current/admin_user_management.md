@@ -1,6 +1,8 @@
 # Admin User Management
 
-The current admin slice focuses on safe public operation rather than content authoring.
+The account-administration slice focuses on safe public operation. Content
+authoring lives separately in World Builder, AI & Integrations and the Content
+API so user management does not become a generic administration surface.
 
 Implemented now:
 

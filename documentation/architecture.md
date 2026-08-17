@@ -1,180 +1,192 @@
 # Architecture Notes
 
-Learning Worlds is a Laravel application with an Inertia/React frontend. The architecture is still evolving, but the current shape is stable enough to document.
+Wicked Learning is a Laravel 13 application with an Inertia 3 and React 19
+frontend. The prototype separates reusable learning behavior from the content,
+visual identity and media configured by each deployment.
 
-The application separates the reusable learning model from deployable domain content. Worlds, maps, nodes, activities, media, sounds, cursor assets and public pages are meant to be configured per deployment instead of hard-coded for one subject area.
+## Request Areas
 
-## Request flow
+Laravel routes return Inertia pages for browser workflows and JSON for focused
+interactions:
 
-Laravel routes return Inertia pages. React receives page props and renders the current learner, settings or admin editing view.
+- `routes/web.php` owns public pages, the learner map, search, bookmarks,
+  organizations, activity playback, journal actions and learner progress.
+- `routes/settings.php` owns personal settings and permission-controlled
+  administration, including World Builder and AI authoring.
+- `routes/api.php` owns the session-authenticated, versioned Content API.
 
-Important route areas:
+Controllers should authorize and validate a request, delegate behavior and
+return an Inertia response, redirect or JSON response. Learning-domain behavior
+belongs under `app/Learning`, AI behavior under `app/Ai`, and the authoring
+contract under `app/ContentApi`.
 
-- `routes/web.php` - public pages, learner world, bookmarks, search and activity playback
-- `routes/settings.php` - profile/security/appearance settings and admin tools
+## Core Content Model
 
-## Backend model areas
+The main hierarchy is:
 
-Important models live in `app/Models`.
+```text
+LearningWorld
+  -> LearningMap
+    -> LearningMapAsset
+      -> internal LearningNode compatibility record
+        -> LearningActivity routes and transitions
+```
 
-Learner and account models:
+`LearningMapAsset` is the product-level object. It owns placement, imagery,
+interaction mode and presentation configuration. A focusable MapAsset also owns
+the learner-facing title, description and activity routes through a unique
+internal `LearningNode` record.
 
-- `User`
-- `UserPreference`
-- `RegistrationToken`
-- `AccessRole`
-- `AccessRolePermission`
+The internal node remains because activity progress, bookmarks, unlock rules and
+portal relations were originally modeled against it. Admins should not create or
+link MapAssets and nodes as separate concepts. New MapAsset authoring operations
+create the compatibility record automatically.
 
-Public presentation models:
+Important world models include:
 
-- `PlatformInfoPage`
-- `PlatformPresentationSetting`
+- `LearningWorld`, `LearningMap` and `LearningMapAsset`
+- `LearningNode`, `LearningNodeBookmark` and `LearnerNodeDiscovery`
+- `LearningActivity`, `LearningActivityStart` and `ActivityTransition`
+- `LearningPortalLink` and `LearnerRouteProgress`
+- `LearningTool`, `LearningItem` and `LearningSound`
+- `LearningMessageTopic` and `LearnerMessage`
 
-World models:
+## Map Rendering And Interaction
 
-- `LearningWorld`
-- `LearningMap`
-- `LearningNode`
-- `LearningNodeBookmark`
-- `LearnerNodeDiscovery`
+Both learner and editor surfaces render MapAssets through shared world feature
+modules under `resources/js/features/world`.
 
-Activity models:
+MapAssets use percentage-based X/Y coordinates, Z depth, width and opacity.
+Transparent image interaction is resolved through a cached alpha mask, so hover,
+click and overlap checks follow visible pixels at the rendered responsive size.
+The same interaction helpers handle focusable, decorative, hide-on-hover and
+toggle-state modes.
 
-- `LearningActivity`
-- `LearningActivityStart`
-- `ActivityTransition`
-- `LearningPortalLink`
-- `LearnerRouteProgress`
-- `DialogueStage`
-- `LearningQuestion`
-- `LearningQuestionOption`
-- `LearnerActivityProgress`
-- `LearnerQuestionAnswer`
-- `LearningTool`
-- `LearningSound`
-- `LearnerJournalPage`
-- `LearnerJournalFeedbackRequest`
-- `CompetenceTopicDefinition`
-- `LearnerCompetenceTopic`
-- `Organization`
-- `LearningGroup`
+Visual configuration resolves normal and highlighted image/color values through
+the same renderer used by the editor preview. The learner surface does not allow
+MapAsset dragging; placement is an explicit World Builder operation.
 
-## Frontend areas
+## Activity Graph And Progress
 
-Important React areas:
+Activities connect through `ActivityTransition` records. A MapAsset can expose
+several `LearningActivityStart` records as learner-facing route choices. A start
+points to the first Activity and can carry route-card images and colors.
 
-- `resources/js/pages/welcome.tsx` - public landing experience
-- `resources/js/pages/world.tsx` - learner world map
-- `resources/js/pages/bookmarks.tsx` - bookmark map
-- `resources/js/pages/learning/node-play.tsx` - activity playback
-- `resources/js/pages/settings/index.tsx` - settings overview and admin panels
-- `resources/js/pages/settings/worlds/index.tsx` - admin world graph
-- `resources/js/pages/settings/worlds/edit-map.tsx` - admin map editor
-- `resources/js/pages/settings/worlds/edit-node-activities.tsx` - admin activity graph editor
-- `resources/js/pages/settings/assets/tools.tsx` - admin tool editor
-- `resources/js/pages/settings/assets/media.tsx` - reusable visual asset library
-- `resources/js/pages/settings/assets/sounds.tsx` - reusable sound library
-- `resources/js/features/world` - shared world and activity-panel pieces
-- `resources/js/features/tools` - equipped-tool state, cursor overlays and tool visual sizing
-- `resources/js/features/sounds` - layered browser audio playback
-- `resources/js/features/journal` - private journal data, theme and overlay
-- `resources/js/theme` - appearance and presentation helpers
+`LearnerRouteProgress` stores the learner, compatibility node, route start,
+current Activity, run key, completion counts and completion time. Activity types
+can persist more specific state without putting it into the URL:
 
-## Theme and visuals
+- NPC dialogue uses nested nodes, answers and transitions.
+- questions store learner answers and branch outcomes.
+- reflections can write learner-owned journal data.
+- grants and obstacles use backend services for inventory and progress changes.
+- message Activities share a MapAsset-scoped `LearningMessageTopic`.
+- portals connect Activity playback to another MapAsset or map.
 
-Theme data is split between:
+Activity types are registered as small data-shaped definitions in
+`ActivityTypeRegistry`, allowing the graph editor and Content API to discover
+their connectors without hard-coding one linear course model.
 
-- backend user preferences for authenticated appearance
-- frontend helpers for resolving light or dark mode consistently
-- database-backed presentation settings for public/auth page visuals
-- map and node configuration for world-specific visuals
-- reusable media records for uploaded images, animations and sounds
-- cursor settings for default cursor, pointer cursor and drag cursor
+## AI And Content API
 
-World visuals are intended to be configurable per deployment. Current node visuals support dark and light full-tile images, colors, transparency, label visibility, image visibility, lock state, hover text and completed-node dimming.
+AI configuration uses:
 
-Reusable visual asset inputs should use the shared image picker pattern: upload, download, select existing and clear field. Clearing a field should remove the reference from the current form only; it should not delete the reusable asset.
+- `AiProviderCredential` for encrypted provider configuration
+- `AiAgentTemplate` for reusable purpose, model and instruction settings
+- `AiContentAuthoringRun` for generated drafts, contract versions, warnings,
+  provider metadata, token usage and approval state
 
-Reusable sounds are stored separately from visual assets. The frontend sound player is intentionally layered, so activities can play ambience, voice, effects and UI sounds at the same time without replacing one another by default. Any activity can reference one optional reusable ambience sound; activity renderers start it on entry and stop that layer when the learner leaves.
+`AiResponsesClient` owns Responses-style HTTP transport, timeouts, bounded
+transient retries and provider request IDs. `AiModelCapabilities` prevents
+unsupported generation controls from being sent for known models, while
+`AiProviderError` converts provider failures into sanitized categories and
+retryable application responses.
 
-## Activity graph model
+The first content-authoring workflow sends an administrator brief plus scoped
+map context and a strict `ContentPlanContract`. The returned plan is validated
+before it is stored as a draft. Explicit approval invokes `ApplyAiContentPlan`,
+which revalidates and creates the MapAsset, Activities, route start and
+transitions inside one database transaction.
 
-Activities are connected through transitions. A node can have multiple route starts, represented by `LearningActivityStart` records. Each start points to the first activity in a route and can store route-card presentation data.
+`ContentApiContract` publishes the machine-readable administration contract at
+`/api/content/v1/contract`. The same contract drives the Settings documentation
+and API console. Read and mutation access use separate permission levels. The
+API currently relies on the signed-in web session and CSRF token; it does not
+issue public bearer tokens.
 
-This lets one map node offer several learning paths, such as:
+## Account, Access And Support Models
 
-- an easy route
-- a deeper route
-- a portal route
-- a reflection route
+Account and access models include:
 
-Portal activities are special because they can connect activity playback to another node or map through `LearningPortalLink`.
+- `User`, `UserPreference` and `RegistrationToken`
+- `AccessRole` and `AccessRolePermission`
+- `Organization`, `OrganizationMembership` and organization messages
+- `LearningGroup`, group messages and shared-task submissions
 
-Route playback state is stored separately from the route graph. `LearnerRouteProgress` records the learner, node, start route, current activity, run key, completion counts and completion time. Activity-specific services can store finer-grained state, such as the current NPC dialogue node, without putting those internals into the URL.
+Support and reflection models include:
 
-NPC dialogue activities have a nested graph. The nested graph can branch through question and answer nodes and expose one parent activity Exit connector per nested End node.
+- `LearnerJournalPage` and `LearnerJournalFeedbackRequest`
+- `CompetenceTopicDefinition` and learner competence records
+- `LearnerReflection`
+- `LearningMessageTopic` and moderated `LearnerMessage` records
 
-Tool-grant activities and NPC dialogue tool-grant nodes add tools to the learner. If the learner already owns the tool, the activity can continue without presenting it as a fresh acquisition.
+Roles are configurable permission bundles. Administrative resources use `RO`,
+`RU` and `RUD` levels, and map edit access is additionally scoped by the map.
 
-Obstacle activities validate tool use through backend progress services. They can either reappear every replay or stay cleared for a learner until the admin changes the activity configuration in a way that should take priority over the stored learner-cleared state.
+## Frontend Areas
 
-Grant-item activities use backend roll and inventory services. The server decides whether the configured probability grants items for the current run, records inventory changes, and prevents browser-only replay tricks from minting more items inside the same run.
+Important React entry points and feature modules are:
 
-## Admin boundaries
+- `resources/js/pages/world.tsx` - learner map
+- `resources/js/pages/bookmarks.tsx` - personal bookmark map
+- `resources/js/pages/learning/node-play.tsx` - Activity playback
+- `resources/js/pages/settings/index.tsx` - unified Settings workspace
+- `resources/js/pages/settings/worlds/edit-map.tsx` - MapAsset surface
+- `resources/js/pages/settings/worlds/configure-map.tsx` - map configuration
+- `resources/js/pages/settings/worlds/edit-node-activities.tsx` - Activity graph
+- `resources/js/features/world` - map rendering and learner interactions
+- `resources/js/features/settings` - shared administration workspaces
+- `resources/js/features/ai` - content-authoring client and review dialog
+- `resources/js/features/content-api` - API console client
+- `resources/js/features/journal`, `tools`, `items` and `sounds` - reusable
+  learner feature areas
+- `resources/js/theme` - appearance and presentation resolution
 
-Admin editing is intentionally placed in settings and separate edit pages. The learner map should stay focused on learning and exploration, even for admins.
+Pages should stay focused on route-level composition. Shared configuration
+shells, image/sound pickers, graph transformations, map interaction math and API
+state belong in reusable components, hooks or feature modules.
 
-The rule of thumb:
+## Media, Themes And Localization
 
-- learner-facing map: explore, focus, bookmark, search and start routes
-- admin settings: create users, configure presentation, edit worlds and wire activities
+Visual assets are referenced through reusable media paths. Shared image inputs
+support upload, download, select existing and clear; clearing removes the form
+reference and does not delete the underlying reusable file.
 
-Administration is split by responsibility:
+Sounds are separate records because their volume, looping, duration and layered
+playback behavior differs from image assets. Activities can reference optional
+ambience while specialized renderers add other sound layers.
 
-- Access management: users, roles and permissions.
-- Public presentation: welcome/auth/legal content and global cursor visuals.
-- Visuals: reusable uploaded images and animations.
-- Sounds: reusable uploaded sound assets.
-- Tools, items and currencies: reusable world objects, with tools and consumable items implemented first.
-- Source-code links: public network source availability links for the running deployment.
+Presentation data is split between authenticated preferences, database-backed
+public/settings/journal palettes, map-specific visuals and authored Activity
+content. Fixed platform UI strings belong in `lang/en.json` and are read through
+the platform translation hook. Authored or access-controlled learning content
+must not be copied into the global catalog.
 
-## Implementation boundaries
+## Implementation Boundaries
 
-Controllers and React pages should stay thin. Larger behavior belongs in classes or components named after what they do.
+Controllers and React pages should remain thin. Preferred backend ownership:
 
-Laravel controllers may authorize, validate or delegate validation, call an Action, Service, Query or Serializer, and return an Inertia response, redirect or JSON response. They should not contain graph traversal, progress rules, portal-link rules, slug generation, long serialization blocks, hex-grid positioning, file-upload rules or multi-step editing workflows.
+- Actions for writes such as creating a MapAsset or applying an AI plan
+- Services for reusable progress, portals, media, interaction and inventory rules
+- Queries for access-scoped, read-heavy loading
+- Serializers for Inertia and JSON payload shaping
+- Form Requests or validation classes for non-trivial contracts
 
-Preferred backend homes:
+Do not place graph traversal, slug generation, file rules, MapAsset interaction
+math, provider transport or multi-step authoring transactions directly in a
+controller or page component.
 
-- Actions for write operations such as `CreateLearningMap`, `UpdateLearningNode`, `InsertLearningNodeIntoHexGrid` or `AnswerLearningQuestion`.
-- Services for reusable behavior such as `LearnerProgressService`, `PortalLinkService`, `NodePositionService` or `UniqueSlugGenerator`.
-- Query classes for read-heavy loading such as `LoadPlayableNode`, `SearchLearningWorld` or `LoadEditableWorldGraph`.
-- Serializers for Inertia and JSON payload shaping such as `LearningWorldSerializer`, `LearningNodeSerializer` or `AdminWorldGraphSerializer`.
-- Validation classes or Form Requests when validation starts making controllers noisy.
-
-React pages should compose smaller feature components and hooks. Map math, graph editing rules, form transformations and API state should not accumulate directly in page components. Pure logic, such as hex-grid geometry, should live in feature modules that can be reused and tested independently.
-
-Current examples of these boundaries:
-
-- access permissions live in `app/Access`
-- reusable media handling lives in `LearningMediaUploadService`, `ReusableMediaAssetManager` and related upload services
-- tool visuals and cursor overlays live in `resources/js/features/tools`
-- item inventory UI and placement behavior lives in `resources/js/features/items`
-- sound playback lives in `resources/js/features/sounds`
-- learner route/run progress lives in dedicated learning services instead of controller session state
-- world/node payload shaping lives in learning serializers rather than controller arrays
-
-As rough size guides:
-
-- controllers should usually stay below 150 lines
-- services should usually stay below 200 lines
-- methods should usually stay below 40 lines
-- classes should have one clear responsibility
-
-When implementing a larger feature, briefly identify the controller, Action or Service, Serializer or Query, and React component or hook that should own the work before editing.
-
-## Database evolution
-
-The schema is changing quickly because the app is still a prototype. Changes should be made through migrations so a real application database can be upgraded later.
-
-Demo data belongs in seeders and should stay resettable. Production-like content should not be hard-coded into React components when it can be configured through the database.
+Schema changes use migrations. `DatabaseSeeder` bootstraps the local admin and
+an empty world shell but deliberately creates no maps, MapAssets or Activities.
+Deployment content should be authored through the application rather than
+hard-coded into React.

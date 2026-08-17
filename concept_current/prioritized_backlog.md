@@ -29,9 +29,11 @@ This backlog contains current direction. Historical ideas in `concept/` and
 
 ## Priority 4 - AI Assistance
 
-- Add queued runtime execution behind configured AI templates.
-- Add guarded context loaders and provider adapters.
-- Build human-reviewed authoring flows for questions, feedback and world design.
+- Move longer provider executions to queued jobs with progress and cancellation.
+- Add guarded, administrator-selected context loaders and more provider adapters.
+- Expand the existing reviewed MapAsset draft flow to questions, feedback,
+  branching routes and broader world design.
+- Add field-level draft editing and comparison before apply.
 - Let the world-design assistant inspect existing structures and explicitly
   propose reuse, merging or extension before creating new content.
 

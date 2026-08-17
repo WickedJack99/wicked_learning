@@ -20,6 +20,10 @@
   message prompt Activity with one or more message wall Activities.
 - `learner_messages`: one short learner contribution per topic and user,
   including moderation visibility and author attribution.
+- `ai_provider_credentials` and `ai_agent_templates`: encrypted provider
+  configuration and reusable instruction/model profiles.
+- `ai_content_authoring_runs`: versioned generated plans, scoped context,
+  warnings, provider usage and human-approval state.
 
 ## Activity-Specific Structure
 
@@ -70,3 +74,8 @@ invitations. None of these should become learning rewards.
 Tools increase capability or interpretation. Items are consumable world
 objects. Sounds and visual media remain separate because their playback and
 preview behavior differs.
+
+The Content API is a versioned application contract over existing authoring
+Actions and validation rules, not a second content model. AI ContentPlans are
+stored as drafts and revalidated before one explicit transaction creates the
+MapAsset, Activities, route start and transitions.

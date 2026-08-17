@@ -22,7 +22,7 @@ learning logic.
 - Markdown activity surfaces, colors and embedded media.
 - Journal paper, leather edge, text and interaction colors.
 - Reusable visual and sound assets.
-- Configurable default, pointer, text, grab and unavailable cursors.
+- Configurable normal, action, grab, text and denied cursors.
 - Authentication, welcome and public-page presentation settings.
 
 ## Appearance Behavior

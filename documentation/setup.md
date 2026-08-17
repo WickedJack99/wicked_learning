@@ -1,6 +1,6 @@
 # Local Setup
 
-This guide describes a normal local development setup for Learning Worlds.
+This guide describes a normal local development setup for Wicked Learning.
 
 ## Requirements
 
@@ -45,7 +45,7 @@ DB_USERNAME=postgres
 DB_PASSWORD=your-password
 ```
 
-Then run migrations and seed demo data:
+Then run migrations and bootstrap the local platform:
 
 ```bash
 php artisan migrate --seed
@@ -57,11 +57,16 @@ If you want uploaded presentation, world, tool, sound or activity assets to be s
 php artisan storage:link
 ```
 
-The development seeder creates:
+The bootstrap seeder creates:
 
 - admin email: `test@example.com`
 - admin password: `password`
-- demo world: `Learning Grove`
+- an empty world shell: `Learning World`
+
+No maps, MapAssets or Activities are seeded. The initial content surface is
+deliberately empty so it can be authored through World Builder. Change the
+bootstrap password before exposing the instance outside a disposable local
+environment.
 
 ## Start development servers
 
@@ -100,7 +105,10 @@ composer run ci:check
 
 ## Common development notes
 
-- Run `php artisan migrate --seed` after pulling schema or demo-content changes.
-- The demo data is intentionally small and should remain easy to reset.
+- Run `php artisan migrate` after pulling schema changes. Run `db:seed` only
+  when you intentionally want to create or reset the bootstrap account.
+- `DemoLearningWorldSeeder` is retained as legacy development material but is
+  not called by `DatabaseSeeder` and does not represent the current freeform
+  MapAsset authoring flow.
 - Uploaded reusable media is usually referenced through `/storage/...`; generated demo assets may also live below `public/images` or `public/sounds`.
 - Public pages and auth-page presentation can be edited by admins inside settings.

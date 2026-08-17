@@ -1,242 +1,225 @@
 # Feature Overview
 
-Learning Worlds is a generic prototype for explorable learning without points, streaks or leaderboards. The current app is small, but it already has the main shape of a platform that can be adapted to any learning domain through configurable maps, activities, visuals, media and public content.
+Wicked Learning is a domain-agnostic prototype for explorable learning without
+points, streak pressure or leaderboards. Deployments configure their own maps,
+MapAssets, activity routes, media and public presentation while the learning
+and authoring systems remain reusable.
 
-## Learner experience
+## Learner Experience
 
-### Welcome and public pages
+### Public Pages And Accounts
 
-Visitors can view the welcome screen, About, Imprint and Data Protection pages before logging in. The public appearance can use light or dark mode, and admins can edit public text and presentation assets.
+Visitors can open the welcome, About, Imprint, Data Protection and source-code
+pages before logging in. Public and authentication surfaces support configurable
+light and dark presentation values.
 
-The public footer also exposes a source-code page. The default source points to the origin repository, and deployments can add their own source links so network users can find the corresponding source for the running version.
+Registration requires a valid registration token. Authenticated users can edit
+their profile and language, choose appearance and sound preferences, manage
+passwords, passkeys and two-factor authentication, and review notifications.
 
-### World map
+### Freeform World Maps
 
-Learners enter a draggable hex map. Each visible node can be focused to open a side panel with its description, route choices and actions.
+Learners explore maps made from freely positioned MapAssets. A MapAsset combines
+the visible map object with the learning place learners can focus; the older
+internal `LearningNode` record remains only as a compatibility layer for
+activities, progress and portals.
 
 Current map behavior includes:
 
-- dark and light map styling
-- configurable map description panel
-- custom cursor assets
-- draggable map surface
-- node focus through URL query parameters
-- locked or empty nodes
-- node labels that can be hidden per node
-- full-tile node images for dark and light mode
-- completed-node dimming instead of badge-like check marks on the tile image
-- hidden nodes that can be revealed by using a configured tool on the map
-- locked nodes that can be unlocked through configured completion rules, tool use or both
+- percentage-based X/Y placement, Z depth, size and opacity
+- transparent PNG and WebP artwork with overlapping visual layers
+- image-alpha-aware pointer hit areas that follow visible pixels instead of the
+  surrounding image rectangle
+- responsive hit testing shared by the learner map and World Builder preview
+- normal, hover and focused visuals with configurable borders, labels, colors
+  and optional highlight images
+- a focused right-side panel with title, description, bookmark state and route
+  choices
+- no learner-side dragging of MapAssets
+- role-based map access
+- locked, hidden, hinted, available, recommended and completed learner states
+- unlock rules based on completed MapAssets, tools, time and nested AND/OR groups
+- tool-driven discovery of hidden MapAssets
 
-### Search
+MapAssets have four interaction modes:
 
-The map search is server-side, so it can find visible nodes on other maps. Search results are shown as map and node matches and can navigate the learner to the selected node.
+- **Focusable** opens the learner panel and activity routes.
+- **Decorative** is visual-only and ignores learner focus.
+- **Hide on hover** becomes pointer-transparent while hovered so underlying
+  MapAssets can be selected. It remains hidden while an overlapping underlying
+  MapAsset stays focused.
+- **Toggle state** switches between two configured images when clicked. Each
+  state has its own image, X/Y position and size.
 
-### Bookmarks
+### Search And Bookmarks
 
-Learners can bookmark nodes. Bookmarked nodes appear on a personal bookmark map arranged in a spiral layout. Selecting a bookmark opens the same style of node panel with orientation text and a button to go to the original node.
+Map search runs on the server and can find accessible MapAssets on other maps.
+Search results navigate to the matching map and focusable place.
 
-### Journal and reflection
+Learners can bookmark focusable MapAssets. Bookmarks appear on a personal map
+and link back to the original learning place.
 
-The learner journal is a private Markdown workspace. Reflection activities can add structured pages, and learners can create their own pages, search them, switch between writing and rendered views, and export their journal.
+### Activities And Routes
 
-Drafts save automatically while writing and show their current save state. If a save cannot complete, the draft remains open so the learner can continue rather than losing text. On narrow screens, the page list stays above the editor instead of competing for a small side column.
+A focusable MapAsset can expose several route starts. Activities play on a
+dedicated page and are connected through a graph rather than a fixed linear
+course sequence. Backend route progress preserves the current run and activity
+across refreshes; learners can restart or reset routes according to the authored
+rules.
 
-Where the deployment enables it, a learner can request feedback on one journal page and choose an eligible journal, group or organization domain. The page then shows a clear pending or responded state. This is an explicit request by the learner; journal pages are not a general staff-reading surface.
+Implemented activity types are:
 
-### Competence and collaboration
+- dialogue and graph-based NPC dialogue
+- questions with correctness and outcome branches
+- reflection
+- Markdown page graphs
+- shared tasks
+- learner message prompts and message walls
+- tool grants and item grants
+- tool obstacles and item-slot obstacles
+- portals
+- placeholders for planned content
 
-Competence topics can be attached to activities with configurable weights. Learners can view their own learning history, while authorised support staff can see aggregated or scoped support signals designed for conversations and orientation rather than comparison or ranking.
+Every activity type can reference optional reusable ambience. More specialized
+types can add their own interaction sounds and visuals.
 
-Learners can also create or join organizations, participate in learning groups, and complete shared-task activities. These are early collaboration prototypes: their goal is to make space for contributions and coordination, not public scoring.
+### Learner Messages
 
-### Activities and routes
+A message-prompt Activity collects at most one short contribution from a learner
+for a MapAsset-scoped topic. A message-wall Activity displays the latest visible
+contributions as dismissible cards during activity playback. Learners do not see
+other messages until they reach the authored wall.
 
-A node can have multiple start routes. The learner chooses a route from the node panel and then plays activities on a separate page, keeping the world map lighter.
+Authorized staff can review messages grouped by MapAsset and topic, see author
+attribution, hide inappropriate entries and permanently delete them when their
+permission level allows it.
 
-Route playback stores backend progress per learner and route run. This lets the application resume the current activity or dialogue position after refresh, while still allowing a learner to intentionally start the route from the beginning. Resetting a route from the node panel starts a fresh run and can allow grant activities to be earned again according to their rules.
+### Journal, Competence And Collaboration
 
-Supported prototype activity ideas include:
+The learner journal is a private Markdown workspace with custom pages,
+reflection-created pages, search, writing/rendered modes, autosaved drafts and
+export. Learners can explicitly request feedback for one page from an eligible
+journal, group or organization domain; journals are not a general staff-reading
+surface.
 
-- nested NPC dialogue graphs
-- question and answer dialogue nodes with private correctness tracking
-- reflection-style content
-- placeholder activities
-- portal activities
-- tool-grant activities
-- item-grant activities
-- obstacle activities
-- item-obstacle activities
-- markdown page activities
+Activities can contribute weighted competence topics. Learners see their own
+competence history, while authorized support staff receive scoped signals for
+orientation and support conversations rather than ranking.
 
-### Portals
+Organizations, learning groups, group chat and shared-task activities form an
+early collaboration slice. Their purpose is contribution and coordination, not
+public scoring.
 
-Portal activities can move the learner to another node or map. Portal activities support Entry and Exit modes, configurable portal visuals, mirrored foreground/background assets, optional click-to-enter behavior and linked portal edges in the admin world graph.
+### Tools, Items And Portals
 
-Entry portals own the destination link. Exit portals are receiving activities and can choose whether their arrival scene is displayed or skipped.
+Tools are reusable learner capabilities. They can be granted by activities or
+NPC dialogue, equipped from the learner controls, used in obstacles, reveal
+hidden MapAssets and satisfy configured unlock rules.
 
-### Tools
+Items are consumable inventory objects used by item-grant and item-obstacle
+activities. Probability rolls and inventory mutations happen on the backend so
+browser replay cannot mint repeated grants inside one route run.
 
-Learners can acquire tools through activities. A floating side action bar opens the current tool selection, and an equipped tool follows the cursor until it is used or cancelled.
+Portal activities connect MapAssets and maps. Entry portals own the destination;
+exit portals receive the learner and can show or skip an arrival scene. Portal
+visuals support reusable backgrounds, foregrounds, animated loops and optional
+click-to-enter behavior.
 
-Tools can be used:
+## Administration
 
-- inside obstacle activities
-- on the world map to reveal configured hidden nodes
-- on locked map nodes when unlock rules allow a configured tool interaction
+### Settings Workspace
 
-The prototype treats tools as capabilities, not rewards. They should open possibilities in the environment rather than become status markers.
+Personal and administrative settings share a multi-level, full-height workspace.
+Administrative areas are visible according to configurable resource permissions:
 
-## Auth and user settings
+- Learning Support
+- World Builder
+- Assets & World Objects
+- Access management
+- AI & Integrations
+- Translations
+- Color palettes
+- Public pages
+- API
 
-Users can register only with a valid registration token. Authenticated users can manage their profile, password, passkeys and appearance preference.
+Settings colors, inputs, navigation states, journal presentation and map visual
+palettes are database-backed instead of being fixed to one deployment theme.
 
-Theme preference is stored for authenticated users. Public, unauthenticated appearance can be handled separately so the welcome and auth pages still feel coherent before login.
+### Access Management
 
-## Admin features
+Admins can manage users, registration tokens, roles, groups and account access.
+Roles carry permission levels per resource:
 
-Admins can access extra settings panels.
-
-### User management
-
-Admins can:
-
-- list registered users
-- inspect registration-token metadata
-- create one-use registration tokens
-- choose token roles and expiration date
-- assign multiple roles to users
-- create and edit configurable roles
-- grant roles permission levels per administrative resource
-- disable login
-- ban users until a date
-- delete users
-
-Permission levels currently use:
-
-- `No`: no access to the resource
+- `No`: no access
 - `RO`: read-only
-- `RU`: read and update
-- `RUD`: read, update and delete
+- `RU`: read and update/create
+- `RUD`: read, update/create and delete
 
-### Presentation editing
+The platform supports multiple assigned roles, configurable role definitions,
+login disabling, temporary bans and account deletion. Map editing is additionally
+scoped by map access.
 
-Admins can edit public-facing content and visuals:
+### World Builder
 
-- About page
-- Imprint page
-- Data Protection page
-- welcome-page sections
-- login and registration backgrounds
-- upload and download presentation files
-- default cursor, pointer and drag cursor images
+World editing stays in Settings rather than being mixed into the learner map.
+The World Builder provides:
 
-### Reusable media
+- a world/map graph with portal relationships
+- map creation and map configuration for details, visuals, access and deletion
+- a full-size MapAsset surface with a floating Add MapAsset action
+- center placement for new MapAssets and explicit X/Y/Z/size/opacity fields
+- a map-level lock for MapAsset placement
+- one MapAsset editor for surface, text, learner panel, activities, rules,
+  visuals, sounds and deletion
+- shared upload, download, select-existing and clear controls for images
+- a live MapAsset preview using the learner renderer
+- light/dark map palettes and previewable controls
+- activity, NPC dialogue and Markdown graph editors
 
-Admins can manage reusable media separately from world objects:
+Selecting a MapAsset opens its editor directly. Admins do not create or link a
+separate LearningNode; the backend creates the internal compatibility record as
+part of the MapAsset operation.
 
-- uploaded images and animations can be selected again in image fields
-- image inputs support upload, download, selecting an existing asset and clearing a field without deleting the asset
-- reusable sounds can be named, categorized with an icon, previewed and configured with volume, looping and optional playback duration
-- a layered sound player can play multiple sounds at once, so later activities can combine ambience with interaction sounds
+### Reusable Assets And Presentation
 
-The media library is an abstraction layer. Tools, nodes, presentation pages and activities should reference reusable assets instead of forcing admins to upload duplicate files. This helps each deployment build a coherent domain-specific visual and audio language without coupling those assets to one fixed subject.
+Admins can manage reusable images, animations, sounds, tools, items and cursor
+images. Image inputs reuse existing media paths instead of forcing duplicate
+uploads. Sound records include category, icon, volume, looping and optional
+duration metadata, and the browser player supports concurrent sound layers.
 
-### Tools, items and currencies
+Public pages, auth backgrounds, information pages, source links, platform
+languages and translation catalogs are configurable. Cursor roles currently
+cover normal, action, grab, text and denied states.
 
-The tools/items/currencies area is reserved for reusable world objects. Tools and consumable items are implemented; currencies remain reserved for later.
+### AI And Content Authoring
 
-Tool editing currently supports:
+Admins can store encrypted provider credentials and reusable agent templates,
+including a `content_authoring` purpose. Provider requests use a Responses-style
+API client with timeouts, bounded retries for transient failures, sanitized
+error messages, request identifiers and model-aware generation controls.
 
-- unique name and slug
-- dark and light tool images
-- dark and light animation images or GIFs
-- separate display widths for the resting image and animation
-- animation duration
-- a preview area where the admin can see cursor and click animation behavior
+From a map's MapAsset surface, an admin can ask an enabled content-authoring
+template for a draft. The brief contains a learning goal, optional audience and
+prior knowledge, route length and allowed Activity types. The AI returns a
+versioned structured ContentPlan. Nothing is created until the admin reviews the
+MapAsset, linear route, warnings and token usage and explicitly applies it.
 
-Item editing currently supports:
+The first authoring slice creates one focusable MapAsset at the map center and
+one to three Markdown/reflection Activities. Applying the draft revalidates the
+plan and writes the MapAsset, Activities, route start and transitions in one
+database transaction. See [AI-assisted authoring](ai-authoring.md).
 
-- unique name and slug
-- description
-- dark and light item images
-- reuse through grant-item and item-obstacle activities
+### Content API
 
-### World editing
+The permission-controlled Content API exposes a versioned machine contract plus
+operations to list and create maps, MapAssets and Activities. Settings contains
+an interactive console and a readable contract view. Requests currently use the
+signed-in administrator session and CSRF protection; this is an administration
+API, not a public token API. See [Content API](content-api.md).
 
-Admins edit worlds from settings, not from the learner map. This keeps admin controls away from the normal learning experience.
+## Intentional Non-goals
 
-The current world editor includes:
-
-- graph view of maps
-- portal edges between maps
-- creation of new maps without requiring a portal first
-- separate map configuration page for map details, map visuals, access and deletion
-- full-screen map editing page
-- draggable hex editing surface
-- node creation and editing overlays
-- empty-space nodes
-- hidden empty-space nodes
-- node image upload and download
-- selecting existing reusable images
-- dark and light node images and colors
-- square node artwork convention: generated source tile images should be square, borderless scene artwork; the runtime hex component is responsible for clipping them to the map tile shape
-- tile label visibility controls
-- node-image visibility controls
-- node lock state and editable hover text
-- unlock conditions with completion rules, OR/AND grouping and optional tool unlock behavior
-- completed-node dimming levels per light and dark mode
-- node swapping and insertion helpers
-- map-level access roles, including public map access for later unauthenticated exploration modes
-- map deletion with cleanup for related nodes, links, progress references and stale unlock rules
-
-Map visuals are moving away from small accordion dialogs toward larger configuration pages. The current configuration page separates map details, visuals, access and deletion. Visual editing can switch between dark and light configuration values without changing the admin page appearance itself, and preview panels show how each configured control will look.
-
-### Activity graph editing
-
-Admins can open a node's activities and configure an activity graph.
-
-The current activity editor includes:
-
-- Start and End graph nodes
-- multiple routes from the Start node
-- Entry and Exit connectors
-- activity creation and deletion
-- transition wiring between activities
-- delete confirmation overlays
-- route-card image configuration
-- route button and border color configuration
-- portal activity settings in accordion sections
-- NPC dialogue graph editing
-- obstacle activity configuration with allowed tool selection
-- tool-grant activity configuration
-- item-grant activity configuration with server-side probability rolls
-- item-obstacle activity configuration with item slots, sounds and optional retry lockouts
-- markdown page-graph editing with page colors, images and video embeds
-- optional reusable scene ambience for every activity type
-- route progress persistence with current activity and completion timestamps
-
-Obstacle activities can persist per learner. Admins can choose whether a solved obstacle reappears on replay or stays cleared for the learner. If it stays cleared, a separate revisit state can show its own background, cleared obstacle image and text bubble.
-
-Item-grant activities roll on the server and write to learner inventory through backend services so the frontend cannot repeatedly trigger a lucky grant by replaying only the browser action.
-
-Item-grant playback displays the granted items directly, grows the item display only as needed up to three columns, and then lets the learner continue.
-
-Markdown activities use their own page graph. Each page can carry Markdown content, media embeds and theme-specific page colors while still fitting into the same parent activity-route graph.
-
-### AI support
-
-Admins can configure AI provider credentials and reusable agent templates from settings. Provider credentials are intended to stay encrypted server-side, while templates define the behavior, task purpose, model preferences, budgets and guardrails for future AI-assisted jobs.
-
-Agent templates support importing and exporting their instruction text as Markdown files. The repository also contains `agent-instruction-sets/` with starter instruction sets for SDT design support, learner reflection feedback, asset brief generation and competence-oriented question design. These files are meant to be improved through issues and pull requests without mixing private learner data or deployment-specific secrets into the public repo.
-
-## Intentional non-goals
-
-The prototype deliberately avoids:
-
-- global point totals
-- streak pressure
-- leaderboards
-- reward loops that make the reward more important than learning
-
-The platform can still be playful and game-like. The difference is that interaction should support autonomy, curiosity and competence instead of replacing them.
+The prototype deliberately avoids global point totals, streak pressure,
+leaderboards and reward loops that make the reward more important than learning.
+It can still be playful and game-like, but interaction should support autonomy,
+curiosity, competence and relatedness.
