@@ -70,6 +70,63 @@ For broader changes, prefer:
 composer run ci:check
 ```
 
+## Commit Conventions
+
+Use English Conventional Commit subjects for all new commits:
+
+```text
+<type>(<scope>): <imperative summary>
+```
+
+Examples:
+
+```text
+feat(map-assets): add state-switching interactions
+fix(map-assets): align hit areas with visible image pixels
+refactor(ai): centralize provider request handling
+docs(concepts): describe the MapAsset content model
+chore(deps): update frontend dependencies
+```
+
+Use these types consistently:
+
+- `feat`: add or extend a user-visible capability
+- `fix`: correct unintended behavior
+- `refactor`: restructure code without changing intended behavior
+- `perf`: improve performance without changing intended behavior
+- `docs`: change documentation only
+- `test`: add or correct tests only
+- `style`: apply formatting-only changes
+- `build`: change dependencies or the build system
+- `ci`: change automated checks or delivery workflows
+- `chore`: perform repository maintenance not covered above
+- `revert`: revert an earlier commit
+
+Choose a domain scope rather than an implementation layer. Prefer established
+scopes such as `ai`, `content-api`, `map-assets`, `world-builder`,
+`learner-map`, `activities`, `settings`, `learning-support`, `journal`,
+`assets`, `media`, `auth`, `access`, `translations`, `deployment`, `database`
+and `deps`. Avoid vague scopes such as `frontend`, `backend`, `ui` or `misc`
+when a domain scope describes the change. A scope is expected for code changes
+and may be omitted for truly repository-wide documentation, CI or maintenance.
+
+Keep the subject lowercase after the colon, use an imperative verb, omit the
+trailing period and keep the complete subject line at 72 characters or fewer.
+Use `!` and a `BREAKING CHANGE:` footer when a commit intentionally breaks a
+public contract.
+
+Group commits by functional outcome:
+
+- Keep the backend, frontend, migration, translations and tests for one
+  capability together when they form one coherent change.
+- Separate unrelated features, fixes and maintenance even if they were developed
+  at the same time.
+- Do not create a separate commit for every file or combine several independent
+  outcomes into a catch-all commit.
+- Stage only the files that belong to the stated outcome and preserve unrelated
+  worktree changes.
+- Reword or rewrite existing history only when it is explicitly requested.
+
 ## Pull Requests
 
 Please keep pull requests focused on one responsibility. A good pull request

@@ -7,40 +7,31 @@ This folder documents how Codex should work inside this repository.
 Codex should read instructions in this order:
 
 1. System and developer instructions from the active Codex environment.
-2. Repository root `AGENTS.md`.
+2. The user request for the current task.
 3. Any scoped `AGENTS.md` in the directory being edited.
-4. The user request for the current task.
-5. Relevant project documentation and concept files.
+4. `CONTRIBUTING.md` and relevant project documentation.
+5. Current concept files when product direction is involved.
 
 Scoped files should only add local guidance. They should not contradict the root file.
 
 ## Repository Guidance Files
 
-- `AGENTS.md` covers product direction, design lenses, architecture boundaries, safety and verification.
 - `app/Learning/AGENTS.md` covers backend learning-domain behavior.
 - `resources/js/AGENTS.md` covers React, Inertia, feature modules and UI consistency.
 - `tests/AGENTS.md` covers test priorities and scope.
+- `CONTRIBUTING.md` covers architecture expectations, verification and the
+  repository commit convention.
 
-## Repository-Local Skills
-
-Repository-local skills live under `.agents/skills/`.
-
-Current skills:
-
-- `wicked-feature-slice`: feature ownership, architecture, reversible implementation and documentation sync.
-- `wicked-activity-type`: activity graph, playback, progress and activity localization work.
-- `wicked-ui-qa`: visual consistency, cursor behavior, map/settings layout and browser checks.
-- `wicked-learning-design-review`: advisory SDT-informed concept review, product tensions and alternatives.
-
-Each skill has a compact `SKILL.md` with YAML frontmatter containing `name` and `description`.
+There is currently no repository-root `AGENTS.md` and no checked-in
+`.agents/skills` directory. Do not assume either exists based on older sessions.
 
 ## Verification
 
-For guidance-only changes, prefer lightweight checks:
+For documentation-only changes, prefer lightweight checks:
 
 - Confirm expected files exist.
-- Validate skill frontmatter has `name` and `description`.
 - Run `git diff --check`.
+- Check Markdown links and stale terminology.
 - Review `git diff --name-only` for unintended files.
 
 For app changes, use targeted checks based on the touched layer. Do not run the full suite by default unless the change justifies it.
@@ -107,28 +98,24 @@ Codex should not modify user-level Codex configuration while working on this rep
 
 ## Git
 
-Use focused commits grouped by responsibility. Preserve user changes and avoid force pushes. If asked to push, push the current branch and report the result.
-
-The user prefers commit messages that make Codex authorship clear. Product ideas from the project creator can be referred to as WickedJack99's direction in docs or concept notes when helpful.
-
-## Command Rules
-
-No repository-local command-rule files were added in this pass.
-
-Reason: the installed Codex executable path was discoverable, but invoking `codex --help` from this shell returned `Access is denied`, so the supported local rule format could not be validated safely. Until the installed Codex Desktop documents a repo-local rule format that can be checked locally, safety expectations should stay in `AGENTS.md` and this document.
+Follow the Commit Conventions in `CONTRIBUTING.md`. Use domain-scoped
+Conventional Commit subjects and group commits by functional outcome. Preserve
+user changes and avoid force pushes. If asked to push, push exactly the branch
+requested and report the commit hashes and subjects.
 
 ## Examples
 
-For a new learner feature, start with `wicked-feature-slice`, then use a more specific skill if the feature touches activities or UI polish.
+For a new Activity type, inspect `ActivityTypeRegistry`, the existing Activity
+graph editor and playback renderer, then update `concept_current/activity_system.md`
+when the graph or learner contract changes.
 
-For a new activity type, use `wicked-activity-type`, then update `concept_current/activity_system.md` if the graph or playback model changes.
-
-For a visual bug in settings, map editing or cursors, use `wicked-ui-qa`.
-
-For motivation or learning design questions, use `wicked-learning-design-review`.
+For a visual bug in Settings or map editing, reuse the existing configuration
+shells and shared MapAsset renderer and verify the affected browser route when
+practical.
 
 ## Deferred Work
 
-- Validate repository-local skill discovery in Codex Desktop once a supported local command or official repo-local skill discovery document is available.
-- Add supported repository-local command rules only after the rule format can be verified.
-- Consider linking this guide from the public documentation index after the team is happy with the workflow.
+- Add a repository-root `AGENTS.md` only when the project needs shared guidance
+  that cannot live in `CONTRIBUTING.md` or scoped instruction files.
+- Add repository-local skills only with a documented discovery mechanism and a
+  concrete workflow that is not already covered by project documentation.
