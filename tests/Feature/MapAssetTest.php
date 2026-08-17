@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Learning\Actions\CreateLearningMapAsset;
 use App\Learning\Actions\CreateLearningNode;
 use App\Learning\Actions\UpdateLearningMapAsset;
+use App\Learning\MapAssetInteractionMode;
+use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
 class MapAssetTest extends TestCase
@@ -137,6 +140,105 @@ class MapAssetTest extends TestCase
             '/storage/learning/nodes/highlight.webp',
             LearningMapAsset::query()->findOrFail($asset->id)->visual_config['dark']['highlightImageUrl'],
         );
+    }
+
+    public function test_interaction_mode_controls_focus_and_persists_toggle_sprites(): void
+    {
+        [$map] = $this->mapAndNode();
+        $asset = app(CreateLearningMapAsset::class)->handle($map, [
+            'interaction_mode' => MapAssetInteractionMode::Toggle->value,
+            'interaction_config' => [
+                'states' => [
+                    'first' => [
+                        'imageUrl' => '/storage/hood-closed.webp',
+                        'x' => 48,
+                        'y' => 42,
+                        'width' => 30,
+                    ],
+                    'second' => [
+                        'imageUrl' => '/storage/hood-open.webp',
+                        'x' => 51,
+                        'y' => 31,
+                        'width' => 34,
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($asset->focusable);
+        $this->assertSame('toggle', $asset->interaction_mode);
+        $this->assertSame(
+            '/storage/hood-open.webp',
+            $asset->interaction_config['states']['second']['imageUrl'],
+        );
+
+        $asset = app(UpdateLearningMapAsset::class)->handle($asset, [
+            'interaction_mode' => MapAssetInteractionMode::Focusable->value,
+        ]);
+
+        $this->assertTrue($asset->focusable);
+        $this->assertSame('focusable', $asset->interaction_mode);
+    }
+
+    public function test_toggle_mode_requires_two_complete_state_sprites(): void
+    {
+        [$map] = $this->mapAndNode();
+        $validator = Validator::make([
+            'interaction_mode' => 'toggle',
+            'interaction_config' => [
+                'states' => [
+                    'first' => ['x' => 50, 'y' => 50, 'width' => 20],
+                    'second' => [
+                        'imageUrl' => '/storage/open.webp',
+                        'x' => 50,
+                        'y' => 50,
+                        'width' => 20,
+                    ],
+                ],
+            ],
+            'opacity' => 1,
+            'position_x' => 50,
+            'position_y' => 50,
+            'position_z' => 0,
+            'width' => 20,
+        ], app(AdminWorldRules::class)->mapAsset($map));
+
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey(
+            'interaction_config.states.first.imageUrl',
+            $validator->errors()->toArray(),
+        );
+    }
+
+    public function test_normal_mode_accepts_empty_inactive_state_sprites(): void
+    {
+        [$map] = $this->mapAndNode();
+        $validator = Validator::make([
+            'interaction_mode' => 'focusable',
+            'interaction_config' => [
+                'states' => [
+                    'first' => [
+                        'imageUrl' => null,
+                        'x' => 50,
+                        'y' => 50,
+                        'width' => 14,
+                    ],
+                    'second' => [
+                        'imageUrl' => null,
+                        'x' => 50,
+                        'y' => 50,
+                        'width' => 14,
+                    ],
+                ],
+            ],
+            'opacity' => 1,
+            'position_x' => 50,
+            'position_y' => 50,
+            'position_z' => 0,
+            'width' => 14,
+        ], app(AdminWorldRules::class)->mapAsset($map));
+
+        $this->assertFalse($validator->fails(), $validator->errors()->toJson());
     }
 
     /** @return array{0: LearningMap, 1: LearningNode} */

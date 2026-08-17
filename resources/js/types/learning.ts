@@ -78,8 +78,30 @@ export type MapAsset = {
     opacity: number;
     locked: boolean;
     focusable: boolean;
+    interactionMode: MapAssetInteractionMode;
+    interactionConfig: MapAssetInteractionConfig;
     visualConfig: Record<string, unknown>;
     soundConfig: Record<string, unknown>;
+};
+
+export type MapAssetInteractionMode =
+    | 'focusable'
+    | 'decorative'
+    | 'hide_on_hover'
+    | 'toggle';
+
+export type MapAssetStateSprite = {
+    imageUrl?: string | null;
+    width?: number;
+    x?: number;
+    y?: number;
+};
+
+export type MapAssetInteractionConfig = {
+    states?: {
+        first?: MapAssetStateSprite;
+        second?: MapAssetStateSprite;
+    };
 };
 
 export type MapVisualAsset = {

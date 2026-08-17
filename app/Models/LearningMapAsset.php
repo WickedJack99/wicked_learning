@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'opacity',
     'locked',
     'focusable',
+    'interaction_mode',
+    'interaction_config',
     'visual_config',
     'sound_config',
 ])]
@@ -34,6 +36,7 @@ class LearningMapAsset extends Model
             'opacity' => 'float',
             'locked' => 'boolean',
             'focusable' => 'boolean',
+            'interaction_config' => 'array',
             'visual_config' => 'array',
             'sound_config' => 'array',
         ];

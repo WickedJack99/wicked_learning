@@ -24,6 +24,12 @@ import type {
     LearningTool,
     MapAsset,
 } from '@/types';
+import {
+    mapAssetInteractionMode,
+    mapAssetSurface,
+    mapAssetSurfacesOverlap,
+    pointInsideMapAsset,
+} from './map-asset-interaction';
 import { MapAssetVisual } from './map-asset-visual';
 import { HEX_TILE_CLIP_PATH, resolveThemeVariant, withOpacity } from './theme';
 import type { ResolvedAppearance, TileStyle } from './types';
@@ -62,6 +68,14 @@ export function WorldMap({
     );
     const [temporarilyRemovedAssetIds, setTemporarilyRemovedAssetIds] =
         useState<number[]>([]);
+    const [mapPointer, setMapPointer] = useState<{
+        x: number;
+        y: number;
+    } | null>(null);
+    const [mapViewport, setMapViewport] = useState<{
+        height: number;
+        width: number;
+    } | null>(null);
     const [drag, setDrag] = useState<{
         hasMoved: boolean;
         pointerId: number;
@@ -139,7 +153,19 @@ export function WorldMap({
             }}
             // MapAssets are positioned through their editor fields. The
             // learner surface intentionally stays fixed and cannot pan.
-            onPointerMove={() => undefined}
+            onPointerLeave={() => setMapPointer(null)}
+            onPointerMove={(event) => {
+                const bounds = event.currentTarget.getBoundingClientRect();
+
+                setMapPointer({
+                    x: event.clientX - bounds.left,
+                    y: event.clientY - bounds.top,
+                });
+                setMapViewport({
+                    height: bounds.height,
+                    width: bounds.width,
+                });
+            }}
             onPointerCancel={() => setDrag(null)}
             onPointerUp={(event) => {
                 if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -207,6 +233,8 @@ export function WorldMap({
                     (asset) => !temporarilyRemovedAssetIds.includes(asset.id),
                 )}
                 map={map}
+                mapPointer={mapPointer}
+                mapViewport={mapViewport}
                 mode={mode}
                 onRemoveAsset={(assetId) => {
                     setTemporarilyRemovedAssetIds((current) =>
@@ -270,6 +298,8 @@ export function WorldMap({
 function MapAssetLayers({
     assets,
     map,
+    mapPointer,
+    mapViewport,
     mode,
     onRemoveAsset,
     onSelectNode,
@@ -279,6 +309,8 @@ function MapAssetLayers({
 }: {
     assets: MapAsset[];
     map: LearningMap;
+    mapPointer: { x: number; y: number } | null;
+    mapViewport: { height: number; width: number } | null;
     mode: ResolvedAppearance;
     onRemoveAsset: (assetId: number) => void;
     onSelectNode: (node: LearningNode) => void;
@@ -287,11 +319,56 @@ function MapAssetLayers({
     selectedTool: LearningTool | null;
 }) {
     const [hoveredAssetId, setHoveredAssetId] = useState<number | null>(null);
+    const [toggledAssetIds, setToggledAssetIds] = useState<number[]>([]);
     const soundPlayer = useLayeredSoundPlayer();
+    const selectedAsset = selectedNode
+        ? assets.find((asset) => asset.nodeId === selectedNode.id)
+        : undefined;
+    const selectedAssetIndex = selectedAsset
+        ? assets.findIndex((asset) => asset.id === selectedAsset.id)
+        : -1;
+    const hiddenByPointer = new Set(
+        mapPointer && mapViewport
+            ? assets
+                  .filter(
+                      (asset) =>
+                          mapAssetInteractionMode(asset) === 'hide_on_hover' &&
+                          pointInsideMapAsset(
+                              mapAssetSurface(asset),
+                              mapPointer,
+                              mapViewport,
+                          ),
+                  )
+                  .map((asset) => asset.id)
+            : [],
+    );
+    const hiddenForFocus = new Set(
+        selectedAsset && mapViewport
+            ? assets
+                  .filter(
+                      (asset, assetIndex) =>
+                          mapAssetInteractionMode(asset) === 'hide_on_hover' &&
+                          (asset.z > selectedAsset.z ||
+                              (asset.z === selectedAsset.z &&
+                                  assetIndex > selectedAssetIndex)) &&
+                          mapAssetSurfacesOverlap(
+                              mapAssetSurface(asset),
+                              mapAssetSurface(selectedAsset),
+                              mapViewport,
+                          ),
+                  )
+                  .map((asset) => asset.id)
+            : [],
+    );
 
     return (
         <div className="pointer-events-none absolute inset-0 z-20">
             {assets.map((asset) => {
+                const interactionMode = mapAssetInteractionMode(asset);
+                const surface = mapAssetSurface(
+                    asset,
+                    toggledAssetIds.includes(asset.id),
+                );
                 const node = asset.nodeId
                     ? map.nodes.find(
                           (candidate) => candidate.id === asset.nodeId,
@@ -317,6 +394,12 @@ function MapAssetLayers({
                     node && selectedNode?.id === node.id,
                 );
                 const isHighlighted = isHovered || isSelected;
+                const canRemove = selectedTool?.config.mapAssetRemove === true;
+                const isHidden =
+                    !canRemove &&
+                    interactionMode === 'hide_on_hover' &&
+                    (hiddenByPointer.has(asset.id) ||
+                        hiddenForFocus.has(asset.id));
                 const borderColor = withOpacity(
                     visualConfig.borderColor ??
                         visualConfig.tileColor ??
@@ -346,56 +429,37 @@ function MapAssetLayers({
                         visualConfig.labelOpacity,
                 );
                 const style = {
-                    left: `${asset.x}%`,
-                    opacity: asset.opacity,
-                    top: `${asset.y}%`,
-                    width: `${asset.width}%`,
+                    left: `${surface.x}%`,
+                    opacity: isHidden ? 0 : asset.opacity,
+                    top: `${surface.y}%`,
+                    transition: 'opacity 140ms ease',
+                    width: `${surface.width}%`,
                     zIndex: asset.z,
                 } as CSSProperties;
+                const isInteractive =
+                    canRemove ||
+                    interactionMode === 'focusable' ||
+                    interactionMode === 'toggle';
 
-                if (!node) {
+                if (!isInteractive) {
                     return (
                         <div
-                            aria-hidden={
-                                selectedTool?.config.mapAssetRemove !== true
+                            aria-hidden="true"
+                            className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center"
+                            data-map-asset-id={asset.id}
+                            data-map-asset-mode={interactionMode}
+                            data-map-asset-visibility={
+                                isHidden ? 'hidden' : 'visible'
                             }
-                            className={cn(
-                                'absolute -translate-x-1/2 -translate-y-1/2 text-center',
-                                selectedTool?.config.mapAssetRemove === true
-                                    ? 'pointer-events-auto cursor-pointer'
-                                    : 'pointer-events-none',
-                            )}
                             key={asset.id}
-                            onClick={() => {
-                                if (
-                                    selectedTool?.config.mapAssetRemove === true
-                                ) {
-                                    onRemoveAsset(asset.id);
-                                }
-                            }}
-                            onMouseEnter={() => setHoveredAssetId(asset.id)}
-                            onMouseLeave={() =>
-                                setHoveredAssetId((current) =>
-                                    current === asset.id ? null : current,
-                                )
-                            }
                             style={style}
                         >
                             <MapAssetVisual
-                                imageUrl={asset.imageUrl}
+                                imageUrl={surface.imageUrl}
                                 backgroundColor={borderColor}
-                                highlighted={isHighlighted}
+                                highlighted={false}
                                 highlightColor={highlightColor}
                                 highlightBorderColor={highlightBorderColor}
-                                highlightImageEnabled={
-                                    visualConfig.highlightImageEnabled === true
-                                }
-                                highlightImageUrl={
-                                    typeof visualConfig.highlightImageUrl ===
-                                    'string'
-                                        ? visualConfig.highlightImageUrl
-                                        : null
-                                }
                                 labelColor={labelColor}
                                 highlightedLabelColor={highlightedLabelColor}
                                 label={label}
@@ -406,22 +470,42 @@ function MapAssetLayers({
 
                 return (
                     <button
-                        disabled={!asset.focusable}
-                        aria-label={label ?? node.title}
+                        aria-label={label ?? node?.title ?? 'MapAsset'}
                         className={cn(
                             'pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:outline-none',
                         )}
+                        data-map-asset-id={asset.id}
+                        data-map-asset-mode={interactionMode}
+                        data-map-asset-state={
+                            interactionMode === 'toggle'
+                                ? toggledAssetIds.includes(asset.id)
+                                    ? 'second'
+                                    : 'first'
+                                : undefined
+                        }
                         key={asset.id}
                         onClick={(event) => {
                             event.stopPropagation();
 
-                            if (selectedTool?.config.mapAssetRemove === true) {
+                            if (canRemove) {
                                 onRemoveAsset(asset.id);
 
                                 return;
                             }
 
-                            if (!asset.focusable) {
+                            if (interactionMode === 'toggle') {
+                                setToggledAssetIds((current) =>
+                                    current.includes(asset.id)
+                                        ? current.filter(
+                                              (id) => id !== asset.id,
+                                          )
+                                        : [...current, asset.id],
+                                );
+
+                                return;
+                            }
+
+                            if (!node || interactionMode !== 'focusable') {
                                 return;
                             }
 
@@ -435,11 +519,14 @@ function MapAssetLayers({
                         }}
                         onMouseEnter={() => {
                             setHoveredAssetId(asset.id);
-                            playNodeInteractionSound(
-                                soundPlayer,
-                                node,
-                                'mouseEnter',
-                            );
+
+                            if (node) {
+                                playNodeInteractionSound(
+                                    soundPlayer,
+                                    node,
+                                    'mouseEnter',
+                                );
+                            }
                         }}
                         onFocus={() => setHoveredAssetId(asset.id)}
                         onBlur={() =>
@@ -451,18 +538,21 @@ function MapAssetLayers({
                             setHoveredAssetId((current) =>
                                 current === asset.id ? null : current,
                             );
-                            playNodeInteractionSound(
-                                soundPlayer,
-                                node,
-                                'mouseLeave',
-                            );
+
+                            if (node) {
+                                playNodeInteractionSound(
+                                    soundPlayer,
+                                    node,
+                                    'mouseLeave',
+                                );
+                            }
                         }}
                         onPointerDown={(event) => event.stopPropagation()}
                         style={style}
                         type="button"
                     >
                         <MapAssetVisual
-                            imageUrl={asset.imageUrl}
+                            imageUrl={surface.imageUrl}
                             backgroundColor={borderColor}
                             highlighted={isHighlighted}
                             highlightColor={highlightColor}

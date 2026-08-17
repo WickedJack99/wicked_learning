@@ -408,6 +408,9 @@ export default function EditWorldMap({
     const [mapAssetForm, setMapAssetForm] = useState<AssetForm>(() =>
         assetForm(null),
     );
+    const [mapAssetPreviewState, setMapAssetPreviewState] = useState<
+        'first' | 'second'
+    >('first');
     const [insertionContext, setInsertionContext] =
         useState<InsertionContext | null>(null);
     const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -454,8 +457,41 @@ export default function EditWorldMap({
     const livePreviewAsset = selectedMapAsset
         ? {
               ...selectedMapAsset,
-              focusable: mapAssetForm.focusable,
+              focusable: mapAssetForm.interaction_mode === 'focusable',
               imageUrl: mapAssetForm.image_url || null,
+              interactionConfig: {
+                  states: {
+                      first: {
+                          imageUrl:
+                              mapAssetForm.interaction_states.first.image_url ||
+                              null,
+                          width: Number(
+                              mapAssetForm.interaction_states.first.width,
+                          ),
+                          x: Number(
+                              mapAssetForm.interaction_states.first.position_x,
+                          ),
+                          y: Number(
+                              mapAssetForm.interaction_states.first.position_y,
+                          ),
+                      },
+                      second: {
+                          imageUrl:
+                              mapAssetForm.interaction_states.second
+                                  .image_url || null,
+                          width: Number(
+                              mapAssetForm.interaction_states.second.width,
+                          ),
+                          x: Number(
+                              mapAssetForm.interaction_states.second.position_x,
+                          ),
+                          y: Number(
+                              mapAssetForm.interaction_states.second.position_y,
+                          ),
+                      },
+                  },
+              },
+              interactionMode: mapAssetForm.interaction_mode,
               locked: mapAssetForm.locked,
               nodeId: selectedNode?.id ?? selectedMapAsset.nodeId,
               opacity: Number(mapAssetForm.opacity),
@@ -541,6 +577,7 @@ export default function EditWorldMap({
         setSelectedNode(node);
         setSelectedMapAsset(mapAsset ?? null);
         setMapAssetForm(assetForm(mapAsset ?? null));
+        setMapAssetPreviewState('first');
         setSelectedCell(null);
         setNodeDialogOpen(true);
         setInsertionContext(null);
@@ -575,6 +612,7 @@ export default function EditWorldMap({
         setSoundUploadErrors({});
         setActiveNodeSettingsSection('surface');
         setMapAssetForm(assetForm(mapAsset));
+        setMapAssetPreviewState('first');
         setForm(nodeFormFromMapAsset(mapAsset));
     };
 
@@ -1018,6 +1056,7 @@ export default function EditWorldMap({
                         }))}
                         onSelectAsset={openEditMapAsset}
                         previewAsset={livePreviewAsset}
+                        previewSecondState={mapAssetPreviewState === 'second'}
                         previewNode={livePreviewNode}
                         previewImage={previewMapTheme.imageUrl}
                         previewOverlay={previewMapTheme.overlay}
@@ -1436,6 +1475,10 @@ export default function EditWorldMap({
                                             form={mapAssetForm}
                                             mapId={map.id}
                                             onChange={setMapAssetForm}
+                                            onPreviewStateChange={
+                                                setMapAssetPreviewState
+                                            }
+                                            previewState={mapAssetPreviewState}
                                             errors={errors}
                                         />
                                     </SettingsConfigurationSection>
@@ -1618,28 +1661,6 @@ export default function EditWorldMap({
                                                             setLockedState(
                                                                 setForm,
                                                                 checked,
-                                                            )
-                                                        }
-                                                    />
-                                                ) : null}
-                                                {selectedMapAsset ? (
-                                                    <CheckboxField
-                                                        checked={
-                                                            !mapAssetForm.focusable
-                                                        }
-                                                        description="Learners can still see this MapAsset, but selecting it will not open the learner panel."
-                                                        id="map-asset-not-focusable"
-                                                        label="Make MapAsset visual-only"
-                                                        onCheckedChange={(
-                                                            checked,
-                                                        ) =>
-                                                            setMapAssetForm(
-                                                                (current) => ({
-                                                                    ...current,
-                                                                    focusable:
-                                                                        checked !==
-                                                                        true,
-                                                                }),
                                                             )
                                                         }
                                                     />

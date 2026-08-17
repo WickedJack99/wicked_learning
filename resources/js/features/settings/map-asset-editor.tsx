@@ -1,20 +1,29 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Eye, EyeOff, MousePointerClick, Plus, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ConfigImageInput } from '@/components/config-image-input';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    mapAssetInteractionMode,
+    mapAssetSurface,
+} from '@/features/world/map-asset-interaction';
 import { MapAssetVisual } from '@/features/world/map-asset-visual';
 import { withOpacity } from '@/features/world/theme';
 import type { ResolvedAppearance } from '@/features/world/types';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
-import type { MapAsset } from '@/types/learning';
+import type {
+    MapAsset,
+    MapAssetInteractionConfig,
+    MapAssetInteractionMode,
+} from '@/types/learning';
 
 export type MapAssetNode = {
     id: number;
@@ -31,6 +40,7 @@ export function MapAssetEditor({
     appearance = 'dark',
     onSelectAsset,
     previewAsset,
+    previewSecondState = false,
     previewNode,
     previewImage,
     previewOverlay,
@@ -42,10 +52,12 @@ export function MapAssetEditor({
     appearance?: ResolvedAppearance;
     onSelectAsset?: (asset: MapAsset) => void;
     previewAsset?: MapAsset;
+    previewSecondState?: boolean;
     previewNode?: MapAssetNode;
     previewImage?: string;
     previewOverlay?: string;
 }) {
+    const t = usePlatformTranslation();
     const [processing, setProcessing] = useState(false);
     const [hoveredAssetId, setHoveredAssetId] = useState<number | null>(null);
 
@@ -56,6 +68,14 @@ export function MapAssetEditor({
             assetPayload(assetForm(null)),
             {
                 preserveScroll: true,
+                onError: (errors) =>
+                    toast.error(
+                        Object.values(errors)[0] ??
+                            t(
+                                'settings.world_builder.map_asset.add_error',
+                                'The MapAsset could not be added.',
+                            ),
+                    ),
                 onFinish: () => setProcessing(false),
             },
         );
@@ -83,7 +103,8 @@ export function MapAssetEditor({
                     onClick={addAsset}
                     type="button"
                 >
-                    <Plus className="size-4" /> Add Asset
+                    <Plus className="size-4" />
+                    {t('settings.world_builder.map_asset.add', 'Add Asset')}
                 </Button>
                 <div className="absolute inset-0">
                     {assets.map((asset) => {
@@ -98,6 +119,10 @@ export function MapAssetEditor({
                             mapNode && previewNode?.id === mapNode.id
                                 ? { ...mapNode, ...previewNode }
                                 : mapNode;
+                        const surface = mapAssetSurface(
+                            assetToRender,
+                            previewAsset?.id === asset.id && previewSecondState,
+                        );
 
                         return (
                             <button
@@ -122,16 +147,19 @@ export function MapAssetEditor({
                                     )
                                 }
                                 style={{
-                                    left: `${assetToRender.x}%`,
+                                    left: `${surface.x}%`,
                                     opacity: assetToRender.opacity,
-                                    top: `${assetToRender.y}%`,
-                                    width: `${assetToRender.width}%`,
+                                    top: `${surface.y}%`,
+                                    width: `${surface.width}%`,
                                     zIndex: assetToRender.z,
                                 }}
                                 type="button"
                             >
                                 <MapAssetPreview
-                                    asset={assetToRender}
+                                    asset={{
+                                        ...assetToRender,
+                                        imageUrl: surface.imageUrl,
+                                    }}
                                     highlighted={
                                         hoveredAssetId === asset.id ||
                                         previewAsset?.id === asset.id
@@ -264,10 +292,25 @@ export type AssetForm = {
     text: string;
     width: string;
     focusable: boolean;
+    interaction_mode: MapAssetInteractionMode;
+    interaction_states: {
+        first: AssetStateForm;
+        second: AssetStateForm;
+    };
     visual_config: Record<string, unknown>;
 };
 
+type AssetStateForm = {
+    image_url: string;
+    position_x: string;
+    position_y: string;
+    width: string;
+};
+
 export function assetForm(asset: MapAsset | null): AssetForm {
+    const firstState = assetStateForm(asset, 'first');
+    const secondState = assetStateForm(asset, 'second');
+
     return {
         image_url: asset?.imageUrl ?? '',
         locked: asset?.locked ?? false,
@@ -278,6 +321,11 @@ export function assetForm(asset: MapAsset | null): AssetForm {
         text: asset?.text ?? '',
         width: String(asset?.width ?? 14),
         focusable: asset?.focusable ?? true,
+        interaction_mode: asset ? mapAssetInteractionMode(asset) : 'focusable',
+        interaction_states: {
+            first: firstState,
+            second: secondState,
+        },
         visual_config: asset?.visualConfig ?? {},
     };
 }
@@ -295,6 +343,10 @@ export function assetPayload(
         text: form.text || null,
         width: Number(form.width),
         focusable: form.focusable,
+        interaction_mode: form.interaction_mode,
+        interaction_config: interactionConfigPayload(
+            form,
+        ) as unknown as FormDataConvertible,
         visual_config: form.visual_config as unknown as FormDataConvertible,
     };
 }
@@ -303,16 +355,43 @@ export function MapAssetFields({
     form,
     mapId,
     onChange,
+    onPreviewStateChange,
+    previewState = 'first',
     errors = {},
 }: {
     form: AssetForm;
     mapId: number;
     onChange: (form: AssetForm) => void;
+    onPreviewStateChange?: (state: 'first' | 'second') => void;
+    previewState?: 'first' | 'second';
     errors?: Record<string, string>;
 }) {
     const t = usePlatformTranslation();
     const update = (key: keyof AssetForm, value: string | boolean) =>
         onChange({ ...form, [key]: value });
+    const updateInteractionMode = (mode: MapAssetInteractionMode) =>
+        onChange({
+            ...form,
+            focusable: mode === 'focusable',
+            interaction_mode: mode,
+        });
+    const updateState = (
+        state: keyof AssetForm['interaction_states'],
+        key: keyof AssetStateForm,
+        value: string,
+    ) => {
+        onPreviewStateChange?.(state);
+        onChange({
+            ...form,
+            interaction_states: {
+                ...form.interaction_states,
+                [state]: {
+                    ...form.interaction_states[state],
+                    [key]: value,
+                },
+            },
+        });
+    };
 
     const placementFields = [
         {
@@ -344,48 +423,133 @@ export function MapAssetFields({
             key: 'opacity' as const,
             label: t('settings.world_builder.map_asset.opacity', 'Opacity'),
         },
-    ];
+    ].filter(({ key }) =>
+        form.interaction_mode === 'toggle'
+            ? key === 'position_z' || key === 'opacity'
+            : true,
+    );
 
     return (
         <div className="grid gap-5">
-            <div className="grid gap-3">
-                <div>
-                    <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
-                        {t(
-                            'settings.world_builder.map_asset.image_heading',
-                            'Image',
+            <MapAssetInteractionModeField
+                mode={form.interaction_mode}
+                onChange={updateInteractionMode}
+            />
+
+            {form.interaction_mode !== 'toggle' ? (
+                <div className="grid gap-3">
+                    <div>
+                        <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                            {t(
+                                'settings.world_builder.map_asset.image_heading',
+                                'Image',
+                            )}
+                        </h4>
+                        <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                            {t(
+                                'settings.world_builder.map_asset.image_description',
+                                'Choose the transparent image learners see on the map.',
+                            )}
+                        </p>
+                    </div>
+                    <ConfigImageInput
+                        id={`map-asset-image-${mapId}`}
+                        label={t(
+                            'settings.world_builder.map_asset.image_label',
+                            'MapAsset image',
                         )}
-                    </h4>
-                    <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
-                        {t(
-                            'settings.world_builder.map_asset.image_description',
-                            'Choose the transparent image learners see on the map.',
-                        )}
-                    </p>
+                        onChange={(value) => update('image_url', value)}
+                        onUpload={(file) =>
+                            void uploadMediaFile({
+                                endpoint: '/settings/worlds/node-images',
+                                fields: { map_id: mapId },
+                                fieldName: 'image',
+                                file,
+                                errorMessage: t(
+                                    'settings.world_builder.map_asset.image_upload_error',
+                                    'The image could not be uploaded.',
+                                ),
+                            }).then((payload) =>
+                                update('image_url', payload.url),
+                            )
+                        }
+                        uploading={false}
+                        value={form.image_url}
+                    />
                 </div>
-                <ConfigImageInput
-                    id={`map-asset-image-${mapId}`}
-                    label={t(
-                        'settings.world_builder.map_asset.image_label',
-                        'MapAsset image',
-                    )}
-                    onChange={(value) => update('image_url', value)}
-                    onUpload={(file) =>
-                        void uploadMediaFile({
-                            endpoint: '/settings/worlds/node-images',
-                            fields: { map_id: mapId },
-                            fieldName: 'image',
-                            file,
-                            errorMessage: t(
-                                'settings.world_builder.map_asset.image_upload_error',
-                                'The image could not be uploaded.',
-                            ),
-                        }).then((payload) => update('image_url', payload.url))
-                    }
-                    uploading={false}
-                    value={form.image_url}
-                />
-            </div>
+            ) : null}
+
+            {form.interaction_mode === 'toggle' ? (
+                <fieldset className="grid gap-4 border-t border-[var(--settings-border-color)] pt-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                                {t(
+                                    'settings.world_builder.map_asset.interaction.states_heading',
+                                    'State sprites',
+                                )}
+                            </h4>
+                            <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                {t(
+                                    'settings.world_builder.map_asset.interaction.states_description',
+                                    'A learner click switches between these two independently positioned images.',
+                                )}
+                            </p>
+                        </div>
+                        <div
+                            aria-label={t(
+                                'settings.world_builder.map_asset.interaction.preview_aria_label',
+                                'Preview MapAsset state',
+                            )}
+                            className="flex rounded-lg border border-[var(--settings-border-color)] p-1"
+                            role="group"
+                        >
+                            {(['first', 'second'] as const).map(
+                                (state, index) => (
+                                    <Button
+                                        aria-pressed={previewState === state}
+                                        className={cn(
+                                            'h-8 px-3 shadow-none',
+                                            previewState === state &&
+                                                'bg-[var(--settings-accent)] text-[var(--settings-accent-foreground)]',
+                                        )}
+                                        key={state}
+                                        onClick={() =>
+                                            onPreviewStateChange?.(state)
+                                        }
+                                        size="sm"
+                                        type="button"
+                                        variant={
+                                            previewState === state
+                                                ? 'default'
+                                                : 'ghost'
+                                        }
+                                    >
+                                        {t(
+                                            'settings.world_builder.map_asset.interaction.state_label',
+                                            'State :number',
+                                            { number: index + 1 },
+                                        )}
+                                    </Button>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                    {(['first', 'second'] as const).map((state, index) => (
+                        <MapAssetStateFields
+                            errors={errors}
+                            key={state}
+                            mapId={mapId}
+                            number={index + 1}
+                            onChange={(key, value) =>
+                                updateState(state, key, value)
+                            }
+                            state={state}
+                            values={form.interaction_states[state]}
+                        />
+                    ))}
+                </fieldset>
+            ) : null}
 
             <fieldset className="grid gap-3 border-t border-[var(--settings-border-color)] pt-4">
                 <legend className="sr-only">
@@ -403,8 +567,12 @@ export function MapAssetFields({
                     </h4>
                     <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
                         {t(
-                            'settings.world_builder.map_asset.placement_description',
-                            'X and Y use map percentages. Higher Z values place an image above lower layers.',
+                            form.interaction_mode === 'toggle'
+                                ? 'settings.world_builder.map_asset.placement_toggle_description'
+                                : 'settings.world_builder.map_asset.placement_description',
+                            form.interaction_mode === 'toggle'
+                                ? 'Layer depth and opacity apply to both state sprites.'
+                                : 'X and Y use map percentages. Higher Z values place an image above lower layers.',
                         )}
                     </p>
                 </div>
@@ -469,4 +637,254 @@ export function MapAssetFields({
             </label>
         </div>
     );
+}
+
+function MapAssetInteractionModeField({
+    mode,
+    onChange,
+}: {
+    mode: MapAssetInteractionMode;
+    onChange: (mode: MapAssetInteractionMode) => void;
+}) {
+    const t = usePlatformTranslation();
+    const options = [
+        {
+            description: t(
+                'settings.world_builder.map_asset.interaction.focusable_description',
+                'Opens its learner panel and activities when selected.',
+            ),
+            icon: Eye,
+            label: t(
+                'settings.world_builder.map_asset.interaction.focusable',
+                'Normal MapAsset',
+            ),
+            value: 'focusable' as const,
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.interaction.decorative_description',
+                'Remains visible without opening a learner panel.',
+            ),
+            icon: Sparkles,
+            label: t(
+                'settings.world_builder.map_asset.interaction.decorative',
+                'Not focusable',
+            ),
+            value: 'decorative' as const,
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.interaction.hide_on_hover_description',
+                'Disappears under the pointer so objects behind it can be selected.',
+            ),
+            icon: EyeOff,
+            label: t(
+                'settings.world_builder.map_asset.interaction.hide_on_hover',
+                'Hide on hover',
+            ),
+            value: 'hide_on_hover' as const,
+        },
+        {
+            description: t(
+                'settings.world_builder.map_asset.interaction.toggle_description',
+                'Learner clicks switch between two persistent visual states.',
+            ),
+            icon: MousePointerClick,
+            label: t(
+                'settings.world_builder.map_asset.interaction.toggle',
+                'Change state on click',
+            ),
+            value: 'toggle' as const,
+        },
+    ];
+
+    return (
+        <fieldset className="grid gap-3">
+            <div>
+                <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    {t(
+                        'settings.world_builder.map_asset.interaction.heading',
+                        'Learner interaction',
+                    )}
+                </h4>
+                <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.world_builder.map_asset.interaction.description',
+                        'Choose one clear behavior for this MapAsset on the learner map.',
+                    )}
+                </p>
+            </div>
+            <div className="grid gap-2 lg:grid-cols-2">
+                {options.map((option) => {
+                    const Icon = option.icon;
+                    const checked = mode === option.value;
+
+                    return (
+                        <label
+                            className={cn(
+                                'grid cursor-pointer grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-lg border p-3 transition',
+                                checked
+                                    ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)]'
+                                    : 'border-[var(--settings-border-color)] bg-[var(--settings-input-background)] hover:border-[color-mix(in_srgb,var(--settings-accent)_55%,var(--settings-border-color))]',
+                            )}
+                            key={option.value}
+                        >
+                            <input
+                                checked={checked}
+                                className="mt-1 size-4 accent-[var(--settings-accent)]"
+                                name="map-asset-interaction-mode"
+                                onChange={() => onChange(option.value)}
+                                type="radio"
+                                value={option.value}
+                            />
+                            <span className="flex items-center gap-2 text-sm font-semibold text-slate-950 dark:text-white">
+                                <Icon className="size-4 text-[var(--settings-accent)]" />
+                                {option.label}
+                            </span>
+                            <span className="col-start-2 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                {option.description}
+                            </span>
+                        </label>
+                    );
+                })}
+            </div>
+        </fieldset>
+    );
+}
+
+function MapAssetStateFields({
+    errors,
+    mapId,
+    number,
+    onChange,
+    state,
+    values,
+}: {
+    errors: Record<string, string>;
+    mapId: number;
+    number: number;
+    onChange: (key: keyof AssetStateForm, value: string) => void;
+    state: 'first' | 'second';
+    values: AssetStateForm;
+}) {
+    const t = usePlatformTranslation();
+    const prefix = `interaction_config.states.${state}`;
+
+    return (
+        <section className="grid gap-3 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-4">
+            <h5 className="text-sm font-semibold text-slate-950 dark:text-white">
+                {t(
+                    'settings.world_builder.map_asset.interaction.state_label',
+                    'State :number',
+                    { number },
+                )}
+            </h5>
+            <ConfigImageInput
+                error={errors[`${prefix}.imageUrl`]}
+                id={`map-asset-state-${state}-${mapId}`}
+                label={t(
+                    'settings.world_builder.map_asset.interaction.state_image',
+                    'State image',
+                )}
+                onChange={(value) => onChange('image_url', value)}
+                onUpload={(file) =>
+                    void uploadMediaFile({
+                        endpoint: '/settings/worlds/node-images',
+                        fields: { map_id: mapId },
+                        fieldName: 'image',
+                        file,
+                        errorMessage: t(
+                            'settings.world_builder.map_asset.image_upload_error',
+                            'The image could not be uploaded.',
+                        ),
+                    }).then((payload) => onChange('image_url', payload.url))
+                }
+                uploading={false}
+                value={values.image_url}
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
+                {(
+                    [
+                        [
+                            'position_x',
+                            t(
+                                'settings.world_builder.map_asset.interaction.state_x',
+                                'Horizontal position (X)',
+                            ),
+                        ],
+                        [
+                            'position_y',
+                            t(
+                                'settings.world_builder.map_asset.interaction.state_y',
+                                'Vertical position (Y)',
+                            ),
+                        ],
+                        [
+                            'width',
+                            t(
+                                'settings.world_builder.map_asset.interaction.state_size',
+                                'Size %',
+                            ),
+                        ],
+                    ] as const
+                ).map(([key, label]) => (
+                    <div className="grid gap-1.5" key={key}>
+                        <Label htmlFor={`map-asset-state-${state}-${key}`}>
+                            {label}
+                        </Label>
+                        <Input
+                            id={`map-asset-state-${state}-${key}`}
+                            max="100"
+                            min={key === 'width' ? '1' : '0'}
+                            onChange={(event) =>
+                                onChange(key, event.currentTarget.value)
+                            }
+                            step="any"
+                            type="number"
+                            value={values[key]}
+                        />
+                        <InputError
+                            message={
+                                errors[
+                                    `${prefix}.${key === 'position_x' ? 'x' : key === 'position_y' ? 'y' : 'width'}`
+                                ]
+                            }
+                        />
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function assetStateForm(
+    asset: MapAsset | null,
+    state: 'first' | 'second',
+): AssetStateForm {
+    const config = asset?.interactionConfig?.states?.[state];
+
+    return {
+        image_url: config?.imageUrl ?? asset?.imageUrl ?? '',
+        position_x: String(config?.x ?? asset?.x ?? 50),
+        position_y: String(config?.y ?? asset?.y ?? 50),
+        width: String(config?.width ?? asset?.width ?? 14),
+    };
+}
+
+function interactionConfigPayload(form: AssetForm): MapAssetInteractionConfig {
+    return {
+        states: {
+            first: statePayload(form.interaction_states.first),
+            second: statePayload(form.interaction_states.second),
+        },
+    };
+}
+
+function statePayload(state: AssetStateForm) {
+    return {
+        imageUrl: state.image_url || null,
+        width: Number(state.width),
+        x: Number(state.position_x),
+        y: Number(state.position_y),
+    };
 }

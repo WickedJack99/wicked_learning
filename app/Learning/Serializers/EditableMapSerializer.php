@@ -55,6 +55,8 @@ class EditableMapSerializer
             'opacity' => $asset->opacity,
             'locked' => $asset->locked,
             'focusable' => $asset->focusable,
+            'interactionMode' => $asset->interaction_mode ?? ($asset->focusable ? 'focusable' : 'decorative'),
+            'interactionConfig' => $asset->interaction_config ?? [],
             'visualConfig' => $asset->visual_config ?? [],
             'soundConfig' => $asset->sound_config ?? [],
         ];

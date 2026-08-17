@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\MapAssetInteractionMode;
 use App\Learning\Services\LearningNodeVisualConfig;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
@@ -16,6 +17,7 @@ class CreateLearningMapAsset
     /** @param array<string, mixed> $data */
     public function handle(LearningMap $map, array $data): LearningMapAsset
     {
+        $interactionMode = $this->interactionMode($data);
         $nodeId = $data['learning_node_id'] ?? null;
 
         if (! $nodeId) {
@@ -45,10 +47,24 @@ class CreateLearningMapAsset
             'width' => $data['width'] ?? 14,
             'opacity' => $data['opacity'] ?? 1,
             'locked' => $data['locked'] ?? false,
-            'focusable' => $data['focusable'] ?? true,
+            'focusable' => $interactionMode->opensLearnerPanel(),
+            'interaction_mode' => $interactionMode->value,
+            'interaction_config' => $data['interaction_config'] ?? null,
             'visual_config' => $data['visual_config'] ?? null,
             'sound_config' => $data['sound_config'] ?? null,
         ]);
+    }
+
+    /** @param array<string, mixed> $data */
+    private function interactionMode(array $data): MapAssetInteractionMode
+    {
+        if (isset($data['interaction_mode'])) {
+            return MapAssetInteractionMode::from((string) $data['interaction_mode']);
+        }
+
+        return ($data['focusable'] ?? true)
+            ? MapAssetInteractionMode::Focusable
+            : MapAssetInteractionMode::Decorative;
     }
 
     /** @return array{position_q: int, position_r: int} */

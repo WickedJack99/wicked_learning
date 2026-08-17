@@ -2,6 +2,7 @@
 
 namespace App\Learning\Validation;
 
+use App\Learning\MapAssetInteractionMode;
 use App\Models\AccessRole;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
@@ -173,8 +174,26 @@ class AdminWorldRules
             'opacity' => ['required', 'numeric', 'min:0', 'max:1'],
             'locked' => ['sometimes', 'boolean'],
             'focusable' => ['sometimes', 'boolean'],
+            'interaction_mode' => ['sometimes', 'string', Rule::in(MapAssetInteractionMode::values())],
+            'interaction_config' => ['nullable', 'array'],
+            'interaction_config.states' => ['required_if:interaction_mode,toggle', 'array'],
             'visual_config' => ['nullable', 'array'],
             'sound_config' => ['nullable', 'array'],
+            ...$this->mapAssetStateRules('first'),
+            ...$this->mapAssetStateRules('second'),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function mapAssetStateRules(string $state): array
+    {
+        $prefix = "interaction_config.states.{$state}";
+
+        return [
+            "{$prefix}.imageUrl" => ['required_if:interaction_mode,toggle', 'nullable', 'string', 'max:2048'],
+            "{$prefix}.x" => ['required_if:interaction_mode,toggle', 'nullable', 'numeric', 'min:0', 'max:100'],
+            "{$prefix}.y" => ['required_if:interaction_mode,toggle', 'nullable', 'numeric', 'min:0', 'max:100'],
+            "{$prefix}.width" => ['required_if:interaction_mode,toggle', 'nullable', 'numeric', 'min:1', 'max:100'],
         ];
     }
 
