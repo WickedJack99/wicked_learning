@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ImageAlphaHitArea } from '@/features/world/image-alpha-mask';
 import {
     mapAssetInteractionMode,
     mapAssetSurface,
@@ -133,7 +134,7 @@ export function MapAssetEditor({
                         return (
                             <button
                                 className={cn(
-                                    'absolute -translate-x-1/2 -translate-y-1/2 text-center transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]',
+                                    'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]',
                                 )}
                                 key={asset.id}
                                 onClick={(event) => {
@@ -180,6 +181,9 @@ export function MapAssetEditor({
                                         assetToRender.visualConfig,
                                         appearance,
                                     )}
+                                />
+                                <ImageAlphaHitArea
+                                    imageUrl={surface.imageUrl}
                                 />
                             </button>
                         );

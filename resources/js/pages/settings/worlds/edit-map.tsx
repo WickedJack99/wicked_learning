@@ -67,6 +67,7 @@ import {
     MapAssetFields,
 } from '@/features/settings/map-asset-editor';
 import type { AssetForm } from '@/features/settings/map-asset-editor';
+import { ImageAlphaHitArea } from '@/features/world/image-alpha-mask';
 import { MapAssetVisual } from '@/features/world/map-asset-visual';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -3476,7 +3477,7 @@ function NodeVisualPreview({
             <div className="mt-4 grid min-h-72 place-items-center rounded-lg bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_58%)]">
                 <div
                     aria-label="MapAsset image hover preview"
-                    className="group relative grid h-[180px] w-[180px] place-items-center overflow-hidden text-center focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
+                    className="group pointer-events-none relative grid h-[180px] w-[180px] place-items-center overflow-hidden text-center focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
                     onBlur={() => setIsHovered(false)}
                     onFocus={() => setIsHovered(true)}
                     onMouseEnter={() => setIsHovered(true)}
@@ -3495,6 +3496,7 @@ function NodeVisualPreview({
                         label={previewLabel}
                         labelColor={labelColor}
                     />
+                    <ImageAlphaHitArea imageUrl={imageUrl} />
                     {form.state === 'locked' ? (
                         <LockKeyhole className="relative z-20 size-9 text-white/70 drop-shadow" />
                     ) : null}

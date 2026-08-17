@@ -49,7 +49,7 @@ export function MapAssetVisual({
 
     return (
         <span
-            className="relative mx-auto block aspect-square max-h-52 w-full overflow-hidden"
+            className="pointer-events-none relative mx-auto block aspect-square max-h-52 w-full max-w-52 overflow-hidden"
             style={imageSource ? undefined : { backgroundColor }}
         >
             {imageSource ? (

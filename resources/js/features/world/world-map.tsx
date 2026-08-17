@@ -25,6 +25,11 @@ import type {
     MapAsset,
 } from '@/types';
 import {
+    ImageAlphaHitArea,
+    imageAlphaMaskFor,
+    useImageAlphaMasks,
+} from './image-alpha-mask';
+import {
     mapAssetInteractionMode,
     mapAssetSurface,
     mapAssetSurfacesOverlap,
@@ -318,7 +323,7 @@ function MapAssetLayers({
     selectedNode: LearningNode | null;
     selectedTool: LearningTool | null;
 }) {
-    const [hoveredAssetId, setHoveredAssetId] = useState<number | null>(null);
+    const [focusedAssetId, setFocusedAssetId] = useState<number | null>(null);
     const [toggledAssetIds, setToggledAssetIds] = useState<number[]>([]);
     const soundPlayer = useLayeredSoundPlayer();
     const selectedAsset = selectedNode
@@ -327,16 +332,26 @@ function MapAssetLayers({
     const selectedAssetIndex = selectedAsset
         ? assets.findIndex((asset) => asset.id === selectedAsset.id)
         : -1;
+    const currentSurfaces = assets.map((asset) =>
+        mapAssetSurface(asset, toggledAssetIds.includes(asset.id)),
+    );
+    const alphaMasks = useImageAlphaMasks(
+        currentSurfaces.map((surface) => surface.imageUrl),
+    );
     const hiddenByPointer = new Set(
         mapPointer && mapViewport
             ? assets
                   .filter(
-                      (asset) =>
+                      (asset, assetIndex) =>
                           mapAssetInteractionMode(asset) === 'hide_on_hover' &&
                           pointInsideMapAsset(
-                              mapAssetSurface(asset),
+                              currentSurfaces[assetIndex],
                               mapPointer,
                               mapViewport,
+                              imageAlphaMaskFor(
+                                  currentSurfaces[assetIndex].imageUrl,
+                                  alphaMasks,
+                              ),
                           ),
                   )
                   .map((asset) => asset.id)
@@ -352,23 +367,68 @@ function MapAssetLayers({
                               (asset.z === selectedAsset.z &&
                                   assetIndex > selectedAssetIndex)) &&
                           mapAssetSurfacesOverlap(
-                              mapAssetSurface(asset),
-                              mapAssetSurface(selectedAsset),
+                              currentSurfaces[assetIndex],
+                              currentSurfaces[selectedAssetIndex],
                               mapViewport,
+                              imageAlphaMaskFor(
+                                  currentSurfaces[assetIndex].imageUrl,
+                                  alphaMasks,
+                              ),
+                              imageAlphaMaskFor(
+                                  currentSurfaces[selectedAssetIndex].imageUrl,
+                                  alphaMasks,
+                              ),
                           ),
                   )
                   .map((asset) => asset.id)
             : [],
     );
+    const canRemoveAssets = selectedTool?.config.mapAssetRemove === true;
+    const pointerAssetId =
+        mapPointer && mapViewport
+            ? assets.reduce<number | null>((currentId, asset, assetIndex) => {
+                  const interactionMode = mapAssetInteractionMode(asset);
+                  const isInteractive =
+                      canRemoveAssets ||
+                      interactionMode === 'focusable' ||
+                      interactionMode === 'toggle';
+
+                  if (
+                      !isInteractive ||
+                      !pointInsideMapAsset(
+                          currentSurfaces[assetIndex],
+                          mapPointer,
+                          mapViewport,
+                          imageAlphaMaskFor(
+                              currentSurfaces[assetIndex].imageUrl,
+                              alphaMasks,
+                          ),
+                      )
+                  ) {
+                      return currentId;
+                  }
+
+                  if (currentId === null) {
+                      return asset.id;
+                  }
+
+                  const currentIndex = assets.findIndex(
+                      (candidate) => candidate.id === currentId,
+                  );
+                  const currentAsset = assets[currentIndex];
+
+                  return asset.z > currentAsset.z ||
+                      (asset.z === currentAsset.z && assetIndex > currentIndex)
+                      ? asset.id
+                      : currentId;
+              }, null)
+            : null;
 
     return (
         <div className="pointer-events-none absolute inset-0 z-20">
-            {assets.map((asset) => {
+            {assets.map((asset, assetIndex) => {
                 const interactionMode = mapAssetInteractionMode(asset);
-                const surface = mapAssetSurface(
-                    asset,
-                    toggledAssetIds.includes(asset.id),
-                );
+                const surface = currentSurfaces[assetIndex];
                 const node = asset.nodeId
                     ? map.nodes.find(
                           (candidate) => candidate.id === asset.nodeId,
@@ -389,12 +449,13 @@ function MapAssetLayers({
                     (typeof visualConfig.label === 'string' &&
                         visualConfig.label) ||
                     (node ? node.title : asset.text);
-                const isHovered = hoveredAssetId === asset.id;
+                const isHovered =
+                    pointerAssetId === asset.id || focusedAssetId === asset.id;
                 const isSelected = Boolean(
                     node && selectedNode?.id === node.id,
                 );
                 const isHighlighted = isHovered || isSelected;
-                const canRemove = selectedTool?.config.mapAssetRemove === true;
+                const canRemove = canRemoveAssets;
                 const isHidden =
                     !canRemove &&
                     interactionMode === 'hide_on_hover' &&
@@ -472,7 +533,7 @@ function MapAssetLayers({
                     <button
                         aria-label={label ?? node?.title ?? 'MapAsset'}
                         className={cn(
-                            'pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:outline-none',
+                            'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:outline-none',
                         )}
                         data-map-asset-id={asset.id}
                         data-map-asset-mode={interactionMode}
@@ -517,36 +578,12 @@ function MapAssetLayers({
                                 }
                             }
                         }}
-                        onMouseEnter={() => {
-                            setHoveredAssetId(asset.id);
-
-                            if (node) {
-                                playNodeInteractionSound(
-                                    soundPlayer,
-                                    node,
-                                    'mouseEnter',
-                                );
-                            }
-                        }}
-                        onFocus={() => setHoveredAssetId(asset.id)}
+                        onFocus={() => setFocusedAssetId(asset.id)}
                         onBlur={() =>
-                            setHoveredAssetId((current) =>
+                            setFocusedAssetId((current) =>
                                 current === asset.id ? null : current,
                             )
                         }
-                        onMouseLeave={() => {
-                            setHoveredAssetId((current) =>
-                                current === asset.id ? null : current,
-                            );
-
-                            if (node) {
-                                playNodeInteractionSound(
-                                    soundPlayer,
-                                    node,
-                                    'mouseLeave',
-                                );
-                            }
-                        }}
                         onPointerDown={(event) => event.stopPropagation()}
                         style={style}
                         type="button"
@@ -569,6 +606,31 @@ function MapAssetLayers({
                             labelColor={labelColor}
                             highlightedLabelColor={highlightedLabelColor}
                             label={label}
+                        />
+                        <ImageAlphaHitArea
+                            hitAreaProps={{
+                                onMouseEnter: () => {
+                                    if (node) {
+                                        playNodeInteractionSound(
+                                            soundPlayer,
+                                            node,
+                                            'mouseEnter',
+                                        );
+                                    }
+                                },
+                                onMouseLeave: () => {
+                                    if (node) {
+                                        playNodeInteractionSound(
+                                            soundPlayer,
+                                            node,
+                                            'mouseLeave',
+                                        );
+                                    }
+                                },
+                                onPointerDown: (event) =>
+                                    event.stopPropagation(),
+                            }}
+                            imageUrl={surface.imageUrl}
                         />
                     </button>
                 );
