@@ -2,21 +2,28 @@
 
 namespace App\Ai\Actions;
 
+use App\Ai\Exceptions\AiProviderRequestException;
+use App\Ai\Support\AiModelCapabilities;
+use App\Ai\Support\AiProviderError;
+use App\Ai\Transport\AiResponsesClient;
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
-use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 
 class TestAiAgentTemplate
 {
+    public function __construct(
+        private readonly AiResponsesClient $responsesClient,
+        private readonly AiModelCapabilities $modelCapabilities,
+    ) {}
+
     /**
      * @return array{
      *     text: string,
      *     model: string,
      *     provider: string,
      *     responseId: string|null,
+     *     requestId: string|null,
      *     usage: array{inputTokens: int|null, outputTokens: int|null, totalTokens: int|null}
      * }
      */
@@ -46,13 +53,15 @@ class TestAiAgentTemplate
             $this->fail('Choose a model before testing this agent.');
         }
 
-        $response = Http::withHeaders($this->headers($credential, $apiKey))
-            ->acceptJson()
-            ->timeout(60)
-            ->post($this->responsesEndpoint($credential), $this->payload($template, $model, $prompt));
+        $this->validateProvider($credential);
 
-        if (! $response->successful()) {
-            $this->fail($this->providerErrorMessage($response));
+        try {
+            $response = $this->responsesClient->create(
+                $credential,
+                $this->payload($template, $credential, $model, $prompt),
+            );
+        } catch (AiProviderRequestException $exception) {
+            $this->failProvider($exception->providerError);
         }
 
         $data = $response->json();
@@ -66,6 +75,7 @@ class TestAiAgentTemplate
             'model' => $model,
             'provider' => $credential->provider,
             'responseId' => isset($data['id']) && is_string($data['id']) ? $data['id'] : null,
+            'requestId' => $response->header('x-request-id'),
             'usage' => [
                 'inputTokens' => $this->integerValue($data['usage']['input_tokens'] ?? null),
                 'outputTokens' => $this->integerValue($data['usage']['output_tokens'] ?? null),
@@ -74,48 +84,26 @@ class TestAiAgentTemplate
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
-    private function headers(AiProviderCredential $credential, string $apiKey): array
+    private function validateProvider(AiProviderCredential $credential): void
     {
-        $headers = [
-            'Authorization' => "Bearer {$apiKey}",
-        ];
-
-        if (filled($credential->organization)) {
-            $headers['OpenAI-Organization'] = (string) $credential->organization;
+        if (! in_array($credential->provider, ['openai', 'compatible'], true)) {
+            $this->fail('This test runner currently supports OpenAI and OpenAI-compatible providers.');
         }
 
-        return $headers;
-    }
-
-    private function responsesEndpoint(AiProviderCredential $credential): string
-    {
-        if ($credential->provider === 'openai') {
-            $baseUrl = trim((string) $credential->base_url) ?: 'https://api.openai.com/v1';
-
-            return rtrim($baseUrl, '/').'/responses';
+        if ($credential->provider === 'compatible' && blank($credential->base_url)) {
+            $this->fail('OpenAI-compatible providers need a base URL before testing.');
         }
-
-        if ($credential->provider === 'compatible') {
-            $baseUrl = trim((string) $credential->base_url);
-
-            if ($baseUrl === '') {
-                $this->fail('OpenAI-compatible providers need a base URL before testing.');
-            }
-
-            return rtrim($baseUrl, '/').'/responses';
-        }
-
-        $this->fail('This test runner currently supports OpenAI and OpenAI-compatible providers.');
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function payload(AiAgentTemplate $template, string $model, string $prompt): array
-    {
+    private function payload(
+        AiAgentTemplate $template,
+        AiProviderCredential $credential,
+        string $model,
+        string $prompt,
+    ): array {
         $payload = [
             'model' => $model,
             'input' => $prompt,
@@ -131,9 +119,10 @@ class TestAiAgentTemplate
             $payload['max_output_tokens'] = $template->max_output_tokens;
         }
 
-        $payload['temperature'] = $template->temperature;
-
-        return $payload;
+        return array_merge(
+            $payload,
+            $this->modelCapabilities->requestOptions($credential, $template, $model),
+        );
     }
 
     private function instructions(AiAgentTemplate $template): string
@@ -183,21 +172,6 @@ class TestAiAgentTemplate
         return implode("\n\n", $segments);
     }
 
-    private function providerErrorMessage(ClientResponse $response): string
-    {
-        $message = $response->json('error.message');
-
-        if (! is_string($message) || trim($message) === '') {
-            $message = $response->body();
-        }
-
-        return sprintf(
-            'AI provider returned HTTP %s: %s',
-            $response->status(),
-            Str::limit(trim($message), 500),
-        );
-    }
-
     private function integerValue(mixed $value): ?int
     {
         return is_numeric($value) ? (int) $value : null;
@@ -211,5 +185,16 @@ class TestAiAgentTemplate
                 'prompt' => [$message],
             ],
         ], 422));
+    }
+
+    private function failProvider(AiProviderError $error): never
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => $error->message,
+            'errors' => [
+                'prompt' => [$error->message],
+            ],
+            'aiError' => $error->publicDetails(),
+        ], $error->applicationStatus()));
     }
 }

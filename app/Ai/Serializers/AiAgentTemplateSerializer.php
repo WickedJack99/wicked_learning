@@ -22,6 +22,7 @@ class AiAgentTemplateSerializer
             'systemPrompt' => $template->system_prompt,
             'taskPrompt' => $template->task_prompt,
             'temperature' => $template->temperature,
+            'reasoningEffort' => $template->reasoning_effort,
             'maxOutputTokens' => $template->max_output_tokens,
             'concurrencyLimit' => $template->concurrency_limit,
             'monthlyTokenLimit' => $template->monthly_token_limit,

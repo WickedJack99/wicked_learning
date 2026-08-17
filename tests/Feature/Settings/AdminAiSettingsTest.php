@@ -23,6 +23,7 @@ test('admin users can open ai support settings', function () {
             ->component('settings/index')
             ->has('aiSettings.providerOptions')
             ->has('aiSettings.purposeOptions')
+            ->has('aiSettings.modelControlRules')
             ->has('aiSettings.guardrailNotes')
         );
 });
@@ -139,6 +140,37 @@ test('admin users can create agent templates for a selected provider', function 
         ->and($template->guarded_context)->toBeTrue();
 });
 
+test('admin users can save reasoning controls without a temperature', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $credential = AiProviderCredential::query()->create([
+        'label' => 'OpenAI main',
+        'provider' => 'openai',
+        'enabled' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.ai.templates.store'), [
+            'ai_provider_credential_id' => $credential->id,
+            'name' => 'Terra helper',
+            'purpose' => 'general_assistant',
+            'model' => 'gpt-5.6-terra',
+            'temperature' => null,
+            'reasoning_effort' => 'medium',
+            'concurrency_limit' => 1,
+            'enabled' => true,
+            'guarded_context' => true,
+        ])
+        ->assertRedirect(aiSettingsRoute('templates'));
+
+    $template = AiAgentTemplate::query()->firstOrFail();
+
+    expect($template->temperature)->toBeNull()
+        ->and($template->reasoning_effort)->toBe('medium');
+});
+
 test('admin users can test an openai agent template without exposing the api key', function () {
     Http::fake([
         'api.openai.com/v1/responses' => Http::response([
@@ -197,6 +229,105 @@ test('admin users can test an openai agent template without exposing the api key
         && $request['max_output_tokens'] === 300);
 });
 
+test('gpt 5.6 templates use reasoning effort without sending temperature', function () {
+    Http::fake([
+        'api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_terra_test',
+            'output_text' => 'Terra is connected.',
+        ], 200, ['x-request-id' => 'req_terra_test']),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $template = aiTestTemplate($admin, [
+        'model' => 'gpt-5.6-terra',
+        'reasoning_effort' => 'medium',
+        // A stale value may still exist before the migration has been applied.
+        'temperature' => 0.7,
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai.templates.test', $template), [
+            'prompt' => 'Can you hear me?',
+        ])
+        ->assertOk()
+        ->assertJsonPath('text', 'Terra is connected.')
+        ->assertJsonPath('requestId', 'req_terra_test');
+
+    Http::assertSent(fn ($request): bool => ! isset($request['temperature'])
+        && $request['reasoning']['effort'] === 'medium');
+});
+
+test('provider configuration errors are structured and are not retried', function () {
+    config(['ai.provider_http.retry_delays_ms' => [0, 0]]);
+
+    Http::fake([
+        'api.openai.com/v1/responses' => Http::response([
+            'error' => [
+                'message' => "Unsupported parameter: 'temperature' is not supported with this model.",
+                'type' => 'invalid_request_error',
+                'code' => 'unsupported_parameter',
+                'param' => 'temperature',
+            ],
+        ], 400, ['x-request-id' => 'req_invalid_parameter']),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $template = aiTestTemplate($admin);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai.templates.test', $template), [
+            'prompt' => 'Can you hear me?',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('aiError.category', 'invalid_request')
+        ->assertJsonPath('aiError.code', 'unsupported_parameter')
+        ->assertJsonPath('aiError.parameter', 'temperature')
+        ->assertJsonPath('aiError.requestId', 'req_invalid_parameter')
+        ->assertJsonPath('aiError.retryable', false);
+
+    Http::assertSentCount(1);
+});
+
+test('temporary provider failures are retried before returning a response', function () {
+    config(['ai.provider_http.retry_delays_ms' => [0, 0]]);
+
+    Http::fake([
+        'api.openai.com/v1/responses' => Http::sequence()
+            ->push([
+                'error' => [
+                    'message' => 'The provider is temporarily unavailable.',
+                    'type' => 'server_error',
+                    'code' => 'server_error',
+                ],
+            ], 503)
+            ->push([
+                'id' => 'resp_after_retry',
+                'output_text' => 'The retry succeeded.',
+            ]),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $template = aiTestTemplate($admin);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai.templates.test', $template), [
+            'prompt' => 'Can you hear me?',
+        ])
+        ->assertOk()
+        ->assertJsonPath('text', 'The retry succeeded.');
+
+    Http::assertSentCount(2);
+});
+
 test('admin users need a stored provider key before testing an agent template', function () {
     Http::fake();
 
@@ -239,4 +370,31 @@ function aiSettingsRoute(string $section = 'providers'): string
         'ai' => $section,
         'panel' => 'admin-ai-integrations',
     ]);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ */
+function aiTestTemplate(User $admin, array $overrides = []): AiAgentTemplate
+{
+    $credential = AiProviderCredential::query()->create([
+        'label' => 'OpenAI test key',
+        'provider' => 'openai',
+        'api_key' => 'sk-test-secret-1234',
+        'api_key_last_four' => '1234',
+        'enabled' => true,
+    ]);
+
+    return AiAgentTemplate::query()->create(array_merge([
+        'ai_provider_credential_id' => $credential->id,
+        'created_by_user_id' => $admin->id,
+        'name' => 'Test helper',
+        'slug' => 'test-helper-'.str()->random(8),
+        'purpose' => 'general_assistant',
+        'model' => 'gpt-test-model',
+        'temperature' => null,
+        'concurrency_limit' => 1,
+        'enabled' => true,
+        'guarded_context' => true,
+    ], $overrides));
 }

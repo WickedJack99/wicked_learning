@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'system_prompt',
     'task_prompt',
     'temperature',
+    'reasoning_effort',
     'max_output_tokens',
     'concurrency_limit',
     'monthly_token_limit',

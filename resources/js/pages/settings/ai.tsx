@@ -20,8 +20,8 @@ import {
     SettingsSectionButton,
     SettingsSectionNavigation,
     SettingsSidebar,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -32,6 +32,8 @@ import {
     instructionFilename,
     parseAgentInstructionFile,
 } from '@/features/ai/agent-instruction-files';
+import { resolveModelControlMode } from '@/features/ai/model-generation-controls';
+import type { ModelControlRule } from '@/features/ai/model-generation-controls';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -75,7 +77,8 @@ export type AgentTemplate = {
     slug: string;
     systemPrompt: string | null;
     taskPrompt: string | null;
-    temperature: number;
+    reasoningEffort: string | null;
+    temperature: number | null;
     updatedAt: string | null;
 };
 
@@ -101,6 +104,7 @@ type TemplateForm = {
     monthly_token_limit: string;
     name: string;
     purpose: string;
+    reasoning_effort: string;
     slug: string;
     system_prompt: string;
     task_prompt: string;
@@ -112,6 +116,7 @@ export type AiSettingsProps = {
     agentTemplates: AgentTemplate[];
     embedded?: boolean;
     guardrailNotes: string[];
+    modelControlRules: ModelControlRule[];
     onSelectSection?: (section: AiSection) => void;
     providerCredentials: ProviderCredential[];
     providerOptions: Option[];
@@ -122,6 +127,7 @@ type AgentTemplateTestResult = {
     model: string;
     provider: string;
     responseId: string | null;
+    requestId: string | null;
     text: string;
     usage: {
         inputTokens: number | null;
@@ -131,9 +137,35 @@ type AgentTemplateTestResult = {
 };
 
 type JsonErrorPayload = {
+    aiError?: AiProviderErrorDetails;
     errors?: Record<string, string[]>;
     message?: string;
 };
+
+type AiProviderErrorDetails = {
+    category: string;
+    code: string;
+    parameter: string | null;
+    providerStatus: number | null;
+    requestId: string;
+    retryable: boolean;
+};
+
+type TestRequestError = {
+    details: AiProviderErrorDetails | null;
+    message: string;
+};
+
+class SettingsRequestError extends Error {
+    constructor(
+        message: string,
+        public readonly status: number,
+        public readonly details: AiProviderErrorDetails | null,
+    ) {
+        super(message);
+        this.name = 'SettingsRequestError';
+    }
+}
 
 const sectionItems = [
     {
@@ -171,6 +203,39 @@ const sectionItems = [
     labelFallback: string;
     labelKey: string;
 }[];
+
+const reasoningEffortItems = [
+    {
+        fallback: 'None',
+        key: 'settings.ai.templates.reasoning_efforts.none',
+        value: 'none',
+    },
+    {
+        fallback: 'Low',
+        key: 'settings.ai.templates.reasoning_efforts.low',
+        value: 'low',
+    },
+    {
+        fallback: 'Medium',
+        key: 'settings.ai.templates.reasoning_efforts.medium',
+        value: 'medium',
+    },
+    {
+        fallback: 'High',
+        key: 'settings.ai.templates.reasoning_efforts.high',
+        value: 'high',
+    },
+    {
+        fallback: 'Extra high',
+        key: 'settings.ai.templates.reasoning_efforts.xhigh',
+        value: 'xhigh',
+    },
+    {
+        fallback: 'Maximum',
+        key: 'settings.ai.templates.reasoning_efforts.max',
+        value: 'max',
+    },
+];
 
 function blankProviderForm(defaultProvider = 'openai'): ProviderForm {
     return {
@@ -214,10 +279,11 @@ function blankTemplateForm(defaultPurpose = 'sdt_design'): TemplateForm {
         monthly_token_limit: '',
         name: '',
         purpose: defaultPurpose,
+        reasoning_effort: '',
         slug: '',
         system_prompt: '',
         task_prompt: '',
-        temperature: '0.7',
+        temperature: '',
     };
 }
 
@@ -233,10 +299,11 @@ function templateFormFromTemplate(template: AgentTemplate): TemplateForm {
         monthly_token_limit: template.monthlyTokenLimit?.toString() ?? '',
         name: template.name,
         purpose: template.purpose,
+        reasoning_effort: template.reasoningEffort ?? '',
         slug: template.slug,
         system_prompt: template.systemPrompt ?? '',
         task_prompt: template.taskPrompt ?? '',
-        temperature: template.temperature.toString(),
+        temperature: template.temperature?.toString() ?? '',
     };
 }
 
@@ -259,13 +326,15 @@ async function postSettingsJson<T>(
     });
 
     if (!response.ok) {
-        throw new Error(await jsonErrorMessage(response));
+        throw await settingsRequestError(response);
     }
 
     return response.json() as Promise<T>;
 }
 
-async function jsonErrorMessage(response: Response): Promise<string> {
+async function settingsRequestError(
+    response: Response,
+): Promise<SettingsRequestError> {
     const fallback = `Request failed with status ${response.status}`;
 
     try {
@@ -274,9 +343,13 @@ async function jsonErrorMessage(response: Response): Promise<string> {
             ? Object.values(data.errors).flat()[0]
             : null;
 
-        return firstError ?? data.message ?? fallback;
+        return new SettingsRequestError(
+            firstError ?? data.message ?? fallback,
+            response.status,
+            data.aiError ?? null,
+        );
     } catch {
-        return fallback;
+        return new SettingsRequestError(fallback, response.status, null);
     }
 }
 
@@ -285,6 +358,7 @@ export default function AiSettings({
     agentTemplates,
     embedded = false,
     guardrailNotes,
+    modelControlRules,
     onSelectSection,
     providerCredentials,
     providerOptions,
@@ -357,6 +431,7 @@ export default function AiSettings({
             {activeSection === 'templates' ? (
                 <AgentTemplatesPanel
                     agentTemplates={agentTemplates}
+                    modelControlRules={modelControlRules}
                     providerCredentials={providerCredentials}
                     purposeOptions={purposeOptions}
                 />
@@ -718,10 +793,12 @@ function ProviderCredentialsPanel({
 
 function AgentTemplatesPanel({
     agentTemplates,
+    modelControlRules,
     providerCredentials,
     purposeOptions,
 }: {
     agentTemplates: AgentTemplate[];
+    modelControlRules: ModelControlRule[];
     providerCredentials: ProviderCredential[];
     purposeOptions: Option[];
 }) {
@@ -747,6 +824,15 @@ function AgentTemplatesPanel({
     const selectedPurpose = useMemo(
         () => purposeOptions.find((option) => option.value === form.purpose),
         [form.purpose, purposeOptions],
+    );
+    const selectedProvider = providerCredentials.find(
+        (credential) =>
+            credential.id.toString() === form.ai_provider_credential_id,
+    );
+    const generationControlMode = resolveModelControlMode(
+        modelControlRules,
+        selectedProvider?.provider,
+        form.model,
     );
 
     const selectTemplate = (template: AgentTemplate | null) => {
@@ -938,13 +1024,31 @@ function AgentTemplatesPanel({
                                 <select
                                     className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
                                     value={form.ai_provider_credential_id}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
+                                        const credentialId = event.target.value;
+                                        const provider =
+                                            providerCredentials.find(
+                                                (credential) =>
+                                                    credential.id.toString() ===
+                                                    credentialId,
+                                            )?.provider;
+                                        const nextMode =
+                                            resolveModelControlMode(
+                                                modelControlRules,
+                                                provider,
+                                                form.model,
+                                            );
+
                                         setForm({
                                             ...form,
                                             ai_provider_credential_id:
-                                                event.target.value,
-                                        })
-                                    }
+                                                credentialId,
+                                            temperature:
+                                                nextMode === 'reasoning'
+                                                    ? ''
+                                                    : form.temperature,
+                                        });
+                                    }}
                                 >
                                     <option value="">
                                         {t(
@@ -974,31 +1078,100 @@ function AgentTemplatesPanel({
                                         'gpt-4.1, gpt-5, local-model...',
                                     )}
                                     value={form.model}
-                                    onChange={(event) =>
+                                    onChange={(event) => {
+                                        const model = event.target.value;
+                                        const nextMode =
+                                            resolveModelControlMode(
+                                                modelControlRules,
+                                                selectedProvider?.provider,
+                                                model,
+                                            );
+
                                         setForm({
                                             ...form,
-                                            model: event.target.value,
-                                        })
-                                    }
+                                            model,
+                                            temperature:
+                                                nextMode === 'reasoning'
+                                                    ? ''
+                                                    : form.temperature,
+                                        });
+                                    }}
                                 />
                             </Field>
-                            <Field
-                                label={t(
-                                    'settings.ai.templates.fields.temperature',
-                                    'Temperature',
-                                )}
-                            >
-                                <Input
-                                    inputMode="decimal"
-                                    value={form.temperature}
-                                    onChange={(event) =>
-                                        setForm({
-                                            ...form,
-                                            temperature: event.target.value,
-                                        })
-                                    }
-                                />
-                            </Field>
+                            {generationControlMode !== 'reasoning' ? (
+                                <Field
+                                    label={t(
+                                        'settings.ai.templates.fields.temperature',
+                                        'Temperature (optional)',
+                                    )}
+                                >
+                                    <Input
+                                        inputMode="decimal"
+                                        placeholder={t(
+                                            'settings.ai.templates.placeholders.provider_default',
+                                            'Provider default',
+                                        )}
+                                        value={form.temperature}
+                                        onChange={(event) =>
+                                            setForm({
+                                                ...form,
+                                                reasoning_effort:
+                                                    event.target.value === ''
+                                                        ? form.reasoning_effort
+                                                        : '',
+                                                temperature: event.target.value,
+                                            })
+                                        }
+                                    />
+                                </Field>
+                            ) : null}
+                            {generationControlMode !== 'sampling' ? (
+                                <Field
+                                    label={t(
+                                        'settings.ai.templates.fields.reasoning_effort',
+                                        'Reasoning effort (optional)',
+                                    )}
+                                >
+                                    <select
+                                        className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-[#050816]"
+                                        value={form.reasoning_effort}
+                                        onChange={(event) =>
+                                            setForm({
+                                                ...form,
+                                                reasoning_effort:
+                                                    event.target.value,
+                                                temperature:
+                                                    event.target.value === ''
+                                                        ? form.temperature
+                                                        : '',
+                                            })
+                                        }
+                                    >
+                                        <option value="">
+                                            {t(
+                                                'settings.ai.templates.placeholders.provider_default',
+                                                'Provider default',
+                                            )}
+                                        </option>
+                                        {reasoningEffortItems.map((effort) => (
+                                            <option
+                                                key={effort.value}
+                                                value={effort.value}
+                                            >
+                                                {t(effort.key, effort.fallback)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {generationControlMode === 'reasoning' ? (
+                                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                            {t(
+                                                'settings.ai.templates.generation.reasoning_notice',
+                                                'GPT-5.6 uses reasoning effort. Temperature is omitted automatically.',
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </Field>
+                            ) : null}
                             <Field
                                 label={t(
                                     'settings.ai.templates.fields.max_output_tokens',
@@ -1227,7 +1400,7 @@ function AgentTemplateTestPanel({
     const t = usePlatformTranslation();
     const [prompt, setPrompt] = useState('');
     const [result, setResult] = useState<AgentTemplateTestResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<TestRequestError | null>(null);
     const [isTesting, setIsTesting] = useState(false);
 
     const canSubmit = Boolean(template && prompt.trim() !== '' && !isTesting);
@@ -1251,14 +1424,19 @@ function AgentTemplateTestPanel({
                 ),
             );
         } catch (caughtError) {
-            setError(
-                caughtError instanceof Error
-                    ? caughtError.message
-                    : t(
-                          'settings.ai.templates.test.unknown_error',
-                          'The test request failed.',
-                      ),
-            );
+            setError({
+                details:
+                    caughtError instanceof SettingsRequestError
+                        ? caughtError.details
+                        : null,
+                message:
+                    caughtError instanceof Error
+                        ? caughtError.message
+                        : t(
+                              'settings.ai.templates.test.unknown_error',
+                              'The test request failed.',
+                          ),
+            });
         } finally {
             setIsTesting(false);
         }
@@ -1304,9 +1482,44 @@ function AgentTemplateTestPanel({
                 onChange={(event) => setPrompt(event.target.value)}
             />
             {error ? (
-                <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-200">
-                    {error}
-                </p>
+                <div className="grid gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-400/30 dark:bg-red-950/30 dark:text-red-200">
+                    <p>{error.message}</p>
+                    {error.details ? (
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-80">
+                            <span>
+                                {t(
+                                    'settings.ai.templates.test.error_code',
+                                    'Code',
+                                )}
+                                : {error.details.code}
+                            </span>
+                            {error.details.parameter ? (
+                                <span>
+                                    {t(
+                                        'settings.ai.templates.test.parameter',
+                                        'Parameter',
+                                    )}
+                                    : {error.details.parameter}
+                                </span>
+                            ) : null}
+                            <span>
+                                {t(
+                                    'settings.ai.templates.test.request_id',
+                                    'Request ID',
+                                )}
+                                : {error.details.requestId}
+                            </span>
+                            {error.details.retryable ? (
+                                <span>
+                                    {t(
+                                        'settings.ai.templates.test.retryable',
+                                        'A retry may succeed.',
+                                    )}
+                                </span>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
             ) : null}
             {result ? (
                 <div className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#050816]">

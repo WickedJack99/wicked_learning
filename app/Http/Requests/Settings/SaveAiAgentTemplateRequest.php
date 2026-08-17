@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Ai\Support\AiModelCapabilities;
 use App\Models\AiAgentTemplate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,7 +35,13 @@ class SaveAiAgentTemplateRequest extends FormRequest
             'model' => ['nullable', 'string', 'max:120'],
             'system_prompt' => ['nullable', 'string', 'max:12000'],
             'task_prompt' => ['nullable', 'string', 'max:12000'],
-            'temperature' => ['required', 'numeric', 'min:0', 'max:2'],
+            'temperature' => ['nullable', 'numeric', 'min:0', 'max:2', 'prohibits:reasoning_effort'],
+            'reasoning_effort' => [
+                'nullable',
+                'string',
+                Rule::in(AiModelCapabilities::REASONING_EFFORTS),
+                'prohibits:temperature',
+            ],
             'max_output_tokens' => ['nullable', 'integer', 'min:1', 'max:128000'],
             'concurrency_limit' => ['required', 'integer', 'min:1', 'max:20'],
             'monthly_token_limit' => ['nullable', 'integer', 'min:1'],

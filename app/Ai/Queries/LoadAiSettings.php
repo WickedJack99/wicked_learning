@@ -4,6 +4,7 @@ namespace App\Ai\Queries;
 
 use App\Ai\Serializers\AiAgentTemplateSerializer;
 use App\Ai\Serializers\AiProviderCredentialSerializer;
+use App\Ai\Support\AiModelCapabilities;
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
 
@@ -12,6 +13,7 @@ class LoadAiSettings
     public function __construct(
         private readonly AiProviderCredentialSerializer $credentialSerializer,
         private readonly AiAgentTemplateSerializer $templateSerializer,
+        private readonly AiModelCapabilities $modelCapabilities,
     ) {}
 
     /**
@@ -34,6 +36,7 @@ class LoadAiSettings
                 ->values(),
             'providerOptions' => $this->providerOptions(),
             'purposeOptions' => $this->purposeOptions(),
+            'modelControlRules' => $this->modelCapabilities->rules(),
             'guardrailNotes' => [
                 'API keys are encrypted at rest and are never serialized back to the browser after saving.',
                 'Guarded-context templates should receive learner data only through explicit activity or route loaders.',
