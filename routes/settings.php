@@ -3,6 +3,7 @@
 use App\Http\Controllers\PlatformInfoPageController;
 use App\Http\Controllers\Settings\AdminAccessController;
 use App\Http\Controllers\Settings\AdminActivityController;
+use App\Http\Controllers\Settings\AdminAiContentAuthoringController;
 use App\Http\Controllers\Settings\AdminAiController;
 use App\Http\Controllers\Settings\AdminAssetController;
 use App\Http\Controllers\Settings\AdminItemController;
@@ -361,6 +362,19 @@ Route::middleware(['auth', 'verified', 'can:ai.ru'])->group(function () {
 
     Route::post('settings/ai/templates/{template}/test', [AdminAiController::class, 'testTemplate'])
         ->name('settings.ai.templates.test');
+});
+
+Route::middleware([
+    'auth',
+    'verified',
+    'can:ai.ru',
+    'can:world_maps.ru',
+    'can:world_activities.ru',
+])->group(function () {
+    Route::post('settings/worlds/maps/{map}/ai-content-plans', [AdminAiContentAuthoringController::class, 'generate'])
+        ->name('settings.worlds.maps.ai-content-plans.generate');
+    Route::post('settings/ai-content-plans/{run}/apply', [AdminAiContentAuthoringController::class, 'apply'])
+        ->name('settings.ai-content-plans.apply');
 });
 
 Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {

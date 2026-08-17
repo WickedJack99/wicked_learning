@@ -2,6 +2,7 @@ import type { FormDataConvertible } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
 import { Eye, EyeOff, MousePointerClick, Plus, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { ConfigImageInput } from '@/components/config-image-input';
 import InputError from '@/components/input-error';
@@ -44,6 +45,7 @@ export function MapAssetEditor({
     previewNode,
     previewImage,
     previewOverlay,
+    toolbarAction,
 }: {
     assets: MapAsset[];
     mapId: number;
@@ -56,6 +58,7 @@ export function MapAssetEditor({
     previewNode?: MapAssetNode;
     previewImage?: string;
     previewOverlay?: string;
+    toolbarAction?: ReactNode;
 }) {
     const t = usePlatformTranslation();
     const [processing, setProcessing] = useState(false);
@@ -97,15 +100,18 @@ export function MapAssetEditor({
                     className="absolute inset-0"
                     style={{ background: previewOverlay }}
                 />
-                <Button
-                    className="absolute top-4 right-4 z-30 shadow-xl"
-                    disabled={processing}
-                    onClick={addAsset}
-                    type="button"
-                >
-                    <Plus className="size-4" />
-                    {t('settings.world_builder.map_asset.add', 'Add Asset')}
-                </Button>
+                <div className="absolute top-4 right-4 z-30 flex flex-wrap justify-end gap-2">
+                    {toolbarAction}
+                    <Button
+                        className="shadow-xl"
+                        disabled={processing}
+                        onClick={addAsset}
+                        type="button"
+                    >
+                        <Plus className="size-4" />
+                        {t('settings.world_builder.map_asset.add', 'Add Asset')}
+                    </Button>
+                </div>
                 <div className="absolute inset-0">
                     {assets.map((asset) => {
                         const assetToRender =

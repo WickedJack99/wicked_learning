@@ -789,6 +789,25 @@ function SettingsDetail({
                         ) : (
                             <EditWorldMap
                                 accessGroups={selectedWorldMap.accessGroups}
+                                contentAuthoringTemplates={
+                                    accessCapabilities.ai?.update &&
+                                    accessCapabilities.world_activities?.update
+                                        ? (aiSettings?.agentTemplates ?? [])
+                                              .filter(
+                                                  (template) =>
+                                                      template.enabled &&
+                                                      template.purpose ===
+                                                          'content_authoring',
+                                              )
+                                              .map((template) => ({
+                                                  id: template.id,
+                                                  model: template.model,
+                                                  name: template.name,
+                                                  providerLabel:
+                                                      template.providerLabel,
+                                              }))
+                                        : undefined
+                                }
                                 editableMap={selectedWorldMap.editableMap}
                                 embedded
                                 tools={selectedWorldMap.tools}

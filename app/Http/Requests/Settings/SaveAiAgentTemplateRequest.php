@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Settings;
 
+use App\Ai\Support\AiAgentPurposes;
 use App\Ai\Support\AiModelCapabilities;
 use App\Models\AiAgentTemplate;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,12 +27,7 @@ class SaveAiAgentTemplateRequest extends FormRequest
                 'max:140',
                 Rule::unique('ai_agent_templates', 'slug')->ignore($template),
             ],
-            'purpose' => ['required', 'string', Rule::in([
-                'sdt_design',
-                'asset_generation',
-                'learner_feedback',
-                'general_assistant',
-            ])],
+            'purpose' => ['required', 'string', Rule::in(AiAgentPurposes::values())],
             'model' => ['nullable', 'string', 'max:120'],
             'system_prompt' => ['nullable', 'string', 'max:12000'],
             'task_prompt' => ['nullable', 'string', 'max:12000'],

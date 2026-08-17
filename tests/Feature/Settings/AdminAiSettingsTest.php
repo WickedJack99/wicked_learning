@@ -140,6 +140,28 @@ test('admin users can create agent templates for a selected provider', function 
         ->and($template->guarded_context)->toBeTrue();
 });
 
+test('content authoring is a valid agent template purpose', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.ai.templates.store'), [
+            'name' => 'Content author',
+            'purpose' => 'content_authoring',
+            'model' => 'gpt-5.6-terra',
+            'reasoning_effort' => 'medium',
+            'concurrency_limit' => 1,
+            'enabled' => true,
+            'guarded_context' => true,
+        ])
+        ->assertRedirect(aiSettingsRoute('templates'))
+        ->assertSessionHasNoErrors();
+
+    expect(AiAgentTemplate::query()->sole()->purpose)->toBe('content_authoring');
+});
+
 test('admin users can save reasoning controls without a temperature', function () {
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,

@@ -58,6 +58,8 @@ import {
     tileControlWidth,
 } from '@/features/admin-worlds/hex-grid-geometry';
 import type { Direction } from '@/features/admin-worlds/hex-grid-geometry';
+import { ContentAuthoringDialog } from '@/features/ai/content-authoring-dialog';
+import type { ContentAuthoringTemplate } from '@/features/ai/content-authoring-dialog';
 import {
     assetForm,
     assetPayload,
@@ -308,11 +310,13 @@ type NodeSettingsSection =
 
 export default function EditWorldMap({
     accessGroups,
+    contentAuthoringTemplates,
     editableMap,
     embedded = false,
     tools,
 }: {
     accessGroups: AccessGroup[];
+    contentAuthoringTemplates?: ContentAuthoringTemplate[];
     embedded?: boolean;
     editableMap: EditableMapPayload;
     tools: LearningTool[];
@@ -1060,6 +1064,15 @@ export default function EditWorldMap({
                         previewNode={livePreviewNode}
                         previewImage={previewMapTheme.imageUrl}
                         previewOverlay={previewMapTheme.overlay}
+                        toolbarAction={
+                            contentAuthoringTemplates ? (
+                                <ContentAuthoringDialog
+                                    mapId={map.id}
+                                    mapTitle={map.title}
+                                    templates={contentAuthoringTemplates}
+                                />
+                            ) : undefined
+                        }
                     />
 
                     <section
