@@ -50,6 +50,8 @@ class PermissionCatalog
 
     public const AI = 'ai';
 
+    public const CONTENT_API = 'content_api';
+
     /**
      * @return array<string, array{label: string, description: string, group: string}>
      */
@@ -160,6 +162,11 @@ class PermissionCatalog
                 'label' => 'AI support',
                 'description' => 'Provider credentials, agent templates and usage guardrails.',
                 'group' => 'AI',
+            ],
+            self::CONTENT_API => [
+                'label' => 'Content API',
+                'description' => 'Read the authoring contract and create learning content through the administration API.',
+                'group' => 'API',
             ],
         ];
     }

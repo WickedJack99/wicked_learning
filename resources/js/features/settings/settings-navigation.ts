@@ -1,11 +1,11 @@
 import {
     Bot,
+    Braces,
     Database,
     Info,
     Languages,
     NotebookPen,
     Map as MapIcon,
-    MousePointer2,
     Palette,
     Shield,
     Sparkles,
@@ -16,6 +16,7 @@ import type { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type SettingsPanelKey =
     | 'admin-access'
+    | 'admin-api'
     | 'admin-ai-integrations'
     | 'admin-assets-world-objects'
     | 'admin-color-palettes'
@@ -330,6 +331,31 @@ export const adminSettings: SettingsListItem[] = [
             },
         ],
     },
+    {
+        key: 'admin-api',
+        label: 'API',
+        labelKey: 'settings.navigation.api',
+        description:
+            'Interactive Content API console and machine-readable authoring documentation.',
+        descriptionKey: 'settings.navigation.api.description',
+        icon: Braces,
+        panel: 'admin-api',
+        resources: ['content_api'],
+        children: [
+            {
+                label: 'API Console',
+                labelKey: 'settings.api.console.title',
+                href: '/settings?panel=admin-api&api=console',
+                resources: ['content_api'],
+            },
+            {
+                label: 'API Documentation',
+                labelKey: 'settings.api.documentation.title',
+                href: '/settings?panel=admin-api&api=documentation',
+                resources: ['content_api'],
+            },
+        ],
+    },
 ];
 
 export const panelContent: Partial<
@@ -369,6 +395,7 @@ export const panelContent: Partial<
 
 export const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-access',
+    'admin-api',
     'admin-ai-integrations',
     'admin-assets-world-objects',
     'admin-color-palettes',

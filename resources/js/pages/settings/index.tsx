@@ -41,6 +41,7 @@ import type {
     AssetsWorldObjectsSection,
     AssetsWorldObjectsSettings,
 } from '@/features/settings/assets-world-objects-panel';
+import { ContentApiPanel } from '@/features/settings/content-api-panel';
 import { LearningSupportPanel } from '@/features/settings/learning-support-panel';
 import type {
     LearningSupportSection,
@@ -268,6 +269,10 @@ function writePanelToUrl(panel: SettingsPanelKey | null): void {
 
     if (panel !== 'admin-ai-integrations') {
         url.searchParams.delete('ai');
+    }
+
+    if (panel !== 'admin-api') {
+        url.searchParams.delete('api');
     }
 
     if (panel !== 'personal') {
@@ -819,6 +824,8 @@ function SettingsDetail({
                 </div>
             ) : selectedPanel === 'admin-ai-integrations' ? (
                 <SettingsUnavailablePanel label="AI & Integrations" />
+            ) : selectedPanel === 'admin-api' ? (
+                <ContentApiPanel />
             ) : selectedPanel === 'admin-learning-support' ? (
                 <LearningSupportPanel
                     activeSection={learningSupportView}
