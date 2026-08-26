@@ -45,7 +45,7 @@ export function TopicAdministration({ areas }: { areas: AdminTopicArea[] }) {
     };
 
     return (
-        <main className="min-h-svh bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
+        <main className="h-full overflow-y-auto bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
             <LearningDeskHeader />
             <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 lg:px-12 lg:py-12">
                 <Link

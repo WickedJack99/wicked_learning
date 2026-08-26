@@ -30,7 +30,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
     const t = usePlatformTranslation();
 
     return (
-        <main className="min-h-svh bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
+        <main className="h-full overflow-y-auto bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
             <Head title={t('paths.title', 'Paths')} />
             <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
