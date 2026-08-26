@@ -598,6 +598,8 @@ function ActivityFrame({
     activity: LearningActivity;
     children: React.ReactNode;
 }) {
+    const relatedLearningAreas = learningAreaNames(activity);
+
     return (
         <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/28">
             <div className="flex items-start gap-3">
@@ -616,12 +618,41 @@ function ActivityFrame({
                             {activity.introduction}
                         </p>
                     ) : null}
+                    {relatedLearningAreas.length > 0 ? (
+                        <p className="mt-2 text-xs leading-5 text-cyan-700 dark:text-teal-200/80">
+                            <span className="font-medium">
+                                Related learning areas:
+                            </span>{' '}
+                            {relatedLearningAreas.join(' · ')}
+                        </p>
+                    ) : null}
                 </div>
             </div>
 
             {children}
         </section>
     );
+}
+
+function learningAreaNames(activity: LearningActivity): string[] {
+    const topics = activity.config.competenceTopics;
+
+    if (!Array.isArray(topics)) {
+        return [];
+    }
+
+    return topics.flatMap((topic) => {
+        if (
+            typeof topic !== 'object' ||
+            topic === null ||
+            !('topic' in topic) ||
+            typeof topic.topic !== 'string'
+        ) {
+            return [];
+        }
+
+        return topic.topic.trim() === '' ? [] : [topic.topic];
+    });
 }
 
 function PanelShell({

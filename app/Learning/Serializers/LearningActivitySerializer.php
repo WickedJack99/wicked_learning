@@ -34,7 +34,7 @@ class LearningActivitySerializer
             'type' => $activity->type,
             'title' => $activity->title,
             'introduction' => $activity->introduction,
-            'config' => $activity->config ?? [],
+            'config' => $this->learnerConfig($activity),
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
             'configuredTool' => $this->configuredTool($activity),
@@ -56,6 +56,26 @@ class LearningActivitySerializer
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->values(),
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function learnerConfig(LearningActivity $activity): array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+        $topics = $config['competenceTopics'] ?? null;
+
+        if (! is_array($topics)) {
+            return $config;
+        }
+
+        $config['competenceTopics'] = array_values(array_filter(array_map(
+            static fn (mixed $topic): ?array => is_array($topic) && is_string($topic['topic'] ?? null)
+                ? ['topic' => $topic['topic']]
+                : null,
+            $topics,
+        )));
+
+        return $config;
     }
 
     /**

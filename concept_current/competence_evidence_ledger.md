@@ -89,6 +89,11 @@ available for a genuinely new concept. This keeps the ledger's categories
 consistent enough for meaningful aggregation without turning the vocabulary
 into a rigid curriculum or a learner-facing taxonomy.
 
+Learner activity surfaces may name the related learning areas so the learner
+can connect an activity with the wider trail. The internal contribution
+weights are not included in learner responses and are never presented as
+points.
+
 ## Next evolution
 
 Next, add confidence and feedback outcomes where the activity actually collects

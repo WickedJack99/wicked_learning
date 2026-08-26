@@ -68,4 +68,10 @@ test('clearing ambience removes it without replacing other activity configuratio
 
     expect($activity->config)->not->toHaveKey('ambientSound')
         ->and($activity->config['competenceTopics'][0]['slug'])->toBe('notes');
+
+    $payload = app(LearningActivitySerializer::class)->serialize($activity);
+
+    expect($payload['config']['competenceTopics'])->toBe([
+        ['topic' => 'Notes'],
+    ]);
 });
