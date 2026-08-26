@@ -41,6 +41,8 @@ experience.
 - A brighter or larger star must never imply that one learner outranks another.
 - Recent activity may gently affect the aura, but competence must not decay as a
   pressure mechanic.
+- Ambient map motion follows the learner's reduced-motion preference; stillness
+  must not remove the map's labels, relationships or explanations.
 - Future evidence categories should enrich the visual profile rather than turn
   the learner map into a dashboard of LMS metrics.
 

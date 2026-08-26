@@ -82,7 +82,7 @@ export default function CompetenceStarMap({
                         ) : (
                             <svg
                                 aria-label="Competence star map"
-                                className="h-full w-full"
+                                className="competence-star-map h-full w-full"
                                 role="img"
                                 viewBox={`0 0 ${competenceStarMapSize.width} ${competenceStarMapSize.height}`}
                             >
@@ -141,6 +141,11 @@ export default function CompetenceStarMap({
                                     @keyframes competence-shooting-star-travel {
                                         0%, 48% { transform: translateX(0); }
                                         76%, 100% { transform: translateX(var(--shooting-star-distance)); }
+                                    }
+                                    @media (prefers-reduced-motion: reduce) {
+                                        .competence-star-map * {
+                                            animation: none !important;
+                                        }
                                     }
                                 `}</style>
                                 <defs>
