@@ -370,6 +370,9 @@ function TopicCompetenceCard({
     const t = usePlatformTranslation();
     const firstTrail = competence ?? subtopicCompetence[0] ?? null;
     const focusedSlug = competence ? topicSlug : firstTrail?.slug;
+    const competenceHref = focusedSlug
+        ? `/competence?topic=${encodeURIComponent(focusedSlug)}&from=${encodeURIComponent(topicSlug)}`
+        : `/competence?from=${encodeURIComponent(topicSlug)}`;
     const starSize = firstTrail
         ? 30 + Math.round(firstTrail.visual.sizeRatio * 18)
         : 30;
@@ -429,11 +432,7 @@ function TopicCompetenceCard({
                 </div>
                 <Link
                     className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-cyan-700 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
-                    href={
-                        focusedSlug
-                            ? `/competence?topic=${encodeURIComponent(focusedSlug)}`
-                            : '/competence'
-                    }
+                    href={competenceHref}
                 >
                     {t(
                         focusedSlug
