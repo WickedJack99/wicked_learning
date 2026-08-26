@@ -1,11 +1,12 @@
 import { Link } from '@inertiajs/react';
 import { GitBranch, SlidersHorizontal } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export type WorldMapManagementNode = {
+    activityReviewCount: number;
     description: string | null;
     id: number;
     slug: string;
@@ -17,6 +18,7 @@ export type WorldMapManagementMap = {
     id: number;
     nodeCount: number;
     nodes: WorldMapManagementNode[];
+    reviewCount: number;
     slug: string;
     title: string;
 };
@@ -50,12 +52,6 @@ export function WorldMapManagementPanel({
     const showDetailContent =
         detail?.activeView === 'configure' || Boolean(detail?.nodeId);
 
-    useEffect(() => {
-        if (detail?.mapId) {
-            setSelectedMapId(detail.mapId);
-        }
-    }, [detail?.mapId]);
-
     return (
         <section className="grid h-full min-h-0 gap-0 lg:grid-cols-[18rem_18rem_minmax(0,1fr)]">
             <div className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
@@ -73,6 +69,7 @@ export function WorldMapManagementPanel({
                             )}
                             href={`/settings?panel=admin-world-builder&worldSection=structural&map=${map.id}`}
                             key={map.id}
+                            onClick={() => setSelectedMapId(map.id)}
                         >
                             <span
                                 aria-hidden="true"
@@ -90,6 +87,15 @@ export function WorldMapManagementPanel({
                                 {map.nodeCount} tile
                                 {map.nodeCount === 1 ? '' : 's'}
                             </span>
+                            {map.reviewCount > 0 ? (
+                                <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
+                                    {map.reviewCount}{' '}
+                                    {map.reviewCount === 1
+                                        ? 'activity needs'
+                                        : 'activities need'}{' '}
+                                    review
+                                </span>
+                            ) : null}
                         </Link>
                     ))}
                 </div>
@@ -173,6 +179,16 @@ export function WorldMapManagementPanel({
                                             <span className="mt-1 line-clamp-2 text-xs opacity-80">
                                                 {node.description ?? node.slug}
                                             </span>
+                                            {node.activityReviewCount > 0 ? (
+                                                <span className="mt-1 block text-xs text-amber-700 dark:text-amber-200">
+                                                    {node.activityReviewCount}{' '}
+                                                    {node.activityReviewCount ===
+                                                    1
+                                                        ? 'activity needs'
+                                                        : 'activities need'}{' '}
+                                                    review
+                                                </span>
+                                            ) : null}
                                         </span>
                                     </Link>
                                 ))}

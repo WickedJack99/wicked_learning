@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -16,14 +17,67 @@ class AdminWorldGraphSerializer
      */
     public function serialize(LearningWorld $world): array
     {
+        $reviewCounts = $this->reviewCounts($world);
+
         return [
             'world' => $this->summary->world($world),
             'maps' => $world->maps
                 ->values()
-                ->map(fn (LearningMap $map): array => $this->summary->map($map))
+                ->map(fn (LearningMap $map): array => $this->map($map, $reviewCounts))
                 ->all(),
             'portalCandidates' => $this->portalCandidates($world),
             'portalLinks' => $this->portalLinks($world),
+        ];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function reviewCounts(LearningWorld $world): array
+    {
+        $nodeIds = $world->maps
+            ->flatMap(fn (LearningMap $map) => $map->nodes->pluck('id'))
+            ->values();
+
+        if ($nodeIds->isEmpty()) {
+            return [];
+        }
+
+        return LearningActivity::query()
+            ->whereIn('learning_node_id', $nodeIds)
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('ai_review_status')
+                    ->orWhere('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED);
+            })
+            ->get(['learning_node_id'])
+            ->groupBy('learning_node_id')
+            ->map(fn ($activities): int => $activities->count())
+            ->all();
+    }
+
+    /**
+     * @param  array<int, int>  $reviewCounts
+     * @return array<string, mixed>
+     */
+    private function map(LearningMap $map, array $reviewCounts): array
+    {
+        $summary = $this->summary->map($map);
+        $nodes = array_map(
+            fn (array $node): array => [
+                ...$node,
+                'activityReviewCount' => $reviewCounts[$node['id']] ?? 0,
+            ],
+            $summary['nodes'],
+        );
+
+        return [
+            ...$summary,
+            'reviewCount' => array_sum(array_map(
+                fn (array $node): int => $node['activityReviewCount'],
+                $nodes,
+            )),
+            'nodes' => $nodes,
         ];
     }
 

@@ -25,6 +25,11 @@ test('admin users can see the world graph with portal links', function () {
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,
     ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $reviewCount = LearningActivity::query()
+        ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
+        ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
+        ->count();
 
     $this->actingAs($admin)
         ->get(route('settings.index', [
@@ -35,6 +40,8 @@ test('admin users can see the world graph with portal links', function () {
             ->component('settings/index')
             ->where('worldGraph.world.slug', 'demo-learning-world')
             ->has('worldGraph.maps', 2)
+            ->where('worldGraph.maps.0.slug', 'first-sector')
+            ->where('worldGraph.maps.0.reviewCount', $reviewCount)
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')

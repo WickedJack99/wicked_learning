@@ -53,6 +53,7 @@ export type MapSummary = {
     id: number;
     nodeCount: number;
     nodes: NodeSummary[];
+    reviewCount: number;
     slug: string;
     title: string;
 };
@@ -60,6 +61,7 @@ export type MapSummary = {
 export type NodeSummary = {
     description: string | null;
     id: number;
+    activityReviewCount: number;
     slug: string;
     title: string;
 };

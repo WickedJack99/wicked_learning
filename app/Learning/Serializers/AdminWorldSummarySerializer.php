@@ -35,6 +35,7 @@ class AdminWorldSummarySerializer
             'title' => $map->title,
             'description' => $map->description,
             'nodeCount' => $map->nodes->count(),
+            'reviewCount' => 0,
             'accessRoles' => $this->mapAccess->rolesForMap($map),
             'nodes' => $map->nodes
                 ->sortBy([['position_q', 'asc'], ['position_r', 'asc']])
@@ -54,6 +55,7 @@ class AdminWorldSummarySerializer
             'slug' => $node->slug,
             'title' => $node->title,
             'description' => $node->description,
+            'activityReviewCount' => 0,
             'position' => [
                 'q' => $node->position_q,
                 'r' => $node->position_r,
