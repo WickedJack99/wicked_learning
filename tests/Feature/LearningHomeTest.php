@@ -25,7 +25,8 @@ test('authenticated learners can open an empty learning desk', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('home')
-            ->has('desk.currentRoutes', 0)
+        ->has('desk.currentRoutes', 0)
+            ->has('desk.recentRoutes', 0)
             ->has('desk.bookmarks', 0)
             ->has('desk.connections', 0)
             ->where('desk.featuredBookmark', null)
@@ -98,5 +99,59 @@ test('the learning desk presents current work and saved topics', function () {
             ->has('desk.bookmarks', 1)
             ->where('desk.bookmarks.0.title', 'Heart valves')
             ->where('desk.featuredBookmark.title', 'Heart valves')
+        );
+});
+
+test('the learning desk keeps a quiet trail of recently completed routes', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'recent-map',
+        'title' => 'Recent Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'recent-node',
+        'title' => 'Recent Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'recent-activity',
+        'title' => 'Recent Activity',
+        'type' => 'markdown',
+        'sort_order' => 10,
+    ]);
+    $start = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'label' => 'Explore again',
+        'sort_order' => 10,
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'last_completed_at' => now(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.recentRoutes', 1)
+            ->where('desk.recentRoutes.0.routeLabel', 'Explore again')
+            ->where('desk.recentRoutes.0.nodeTitle', 'Recent Node')
+            ->where('desk.recentRoutes.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });

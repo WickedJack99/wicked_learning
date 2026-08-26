@@ -4,6 +4,8 @@ namespace App\Learning\Serializers;
 
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningNodeBookmark;
+use DateTimeInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class LearningDeskSerializer
@@ -12,6 +14,7 @@ class LearningDeskSerializer
      * @param  array{
      *     bookmarks: Collection<int, LearningNodeBookmark>,
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
+     *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     featuredBookmark: LearningNodeBookmark|null
      * }  $desk
      * @return array<string, mixed>
@@ -31,6 +34,10 @@ class LearningDeskSerializer
                 ->all(),
             'currentRoutes' => $desk['currentRoutes']
                 ->map(fn (LearnerRouteProgress $progress): array => $this->currentRoute($progress))
+                ->values()
+                ->all(),
+            'recentRoutes' => $desk['recentRoutes']
+                ->map(fn (LearnerRouteProgress $progress): array => $this->recentRoute($progress))
                 ->values()
                 ->all(),
             'featuredBookmark' => $desk['featuredBookmark']
@@ -64,13 +71,21 @@ class LearningDeskSerializer
     {
         $node = $progress->node;
         $route = $progress->activityStart;
-        $activityId = $progress->current_learning_activity_id
-            ?? $route?->learning_activity_id
-            ?? $progress->start_learning_activity_id;
+        $activityId = $progress->current_learning_activity_id;
+
+        if ($activityId === null && $route !== null) {
+            $activityId = $route->learning_activity_id;
+        }
+
+        $activityId ??= $progress->start_learning_activity_id;
+        $currentActivityTitle = $progress->currentActivity?->title;
+
+        if ($currentActivityTitle === null && $route !== null) {
+            $currentActivityTitle = $route->activity?->title;
+        }
 
         return [
-            'currentActivityTitle' => $progress->currentActivity?->title
-                ?? $route?->activity?->title,
+            'currentActivityTitle' => $currentActivityTitle,
             'href' => route('learning.nodes.play', [
                 'node' => $node->id,
                 'route' => $route?->id,
@@ -78,10 +93,46 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
-            'lastEnteredAt' => $progress->last_entered_at?->toIso8601String(),
+            'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
+            'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapTitle' => $node->map->title,
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function recentRoute(LearnerRouteProgress $progress): array
+    {
+        $node = $progress->node;
+        $route = $progress->activityStart;
+
+        return [
+            'currentActivityTitle' => null,
+            'href' => route('learning.nodes.play', [
+                'node' => $node->id,
+                'route' => $route?->id,
+            ], false),
+            'id' => $progress->id,
+            'imageUrl' => $node->mapAsset?->image_url,
+            'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
+            'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
+            'mapTitle' => $node->map->title,
+            'nodeTitle' => $node->title,
+            'routeLabel' => $route?->label ?: $route?->activity?->title,
+        ];
+    }
+
+    private function dateTimeString(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format(DateTimeInterface::ATOM);
+        }
+
+        if (is_string($value) && $value !== '') {
+            return Carbon::parse($value)->toIso8601String();
+        }
+
+        return null;
     }
 }

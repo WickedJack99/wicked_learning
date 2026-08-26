@@ -13,6 +13,7 @@ export type LearningDeskRoute = {
     href: string;
     id: number;
     imageUrl: string | null;
+    lastCompletedAt: string | null;
     lastEnteredAt: string | null;
     mapTitle: string;
     nodeTitle: string;
@@ -23,6 +24,7 @@ export type LearningDeskData = {
     bookmarks: LearningDeskBookmark[];
     connections: LearningDeskBookmark[];
     currentRoutes: LearningDeskRoute[];
+    recentRoutes: LearningDeskRoute[];
     featuredBookmark: LearningDeskBookmark | null;
 };
 

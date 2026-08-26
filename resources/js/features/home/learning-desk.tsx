@@ -47,6 +47,30 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             <LearningDeskSearch />
                         </section>
 
+                        {desk.recentRoutes.length > 0 ? (
+                            <section
+                                className="mt-14"
+                                aria-labelledby="recent-heading"
+                            >
+                                <SectionHeading
+                                    id="recent-heading"
+                                    label={t(
+                                        'home.learning_desk.recent.title',
+                                        'Recent traces',
+                                    )}
+                                />
+                                <div className="divide-y divide-slate-200 border-b border-slate-200 dark:divide-white/10 dark:border-white/10">
+                                    {desk.recentRoutes.map((route) => (
+                                        <RecentRouteRow
+                                            key={route.id}
+                                            locale={localization.locale}
+                                            route={route}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        ) : null}
+
                         <section
                             className="mt-14"
                             aria-labelledby="continue-heading"
@@ -322,6 +346,54 @@ function RouteRow({
                 ) : null}
                 <span className="inline-flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
                     {t('common.continue', 'Continue')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </span>
+            </span>
+        </Link>
+    );
+}
+
+function RecentRouteRow({
+    locale,
+    route,
+}: {
+    locale: string;
+    route: LearningDeskRoute;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <Link
+            className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center"
+            href={route.href}
+        >
+            <span className="grid size-12 place-items-center border border-slate-200 text-cyan-600 dark:border-white/10 dark:text-cyan-300">
+                {route.imageUrl ? (
+                    <img
+                        alt=""
+                        className="size-10 object-contain"
+                        src={route.imageUrl}
+                    />
+                ) : (
+                    <Clock3 className="size-5" />
+                )}
+            </span>
+            <span className="min-w-0">
+                <span className="block truncate text-base font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
+                    {route.routeLabel ?? route.nodeTitle}
+                </span>
+                <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
+                    {route.nodeTitle} · {route.mapTitle}
+                </span>
+            </span>
+            <span className="flex items-center gap-4 sm:justify-end">
+                {route.lastCompletedAt ? (
+                    <span className="hidden text-xs text-slate-400 xl:inline">
+                        {formatDate(route.lastCompletedAt, locale)}
+                    </span>
+                ) : null}
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-cyan-300">
+                    {t('home.learning_desk.recent.action', 'Revisit')}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </span>
             </span>
