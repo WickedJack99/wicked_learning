@@ -1,9 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Heart, House, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Heart, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
+import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
     backgroundStars,
@@ -58,90 +59,84 @@ export default function CompetenceStarMap({
     return (
         <>
             <Head title="Competence Star Map" />
-            <main className="min-h-svh overflow-y-auto bg-black px-4 py-6 pb-24 text-white">
-                <AccentHeading
-                    action={
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                                asChild
-                                className="text-slate-300 hover:bg-white/10 hover:text-white"
-                                variant="ghost"
-                            >
-                                <Link href="/home">
-                                    <House className="size-4" />
-                                    Learning desk
-                                </Link>
-                            </Button>
-                            <Button asChild variant="secondary">
-                                <Link href={selectedTopic?.href ?? '/world'}>
-                                    <ArrowLeft className="size-4" />
-                                    {selectedTopic
-                                        ? `Back to ${selectedTopic.title}`
-                                        : 'Back to world'}
-                                </Link>
-                            </Button>
-                        </div>
-                    }
-                    accentColor="var(--map-floating-accent-color)"
-                    description={
-                        selectedTopic ? (
-                            <>
-                                Viewing the learning trail around{' '}
-                                <Link
-                                    className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
-                                    href={selectedTopic.href}
-                                >
-                                    {selectedTopic.title}
-                                </Link>
-                                .
-                            </>
-                        ) : undefined
-                    }
-                    eyebrow="Competence"
-                    icon={<Sparkles className="size-5" />}
-                    title="Star Map"
-                />
+            <main className="min-h-svh overflow-y-auto bg-black text-white">
+                <LearningDeskHeader />
+                <div className="px-4 py-6 pb-24">
+                    <AccentHeading
+                        action={
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button asChild variant="secondary">
+                                    <Link
+                                        href={selectedTopic?.href ?? '/world'}
+                                    >
+                                        <ArrowLeft className="size-4" />
+                                        {selectedTopic
+                                            ? `Back to ${selectedTopic.title}`
+                                            : 'Back to world'}
+                                    </Link>
+                                </Button>
+                            </div>
+                        }
+                        accentColor="var(--map-floating-accent-color)"
+                        description={
+                            selectedTopic ? (
+                                <>
+                                    Viewing the learning trail around{' '}
+                                    <Link
+                                        className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
+                                        href={selectedTopic.href}
+                                    >
+                                        {selectedTopic.title}
+                                    </Link>
+                                    .
+                                </>
+                            ) : undefined
+                        }
+                        eyebrow="Competence"
+                        icon={<Sparkles className="size-5" />}
+                        title="Star Map"
+                    />
 
-                <div className="mt-5 grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                    <section className="relative h-[min(72svh,680px)] min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-[calc(100svh-7rem)]">
-                        {positionedTopics.length === 0 ? (
-                            <div className="grid h-full place-items-center p-6 text-center">
-                                <div>
-                                    <Sparkles className="mx-auto size-12 text-cyan-200" />
-                                    <h2 className="mt-4 text-3xl font-semibold">
-                                        No stars yet
-                                    </h2>
-                                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
-                                        Complete route-play activities with
-                                        configured competence topics and this
-                                        map will begin reflecting your learning
-                                        trail.
-                                    </p>
-                                    <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
-                                        <Link
-                                            className="inline-flex items-center gap-2 rounded-md border border-cyan-200/30 bg-cyan-200/10 px-3 py-2 font-medium text-cyan-100 transition hover:border-cyan-100/60 hover:bg-cyan-100/20"
-                                            href="/topics"
-                                        >
-                                            Explore topics
-                                            <ArrowRight className="size-4" />
-                                        </Link>
-                                        <Link
-                                            className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 font-medium text-slate-200 transition hover:border-white/35 hover:bg-white/10"
-                                            href="/home"
-                                        >
-                                            Learning desk
-                                        </Link>
+                    <div className="mt-5 grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                        <section className="relative h-[min(72svh,680px)] min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-[calc(100svh-7rem)]">
+                            {positionedTopics.length === 0 ? (
+                                <div className="grid h-full place-items-center p-6 text-center">
+                                    <div>
+                                        <Sparkles className="mx-auto size-12 text-cyan-200" />
+                                        <h2 className="mt-4 text-3xl font-semibold">
+                                            No stars yet
+                                        </h2>
+                                        <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
+                                            Complete route-play activities with
+                                            configured competence topics and
+                                            this map will begin reflecting your
+                                            learning trail.
+                                        </p>
+                                        <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
+                                            <Link
+                                                className="inline-flex items-center gap-2 rounded-md border border-cyan-200/30 bg-cyan-200/10 px-3 py-2 font-medium text-cyan-100 transition hover:border-cyan-100/60 hover:bg-cyan-100/20"
+                                                href="/topics"
+                                            >
+                                                Explore topics
+                                                <ArrowRight className="size-4" />
+                                            </Link>
+                                            <Link
+                                                className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 font-medium text-slate-200 transition hover:border-white/35 hover:bg-white/10"
+                                                href="/home"
+                                            >
+                                                Learning desk
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <svg
-                                aria-label="Competence star map"
-                                className="competence-star-map h-full w-full"
-                                role="img"
-                                viewBox={`0 0 ${competenceStarMapSize.width} ${competenceStarMapSize.height}`}
-                            >
-                                <style>{`
+                            ) : (
+                                <svg
+                                    aria-label="Competence star map"
+                                    className="competence-star-map h-full w-full"
+                                    role="img"
+                                    viewBox={`0 0 ${competenceStarMapSize.width} ${competenceStarMapSize.height}`}
+                                >
+                                    <style>{`
                                     @keyframes competence-flow {
                                         to { stroke-dashoffset: -72; }
                                     }
@@ -203,263 +198,272 @@ export default function CompetenceStarMap({
                                         }
                                     }
                                 `}</style>
-                                <defs>
-                                    <radialGradient id="competence-sky-vignette">
-                                        <stop
-                                            offset="0%"
-                                            stopColor="#111827"
-                                            stopOpacity="0.38"
-                                        />
-                                        <stop
-                                            offset="55%"
-                                            stopColor="#020617"
-                                            stopOpacity="0.18"
-                                        />
-                                        <stop
-                                            offset="100%"
-                                            stopColor="#000000"
-                                            stopOpacity="1"
-                                        />
-                                    </radialGradient>
-                                    <filter
-                                        height="200%"
-                                        id="competence-star-glow"
-                                        width="200%"
-                                        x="-50%"
-                                        y="-50%"
-                                    >
-                                        <feGaussianBlur
-                                            in="SourceGraphic"
-                                            result="blur"
-                                            stdDeviation="3"
-                                        />
-                                        <feMerge>
-                                            <feMergeNode in="blur" />
-                                            <feMergeNode in="SourceGraphic" />
-                                        </feMerge>
-                                    </filter>
-                                    <filter
-                                        height="260%"
-                                        id="competence-star-bloom"
-                                        width="260%"
-                                        x="-80%"
-                                        y="-80%"
-                                    >
-                                        <feGaussianBlur
-                                            in="SourceGraphic"
-                                            result="soft"
-                                            stdDeviation="7"
-                                        />
-                                        <feMerge>
-                                            <feMergeNode in="soft" />
-                                            <feMergeNode in="SourceGraphic" />
-                                        </feMerge>
-                                    </filter>
-                                </defs>
-                                <rect
-                                    fill="url(#competence-sky-vignette)"
-                                    height={competenceStarMapSize.height}
-                                    width={competenceStarMapSize.width}
-                                    x="0"
-                                    y="0"
-                                />
-                                <g aria-hidden="true">
-                                    {backgroundStars.map((star, index) => (
-                                        <circle
-                                            cx={star.x}
-                                            cy={star.y}
-                                            fill="#dbeafe"
-                                            key={index}
-                                            opacity={star.opacity}
-                                            r={star.size}
-                                            style={{
-                                                animation: `competence-background-star ${3.4 + (index % 6) * 0.42}s ease-in-out infinite`,
-                                                animationDelay: `${star.delay}s`,
-                                            }}
-                                        />
-                                    ))}
-                                </g>
-                                <g aria-hidden="true">
-                                    {shootingStars.map((star, index) => (
-                                        <g
-                                            key={index}
-                                            opacity="0"
-                                            style={{
-                                                animation: `competence-shooting-star-opacity ${star.duration}s linear infinite`,
-                                                animationDelay: `${star.delay}s`,
-                                            }}
-                                            transform={`translate(${star.x} ${star.y}) rotate(${star.angle})`}
+                                    <defs>
+                                        <radialGradient id="competence-sky-vignette">
+                                            <stop
+                                                offset="0%"
+                                                stopColor="#111827"
+                                                stopOpacity="0.38"
+                                            />
+                                            <stop
+                                                offset="55%"
+                                                stopColor="#020617"
+                                                stopOpacity="0.18"
+                                            />
+                                            <stop
+                                                offset="100%"
+                                                stopColor="#000000"
+                                                stopOpacity="1"
+                                            />
+                                        </radialGradient>
+                                        <filter
+                                            height="200%"
+                                            id="competence-star-glow"
+                                            width="200%"
+                                            x="-50%"
+                                            y="-50%"
                                         >
+                                            <feGaussianBlur
+                                                in="SourceGraphic"
+                                                result="blur"
+                                                stdDeviation="3"
+                                            />
+                                            <feMerge>
+                                                <feMergeNode in="blur" />
+                                                <feMergeNode in="SourceGraphic" />
+                                            </feMerge>
+                                        </filter>
+                                        <filter
+                                            height="260%"
+                                            id="competence-star-bloom"
+                                            width="260%"
+                                            x="-80%"
+                                            y="-80%"
+                                        >
+                                            <feGaussianBlur
+                                                in="SourceGraphic"
+                                                result="soft"
+                                                stdDeviation="7"
+                                            />
+                                            <feMerge>
+                                                <feMergeNode in="soft" />
+                                                <feMergeNode in="SourceGraphic" />
+                                            </feMerge>
+                                        </filter>
+                                    </defs>
+                                    <rect
+                                        fill="url(#competence-sky-vignette)"
+                                        height={competenceStarMapSize.height}
+                                        width={competenceStarMapSize.width}
+                                        x="0"
+                                        y="0"
+                                    />
+                                    <g aria-hidden="true">
+                                        {backgroundStars.map((star, index) => (
+                                            <circle
+                                                cx={star.x}
+                                                cy={star.y}
+                                                fill="#dbeafe"
+                                                key={index}
+                                                opacity={star.opacity}
+                                                r={star.size}
+                                                style={{
+                                                    animation: `competence-background-star ${3.4 + (index % 6) * 0.42}s ease-in-out infinite`,
+                                                    animationDelay: `${star.delay}s`,
+                                                }}
+                                            />
+                                        ))}
+                                    </g>
+                                    <g aria-hidden="true">
+                                        {shootingStars.map((star, index) => (
                                             <g
-                                                style={
-                                                    {
-                                                        '--shooting-star-distance': `${star.distance}px`,
-                                                        animation: `competence-shooting-star-travel ${star.duration}s linear infinite`,
-                                                        animationDelay: `${star.delay}s`,
-                                                    } as CSSProperties &
-                                                        Record<
-                                                            '--shooting-star-distance',
-                                                            string
-                                                        >
-                                                }
+                                                key={index}
+                                                opacity="0"
+                                                style={{
+                                                    animation: `competence-shooting-star-opacity ${star.duration}s linear infinite`,
+                                                    animationDelay: `${star.delay}s`,
+                                                }}
+                                                transform={`translate(${star.x} ${star.y}) rotate(${star.angle})`}
                                             >
-                                                <defs>
-                                                    <linearGradient
-                                                        gradientUnits="userSpaceOnUse"
-                                                        id={`competence-shooting-star-tail-${index}`}
+                                                <g
+                                                    style={
+                                                        {
+                                                            '--shooting-star-distance': `${star.distance}px`,
+                                                            animation: `competence-shooting-star-travel ${star.duration}s linear infinite`,
+                                                            animationDelay: `${star.delay}s`,
+                                                        } as CSSProperties &
+                                                            Record<
+                                                                '--shooting-star-distance',
+                                                                string
+                                                            >
+                                                    }
+                                                >
+                                                    <defs>
+                                                        <linearGradient
+                                                            gradientUnits="userSpaceOnUse"
+                                                            id={`competence-shooting-star-tail-${index}`}
+                                                            x1={-star.length}
+                                                            x2="0"
+                                                            y1="0"
+                                                            y2="0"
+                                                        >
+                                                            <stop
+                                                                offset="0%"
+                                                                stopColor="#bae6fd"
+                                                                stopOpacity="0"
+                                                            />
+                                                            <stop
+                                                                offset="35%"
+                                                                stopColor="#bfdbfe"
+                                                                stopOpacity="0.18"
+                                                            />
+                                                            <stop
+                                                                offset="72%"
+                                                                stopColor="#bfdbfe"
+                                                                stopOpacity="0.7"
+                                                            />
+                                                            <stop
+                                                                offset="100%"
+                                                                stopColor="#ffffff"
+                                                                stopOpacity="1"
+                                                            />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <line
+                                                        stroke={`url(#competence-shooting-star-tail-${index})`}
+                                                        strokeLinecap="round"
+                                                        strokeOpacity={
+                                                            star.opacity * 0.48
+                                                        }
+                                                        strokeWidth="9"
                                                         x1={-star.length}
                                                         x2="0"
                                                         y1="0"
                                                         y2="0"
-                                                    >
-                                                        <stop
-                                                            offset="0%"
-                                                            stopColor="#bae6fd"
-                                                            stopOpacity="0"
-                                                        />
-                                                        <stop
-                                                            offset="35%"
-                                                            stopColor="#bfdbfe"
-                                                            stopOpacity="0.18"
-                                                        />
-                                                        <stop
-                                                            offset="72%"
-                                                            stopColor="#bfdbfe"
-                                                            stopOpacity="0.7"
-                                                        />
-                                                        <stop
-                                                            offset="100%"
-                                                            stopColor="#ffffff"
-                                                            stopOpacity="1"
-                                                        />
-                                                    </linearGradient>
-                                                </defs>
-                                                <line
-                                                    stroke={`url(#competence-shooting-star-tail-${index})`}
-                                                    strokeLinecap="round"
-                                                    strokeOpacity={
-                                                        star.opacity * 0.48
-                                                    }
-                                                    strokeWidth="9"
-                                                    x1={-star.length}
-                                                    x2="0"
-                                                    y1="0"
-                                                    y2="0"
-                                                />
-                                                <line
-                                                    stroke={`url(#competence-shooting-star-tail-${index})`}
-                                                    strokeLinecap="round"
-                                                    strokeOpacity={star.opacity}
-                                                    strokeWidth="2.1"
-                                                    x1={-star.length * 0.92}
-                                                    x2="0"
-                                                    y1="0"
-                                                    y2="0"
-                                                />
-                                                <circle
-                                                    fill="#ffffff"
-                                                    r="2.2"
-                                                />
-                                                <circle
-                                                    fill="#93c5fd"
-                                                    opacity="0.26"
-                                                    r="7.5"
-                                                />
+                                                    />
+                                                    <line
+                                                        stroke={`url(#competence-shooting-star-tail-${index})`}
+                                                        strokeLinecap="round"
+                                                        strokeOpacity={
+                                                            star.opacity
+                                                        }
+                                                        strokeWidth="2.1"
+                                                        x1={-star.length * 0.92}
+                                                        x2="0"
+                                                        y1="0"
+                                                        y2="0"
+                                                    />
+                                                    <circle
+                                                        fill="#ffffff"
+                                                        r="2.2"
+                                                    />
+                                                    <circle
+                                                        fill="#93c5fd"
+                                                        opacity="0.26"
+                                                        r="7.5"
+                                                    />
+                                                </g>
                                             </g>
-                                        </g>
-                                    ))}
-                                </g>
-                                <g>
-                                    {competenceMap.transitions.map(
-                                        (transition) => {
-                                            const from = topicBySlug.get(
-                                                transition.fromTopicSlug,
-                                            );
-                                            const to = topicBySlug.get(
-                                                transition.toTopicSlug,
-                                            );
+                                        ))}
+                                    </g>
+                                    <g>
+                                        {competenceMap.transitions.map(
+                                            (transition) => {
+                                                const from = topicBySlug.get(
+                                                    transition.fromTopicSlug,
+                                                );
+                                                const to = topicBySlug.get(
+                                                    transition.toTopicSlug,
+                                                );
 
-                                            if (!from || !to) {
-                                                return null;
-                                            }
+                                                if (!from || !to) {
+                                                    return null;
+                                                }
 
-                                            return (
-                                                <CompetencePath
-                                                    from={from}
-                                                    key={`${transition.fromTopicSlug}:${transition.toTopicSlug}`}
-                                                    to={to}
-                                                    transition={transition}
-                                                />
-                                            );
-                                        },
-                                    )}
-                                </g>
-                                <g>
-                                    {positionedTopics.map((topic) => (
-                                        <CompetenceStar
-                                            active={
-                                                activeTopicSlug === topic.slug
-                                            }
-                                            key={topic.slug}
-                                            onActiveChange={setHoveredTopicSlug}
-                                            onSelect={() =>
-                                                setSelectedTopicSlug(
-                                                    (current) =>
-                                                        current === topic.slug
-                                                            ? null
-                                                            : topic.slug,
-                                                )
-                                            }
-                                            topic={topic}
-                                        />
-                                    ))}
-                                </g>
-                            </svg>
-                        )}
-                        <CompetenceMapGuide
-                            recentWindowDays={competenceMap.recentWindowDays}
+                                                return (
+                                                    <CompetencePath
+                                                        from={from}
+                                                        key={`${transition.fromTopicSlug}:${transition.toTopicSlug}`}
+                                                        to={to}
+                                                        transition={transition}
+                                                    />
+                                                );
+                                            },
+                                        )}
+                                    </g>
+                                    <g>
+                                        {positionedTopics.map((topic) => (
+                                            <CompetenceStar
+                                                active={
+                                                    activeTopicSlug ===
+                                                    topic.slug
+                                                }
+                                                key={topic.slug}
+                                                onActiveChange={
+                                                    setHoveredTopicSlug
+                                                }
+                                                onSelect={() =>
+                                                    setSelectedTopicSlug(
+                                                        (current) =>
+                                                            current ===
+                                                            topic.slug
+                                                                ? null
+                                                                : topic.slug,
+                                                    )
+                                                }
+                                                topic={topic}
+                                            />
+                                        ))}
+                                    </g>
+                                </svg>
+                            )}
+                            <CompetenceMapGuide
+                                recentWindowDays={
+                                    competenceMap.recentWindowDays
+                                }
+                            />
+                            {activeTopic ? (
+                                <CompetenceReading
+                                    checkIns={competenceMap.checkIns}
+                                    onClose={() => {
+                                        setHoveredTopicSlug(null);
+                                        setSelectedTopicSlug(null);
+                                    }}
+                                    topic={activeTopic}
+                                />
+                            ) : selectedTopicNotFound ? (
+                                <UnseenCompetenceReading
+                                    onClose={() => {
+                                        setHoveredTopicSlug(null);
+                                        setSelectedTopicSlug(null);
+                                    }}
+                                    topicHref={selectedTopic?.href ?? '/topics'}
+                                    topicLinkLabel={
+                                        selectedTopic
+                                            ? translate(
+                                                  'competence.reading.unseen.open_topic',
+                                                  'Open topic',
+                                              )
+                                            : translate(
+                                                  'competence.reading.unseen.browse_topics',
+                                                  'Browse topics',
+                                              )
+                                    }
+                                    topicTitle={
+                                        selectedTopic?.title ??
+                                        topicLabel(selectedTopicSlug ?? '')
+                                    }
+                                />
+                            ) : null}
+                        </section>
+                        <LearningPulseTimeline
+                            checkIns={competenceMap.checkIns}
+                            onTopicSelect={(slug) => {
+                                setHoveredTopicSlug(null);
+                                setSelectedTopicSlug(slug);
+                            }}
                         />
-                        {activeTopic ? (
-                            <CompetenceReading
-                                checkIns={competenceMap.checkIns}
-                                onClose={() => {
-                                    setHoveredTopicSlug(null);
-                                    setSelectedTopicSlug(null);
-                                }}
-                                topic={activeTopic}
-                            />
-                        ) : selectedTopicNotFound ? (
-                            <UnseenCompetenceReading
-                                onClose={() => {
-                                    setHoveredTopicSlug(null);
-                                    setSelectedTopicSlug(null);
-                                }}
-                                topicHref={selectedTopic?.href ?? '/topics'}
-                                topicLinkLabel={
-                                    selectedTopic
-                                        ? translate(
-                                              'competence.reading.unseen.open_topic',
-                                              'Open topic',
-                                          )
-                                        : translate(
-                                              'competence.reading.unseen.browse_topics',
-                                              'Browse topics',
-                                          )
-                                }
-                                topicTitle={
-                                    selectedTopic?.title ??
-                                    topicLabel(selectedTopicSlug ?? '')
-                                }
-                            />
-                        ) : null}
-                    </section>
-                    <LearningPulseTimeline
-                        checkIns={competenceMap.checkIns}
-                        onTopicSelect={(slug) => {
-                            setHoveredTopicSlug(null);
-                            setSelectedTopicSlug(slug);
-                        }}
-                    />
+                    </div>
                 </div>
             </main>
         </>
