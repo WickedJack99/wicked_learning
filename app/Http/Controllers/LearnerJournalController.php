@@ -8,6 +8,7 @@ use App\Learning\Actions\RecordLearnerReflection;
 use App\Learning\Actions\RequestLearnerJournalFeedback;
 use App\Learning\Actions\UpdateLearnerJournalPage;
 use App\Learning\Queries\LoadFeedbackRequestDomains;
+use App\Learning\Queries\LoadLearnerActivityCheckIns;
 use App\Learning\Queries\LoadLearnerJournal;
 use App\Learning\Serializers\LearnerJournalSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
@@ -24,6 +25,7 @@ class LearnerJournalController extends Controller
 {
     public function __construct(
         private readonly LoadLearnerJournal $journal,
+        private readonly LoadLearnerActivityCheckIns $checkIns,
         private readonly LearnerJournalSerializer $serializer,
         private readonly PlatformJournalSettingsSerializer $settingsSerializer,
         private readonly LoadFeedbackRequestDomains $feedbackDomains,
@@ -41,6 +43,7 @@ class LearnerJournalController extends Controller
 
         return response()->json([
             'allowExpertAccessRequests' => $settings['allowExpertAccessRequests'],
+            'checkIns' => $this->checkIns->handle($request->user()),
             'feedbackDomains' => $this->feedbackDomains->handle($request->user()),
             'pages' => $pages->map(fn (LearnerJournalPage $page): array => $this->serializer->page($page))->values(),
             'theme' => $settings['theme'],

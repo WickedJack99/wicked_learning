@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LearnerJournalFeedbackRequest;
+use App\Models\LearnerActivityProgress;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearnerRouteProgress;
@@ -95,6 +96,35 @@ test('a review activity offers earlier private reflections from the same journal
             ->where('node.activities.0.reviewContext.0.question', 'What did you notice before?')
             ->where('node.activities.0.reviewContext.0.reflection', 'I noticed the parts were connected.')
         );
+});
+
+test('the journal includes the learners private check-in trail with a path back to its node', function () {
+    [$learner, $activity] = activeReflectionActivity();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [
+            'learningCheckIns' => [
+                [
+                    'feeling' => 'forming',
+                    'recordedAt' => now()->toIso8601String(),
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertOk()
+        ->assertJsonPath('checkIns.0.activityTitle', 'Notice the pattern')
+        ->assertJsonPath('checkIns.0.feeling', 'forming')
+        ->assertJsonPath('checkIns.0.nodeTitle', 'Reflection node')
+        ->assertJsonPath('checkIns.0.nodeHref', route('learning.nodes.play', ['node' => $activity->learning_node_id]));
 });
 
 test('a reflection cannot be recorded outside the active route step', function () {

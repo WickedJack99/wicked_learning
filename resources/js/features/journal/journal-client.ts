@@ -31,6 +31,16 @@ export type JournalFeedbackDomain = {
     type: string;
 };
 
+export type JournalLearningCheckIn = {
+    activityId: number;
+    activityTitle: string;
+    feeling: string;
+    nodeTitle: string;
+    nodeHref: string;
+    recordedAt: string;
+    topics: { slug: string; name: string }[];
+};
+
 export async function requestJournalFeedback(
     pageId: number,
     domainKey: string,
@@ -63,6 +73,7 @@ export async function deleteJournalPage(pageId: number): Promise<number> {
 
 export type JournalPayload = {
     allowExpertAccessRequests: boolean;
+    checkIns: JournalLearningCheckIn[];
     feedbackDomains: JournalFeedbackDomain[];
     pages: JournalPage[];
     theme: JournalThemeSettings;

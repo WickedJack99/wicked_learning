@@ -24,6 +24,7 @@ import {
 } from '@/features/journal/journal-client';
 import type {
     JournalFeedbackDomain,
+    JournalLearningCheckIn,
     JournalPage,
     JournalPayload,
 } from '@/features/journal/journal-client';
@@ -431,6 +432,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 <FilePlus2 className="size-4" />
                             </Button>
                         </div>
+                        {payload && payload.checkIns.length > 0 ? (
+                            <LearningTrail checkIns={payload.checkIns} />
+                        ) : null}
                         <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
                             {isLoading ? <JournalPageListSkeleton /> : null}
                             {visiblePages.map((page) => (
@@ -545,6 +549,93 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         </div>,
         document.body,
     );
+}
+
+function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
+    return (
+        <section
+            aria-label="Recent learning check-ins"
+            className="mt-3 rounded-lg border p-3"
+            style={{
+                background: 'var(--journal-content-background)',
+                borderColor: 'var(--journal-button-border)',
+            }}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p
+                        className="text-xs font-semibold tracking-[0.12em] uppercase"
+                        style={{ color: 'var(--journal-accent)' }}
+                    >
+                        Learning trail
+                    </p>
+                    <p
+                        className="mt-1 text-xs leading-5"
+                        style={{ color: 'var(--journal-muted-text)' }}
+                    >
+                        Your recent check-ins, kept as observations.
+                    </p>
+                </div>
+                <a
+                    className="shrink-0 text-xs font-semibold underline-offset-2 hover:underline"
+                    href="/competence"
+                    style={{ color: 'var(--journal-accent)' }}
+                >
+                    See map
+                </a>
+            </div>
+            <div className="mt-2 space-y-1">
+                {checkIns.slice(0, 4).map((checkIn) => (
+                    <a
+                        className="block rounded-md px-2 py-2 transition-colors hover:bg-slate-100/70 dark:hover:bg-white/6"
+                        href={checkIn.nodeHref}
+                        key={`${checkIn.activityId}:${checkIn.recordedAt}`}
+                    >
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-xs font-semibold">
+                                {checkInFeelingLabel(checkIn.feeling)}
+                            </span>
+                            <time
+                                className="shrink-0 text-[11px]"
+                                dateTime={checkIn.recordedAt}
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {formatCheckInDate(checkIn.recordedAt)}
+                            </time>
+                        </div>
+                        <p
+                            className="mt-1 truncate text-xs"
+                            style={{ color: 'var(--journal-muted-text)' }}
+                        >
+                            {checkIn.activityTitle} · {checkIn.nodeTitle}
+                        </p>
+                    </a>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function checkInFeelingLabel(value: string): string {
+    return (
+        {
+            clearer: 'Felt clearer',
+            forming: 'Still forming',
+            stretched: 'Felt stretched',
+            stuck: 'Felt stuck',
+        }[value] ?? value
+    );
+}
+
+function formatCheckInDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+          });
 }
 
 function JournalBackgroundImage({ source }: { source?: string }) {
