@@ -8,6 +8,10 @@ export type CompetenceTopic = {
         recordedAt: string | null;
     }>;
     name: string;
+    relatedTopic: {
+        href: string;
+        title: string;
+    } | null;
     revisit: {
         activityTitle: string;
         nodeHref: string;

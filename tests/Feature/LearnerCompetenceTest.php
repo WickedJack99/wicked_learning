@@ -10,6 +10,8 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -227,6 +229,16 @@ test('competence star map shows studied topics and transitions', function () {
     $learner = User::factory()->create();
 
     [, $activity] = competenceRoute([]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'mathematics',
+        'title' => 'Mathematics',
+    ]);
+    $learningTopic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'algebra',
+        'title' => 'Algebra',
+        'is_published' => true,
+    ]);
     $olderEvent = LearnerEvidenceEvent::query()->create([
         'user_id' => $learner->id,
         'learning_activity_id' => $activity->id,
@@ -283,6 +295,8 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.recentWindowDays', 30)
             ->where('competenceMap.topics.0.slug', 'algebra')
             ->where('competenceMap.topics.0.name', 'Algebra Foundations')
+            ->where('competenceMap.topics.0.relatedTopic.title', 'Algebra')
+            ->where('competenceMap.topics.0.relatedTopic.href', route('topics.show', $learningTopic, false))
             ->where('competenceMap.topics.0.visual.sizeRatio', 0.6667)
             ->where('competenceMap.topics.0.visual.brightnessRatio', 0.3125)
             ->where('competenceMap.topics.0.visual.auraRatio', 0.8333)

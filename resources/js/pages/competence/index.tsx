@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
     backgroundStars,
     buildCompetenceStarLayout,
@@ -620,6 +621,7 @@ function CompetenceReading({
     onClose: () => void;
     topic: PositionedTopic;
 }) {
+    const translate = usePlatformTranslation();
     const relatedCheckIns = checkIns
         .filter((checkIn) =>
             checkIn.topics.some(
@@ -652,6 +654,29 @@ function CompetenceReading({
             <p className="mt-2 text-sm leading-5 text-slate-300">
                 {topic.visual.description}
             </p>
+            {topic.relatedTopic ? (
+                <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
+                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                        {translate(
+                            'competence.reading.topic_context',
+                            'Topic context',
+                        )}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">
+                        {topic.relatedTopic.title}
+                    </p>
+                    <Link
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white"
+                        href={topic.relatedTopic.href}
+                    >
+                        {translate(
+                            'competence.reading.open_topic',
+                            'Open topic',
+                        )}
+                        <ArrowRight className="size-3.5" />
+                    </Link>
+                </div>
+            ) : null}
             <div className="mt-3 rounded-lg border border-cyan-200/10 bg-cyan-200/5 px-3 py-2">
                 <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
                     Recent rhythm

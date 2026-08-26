@@ -7,6 +7,7 @@ use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearningActivity;
+use App\Models\LearningTopic;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -32,6 +33,10 @@ class LoadLearnerCompetenceMap
             ->where('is_active', true)
             ->get()
             ->keyBy('slug');
+        $learningTopics = LearningTopic::query()
+            ->where('is_published', true)
+            ->get()
+            ->keyBy('slug');
 
         $topics = [];
 
@@ -41,12 +46,13 @@ class LoadLearnerCompetenceMap
             ->get()
             ->groupBy('topic_slug')
             ->sortByDesc(fn (Collection $events): float => (float) $events->sum('contribution'))
-            ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $recentSince): void {
+            ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $learningTopics, $recentSince): void {
                 $events = $events
                     ->sortByDesc(fn (LearnerEvidenceEvent $event): int => $event->created_at?->getTimestamp() ?? 0)
                     ->values();
                 $event = $events->first();
                 $definition = $definitions->get($topicSlug);
+                $learningTopic = $learningTopics->get($topicSlug);
                 $hasDefinition = $definition instanceof CompetenceTopicDefinition;
                 $recentSignal = $events
                     ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->greaterThanOrEqualTo($recentSince) ?? false)
@@ -57,6 +63,12 @@ class LoadLearnerCompetenceMap
                     'name' => $hasDefinition
                         ? $definition->name
                         : $event->topic_name,
+                    'relatedTopic' => $learningTopic instanceof LearningTopic
+                        ? [
+                            'href' => route('topics.show', $learningTopic, false),
+                            'title' => $learningTopic->title,
+                        ]
+                        : null,
                     'revisit' => $this->revisit($event->activity),
                     'visual' => $this->visualScale->forTopic(
                         totalSignal: (float) $events->sum('contribution'),

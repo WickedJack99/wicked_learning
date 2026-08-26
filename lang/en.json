@@ -239,6 +239,8 @@
     "activities.focus.retrieve": "Retrieve an idea",
     "activities.focus.review": "Review / revisit",
     "activities.focus.transfer": "Try an idea in a new context",
+    "competence.reading.topic_context": "Topic context",
+    "competence.reading.open_topic": "Open topic",
     "topics.detail.maps.eyebrow": "Explore this topic",
     "topics.detail.maps.title": "Map surfaces",
     "topics.detail.maps.description": "Open a map to explore this topic through places, activities and connected paths.",
