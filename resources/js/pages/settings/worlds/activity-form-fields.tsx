@@ -78,6 +78,7 @@ type ActivitySettingsSection =
 
 export function ActivityFormFields({
     activityTypes,
+    competenceTopicOptions,
     errors,
     editingActivityId = null,
     form,
@@ -93,6 +94,7 @@ export function ActivityFormFields({
     uploadingImageKey,
 }: {
     activityTypes: ActivityTypeDefinition[];
+    competenceTopicOptions: string[];
     editingActivityId?: number | null;
     errors: Record<string, string>;
     form: ActivityForm;
@@ -569,6 +571,9 @@ export function ActivityFormFields({
                                     onChange={onChange}
                                 />
                                 <CompetenceTopicFields
+                                    competenceTopicOptions={
+                                        competenceTopicOptions
+                                    }
                                     errors={errors}
                                     form={form}
                                     onChange={onChange}
@@ -709,10 +714,12 @@ function ActivityEmptySection({
 }
 
 function CompetenceTopicFields({
+    competenceTopicOptions,
     errors,
     form,
     onChange,
 }: {
+    competenceTopicOptions: string[];
     errors: Record<string, string>;
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
@@ -771,6 +778,7 @@ function CompetenceTopicFields({
                             </Label>
                             <Input
                                 id={`competence-topic-${index}`}
+                                list={`competence-topic-options-${index}`}
                                 onChange={(event) =>
                                     updateTopic(
                                         index,
@@ -781,6 +789,11 @@ function CompetenceTopicFields({
                                 placeholder="e.g. Algebra"
                                 value={topic.topic}
                             />
+                            <datalist id={`competence-topic-options-${index}`}>
+                                {competenceTopicOptions.map((option) => (
+                                    <option key={option} value={option} />
+                                ))}
+                            </datalist>
                             <InputError
                                 message={
                                     errors[`competence_topics.${index}.topic`]
@@ -827,9 +840,10 @@ function CompetenceTopicFields({
             <InputError message={errors.competence_topics} />
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    This controls how strongly the activity contributes to the
-                    topic's internal learning signal. Learners see the result
-                    through the star map, not as a score.
+                    Reuse an existing topic label when it fits. New labels are
+                    allowed when the learning design needs one. Contribution is
+                    an internal signal; learners see the result through the star
+                    map, not as a score.
                 </p>
                 <Button onClick={addTopic} type="button" variant="secondary">
                     <Star className="size-4" />

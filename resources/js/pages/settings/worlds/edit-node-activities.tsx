@@ -618,6 +618,9 @@ export default function EditNodeActivities({
                     >
                         <ActivityFormFields
                             activityTypes={activityGraph.activityTypes}
+                            competenceTopicOptions={
+                                activityGraph.competenceTopicOptions
+                            }
                             editingActivityId={null}
                             errors={errors}
                             form={form}
@@ -664,6 +667,9 @@ export default function EditNodeActivities({
                     <div className="min-h-0 flex-1 overflow-hidden">
                         <ActivityFormFields
                             activityTypes={activityGraph.activityTypes}
+                            competenceTopicOptions={
+                                activityGraph.competenceTopicOptions
+                            }
                             editingActivityId={editingActivity?.id ?? null}
                             errors={editErrors}
                             form={editForm}

@@ -68,6 +68,12 @@ sees it as `Review / revisit` with language that invites comparison over time.
 It still uses the private reflection journal and does not become a test or
 require the learner to prove that competence increased.
 
+The activity editor receives the active competence-topic vocabulary as gentle
+authoring guidance. Existing labels are suggested while free-text entry remains
+available for a genuinely new concept. This keeps the ledger's categories
+consistent enough for meaningful aggregation without turning the vocabulary
+into a rigid curriculum or a learner-facing taxonomy.
+
 ## Next evolution
 
 Next, add confidence and feedback outcomes where the activity actually collects

@@ -119,6 +119,7 @@ export type ActivityGraphPayload = {
     activities: ActivitySummary[];
     activityTypes: ActivityTypeDefinition[];
     aiReviewTemplates: ActivityReviewTemplate[];
+    competenceTopicOptions: string[];
     map: {
         id: number;
         slug: string;

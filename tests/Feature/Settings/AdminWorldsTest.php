@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\ActivityTransition;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
@@ -54,6 +55,16 @@ test('admin users can open world builder map configuration and node inside setti
     ]);
     $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
     $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    CompetenceTopicDefinition::query()->create([
+        'name' => 'Systems Thinking',
+        'slug' => 'systems-thinking',
+        'is_active' => true,
+    ]);
+    CompetenceTopicDefinition::query()->create([
+        'name' => 'Retired Topic',
+        'slug' => 'retired-topic',
+        'is_active' => false,
+    ]);
 
     $this->actingAs($admin)
         ->get(route('settings.index', [
@@ -88,6 +99,7 @@ test('admin users can open world builder map configuration and node inside setti
             ->has('selectedWorldNode.activityGraph.transitions', 6)
             ->has('selectedWorldNode.activityGraph.portalCandidates')
             ->has('selectedWorldNode.activityGraph.activityTypes')
+            ->where('selectedWorldNode.activityGraph.competenceTopicOptions', ['Systems Thinking'])
         );
 });
 
