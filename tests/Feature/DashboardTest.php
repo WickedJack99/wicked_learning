@@ -122,7 +122,8 @@ test('world maps expose published topic context without exposing draft topics', 
             ->where('world.maps', fn ($maps): bool => $maps->contains(
                 fn (array $map): bool => $map['title'] === 'Night Sky'
                     && $map['topic']['title'] === 'Astronomy'
-                    && $map['topic']['href'] === '/topics/astronomy',
+                    && $map['topic']['href'] === '/topics/astronomy'
+                    && $map['topic']['competenceHref'] === '/competence?topic=astronomy',
             ) && $maps->contains(
                 fn (array $map): bool => $map['title'] === 'Draft Sky'
                     && $map['topic'] === null,

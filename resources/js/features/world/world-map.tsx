@@ -297,7 +297,7 @@ export function WorldMap({
                     <span className="flex items-center gap-3">
                         <Link
                             className="pointer-events-auto inline-flex items-center gap-1.5 text-xs font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current"
-                            href="/competence"
+                            href={map.topic?.competenceHref ?? '/competence'}
                         >
                             <Sparkles className="size-3.5" />
                             Star map

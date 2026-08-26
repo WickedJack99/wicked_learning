@@ -18,7 +18,11 @@ export type LearningMap = {
     slug: string;
     title: string;
     description: string | null;
-    topic: { href: string; title: string } | null;
+    topic: {
+        competenceHref: string;
+        href: string;
+        title: string;
+    } | null;
     backgroundConfig: ThemeVariant<{
         accentColor?: string;
         assets?: MapVisualAsset[];
