@@ -25,8 +25,20 @@ export type LearningDeskRoute = {
     topic: { href: string; title: string } | null;
 };
 
+export type LearningDeskCheckIn = {
+    activityHref: string;
+    activityId: number;
+    activityTitle: string;
+    feeling: string;
+    nodeHref: string;
+    nodeTitle: string;
+    recordedAt: string;
+    topics: { name: string; slug: string }[];
+};
+
 export type LearningDeskData = {
     bookmarks: LearningDeskBookmark[];
+    checkIns: LearningDeskCheckIn[];
     connections: LearningDeskBookmark[];
     currentRoutes: LearningDeskRoute[];
     recentRoutes: LearningDeskRoute[];

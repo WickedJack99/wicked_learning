@@ -20,6 +20,7 @@ class LearningDeskSerializer
     /**
      * @param  array{
      *     bookmarks: Collection<int, LearningNodeBookmark>,
+     *     checkIns: list<array<string, mixed>>,
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     featuredBookmark: LearningNodeBookmark|null
@@ -33,6 +34,7 @@ class LearningDeskSerializer
                 ->map(fn (LearningNodeBookmark $bookmark): array => $this->bookmark($bookmark))
                 ->values()
                 ->all(),
+            'checkIns' => array_slice($desk['checkIns'], 0, 4),
             'connections' => $desk['bookmarks']
                 ->reject(fn (LearningNodeBookmark $bookmark): bool => $bookmark->is($desk['featuredBookmark']))
                 ->take(3)

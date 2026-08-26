@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Models\LearnerActivityProgress;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -12,6 +13,7 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
 test('guests are sent to the public welcome page instead of the learning desk', function () {
@@ -186,5 +188,64 @@ test('the learning desk keeps a quiet trail of recently completed routes', funct
             ->where('desk.recentRoutes.0.mapHref', '/world?map=recent-map')
             ->where('desk.recentRoutes.0.nodeHref', '/world?map=recent-map&focused=recent-node')
             ->where('desk.recentRoutes.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
+        );
+});
+
+test('the learning desk shows recent private learning check-ins without treating them as progress scores', function () {
+    Carbon::setTestNow('2026-08-26 16:00:00');
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'pulse-map',
+        'title' => 'Pulse Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'pulse-node',
+        'title' => 'Pulse Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'pulse-activity',
+        'title' => 'Pulse Activity',
+        'type' => 'markdown',
+        'sort_order' => 10,
+    ]);
+    LearnerActivityProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [
+            'learningCheckIn' => [
+                'feeling' => 'forming',
+                'recordedAt' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('home')
+            ->has('desk.checkIns', 1)
+            ->where('desk.checkIns.0.activityTitle', 'Pulse Activity')
+            ->where('desk.checkIns.0.feeling', 'forming')
+            ->where('desk.checkIns.0.activityHref', route('learning.nodes.play', [
+                'activity_id' => $activity->id,
+                'node' => $node,
+            ]))
         );
 });

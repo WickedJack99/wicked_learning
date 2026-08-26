@@ -12,6 +12,7 @@ class LoadLearningDesk
 {
     public function __construct(
         private readonly LoadLearnerBookmarks $bookmarks,
+        private readonly LoadLearnerActivityCheckIns $checkIns,
         private readonly LearningMapAccessService $mapAccess,
     ) {}
 
@@ -19,6 +20,7 @@ class LoadLearningDesk
      * @return array{
      *     bookmarks: Collection<int, LearningNodeBookmark>,
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
+     *     checkIns: list<array<string, mixed>>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     featuredBookmark: LearningNodeBookmark|null
      * }
@@ -43,6 +45,7 @@ class LoadLearningDesk
 
         return [
             'bookmarks' => $bookmarks,
+            'checkIns' => $this->checkIns->handle($user),
             'currentRoutes' => $currentRoutes,
             'recentRoutes' => $recentRoutes,
             'featuredBookmark' => $featuredBookmark,
