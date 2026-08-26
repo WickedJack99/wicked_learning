@@ -63,9 +63,15 @@ Each pulse entry also offers a route back to its node; this is a learner-chosen
 revisit path, not a remediation assignment or a claim that the learner is
 behind.
 
+When a reflection is authored with the `review` learning purpose, the learner
+sees it as `Review / revisit` with language that invites comparison over time.
+It still uses the private reflection journal and does not become a test or
+require the learner to prove that competence increased.
+
 ## Next evolution
 
-Next, let the authoring assistant use the purpose as a structured signal while
-keeping the tutor in control of the final activity. Then add confidence and
-feedback outcomes where the activity actually collects them, without making a
-feeling check or reflection require an answer from the learner.
+Next, let the activity-review assistant compare the declared purpose and topic
+scope with the actual activity content while keeping the tutor in control of
+the final activity. Then add confidence and feedback outcomes where the
+activity actually collects them, without making a feeling check or reflection
+require an answer from the learner.

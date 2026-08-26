@@ -350,8 +350,16 @@ export function ActivityFormFields({
 
                             {form.type === 'reflection' ? (
                                 <SettingsConfigurationSection
-                                    description="Ask a learner-owned question and optionally file its journal entry under a topic."
-                                    title="Reflection prompt"
+                                    description={
+                                        form.learning_intent === 'review'
+                                            ? 'Invite a learner to revisit earlier material and notice what feels clearer, more connected, or still open.'
+                                            : 'Ask a learner-owned question and optionally file its journal entry under a topic.'
+                                    }
+                                    title={
+                                        form.learning_intent === 'review'
+                                            ? 'Review / revisit prompt'
+                                            : 'Reflection prompt'
+                                    }
                                 >
                                     <div className="grid gap-4 md:grid-cols-2">
                                         <div className="grid gap-2 md:col-span-2">

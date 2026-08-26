@@ -25,7 +25,8 @@ import {
     TypingText,
 } from './activity-utils';
 import { postJson } from './api';
-import { PortalScene, type PortalSceneAsset } from './portal-scene';
+import { PortalScene } from './portal-scene';
+import type { PortalSceneAsset } from './portal-scene';
 
 export function PlaceholderActivity({
     activity,
@@ -559,16 +560,31 @@ export function ReflectionActivity({
             : 'What feels clearer now?';
     const note =
         typeof activity.config.note === 'string' ? activity.config.note : null;
+    const isReview = activity.config.learningIntent === 'review';
 
     return (
         <div className="flex flex-1 flex-col gap-4">
+            <div className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
+                <RotateCcw className="size-3.5" />
+                {isReview ? 'Review / revisit' : 'Reflection'}
+            </div>
+            {isReview ? (
+                <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
+                    Return to the idea and notice what feels clearer, more
+                    connected, or still open. This is not a test.
+                </p>
+            ) : null}
             <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {prompt}
             </p>
             <textarea
                 className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
                 onChange={(event) => setReflection(event.target.value)}
-                placeholder="Write a short note for yourself."
+                placeholder={
+                    isReview
+                        ? 'Write what feels clearer or still open.'
+                        : 'Write a short note for yourself.'
+                }
                 value={reflection}
             />
             {note ? (
@@ -583,7 +599,7 @@ export function ReflectionActivity({
                 }
                 onClick={() => void saveReflection()}
             >
-                Keep reflection
+                {isReview ? 'Save review note' : 'Keep reflection'}
             </Button>
         </div>
     );
