@@ -102,6 +102,10 @@ export. Learners can explicitly request feedback for one page from an eligible
 journal, group or organization domain; journals are not a general staff-reading
 surface.
 
+Recent journal check-ins retain their related learning areas. Each area can
+open its focused competence-map reading, while the activity itself remains a
+separate route back to the learning place.
+
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments,
 while authorized support staff receive scoped signals for orientation and

@@ -586,30 +586,54 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
             </div>
             <div className="mt-2 space-y-1">
                 {checkIns.slice(0, 4).map((checkIn) => (
-                    <a
-                        className="block rounded-md px-2 py-2 transition-colors hover:bg-slate-100/70 dark:hover:bg-white/6"
-                        href={checkIn.activityHref}
+                    <div
+                        className="rounded-md px-2 py-2 transition-colors hover:bg-slate-100/70 dark:hover:bg-white/6"
                         key={`${checkIn.activityId}:${checkIn.recordedAt}`}
                     >
-                        <div className="flex items-center justify-between gap-2">
-                            <span className="truncate text-xs font-semibold">
-                                {checkInFeelingLabel(checkIn.feeling)}
-                            </span>
-                            <time
-                                className="shrink-0 text-[11px]"
-                                dateTime={checkIn.recordedAt}
+                        <a className="block" href={checkIn.activityHref}>
+                            <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-xs font-semibold">
+                                    {checkInFeelingLabel(checkIn.feeling)}
+                                </span>
+                                <time
+                                    className="shrink-0 text-[11px]"
+                                    dateTime={checkIn.recordedAt}
+                                    style={{
+                                        color: 'var(--journal-muted-text)',
+                                    }}
+                                >
+                                    {formatCheckInDate(checkIn.recordedAt)}
+                                </time>
+                            </div>
+                            <p
+                                className="mt-1 truncate text-xs"
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
-                                {formatCheckInDate(checkIn.recordedAt)}
-                            </time>
-                        </div>
-                        <p
-                            className="mt-1 truncate text-xs"
-                            style={{ color: 'var(--journal-muted-text)' }}
-                        >
-                            {checkIn.activityTitle} · {checkIn.nodeTitle}
-                        </p>
-                    </a>
+                                {checkIn.activityTitle} · {checkIn.nodeTitle}
+                            </p>
+                        </a>
+                        {checkIn.topics.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                <span className="sr-only">
+                                    Connected learning areas:
+                                </span>
+                                {checkIn.topics.map((topic) => (
+                                    <a
+                                        className="rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+                                        href={`/competence?topic=${encodeURIComponent(topic.slug)}`}
+                                        key={topic.slug}
+                                        style={{
+                                            borderColor:
+                                                'var(--journal-button-border)',
+                                            color: 'var(--journal-accent)',
+                                        }}
+                                    >
+                                        {topic.name}
+                                    </a>
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
                 ))}
             </div>
         </section>
@@ -926,7 +950,7 @@ function JournalPageEditor({
                       ? 'Saving your draft…'
                       : isDirty
                         ? 'Saving your draft…'
-                    : 'All changes saved.'}
+                        : 'All changes saved.'}
             </div>
             {page.learningContext ? (
                 <JournalLearningContext context={page.learningContext} />

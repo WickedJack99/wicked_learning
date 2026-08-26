@@ -126,6 +126,8 @@ test('the journal includes the learners private check-in trail with a path back 
         ->assertJsonPath('checkIns.0.activityTitle', 'Notice the pattern')
         ->assertJsonPath('checkIns.0.feeling', 'forming')
         ->assertJsonPath('checkIns.0.nodeTitle', 'Reflection node')
+        ->assertJsonPath('checkIns.0.topics.0.slug', 'reflection-practice')
+        ->assertJsonPath('checkIns.0.topics.0.name', 'Reflection practice')
         ->assertJsonPath('checkIns.0.activityHref', route('learning.nodes.play', [
             'activity_id' => $activity->id,
             'node' => $activity->node,
@@ -435,7 +437,14 @@ function activeReflectionActivity(): array
         'slug' => 'notice-pattern-'.Str::lower(Str::random(8)),
         'type' => 'reflection',
         'title' => 'Notice the pattern',
-        'config' => ['prompt' => 'What feels clearer now?'],
+        'config' => [
+            'competenceTopics' => [[
+                'slug' => 'reflection-practice',
+                'topic' => 'Reflection practice',
+                'weight' => 1,
+            ]],
+            'prompt' => 'What feels clearer now?',
+        ],
         'sort_order' => 10,
     ]);
     $runId = (string) Str::uuid();
