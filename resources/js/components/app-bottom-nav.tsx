@@ -185,9 +185,13 @@ export function AppBottomNav() {
                 id: 'active-activity',
                 shouldAnimateInsertion: shouldAnimateActiveActivity,
                 label: t(
-                    'navigation.bottom.return_to_activity',
-                    'Return to :title',
-                    { title: activeActivity.activityTitle },
+                    isMapActive
+                        ? 'navigation.bottom.continue_activity'
+                        : 'navigation.bottom.return_to_activity',
+                    isMapActive ? 'Continue activity' : 'Return to :title',
+                    isMapActive
+                        ? undefined
+                        : { title: activeActivity.activityTitle },
                 ),
             },
             ...baseItems,
@@ -257,7 +261,7 @@ function ImmersiveTopNav({ items }: { items: NavItem[] }) {
                     href="/home"
                 >
                     <AppLogoIcon className="size-8 text-violet-600 dark:text-violet-400" />
-                    <span className="hidden text-base font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
+                    <span className="hidden text-sm font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
                         Learning Worlds
                     </span>
                 </Link>

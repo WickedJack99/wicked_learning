@@ -2,7 +2,6 @@ import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpen,
-    House,
     LockKeyhole,
     Map as MapIcon,
     Orbit,
@@ -273,7 +272,7 @@ export function WorldMap({
             />
 
             <div
-                className="pointer-events-none absolute top-5 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md md:top-8 md:left-8 md:w-auto md:translate-x-0"
+                className="pointer-events-none absolute top-20 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md md:top-24 md:left-8 md:w-auto md:translate-x-0"
                 style={{
                     background:
                         mapTheme.panelBackground ?? 'rgba(5, 15, 22, 0.72)',
@@ -292,7 +291,7 @@ export function WorldMap({
                 >
                     <span className="flex items-center gap-2">
                         <MapIcon className="size-4" />
-                        <span>Current map</span>
+                        <span>{t('world.map.current', 'Current map')}</span>
                     </span>
                     <span className="flex items-center gap-3">
                         <Link
@@ -300,18 +299,11 @@ export function WorldMap({
                             href={map.topic?.competenceHref ?? '/competence'}
                         >
                             <Sparkles className="size-3.5" />
-                            Star map
-                        </Link>
-                        <Link
-                            className="pointer-events-auto inline-flex items-center gap-1.5 text-xs font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current"
-                            href="/home"
-                        >
-                            <House className="size-3.5" />
-                            Home
+                            {t('world.map.star_map', 'Star map')}
                         </Link>
                     </span>
                 </div>
-                <h1 className="text-3xl font-semibold tracking-normal md:text-5xl">
+                <h1 className="text-3xl font-semibold tracking-normal">
                     {map.title}
                 </h1>
                 {map.description ? (
