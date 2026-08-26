@@ -81,8 +81,7 @@ export function LearningCheckIn({
                     </h2>
                     <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
                         How did this feel? Choose a phrase if one fits, or
-                        continue without answering. This is for your own
-                        learning trail, not a grade or diagnosis.
+                        continue without answering.
                     </p>
                 </div>
             </div>
@@ -101,10 +100,6 @@ export function LearningCheckIn({
                             </span>
                         ))}
                     </div>
-                    <p className="mt-1 text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
-                        These labels help you place the moment in your trail;
-                        they are not a result.
-                    </p>
                 </div>
             ) : null}
 
