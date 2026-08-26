@@ -95,6 +95,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.nodes.unlock-tool');
     Route::post('learning/activities/{activity}/progress', [LearningWorldController::class, 'markActivity'])
         ->name('learning.activities.progress');
+    Route::post('learning/activities/{activity}/check-in', [LearningWorldController::class, 'recordActivityCheckIn'])
+        ->name('learning.activities.check-in');
     Route::get('learning/activities/{activity}/messages', [LearnerMessageController::class, 'index'])
         ->name('learning.activities.messages.index');
     Route::post('learning/activities/{activity}/messages', [LearnerMessageController::class, 'store'])

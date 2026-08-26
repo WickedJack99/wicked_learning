@@ -1,15 +1,17 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { ActivityPlayer } from '@/features/world/activity-panel';
 import { getJson, postJson } from '@/features/world/api';
+import { LearningCheckIn } from '@/features/world/learning-check-in';
 import { useAppearance } from '@/hooks/use-appearance';
 import type {
     LearningActivity,
+    LearningCheckInFeeling,
     LearningNode,
     LearningPortalLink,
     LearningProgress,
@@ -27,6 +29,16 @@ type NodePlayProps = {
 
 type CompletionOptions = {
     endsRoute?: boolean;
+};
+
+type CheckInDestination =
+    | { kind: 'activity'; activityId: number | null }
+    | { kind: 'portal'; portalLink: LearningPortalLink };
+
+type PendingLearningCheckIn = {
+    activityId: number;
+    activityTitle: string;
+    destination: CheckInDestination | null;
 };
 
 export default function NodePlay({
@@ -53,6 +65,10 @@ export default function NodePlay({
     );
     const [activityPlayState, setActivityPlayState] =
         useState(initialPlayState);
+    const [pendingLearningCheckIn, setPendingLearningCheckIn] =
+        useState<PendingLearningCheckIn | null>(null);
+    const pendingLearningCheckInRef =
+        useRef<PendingLearningCheckIn | null>(null);
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
     const [activityTranslation, setActivityTranslation] = useState<{
         activityId: number;
@@ -166,6 +182,13 @@ export default function NodePlay({
             setActivityPlayState((current) =>
                 withoutActivityPlayState(current, activity.id),
             );
+            const checkIn: PendingLearningCheckIn = {
+                activityId: activity.id,
+                activityTitle: activity.title,
+                destination: null,
+            } satisfies PendingLearningCheckIn;
+            pendingLearningCheckInRef.current = checkIn;
+            setPendingLearningCheckIn(checkIn);
         },
         [isAuthenticated, playRunId],
     );
@@ -173,6 +196,17 @@ export default function NodePlay({
     const moveToActivity = useCallback(
         (activityId: number | null) => {
             setTravelBlockedMessage('');
+
+            if (pendingLearningCheckInRef.current) {
+                const checkIn: PendingLearningCheckIn = {
+                    ...pendingLearningCheckInRef.current,
+                    destination: { kind: 'activity', activityId },
+                } satisfies PendingLearningCheckIn;
+                pendingLearningCheckInRef.current = checkIn;
+                setPendingLearningCheckIn(checkIn);
+
+                return;
+            }
 
             if (!activityId) {
                 if (activeActivity) {
@@ -232,6 +266,17 @@ export default function NodePlay({
 
         setTravelBlockedMessage('');
 
+        if (pendingLearningCheckInRef.current) {
+            const checkIn: PendingLearningCheckIn = {
+                ...pendingLearningCheckInRef.current,
+                destination: { kind: 'portal', portalLink },
+            } satisfies PendingLearningCheckIn;
+            pendingLearningCheckInRef.current = checkIn;
+            setPendingLearningCheckIn(checkIn);
+
+            return;
+        }
+
         const activityQuery = portalLink.targetActivityId
             ? `?activity=${portalLink.targetActivityId}`
             : '';
@@ -240,6 +285,59 @@ export default function NodePlay({
             `/learning/nodes/${portalLink.targetNodeId}/play${activityQuery}`,
         );
     }, []);
+
+    const continueAfterCheckIn = useCallback(
+        async (feeling: LearningCheckInFeeling | null) => {
+            const checkIn = pendingLearningCheckInRef.current;
+
+            if (!checkIn) {
+                return;
+            }
+
+            if (feeling) {
+                const response = await postJson<{
+                    progress: LearningProgress['activities'][number] & {
+                        activityId: number;
+                    };
+                }>(`/learning/activities/${checkIn.activityId}/check-in`, {
+                    feeling,
+                });
+
+                setActivityProgress((current) => ({
+                    ...current,
+                    [response.progress.activityId]: {
+                        completedAt: response.progress.completedAt,
+                        metadata: response.progress.metadata,
+                        status: response.progress.status,
+                    },
+                }));
+            }
+
+            pendingLearningCheckInRef.current = null;
+            setPendingLearningCheckIn(null);
+
+            const destination = checkIn.destination;
+
+            if (!destination || destination.kind === 'activity') {
+                if (destination?.activityId) {
+                    setActiveActivityId(destination.activityId);
+                } else {
+                    returnToMap();
+                }
+
+                return;
+            }
+
+            const activityQuery = destination.portalLink.targetActivityId
+                ? `?activity=${destination.portalLink.targetActivityId}`
+                : '';
+
+            router.visit(
+                `/learning/nodes/${destination.portalLink.targetNodeId}/play${activityQuery}`,
+            );
+        },
+        [returnToMap],
+    );
 
     return (
         <>
@@ -285,6 +383,13 @@ export default function NodePlay({
                         >
                             {travelBlockedMessage}
                         </p>
+                    ) : null}
+
+                    {pendingLearningCheckIn ? (
+                        <LearningCheckIn
+                            activityTitle={pendingLearningCheckIn.activityTitle}
+                            onContinue={continueAfterCheckIn}
+                        />
                     ) : null}
 
                     {displayedActivity ? (

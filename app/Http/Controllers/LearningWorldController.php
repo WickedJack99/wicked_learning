@@ -212,6 +212,26 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function recordActivityCheckIn(Request $request, LearningActivity $activity): JsonResponse
+    {
+        $feeling = $request->string('feeling')->trim()->toString();
+        abort_unless(
+            in_array($feeling, ['clearer', 'forming', 'stretched', 'stuck'], true),
+            422,
+            'Choose one of the available learning check-in phrases.',
+        );
+
+        $progress = $this->progressService->recordCheckIn(
+            $request->user()->id,
+            $activity,
+            $feeling,
+        );
+
+        return response()->json([
+            'progress' => $this->progressSerializer->activityProgress($progress),
+        ]);
+    }
+
     public function answerQuestion(Request $request, LearningQuestion $question): JsonResponse
     {
         $data = $request->validate([

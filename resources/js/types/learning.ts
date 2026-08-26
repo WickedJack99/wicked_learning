@@ -388,6 +388,12 @@ export type LearningProgress = {
     answers: Record<number, QuestionAnswerProgress>;
 };
 
+export type LearningCheckInFeeling =
+    | 'clearer'
+    | 'forming'
+    | 'stretched'
+    | 'stuck';
+
 export type QuestionAnswerProgress = {
     optionId: number | null;
     isCorrect: boolean;

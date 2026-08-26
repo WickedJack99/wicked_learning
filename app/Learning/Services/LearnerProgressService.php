@@ -5,6 +5,7 @@ namespace App\Learning\Services;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 
 class LearnerProgressService
@@ -76,6 +77,31 @@ class LearnerProgressService
         $metadata['obstacle'] = $obstacle;
         $progress->metadata = $metadata;
         $progress->save();
+
+        return $progress;
+    }
+
+    public function recordCheckIn(
+        int $userId,
+        LearningActivity $activity,
+        string $feeling,
+    ): LearnerActivityProgress {
+        $progress = LearnerActivityProgress::query()
+            ->where('user_id', $userId)
+            ->where('learning_activity_id', $activity->id)
+            ->first();
+
+        if (! $progress || $progress->status !== 'completed') {
+            throw (new ModelNotFoundException)->setModel(LearnerActivityProgress::class);
+        }
+
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $metadata['learningCheckIn'] = [
+            'feeling' => $feeling,
+            'recordedAt' => Carbon::now()->toIso8601String(),
+        ];
+
+        $progress->forceFill(['metadata' => $metadata])->save();
 
         return $progress;
     }

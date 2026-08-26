@@ -15,6 +15,7 @@
 - Informational feedback.
 - Optional exploration.
 - Personal progress reflection.
+- Optional, non-numeric pauses where learners can name how an activity felt.
 - Learner-owned notes.
 - Retry paths that feel normal.
 - Unlocks that represent understanding rather than reward extraction.

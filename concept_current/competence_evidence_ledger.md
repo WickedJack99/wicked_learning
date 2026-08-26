@@ -44,6 +44,17 @@ not expose event counts, contribution totals, or evidence categories as grades.
 The categories remain available to future explanations, support conversations,
 and richer star-map lenses.
 
+## Learning pulse check-in
+
+After an authenticated activity completion, the learner may choose a short
+phrase describing the experience: something clicked, still taking shape, it
+stretched me, or I got stuck. They can also continue without answering.
+
+This is a learner-owned observation, not an evidence event, competence score,
+diagnosis, or answer for an AI system. The prototype keeps the latest phrase in
+that learner's activity-progress metadata so it can support later reflection
+without changing the star-map calculation or exposing a new tutor ranking.
+
 ## Next evolution
 
 Next, let the authoring assistant use the purpose as a structured signal while

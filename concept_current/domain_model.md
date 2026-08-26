@@ -14,8 +14,8 @@
 - `learning_activity_starts`: learner-facing route choices.
 - `activity_transitions`: graph edges between activities or a route end.
 - `learning_portal_links`: travel relationships between MapAssets/activities.
-- `learner_activity_progress` and `learner_route_progress`: reached, completed
-  and current-run learner state.
+- `learner_activity_progress` and `learner_route_progress`: reached, completed,
+  current-run learner state and optional learner-owned activity check-ins.
 - `learning_message_topics`: reusable MapAsset-scoped topics that connect a
   message prompt Activity with one or more message wall Activities.
 - `learner_messages`: one short learner contribution per topic and user,

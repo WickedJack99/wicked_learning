@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
+/** @property array<string, mixed>|null $metadata */
 #[Fillable([
     'user_id',
     'learning_node_id',
