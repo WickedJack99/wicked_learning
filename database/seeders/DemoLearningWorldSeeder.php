@@ -13,6 +13,8 @@ use App\Models\LearningPortalLink;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningTool;
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -40,8 +42,27 @@ class DemoLearningWorldSeeder extends Seeder
             ],
         ]);
 
+        $topicArea = LearningTopicArea::query()->firstOrCreate(
+            ['slug' => 'demo-investigation'],
+            [
+                'description' => 'A demo area for learning through observation and inquiry.',
+                'title' => 'Investigation practices',
+            ],
+        );
+        $topic = LearningTopic::query()->firstOrCreate(
+            ['slug' => 'pattern-investigation'],
+            [
+                'content' => 'Explore how observations become useful when you compare patterns, test ideas and reflect on what changed.',
+                'description' => 'Practice noticing patterns, testing interpretations and keeping useful clues.',
+                'is_published' => true,
+                'learning_topic_area_id' => $topicArea->id,
+                'title' => 'Pattern investigation',
+            ],
+        );
+
         $map = LearningMap::query()->create([
             'learning_world_id' => $world->id,
+            'learning_topic_id' => $topic->id,
             'slug' => 'first-sector',
             'title' => 'First Clearing',
             'description' => 'A tiny learning landscape where each node is a place for active practice.',

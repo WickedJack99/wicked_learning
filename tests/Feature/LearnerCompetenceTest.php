@@ -25,6 +25,10 @@ test('the demo route seeds competence evidence metadata', function () {
     $activity = LearningActivity::query()
         ->where('slug', 'read-the-first-signal')
         ->firstOrFail();
+    $map = LearningMap::query()
+        ->where('slug', 'first-sector')
+        ->firstOrFail()
+        ->load('topic');
 
     expect($activity->config['learningIntent'])->toBe('retrieve')
         ->and($activity->config['competenceTopics'])->toBe([
@@ -34,6 +38,7 @@ test('the demo route seeds competence evidence metadata', function () {
                 'weight' => 1,
             ],
         ])
+        ->and($map->topic?->title)->toBe('Pattern investigation')
         ->and(CompetenceTopicDefinition::query()
             ->where('slug', 'pattern-recognition')
             ->exists())->toBeTrue();
