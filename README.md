@@ -58,7 +58,7 @@ The prototype intentionally avoids point totals, streak pressure and ranking loo
 
 ### Learning as exploration
 
-Learners explore maps made from freely positioned MapAssets. A MapAsset can represent a topic, scenario, conversation, portal, exercise, reflection or a purely visual layer. Transparent PNG or WebP artwork can overlap to form a domain-specific surface instead of being forced into a fixed tile grid.
+Learners explore maps made from freely positioned MapAssets. A MapAsset can represent a topic, scenario, conversation, portal, exercise, reflection or a purely visual layer. Maps are reachable from the learning desk, topic and path views as well as through authored portal travel; portals support exploration but are not the required route into a map. Transparent PNG or WebP artwork can overlap to form a domain-specific surface instead of being forced into a fixed tile grid.
 
 ### Generic worlds
 

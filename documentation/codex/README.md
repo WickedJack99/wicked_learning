@@ -58,6 +58,14 @@ When sources disagree:
 
 Do not require the user to fully specify the entire surrounding concept before implementing one developing idea.
 
+After each feature slice, perform a documentation-and-concept pass. Check the
+public README, stable implementation documentation and `concept_current/` for
+claims that the slice has changed. Update or remove stale active guidance in
+the same functional change, and label superseded ideas as historical rather
+than allowing them to look like current requirements. Keep `concept/`,
+`concrete_concept_i1/` and `conversations/` as history unless a newer product
+decision explicitly promotes material from them.
+
 ## Exploratory Product Work
 
 Implementation may help clarify the concept. When building an exploratory feature:
@@ -70,6 +78,8 @@ Implementation may help clarify the concept. When building an exploratory featur
 - Note design questions discovered during implementation.
 - Update concept documents only when the new direction is clear enough to record.
 - Do not rewrite broad concept documents merely to make them match every prototype experiment.
+- When a slice replaces an earlier product concept, update the active docs and
+  remove the old concept from current guidance before committing the code.
 
 A prototype may intentionally leave surrounding behavior unresolved. Report those boundaries instead of pretending the whole concept is complete.
 

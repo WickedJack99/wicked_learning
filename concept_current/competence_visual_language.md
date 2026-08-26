@@ -28,11 +28,12 @@ The ratios are capped at `1` and are converted into stable visual tiers:
 `spark`, `star`, `beacon` and `constellation`. Learner accessibility text uses
 the tier description instead of exposing raw totals or thresholds.
 
-The demo now stores immutable `LearnerEvidenceEvent` records instead of
-cumulative competence and monthly point tables. Each event records its topic,
-evidence type, contribution, outcome and assistance state. The visual contract
-can therefore change its aggregation rules without changing the learner's map
-experience.
+The demo stores immutable `LearnerEvidenceEvent` records instead of cumulative
+competence and monthly point tables. Each event records its topic, evidence
+type, contribution, outcome and assistance state. The visual contract can
+therefore change its aggregation rules without changing the learner's map
+experience. Topic pages and selected-light readings may expose a small linked
+ledger of these moments so learners can recognize what shaped a trail.
 
 ## Design boundaries
 
@@ -48,6 +49,6 @@ experience.
 
 ## Next evolution
 
-Add explicit evidence events behind this contract. Retrieval, explanation,
-application and transfer can then contribute to a topic profile without
-changing the learner's primary experience of exploring worlds and places.
+Add confidence and feedback outcomes only where an activity actually collects
+them. Keep the ledger useful as a trace of learning encounters without turning
+it into a checklist, grade or dashboard of raw metrics.

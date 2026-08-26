@@ -6,11 +6,10 @@ This backlog contains current direction. Historical ideas in `concept/` and
 ## Priority 1 - Strengthen Existing Learning Loops
 
 - Add reusable Activity templates that create an editable local copy.
-- Reconcile learner navigation and information architecture: give the immersive
-  map an explicit route back to the learning desk, clarify the roles of the
-  map action bar and primary navigation, connect Home, Topics, Paths, Journal
-  and competence, and define topic/map/path relationships with optional rather
-  than forced nesting.
+- Continue refining learner navigation and information architecture across the
+  learning desk, Topics, Paths, Journal, competence and maps. Keep direct map
+  access and authored portal travel complementary, and preserve optional rather
+  than forced topic nesting.
 - Improve private learning analytics and reflection support without rankings.
 - Add clear media-reference warnings before replace or delete operations.
 - Add access-change audit history and registration-token notes.

@@ -20,9 +20,9 @@ passwords, passkeys and two-factor authentication, and review notifications.
 ### Freeform World Maps
 
 Learners explore maps made from freely positioned MapAssets. A MapAsset combines
-the visible map object with the learning place learners can focus; the older
-internal `LearningNode` record remains only as a compatibility layer for
-activities, progress and portals.
+the visible map object with the learning place learners can focus; the internal
+`LearningNode` record anchors activities, progress and portals behind the
+MapAsset. It is not a learner-facing object or an additional authoring step.
 
 Current map behavior includes:
 
@@ -102,9 +102,10 @@ export. Learners can explicitly request feedback for one page from an eligible
 journal, group or organization domain; journals are not a general staff-reading
 surface.
 
-Activities can contribute weighted competence topics. Learners see their own
-competence history, while authorized support staff receive scoped signals for
-orientation and support conversations rather than ranking.
+Activities can contribute weighted competence topics. Learners see a
+qualitative competence map, topic trails and bounded linked learning moments,
+while authorized support staff receive scoped signals for orientation and
+support conversations rather than ranking.
 
 Organizations, learning groups, group chat and shared-task activities form an
 early collaboration slice. Their purpose is contribution and coordination, not

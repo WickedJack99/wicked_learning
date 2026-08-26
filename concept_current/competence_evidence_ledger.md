@@ -2,7 +2,8 @@
 
 The evidence ledger is the learning substrate behind the star map. It records
 what kind of learning interaction happened without turning those interactions
-into a learner-facing checklist or score.
+into a checklist or score. Learner topic pages and selected-light readings may
+show a bounded, linked set of recent moments from the ledger as orientation.
 
 ## Evidence types
 
@@ -44,8 +45,8 @@ of accumulated evidence rather than a live test result.
 
 The learner map aggregates events by topic and derives a visual profile. It does
 not expose event counts, contribution totals, or evidence categories as grades.
-The categories remain available to future explanations, support conversations,
-and richer star-map lenses. The map explains its visual channels in the learner
+The categories support explanations, topic trails, support conversations and
+richer star-map lenses. The map explains its visual channels in the learner
 surface: size represents how established a pattern is over time, glow represents
 activity in the current month, and paths represent topics encountered together.
 These are interpretive signals, not a hidden score scale presented in disguise.

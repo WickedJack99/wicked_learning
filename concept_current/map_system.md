@@ -9,10 +9,10 @@ owns its title, description, learner panel, activity routes, progress rules and
 visual representation. A non-focusable MapAsset is decorative and does not open
 learner content.
 
-The backend still uses `learning_nodes` as an internal compatibility record for
-activity, progress and portal relations. This is an implementation detail, not
-a second object that administrators should have to create or connect manually.
-Every MapAsset has at most one internal node and every learner-facing node is
+The backend uses `learning_nodes` as an internal activity anchor for activity,
+progress and portal relations. This is an implementation detail, not a second
+object that administrators should have to create or connect manually. Every
+MapAsset has at most one internal node and every learner-facing node is
 represented by one MapAsset.
 
 Current learner behavior:
@@ -45,8 +45,8 @@ Current learner behavior:
 
 Topic connection:
 
-- A topic is a semantic entry point, while a map is an exploratory surface
-  through which that topic can be encountered.
+- A topic is a semantic entry point and organizing context, while a map is an
+  exploratory surface through which that topic can be encountered.
 - A map may be assigned to zero or one topic, and a topic may expose multiple
   maps. The first relationship stays intentionally simple until real reuse
   patterns justify sharing one map across several topics.
@@ -56,6 +56,9 @@ Topic connection:
 - Topic nesting remains optional and independent from map assignment. A topic
   can be a subtopic in one area without requiring every topic or map to form a
   single rigid tree.
+- Learners can reach a map from the learning desk, topic and path surfaces, or
+  through an authored portal. Portal travel supports discovery between maps but
+  is not a prerequisite for direct navigation.
 
 ## Current Admin Editing
 
