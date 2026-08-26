@@ -7,6 +7,7 @@ use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Inertia\Testing\AssertableInertia;
 
 test('a learner can keep a private learning check-in after completing an activity', function () {
     Carbon::setTestNow('2026-08-26 14:30:00');
@@ -83,6 +84,40 @@ test('a learner cannot write a check-in onto another learners progress', functio
         ->where('user_id', $otherLearner->id)
         ->firstOrFail()
         ->metadata)->toBe([]);
+});
+
+test('the competence page shows only the current learners private check-ins', function () {
+    Carbon::setTestNow('2026-08-26 15:00:00');
+    [$learner, $activity] = checkInActivityContext();
+    $otherLearner = User::factory()->create();
+
+    foreach ([$learner, $otherLearner] as $owner) {
+        LearnerActivityProgress::query()->create([
+            'user_id' => $owner->id,
+            'learning_node_id' => $activity->learning_node_id,
+            'learning_activity_id' => $activity->id,
+            'status' => 'completed',
+            'attempt_count' => 1,
+            'reached_at' => now()->subMinute(),
+            'completed_at' => now()->subMinute(),
+            'metadata' => [
+                'learningCheckIn' => [
+                    'feeling' => $owner->is($learner) ? 'clearer' : 'stuck',
+                    'recordedAt' => now()->toIso8601String(),
+                ],
+            ],
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('competence/index')
+            ->has('competenceMap.checkIns', 1)
+            ->where('competenceMap.checkIns.0.activityTitle', 'Check-in Activity')
+            ->where('competenceMap.checkIns.0.feeling', 'clearer')
+        );
 });
 
 test('a check-in only accepts the supported learning pulse phrases', function () {

@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
@@ -12,6 +12,7 @@ import {
 } from './competence-star-layout';
 import type {
     CompetenceMap,
+    CompetenceCheckIn,
     CompetenceTransition,
     PositionedTopic,
 } from './competence-star-layout';
@@ -46,8 +47,8 @@ export default function CompetenceStarMap({
     return (
         <>
             <Head title="Competence Star Map" />
-            <main className="min-h-svh overflow-hidden bg-black px-4 py-6 pb-24 text-white">
-                <div className="grid h-[calc(100svh-7rem)] w-full grid-rows-[auto_minmax(0,1fr)] gap-5">
+            <main className="min-h-svh overflow-y-auto bg-black px-4 py-6 pb-24 text-white">
+                <div className="grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
                     <AccentHeading
                         action={
                             <Button asChild variant="secondary">
@@ -63,7 +64,7 @@ export default function CompetenceStarMap({
                         title="Star Map"
                     />
 
-                    <section className="relative min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl">
+                    <section className="relative h-[min(72svh,680px)] min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-[calc(100svh-7rem)]">
                         {positionedTopics.length === 0 ? (
                             <div className="grid h-full place-items-center p-6 text-center">
                                 <div>
@@ -365,10 +366,92 @@ export default function CompetenceStarMap({
                             />
                         ) : null}
                     </section>
+                    <LearningPulseTimeline checkIns={competenceMap.checkIns} />
                 </div>
             </main>
         </>
     );
+}
+
+function LearningPulseTimeline({
+    checkIns,
+}: {
+    checkIns: CompetenceCheckIn[];
+}) {
+    return (
+        <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-[calc(100svh-7rem)] xl:overflow-y-auto">
+            <div className="flex items-start gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-200/10 text-cyan-200">
+                    <Heart className="size-4" />
+                </span>
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
+                        Your learning pulse
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-white">
+                        Moments along the way
+                    </h2>
+                </div>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+                These are your own words about how activities felt. They do not
+                change the stars and are not a grade or diagnosis.
+            </p>
+
+            {checkIns.length > 0 ? (
+                <ol className="mt-5 grid gap-4">
+                    {checkIns.map((checkIn) => (
+                        <li
+                            className="relative border-l border-cyan-200/25 pl-4"
+                            key={`${checkIn.activityId}:${checkIn.recordedAt}`}
+                        >
+                            <span className="absolute top-1.5 -left-[0.3rem] size-2 rounded-full bg-cyan-200 shadow-[0_0_12px_rgba(165,243,252,0.8)]" />
+                            <time
+                                className="text-xs text-slate-500 dark:text-slate-400"
+                                dateTime={checkIn.recordedAt}
+                            >
+                                {formatCheckInDate(checkIn.recordedAt)}
+                            </time>
+                            <p className="mt-1 text-sm font-medium text-slate-100">
+                                {checkInFeelingLabel(checkIn.feeling)}
+                            </p>
+                            <p className="mt-1 text-xs leading-5 text-slate-400">
+                                {checkIn.activityTitle} · {checkIn.nodeTitle}
+                            </p>
+                        </li>
+                    ))}
+                </ol>
+            ) : (
+                <p className="mt-5 rounded-lg border border-dashed border-cyan-200/20 px-3 py-4 text-sm leading-6 text-slate-400">
+                    After an activity, you can leave a small note here for your
+                    future self.
+                </p>
+            )}
+        </aside>
+    );
+}
+
+function checkInFeelingLabel(feeling: string): string {
+    return (
+        {
+            clearer: 'Something clicked',
+            forming: 'Still taking shape',
+            stretched: 'It stretched me',
+            stuck: 'I got stuck',
+        }[feeling] ?? feeling
+    );
+}
+
+function formatCheckInDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+          });
 }
 
 function CompetencePath({

@@ -19,7 +19,16 @@ export type CompetenceTransition = {
     toTopicSlug: string;
 };
 
+export type CompetenceCheckIn = {
+    activityId: number;
+    activityTitle: string;
+    feeling: string;
+    nodeTitle: string;
+    recordedAt: string;
+};
+
 export type CompetenceMap = {
+    checkIns: CompetenceCheckIn[];
     monthKey: string;
     topics: CompetenceTopic[];
     transitions: CompetenceTransition[];

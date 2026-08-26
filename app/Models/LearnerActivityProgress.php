@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** @property array<string, mixed>|null $metadata */
 #[Fillable([
@@ -19,6 +20,12 @@ use Illuminate\Database\Eloquent\Model;
 class LearnerActivityProgress extends Model
 {
     protected $table = 'learner_activity_progress';
+
+    /** @return BelongsTo<LearningActivity, $this> */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'learning_activity_id');
+    }
 
     /**
      * @return array<string, string>

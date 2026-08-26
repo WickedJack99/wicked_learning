@@ -12,10 +12,13 @@ use Illuminate\Support\Collection;
 
 class LoadLearnerCompetenceMap
 {
-    public function __construct(private readonly CompetenceVisualScale $visualScale) {}
+    public function __construct(
+        private readonly CompetenceVisualScale $visualScale,
+        private readonly LoadLearnerActivityCheckIns $checkIns,
+    ) {}
 
     /**
-     * @return array{monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, recordedAt: string}>, monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
@@ -83,6 +86,7 @@ class LoadLearnerCompetenceMap
             });
 
         return [
+            'checkIns' => $this->checkIns->handle($user),
             'monthKey' => $monthKey,
             'topics' => $topics,
             'transitions' => $transitions,
