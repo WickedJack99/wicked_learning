@@ -32,9 +32,11 @@ const feelings: Array<{
 
 export function LearningCheckIn({
     activityTitle,
+    learningAreas,
     onContinue,
 }: {
     activityTitle: string;
+    learningAreas: Array<{ name: string; slug: string | null }>;
     onContinue: (feeling: LearningCheckInFeeling | null) => Promise<void>;
 }) {
     const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +86,27 @@ export function LearningCheckIn({
                     </p>
                 </div>
             </div>
+            {learningAreas.length > 0 ? (
+                <div className="mt-4 rounded-md border border-cyan-200/70 bg-white/50 px-3 py-2 dark:border-teal-100/15 dark:bg-black/10">
+                    <p className="text-xs font-medium text-cyan-900 dark:text-teal-100">
+                        Connected learning areas
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                        {learningAreas.map((area) => (
+                            <span
+                                className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100"
+                                key={area.slug ?? area.name}
+                            >
+                                {area.name}
+                            </span>
+                        ))}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
+                        These labels help you place the moment in your trail;
+                        they are not a result.
+                    </p>
+                </div>
+            ) : null}
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {feelings.map((feeling) => (

@@ -649,7 +649,7 @@ function ActivityFrame({
     );
 }
 
-function learningAreaNames(
+export function learningAreaNames(
     activity: LearningActivity,
 ): Array<{ name: string; slug: string | null }> {
     const topics = activity.config.competenceTopics;

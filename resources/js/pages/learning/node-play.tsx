@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
 import { persistActiveActivity } from '@/features/world/active-activity';
-import { ActivityPlayer } from '@/features/world/activity-panel';
+import {
+    ActivityPlayer,
+    learningAreaNames,
+} from '@/features/world/activity-panel';
 import { getJson, postJson } from '@/features/world/api';
 import { LearningCheckIn } from '@/features/world/learning-check-in';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -39,6 +42,7 @@ type PendingLearningCheckIn = {
     activityId: number;
     activityTitle: string;
     destination: CheckInDestination | null;
+    learningAreas: Array<{ name: string; slug: string | null }>;
 };
 
 export default function NodePlay({
@@ -67,8 +71,9 @@ export default function NodePlay({
         useState(initialPlayState);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
-    const pendingLearningCheckInRef =
-        useRef<PendingLearningCheckIn | null>(null);
+    const pendingLearningCheckInRef = useRef<PendingLearningCheckIn | null>(
+        null,
+    );
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
     const [activityTranslation, setActivityTranslation] = useState<{
         activityId: number;
@@ -186,6 +191,7 @@ export default function NodePlay({
                 activityId: activity.id,
                 activityTitle: activity.title,
                 destination: null,
+                learningAreas: learningAreaNames(activity),
             } satisfies PendingLearningCheckIn;
             pendingLearningCheckInRef.current = checkIn;
             setPendingLearningCheckIn(checkIn);
@@ -388,6 +394,7 @@ export default function NodePlay({
                     {pendingLearningCheckIn ? (
                         <LearningCheckIn
                             activityTitle={pendingLearningCheckIn.activityTitle}
+                            learningAreas={pendingLearningCheckIn.learningAreas}
                             onContinue={continueAfterCheckIn}
                         />
                     ) : null}
