@@ -52,6 +52,7 @@ export type TopicMapSummary = {
     description: string | null;
     href: string;
     id: number;
+    nodeCount: number;
     slug: string;
     title: string;
 };

@@ -61,6 +61,7 @@ class LearningTopicSerializer
                     'description' => $map->description,
                     'href' => route('world', ['map' => $map->slug], false),
                     'id' => $map->id,
+                    'nodeCount' => $map->nodes->count(),
                     'slug' => $map->slug,
                     'title' => $map->title,
                 ])

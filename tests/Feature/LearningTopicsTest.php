@@ -247,6 +247,7 @@ test('a topic page exposes playable routes from its assigned maps', function () 
             ->where('topic.paths.0.mapHref', '/world?map=night-sky')
             ->where('topic.paths.0.mapTitle', 'Night Sky')
             ->where('topic.paths.0.nodeHref', '/world?map=night-sky&focused=constellations')
+            ->where('topic.maps.0.nodeCount', 1)
             ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });

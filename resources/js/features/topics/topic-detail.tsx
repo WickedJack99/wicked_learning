@@ -132,6 +132,18 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                                 {map.description}
                                             </span>
                                         ) : null}
+                                        <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">
+                                            {map.nodeCount === 1
+                                                ? t(
+                                                      'topics.detail.maps.place_count.one',
+                                                      '1 place to explore',
+                                                  )
+                                                : t(
+                                                      'topics.detail.maps.place_count.many',
+                                                      ':count places to explore',
+                                                      { count: map.nodeCount },
+                                                  )}
+                                        </span>
                                         <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:text-cyan-400">
                                             {t(
                                                 'topics.detail.maps.open',

@@ -46,7 +46,7 @@ class LoadLearningTopics
                 ->where('is_published', true)
                 ->orderBy('title')
                 ->with('maps'),
-            'maps',
+            'maps.nodes',
         ]);
 
         $topic->setRelation('maps', $this->mapAccess->visibleMaps($topic->maps, $user));
