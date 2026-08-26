@@ -599,6 +599,14 @@ function CompetenceReading({
             <p className="mt-2 text-sm leading-5 text-slate-300">
                 {topic.visual.description}
             </p>
+            <div className="mt-3 rounded-lg border border-cyan-200/10 bg-cyan-200/5 px-3 py-2">
+                <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                    Recent rhythm
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-300">
+                    {topic.visual.recentDescription}
+                </p>
+            </div>
             <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
                 Ways you have engaged here
             </p>

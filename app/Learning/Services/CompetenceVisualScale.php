@@ -16,6 +16,7 @@ class CompetenceVisualScale
      *     brightnessRatio: float,
      *     description: string,
      *     evidenceTypes: list<string>,
+     *     recentDescription: string,
      *     sizeRatio: float,
      *     sizeTier: string
      * }
@@ -38,6 +39,7 @@ class CompetenceVisualScale
             'brightnessRatio' => $brightnessRatio,
             'description' => $this->description($sizeTier),
             'evidenceTypes' => $evidenceTypes,
+            'recentDescription' => $this->recentDescription($auraRatio),
             'sizeRatio' => $sizeRatio,
             'sizeTier' => $sizeTier,
         ];
@@ -69,6 +71,16 @@ class CompetenceVisualScale
             'beacon' => 'A well-established light.',
             'star' => 'A growing light.',
             default => 'A newly emerging light.',
+        };
+    }
+
+    private function recentDescription(float $auraRatio): string
+    {
+        return match (true) {
+            $auraRatio >= 1 => 'Recent learning moments are strongly lighting this area.',
+            $auraRatio >= 0.5 => 'Recent learning moments are gently lighting this area.',
+            $auraRatio > 0 => 'A recent learning moment is gently lighting this area.',
+            default => 'The glow is resting for now; the established pattern remains.',
         };
     }
 }

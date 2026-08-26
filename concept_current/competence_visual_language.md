@@ -14,6 +14,11 @@ into three bounded ratios:
   threshold.
 - `auraRatio` controls the surrounding aura and uses the current-period signal.
 
+The learner reading translates the aura ratio into a qualitative recent-rhythm
+description. It can say that recent learning is gently or strongly lighting an
+area, or that the glow is resting while the established pattern remains. The
+description does not expose the ratio, threshold or event count.
+
 The ratios are capped at `1` and are converted into stable visual tiers:
 `spark`, `star`, `beacon` and `constellation`. Learner accessibility text uses
 the tier description instead of exposing raw totals or thresholds.
