@@ -42,7 +42,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     ) : null}
                     <Link
                         className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cyan-700 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
-                        href={`/competence?topic=${encodeURIComponent(topic.slug)}`}
+                        href="/competence"
                     >
                         <Sparkles className="size-4" />
                         {t(

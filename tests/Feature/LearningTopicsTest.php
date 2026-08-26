@@ -128,6 +128,7 @@ test('a published topic page exposes its published subtopics alphabetically', fu
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('topics/show')
             ->where('topic.title', 'Physics')
+            ->where('topic.href', '/topics/physics')
             ->where('topic.content', '# Motion')
             ->where('topic.subtopics.0.title', 'Energy')
             ->where('topic.subtopics.0.mapCount', 0)
