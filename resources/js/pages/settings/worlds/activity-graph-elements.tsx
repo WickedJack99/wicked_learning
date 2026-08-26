@@ -4,6 +4,7 @@ import {
     CircleAlert,
     CircleCheck,
     CircleStop,
+    Copy,
     FileText,
     MessageCircle,
     Pencil,
@@ -156,6 +157,21 @@ function ActivityGraphNodeCard({
                     <Pencil className="size-3.5" />
                     Edit
                 </Button>
+                {activity.type !== 'npc_dialogue' ? (
+                    <Button
+                        aria-label={`Use ${activity.title} as a starting point`}
+                        className="h-8 w-8 px-0 text-slate-500"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onDuplicate(activity);
+                        }}
+                        title="Use as a starting point"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <Copy className="size-3.5" />
+                    </Button>
+                ) : null}
                 <Button
                     aria-label={`Delete ${activity.title}`}
                     className="h-8 w-8 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-400/10 dark:hover:text-red-300"
@@ -322,6 +338,7 @@ export function buildGraphNodes(
     payload: ActivityGraphPayload,
     onEdit: (activity: ActivitySummary) => void,
     onDelete: (activity: ActivitySummary) => void,
+    onDuplicate: (activity: ActivitySummary) => void,
     onReview: (activity: ActivitySummary) => void,
 ): ActivityGraphNode[] {
     const activities = payload.activities.map((activity, index) => ({
@@ -330,6 +347,7 @@ export function buildGraphNodes(
         data: {
             activity,
             canReview: payload.aiReviewTemplates.length > 0,
+            onDuplicate,
             onDelete,
             onEdit,
             onReview,

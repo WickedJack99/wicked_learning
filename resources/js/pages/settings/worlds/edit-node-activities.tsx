@@ -77,6 +77,9 @@ export default function EditNodeActivities({
     const [form, setForm] = useState<ActivityForm>(() =>
         emptyCreateForm(firstType),
     );
+    const [duplicateSourceTitle, setDuplicateSourceTitle] = useState<
+        string | null
+    >(null);
     const [editOpen, setEditOpen] = useState(false);
     const [editingActivity, setEditingActivity] =
         useState<ActivitySummary | null>(null);
@@ -132,6 +135,21 @@ export default function EditNodeActivities({
         setPendingDelete(activity);
     }, []);
 
+    const useAsStartingPoint = useCallback(
+        (activity: ActivitySummary) => {
+            setForm({
+                ...activityFormFromActivity(activity, firstType),
+                slug: '',
+                title: `${activity.title} (copy)`,
+            });
+            setDuplicateSourceTitle(activity.title);
+            setErrors({});
+            resetImageUploadErrors();
+            setCreateOpen(true);
+        },
+        [firstType, resetImageUploadErrors],
+    );
+
     const requestReview = useCallback((activity: ActivitySummary) => {
         setReviewingActivity(activity);
     }, []);
@@ -182,9 +200,16 @@ export default function EditNodeActivities({
                 activityGraph,
                 openEdit,
                 requestDelete,
+                useAsStartingPoint,
                 requestReview,
             ),
-        [activityGraph, openEdit, requestDelete, requestReview],
+        [
+            activityGraph,
+            openEdit,
+            requestDelete,
+            requestReview,
+            useAsStartingPoint,
+        ],
     );
     const initialEdges = useMemo(
         () => buildGraphEdges(activityGraph),
@@ -244,6 +269,7 @@ export default function EditNodeActivities({
 
     const openCreate = () => {
         setForm(emptyCreateForm(firstType));
+        setDuplicateSourceTitle(null);
         setErrors({});
         resetImageUploadErrors();
         setCreateOpen(true);
@@ -258,7 +284,10 @@ export default function EditNodeActivities({
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setErrors(nextErrors),
-                onSuccess: () => setCreateOpen(false),
+                onSuccess: () => {
+                    setCreateOpen(false);
+                    setDuplicateSourceTitle(null);
+                },
                 onFinish: () => setCreating(false),
             },
         );
@@ -603,9 +632,9 @@ export default function EditNodeActivities({
                     <DialogHeader className="shrink-0">
                         <DialogTitle>Add activity</DialogTitle>
                         <DialogDescription>
-                            Create a generic activity node. Specialized editing
-                            for dialogue stages, questions and portal targets
-                            can build on this node later.
+                            {duplicateSourceTitle
+                                ? `Edit this starting point from “${duplicateSourceTitle}” before saving. The new activity will enter the review queue.`
+                                : 'Create a generic activity node. Specialized editing for dialogue stages, questions and portal targets can build on this node later.'}
                         </DialogDescription>
                     </DialogHeader>
 

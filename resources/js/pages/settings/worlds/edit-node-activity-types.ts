@@ -234,6 +234,7 @@ export type MarkdownTransitionForm = {
 export type ActivityNodeData = {
     activity: ActivitySummary;
     canReview: boolean;
+    onDuplicate: (activity: ActivitySummary) => void;
     onDelete: (activity: ActivitySummary) => void;
     onEdit: (activity: ActivitySummary) => void;
     onReview: (activity: ActivitySummary) => void;
