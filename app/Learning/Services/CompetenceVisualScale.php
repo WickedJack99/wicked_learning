@@ -11,10 +11,13 @@ class CompetenceVisualScale
      * visual ratios and a human description instead of a score or point total.
      *
      * @param  list<string>  $evidenceTypes
+     * @param  list<string>  $learningPeriods
+     * @param  list<array<string, mixed>>  $evidenceLedger
      * @return array{
      *     auraRatio: float,
      *     brightnessRatio: float,
      *     description: string,
+     *     evidenceLedger: list<array<string, mixed>>,
      *     evidenceTypes: list<string>,
      *     learningPeriods: list<string>,
      *     recentDescription: string,
@@ -30,6 +33,7 @@ class CompetenceVisualScale
         float $auraThreshold,
         array $evidenceTypes = [],
         array $learningPeriods = [],
+        array $evidenceLedger = [],
     ): array {
         $sizeRatio = $this->ratio($totalSignal, $growthThreshold);
         $brightnessRatio = $this->ratio($totalSignal, $brightnessThreshold);
@@ -40,6 +44,7 @@ class CompetenceVisualScale
             'auraRatio' => $auraRatio,
             'brightnessRatio' => $brightnessRatio,
             'description' => $this->description($sizeTier),
+            'evidenceLedger' => $evidenceLedger,
             'evidenceTypes' => $evidenceTypes,
             'learningPeriods' => $learningPeriods,
             'recentDescription' => $this->recentDescription($auraRatio),

@@ -68,6 +68,7 @@ class LoadLearnerCompetenceMap
                         ),
                         evidenceTypes: $this->evidenceTypes($events),
                         learningPeriods: $this->learningPeriods($events),
+                        evidenceLedger: $this->evidenceLedger($events),
                     ),
                 ];
             });
@@ -122,6 +123,33 @@ class LoadLearnerCompetenceMap
     }
 
     /**
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return list<array{id: int, evidenceType: string, activityTitle: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null}>
+     */
+    private function evidenceLedger(Collection $events): array
+    {
+        return array_values($events
+            ->take(6)
+            ->map(function (LearnerEvidenceEvent $event): array {
+                $activity = $event->activity;
+                $node = $activity?->node;
+
+                return [
+                    'activityTitle' => $activity?->title,
+                    'evidenceType' => $event->evidence_type,
+                    'id' => $event->id,
+                    'nodeHref' => $node
+                        ? route('learning.nodes.play', ['node' => $node])
+                        : null,
+                    'nodeTitle' => $node?->title,
+                    'recordedAt' => $event->created_at?->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all());
+    }
+
+    /**
      * Keep the learner's trail qualitative and bounded: each marker means that
      * this topic appeared in at least one learning event during that month.
      *
@@ -130,7 +158,7 @@ class LoadLearnerCompetenceMap
      */
     private function learningPeriods(Collection $events): array
     {
-        return $events
+        return array_values($events
             ->map(fn (LearnerEvidenceEvent $event): ?string => $event->created_at?->format('Y-m'))
             ->filter(fn (?string $period): bool => $period !== null)
             ->unique()
@@ -139,7 +167,7 @@ class LoadLearnerCompetenceMap
             ->sort()
             ->values()
             ->map(fn (string $period): string => Carbon::parse($period.'-01')->format('M Y'))
-            ->all();
+            ->all());
     }
 
     /** @return array{activityTitle: string, nodeHref: string, nodeTitle: string}|null */

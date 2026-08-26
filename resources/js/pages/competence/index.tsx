@@ -711,6 +711,63 @@ function CompetenceReading({
                     </span>
                 )}
             </div>
+            {topic.evidenceLedger.length > 0 ? (
+                <details className="mt-4 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
+                    <summary className="cursor-pointer text-[11px] font-medium tracking-[0.14em] text-cyan-100/80 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
+                        Evidence ledger
+                    </summary>
+                    <p className="mt-2 text-xs leading-5 text-slate-400">
+                        Recent learning moments informing this light. This is a
+                        trace, not a score.
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                        {topic.evidenceLedger.map((evidence) => {
+                            const content = (
+                                <span className="flex items-start justify-between gap-3">
+                                    <span className="min-w-0">
+                                        <span className="block text-xs font-medium text-slate-200">
+                                            {evidence.activityTitle ??
+                                                'Learning moment'}
+                                        </span>
+                                        <span className="mt-1 block text-[11px] text-slate-400">
+                                            {evidenceTypeLabel(
+                                                evidence.evidenceType,
+                                            )}
+                                            {evidence.nodeTitle
+                                                ? ` · ${evidence.nodeTitle}`
+                                                : ''}
+                                        </span>
+                                    </span>
+                                    {evidence.recordedAt ? (
+                                        <span className="shrink-0 text-[11px] text-slate-500">
+                                            {formatCheckInDate(
+                                                evidence.recordedAt,
+                                            )}
+                                        </span>
+                                    ) : null}
+                                </span>
+                            );
+
+                            return evidence.nodeHref ? (
+                                <Link
+                                    className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2 transition hover:border-cyan-200/35 hover:bg-cyan-200/10"
+                                    href={evidence.nodeHref}
+                                    key={evidence.id}
+                                >
+                                    {content}
+                                </Link>
+                            ) : (
+                                <div
+                                    className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
+                                    key={evidence.id}
+                                >
+                                    {content}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </details>
+            ) : null}
         </aside>
     );
 }

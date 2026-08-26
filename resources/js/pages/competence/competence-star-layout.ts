@@ -1,4 +1,12 @@
 export type CompetenceTopic = {
+    evidenceLedger: Array<{
+        activityTitle: string | null;
+        evidenceType: string;
+        id: number;
+        nodeHref: string | null;
+        nodeTitle: string | null;
+        recordedAt: string | null;
+    }>;
     name: string;
     revisit: {
         activityTitle: string;
