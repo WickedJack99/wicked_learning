@@ -38,4 +38,16 @@ class LearnerReflection extends Model
     {
         return $this->belongsTo(LearnerJournalPage::class, 'learner_journal_page_id');
     }
+
+    /** @return BelongsTo<LearningNode, $this> */
+    public function learningNode(): BelongsTo
+    {
+        return $this->belongsTo(LearningNode::class, 'learning_node_id');
+    }
+
+    /** @return BelongsTo<LearningActivity, $this> */
+    public function learningActivity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'learning_activity_id');
+    }
 }

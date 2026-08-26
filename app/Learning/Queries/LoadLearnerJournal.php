@@ -17,6 +17,8 @@ class LoadLearnerJournal
             ->withCount('reflections')
             ->with([
                 'feedbackRequest',
+                'reflections.learningNode.map.topic',
+                'reflections.learningActivity',
                 'reflections' => fn ($query) => $query->latest()->limit(1),
             ])
             ->when(trim((string) $search) !== '', function ($query) use ($search): void {

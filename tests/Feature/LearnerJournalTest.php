@@ -9,6 +9,8 @@ use App\Models\LearningActivity;
 use App\Models\LearningGroup;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
@@ -129,6 +131,46 @@ test('the journal includes the learners private check-in trail with a path back 
             'node' => $activity->node,
         ]))
         ->assertJsonPath('checkIns.0.nodeHref', route('learning.nodes.play', ['node' => $activity->learning_node_id]));
+});
+
+test('reflection journal pages keep a path back to their learning place', function () {
+    [$learner, $activity, $runId] = activeReflectionActivity();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'human-sciences',
+        'title' => 'Human sciences',
+        'sort_order' => 10,
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'learning-science',
+        'title' => 'Learning science',
+        'is_published' => true,
+    ]);
+    $activity->node->map()->update(['learning_topic_id' => $topic->id]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'play_run_id' => $runId,
+            'reflection' => 'I can see how the ideas connect.',
+        ])
+        ->assertOk();
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertOk()
+        ->assertJsonPath('pages.0.learningContext.activityTitle', 'Notice the pattern')
+        ->assertJsonPath('pages.0.learningContext.nodeTitle', 'Reflection node')
+        ->assertJsonPath('pages.0.learningContext.mapTitle', 'Journal map')
+        ->assertJsonPath('pages.0.learningContext.topic.title', 'Learning science')
+        ->assertJsonPath('pages.0.learningContext.topic.href', route('topics.show', $topic, false))
+        ->assertJsonPath('pages.0.learningContext.activityHref', route('learning.nodes.play', [
+            'activity_id' => $activity->id,
+            'node' => $activity->node,
+        ], false))
+        ->assertJsonPath('pages.0.learningContext.mapHref', route('world', [
+            'focused' => $activity->node->slug,
+            'map' => $activity->node->map->slug,
+        ], false));
 });
 
 test('a reflection cannot be recorded outside the active route step', function () {

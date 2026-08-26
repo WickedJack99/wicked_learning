@@ -926,8 +926,11 @@ function JournalPageEditor({
                       ? 'Saving your draft…'
                       : isDirty
                         ? 'Saving your draft…'
-                        : 'All changes saved.'}
+                    : 'All changes saved.'}
             </div>
+            {page.learningContext ? (
+                <JournalLearningContext context={page.learningContext} />
+            ) : null}
             <JournalFeedbackPanel
                 allowExpertAccess={allowExpertAccess}
                 domains={feedbackDomains}
@@ -970,6 +973,72 @@ function JournalPageEditor({
                 )}
             </div>
         </main>
+    );
+}
+
+function JournalLearningContext({
+    context,
+}: {
+    context: NonNullable<JournalPage['learningContext']>;
+}) {
+    return (
+        <section
+            aria-label="Learning context"
+            className="mt-3 rounded-lg border p-3 text-sm"
+            style={{
+                background: 'var(--journal-input-background)',
+                borderColor: 'var(--journal-button-border)',
+                color: 'var(--journal-body-text)',
+            }}
+        >
+            <p
+                className="text-xs font-semibold tracking-[0.12em] uppercase"
+                style={{ color: 'var(--journal-accent)' }}
+            >
+                Keep the connection
+            </p>
+            <p className="mt-1 leading-6">
+                This reflection came from{' '}
+                {context.activityHref && context.activityTitle ? (
+                    <a
+                        className="font-semibold underline-offset-2 hover:underline"
+                        href={context.activityHref}
+                        style={{ color: 'var(--journal-accent)' }}
+                    >
+                        {context.activityTitle}
+                    </a>
+                ) : (
+                    'a learning activity'
+                )}{' '}
+                in{' '}
+                <a
+                    className="font-semibold underline-offset-2 hover:underline"
+                    href={context.nodeHref}
+                    style={{ color: 'var(--journal-accent)' }}
+                >
+                    {context.nodeTitle}
+                </a>
+                .
+            </p>
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                {context.topic ? (
+                    <a
+                        className="font-semibold underline-offset-2 hover:underline"
+                        href={context.topic.href}
+                        style={{ color: 'var(--journal-accent)' }}
+                    >
+                        Topic: {context.topic.title}
+                    </a>
+                ) : null}
+                <a
+                    className="font-semibold underline-offset-2 hover:underline"
+                    href={context.mapHref}
+                    style={{ color: 'var(--journal-accent)' }}
+                >
+                    Open {context.mapTitle}
+                </a>
+            </div>
+        </section>
     );
 }
 

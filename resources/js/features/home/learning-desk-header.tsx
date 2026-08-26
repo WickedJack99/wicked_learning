@@ -8,10 +8,12 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useInitials } from '@/hooks/use-initials';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 const navigation = [
     {
@@ -51,6 +53,7 @@ export function LearningDeskHeader() {
     const { auth, name } = page.props;
     const initials = useInitials();
     const t = usePlatformTranslation();
+    const [journalOpen, setJournalOpen] = useState(false);
 
     return (
         <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-slate-50/94 backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94">
@@ -70,17 +73,24 @@ export function LearningDeskHeader() {
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full gap-1 overflow-x-auto border-t border-slate-200/70 px-4 sm:order-none sm:mx-0 sm:w-auto sm:basis-auto sm:border-t-0 sm:px-0 dark:border-white/8"
                 >
                     {navigation.map((item) => (
-                        <Link
-                            className={cn(
-                                'relative shrink-0 px-3 py-3 text-sm text-slate-500 transition hover:text-slate-950 sm:py-[1.35rem] dark:text-slate-400 dark:hover:text-white',
-                                isActiveNavigationItem(page.url, item.href) &&
-                                    'text-slate-950 after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-violet-500 dark:text-white',
-                            )}
-                            href={item.href}
+                        <LearningDeskNavigationItem
+                            isActive={
+                                item.href === '/learning/journal'
+                                    ? journalOpen
+                                    : isActiveNavigationItem(
+                                          page.url,
+                                          item.href,
+                                      )
+                            }
+                            item={item}
                             key={item.href}
-                        >
-                            {t(item.key, item.fallback)}
-                        </Link>
+                            onOpenJournal={
+                                item.href === '/learning/journal'
+                                    ? () => setJournalOpen(true)
+                                    : undefined
+                            }
+                            t={t}
+                        />
                     ))}
                 </nav>
 
@@ -129,7 +139,47 @@ export function LearningDeskHeader() {
                     </DropdownMenu>
                 </div>
             </div>
+            {journalOpen ? (
+                <JournalOverlay onClose={() => setJournalOpen(false)} />
+            ) : null}
         </header>
+    );
+}
+
+function LearningDeskNavigationItem({
+    isActive,
+    item,
+    onOpenJournal,
+    t,
+}: {
+    isActive: boolean;
+    item: (typeof navigation)[number];
+    onOpenJournal?: () => void;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    const className = cn(
+        'relative shrink-0 px-3 py-3 text-sm text-slate-500 transition hover:text-slate-950 sm:py-[1.35rem] dark:text-slate-400 dark:hover:text-white',
+        isActive &&
+            'text-slate-950 after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-violet-500 dark:text-white',
+    );
+
+    if (onOpenJournal) {
+        return (
+            <button
+                aria-expanded={isActive}
+                className={className}
+                onClick={onOpenJournal}
+                type="button"
+            >
+                {t(item.key, item.fallback)}
+            </button>
+        );
+    }
+
+    return (
+        <Link className={className} href={item.href}>
+            {t(item.key, item.fallback)}
+        </Link>
     );
 }
 

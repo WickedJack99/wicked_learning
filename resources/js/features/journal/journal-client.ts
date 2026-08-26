@@ -15,6 +15,15 @@ export type JournalPage = {
         status: 'pending' | 'responded';
     } | null;
     id: number;
+    learningContext: {
+        activityHref: string | null;
+        activityTitle: string | null;
+        mapHref: string;
+        mapTitle: string;
+        nodeHref: string;
+        nodeTitle: string;
+        topic: { href: string; title: string } | null;
+    } | null;
     markdown: string;
     preferredMode: 'edit' | 'view';
     reflectionCount: number;
