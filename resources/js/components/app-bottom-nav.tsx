@@ -11,6 +11,7 @@ import { worldHref } from '@/features/world/types';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
+import type { LearningNode } from '@/types';
 
 type NavItem = {
     active: boolean;
@@ -32,6 +33,11 @@ export function AppBottomNav() {
     const { props, url } = usePage();
     const t = usePlatformTranslation();
     const isAuthenticated = Boolean(props.auth.user);
+    const pageNode = (
+        props as typeof props & {
+            node?: Pick<LearningNode, 'mapSlug' | 'slug'> | null;
+        }
+    ).node;
     const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(
         () => readPersistedActiveActivity(),
     );
@@ -103,6 +109,13 @@ export function AppBottomNav() {
         [url],
     );
     const isSettingsActive = useMemo(() => url.startsWith('/settings'), [url]);
+    const mapNavigationHref = useMemo(
+        () =>
+            pageNode && url.startsWith('/learning/')
+                ? `/world?map=${encodeURIComponent(pageNode.mapSlug)}&focused=${encodeURIComponent(pageNode.slug)}`
+                : worldHref,
+        [pageNode, url],
+    );
     const shouldHideOnSettings = isSettingsActive;
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
@@ -115,7 +128,7 @@ export function AppBottomNav() {
             },
             {
                 active: isMapActive,
-                href: worldHref,
+                href: mapNavigationHref,
                 icon: <Map className="size-5" />,
                 id: 'map',
                 label: t('navigation.bottom.map', 'Map'),
@@ -177,6 +190,7 @@ export function AppBottomNav() {
         isBookmarksActive,
         isLearningDeskActive,
         isMapActive,
+        mapNavigationHref,
         isSettingsActive,
         handleLogout,
         isAuthenticated,
