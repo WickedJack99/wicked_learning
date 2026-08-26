@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
+import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { TopicDetail as TopicDetailData, TopicPath } from './types';
 
@@ -241,8 +242,19 @@ function TopicPathCard({ path }: { path: TopicPath }) {
             </span>
             <span className="min-w-0 flex-1">
                 <span className="block font-medium">{path.label}</span>
+                {path.learningIntent ? (
+                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        {learningIntentLabel(path.learningIntent, t)}
+                    </span>
+                ) : null}
                 <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
-                    {path.nodeTitle} ·{' '}
+                    <Link
+                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                        href={path.nodeHref}
+                    >
+                        {path.nodeTitle}
+                    </Link>{' '}
+                    ·{' '}
                     <Link
                         className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
                         href={path.mapHref}

@@ -35,9 +35,11 @@ export type TopicPath = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningIntent: string | null;
     label: string;
     mapHref: string;
     mapTitle: string;
+    nodeHref: string;
     nodeTitle: string;
     progress: {
         currentActivityTitle: string | null;
