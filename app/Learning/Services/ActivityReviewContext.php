@@ -2,12 +2,16 @@
 
 namespace App\Learning\Services;
 
+use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Models\LearningActivity;
 use App\Models\NpcDialogueNode;
 
 class ActivityReviewContext
 {
-    public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
+    public function __construct(
+        private readonly ActivityCompetenceConfiguration $competence,
+        private readonly LoadCompetenceTopicDefinitions $competenceTopics,
+    ) {}
 
     /** @return array<string, mixed> */
     public function for(LearningActivity $activity): array
@@ -34,6 +38,7 @@ class ActivityReviewContext
                 'competenceTopics' => $this->competence->topicsForActivity($activity),
                 'content' => $this->content($activity),
             ],
+            'availableCompetenceTopics' => $this->competenceTopics->names(),
             'nearbyActivities' => $this->nearbyActivities($activity),
         ];
     }

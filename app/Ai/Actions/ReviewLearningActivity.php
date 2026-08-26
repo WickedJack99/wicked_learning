@@ -88,7 +88,7 @@ class ReviewLearningActivity
             'Review exactly one Wicked Learning activity for learning usefulness and a supportive learning environment.',
             'This is an authoring aid, not a learner grade and not a claim about learner performance.',
             'Compare the declared learning purpose and competence topics with the actual activity content. Flag alignment as unclear or mismatch when the metadata asks for something the activity does not visibly provide. Also inspect autonomy, competence and relatedness support.',
-            'Mention strengths before suggestions. Suggestions must be concrete, optional adjustments for the tutor. If either learning-design alignment signal is unclear or mismatch, provide a concise replacement learning intent and/or topic list; otherwise use null and an empty list. Do not rewrite or apply the activity.',
+            'Mention strengths before suggestions. Suggestions must be concrete, optional adjustments for the tutor. If either learning-design alignment signal is unclear or mismatch, provide a concise replacement learning intent and/or topic list; otherwise use null and an empty list. Reuse an available competence topic label exactly when one fits; only suggest a new concise label when none fits. Do not output weights or thresholds. Do not rewrite or apply the activity.',
             'Use only the scoped activity context below. Do not infer learner data or invent missing content.',
             'Activity review context:\n'.json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'ActivityReview contract:\n'.json_encode($this->contract->schema(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

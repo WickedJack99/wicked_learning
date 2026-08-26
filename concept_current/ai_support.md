@@ -70,9 +70,12 @@ attention without implying that an AI provider has already inspected them.
 
 AI review should be opt-in and scoped to the selected activity, its learning
 purpose, its competence topics, and only the nearby graph context needed for a
-useful judgment. A future review action can then write `ai_reviewed_at` and a
-review result after the tutor has seen and accepted the scope. Layout-only
-changes should not create pedagogical review noise.
+useful judgment. The review also receives the active competence-topic
+vocabulary so optional metadata suggestions can reuse established labels;
+learner data, thresholds and contribution weights are excluded. A future
+review action can then write `ai_reviewed_at` and a review result after the
+tutor has seen and accepted the scope. Layout-only changes should not create
+pedagogical review noise.
 
 The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the

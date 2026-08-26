@@ -3,6 +3,7 @@
 use App\Models\ActivityTransition;
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
@@ -43,6 +44,8 @@ test('an administrator can request a scoped activity review', function () {
             && str_contains($input, 'Activity review context')
             && str_contains($input, 'Observe the changing system')
             && str_contains($input, 'Next reflection')
+            && str_contains($input, 'availableCompetenceTopics')
+            && str_contains($input, 'Systems Thinking')
             && ! str_contains($input, 'Unrelated private draft');
     });
 
@@ -88,6 +91,13 @@ function activityReviewAdmin(): User
 /** @return array{LearningActivity, AiAgentTemplate} */
 function activityReviewContext(User $admin): array
 {
+    CompetenceTopicDefinition::query()->create([
+        'name' => 'Systems Thinking',
+        'slug' => 'systems-thinking',
+        'description' => 'Notice relationships, change and consequences across a system.',
+        'is_active' => true,
+    ]);
+
     $world = LearningWorld::query()->create([
         'slug' => 'activity-review-world',
         'title' => 'Activity Review World',
