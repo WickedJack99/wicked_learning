@@ -31,6 +31,7 @@ test('admin users can see the world graph with portal links', function () {
     $siblingAssets = LearningMapAsset::query()
         ->whereHas('map', fn ($query) => $query->where('slug', 'signal-archive'))
         ->get();
+    $siblingMap = LearningMap::query()->where('slug', 'signal-archive')->firstOrFail();
     $reviewCount = LearningActivity::query()
         ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
         ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
@@ -60,7 +61,8 @@ test('admin users can see the world graph with portal links', function () {
         ->and($assets->pluck('learning_node_id')->unique())->toHaveCount(3)
         ->and($siblingAssets)->toHaveCount(1)
         ->and($siblingAssets->first()->image_url)
-        ->toBe('/images/nodes/fantasy-hex-crystal-grove.png');
+        ->toBe('/images/nodes/fantasy-hex-crystal-grove.png')
+        ->and($siblingMap->learning_topic_id)->toBe($map->learning_topic_id);
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.index'))

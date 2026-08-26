@@ -879,6 +879,7 @@ class DemoLearningWorldSeeder extends Seeder
     {
         $targetMap = LearningMap::query()->create([
             'learning_world_id' => $world->id,
+            'learning_topic_id' => $sourceMap->learning_topic_id,
             'slug' => 'signal-archive',
             'title' => 'Quiet Library',
             'description' => 'A connected map for calm pattern-practice.',
