@@ -58,6 +58,30 @@ class LoadLearningTopics
         return $topic;
     }
 
+    /** @return list<string> */
+    public function publishedDescendantSlugs(LearningTopic $topic): array
+    {
+        $topics = LearningTopic::query()
+            ->where('learning_topic_area_id', $topic->learning_topic_area_id)
+            ->where('is_published', true)
+            ->get(['id', 'parent_id', 'slug']);
+        $includedIds = collect([$topic->id]);
+
+        do {
+            $nextIds = $topics
+                ->whereIn('parent_id', $includedIds->all())
+                ->pluck('id')
+                ->diff($includedIds);
+            $includedIds = $includedIds->merge($nextIds)->unique()->values();
+        } while ($nextIds->isNotEmpty());
+
+        return $topics
+            ->whereIn('id', $includedIds->all())
+            ->pluck('slug')
+            ->values()
+            ->all();
+    }
+
     /** @return Collection<int, LearningTopicArea> */
     public function administration(): Collection
     {

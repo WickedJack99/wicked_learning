@@ -41,6 +41,7 @@ class LearningTopicSerializer
         LearningTopic $topic,
         array $paths = [],
         ?array $competence = null,
+        array $subtopicCompetence = [],
     ): array {
         return [
             ...$this->summary($topic),
@@ -51,6 +52,9 @@ class LearningTopicSerializer
             ],
             'content' => $topic->content,
             'competence' => $this->competence($competence),
+            'subtopicCompetence' => array_values(array_filter(
+                array_map(fn (array $entry): ?array => $this->competence($entry), $subtopicCompetence),
+            )),
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
             'subtopics' => $topic->children
@@ -129,12 +133,19 @@ class LearningTopicSerializer
             'learningPeriods' => is_array($visual['learningPeriods'] ?? null)
                 ? array_values($visual['learningPeriods'])
                 : [],
+            'name' => (string) ($competence['name'] ?? ''),
             'recentDescription' => (string) ($visual['recentDescription'] ?? ''),
             'revisit' => is_array($competence['revisit'] ?? null)
                 ? [
                     'activityHref' => (string) ($competence['revisit']['activityHref'] ?? ''),
                     'activityTitle' => (string) ($competence['revisit']['activityTitle'] ?? ''),
                     'nodeTitle' => (string) ($competence['revisit']['nodeTitle'] ?? ''),
+                ]
+                : null,
+            'topic' => is_array($competence['relatedTopic'] ?? null)
+                ? [
+                    'href' => (string) ($competence['relatedTopic']['href'] ?? ''),
+                    'title' => (string) ($competence['relatedTopic']['title'] ?? ''),
                 ]
                 : null,
             'visual' => [

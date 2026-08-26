@@ -27,11 +27,13 @@ export type TopicDetail = TopicSummary & {
     parent: TopicSummary | null;
     paths: TopicPath[];
     subtopics: TopicSummary[];
+    subtopicCompetence: TopicCompetence[];
 };
 
 export type TopicCompetence = {
     evidenceTypes: string[];
     learningPeriods: string[];
+    name: string;
     recentDescription: string;
     revisit: {
         activityHref: string;
@@ -44,6 +46,10 @@ export type TopicCompetence = {
         description: string;
         sizeRatio: number;
     };
+    topic: {
+        href: string;
+        title: string;
+    } | null;
 };
 
 export type TopicPath = {

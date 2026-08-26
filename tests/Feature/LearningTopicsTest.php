@@ -269,6 +269,13 @@ test('a topic page exposes its scoped learning trail', function () {
         'title' => 'Astronomy',
         'is_published' => true,
     ]);
+    $subtopic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'parent_id' => $topic->id,
+        'slug' => 'deep-space',
+        'title' => 'Deep Space',
+        'is_published' => true,
+    ]);
     $world = LearningWorld::query()->create([
         'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
         'title' => 'Learning World',
@@ -310,6 +317,36 @@ test('a topic page exposes its scoped learning trail', function () {
         'evidence_type' => 'retrieve',
         'contribution' => 4,
     ]);
+    $subtopicNode = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'galaxies',
+        'title' => 'Galaxies',
+        'position_q' => 1,
+        'position_r' => 0,
+    ]);
+    $subtopicActivity = LearningActivity::query()->create([
+        'learning_node_id' => $subtopicNode->id,
+        'slug' => 'compare-galaxies',
+        'title' => 'Compare galaxies',
+        'type' => 'markdown',
+        'config' => [
+            'competenceTopics' => [[
+                'slug' => 'deep-space',
+                'topic' => 'Deep Space',
+                'weight' => 1,
+            ]],
+        ],
+        'sort_order' => 20,
+    ]);
+    LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $subtopicActivity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => $subtopic->slug,
+        'topic_name' => $subtopic->title,
+        'evidence_type' => 'explain',
+        'contribution' => 6,
+    ]);
 
     $this->actingAs($learner)
         ->get(route('topics.show', $topic))
@@ -318,6 +355,8 @@ test('a topic page exposes its scoped learning trail', function () {
             ->where('topic.competence.evidenceTypes', ['retrieve'])
             ->where('topic.competence.learningPeriods', ['Aug 2026'])
             ->where('topic.competence.revisit.activityTitle', 'Notice patterns')
+            ->where('topic.subtopicCompetence.0.name', 'Deep Space')
+            ->where('topic.subtopicCompetence.0.topic.title', 'Deep Space')
         );
 });
 

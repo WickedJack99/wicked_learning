@@ -47,6 +47,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
                 <TopicCompetenceCard
                     competence={topic.competence}
+                    subtopicCompetence={topic.subtopicCompetence}
                     topicSlug={topic.slug}
                 />
 
@@ -234,20 +235,23 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
 function TopicCompetenceCard({
     competence,
+    subtopicCompetence,
     topicSlug,
 }: {
     competence: TopicCompetence | null;
+    subtopicCompetence: TopicCompetence[];
     topicSlug: string;
 }) {
     const t = usePlatformTranslation();
-    const starSize = competence
-        ? 30 + Math.round(competence.visual.sizeRatio * 18)
+    const firstTrail = competence ?? subtopicCompetence[0] ?? null;
+    const starSize = firstTrail
+        ? 30 + Math.round(firstTrail.visual.sizeRatio * 18)
         : 30;
-    const glowSize = competence
-        ? 14 + Math.round(competence.visual.auraRatio * 18)
+    const glowSize = firstTrail
+        ? 14 + Math.round(firstTrail.visual.auraRatio * 18)
         : 12;
-    const glowOpacity = competence
-        ? 0.35 + competence.visual.brightnessRatio * 0.55
+    const glowOpacity = firstTrail
+        ? 0.35 + firstTrail.visual.brightnessRatio * 0.55
         : 0.28;
 
     return (
@@ -282,6 +286,11 @@ function TopicCompetenceCard({
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                             {competence
                                 ? competence.visual.description
+                                : subtopicCompetence.length > 0
+                                  ? t(
+                                        'topics.detail.competence.subtopic_summary',
+                                        'Learning is unfolding through your subtopics.',
+                                    )
                                 : t(
                                       'topics.detail.competence.empty',
                                       'A first light will appear here as you work with this topic.',
@@ -342,6 +351,61 @@ function TopicCompetenceCard({
                                 {competence.learningPeriods.join(' · ')}
                             </p>
                         ) : null}
+                    </div>
+                </div>
+            ) : null}
+
+            {subtopicCompetence.length > 0 ? (
+                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                        {t(
+                            'topics.detail.competence.subtopics',
+                            'Subtopic trails',
+                        )}
+                    </p>
+                    <div className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
+                        {subtopicCompetence.map((trail) => (
+                            <div
+                                className="flex items-start justify-between gap-4 py-3"
+                                key={trail.topic?.href ?? trail.name}
+                            >
+                                <div className="min-w-0">
+                                    {trail.topic ? (
+                                        <Link
+                                            className="text-sm font-medium text-cyan-800 transition hover:text-cyan-950 dark:text-cyan-200 dark:hover:text-white"
+                                            href={trail.topic.href}
+                                        >
+                                            {trail.topic.title}
+                                        </Link>
+                                    ) : (
+                                        <p className="text-sm font-medium">
+                                            {trail.name}
+                                        </p>
+                                    )}
+                                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                        {trail.visual.description}
+                                    </p>
+                                    {trail.evidenceTypes.length > 0 ? (
+                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                            {trail.evidenceTypes
+                                                .map((type) =>
+                                                    evidenceTypeLabel(type, t),
+                                                )
+                                                .join(' · ')}
+                                        </p>
+                                    ) : null}
+                                </div>
+                                {trail.revisit ? (
+                                    <Link
+                                        aria-label={`${t('topics.detail.competence.revisit', 'Return to')} ${trail.revisit.activityTitle}`}
+                                        className="mt-0.5 shrink-0 text-violet-700 transition hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                                        href={trail.revisit.activityHref}
+                                    >
+                                        <ArrowRight className="size-4" />
+                                    </Link>
+                                ) : null}
+                            </div>
+                        ))}
                     </div>
                 </div>
             ) : null}

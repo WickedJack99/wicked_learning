@@ -38,17 +38,23 @@ class LearningTopicController extends Controller
     public function show(Request $request, LearningTopic $topic): Response
     {
         $competenceMap = $this->competenceMap->handle($request->user());
+        $topic = $this->topics->publishedDetail($topic, $request->user());
+        $topicSlugs = $this->topics->publishedDescendantSlugs($topic);
+        $competenceTopics = collect($competenceMap['topics'])
+            ->whereIn('slug', $topicSlugs)
+            ->values();
+        $competence = $competenceTopics->firstWhere('slug', $topic->slug);
 
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
-                $this->topics->publishedDetail($topic, $request->user()),
+                $topic,
                 $this->pathSerializer->serialize(
                     $this->paths->handle($request->user(), $topic),
                 ),
-                collect($competenceMap['topics'])->firstWhere(
-                    'slug',
-                    $topic->slug,
-                ),
+                $competence,
+                $competenceTopics
+                    ->reject(fn (array $entry): bool => $entry['slug'] === $topic->slug)
+                    ->all(),
             ),
         ]);
     }
