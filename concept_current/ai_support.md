@@ -70,6 +70,10 @@ useful judgment. A future review action can then write `ai_reviewed_at` and a
 review result after the tutor has seen and accepted the scope. Layout-only
 changes should not create pedagogical review noise.
 
+The activity review dialog shows the edit time and review time together. This
+makes freshness visible before a tutor relies on a previous review, while the
+tutor remains responsible for deciding whether any suggestion is useful.
+
 Depending on the administrator-selected scope, the agent should receive or load relevant context such as:
 
 - existing worlds and maps

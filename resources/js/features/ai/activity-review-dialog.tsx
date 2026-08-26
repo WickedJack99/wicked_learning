@@ -25,10 +25,12 @@ import type {
 
 type ReviewableActivity = {
     aiReview: ActivityReview | null;
+    aiReviewStatus: string;
     aiReviewedAt: string | null;
     id: number;
     title: string;
     type: string;
+    updatedAt: string | null;
 };
 
 export function ActivityReviewDialog({
@@ -106,11 +108,31 @@ export function ActivityReviewDialog({
                 {activity ? (
                     <div className="grid gap-5">
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/5">
-                            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
-                                {activity.type}
-                            </p>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                                    {activity.type}
+                                </p>
+                                <span
+                                    className={
+                                        activity.aiReviewStatus === 'reviewed'
+                                            ? 'text-xs font-medium text-emerald-700 dark:text-emerald-300'
+                                            : 'text-xs font-medium text-amber-700 dark:text-amber-300'
+                                    }
+                                >
+                                    {reviewStatusLabel(activity.aiReviewStatus)}
+                                </span>
+                            </div>
                             <p className="mt-1 text-sm font-semibold">
                                 {activity.title}
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {activity.updatedAt
+                                    ? `Edited ${formatReviewDate(activity.updatedAt)}`
+                                    : 'Edit time unavailable'}{' '}
+                                ·{' '}
+                                {activity.aiReviewedAt
+                                    ? `AI reviewed ${formatReviewDate(activity.aiReviewedAt)}`
+                                    : 'AI review not run yet'}
                             </p>
                         </div>
 
@@ -194,6 +216,21 @@ export function ActivityReviewDialog({
             </SettingsConfigurationDialog>
         </Dialog>
     );
+}
+
+function reviewStatusLabel(status: string): string {
+    return status === 'reviewed' ? 'AI review current' : 'Needs AI review';
+}
+
+function formatReviewDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(date);
 }
 
 function ActivityReviewResultView({ review }: { review: ActivityReview }) {
