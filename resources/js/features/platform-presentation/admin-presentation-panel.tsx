@@ -13,16 +13,17 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import InputError from '@/components/input-error';
+import { defaultLogo } from '@/components/platform-logo';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     SettingsNestedWorkspace,
     SettingsSectionButton,
     SettingsSaveButton,
-    type SettingsSaveAction,
 } from '@/components/settings-configuration-shell';
+import type { SettingsSaveAction } from '@/components/settings-configuration-shell';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { platformInfoPages } from '@/features/platform-info/content';
 import type { PlatformInfoPageKey } from '@/features/platform-info/content';
 import { useDirtyState } from '@/hooks/use-dirty-state';
@@ -53,7 +54,12 @@ type Props = {
 };
 
 type AuthBackgroundPage = 'login' | 'register' | 'welcome';
-type PresentationSection = 'backgrounds' | 'source' | 'welcome' | 'info';
+type PresentationSection =
+    | 'backgrounds'
+    | 'branding'
+    | 'source'
+    | 'welcome'
+    | 'info';
 type ThemeMode = 'dark' | 'light';
 
 const settingsFormGroupClassName =
@@ -93,6 +99,13 @@ const presentationSections: {
     key: PresentationSection;
     label: string;
 }[] = [
+    {
+        key: 'branding',
+        label: 'Branding',
+        description:
+            'Choose the logo used across the platform and browser tab.',
+        icon: Image,
+    },
     {
         key: 'backgrounds',
         label: 'Backgrounds',
@@ -226,6 +239,16 @@ export function AdminPresentationPanel({
                         [mode]: value,
                     },
                 },
+            },
+        }));
+    };
+
+    const updateBrandingLogo = (value: string) => {
+        setPresentationDraft((current) => ({
+            ...current,
+            branding: {
+                ...current.branding,
+                logo: value,
             },
         }));
     };
@@ -444,7 +467,7 @@ export function AdminPresentationPanel({
                     </Button>
                 ) : undefined
             }
-            description="Configure authentication backgrounds, welcome copy, information pages and source links without touching code."
+            description="Configure the platform logo, public pages, authentication backgrounds and source links without touching code."
             footerAction={<SettingsSaveButton action={saveAction} />}
             icon={Image}
             item={
@@ -460,6 +483,21 @@ export function AdminPresentationPanel({
             }
         >
             <div className="grid gap-5">
+                {activeSection === 'branding' ? (
+                    <BrandingEditor
+                        error={presentationErrors['branding.logo']}
+                        onChange={updateBrandingLogo}
+                        onUpload={(file) =>
+                            uploadPresentationImage(
+                                'branding.logo',
+                                file,
+                                updateBrandingLogo,
+                            )
+                        }
+                        uploading={uploadingImage === 'branding.logo'}
+                        value={presentationDraft.branding.logo}
+                    />
+                ) : null}
                 {activeSection === 'backgrounds' ? (
                     <section className="grid gap-4">
                         <div className="mb-4">
@@ -868,6 +906,53 @@ export function AdminPresentationPanel({
                 ) : null}
             </div>
         </SettingsNestedWorkspace>
+    );
+}
+
+function BrandingEditor({
+    error,
+    onChange,
+    onUpload,
+    uploading,
+    value,
+}: {
+    error?: string;
+    onChange: (value: string) => void;
+    onUpload: (file: File) => void;
+    uploading: boolean;
+    value: string;
+}) {
+    return (
+        <section className="grid gap-4">
+            <div>
+                <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Platform logo
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                    This image appears in the learner header, authentication
+                    screens and browser tab. Transparent images work best.
+                </p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_12rem] lg:items-start">
+                <BackgroundInput
+                    error={error}
+                    fieldId="platform-logo"
+                    label="Logo image"
+                    onChange={onChange}
+                    onUpload={onUpload}
+                    placeholder="/images/logo.png"
+                    uploading={uploading}
+                    value={value}
+                />
+                <div className="grid min-h-28 place-items-center rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-4">
+                    <img
+                        alt="Logo preview"
+                        className="size-24 object-contain"
+                        src={value || defaultLogo}
+                    />
+                </div>
+            </div>
+        </section>
     );
 }
 

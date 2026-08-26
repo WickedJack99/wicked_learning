@@ -1,7 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Bell, ChevronDown } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import { PlatformLogo } from '@/components/platform-logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -112,7 +112,10 @@ export function LearnerBrand() {
 
     return (
         <Link className="flex shrink-0 items-center gap-3" href="/home">
-            <AppLogoIcon className="size-8 text-violet-600 dark:text-violet-400" />
+            <PlatformLogo
+                className="size-8 object-contain"
+                aria-hidden="true"
+            />
             <span className="hidden text-sm font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
                 {props.name}
             </span>

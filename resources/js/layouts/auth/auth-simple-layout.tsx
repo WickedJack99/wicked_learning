@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import AppLogoIcon from '@/components/app-logo-icon';
 import AppearanceToggleTab from '@/components/appearance-tabs';
+import { PlatformLogo } from '@/components/platform-logo';
 import { useAppearance, useAppearancePageSync } from '@/hooks/use-appearance';
 import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
 import { home } from '@/routes';
@@ -98,7 +98,7 @@ export default function AuthSimpleLayout({
                                     color: 'var(--auth-logo-color)',
                                 }}
                             >
-                                <AppLogoIcon className="size-6 fill-current" />
+                                <PlatformLogo className="size-8 object-contain" />
                             </div>
                             <span className="sr-only">{title}</span>
                         </Link>

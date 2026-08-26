@@ -11,6 +11,7 @@ test('public pages receive presentation defaults', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('welcome')
+            ->where('publicPresentation.branding.logo', '/images/logo.png')
             ->where('publicPresentation.auth.backgroundImages.login.dark', '')
             ->where('publicPresentation.cursors.default.image', '/images/cursors/fantasy-cursor.png')
             ->where('publicPresentation.cursors.action.image', '/images/cursors/fantasy-pointer.png')
@@ -27,6 +28,9 @@ test('admins can update public presentation settings', function () {
 
     $this->actingAs($admin)
         ->patch(route('settings.presentation.update'), [
+            'branding' => [
+                'logo' => '/images/custom-logo.png',
+            ],
             'auth' => [
                 'backgroundImages' => [
                     'login' => [
@@ -93,6 +97,8 @@ test('admins can update public presentation settings', function () {
 
     expect($settings['auth']['backgroundImages']['login']['dark'])
         ->toBe('/images/themes/custom-login-dark.svg')
+        ->and($settings['branding']['logo'])
+        ->toBe('/images/custom-logo.png')
         ->and($settings['cursors']['action']['image'])
         ->toBe('/images/cursors/custom-pointer.svg')
         ->and($settings['cursors']['grab']['hotspotY'])

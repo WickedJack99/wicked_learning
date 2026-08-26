@@ -10,6 +10,7 @@ class PresentationRules
     public function update(): array
     {
         return [
+            ...$this->branding(),
             ...$this->authBackgrounds(),
             ...$this->cursors(),
             ...$this->welcomePages(),
@@ -17,6 +18,16 @@ class PresentationRules
             ...$this->publicPalette(),
             ...$this->settingsPalette(),
             ...$this->sourceLinks(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function branding(): array
+    {
+        return [
+            'branding.logo' => ['nullable', 'string', 'max:2048'],
         ];
     }
 

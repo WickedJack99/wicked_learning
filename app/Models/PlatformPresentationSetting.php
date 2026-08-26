@@ -72,6 +72,9 @@ class PlatformPresentationSetting extends Model
     public static function defaults(): array
     {
         return [
+            'branding' => [
+                'logo' => '/images/logo.png',
+            ],
             'auth' => [
                 'backgroundImages' => [
                     'login' => [

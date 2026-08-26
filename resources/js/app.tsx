@@ -1,4 +1,5 @@
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
+import { defaultLogo } from '@/components/platform-logo';
 import { SourceCodeLink } from '@/components/source-code-link';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -9,6 +10,23 @@ import SettingsLayout from '@/layouts/settings/layout';
 import '@xyflow/react/dist/style.css';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+router.on('navigate', (event) => {
+    const presentation = event.detail.page.props.publicPresentation;
+    const logo =
+        typeof presentation === 'object' &&
+        presentation !== null &&
+        'branding' in presentation &&
+        typeof presentation.branding === 'object' &&
+        presentation.branding !== null &&
+        'logo' in presentation.branding &&
+        typeof presentation.branding.logo === 'string' &&
+        presentation.branding.logo
+            ? presentation.branding.logo
+            : defaultLogo;
+
+    syncFavicon(logo);
+});
 
 // Read the server/browser appearance before React mounts so every component
 // resolves the same light or dark theme on its first render.
@@ -90,3 +108,19 @@ createInertiaApp({
     },
     progress: false,
 });
+
+function syncFavicon(logo: string) {
+    const existing = document.querySelector<HTMLLinkElement>(
+        'link#platform-favicon',
+    );
+    const favicon = existing ?? document.createElement('link');
+
+    favicon.dataset.platformFavicon = 'true';
+    favicon.href = logo;
+    favicon.id = 'platform-favicon';
+    favicon.rel = 'icon';
+
+    if (!existing) {
+        document.head.appendChild(favicon);
+    }
+}

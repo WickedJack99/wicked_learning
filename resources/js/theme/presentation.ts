@@ -78,6 +78,9 @@ export type PlatformInformationPageSettings = {
 };
 
 export type PublicPresentationSettings = {
+    branding: {
+        logo: string;
+    };
     auth: {
         backgroundImages: {
             login: BackgroundImageSettings;
