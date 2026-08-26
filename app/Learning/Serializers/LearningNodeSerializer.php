@@ -134,7 +134,6 @@ class LearningNodeSerializer
 
         return [
             ...$this->baseNode($node, $position),
-            'topic' => $this->topic($node->map->topic),
             'outgoingPortalLinks' => [],
             'startActivityId' => null,
             'startRoutes' => [],
@@ -158,7 +157,7 @@ class LearningNodeSerializer
     private function loadRelations(LearningNode $node): void
     {
         $node->loadMissing([
-            'map',
+            'map.topic',
             'activities.dialogueStages',
             'activities.npcDialogueNodes',
             'activities.npcDialogueTransitions',
@@ -204,6 +203,7 @@ class LearningNodeSerializer
             'mapId' => $node->map->id,
             'mapSlug' => $node->map->slug,
             'mapTitle' => $node->map->title,
+            'topic' => $this->topic($node->map->topic),
             'slug' => $node->slug,
             'title' => $node->title,
             'description' => $node->description,

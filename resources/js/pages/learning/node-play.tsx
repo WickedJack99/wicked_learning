@@ -383,6 +383,14 @@ export default function NodePlay({
                         From beginning
                     </Button>
                     <div className="order-last min-w-0 basis-full text-left sm:order-none sm:ml-auto sm:basis-auto sm:text-right">
+                        {node.topic ? (
+                            <Link
+                                className="block truncate text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                                href={node.topic.href}
+                            >
+                                {node.topic.title}
+                            </Link>
+                        ) : null}
                         <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                             {node.mapTitle}
                         </p>

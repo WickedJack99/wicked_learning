@@ -154,13 +154,26 @@ test('playing a node records that node map as the learner location', function ()
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();
     $node = LearningNode::query()->where('slug', 'return-gate')->firstOrFail();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'play-area',
+        'title' => 'Play area',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'play-topic',
+        'title' => 'Play topic',
+        'is_published' => true,
+    ]);
+    $node->map->update(['learning_topic_id' => $topic->id]);
 
     $this->actingAs($user)
         ->get(route('learning.nodes.play', $node))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('learning/node-play')
-            ->where('node.mapSlug', 'signal-archive'));
+            ->where('node.mapSlug', 'signal-archive')
+            ->where('node.topic.title', 'Play topic')
+            ->where('node.topic.href', '/topics/play-topic'));
 
     expect($user->refresh()->preference?->settings['learning']['lastMapSlug'] ?? null)
         ->toBe('signal-archive');
