@@ -549,3 +549,20 @@ test('authenticated users can play a node activity graph outside the map', funct
             ->where('node.mapSlug', 'first-sector')
         );
 });
+
+test('learners can open a requested activity within a playable node', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $activity = $node->activities()->orderBy('sort_order')->skip(1)->firstOrFail();
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', [
+            'activity_id' => $activity->id,
+            'node' => $node,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('playActivityId', $activity->id));
+});

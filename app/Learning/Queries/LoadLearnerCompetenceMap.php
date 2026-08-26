@@ -141,7 +141,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, activityTitle: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null}>
+     * @return list<array{id: int, evidenceType: string, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -152,6 +152,7 @@ class LoadLearnerCompetenceMap
                 $node = $activity?->node;
 
                 return [
+                    'activityHref' => $this->activityHref($activity),
                     'activityTitle' => $activity?->title,
                     'evidenceType' => $event->evidence_type,
                     'id' => $event->id,
@@ -187,7 +188,7 @@ class LoadLearnerCompetenceMap
             ->all());
     }
 
-    /** @return array{activityTitle: string, nodeHref: string, nodeTitle: string}|null */
+    /** @return array{activityHref: string, activityTitle: string, nodeHref: string, nodeTitle: string}|null */
     private function revisit(?LearningActivity $activity): ?array
     {
         if (! $activity instanceof LearningActivity || ! $activity->node) {
@@ -195,9 +196,22 @@ class LoadLearnerCompetenceMap
         }
 
         return [
+            'activityHref' => $this->activityHref($activity),
             'activityTitle' => $activity->title,
             'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),
             'nodeTitle' => $activity->node->title,
         ];
+    }
+
+    private function activityHref(?LearningActivity $activity): ?string
+    {
+        if (! $activity instanceof LearningActivity || ! $activity->node) {
+            return null;
+        }
+
+        return route('learning.nodes.play', [
+            'activity_id' => $activity->id,
+            'node' => $activity->node,
+        ]);
     }
 }

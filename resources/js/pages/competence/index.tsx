@@ -751,9 +751,9 @@ function CompetenceReading({
                     </p>
                     <Link
                         className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
-                        href={topic.revisit.nodeHref}
+                        href={topic.revisit.activityHref}
                     >
-                        Revisit this place
+                        Revisit this activity
                     </Link>
                 </div>
             ) : null}
@@ -818,10 +818,13 @@ function CompetenceReading({
                                 </span>
                             );
 
-                            return evidence.nodeHref ? (
+                            const evidenceHref =
+                                evidence.activityHref ?? evidence.nodeHref;
+
+                            return evidenceHref ? (
                                 <Link
                                     className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2 transition hover:border-cyan-200/35 hover:bg-cyan-200/10"
-                                    href={evidence.nodeHref}
+                                    href={evidenceHref}
                                     key={evidence.id}
                                 >
                                     {content}

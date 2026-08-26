@@ -102,6 +102,7 @@ class LearningWorldController extends Controller
     public function play(Request $request, LearningNode $node): Response|RedirectResponse
     {
         $user = $request->user();
+        $requestedActivity = $this->requestedActivityFromRequest($request, $node);
         $route = $user ? $this->routeFromRequest($request, $node) : null;
         $playRunId = $user ? $this->playRunService->currentRunId($request, $node) : null;
         $runProgress = $user
@@ -124,7 +125,7 @@ class LearningWorldController extends Controller
             $route ??= $runProgress->activityStart;
             $playRunId = $runProgress->current_play_run_id;
 
-            if ($this->hasPlayStateQuery($request)) {
+            if ($this->hasPlayStateQuery($request) && ! $requestedActivity) {
                 return redirect()->route('learning.nodes.play', ['node' => $node]);
             }
         }
@@ -137,7 +138,7 @@ class LearningWorldController extends Controller
 
         return Inertia::render('learning/node-play', [
             'node' => $this->nodeSerializer->serialize($playableNode, $user, true),
-            'playActivityId' => $runProgress?->current_learning_activity_id,
+            'playActivityId' => $requestedActivity?->id ?? $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,
             'playRunId' => $playRunId,
             'playState' => $this->activityPlayStateService->activityStatesForRun($runProgress),
@@ -379,6 +380,17 @@ class LearningWorldController extends Controller
             ->first();
     }
 
+    private function requestedActivityFromRequest(Request $request, LearningNode $node): ?LearningActivity
+    {
+        $activityId = $request->query('activity_id');
+
+        if (! is_numeric($activityId)) {
+            return null;
+        }
+
+        return $node->activities()->whereKey((int) $activityId)->first();
+    }
+
     private function progressForPlayRequest(
         Request $request,
         LearningNode $node,
@@ -398,6 +410,7 @@ class LearningWorldController extends Controller
     private function hasPlayStateQuery(Request $request): bool
     {
         return $request->query->has('activity')
+            || $request->query->has('activity_id')
             || $request->query->has('route')
             || $request->query->has('run');
     }

@@ -1,6 +1,7 @@
 export type CompetenceTopic = {
     evidenceLedger: Array<{
         activityTitle: string | null;
+        activityHref: string | null;
         evidenceType: string;
         id: number;
         nodeHref: string | null;
@@ -13,6 +14,7 @@ export type CompetenceTopic = {
         title: string;
     } | null;
     revisit: {
+        activityHref: string;
         activityTitle: string;
         nodeHref: string;
         nodeTitle: string;
