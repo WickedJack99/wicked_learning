@@ -77,7 +77,26 @@ export async function applyContentPlan(
     ).then(({ data }) => data);
 }
 
+export async function updateContentPlan(
+    runId: number,
+    plan: ContentPlan,
+): Promise<ContentAuthoringRun> {
+    return requestJson<{ data: ContentAuthoringRun }>(
+        `/settings/ai-content-plans/${runId}`,
+        { plan },
+        'PATCH',
+    ).then(({ data }) => data);
+}
+
 async function postJson<T>(url: string, payload: unknown): Promise<T> {
+    return requestJson<T>(url, payload, 'POST');
+}
+
+async function requestJson<T>(
+    url: string,
+    payload: unknown,
+    method: 'PATCH' | 'POST',
+): Promise<T> {
     const csrfToken =
         document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
             ?.content ?? '';
@@ -90,7 +109,7 @@ async function postJson<T>(url: string, payload: unknown): Promise<T> {
             'X-CSRF-TOKEN': csrfToken,
             'X-Requested-With': 'XMLHttpRequest',
         },
-        method: 'POST',
+        method,
     });
 
     if (!response.ok) {

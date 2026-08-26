@@ -223,6 +223,53 @@ test('an administrator can include an open practice activity in a content plan',
         ->and($activity->config['learningIntent'])->toBe('participate');
 });
 
+test('an administrator can edit and save a draft before applying it', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_editable_plan',
+            'output_text' => json_encode(aiContentPlan()),
+        ]),
+    ]);
+
+    $generateResponse = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Explain energy conversion.',
+            'route_length' => 2,
+            'activity_types' => ['markdown', 'reflection'],
+        ])
+        ->assertCreated();
+    $run = AiContentAuthoringRun::query()->findOrFail($generateResponse->json('data.id'));
+    $plan = $run->plan;
+    $plan['mapAsset']['title'] = 'Energy converter, revised';
+    $plan['activities'][0]['body'] = '## A revised energy path\n\nTrace the change from input to output.';
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.ai-content-plans.update', $run), [
+            'plan' => $plan,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.plan.mapAsset.title', 'Energy converter, revised');
+
+    $invalidPlan = $plan;
+    $invalidPlan['activities'][0]['body'] = null;
+    $this->actingAs($admin)
+        ->patchJson(route('settings.ai-content-plans.update', $run), [
+            'plan' => $invalidPlan,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonFragment([
+            'Markdown activities need readable page content.',
+        ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai-content-plans.apply', $run))
+        ->assertCreated()
+        ->assertJsonPath('data.mapAsset.title', 'Energy converter, revised');
+});
+
 test('only the administrator who generated a draft can apply it', function () {
     $creator = aiAuthoringUser();
     $otherAdmin = aiAuthoringUser();

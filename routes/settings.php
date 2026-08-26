@@ -376,6 +376,8 @@ Route::middleware([
 ])->group(function () {
     Route::post('settings/worlds/maps/{map}/ai-content-plans', [AdminAiContentAuthoringController::class, 'generate'])
         ->name('settings.worlds.maps.ai-content-plans.generate');
+    Route::patch('settings/ai-content-plans/{run}', [AdminAiContentAuthoringController::class, 'update'])
+        ->name('settings.ai-content-plans.update');
     Route::post('settings/ai-content-plans/{run}/apply', [AdminAiContentAuthoringController::class, 'apply'])
         ->name('settings.ai-content-plans.apply');
 });

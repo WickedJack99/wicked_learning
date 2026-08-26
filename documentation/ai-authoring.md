@@ -73,8 +73,9 @@ does not leave a partially created route.
 - Generation is synchronous; it is not a queued background job yet.
 - A draft creates one MapAsset and a short linear route, not a complete world.
 - Images are not invented or uploaded by the authoring flow.
-- Draft editing happens by changing the brief and generating again; field-level
-  plan editing can be added later.
+- Administrators can edit the MapAsset and Activity fields in a draft before
+  applying it. The edited plan is validated again against the same contract and
+  scoped Activity types when it is saved.
 - Only the administrator who generated a draft can apply it.
 - Human approval is mandatory and is part of the contract, not merely a UI hint.
 

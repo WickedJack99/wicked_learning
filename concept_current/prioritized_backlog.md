@@ -38,7 +38,8 @@ This backlog contains current direction. Historical ideas in `concept/` and
 - Add guarded, administrator-selected context loaders and more provider adapters.
 - Expand the existing reviewed MapAsset draft flow to questions, feedback,
   branching routes and broader world design.
-- Add field-level draft editing and comparison before apply.
+- Add a side-by-side authoring conversation that can inspect scoped existing
+  structures and suggest revisions before a tutor saves or applies a draft.
 - Let the world-design assistant inspect existing structures and explicitly
   propose reuse, merging or extension before creating new content.
 

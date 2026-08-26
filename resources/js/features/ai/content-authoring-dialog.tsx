@@ -5,8 +5,11 @@ import {
     Bot,
     Check,
     FileText,
+    PenLine,
     RefreshCw,
+    Save,
     Sparkles,
+    X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -26,9 +29,12 @@ import { Label } from '@/components/ui/label';
 import {
     applyContentPlan,
     generateContentPlan,
+    updateContentPlan,
 } from '@/features/ai/content-authoring-client';
 import type {
     ContentAuthoringRun,
+    ContentPlan,
+    ContentPlanActivity,
     ContentPlanActivityType,
 } from '@/features/ai/content-authoring-client';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -78,6 +84,8 @@ export function ContentAuthoringDialog({
     );
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState<ContentAuthoringRun | null>(null);
+    const [editedPlan, setEditedPlan] = useState<ContentPlan | null>(null);
+    const [editingDraft, setEditingDraft] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
     const [form, setForm] = useState<FormState>(() => initialForm(templates));
@@ -108,15 +116,66 @@ export function ContentAuthoringDialog({
         setError(null);
 
         try {
-            setDraft(
-                await generateContentPlan(mapId, {
+            const generated = await generateContentPlan(mapId, {
                     activity_types: form.activityTypes,
                     goal: form.goal.trim(),
                     prior_knowledge: optionalText(form.priorKnowledge),
                     route_length: Number(form.routeLength),
                     target_audience: optionalText(form.targetAudience),
                     template_id: Number(form.templateId),
-                }),
+                });
+            setDraft(generated);
+            setEditedPlan(null);
+            setEditingDraft(false);
+        } catch (requestError) {
+            setError(
+                errorMessage(
+                    requestError,
+                    t(
+                        'settings.ai.authoring.request_failed',
+                        'The request failed.',
+                    ),
+                ),
+            );
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const startEditing = () => {
+        if (!draft) {
+            return;
+        }
+
+        setEditedPlan(clonePlan(draft.plan));
+        setEditingDraft(true);
+        setError(null);
+    };
+
+    const cancelEditing = () => {
+        setEditedPlan(null);
+        setEditingDraft(false);
+        setError(null);
+    };
+
+    const saveDraft = async () => {
+        if (!draft || !editedPlan) {
+            return;
+        }
+
+        setProcessing(true);
+        setError(null);
+
+        try {
+            const saved = await updateContentPlan(draft.id, editedPlan);
+            setDraft(saved);
+            setEditedPlan(null);
+            setEditingDraft(false);
+            toast.success(
+                t(
+                    'settings.ai.authoring.saved_success',
+                    'Draft changes saved.',
+                ),
             );
         } catch (requestError) {
             setError(
@@ -203,7 +262,14 @@ export function ContentAuthoringDialog({
 
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     {draft ? (
-                        <DraftPreview draft={draft} />
+                        editingDraft && editedPlan ? (
+                            <DraftEditor
+                                onChange={setEditedPlan}
+                                plan={editedPlan}
+                            />
+                        ) : (
+                            <DraftPreview draft={draft} />
+                        )
                     ) : (
                         <AuthoringForm
                             form={form}
@@ -221,21 +287,44 @@ export function ContentAuthoringDialog({
 
                 <DialogFooter className="shrink-0 border-t border-[var(--settings-border-color)] px-5 py-4 sm:justify-between">
                     {draft ? (
-                        <Button
-                            disabled={processing}
-                            onClick={() => {
-                                setDraft(null);
-                                setError(null);
-                            }}
-                            type="button"
-                            variant="ghost"
-                        >
-                            <ArrowLeft className="size-4" />
-                            {t(
-                                'settings.ai.authoring.change_brief',
-                                'Change brief',
-                            )}
-                        </Button>
+                        editingDraft ? (
+                            <Button
+                                disabled={processing}
+                                onClick={cancelEditing}
+                                type="button"
+                                variant="ghost"
+                            >
+                                <X className="size-4" />
+                                {t('settings.ai.authoring.cancel_editing', 'Cancel editing')}
+                            </Button>
+                        ) : (
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    disabled={processing}
+                                    onClick={() => {
+                                        setDraft(null);
+                                        setError(null);
+                                    }}
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <ArrowLeft className="size-4" />
+                                    {t(
+                                        'settings.ai.authoring.change_brief',
+                                        'Change brief',
+                                    )}
+                                </Button>
+                                <Button
+                                    disabled={processing || draft.status !== 'draft'}
+                                    onClick={startEditing}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <PenLine className="size-4" />
+                                    {t('settings.ai.authoring.edit_draft', 'Edit draft')}
+                                </Button>
+                            </div>
+                        )
                     ) : (
                         <Button
                             disabled={processing}
@@ -247,22 +336,35 @@ export function ContentAuthoringDialog({
                         </Button>
                     )}
                     {draft ? (
-                        <Button
-                            disabled={processing || draft.status !== 'draft'}
-                            onClick={() => void apply()}
-                            type="button"
-                        >
-                            <Check className="size-4" />
-                            {processing
-                                ? t(
-                                      'settings.ai.authoring.applying',
-                                      'Creating content…',
-                                  )
-                                : t(
-                                      'settings.ai.authoring.apply',
-                                      'Approve and create',
-                                  )}
-                        </Button>
+                        editingDraft ? (
+                            <Button
+                                disabled={processing}
+                                onClick={() => void saveDraft()}
+                                type="button"
+                            >
+                                <Save className="size-4" />
+                                {processing
+                                    ? t('settings.ai.authoring.saving', 'Saving…')
+                                    : t('settings.ai.authoring.save_changes', 'Save changes')}
+                            </Button>
+                        ) : (
+                            <Button
+                                disabled={processing || draft.status !== 'draft'}
+                                onClick={() => void apply()}
+                                type="button"
+                            >
+                                <Check className="size-4" />
+                                {processing
+                                    ? t(
+                                          'settings.ai.authoring.applying',
+                                          'Creating content…',
+                                      )
+                                    : t(
+                                          'settings.ai.authoring.apply',
+                                          'Approve and create',
+                                      )}
+                            </Button>
+                        )
                     ) : (
                         <Button
                             disabled={processing || !canGenerate}
@@ -484,6 +586,304 @@ function AuthoringForm({
     );
 }
 
+function DraftEditor({
+    onChange,
+    plan,
+}: {
+    onChange: (plan: ContentPlan) => void;
+    plan: ContentPlan;
+}) {
+    const t = usePlatformTranslation();
+    const updateActivity = (
+        index: number,
+        changes: Partial<ContentPlanActivity>,
+    ) => {
+        onChange({
+            ...plan,
+            activities: plan.activities.map((activity, activityIndex) =>
+                activityIndex === index
+                    ? { ...activity, ...changes }
+                    : activity,
+            ),
+        });
+    };
+
+    return (
+        <div className="grid gap-6 p-5">
+            <section className="grid gap-2 border-b border-[var(--settings-border-color)] pb-5">
+                <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                    {t('settings.ai.authoring.editing', 'Edit draft')}
+                </p>
+                <p className="text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.ai.authoring.editing_description',
+                        'Adjust the wording or learning details before approval. Saving checks the complete draft again.',
+                    )}
+                </p>
+            </section>
+
+            <section className="grid gap-3">
+                <h4 className="font-semibold text-slate-950 dark:text-white">
+                    {t('settings.ai.authoring.map_asset', 'MapAsset')}
+                </h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label={t('settings.ai.authoring.title_field', 'Title')}>
+                        <Input
+                            onChange={(event) =>
+                                onChange({
+                                    ...plan,
+                                    mapAsset: {
+                                        ...plan.mapAsset,
+                                        title: event.target.value,
+                                    },
+                                })
+                            }
+                            value={plan.mapAsset.title}
+                        />
+                    </Field>
+                    <Field label={t('settings.ai.authoring.label', 'Label')}>
+                        <Input
+                            onChange={(event) =>
+                                onChange({
+                                    ...plan,
+                                    mapAsset: {
+                                        ...plan.mapAsset,
+                                        label: nullableText(event.target.value),
+                                    },
+                                })
+                            }
+                            value={plan.mapAsset.label ?? ''}
+                        />
+                    </Field>
+                </div>
+                <Field
+                    label={t(
+                        'settings.ai.authoring.description_field',
+                        'Description',
+                    )}
+                >
+                    <textarea
+                        className={textAreaClass}
+                        onChange={(event) =>
+                            onChange({
+                                ...plan,
+                                mapAsset: {
+                                    ...plan.mapAsset,
+                                    description: nullableText(event.target.value),
+                                },
+                            })
+                        }
+                        value={plan.mapAsset.description ?? ''}
+                    />
+                </Field>
+            </section>
+
+            <section className="grid gap-3">
+                <h4 className="font-semibold text-slate-950 dark:text-white">
+                    {t('settings.ai.authoring.route', 'Linear Activity route')}
+                </h4>
+                <div className="grid gap-4">
+                    {plan.activities.map((activity, index) => (
+                        <article
+                            className="grid gap-4 rounded-lg border border-[var(--settings-border-color)] p-4"
+                            key={`${activity.title}-${index}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="grid size-8 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--settings-accent)_18%,transparent)] text-sm font-semibold text-[var(--settings-accent)]">
+                                    {index + 1}
+                                </div>
+                                <div>
+                                    <p className="font-medium text-slate-950 dark:text-white">
+                                        {activityTypeLabel(activity.type, t)}
+                                    </p>
+                                    <p className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.ai.authoring.activity_edit_hint',
+                                            'This activity remains part of the selected route.',
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field label={t('settings.ai.authoring.title_field', 'Title')}>
+                                    <Input
+                                        onChange={(event) =>
+                                            updateActivity(index, {
+                                                title: event.target.value,
+                                            })
+                                        }
+                                        value={activity.title}
+                                    />
+                                </Field>
+                                <Field
+                                    label={t(
+                                        'settings.ai.authoring.learning_purpose',
+                                        'Learning purpose',
+                                    )}
+                                >
+                                    <select
+                                        className="h-10 w-full min-w-0 rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 text-sm"
+                                        onChange={(event) =>
+                                            updateActivity(index, {
+                                                learningIntent: event.target.value,
+                                            })
+                                        }
+                                        value={activity.learningIntent}
+                                    >
+                                        {learningIntentOptions.map((intent) => (
+                                            <option key={intent} value={intent}>
+                                                {intent}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
+                            </div>
+                            <Field
+                                label={t(
+                                    'settings.ai.authoring.introduction',
+                                    'Introduction',
+                                )}
+                            >
+                                <textarea
+                                    className={textAreaClass}
+                                    onChange={(event) =>
+                                        updateActivity(index, {
+                                            introduction: nullableText(
+                                                event.target.value,
+                                            ),
+                                        })
+                                    }
+                                    value={activity.introduction ?? ''}
+                                />
+                            </Field>
+                            <Field
+                                label={
+                                    activity.type === 'markdown'
+                                        ? t(
+                                              'settings.ai.authoring.content',
+                                              'Content',
+                                          )
+                                        : t(
+                                              'settings.ai.authoring.prompt',
+                                              'Learner invitation',
+                                          )
+                                }
+                            >
+                                <textarea
+                                    className={textAreaClass}
+                                    onChange={(event) =>
+                                        updateActivity(
+                                            index,
+                                            activity.type === 'markdown'
+                                                ? {
+                                                      body: nullableText(
+                                                          event.target.value,
+                                                      ),
+                                                  }
+                                                : {
+                                                      prompt: nullableText(
+                                                          event.target.value,
+                                                      ),
+                                                  },
+                                        )
+                                    }
+                                    value={
+                                        activity.type === 'markdown'
+                                            ? activity.body ?? ''
+                                            : activity.prompt ?? ''
+                                    }
+                                />
+                            </Field>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <Field
+                                    label={t(
+                                        'settings.ai.authoring.competence_topics',
+                                        'Competence topics',
+                                    )}
+                                >
+                                    <Input
+                                        onChange={(event) =>
+                                            updateActivity(index, {
+                                                competenceTopics:
+                                                    event.target.value
+                                                        .split(',')
+                                                        .map((topic) => topic.trim())
+                                                        .filter(Boolean),
+                                            })
+                                        }
+                                        value={activity.competenceTopics.join(', ')}
+                                    />
+                                </Field>
+                                <Field
+                                    label={t(
+                                        'settings.ai.authoring.note',
+                                        'Note for the learner',
+                                    )}
+                                >
+                                    <Input
+                                        onChange={(event) =>
+                                            updateActivity(index, {
+                                                note: nullableText(event.target.value),
+                                            })
+                                        }
+                                        value={activity.note ?? ''}
+                                    />
+                                </Field>
+                            </div>
+                            {activity.type === 'message_prompt' ? (
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field label={t('settings.ai.authoring.shared_topic', 'Shared topic')}>
+                                        <Input
+                                            onChange={(event) =>
+                                                updateActivity(index, {
+                                                    topic: nullableText(event.target.value),
+                                                })
+                                            }
+                                            value={activity.topic ?? ''}
+                                        />
+                                    </Field>
+                                    <Field label={t('settings.ai.authoring.input_label', 'Input label')}>
+                                        <Input
+                                            onChange={(event) =>
+                                                updateActivity(index, {
+                                                    inputLabel: nullableText(event.target.value),
+                                                })
+                                            }
+                                            value={activity.inputLabel ?? ''}
+                                        />
+                                    </Field>
+                                </div>
+                            ) : null}
+                            {activity.type === 'shared_task' ? (
+                                <Field label={t('settings.ai.authoring.input_label', 'Input label')}>
+                                    <Input
+                                        onChange={(event) =>
+                                            updateActivity(index, {
+                                                inputLabel: nullableText(event.target.value),
+                                            })
+                                        }
+                                        value={activity.inputLabel ?? ''}
+                                    />
+                                </Field>
+                            ) : null}
+                        </article>
+                    ))}
+                </div>
+            </section>
+
+            <Field label={t('settings.ai.authoring.summary', 'Summary')}>
+                <textarea
+                    className={textAreaClass}
+                    onChange={(event) =>
+                        onChange({ ...plan, summary: event.target.value })
+                    }
+                    value={plan.summary}
+                />
+            </Field>
+        </div>
+    );
+}
+
 function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
     const t = usePlatformTranslation();
 
@@ -644,6 +1044,27 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
             {children}
         </Label>
     );
+}
+
+const learningIntentOptions = [
+    'apply',
+    'explain',
+    'participate',
+    'reflect',
+    'retrieve',
+    'review',
+    'transfer',
+];
+
+const textAreaClass =
+    'min-h-24 w-full resize-y rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 py-2 text-sm leading-6 outline-none focus:border-[var(--settings-accent)]';
+
+function clonePlan(plan: ContentPlan): ContentPlan {
+    return JSON.parse(JSON.stringify(plan)) as ContentPlan;
+}
+
+function nullableText(value: string): string | null {
+    return value.trim() === '' ? null : value;
 }
 
 function initialForm(templates: ContentAuthoringTemplate[]): FormState {

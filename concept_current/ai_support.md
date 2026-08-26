@@ -30,10 +30,11 @@ the apply path gives those topics equal initial contribution weight and uses the
 existing competence configuration.
 
 The resulting draft is stored with warnings, contract versions, provider/model
-metadata and token usage. The admin reviews it before applying. Apply revalidates
-the plan and creates one focusable MapAsset plus a short linear
-Markdown/Reflection route in one transaction. Human approval is mandatory;
-generation alone never mutates the map.
+metadata and token usage. The admin reviews it before applying and can edit its
+MapAsset and Activity fields. Saving edits revalidates the plan before it is
+stored. Apply revalidates it once more and creates one focusable MapAsset plus a
+short linear route in one transaction. Human approval is mandatory; generation
+alone never mutates the map.
 
 The separate Content API publishes its live contract and supports scoped
 read/create operations through an administration console. It uses the existing

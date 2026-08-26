@@ -260,6 +260,8 @@ The authoring slice creates one focusable MapAsset at the map center and one to
 three selected Markdown, Reflection, Message prompt, Shared task or Open
 practice Activities. Applying the draft revalidates the plan and writes the
 MapAsset, Activities, route start and transitions in one database transaction.
+The draft can be edited before approval; saving the edits runs the same contract
+and semantic validation as generation and application.
 See [AI-assisted authoring](ai-authoring.md).
 
 ### Content API
