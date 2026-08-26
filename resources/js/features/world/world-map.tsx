@@ -6,7 +6,6 @@ import {
     Map as MapIcon,
     Orbit,
     RadioTower,
-    Sparkles,
 } from 'lucide-react';
 import { memo, useRef, useState } from 'react';
 import type { CSSProperties, ElementType, PointerEvent } from 'react';
@@ -292,15 +291,6 @@ export function WorldMap({
                     <span className="flex items-center gap-2">
                         <MapIcon className="size-4" />
                         <span>{t('world.map.current', 'Current map')}</span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                        <Link
-                            className="pointer-events-auto inline-flex items-center gap-1.5 text-xs font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current"
-                            href={map.topic?.competenceHref ?? '/competence'}
-                        >
-                            <Sparkles className="size-3.5" />
-                            {t('world.map.star_map', 'Star map')}
-                        </Link>
                     </span>
                 </div>
                 <h1 className="text-3xl font-semibold tracking-normal">

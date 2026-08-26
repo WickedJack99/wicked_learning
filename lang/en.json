@@ -234,7 +234,6 @@
     "world.search.mobile_prompt": "Enter a word to search visible maps and tiles.",
     "world.search.open": "Open map search",
     "world.map.current": "Current map",
-    "world.map.star_map": "Star map",
     "world.search.title": "Map search",
     "world.map.back_to_topic": "Back to :title",
     "activities.focus.apply": "Apply an idea",

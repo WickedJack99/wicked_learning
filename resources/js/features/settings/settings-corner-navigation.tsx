@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bookmark, DoorOpen, Github, Info, Map } from 'lucide-react';
+import { Bookmark, DoorOpen, Github, Home, Info, Map } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { clearPersistedActiveActivity } from '@/features/world/active-activity';
 import { worldHref } from '@/features/world/types';
@@ -29,6 +29,11 @@ export function SettingsCornerNavigation() {
     };
 
     const items: SettingsCornerNavigationItem[] = [
+        {
+            href: '/home',
+            icon: <Home className="size-4" />,
+            label: t('home.learning_desk.navigation.desk', 'Learning desk'),
+        },
         {
             href: currentMapHref,
             icon: <Map className="size-4" />,
