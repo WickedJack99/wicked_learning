@@ -22,7 +22,10 @@ class LearningTopicSerializer
                 'slug' => $area->slug,
                 'title' => $area->title,
                 'topics' => $area->rootTopics
-                    ->map(fn (LearningTopic $topic): array => $this->summary($topic))
+                    ->map(fn (LearningTopic $topic): array => [
+                        ...$this->summary($topic),
+                        'mapCount' => $topic->maps->count(),
+                    ])
                     ->values()
                     ->all(),
             ])

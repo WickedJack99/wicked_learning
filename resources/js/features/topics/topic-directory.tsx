@@ -67,7 +67,25 @@ export function TopicDirectory({
                                             href={topic.href}
                                             key={topic.id}
                                         >
-                                            <span>{topic.title}</span>
+                                            <span>
+                                                <span>{topic.title}</span>
+                                                {topic.mapCount ? (
+                                                    <span className="mt-1 block text-xs text-cyan-700 dark:text-cyan-300">
+                                                        {topic.mapCount === 1
+                                                            ? t(
+                                                                  'topics.directory.map_count.one',
+                                                                  '1 map available',
+                                                              )
+                                                            : t(
+                                                                  'topics.directory.map_count.many',
+                                                                  ':count maps available',
+                                                                  {
+                                                                      count: topic.mapCount,
+                                                                  },
+                                                              )}
+                                                    </span>
+                                                ) : null}
+                                            </span>
                                             <ArrowRight className="size-4 shrink-0 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
                                         </Link>
                                     ))}

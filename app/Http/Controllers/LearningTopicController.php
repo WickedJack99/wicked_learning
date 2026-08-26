@@ -25,7 +25,7 @@ class LearningTopicController extends Controller
     public function index(Request $request): Response
     {
         return Inertia::render('topics/index', [
-            'areas' => $this->serializer->overview($this->topics->overview()),
+            'areas' => $this->serializer->overview($this->topics->overview($request->user())),
             'canManageTopics' => $request->user()?->hasAccess(
                 PermissionCatalog::CONTENT_TOPICS,
                 AccessLevel::READ,

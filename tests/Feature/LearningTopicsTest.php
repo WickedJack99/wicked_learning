@@ -53,6 +53,20 @@ test('learners see published topic areas in manual order and topics alphabetical
         'title' => 'Networks',
         'is_published' => true,
     ]);
+    $world = LearningWorld::query()->create([
+        'slug' => 'topic-directory-world',
+        'title' => 'Topic Directory World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => LearningTopic::query()
+            ->where('slug', 'anatomy')
+            ->firstOrFail()
+            ->id,
+        'slug' => 'anatomy-map',
+        'title' => 'Anatomy Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
 
     $this->actingAs($user)
         ->get(route('topics.index'))
@@ -63,7 +77,9 @@ test('learners see published topic areas in manual order and topics alphabetical
             ->has('areas', 2)
             ->where('areas.0.title', 'Medicine')
             ->where('areas.0.topics.0.title', 'Anatomy')
+            ->where('areas.0.topics.0.mapCount', 1)
             ->where('areas.0.topics.1.title', 'Circulation')
+            ->where('areas.0.topics.1.mapCount', 0)
             ->has('areas.0.topics', 2)
             ->where('areas.1.title', 'Technology')
         );

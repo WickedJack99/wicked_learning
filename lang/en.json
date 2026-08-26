@@ -643,6 +643,8 @@
     "topics.eyebrow": "Knowledge directory",
     "topics.title": "Topics",
     "topics.description": "Browse broad areas and open a topic to continue into its subtopics and learning material.",
+    "topics.directory.map_count.one": "1 map available",
+    "topics.directory.map_count.many": ":count maps available",
     "topics.manage": "Manage topics",
     "topics.empty.title": "No topics have been published yet",
     "topics.empty.description": "Topic areas will appear here as soon as an administrator adds their first published topic.",

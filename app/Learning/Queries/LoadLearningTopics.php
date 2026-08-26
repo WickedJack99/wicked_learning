@@ -13,16 +13,26 @@ class LoadLearningTopics
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /** @return Collection<int, LearningTopicArea> */
-    public function overview(): Collection
+    public function overview(?User $user = null): Collection
     {
-        return LearningTopicArea::query()
+        $areas = LearningTopicArea::query()
             ->with(['rootTopics' => fn ($query) => $query
                 ->where('is_published', true)
-                ->orderBy('title')])
+                ->orderBy('title')
+                ->with('maps')])
             ->whereHas('rootTopics', fn ($query) => $query->where('is_published', true))
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
+
+        $areas->each(fn (LearningTopicArea $area) => $area->rootTopics->each(
+            fn (LearningTopic $topic) => $topic->setRelation(
+                'maps',
+                $this->mapAccess->visibleMaps($topic->maps, $user),
+            ),
+        ));
+
+        return $areas;
     }
 
     public function publishedDetail(LearningTopic $topic, ?User $user = null): LearningTopic
