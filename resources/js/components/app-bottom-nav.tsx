@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Bookmark, Cog, DoorOpen, Map, PlayCircle } from 'lucide-react';
+import { Bookmark, Cog, DoorOpen, Home, Map, PlayCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -7,8 +7,8 @@ import {
     readPersistedActiveActivity,
 } from '@/features/world/active-activity';
 import type { ActiveActivity } from '@/features/world/active-activity';
-import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { worldHref } from '@/features/world/types';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import { logout } from '@/routes';
 
@@ -94,6 +94,10 @@ export function AppBottomNav() {
     }, []);
 
     const isMapActive = useMemo(() => url.startsWith('/world'), [url]);
+    const isLearningDeskActive = useMemo(
+        () => url.split('?')[0] === '/home',
+        [url],
+    );
     const isBookmarksActive = useMemo(
         () => url.startsWith('/bookmarks'),
         [url],
@@ -102,6 +106,13 @@ export function AppBottomNav() {
     const shouldHideOnSettings = isSettingsActive;
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
+            {
+                active: isLearningDeskActive,
+                href: '/home',
+                icon: <Home className="size-5" />,
+                id: 'learning-desk',
+                label: t('navigation.bottom.learning_desk', 'Learning desk'),
+            },
             {
                 active: isMapActive,
                 href: worldHref,
@@ -164,6 +175,7 @@ export function AppBottomNav() {
     }, [
         activeActivity,
         isBookmarksActive,
+        isLearningDeskActive,
         isMapActive,
         isSettingsActive,
         handleLogout,

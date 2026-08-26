@@ -216,6 +216,7 @@
     "settings.ai.guardrails.feedback.title": "Feedback helper",
     "settings.ai.guardrails.feedback.body": "Handles learner reflections only through explicit activity runs, with guarded context and stricter quotas.",
     "settings.ai.guardrails.implementation_notes": "Implementation notes",
+    "navigation.bottom.learning_desk": "Learning desk",
     "navigation.bottom.map": "Map",
     "navigation.bottom.bookmarks": "Bookmarks",
     "navigation.bottom.settings": "Settings",

@@ -17,6 +17,7 @@ test('english platform catalog includes generic settings copy', function () {
         'settings.personal.security.save',
         'settings.administration.languages.head_title',
         'settings.administration.languages.download_english',
+        'navigation.bottom.learning_desk',
         'navigation.bottom.map',
         'navigation.bottom.return_to_activity',
         'settings.assets.title',
