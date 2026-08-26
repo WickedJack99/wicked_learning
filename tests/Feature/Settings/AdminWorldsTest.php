@@ -28,6 +28,9 @@ test('admin users can see the world graph with portal links', function () {
     ]);
     $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
     $assets = LearningMapAsset::query()->where('learning_map_id', $map->id)->get();
+    $siblingAssets = LearningMapAsset::query()
+        ->whereHas('map', fn ($query) => $query->where('slug', 'signal-archive'))
+        ->get();
     $reviewCount = LearningActivity::query()
         ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
         ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
@@ -54,7 +57,10 @@ test('admin users can see the world graph with portal links', function () {
 
     expect($assets)->toHaveCount(3)
         ->and($assets->whereNotNull('image_url'))->toHaveCount(3)
-        ->and($assets->pluck('learning_node_id')->unique())->toHaveCount(3);
+        ->and($assets->pluck('learning_node_id')->unique())->toHaveCount(3)
+        ->and($siblingAssets)->toHaveCount(1)
+        ->and($siblingAssets->first()->image_url)
+        ->toBe('/images/nodes/fantasy-hex-crystal-grove.png');
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.index'))

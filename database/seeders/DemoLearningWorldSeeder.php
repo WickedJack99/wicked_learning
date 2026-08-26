@@ -368,31 +368,40 @@ class DemoLearningWorldSeeder extends Seeder
                 continue;
             }
 
-            $map->assets()->create([
-                'learning_node_id' => $node->id,
-                'image_url' => $asset['image_url'],
-                'position_x' => $asset['position_x'],
-                'position_y' => $asset['position_y'],
-                'position_z' => 2,
-                'width' => $asset['width'],
-                'opacity' => 1,
-                'locked' => false,
-                'focusable' => true,
-                'interaction_mode' => 'focusable',
-                'visual_config' => [
-                    'dark' => [
-                        'borderColor' => '#2dd4bf',
-                        'highlightColor' => '#99f6e4',
-                        'highlightBorderColor' => '#ffffff',
-                    ],
-                    'light' => [
-                        'borderColor' => '#0891b2',
-                        'highlightColor' => '#67e8f9',
-                        'highlightBorderColor' => '#0e7490',
-                    ],
-                ],
-            ]);
+            $this->createSeededMapAsset($map, $node, $asset);
         }
+    }
+
+    /** @param array{image_url: string, position_x: int, position_y: int, width: int} $asset */
+    private function createSeededMapAsset(
+        LearningMap $map,
+        LearningNode $node,
+        array $asset,
+    ): void {
+        $map->assets()->create([
+            'learning_node_id' => $node->id,
+            'image_url' => $asset['image_url'],
+            'position_x' => $asset['position_x'],
+            'position_y' => $asset['position_y'],
+            'position_z' => 2,
+            'width' => $asset['width'],
+            'opacity' => 1,
+            'locked' => false,
+            'focusable' => true,
+            'interaction_mode' => 'focusable',
+            'visual_config' => [
+                'dark' => [
+                    'borderColor' => '#2dd4bf',
+                    'highlightColor' => '#99f6e4',
+                    'highlightBorderColor' => '#ffffff',
+                ],
+                'light' => [
+                    'borderColor' => '#0891b2',
+                    'highlightColor' => '#67e8f9',
+                    'highlightBorderColor' => '#0e7490',
+                ],
+            ],
+        ]);
     }
 
     private function seedCompetenceTopicDefinitions(): void
@@ -905,6 +914,13 @@ class DemoLearningWorldSeeder extends Seeder
                     'imageUrl' => '/images/nodes/portal-gate-light.svg',
                 ],
             ],
+        ]);
+
+        $this->createSeededMapAsset($targetMap, $targetPortal, [
+            'image_url' => '/images/nodes/fantasy-hex-crystal-grove.png',
+            'position_x' => 50,
+            'position_y' => 50,
+            'width' => 18,
         ]);
 
         $arrivalActivity = LearningActivity::query()->create([

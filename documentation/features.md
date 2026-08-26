@@ -181,8 +181,9 @@ The World Builder provides:
 - a world/map graph with portal relationships
 - map creation and map configuration for details, visuals, access and deletion
 - a full-size MapAsset surface with a floating Add MapAsset action
-- the demo world seeds image-backed MapAssets so the surface is immediately
-  discoverable; empty maps show how to add the first visual area
+- the demo world seeds image-backed MapAssets on both connected maps so each
+  surface is immediately discoverable; empty maps show how to add the first
+  visual area
 - center placement for new MapAssets and explicit X/Y/Z/size/opacity fields
 - a map-level lock for MapAsset placement
 - one MapAsset editor for surface, text, learner panel, activities, rules,
