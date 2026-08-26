@@ -669,10 +669,14 @@ export default function EditNodeActivities({
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <SettingsConfigurationDialog className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden">
                     <DialogHeader className="shrink-0">
-                        <DialogTitle>Add activity</DialogTitle>
+                        <DialogTitle>
+                            {duplicateSourceTitle
+                                ? 'Create activity from template'
+                                : 'Add activity'}
+                        </DialogTitle>
                         <DialogDescription>
                             {duplicateSourceTitle
-                                ? `Edit this starting point from “${duplicateSourceTitle}” before saving. The new activity will enter the review queue.`
+                                ? `An editable copy of “${duplicateSourceTitle}” is ready. Adjust it before saving; the new activity will enter the review queue.`
                                 : 'Create a generic activity node. Specialized editing for dialogue stages, questions and portal targets can build on this node later.'}
                         </DialogDescription>
                     </DialogHeader>

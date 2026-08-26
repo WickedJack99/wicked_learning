@@ -159,13 +159,13 @@ function ActivityGraphNodeCard({
                 </Button>
                 {activity.type !== 'npc_dialogue' ? (
                     <Button
-                        aria-label={`Use ${activity.title} as a starting point`}
+                        aria-label={`Use ${activity.title} as a template`}
                         className="h-8 w-8 px-0 text-slate-500"
                         onClick={(event) => {
                             event.stopPropagation();
                             data.onDuplicate(activity);
                         }}
-                        title="Use as a starting point"
+                        title="Create editable copy"
                         type="button"
                         variant="ghost"
                     >

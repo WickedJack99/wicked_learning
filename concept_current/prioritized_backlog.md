@@ -5,7 +5,9 @@ This backlog contains current direction. Historical ideas in `concept/` and
 
 ## Priority 1 - Strengthen Existing Learning Loops
 
-- Add reusable Activity templates that create an editable local copy.
+- Expand the existing local Activity-template flow into reusable cross-map
+  templates only after its context-sensitive fields and asset references are
+  defined safely.
 - Continue refining learner navigation and information architecture across the
   learning desk, Topics, Paths, Journal, competence and maps. Keep direct map
   access and authored portal travel complementary, and preserve optional rather

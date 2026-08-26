@@ -181,6 +181,12 @@ The World Builder provides:
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors
 
+The activity graph also provides a local template action for eligible
+activities. It opens an editable copy in the current MapAsset, generates a
+fresh slug when saved and places the new activity in the AI review queue. This
+is intentionally a local starting point; a shared cross-map template library
+is not yet part of the prototype.
+
 Selecting a MapAsset opens its editor directly. Admins do not create or link a
 separate LearningNode; the backend creates the internal compatibility record as
 part of the MapAsset operation.
