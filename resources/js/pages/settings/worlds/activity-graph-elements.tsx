@@ -222,9 +222,20 @@ function ActivityReviewBadge({
                 </Button>
             ) : null}
             {activity.updatedAt ? (
-                <span className="text-slate-500 dark:text-slate-400">
+                <time
+                    className="text-slate-500 dark:text-slate-400"
+                    dateTime={activity.updatedAt}
+                >
                     Edited {formatActivityDate(activity.updatedAt)}
-                </span>
+                </time>
+            ) : null}
+            {activity.aiReviewedAt ? (
+                <time
+                    className="text-slate-500 dark:text-slate-400"
+                    dateTime={activity.aiReviewedAt}
+                >
+                    AI reviewed {formatActivityDate(activity.aiReviewedAt)}
+                </time>
             ) : null}
         </div>
     );
