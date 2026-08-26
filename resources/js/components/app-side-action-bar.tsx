@@ -416,7 +416,7 @@ function SideOverlay({
 }) {
     return (
         <div
-            className="w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md dark:shadow-black/35"
+            className="flex max-h-[calc(100svh-10rem)] w-[min(18rem,calc(100vw-1.5rem))] flex-col overflow-y-auto overscroll-contain rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md sm:max-h-[calc(100svh-8rem)] dark:shadow-black/35"
             style={{
                 background: 'var(--map-side-control-panel-background)',
                 borderColor: 'var(--map-side-control-panel-border-color)',
