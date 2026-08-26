@@ -677,7 +677,7 @@ export default function EditNodeActivities({
                         <DialogDescription>
                             {duplicateSourceTitle
                                 ? `An editable copy of “${duplicateSourceTitle}” is ready. Adjust it before saving; the new activity will enter the review queue.`
-                                : 'Create a generic activity node. Specialized editing for dialogue stages, questions and portal targets can build on this node later.'}
+                                : 'Create an activity in this MapAsset. Choose its type, then configure its content, visuals, sound and learning evidence.'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -730,9 +730,9 @@ export default function EditNodeActivities({
                     <DialogHeader className="shrink-0">
                         <DialogTitle>Edit activity</DialogTitle>
                         <DialogDescription>
-                            Update the generic activity fields. Detailed content
-                            editors for questions, dialogue and portal targets
-                            can extend this later.
+                            Update the shared activity fields and its
+                            type-specific settings. Dedicated editors are
+                            available from the activity graph when needed.
                         </DialogDescription>
                     </DialogHeader>
 
