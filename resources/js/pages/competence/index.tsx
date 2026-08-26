@@ -953,22 +953,13 @@ function UnseenCompetenceReading({
                     'There is no learning moment for this area on your trail yet. Explore an activity connected to it, and this map can begin reflecting what you notice over time.',
                 )}
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="mt-3">
                 <Link
                     className="inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white"
                     href={topicHref}
                 >
                     {topicLinkLabel}
                     <ArrowRight className="size-3.5" />
-                </Link>
-                <Link
-                    className="inline-flex items-center gap-1 text-xs text-slate-400 transition hover:text-white"
-                    href="/world"
-                >
-                    {translate(
-                        'competence.reading.unseen.open_world',
-                        'Explore world',
-                    )}
                 </Link>
             </div>
         </aside>
