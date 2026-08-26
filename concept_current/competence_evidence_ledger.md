@@ -77,8 +77,11 @@ world, not a required next step or a corrective assignment.
 
 When a reflection is authored with the `review` learning purpose, the learner
 sees it as `Review / revisit` with language that invites comparison over time.
-It still uses the private reflection journal and does not become a test or
-require the learner to prove that competence increased.
+If earlier private reflections exist in the same journal category, the
+activity can offer up to three of them as optional, collapsible context before
+the learner writes. The learner can skip the comparison; the notes are never
+graded, summarized into a competence claim, or sent to AI as part of this
+context.
 
 The activity editor receives the active competence-topic vocabulary as gentle
 authoring guidance. Existing labels are suggested while free-text entry remains

@@ -136,7 +136,7 @@ class LearningWorldController extends Controller
         }
 
         return Inertia::render('learning/node-play', [
-            'node' => $this->nodeSerializer->serialize($playableNode, $user),
+            'node' => $this->nodeSerializer->serialize($playableNode, $user, true),
             'playActivityId' => $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,
             'playRunId' => $playRunId,

@@ -7,6 +7,7 @@ use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningNodeStateResolver;
 use App\Learning\Services\NodeRevealService;
 use App\Learning\Services\NodeUnlockService;
+use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
@@ -30,7 +31,7 @@ class LearningNodeSerializer
     /**
      * @return array<string, mixed>
      */
-    public function serialize(LearningNode $node, ?User $user = null): array
+    public function serialize(LearningNode $node, ?User $user = null, bool $includeLearnerReviewContext = false): array
     {
         $this->loadRelations($node);
         $userId = $user?->id;
@@ -39,6 +40,10 @@ class LearningNodeSerializer
         if ($state === 'hidden') {
             return $this->concealedNode($node);
         }
+
+        $reviewContexts = $includeLearnerReviewContext && $user
+            ? $this->reviewContexts($node, $user)
+            : [];
 
         return [
             ...$this->baseNode($node, null, [
@@ -52,9 +57,70 @@ class LearningNodeSerializer
             'startActivityId' => $this->eligibleStartActivityId($node),
             'startRoutes' => $this->startRoutes($node, $user),
             'activities' => $node->activities
-                ->map(fn (LearningActivity $activity): array => $this->activitySerializer->serialize($activity))
+                ->map(fn (LearningActivity $activity): array => $this->activitySerializer->serialize(
+                    $activity,
+                    $reviewContexts[$activity->id] ?? null,
+                ))
                 ->values(),
         ];
+    }
+
+    /**
+     * @return array<int, Collection<int, LearnerReflection>>
+     */
+    private function reviewContexts(LearningNode $node, User $user): array
+    {
+        $reviewActivities = $node->activities->filter(function (LearningActivity $activity): bool {
+            $config = is_array($activity->config) ? $activity->config : [];
+
+            return $activity->type === 'reflection'
+                && ($config['learningIntent'] ?? null) === 'review';
+        });
+
+        if ($reviewActivities->isEmpty()) {
+            return [];
+        }
+
+        $topics = $reviewActivities
+            ->map(fn (LearningActivity $activity): string => $this->reviewTopic($activity, $node))
+            ->unique()
+            ->values();
+        $reflections = LearnerReflection::query()
+            ->where('user_id', $user->id)
+            ->whereHas('page', fn ($query) => $query->whereIn('topic', $topics->all()))
+            ->latest()
+            ->with('page')
+            ->get();
+
+        return $reviewActivities
+            ->mapWithKeys(function (LearningActivity $activity) use ($node, $reflections): array {
+                [$topic, $subtopic] = $this->reviewCategory($activity, $node);
+
+                return [
+                    $activity->id => $reflections
+                        ->filter(fn (LearnerReflection $reflection): bool => $reflection->page->topic === $topic
+                            && ($subtopic === '' || $reflection->page->subtopic === $subtopic))
+                        ->take(3)
+                        ->values(),
+                ];
+            })
+            ->all();
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function reviewCategory(LearningActivity $activity, LearningNode $node): array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return [
+            trim((string) ($config['topic'] ?? '')) ?: $node->title,
+            trim((string) ($config['subtopic'] ?? '')),
+        ];
+    }
+
+    private function reviewTopic(LearningActivity $activity, LearningNode $node): string
+    {
+        return $this->reviewCategory($activity, $node)[0];
     }
 
     /**

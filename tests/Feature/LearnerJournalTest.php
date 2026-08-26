@@ -14,6 +14,7 @@ use App\Models\OrganizationMembership;
 use App\Models\PlatformJournalSetting;
 use App\Models\User;
 use Illuminate\Support\Str;
+use Inertia\Testing\AssertableInertia;
 
 test('an active reflection activity writes a private journal entry', function () {
     [$learner, $activity, $runId] = activeReflectionActivity();
@@ -34,6 +35,66 @@ test('an active reflection activity writes a private journal entry', function ()
         ->and($reflection->title)->toBe('Reflection node - Notice the pattern')
         ->and($page->markdown)->toContain('What feels clearer now?')
         ->and($page->markdown)->toContain('I can connect the idea to my own practice.');
+});
+
+test('a review activity offers earlier private reflections from the same journal topic', function () {
+    [$learner, $activity] = activeReflectionActivity();
+    $activity->update([
+        'config' => [
+            'learningIntent' => 'review',
+            'prompt' => 'What feels different now?',
+            'topic' => 'Systems Thinking',
+        ],
+    ]);
+
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Systems Thinking',
+        'topic' => 'Systems Thinking',
+        'subtopic' => '',
+        'markdown' => 'Earlier note',
+        'preferred_mode' => 'view',
+    ]);
+    LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $page->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Earlier note',
+        'question' => 'What did you notice before?',
+        'reflection' => 'I noticed the parts were connected.',
+        'feedback_status' => 'not_requested',
+    ]);
+
+    $otherLearner = User::factory()->create();
+    $otherPage = LearnerJournalPage::query()->create([
+        'user_id' => $otherLearner->id,
+        'title' => 'Systems Thinking',
+        'topic' => 'Systems Thinking',
+        'subtopic' => '',
+        'markdown' => 'Someone else’s note',
+        'preferred_mode' => 'view',
+    ]);
+    LearnerReflection::query()->create([
+        'user_id' => $otherLearner->id,
+        'learner_journal_page_id' => $otherPage->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Someone else’s note',
+        'question' => 'What did they notice?',
+        'reflection' => 'This must stay private.',
+        'feedback_status' => 'not_requested',
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', $activity->learning_node_id))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->has('node.activities.0.reviewContext', 1)
+            ->where('node.activities.0.reviewContext.0.question', 'What did you notice before?')
+            ->where('node.activities.0.reviewContext.0.reflection', 'I noticed the parts were connected.')
+        );
 });
 
 test('a reflection cannot be recorded outside the active route step', function () {

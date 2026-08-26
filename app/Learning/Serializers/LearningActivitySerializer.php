@@ -4,6 +4,7 @@ namespace App\Learning\Serializers;
 
 use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
+use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\LearningItem;
 use App\Models\LearningQuestionOption;
@@ -11,6 +12,7 @@ use App\Models\LearningSound;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
+use Illuminate\Support\Collection;
 
 class LearningActivitySerializer
 {
@@ -21,9 +23,10 @@ class LearningActivitySerializer
     ) {}
 
     /**
+     * @param  Collection<int, LearnerReflection>|null  $reviewReflections
      * @return array<string, mixed>
      */
-    public function serialize(LearningActivity $activity): array
+    public function serialize(LearningActivity $activity, ?Collection $reviewReflections = null): array
     {
         return [
             'id' => $activity->id,
@@ -45,6 +48,7 @@ class LearningActivitySerializer
                 ->map(fn (NpcDialogueTransition $transition): array => $this->npcDialogueTransition($transition))
                 ->values(),
             'question' => $this->question($activity),
+            'reviewContext' => $this->reviewContext($activity, $reviewReflections),
             'sharedTaskState' => $activity->type === 'shared_task'
                 ? $this->sharedTaskState->state($activity)
                 : null,
@@ -254,5 +258,29 @@ class LearningActivitySerializer
             'triggerValue' => $transition->trigger_value,
             'label' => $transition->label,
         ];
+    }
+
+    /**
+     * @param  Collection<int, LearnerReflection>|null  $reviewReflections
+     * @return list<array{id: int, question: string, reflection: string, createdAt: string|null}>|null
+     */
+    private function reviewContext(LearningActivity $activity, ?Collection $reviewReflections): ?array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        if ($activity->type !== 'reflection' || ($config['learningIntent'] ?? null) !== 'review') {
+            return null;
+        }
+
+        return array_values(($reviewReflections ?? collect())
+            ->take(3)
+            ->map(fn (LearnerReflection $reflection): array => [
+                'id' => $reflection->id,
+                'question' => $reflection->question,
+                'reflection' => $reflection->reflection,
+                'createdAt' => $reflection->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all());
     }
 }

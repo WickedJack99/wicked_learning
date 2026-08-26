@@ -270,6 +270,12 @@ export type LearningActivity = {
     npcDialogueNodes: NpcDialogueNode[];
     npcDialogueTransitions: NpcDialogueTransition[];
     question: LearningQuestion | null;
+    reviewContext: Array<{
+        createdAt: string | null;
+        id: number;
+        question: string;
+        reflection: string;
+    }> | null;
     sharedTaskState: SharedTaskState | null;
     transitions: ActivityTransition[];
 };

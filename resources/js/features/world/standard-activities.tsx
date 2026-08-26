@@ -574,6 +574,33 @@ export function ReflectionActivity({
                     connected, or still open. This is not a test.
                 </p>
             ) : null}
+            {isReview && activity.reviewContext?.length ? (
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
+                        Earlier notes from you
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
+                        Look back if it helps. You can also write without
+                        comparing.
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {activity.reviewContext.map((entry) => (
+                            <details
+                                className="rounded-md border border-cyan-500/15 bg-white/60 px-2.5 py-2 dark:border-teal-100/15 dark:bg-black/10"
+                                key={entry.id}
+                            >
+                                <summary className="cursor-pointer text-xs font-medium text-cyan-900 dark:text-teal-100">
+                                    {formatReviewDate(entry.createdAt)} ·{' '}
+                                    {entry.question}
+                                </summary>
+                                <p className="mt-2 text-xs leading-5 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
+                                    {entry.reflection}
+                                </p>
+                            </details>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
             <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {prompt}
             </p>
@@ -630,4 +657,20 @@ export function ReflectionActivity({
             setIsSaving(false);
         }
     }
+}
+
+function formatReviewDate(value: string | null): string {
+    if (!value) {
+        return 'Earlier';
+    }
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? 'Earlier'
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+          });
 }
