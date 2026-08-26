@@ -8,7 +8,14 @@ import {
     useNodesState,
 } from '@xyflow/react';
 import type { Connection } from '@xyflow/react';
-import { ArrowLeft, ArrowRight, GitBranch, Plus, Trash2 } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    GitBranch,
+    Plus,
+    Sparkles,
+    Trash2,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
@@ -254,6 +261,9 @@ export default function EditNodeActivities({
     const activitiesNeedingReview = activityGraph.activities.filter(
         (activity) => activity.aiReviewStatus !== 'reviewed',
     ).length;
+    const nextActivityNeedingReview = activityGraph.activities.find(
+        (activity) => activity.aiReviewStatus !== 'reviewed',
+    );
     const hasEditActivityChanges = useDirtyState(
         editForm,
         editingActivity
@@ -548,13 +558,42 @@ export default function EditNodeActivities({
                         </Button>
                     </header>
                     {activitiesNeedingReview > 0 ? (
-                        <p className="mb-3 shrink-0 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-100">
-                            {activitiesNeedingReview}{' '}
-                            {activitiesNeedingReview === 1
-                                ? 'activity needs'
-                                : 'activities need'}{' '}
-                            AI review. The queue is scoped to this node.
-                        </p>
+                        <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-100">
+                            <p>
+                                {activitiesNeedingReview}{' '}
+                                {activitiesNeedingReview === 1
+                                    ? 'activity needs'
+                                    : 'activities need'}{' '}
+                                AI review. The queue is scoped to this node.
+                            </p>
+                            {activityGraph.aiReviewTemplates.length > 0 &&
+                            nextActivityNeedingReview ? (
+                                <Button
+                                    className="h-8 shrink-0 border-amber-300/70 bg-white/70 px-3 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
+                                    onClick={() =>
+                                        setReviewingActivity(
+                                            nextActivityNeedingReview,
+                                        )
+                                    }
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <Sparkles className="size-3.5" />
+                                    Review next activity
+                                </Button>
+                            ) : (
+                                <Button
+                                    asChild
+                                    className="h-8 shrink-0 border-amber-300/70 bg-white/70 px-3 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
+                                    variant="outline"
+                                >
+                                    <Link href="/settings?panel=admin-ai-integrations&ai=templates">
+                                        Set up review helper
+                                        <ArrowRight className="size-3.5" />
+                                    </Link>
+                                </Button>
+                            )}
+                        </div>
                     ) : null}
 
                     <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">

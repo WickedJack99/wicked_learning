@@ -24,6 +24,7 @@ import {
     Map as MapIcon,
     Pencil,
     SlidersHorizontal,
+    Sparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
@@ -557,6 +558,21 @@ function MapDetails({ map }: { map: MapSummary }) {
                 </div>
                 {nodesNeedingReview.length > 0 ? (
                     <div className="mt-3 grid gap-2">
+                        <Button
+                            asChild
+                            className="justify-between gap-3"
+                            variant="secondary"
+                        >
+                            <Link
+                                href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${nodesNeedingReview[0].id}&worldView=nodes`}
+                            >
+                                <span className="inline-flex items-center gap-2">
+                                    <Sparkles className="size-4" />
+                                    Open review queue
+                                </span>
+                                <span aria-hidden="true">→</span>
+                            </Link>
+                        </Button>
                         {nodesNeedingReview.map((node) => (
                             <Button
                                 asChild
