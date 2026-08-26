@@ -38,7 +38,7 @@ import { ObstacleActivity } from './obstacle-activity';
 import { SharedTaskActivity } from './shared-task-activity';
 import {
     DialogueActivity,
-    PlaceholderActivity,
+    OpenPracticeActivity,
     PortalActivity,
     QuestionActivity,
     ReflectionActivity,
@@ -518,8 +518,8 @@ export function ActivityPlayer({
                 />
             ) : null}
 
-            {activity.type === 'placeholder' ? (
-                <PlaceholderActivity
+            {activity.type === 'open_practice' ? (
+                <OpenPracticeActivity
                     activity={activity}
                     onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}

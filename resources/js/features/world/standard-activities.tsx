@@ -28,7 +28,7 @@ import { postJson } from './api';
 import { PortalScene } from './portal-scene';
 import type { PortalSceneAsset } from './portal-scene';
 
-export function PlaceholderActivity({
+export function OpenPracticeActivity({
     activity,
     onComplete,
     onMoveToActivity,
@@ -42,7 +42,7 @@ export function PlaceholderActivity({
     const nextStep =
         typeof activity.config.nextStep === 'string'
             ? activity.config.nextStep
-            : 'A concrete interaction can be attached here next.';
+            : 'Choose a useful next step, then continue when you are ready.';
     const complete = async () => {
         await onComplete(activity);
         onMoveToActivity(transition?.toActivityId ?? null);

@@ -16,7 +16,7 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
   route restarts and persisted progress.
 - Implemented activity types include item grant, item obstacle, Markdown, NPC
   dialogue, dialogue, question, reflection, shared task, learner message prompt,
-  learner message wall, obstacle, tool grant, placeholder and portal.
+  learner message wall, obstacle, tool grant, open practice and portal.
 - A message prompt collects at most one short contribution from each learner
   for a reusable MapAsset topic. A message wall displays the topic's visible
   contributions as cards and closes through its normal Activity transition.

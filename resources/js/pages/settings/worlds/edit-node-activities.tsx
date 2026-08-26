@@ -80,7 +80,7 @@ export default function EditNodeActivities({
     const [createOpen, setCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const firstType = activityGraph.activityTypes[0]?.key ?? 'placeholder';
+    const firstType = activityGraph.activityTypes[0]?.key ?? 'open_practice';
     const [form, setForm] = useState<ActivityForm>(() =>
         emptyCreateForm(firstType),
     );

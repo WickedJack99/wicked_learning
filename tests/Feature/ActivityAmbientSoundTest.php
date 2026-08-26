@@ -26,7 +26,7 @@ test('admins can configure reusable ambience for any activity type', function ()
             'activity_sound_enabled' => true,
             'activity_sound_id' => $sound->id,
             'title' => 'Listen to the archive',
-            'type' => 'placeholder',
+            'type' => 'open_practice',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 

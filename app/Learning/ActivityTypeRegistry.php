@@ -108,9 +108,9 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],
             [
-                'key' => 'placeholder',
-                'label' => 'Placeholder',
-                'description' => 'A simple activity shell for content that will be designed later.',
+                'key' => 'open_practice',
+                'label' => 'Open practice',
+                'description' => 'A quiet pause where the learner chooses and carries out their own next step.',
                 'inputs' => [$this->connector('in', 'In')],
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],

@@ -958,7 +958,7 @@ test('admin users can create and connect activity graph nodes', function () {
     $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activities.store', $node), [
             'title' => 'Choose a note path',
-            'type' => 'placeholder',
+            'type' => 'open_practice',
             'introduction' => 'A branchable activity shell.',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
@@ -1201,14 +1201,14 @@ test('admin users can configure multiple independent start routes for a node', f
     $easyRoute = LearningActivity::query()->create([
         'learning_node_id' => $node->id,
         'slug' => 'easy-field-route',
-        'type' => 'placeholder',
+        'type' => 'open_practice',
         'title' => 'Easy field route',
         'sort_order' => 100,
     ]);
     $hardRoute = LearningActivity::query()->create([
         'learning_node_id' => $node->id,
         'slug' => 'hard-field-route',
-        'type' => 'placeholder',
+        'type' => 'open_practice',
         'title' => 'Hard field route',
         'sort_order' => 110,
     ]);

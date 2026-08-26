@@ -89,7 +89,7 @@ Implemented activity types are:
 - tool grants and item grants
 - tool obstacles and item-slot obstacles
 - portals
-- placeholders for planned content
+- open practice pauses for learner-directed next steps
 
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.
