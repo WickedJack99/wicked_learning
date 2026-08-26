@@ -66,6 +66,11 @@ Each pulse entry also offers a route back to its node; this is a learner-chosen
 revisit path, not a remediation assignment or a claim that the learner is
 behind.
 
+When a learner selects a light, the map can show up to three recent pulse
+observations connected to that topic. They remain the learner's own words and
+simple feeling labels: they are not converted into evidence, interpreted by
+AI, or used to adjust the visual signal.
+
 Selecting a light can also offer an optional return to the latest learning
 place that contributed to that topic. The link is a doorway back into the
 world, not a required next step or a corrective assignment.

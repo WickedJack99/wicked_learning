@@ -364,6 +364,7 @@ export default function CompetenceStarMap({
                         <CompetenceMapGuide />
                         {activeTopic ? (
                             <CompetenceReading
+                                checkIns={competenceMap.checkIns}
                                 onClose={() => {
                                     setHoveredTopicSlug(null);
                                     setSelectedTopicSlug(null);
@@ -574,12 +575,22 @@ function CompetencePath({
 }
 
 function CompetenceReading({
+    checkIns,
     onClose,
     topic,
 }: {
+    checkIns: CompetenceCheckIn[];
     onClose: () => void;
     topic: PositionedTopic;
 }) {
+    const relatedCheckIns = checkIns
+        .filter((checkIn) =>
+            checkIn.topics.some(
+                (relatedTopic) => relatedTopic.slug === topic.slug,
+            ),
+        )
+        .slice(0, 3);
+
     return (
         <aside
             aria-live="polite"
@@ -631,6 +642,32 @@ function CompetenceReading({
                     learning trail.
                 </p>
             </div>
+            {relatedCheckIns.length > 0 ? (
+                <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
+                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                        Your notes about this light
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {relatedCheckIns.map((checkIn) => (
+                            <div
+                                className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
+                                key={`${checkIn.activityId}:${checkIn.recordedAt}:${checkIn.feeling}`}
+                            >
+                                <p className="text-xs font-medium text-slate-200">
+                                    {checkInFeelingLabel(checkIn.feeling)}
+                                </p>
+                                <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                                    {checkIn.activityTitle} ·{' '}
+                                    {formatCheckInDate(checkIn.recordedAt)}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-slate-400">
+                        Your observations stay here without interpretation.
+                    </p>
+                </div>
+            ) : null}
             {topic.revisit ? (
                 <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
                     <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
