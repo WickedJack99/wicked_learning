@@ -440,12 +440,16 @@ export function QuestionActivity({
     activity,
     answer,
     onAnswer,
+    onComplete,
     onMoveToActivity,
+    playRunId,
 }: {
     activity: LearningActivity;
     answer: QuestionAnswerProgress | undefined;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
+    onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    playRunId: string | null;
 }) {
     const question = activity.question;
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -462,10 +466,12 @@ export function QuestionActivity({
                 `/learning/questions/${question.id}/answer`,
                 {
                     option_id: optionId,
+                    play_run_id: playRunId,
                 },
             );
 
             onAnswer(question.id, response.answer);
+            await onComplete(activity);
         } finally {
             setIsSubmitting(false);
         }
@@ -522,14 +528,14 @@ export function QuestionActivity({
                             {answer.explanation}
                         </p>
                     ) : null}
-                    {answer.nextActivityId ? (
+                    {answer ? (
                         <Button
                             className="mt-4"
                             onClick={() =>
                                 onMoveToActivity(answer.nextActivityId ?? null)
                             }
                         >
-                            Continue
+                            {answer.nextActivityId ? 'Continue' : 'Finish'}
                             <ArrowRight className="ml-2 size-4" />
                         </Button>
                     ) : null}

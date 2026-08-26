@@ -237,6 +237,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'option_id' => ['required', 'integer'],
+            'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
 
         return response()->json([
@@ -244,6 +245,7 @@ class LearningWorldController extends Controller
                 $request->user()->id,
                 $question,
                 (int) $data['option_id'],
+                is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
             ),
         ]);
     }

@@ -14,8 +14,12 @@ class QuestionAnswerService
     /**
      * @return array<string, mixed>
      */
-    public function answer(int $userId, LearningQuestion $question, int $optionId): array
-    {
+    public function answer(
+        int $userId,
+        LearningQuestion $question,
+        int $optionId,
+        ?string $playRunId = null,
+    ): array {
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
         $feedback = $this->feedbackFor($question, $option);
@@ -29,7 +33,12 @@ class QuestionAnswerService
             'feedback' => $feedback,
         ]);
 
-        $this->progressService->mark($userId, $question->activity, 'completed');
+        $this->progressService->mark(
+            $userId,
+            $question->activity,
+            'completed',
+            $playRunId,
+        );
         $transition = $this->findQuestionTransition($question, $option);
 
         return [

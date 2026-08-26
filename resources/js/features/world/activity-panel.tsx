@@ -405,7 +405,9 @@ export function ActivityPlayer({
                     activity={activity}
                     answer={answerProgress[activity.question.id]}
                     onAnswer={onAnswer}
+                    onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
+                    playRunId={playRunId}
                 />
             ) : null}
 

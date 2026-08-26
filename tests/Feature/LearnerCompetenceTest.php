@@ -10,6 +10,8 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningQuestion;
+use App\Models\LearningQuestionOption;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
@@ -96,6 +98,79 @@ test('route play completion records configured evidence once per play run', func
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'systems-thinking')
             ->value('evidence_type'))->toBe('review');
+});
+
+test('question answers complete the active route and record retrieval evidence', function () {
+    $learner = User::factory()->create();
+    [$node, , $start] = competenceRoute([
+        ['topic' => 'Algebra', 'weight' => 2],
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'retrieval-question',
+        'type' => 'question',
+        'title' => 'Retrieval question',
+        'config' => [],
+        'sort_order' => 20,
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'Which idea fits?',
+        'explanation' => 'The first idea fits the evidence.',
+    ]);
+    $option = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'The first idea.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+    $activity->update([
+        'config' => [
+            'learningIntent' => 'retrieve',
+            'competenceTopics' => [
+                ['topic' => 'Algebra', 'slug' => 'algebra', 'weight' => 2],
+            ],
+        ],
+    ]);
+    $start->update(['learning_activity_id' => $activity->id]);
+    $runId = (string) Str::uuid();
+
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => now(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'option_id' => $option->id,
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.isCorrect', true);
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->where('play_run_id', $runId)
+        ->value('evidence_type'))->toBe('retrieve')
+        ->and((float) LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('learning_activity_id', $activity->id)
+            ->value('contribution'))->toBe(2.0)
+        ->and(LearnerRouteProgress::query()
+            ->where('user_id', $learner->id)
+            ->where('learning_node_id', $node->id)
+            ->firstOrFail()->status)
+        ->toBe('completed');
 });
 
 test('admins can configure competence topics on any activity', function () {
