@@ -201,6 +201,12 @@
         height: 0.65rem;
     }
 
+    *::-webkit-scrollbar-button {
+        display: none;
+        height: 0;
+        width: 0;
+    }
+
     *::-webkit-scrollbar-track,
     *::-webkit-scrollbar-corner {
         background: transparent;
