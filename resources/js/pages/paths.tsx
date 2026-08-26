@@ -36,7 +36,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                 <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
                     {t('paths.eyebrow', 'Ways into the world')}
                 </p>
-                <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">
+                <h1 className="mt-3 text-3xl font-medium tracking-tight">
                     {t('paths.title', 'Paths')}
                 </h1>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -66,7 +66,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                 ) : (
                     <section className="mt-12 border-y border-slate-200 py-10 dark:border-white/10">
                         <Compass className="size-7 text-cyan-600 dark:text-cyan-400" />
-                        <h2 className="mt-5 text-xl font-medium">
+                        <h2 className="mt-5 text-sm font-semibold">
                             {t(
                                 'paths.empty.title',
                                 'No routes are available yet',
@@ -75,7 +75,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                             {t(
                                 'paths.empty.description',
-                                'You can enter the world through a topic or explore the map directly when a route is added.',
+                                'You can enter through a topic or open a map directly when a route is added.',
                             )}
                         </p>
                         <div className="mt-5 flex flex-wrap gap-4 text-sm font-medium">
@@ -90,7 +90,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                                 className="inline-flex items-center gap-2 text-cyan-700 dark:text-cyan-400"
                                 href="/world"
                             >
-                                {t('paths.empty.world', 'Explore the world')}
+                                {t('paths.empty.world', 'Open the map')}
                                 <ArrowRight className="size-4" />
                             </Link>
                         </div>
@@ -129,7 +129,7 @@ function PathCard({ path }: { path: LearningPath }) {
                             {path.topic.title}
                         </Link>
                     ) : null}
-                    <h3 className="mt-2 text-lg font-medium text-slate-950 dark:text-white">
+                    <h3 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
                         {path.label}
                     </h3>
                     {path.learningIntent ? (

@@ -703,7 +703,7 @@
     "paths.status.in_progress": "In progress",
     "paths.status.new": "A new starting point",
     "paths.empty.title": "No routes are available yet",
-    "paths.empty.description": "You can enter the world through a topic or explore the map directly when a route is added.",
+    "paths.empty.description": "You can enter through a topic or open a map directly when a route is added.",
     "paths.empty.topics": "Browse topics",
-    "paths.empty.world": "Explore the world"
+    "paths.empty.world": "Open the map"
 }
