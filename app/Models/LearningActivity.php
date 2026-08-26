@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * @property array<string, mixed>|null $config
+ * @property Carbon|null $ai_reviewed_at
  */
 #[Fillable([
     'learning_node_id',
@@ -18,12 +20,18 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'title',
     'introduction',
     'config',
+    'ai_review_status',
+    'ai_reviewed_at',
     'sort_order',
     'graph_position_x',
     'graph_position_y',
 ])]
 class LearningActivity extends Model
 {
+    public const AI_REVIEW_STATUS_NEEDS_REVIEW = 'needs_review';
+
+    public const AI_REVIEW_STATUS_REVIEWED = 'reviewed';
+
     /**
      * @return array<string, string>
      */
@@ -31,6 +39,7 @@ class LearningActivity extends Model
     {
         return [
             'config' => 'array',
+            'ai_reviewed_at' => 'datetime',
         ];
     }
 

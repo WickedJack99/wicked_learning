@@ -1,6 +1,8 @@
 import { Link } from '@inertiajs/react';
 import { Handle, MarkerType, Position } from '@xyflow/react';
 import {
+    CircleAlert,
+    CircleCheck,
     CircleStop,
     FileText,
     MessageCircle,
@@ -65,6 +67,7 @@ function ActivityGraphNodeCard({
             <h2 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
                 {activity.title}
             </h2>
+            <ActivityReviewBadge activity={activity} />
             {activity.introduction ? (
                 <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                     {activity.introduction}
@@ -164,6 +167,50 @@ function ActivityGraphNodeCard({
             </div>
         </div>
     );
+}
+
+function ActivityReviewBadge({ activity }: { activity: ActivitySummary }) {
+    const needsReview = activity.aiReviewStatus !== 'reviewed';
+
+    return (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span
+                className={cn(
+                    'inline-flex items-center gap-1 rounded-full border px-2 py-1 font-medium',
+                    needsReview
+                        ? 'border-amber-300/60 bg-amber-100/70 text-amber-800 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-200'
+                        : 'border-emerald-300/60 bg-emerald-100/70 text-emerald-800 dark:border-emerald-200/20 dark:bg-emerald-300/10 dark:text-emerald-200',
+                )}
+                title={
+                    needsReview
+                        ? 'This activity changed after its last AI review, or has not been reviewed yet.'
+                        : `AI reviewed ${activity.aiReviewedAt ?? 'this activity'}`
+                }
+            >
+                {needsReview ? (
+                    <CircleAlert className="size-3" />
+                ) : (
+                    <CircleCheck className="size-3" />
+                )}
+                {needsReview ? 'Needs AI review' : 'AI reviewed'}
+            </span>
+            {activity.updatedAt ? (
+                <span className="text-slate-500 dark:text-slate-400">
+                    Edited {formatActivityDate(activity.updatedAt)}
+                </span>
+            ) : null}
+        </div>
+    );
+}
+
+function formatActivityDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+          }).format(date);
 }
 
 function SpecialGraphNode({

@@ -38,6 +38,8 @@ export type ActivitySummary = {
     };
     graphLayout?: GraphLayout;
     id: number;
+    aiReviewStatus: string;
+    aiReviewedAt: string | null;
     introduction: string | null;
     portalLink: PortalActivityLink | null;
     position: {
@@ -47,6 +49,7 @@ export type ActivitySummary = {
     slug: string;
     title: string;
     type: string;
+    updatedAt: string | null;
 };
 
 export type CompetenceTopicForm = {

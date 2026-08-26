@@ -2,6 +2,7 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\LearningActivityReviewState;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
@@ -9,7 +10,10 @@ use App\Models\NpcDialogueNode;
 
 class DeleteNpcDialogueNode
 {
-    public function __construct(private readonly NpcDialogueConfiguration $configuration) {}
+    public function __construct(
+        private readonly NpcDialogueConfiguration $configuration,
+        private readonly LearningActivityReviewState $reviewState,
+    ) {}
 
     public function handle(NpcDialogueNode $node): LearningActivity
     {
@@ -24,6 +28,7 @@ class DeleteNpcDialogueNode
         }
 
         $node->delete();
+        $this->reviewState->markNeedsReview($activity);
 
         return $activity;
     }

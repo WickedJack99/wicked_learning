@@ -101,6 +101,9 @@ class AdminActivityGraphSerializer
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $activity->config ?? [],
+            'updatedAt' => $activity->updated_at?->toIso8601String(),
+            'aiReviewStatus' => $activity->ai_review_status,
+            'aiReviewedAt' => $activity->ai_reviewed_at?->toIso8601String(),
             'portalLink' => $activity->type === 'portal' ? $this->portalLink($activity) : null,
             'position' => [
                 'x' => $activity->graph_position_x,

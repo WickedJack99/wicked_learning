@@ -56,6 +56,20 @@ The repository includes `agent-instruction-sets/` as a public place for starter 
 
 An AI assistant that proposes new learning-world structure should first inspect the learning structures that already exist in the current deployment. It should not assume that every requested topic needs a new world, map, tool, item or isolated path.
 
+## Activity review queue
+
+Learning activities keep the normal `updated_at` timestamp plus an explicit AI
+review state. Creating or materially editing an activity places it in a
+`needs_review` queue and clears `ai_reviewed_at`. The queue is shown in the
+authoring scope so a tutor can see which activity definitions still need
+attention without implying that an AI provider has already inspected them.
+
+AI review should be opt-in and scoped to the selected activity, its learning
+purpose, its competence topics, and only the nearby graph context needed for a
+useful judgment. A future review action can then write `ai_reviewed_at` and a
+review result after the tutor has seen and accepted the scope. Layout-only
+changes should not create pedagogical review noise.
+
 Depending on the administrator-selected scope, the agent should receive or load relevant context such as:
 
 - existing worlds and maps

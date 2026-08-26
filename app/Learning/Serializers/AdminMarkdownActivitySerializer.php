@@ -39,6 +39,9 @@ class AdminMarkdownActivitySerializer
                 'title' => $activity->title,
                 'introduction' => $activity->introduction,
                 'config' => $activity->config ?? [],
+                'updatedAt' => $activity->updated_at?->toIso8601String(),
+                'aiReviewStatus' => $activity->ai_review_status,
+                'aiReviewedAt' => $activity->ai_reviewed_at?->toIso8601String(),
                 'graphLayout' => $this->graphLayout($activity),
                 'portalLink' => null,
                 'position' => [

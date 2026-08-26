@@ -6,6 +6,7 @@ use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
+use App\Learning\Services\LearningActivityReviewState;
 use App\Learning\Services\MarkdownActivityConfiguration;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
@@ -25,6 +26,7 @@ class UpdateLearningActivity
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly LearningActivityReviewState $reviewState,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly MessageActivityConfiguration $messageConfig,
@@ -46,7 +48,17 @@ class UpdateLearningActivity
     {
         $activity->loadMissing('node');
         $updates = $this->updatesFor($activity, $data);
-        $activity->forceFill($updates)->save();
+
+        $activity->forceFill($updates);
+
+        if ($activity->isDirty()) {
+            if ($this->reviewState->hasContentChanges($activity)) {
+                $this->reviewState->markNeedsReview($activity);
+            } else {
+                $activity->save();
+            }
+        }
+
         $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
         $this->syncPortalLinkWhenNeeded($activity, $data);
         $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));

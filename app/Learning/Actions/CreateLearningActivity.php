@@ -52,6 +52,8 @@ class CreateLearningActivity
             'title' => $data['title'],
             'introduction' => $data['introduction'] ?? null,
             'config' => $this->configFor($node, $type, $data),
+            'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW,
+            'ai_reviewed_at' => null,
             'sort_order' => $this->nextSortOrder($node),
             'graph_position_x' => $data['graph_position_x'] ?? null,
             'graph_position_y' => $data['graph_position_y'] ?? null,

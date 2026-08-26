@@ -2,12 +2,16 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\LearningActivityReviewState;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Models\NpcDialogueNode;
 
 class UpdateNpcDialogueNode
 {
-    public function __construct(private readonly NpcDialogueConfiguration $configuration) {}
+    public function __construct(
+        private readonly NpcDialogueConfiguration $configuration,
+        private readonly LearningActivityReviewState $reviewState,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -32,7 +36,16 @@ class UpdateNpcDialogueNode
             );
         }
 
-        $node->forceFill($updates)->save();
+        $node->forceFill($updates);
+
+        if ($node->isDirty()) {
+            $contentChanged = $node->isDirty(['type', 'title', 'body', 'config']);
+            $node->save();
+
+            if ($contentChanged) {
+                $this->reviewState->markNeedsReview($node->activity);
+            }
+        }
 
         return $node;
     }

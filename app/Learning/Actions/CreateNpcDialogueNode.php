@@ -2,13 +2,17 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\LearningActivityReviewState;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Models\LearningActivity;
 use App\Models\NpcDialogueNode;
 
 class CreateNpcDialogueNode
 {
-    public function __construct(private readonly NpcDialogueConfiguration $configuration) {}
+    public function __construct(
+        private readonly NpcDialogueConfiguration $configuration,
+        private readonly LearningActivityReviewState $reviewState,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -17,7 +21,7 @@ class CreateNpcDialogueNode
     {
         $type = (string) $data['type'];
 
-        return $activity->npcDialogueNodes()->create([
+        $node = $activity->npcDialogueNodes()->create([
             'type' => $type,
             'title' => $data['title'],
             'body' => $data['body'] ?? null,
@@ -31,6 +35,10 @@ class CreateNpcDialogueNode
             'graph_position_x' => $data['graph_position_x'] ?? null,
             'graph_position_y' => $data['graph_position_y'] ?? null,
         ]);
+
+        $this->reviewState->markNeedsReview($activity);
+
+        return $node;
     }
 
     private function nextSortOrder(LearningActivity $activity): int

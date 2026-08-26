@@ -100,6 +100,93 @@ test('normal users can not open the world editor', function () {
         ->assertForbidden();
 });
 
+test('activity edits enter the scoped AI review queue', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('slug', 'write-a-field-note')
+        ->firstOrFail();
+
+    $activity->forceFill([
+        'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_REVIEWED,
+        'ai_reviewed_at' => now()->subDay(),
+    ])->save();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Welcome to the field notes, revised',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
+
+    $activity->refresh();
+
+    expect($activity->ai_review_status)
+        ->toBe(LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW)
+        ->and($activity->ai_reviewed_at)->toBeNull();
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $activity->node->map->id,
+            'node' => $activity->learning_node_id,
+            'worldView' => 'nodes',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('selectedWorldNode.activityGraph.activities.0.aiReviewStatus', 'needs_review')
+            ->has('selectedWorldNode.activityGraph.activities.0.updatedAt')
+            ->where('selectedWorldNode.activityGraph.activities.0.aiReviewedAt', null)
+        );
+});
+
+test('dialogue content edits queue the parent activity but layout edits do not', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()
+        ->where('slug', 'guided-signal-dialogue')
+        ->firstOrFail();
+    $node = NpcDialogueNode::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('type', 'npc_monologue')
+        ->firstOrFail();
+
+    $activity->forceFill([
+        'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_REVIEWED,
+        'ai_reviewed_at' => now()->subDay(),
+    ])->save();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.npc-dialogue-nodes.update', $node), [
+            'title' => 'Mira opens the revised observation',
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    $activity->refresh();
+
+    expect($activity->ai_review_status)
+        ->toBe(LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW)
+        ->and($activity->ai_reviewed_at)->toBeNull();
+
+    $activity->forceFill([
+        'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_REVIEWED,
+        'ai_reviewed_at' => now(),
+    ])->save();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.npc-dialogue-nodes.update', $node), [
+            'graph_position_x' => 260,
+            'graph_position_y' => 40,
+        ])
+        ->assertRedirect(route('settings.worlds.activities.npc-dialogue.edit', $activity));
+
+    expect($activity->refresh()->ai_review_status)
+        ->toBe(LearningActivity::AI_REVIEW_STATUS_REVIEWED);
+});
+
 test('admin users can create a map before it has portal links', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

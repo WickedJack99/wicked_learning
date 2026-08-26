@@ -172,6 +172,9 @@ export default function EditNodeActivities({
     const selectedEditType = activityGraph.activityTypes.find(
         (type) => type.key === editForm.type,
     );
+    const activitiesNeedingReview = activityGraph.activities.filter(
+        (activity) => activity.aiReviewStatus !== 'reviewed',
+    ).length;
     const hasEditActivityChanges = useDirtyState(
         editForm,
         editingActivity
@@ -461,6 +464,15 @@ export default function EditNodeActivities({
                             Add activity
                         </Button>
                     </header>
+                    {activitiesNeedingReview > 0 ? (
+                        <p className="mb-3 shrink-0 rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-100">
+                            {activitiesNeedingReview}{' '}
+                            {activitiesNeedingReview === 1
+                                ? 'activity needs'
+                                : 'activities need'}{' '}
+                            AI review. The queue is scoped to this node.
+                        </p>
+                    ) : null}
 
                     <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
                         {activityGraph.activities.length === 0 ? (
