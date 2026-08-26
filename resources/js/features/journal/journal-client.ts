@@ -33,6 +33,7 @@ export type JournalFeedbackDomain = {
 
 export type JournalLearningCheckIn = {
     activityId: number;
+    activityHref: string;
     activityTitle: string;
     feeling: string;
     nodeTitle: string;

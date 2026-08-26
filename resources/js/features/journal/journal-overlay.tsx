@@ -588,7 +588,7 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                 {checkIns.slice(0, 4).map((checkIn) => (
                     <a
                         className="block rounded-md px-2 py-2 transition-colors hover:bg-slate-100/70 dark:hover:bg-white/6"
-                        href={checkIn.nodeHref}
+                        href={checkIn.activityHref}
                         key={`${checkIn.activityId}:${checkIn.recordedAt}`}
                     >
                         <div className="flex items-center justify-between gap-2">

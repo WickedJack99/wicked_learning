@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearnerRouteProgress;
@@ -124,6 +124,10 @@ test('the journal includes the learners private check-in trail with a path back 
         ->assertJsonPath('checkIns.0.activityTitle', 'Notice the pattern')
         ->assertJsonPath('checkIns.0.feeling', 'forming')
         ->assertJsonPath('checkIns.0.nodeTitle', 'Reflection node')
+        ->assertJsonPath('checkIns.0.activityHref', route('learning.nodes.play', [
+            'activity_id' => $activity->id,
+            'node' => $activity->node,
+        ]))
         ->assertJsonPath('checkIns.0.nodeHref', route('learning.nodes.play', ['node' => $activity->learning_node_id]));
 });
 
