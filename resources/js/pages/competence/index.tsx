@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Heart, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
@@ -76,9 +76,25 @@ export default function CompetenceStarMap({
                                     </h2>
                                     <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
                                         Complete route-play activities with
-                                        configured competence topics to light up
-                                        this map.
+                                        configured competence topics and this
+                                        map will begin reflecting your learning
+                                        trail.
                                     </p>
+                                    <div className="mt-5 flex flex-wrap justify-center gap-3 text-sm">
+                                        <Link
+                                            className="inline-flex items-center gap-2 rounded-md border border-cyan-200/30 bg-cyan-200/10 px-3 py-2 font-medium text-cyan-100 transition hover:border-cyan-100/60 hover:bg-cyan-100/20"
+                                            href="/topics"
+                                        >
+                                            Explore topics
+                                            <ArrowRight className="size-4" />
+                                        </Link>
+                                        <Link
+                                            className="inline-flex items-center gap-2 rounded-md border border-white/15 px-3 py-2 font-medium text-slate-200 transition hover:border-white/35 hover:bg-white/10"
+                                            href="/home"
+                                        >
+                                            Learning desk
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
