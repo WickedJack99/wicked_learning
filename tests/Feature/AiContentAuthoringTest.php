@@ -142,6 +142,42 @@ test('an administrator can include a learner message prompt in a content plan', 
         ->and($topic->title)->toBe('Energy observations');
 });
 
+test('an administrator can include a shared task in a content plan', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_shared_task',
+            'output_text' => json_encode(sharedTaskContentPlan()),
+        ]),
+    ]);
+
+    $generateResponse = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Help learners build a shared vocabulary for energy conversion.',
+            'route_length' => 1,
+            'activity_types' => ['shared_task'],
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.plan.activities.0.type', 'shared_task');
+    $run = AiContentAuthoringRun::query()->findOrFail($generateResponse->json('data.id'));
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai-content-plans.apply', $run))
+        ->assertCreated()
+        ->assertJsonPath('data.mapAsset.activityCount', 1);
+
+    $activity = LearningActivity::query()->sole();
+
+    expect($activity->type)->toBe('shared_task')
+        ->and($activity->config['prompt'])->toBe('What useful observation could another learner build on?')
+        ->and($activity->config['instructions'])->toBe('Write one concrete observation and explain why it matters.')
+        ->and($activity->config['inputLabel'])->toBe('Add an observation')
+        ->and($activity->config['minimumLength'])->toBe(20)
+        ->and($activity->config['validationMode'])->toBe('minimum_length');
+});
+
 test('only the administrator who generated a draft can apply it', function () {
     $creator = aiAuthoringUser();
     $otherAdmin = aiAuthoringUser();
@@ -266,6 +302,29 @@ function messageContentPlan(): array
             'note' => null,
             'topic' => 'Energy observations',
             'inputLabel' => 'Share an observation',
+        ]],
+    ];
+}
+
+/** @return array<string, mixed> */
+function sharedTaskContentPlan(): array
+{
+    return [
+        'summary' => 'A shared contribution prompt that lets learners build on one another\'s observations.',
+        'mapAsset' => [
+            'title' => 'Shared energy notes',
+            'description' => 'A place for learners to connect observations about energy conversion.',
+            'label' => 'Build the shared explanation',
+        ],
+        'activities' => [[
+            'type' => 'shared_task',
+            'title' => 'Add an observation',
+            'introduction' => 'Contribute one detail that helps the group notice the system more clearly.',
+            'body' => null,
+            'prompt' => 'What useful observation could another learner build on?',
+            'note' => 'Write one concrete observation and explain why it matters.',
+            'topic' => null,
+            'inputLabel' => 'Add an observation',
         ]],
     ];
 }

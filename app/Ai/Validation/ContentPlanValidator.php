@@ -71,6 +71,13 @@ class ContentPlanValidator
                         );
                     }
                 }
+
+                if (($activity['type'] ?? null) === 'shared_task' && blank($activity['prompt'] ?? null)) {
+                    $validator->errors()->add(
+                        "activities.{$index}.prompt",
+                        'Shared tasks need an invitation for learner contributions.',
+                    );
+                }
             }
         });
 

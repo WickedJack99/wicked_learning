@@ -4,9 +4,9 @@ namespace App\ContentApi;
 
 class ContentPlanContract
 {
-    public const VERSION = '1.1';
+    public const VERSION = '1.2';
 
-    public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt'];
+    public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt', 'shared_task'];
 
     /** @return array<string, mixed> */
     public function document(): array
@@ -74,27 +74,27 @@ class ContentPlanContract
                             'introduction' => ['type' => ['string', 'null'], 'maxLength' => 1000],
                             'body' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Markdown body for markdown activities; null for reflections.',
+                                'description' => 'Markdown body for markdown activities; null for interactive activities.',
                                 'maxLength' => 12000,
                             ],
                             'prompt' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Learner prompt for reflections; null for markdown activities.',
+                                'description' => 'Learner prompt for reflections, message prompts and shared tasks; null for markdown activities.',
                                 'maxLength' => 4000,
                             ],
                             'note' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Optional reflection guidance; null for markdown activities.',
+                                'description' => 'Optional reflection guidance or shared-task instructions; null for markdown activities.',
                                 'maxLength' => 2000,
                             ],
                             'topic' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Shared message topic for message prompts; null for other activity types.',
+                                'description' => 'Shared message topic for message prompts; null for other activity types, including shared tasks.',
                                 'maxLength' => 120,
                             ],
                             'inputLabel' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Optional learner message input label; null for other activity types.',
+                                'description' => 'Optional learner message or shared-task input label; null for other activity types.',
                                 'maxLength' => 120,
                             ],
                         ],

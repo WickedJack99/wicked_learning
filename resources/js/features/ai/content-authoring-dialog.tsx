@@ -56,6 +56,7 @@ const contentAuthoringActivityTypes: ContentPlanActivityType[] = [
     'markdown',
     'reflection',
     'message_prompt',
+    'shared_task',
 ];
 
 export function ContentAuthoringDialog({
@@ -606,7 +607,8 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                         {activity.note}
                                     </p>
                                 ) : null}
-                                {activity.type === 'message_prompt' &&
+                                {(activity.type === 'message_prompt' ||
+                                    activity.type === 'shared_task') &&
                                 (activity.topic || activity.inputLabel) ? (
                                     <p className="mt-2 text-xs text-[var(--settings-muted-text)]">
                                         {activity.topic
@@ -640,7 +642,12 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 
 function initialForm(templates: ContentAuthoringTemplate[]): FormState {
     return {
-        activityTypes: ['markdown', 'reflection', 'message_prompt'],
+        activityTypes: [
+            'markdown',
+            'reflection',
+            'message_prompt',
+            'shared_task',
+        ],
         goal: '',
         priorKnowledge: '',
         routeLength: '2',
@@ -667,8 +674,13 @@ function activityTypeLabel(
         ? t('settings.ai.authoring.activity_type.markdown', 'Markdown')
         : type === 'reflection'
           ? t('settings.ai.authoring.activity_type.reflection', 'Reflection')
-          : t(
-                'settings.ai.authoring.activity_type.message_prompt',
-                'Message prompt',
-            );
+          : type === 'message_prompt'
+            ? t(
+                  'settings.ai.authoring.activity_type.message_prompt',
+                  'Message prompt',
+              )
+            : t(
+                  'settings.ai.authoring.activity_type.shared_task',
+                  'Shared task',
+              );
 }

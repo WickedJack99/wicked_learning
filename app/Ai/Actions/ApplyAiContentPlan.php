@@ -132,6 +132,21 @@ class ApplyAiContentPlan
             ];
         }
 
+        if ($plan['type'] === 'shared_task') {
+            return [
+                ...$base,
+                'shared_task_kind' => 'text',
+                'shared_task_prompt' => $plan['prompt'],
+                'shared_task_instructions' => $plan['note'] ?? '',
+                'shared_task_input_label' => $plan['inputLabel'] ?? 'Your contribution',
+                'shared_task_threshold' => 3,
+                'shared_task_minimum_length' => 20,
+                'shared_task_repeat_policy' => 'once_per_user',
+                'shared_task_validation_mode' => 'minimum_length',
+                'shared_task_cycle_mode' => 'none',
+            ];
+        }
+
         return [
             ...$base,
             'markdown_pages' => [[

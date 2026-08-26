@@ -1,7 +1,8 @@
 export type ContentPlanActivityType =
     | 'markdown'
     | 'message_prompt'
-    | 'reflection';
+    | 'reflection'
+    | 'shared_task';
 
 export type ContentPlanActivity = {
     body: string | null;
