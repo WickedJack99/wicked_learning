@@ -1,11 +1,13 @@
 export type CompetenceTopic = {
-    auraThreshold: number;
-    emittanceThreshold: number;
-    growthThreshold: number;
-    monthlyPoints: number;
     name: string;
     slug: string;
-    totalPoints: number;
+    visual: {
+        auraRatio: number;
+        brightnessRatio: number;
+        description: string;
+        sizeRatio: number;
+        sizeTier: string;
+    };
 };
 
 export type CompetenceTransition = {
@@ -142,20 +144,20 @@ export function buildCompetenceStarLayout(
     settleNodes(nodes, links);
     placeLabels(nodes);
 
-    return nodes.map(({ priority: _, ...node }) => node);
+    return nodes.map((node) => {
+        const { priority, ...positioned } = node;
+
+        void priority;
+
+        return positioned;
+    });
 }
 
 function toLayoutNode(topic: CompetenceTopic, index: number): LayoutNode {
     const seed = hashString(topic.slug);
-    const growthRatio = thresholdRatio(
-        topic.totalPoints,
-        topic.growthThreshold,
-    );
-    const emittanceRatio = thresholdRatio(
-        topic.totalPoints,
-        topic.emittanceThreshold,
-    );
-    const auraRatio = thresholdRatio(topic.monthlyPoints, topic.auraThreshold);
+    const growthRatio = topic.visual.sizeRatio;
+    const emittanceRatio = topic.visual.brightnessRatio;
+    const auraRatio = topic.visual.auraRatio;
     const size = 3.5 + growthRatio * 16;
     const auraRadius = size * (2.05 + auraRatio * 1.45);
     const labelWidth = Math.min(
@@ -181,7 +183,7 @@ function toLayoutNode(topic: CompetenceTopic, index: number): LayoutNode {
         labelWidth,
         labelX: 0,
         labelY: 0,
-        priority: topic.totalPoints * 2 + topic.monthlyPoints + index * 0.001,
+        priority: growthRatio * 2 + auraRatio + index * 0.001,
         size,
         sparklePoints: sparklePointsFor(seed, 3 + (seed % 3)),
         twinkleDelay: -seeded(seed, 5) * 2.8,
@@ -342,7 +344,7 @@ function placeLabels(nodes: LayoutNode[]): void {
         const overlaps = placedLabels.some((placed) =>
             rectsOverlap(rect, placed, 8),
         );
-        const important = rank < 7 || node.monthlyPoints >= node.auraThreshold;
+        const important = rank < 7 || node.visual.auraRatio >= 1;
 
         node.labelVisible = !overlaps && (important || rank < 12);
         node.labelSide = rect.side;
@@ -428,18 +430,6 @@ function distanceBetween(
     right: { x: number; y: number },
 ): number {
     return Math.hypot(right.x - left.x, right.y - left.y) || 1;
-}
-
-function thresholdRatio(points: number, threshold: number): number {
-    if (
-        !Number.isFinite(points) ||
-        !Number.isFinite(threshold) ||
-        threshold <= 0
-    ) {
-        return 0;
-    }
-
-    return Math.min(1, points / threshold);
 }
 
 function hashString(value: string): number {

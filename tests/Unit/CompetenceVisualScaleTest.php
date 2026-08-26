@@ -1,0 +1,37 @@
+<?php
+
+use App\Learning\Services\CompetenceVisualScale;
+
+test('visual scale maps internal signals to stable visual tiers', function () {
+    $visual = app(CompetenceVisualScale::class)->forTopic(
+        totalSignal: 8,
+        recentSignal: 5,
+        growthThreshold: 12,
+        brightnessThreshold: 16,
+        auraThreshold: 6,
+    );
+
+    expect($visual)
+        ->toMatchArray([
+            'auraRatio' => 0.8333,
+            'brightnessRatio' => 0.5,
+            'description' => 'A well-established light.',
+            'sizeRatio' => 0.6667,
+            'sizeTier' => 'beacon',
+        ]);
+});
+
+test('visual scale caps values and handles unusable thresholds safely', function () {
+    $visual = app(CompetenceVisualScale::class)->forTopic(
+        totalSignal: 30,
+        recentSignal: 4,
+        growthThreshold: 0,
+        brightnessThreshold: 10,
+        auraThreshold: 2,
+    );
+
+    expect($visual['sizeRatio'])->toBe(0.0)
+        ->and($visual['brightnessRatio'])->toBe(1.0)
+        ->and($visual['auraRatio'])->toBe(1.0)
+        ->and($visual['sizeTier'])->toBe('spark');
+});

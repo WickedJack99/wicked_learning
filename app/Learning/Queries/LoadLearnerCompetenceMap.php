@@ -2,6 +2,7 @@
 
 namespace App\Learning\Queries;
 
+use App\Learning\Services\CompetenceVisualScale;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceTopic;
 use App\Models\LearnerCompetenceTopicMonth;
@@ -11,6 +12,8 @@ use Illuminate\Support\Carbon;
 
 class LoadLearnerCompetenceMap
 {
+    public function __construct(private readonly CompetenceVisualScale $visualScale) {}
+
     /**
      * @return array{monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
@@ -45,21 +48,23 @@ class LoadLearnerCompetenceMap
                     'name' => $hasDefinition
                         ? $definition->name
                         : $topic->topic_name,
-                    'totalPoints' => round((float) $topic->total_points, 2),
-                    'monthlyPoints' => round((float) (
-                        $month instanceof LearnerCompetenceTopicMonth
-                            ? $month->points
-                            : 0
-                    ), 2),
-                    'growthThreshold' => round((float) (
-                        $hasDefinition ? $definition->growth_threshold : 20
-                    ), 2),
-                    'emittanceThreshold' => round((float) (
-                        $hasDefinition ? $definition->emittance_threshold : 20
-                    ), 2),
-                    'auraThreshold' => round((float) (
-                        $hasDefinition ? $definition->aura_threshold : 10
-                    ), 2),
+                    'visual' => $this->visualScale->forTopic(
+                        totalSignal: (float) $topic->total_points,
+                        recentSignal: (float) (
+                            $month instanceof LearnerCompetenceTopicMonth
+                                ? $month->points
+                                : 0
+                        ),
+                        growthThreshold: (float) (
+                            $hasDefinition ? $definition->growth_threshold : 20
+                        ),
+                        brightnessThreshold: (float) (
+                            $hasDefinition ? $definition->emittance_threshold : 20
+                        ),
+                        auraThreshold: (float) (
+                            $hasDefinition ? $definition->aura_threshold : 10
+                        ),
+                    ),
                 ];
             });
 

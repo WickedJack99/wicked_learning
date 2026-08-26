@@ -774,7 +774,7 @@ function CompetenceTopicFields({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor={`competence-weight-${index}`}>
-                                Weight
+                                Contribution
                             </Label>
                             <Input
                                 id={`competence-weight-${index}`}
@@ -812,8 +812,9 @@ function CompetenceTopicFields({
             <InputError message={errors.competence_topics} />
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    Points are awarded only during route play and only once for
-                    the same activity in the same play run.
+                    This controls how strongly the activity contributes to the
+                    topic's internal learning signal. Learners see the result
+                    through the star map, not as a score.
                 </p>
                 <Button onClick={addTopic} type="button" variant="secondary">
                     <Star className="size-4" />

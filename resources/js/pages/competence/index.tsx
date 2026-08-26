@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import { type CSSProperties, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,9 +9,11 @@ import {
     buildCompetenceStarLayout,
     competenceStarMapSize,
     shootingStars,
-    type CompetenceMap,
-    type CompetenceTransition,
-    type PositionedTopic,
+} from './competence-star-layout';
+import type {
+    CompetenceMap,
+    CompetenceTransition,
+    PositionedTopic,
 } from './competence-star-layout';
 
 export default function CompetenceStarMap({
@@ -402,15 +405,14 @@ function CompetenceStar({
 
     return (
         <g
-            aria-label={`${topic.name}: ${topic.totalPoints} total points, ${topic.monthlyPoints} this month`}
+            aria-label={`${topic.name}: ${topic.visual.description}`}
             onPointerEnter={() => onActiveChange(topic.slug)}
             onPointerLeave={() => onActiveChange(null)}
             role="img"
             transform={`translate(${topic.x} ${topic.y})`}
         >
             <title>
-                {topic.name}: {topic.totalPoints} total, {topic.monthlyPoints}{' '}
-                this month
+                {topic.name}: {topic.visual.description}
             </title>
             <circle
                 fill={topic.color}
