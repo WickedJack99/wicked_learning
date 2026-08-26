@@ -127,6 +127,30 @@ class LearningTopicSerializer
         $visual = $competence['visual'];
 
         return [
+            'evidenceLedger' => is_array($visual['evidenceLedger'] ?? null)
+                ? array_values(array_map(
+                    fn (array $entry): array => [
+                        'activityHref' => is_string($entry['activityHref'] ?? null)
+                            ? $entry['activityHref']
+                            : null,
+                        'activityTitle' => is_string($entry['activityTitle'] ?? null)
+                            ? $entry['activityTitle']
+                            : null,
+                        'evidenceType' => (string) ($entry['evidenceType'] ?? ''),
+                        'id' => (int) ($entry['id'] ?? 0),
+                        'nodeTitle' => is_string($entry['nodeTitle'] ?? null)
+                            ? $entry['nodeTitle']
+                            : null,
+                        'recordedAt' => is_string($entry['recordedAt'] ?? null)
+                            ? $entry['recordedAt']
+                            : null,
+                    ],
+                    array_filter(
+                        $visual['evidenceLedger'],
+                        fn (mixed $entry): bool => is_array($entry),
+                    ),
+                ))
+                : [],
             'evidenceTypes' => is_array($visual['evidenceTypes'] ?? null)
                 ? array_values($visual['evidenceTypes'])
                 : [],

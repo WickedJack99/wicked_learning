@@ -272,7 +272,10 @@ function TopicCompetenceCard({
                     />
                     <div>
                         <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
-                            {t('topics.detail.competence.eyebrow', 'Learning trail')}
+                            {t(
+                                'topics.detail.competence.eyebrow',
+                                'Learning trail',
+                            )}
                         </p>
                         <h2
                             className="mt-2 text-sm font-semibold"
@@ -291,10 +294,10 @@ function TopicCompetenceCard({
                                         'topics.detail.competence.subtopic_summary',
                                         'Learning is unfolding through your subtopics.',
                                     )
-                                : t(
-                                      'topics.detail.competence.empty',
-                                      'A first light will appear here as you work with this topic.',
-                                  )}
+                                  : t(
+                                        'topics.detail.competence.empty',
+                                        'A first light will appear here as you work with this topic.',
+                                    )}
                         </p>
                     </div>
                 </div>
@@ -317,42 +320,101 @@ function TopicCompetenceCard({
             </div>
 
             {competence ? (
-                <div className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-white/10">
-                    <div>
-                        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                            {t(
-                                'topics.detail.competence.ways',
-                                'Ways you have been learning',
-                            )}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                            {competence.evidenceTypes.map((type) => (
-                                <span
-                                    className="border border-cyan-700/20 px-2.5 py-1 text-xs text-cyan-800 dark:border-cyan-300/20 dark:text-cyan-200"
-                                    key={type}
-                                >
-                                    {evidenceTypeLabel(type, t)}
-                                </span>
-                            ))}
+                <>
+                    <div className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-white/10">
+                        <div>
+                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                                {t(
+                                    'topics.detail.competence.ways',
+                                    'Ways you have been learning',
+                                )}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {competence.evidenceTypes.map((type) => (
+                                    <span
+                                        className="border border-cyan-700/20 px-2.5 py-1 text-xs text-cyan-800 dark:border-cyan-300/20 dark:text-cyan-200"
+                                        key={type}
+                                    >
+                                        {evidenceTypeLabel(type, t)}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                                {t(
+                                    'topics.detail.competence.recent',
+                                    'Recently',
+                                )}
+                            </p>
+                            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                {competence.recentDescription}
+                            </p>
+                            {competence.learningPeriods.length > 0 ? (
+                                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                    {competence.learningPeriods.join(' · ')}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
-                            {t(
-                                'topics.detail.competence.recent',
-                                'Recently',
-                            )}
-                        </p>
-                        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                            {competence.recentDescription}
-                        </p>
-                        {competence.learningPeriods.length > 0 ? (
-                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                                {competence.learningPeriods.join(' · ')}
+                    {competence.evidenceLedger.length > 0 ? (
+                        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                                {t(
+                                    'topics.detail.competence.moments',
+                                    'Recent moments',
+                                )}
                             </p>
-                        ) : null}
-                    </div>
-                </div>
+                            <div className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
+                                {competence.evidenceLedger.map((entry) => {
+                                    const content = (
+                                        <span className="flex min-w-0 items-start justify-between gap-4">
+                                            <span className="min-w-0">
+                                                <span className="block truncate text-sm font-medium">
+                                                    {entry.activityTitle ??
+                                                        'Learning moment'}
+                                                </span>
+                                                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                                    {evidenceTypeLabel(
+                                                        entry.evidenceType,
+                                                        t,
+                                                    )}
+                                                    {entry.nodeTitle
+                                                        ? ` · ${entry.nodeTitle}`
+                                                        : ''}
+                                                </span>
+                                            </span>
+                                            {entry.recordedAt ? (
+                                                <time
+                                                    className="shrink-0 text-xs text-slate-500 dark:text-slate-400"
+                                                    dateTime={entry.recordedAt}
+                                                >
+                                                    {formatTopicDate(
+                                                        entry.recordedAt,
+                                                    )}
+                                                </time>
+                                            ) : null}
+                                        </span>
+                                    );
+
+                                    return entry.activityHref ? (
+                                        <Link
+                                            className="block py-3 transition hover:text-cyan-800 dark:hover:text-cyan-200"
+                                            href={entry.activityHref}
+                                            key={entry.id}
+                                        >
+                                            {content}
+                                        </Link>
+                                    ) : (
+                                        <div className="py-3" key={entry.id}>
+                                            {content}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ) : null}
+                </>
             ) : null}
 
             {subtopicCompetence.length > 0 ? (
@@ -431,6 +493,18 @@ function evidenceTypeLabel(
     const label = learningIntentLabel(type, translate);
 
     return label ?? type;
+}
+
+function formatTopicDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+          });
 }
 
 function TopicPathCard({ path }: { path: TopicPath }) {

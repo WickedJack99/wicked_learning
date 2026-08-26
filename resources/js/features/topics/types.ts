@@ -31,6 +31,7 @@ export type TopicDetail = TopicSummary & {
 };
 
 export type TopicCompetence = {
+    evidenceLedger: TopicEvidenceLedgerEntry[];
     evidenceTypes: string[];
     learningPeriods: string[];
     name: string;
@@ -50,6 +51,15 @@ export type TopicCompetence = {
         href: string;
         title: string;
     } | null;
+};
+
+export type TopicEvidenceLedgerEntry = {
+    activityHref: string | null;
+    activityTitle: string | null;
+    evidenceType: string;
+    id: number;
+    nodeTitle: string | null;
+    recordedAt: string | null;
 };
 
 export type TopicPath = {

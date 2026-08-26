@@ -353,6 +353,9 @@ test('a topic page exposes its scoped learning trail', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('topic.competence.evidenceTypes', ['retrieve'])
+            ->where('topic.competence.evidenceLedger.0.activityTitle', 'Notice patterns')
+            ->where('topic.competence.evidenceLedger.0.evidenceType', 'retrieve')
+            ->where('topic.competence.evidenceLedger.0.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $node]))
             ->where('topic.competence.learningPeriods', ['Aug 2026'])
             ->where('topic.competence.revisit.activityTitle', 'Notice patterns')
             ->where('topic.subtopicCompetence.0.name', 'Deep Space')
