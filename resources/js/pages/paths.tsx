@@ -131,7 +131,13 @@ function PathCard({ path }: { path: LearningPath }) {
                         {path.label}
                     </h3>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {path.nodeTitle} · {path.mapTitle}
+                        {path.nodeTitle} ·{' '}
+                        <Link
+                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                            href={path.mapHref}
+                        >
+                            {path.mapTitle}
+                        </Link>
                     </p>
                 </div>
             </div>

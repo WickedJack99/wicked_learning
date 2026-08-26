@@ -79,6 +79,7 @@ test('learners can discover accessible authored routes with topic context', func
             ->where('paths.0.label', 'Begin observing')
             ->where('paths.0.activityTitle', 'Notice patterns')
             ->where('paths.0.topic.title', 'Astronomy')
+            ->where('paths.0.mapHref', '/world?map=night-sky')
             ->where('paths.0.mapTitle', 'Night Sky')
             ->where('paths.0.nodeTitle', 'Constellations')
             ->where('paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)

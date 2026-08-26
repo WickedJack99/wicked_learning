@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpen,
+    House,
     LockKeyhole,
     Map as MapIcon,
     Orbit,
@@ -129,6 +130,17 @@ export function WorldMap({
             data-dragging={drag?.hasMoved ? 'true' : undefined}
             onPointerDown={(event) => {
                 if (event.button !== 0) {
+                    return;
+                }
+
+                const interactiveTarget =
+                    event.target instanceof Element
+                        ? event.target.closest(
+                              'a, button, input, textarea, select, [role="button"]',
+                          )
+                        : null;
+
+                if (interactiveTarget) {
                     return;
                 }
 
@@ -270,15 +282,24 @@ export function WorldMap({
                 }}
             >
                 <div
-                    className="mb-3 flex items-center gap-2 text-sm"
+                    className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm"
                     style={{
                         color:
                             mapTheme.accentColor ??
                             (mode === 'light' ? '#0e7490' : '#ccfbf1'),
                     }}
                 >
-                    <MapIcon className="size-4" />
-                    <span>Current map</span>
+                    <span className="flex items-center gap-2">
+                        <MapIcon className="size-4" />
+                        <span>Current map</span>
+                    </span>
+                    <Link
+                        className="pointer-events-auto inline-flex items-center gap-1.5 text-xs font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current"
+                        href="/home"
+                    >
+                        <House className="size-3.5" />
+                        Home
+                    </Link>
                 </div>
                 <h1 className="text-3xl font-semibold tracking-normal md:text-5xl">
                     {map.title}

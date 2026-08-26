@@ -199,10 +199,7 @@ function TopicPathCard({ path }: { path: TopicPath }) {
     const isInProgress = path.progress?.status === 'in_progress';
 
     return (
-        <Link
-            className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-violet-400/60 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-violet-400/40 dark:hover:bg-violet-400/[0.06]"
-            href={path.href}
-        >
+        <article className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-violet-400/60 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-violet-400/40 dark:hover:bg-violet-400/[0.06]">
             <span className="grid size-10 shrink-0 place-items-center border border-violet-200 text-violet-700 dark:border-violet-300/20 dark:text-violet-300">
                 {path.imageUrl ? (
                     <img
@@ -215,19 +212,26 @@ function TopicPathCard({ path }: { path: TopicPath }) {
                 )}
             </span>
             <span className="min-w-0 flex-1">
-                <span className="block font-medium group-hover:text-violet-800 dark:group-hover:text-violet-200">
-                    {path.label}
-                </span>
+                <span className="block font-medium">{path.label}</span>
                 <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
-                    {path.nodeTitle} · {path.mapTitle}
+                    {path.nodeTitle} ·{' '}
+                    <Link
+                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                        href={path.mapHref}
+                    >
+                        {path.mapTitle}
+                    </Link>
                 </span>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:text-violet-300">
+                <Link
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:text-violet-300"
+                    href={path.href}
+                >
                     {isInProgress
                         ? t('topics.detail.paths.continue', 'Continue')
                         : t('topics.detail.paths.enter', 'Enter route')}
                     <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
-                </span>
+                </Link>
             </span>
-        </Link>
+        </article>
     );
 }

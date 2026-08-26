@@ -35,6 +35,7 @@ export type TopicPath = {
     id: number;
     imageUrl: string | null;
     label: string;
+    mapHref: string;
     mapTitle: string;
     nodeTitle: string;
     progress: {

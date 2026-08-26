@@ -211,6 +211,7 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('topic.paths', 1)
             ->where('topic.paths.0.label', 'Begin observing')
+            ->where('topic.paths.0.mapHref', '/world?map=night-sky')
             ->where('topic.paths.0.mapTitle', 'Night Sky')
             ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
