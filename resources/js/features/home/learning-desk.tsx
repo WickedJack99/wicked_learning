@@ -148,7 +148,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
                                         {t(
                                             'home.learning_desk.connections.saved_reason',
-                                            'Drawn from topics you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
+                                            'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
                                         )}
                                     </p>
                                 </div>
@@ -156,7 +156,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <EmptyState
                                     body={t(
                                         'home.learning_desk.connections.empty_body',
-                                        'Save interesting topics and this area can reveal useful paths between them.',
+                                        'Save interesting places and this area can reveal useful paths between them.',
                                     )}
                                     href="/world"
                                     link={t(
@@ -197,13 +197,13 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                     <p className="mt-4 font-medium">
                         {t(
                             'home.learning_desk.rail.empty_title',
-                            'Pin a topic to your desk',
+                            'Pin a place to your desk',
                         )}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                         {t(
                             'home.learning_desk.rail.empty_body',
-                            'Your most recently visited bookmarked topic will appear here.',
+                            'Your most recently visited bookmarked place will appear here.',
                         )}
                     </p>
                 </div>
@@ -211,7 +211,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
 
             <div className="mt-8">
                 <p className="text-xs font-semibold tracking-[0.18em] text-cyan-700 uppercase dark:text-cyan-400">
-                    {t('home.learning_desk.bookmarks.title', 'Saved topics')}
+                    {t('home.learning_desk.bookmarks.title', 'Saved places')}
                 </p>
                 <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
                     {desk.bookmarks.length > 0 ? (
@@ -236,7 +236,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                         <p className="py-5 text-sm text-slate-500 dark:text-slate-400">
                             {t(
                                 'home.learning_desk.bookmarks.empty',
-                                'No saved topics yet.',
+                                'No saved places yet.',
                             )}
                         </p>
                     )}
@@ -271,7 +271,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                 </div>
             ) : null}
             <p className="text-xs font-medium tracking-[0.16em] text-violet-600 uppercase dark:text-violet-400">
-                {t('home.learning_desk.rail.featured', 'Pinned topic')}
+                {t('home.learning_desk.rail.featured', 'Pinned place')}
             </p>
             <h2 className="mt-3 text-xl font-medium">{bookmark.title}</h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
@@ -286,7 +286,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                 className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-700 hover:text-violet-600 dark:text-violet-300 dark:hover:text-violet-200"
                 href={bookmark.href}
             >
-                {t('home.learning_desk.rail.open', 'Open topic')}
+                {t('home.learning_desk.rail.open', 'Open place')}
                 <ArrowRight className="size-4" />
             </Link>
         </article>
