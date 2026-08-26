@@ -5,6 +5,7 @@ type ActivityFormPayload = Partial<ActivityForm>;
 const coreFields: Array<keyof ActivityForm> = [
     'competence_topics',
     'introduction',
+    'learning_intent',
     'slug',
     'title',
     'type',

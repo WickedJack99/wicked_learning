@@ -24,6 +24,12 @@ test('route play completion records configured evidence once per play run', func
         ['topic' => 'Algebra', 'weight' => 2.5],
         ['topic' => 'Systems Thinking', 'weight' => 4],
     ]);
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'review',
+        ],
+    ]);
     $runId = (string) Str::uuid();
 
     LearnerRouteProgress::query()->create([
@@ -61,7 +67,7 @@ test('route play completion records configured evidence once per play run', func
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'systems-thinking')
-            ->value('evidence_type'))->toBe('participate');
+            ->value('evidence_type'))->toBe('review');
 });
 
 test('admins can configure competence topics on any activity', function () {
@@ -77,6 +83,7 @@ test('admins can configure competence topics on any activity', function () {
                 ['topic' => 'Creative Problem Solving', 'weight' => 4],
                 ['topic' => '', 'weight' => 9],
             ],
+            'learning_intent' => 'review',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
 
@@ -89,6 +96,7 @@ test('admins can configure competence topics on any activity', function () {
             'weight' => 4,
         ],
     ])
+        ->and($activity->config['learningIntent'])->toBe('review')
         ->and(CompetenceTopicDefinition::query()
             ->where('slug', 'creative-problem-solving')
             ->value('name'))->toBe('Creative Problem Solving');

@@ -14,11 +14,28 @@ The first activity-derived categories are:
 - `reflect` for reflection activities.
 - `explain` for shared-task and learner-message activities.
 - `apply` for obstacle activities.
+- `review` for an authored return to earlier material, where the learner can
+  reconnect, retrieve, or notice a change in understanding.
 - `transfer` is reserved for authored transfer tasks.
 
 Each event also records a contribution value used only to calibrate the visual
 map, an outcome, and an assistance level. The current prototype uses
 `untracked` assistance until activities capture meaningful assistance details.
+
+## Activity learning purpose
+
+An activity renderer and its learning purpose are separate decisions. A tutor
+can keep an existing activity surface (for example, a markdown scene,
+reflection, obstacle, or message) and label the intended learning purpose as
+`review`, `retrieve`, `explain`, `apply`, `reflect`, `participate`, or `transfer`.
+Existing activities infer a purpose from their type until a tutor chooses a
+more precise one.
+
+The purpose describes the opportunity the activity creates; it is not a claim
+that competence increased immediately. Repeated exposure, retrieval,
+reflection, and later application can form a pattern whose meaning becomes
+clear only over time. The star map therefore remains a qualitative reflection
+of accumulated evidence rather than a live test result.
 
 ## Rendering rule
 
@@ -29,7 +46,7 @@ and richer star-map lenses.
 
 ## Next evolution
 
-Add authored evidence configuration for activities that can distinguish
-retrieval, explanation, application and transfer more precisely than activity
-type inference. Then add confidence and feedback outcomes where the activity
-actually collects them.
+Next, let the authoring assistant use the purpose as a structured signal while
+keeping the tutor in control of the final activity. Then add confidence and
+feedback outcomes where the activity actually collects them, without making a
+feeling check or reflection require an answer from the learner.

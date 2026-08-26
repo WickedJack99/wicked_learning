@@ -15,11 +15,34 @@ class ActivityCompetenceConfiguration
         'participate',
         'reflect',
         'retrieve',
+        'review',
+        'transfer',
+    ];
+
+    public const LEARNING_INTENTS = [
+        'apply',
+        'explain',
+        'participate',
+        'reflect',
+        'retrieve',
+        'review',
         'transfer',
     ];
 
     public function evidenceTypeForActivity(LearningActivity $activity): string
     {
+        return $this->learningIntentForActivity($activity);
+    }
+
+    public function learningIntentForActivity(LearningActivity $activity): string
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+        $intent = $config['learningIntent'] ?? null;
+
+        if (is_string($intent) && in_array($intent, self::LEARNING_INTENTS, true)) {
+            return $intent;
+        }
+
         return match ($activity->type) {
             'question' => 'retrieve',
             'reflection' => 'reflect',
@@ -36,6 +59,16 @@ class ActivityCompetenceConfiguration
      */
     public function mergeInto(array $existing, array $data): array
     {
+        if (array_key_exists('learning_intent', $data)) {
+            $intent = trim((string) ($data['learning_intent'] ?? ''));
+
+            if ($intent === '') {
+                unset($existing['learningIntent']);
+            } elseif (in_array($intent, self::LEARNING_INTENTS, true)) {
+                $existing['learningIntent'] = $intent;
+            }
+        }
+
         if (! array_key_exists('competence_topics', $data)) {
             return $existing;
         }
@@ -67,7 +100,8 @@ class ActivityCompetenceConfiguration
     /** @param array<string, mixed> $data */
     public function shouldUpdate(array $data): bool
     {
-        return array_key_exists('competence_topics', $data);
+        return array_key_exists('competence_topics', $data)
+            || array_key_exists('learning_intent', $data);
     }
 
     /**

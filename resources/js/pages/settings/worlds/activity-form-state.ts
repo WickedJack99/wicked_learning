@@ -12,6 +12,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         activity_sound_id: '',
         competence_topics: [{ topic: '', weight: '1' }],
         introduction: '',
+        learning_intent: '',
         item_grant_background_dark: '',
         item_grant_background_light: '',
         item_grant_background_mirrored: false,
@@ -174,6 +175,7 @@ export function activityFormFromActivity(
         activity_sound_id: ambientSoundId(activity.config.ambientSound),
         competence_topics: competenceTopics(activity.config.competenceTopics),
         introduction: activity.introduction ?? '',
+        learning_intent: stringConfig(activity.config.learningIntent),
         item_grant_background_dark: stringConfig(
             activity.config.backgroundDark,
         ),

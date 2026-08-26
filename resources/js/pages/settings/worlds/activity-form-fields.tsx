@@ -551,14 +551,21 @@ export function ActivityFormFields({
 
                     {activeSection === 'competence' ? (
                         <SettingsConfigurationSection
-                            description="Add topic weights that increase a learner's competence counters when they complete this activity during route play."
-                            title="Competence topics"
+                            description="Describe the learning evidence this activity is meant to invite, then connect it to one or more competence topics."
+                            title="Learning evidence"
                         >
-                            <CompetenceTopicFields
-                                errors={errors}
-                                form={form}
-                                onChange={onChange}
-                            />
+                            <div className="grid gap-6">
+                                <LearningIntentField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                                <CompetenceTopicFields
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
+                            </div>
                         </SettingsConfigurationSection>
                     ) : null}
 
@@ -651,10 +658,10 @@ const activitySettingsSections: SettingsNavigationItem<ActivitySettingsSection>[
             label: 'Sound',
         },
         {
-            description: 'Topics and weights awarded on route completion.',
+            description: 'Learning purpose and competence evidence.',
             icon: Star,
             key: 'competence',
-            label: 'Competence',
+            label: 'Learning evidence',
         },
         {
             description: 'Slug and optional introductory text.',
@@ -821,6 +828,106 @@ function CompetenceTopicFields({
                     Add topic
                 </Button>
             </div>
+        </div>
+    );
+}
+
+function LearningIntentField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    const intents = [
+        {
+            description:
+                'Return to an idea and notice what is clearer or more connected now.',
+            label: 'Review / revisit',
+            value: 'review',
+        },
+        {
+            description:
+                'Bring an idea back from memory before looking at an answer.',
+            label: 'Retrieve',
+            value: 'retrieve',
+        },
+        {
+            description:
+                'Put an idea into your own words or make it understandable to someone else.',
+            label: 'Explain',
+            value: 'explain',
+        },
+        {
+            description: 'Use an idea to work through a situation or obstacle.',
+            label: 'Apply',
+            value: 'apply',
+        },
+        {
+            description:
+                'Notice thinking, uncertainty, emotion, or connections to prior experience.',
+            label: 'Reflect',
+            value: 'reflect',
+        },
+        {
+            description:
+                'Take part in a guided learning moment without assigning a narrower purpose.',
+            label: 'Participate',
+            value: 'participate',
+        },
+        {
+            description:
+                'Use an idea in a new context or with a changed surface problem.',
+            label: 'Transfer',
+            value: 'transfer',
+        },
+    ];
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-learning-intent">Learning purpose</Label>
+            <Select
+                onValueChange={(value) =>
+                    onChange((current) => ({
+                        ...current,
+                        learning_intent: value === 'default' ? '' : value,
+                    }))
+                }
+                value={form.learning_intent || 'default'}
+            >
+                <SelectTrigger
+                    className="w-full md:max-w-xl"
+                    id="activity-learning-intent"
+                >
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="default">
+                        Use the activity type's usual purpose
+                    </SelectItem>
+                    {intents.map((intent) => (
+                        <SelectItem key={intent.value} value={intent.value}>
+                            {intent.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                This is a teaching intention, not a grade. Leave it on the
+                default when the renderer's usual purpose is a good fit.
+            </p>
+            {form.learning_intent ? (
+                <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {
+                        intents.find(
+                            (intent) => intent.value === form.learning_intent,
+                        )?.description
+                    }
+                </p>
+            ) : null}
+            <InputError message={errors.learning_intent} />
         </div>
     );
 }

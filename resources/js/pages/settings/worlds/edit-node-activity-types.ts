@@ -242,6 +242,7 @@ export type CreateActivityForm = {
     activity_sound_id: string;
     competence_topics: CompetenceTopicForm[];
     introduction: string;
+    learning_intent: string;
     item_grant_background_dark: string;
     item_grant_background_light: string;
     item_grant_background_mirrored: boolean;

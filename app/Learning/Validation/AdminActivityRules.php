@@ -3,6 +3,7 @@
 namespace App\Learning\Validation;
 
 use App\Learning\ActivityTypeRegistry;
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
@@ -152,6 +153,7 @@ class AdminActivityRules
             'competence_topics' => [$modifier, 'array', 'max:20'],
             'competence_topics.*.topic' => $this->optional($modifier, ['string', 'max:120']),
             'competence_topics.*.weight' => $this->optional($modifier, ['numeric', 'min:0', 'max:1000']),
+            'learning_intent' => [$modifier, 'nullable', Rule::in(ActivityCompetenceConfiguration::LEARNING_INTENTS)],
         ];
     }
 

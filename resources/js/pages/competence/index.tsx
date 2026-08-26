@@ -476,6 +476,7 @@ function evidenceTypeLabel(type: string): string {
             participate: 'participating',
             reflect: 'reflecting',
             retrieve: 'retrieving',
+            review: 'reviewing',
             transfer: 'transferring',
         }[type] ?? type
     );
