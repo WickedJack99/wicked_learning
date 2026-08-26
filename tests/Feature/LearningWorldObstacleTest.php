@@ -21,6 +21,11 @@ test('learners can resolve an obstacle with an owned configured tool', function 
         ->firstOrFail();
     $tool = LearningTool::query()->where('slug', 'pattern-lens')->firstOrFail();
 
+    expect($tool->image_dark)->toBe('/images/tools/pattern-lens-dark.svg')
+        ->and($tool->image_light)->toBe('/images/tools/pattern-lens-light.svg')
+        ->and(file_exists(public_path(ltrim($tool->image_dark, '/'))))->toBeTrue()
+        ->and(file_exists(public_path(ltrim($tool->image_light, '/'))))->toBeTrue();
+
     $this->actingAs($learner)
         ->postJson(route('learning.activities.obstacle-tool', $activity), [
             'tool_id' => $tool->id,

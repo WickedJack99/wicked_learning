@@ -146,6 +146,9 @@ Tools are reusable learner capabilities. They can be granted by activities or
 NPC dialogue, equipped from the learner controls, used in obstacles, reveal
 hidden MapAssets and satisfy configured unlock rules.
 
+The demo Pattern lens includes separate dark and light SVG visuals so a seeded
+tool is immediately visible wherever learners acquire or equip it.
+
 Items are consumable inventory objects used by item-grant and item-obstacle
 activities. Probability rolls and inventory mutations happen on the backend so
 browser replay cannot mint repeated grants inside one route run.

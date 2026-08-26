@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-labelledby="title desc">
+  <title id="title">Pattern lens</title>
+  <desc id="desc">A clear lens with a small pattern of connected points.</desc>
+  <defs>
+    <radialGradient id="glass" cx="35%" cy="28%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".98"/>
+      <stop offset=".48" stop-color="#a7edf0" stop-opacity=".82"/>
+      <stop offset="1" stop-color="#3e9eae" stop-opacity=".94"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0e7490"/>
+      <stop offset=".5" stop-color="#075e70"/>
+      <stop offset="1" stop-color="#164e63"/>
+    </linearGradient>
+  </defs>
+  <path d="m204 214 54 54" stroke="#d7e8ed" stroke-width="33" stroke-linecap="round"/>
+  <path d="m204 214 54 54" stroke="url(#metal)" stroke-width="23" stroke-linecap="round"/>
+  <path d="m241 251 25 25" stroke="#d8ffff" stroke-opacity=".65" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="145" cy="145" r="105" fill="#e3f0f3" stroke="#164e63" stroke-width="12"/>
+  <circle cx="145" cy="145" r="96" fill="url(#glass)" stroke="url(#metal)" stroke-width="8"/>
+  <path d="M83 102c24-31 66-43 101-23" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="9" stroke-linecap="round"/>
+  <g fill="none" stroke="#8a5a24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m102 163 28-32 30 17 29-38"/>
+    <path d="m130 131 4 43 26-26" stroke="#d45f3d"/>
+  </g>
+  <g fill="#8a5a24" stroke="#e7fbfb" stroke-width="4">
+    <circle cx="102" cy="163" r="9"/>
+    <circle cx="130" cy="131" r="9"/>
+    <circle cx="160" cy="148" r="9"/>
+    <circle cx="189" cy="110" r="9"/>
+    <circle cx="134" cy="174" r="9" fill="#d45f3d"/>
+  </g>
+</svg>
