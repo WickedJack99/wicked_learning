@@ -1,5 +1,5 @@
-import { Head, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowLeft, House, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
@@ -12,6 +12,7 @@ import {
 import { getJson, postJson } from '@/features/world/api';
 import { LearningCheckIn } from '@/features/world/learning-check-in';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     LearningActivity,
     LearningCheckInFeeling,
@@ -56,6 +57,7 @@ export default function NodePlay({
     const { props } = usePage();
     const isAuthenticated = Boolean(props.auth.user);
     const { resolvedAppearance } = useAppearance();
+    const translate = usePlatformTranslation();
     const initialActivity = useMemo(
         () => getActivityById(node, playActivityId) ?? getStartActivity(node),
         [node, playActivityId],
@@ -361,6 +363,15 @@ export default function NodePlay({
                     >
                         <ArrowLeft className="size-4" />
                         Map
+                    </Button>
+                    <Button asChild className="shrink-0" variant="ghost">
+                        <Link href="/home">
+                            <House className="size-4" />
+                            {translate(
+                                'navigation.bottom.learning_desk',
+                                'Learning desk',
+                            )}
+                        </Link>
                     </Button>
                     <Button
                         className="shrink-0"
