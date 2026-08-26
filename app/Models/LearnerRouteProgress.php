@@ -5,7 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $learning_node_id
+ * @property int|null $start_learning_activity_id
+ * @property Carbon|null $last_entered_at
+ * @property string $status
+ */
 #[Fillable([
     'user_id',
     'learning_node_id',

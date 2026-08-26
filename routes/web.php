@@ -9,6 +9,7 @@ use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningGroupController;
 use App\Http\Controllers\LearningHomeController;
 use App\Http\Controllers\LearningItemActivityController;
+use App\Http\Controllers\LearningPathController;
 use App\Http\Controllers\LearningRouteProgressController;
 use App\Http\Controllers\LearningSharedTaskSubmissionController;
 use App\Http\Controllers\LearningTopicController;
@@ -45,7 +46,7 @@ Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::cl
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('home', LearningHomeController::class)->name('home');
-    Route::inertia('paths', 'paths')->name('paths.index');
+    Route::get('paths', LearningPathController::class)->name('paths.index');
     Route::get('topics', [LearningTopicController::class, 'index'])->name('topics.index');
     Route::get('topics/{topic:slug}', [LearningTopicController::class, 'show'])->name('topics.show');
     Route::get('bookmarks', [LearningBookmarkController::class, 'index'])->name('bookmarks');
