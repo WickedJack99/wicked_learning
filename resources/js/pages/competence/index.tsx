@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Heart, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Heart, House, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
@@ -53,12 +53,24 @@ export default function CompetenceStarMap({
                 <div className="grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
                     <AccentHeading
                         action={
-                            <Button asChild variant="secondary">
-                                <Link href="/world">
-                                    <ArrowLeft className="size-4" />
-                                    Back to world
-                                </Link>
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                    asChild
+                                    className="text-slate-300 hover:bg-white/10 hover:text-white"
+                                    variant="ghost"
+                                >
+                                    <Link href="/home">
+                                        <House className="size-4" />
+                                        Learning desk
+                                    </Link>
+                                </Button>
+                                <Button asChild variant="secondary">
+                                    <Link href="/world">
+                                        <ArrowLeft className="size-4" />
+                                        Back to world
+                                    </Link>
+                                </Button>
+                            </div>
                         }
                         accentColor="var(--map-floating-accent-color)"
                         eyebrow="Competence"
