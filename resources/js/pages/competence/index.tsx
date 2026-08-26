@@ -456,26 +456,42 @@ function CompetenceMapGuide({
     recentWindowDays: number;
 }) {
     return (
-        <details className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur">
+        <details
+            className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur"
+            open
+        >
             <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
                 How to read this map
             </summary>
             <div className="grid gap-3 border-t border-cyan-200/15 px-3 py-3 text-xs leading-5 text-slate-300">
                 <p>
                     Each light represents a competence area you have explored.
+                    The map keeps long-term development distinct from recent
+                    activity.
                 </p>
                 <dl className="grid gap-2">
                     <div>
                         <dt className="font-medium text-slate-100">Size</dt>
                         <dd>
                             How established the learning pattern is over time.
+                            It grows on a stable, capped scale rather than
+                            showing a point total.
                         </dd>
                     </div>
                     <div>
                         <dt className="font-medium text-slate-100">Glow</dt>
                         <dd>
-                            Learning activity recorded during the last{' '}
-                            {recentWindowDays} days.
+                            How much learning activity was recorded during the
+                            last {recentWindowDays} days. It changes brightness
+                            without rewriting the established size.
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="font-medium text-slate-100">Halo</dt>
+                        <dd>
+                            A softer sense of recent presence, so a newly
+                            revisited area can be noticed before its longer
+                            pattern changes.
                         </dd>
                     </div>
                     <div>
