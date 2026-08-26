@@ -39,9 +39,18 @@ class LearningTopicController extends Controller
     {
         $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
-        $topicSlugs = $this->topics->publishedDescendantSlugs($topic);
+        $topicSlugs = collect($this->topics->publishedDescendantSlugs($topic));
         $competenceTopics = collect($competenceMap['topics'])
-            ->whereIn('slug', $topicSlugs)
+            ->filter(function (array $entry) use ($topicSlugs): bool {
+                if ($topicSlugs->contains($entry['slug'] ?? null)) {
+                    return true;
+                }
+
+                return collect($entry['relatedTopics'] ?? [])->contains(
+                    fn (mixed $relatedTopic): bool => is_array($relatedTopic)
+                        && $topicSlugs->contains($relatedTopic['slug'] ?? null),
+                );
+            })
             ->values();
         $competence = $competenceTopics->firstWhere('slug', $topic->slug);
 

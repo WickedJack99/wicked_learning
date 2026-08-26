@@ -42,7 +42,7 @@ class LoadLearnerCompetenceMap
 
         LearnerEvidenceEvent::query()
             ->where('user_id', $user->id)
-            ->with('activity.node')
+            ->with('activity.node.map.topic')
             ->get()
             ->groupBy('topic_slug')
             ->sortByDesc(fn (Collection $events): float => (float) $events->sum('contribution'))
@@ -63,6 +63,7 @@ class LoadLearnerCompetenceMap
                     'name' => $hasDefinition
                         ? $definition->name
                         : $event->topic_name,
+                    'relatedTopics' => $this->relatedTopics($events),
                     'relatedTopic' => $learningTopic instanceof LearningTopic
                         ? [
                             'href' => route('topics.show', $learningTopic, false),
@@ -163,6 +164,30 @@ class LoadLearnerCompetenceMap
                     'recordedAt' => $event->created_at?->toIso8601String(),
                 ];
             })
+            ->values()
+            ->all());
+    }
+
+    /**
+     * A competence category may intentionally differ from a formal learning
+     * topic. Keep both concepts separate while still showing where the
+     * evidence was encountered.
+     *
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return list<array{id: int, href: string, slug: string, title: string}>
+     */
+    private function relatedTopics(Collection $events): array
+    {
+        return array_values($events
+            ->map(fn (LearnerEvidenceEvent $event): ?LearningTopic => $event->activity?->node?->map?->topic)
+            ->filter(fn (?LearningTopic $topic): bool => $topic instanceof LearningTopic && $topic->is_published)
+            ->unique(fn (LearningTopic $topic): int => $topic->id)
+            ->map(fn (LearningTopic $topic): array => [
+                'href' => route('topics.show', $topic, false),
+                'id' => $topic->id,
+                'slug' => $topic->slug,
+                'title' => $topic->title,
+            ])
             ->values()
             ->all());
     }

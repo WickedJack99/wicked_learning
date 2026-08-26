@@ -244,6 +244,7 @@ function TopicCompetenceCard({
 }) {
     const t = usePlatformTranslation();
     const firstTrail = competence ?? subtopicCompetence[0] ?? null;
+    const focusedSlug = competence ? topicSlug : firstTrail?.slug;
     const starSize = firstTrail
         ? 30 + Math.round(firstTrail.visual.sizeRatio * 18)
         : 30;
@@ -292,7 +293,7 @@ function TopicCompetenceCard({
                                 : subtopicCompetence.length > 0
                                   ? t(
                                         'topics.detail.competence.subtopic_summary',
-                                        'Learning is unfolding through your subtopics.',
+                                        'Learning is unfolding across connected areas.',
                                     )
                                   : t(
                                         'topics.detail.competence.empty',
@@ -304,16 +305,18 @@ function TopicCompetenceCard({
                 <Link
                     className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-cyan-700 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
                     href={
-                        competence
-                            ? `/competence?topic=${encodeURIComponent(topicSlug)}`
+                        focusedSlug
+                            ? `/competence?topic=${encodeURIComponent(focusedSlug)}`
                             : '/competence'
                     }
                 >
                     {t(
-                        competence
+                        focusedSlug
                             ? 'topics.detail.competence.open'
                             : 'topics.detail.competence.open_all',
-                        competence ? 'Open focused map' : 'Open competence map',
+                        focusedSlug
+                            ? 'Open focused map'
+                            : 'Open competence map',
                     )}
                     <ArrowRight className="size-4" />
                 </Link>
@@ -422,7 +425,7 @@ function TopicCompetenceCard({
                     <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
                         {t(
                             'topics.detail.competence.subtopics',
-                            'Subtopic trails',
+                            'Connected learning areas',
                         )}
                     </p>
                     <div className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
@@ -456,8 +459,35 @@ function TopicCompetenceCard({
                                                 .join(' · ')}
                                         </p>
                                     ) : null}
+                                    {trail.evidenceLedger.length > 0 ? (
+                                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                                            <span>Recent:</span>
+                                            {trail.evidenceLedger
+                                                .slice(0, 2)
+                                                .map((entry) =>
+                                                    entry.activityHref ? (
+                                                        <Link
+                                                            className="text-violet-700 underline decoration-violet-700/30 underline-offset-2 hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                                                            href={
+                                                                entry.activityHref
+                                                            }
+                                                            key={entry.id}
+                                                        >
+                                                            {entry.activityTitle ??
+                                                                'Learning moment'}
+                                                        </Link>
+                                                    ) : (
+                                                        <span key={entry.id}>
+                                                            {entry.activityTitle ??
+                                                                'Learning moment'}
+                                                        </span>
+                                                    ),
+                                                )}
+                                        </div>
+                                    ) : null}
                                 </div>
-                                {trail.revisit ? (
+                                {trail.revisit &&
+                                trail.evidenceLedger.length === 0 ? (
                                     <Link
                                         aria-label={`${t('topics.detail.competence.revisit', 'Return to')} ${trail.revisit.activityTitle}`}
                                         className="mt-0.5 shrink-0 text-violet-700 transition hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"

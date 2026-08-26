@@ -158,6 +158,7 @@ class LearningTopicSerializer
                 ? array_values($visual['learningPeriods'])
                 : [],
             'name' => (string) ($competence['name'] ?? ''),
+            'slug' => (string) ($competence['slug'] ?? ''),
             'recentDescription' => (string) ($visual['recentDescription'] ?? ''),
             'revisit' => is_array($competence['revisit'] ?? null)
                 ? [

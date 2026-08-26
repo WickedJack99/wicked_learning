@@ -41,6 +41,7 @@ export type TopicCompetence = {
         activityTitle: string;
         nodeTitle: string;
     } | null;
+    slug: string;
     visual: {
         auraRatio: number;
         brightnessRatio: number;

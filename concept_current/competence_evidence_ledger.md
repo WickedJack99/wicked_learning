@@ -91,7 +91,12 @@ consistent enough for meaningful aggregation without turning the vocabulary
 into a rigid curriculum or a learner-facing taxonomy.
 
 Learner activity surfaces may name the related learning areas so the learner
-can connect an activity with the wider trail. The internal contribution
+can connect an activity with the wider trail. A competence area and a formal
+learning topic do not need to be the same concept: topic pages can connect
+evidence through the published map where it was encountered while retaining
+the competence area as its own category. Topic pages can offer the connected
+area as a focused star-map doorway and retain a bounded link to the learning
+moment that formed the trail. The internal contribution
 weights are not included in learner responses and are never presented as
 points. When a topic has a stable slug, its label can open that light directly
 on the star map; this is an optional orientation link, not a required route.

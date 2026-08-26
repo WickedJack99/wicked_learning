@@ -76,6 +76,36 @@ test('the demo route gives its practice activities a shared competence vocabular
         ->toBe('reflect');
 });
 
+test('a topic shows competence evidence encountered through its map', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $activity = LearningActivity::query()
+        ->where('slug', 'guided-signal-dialogue')
+        ->firstOrFail();
+
+    LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'pattern-recognition',
+        'topic_name' => 'Pattern recognition',
+        'evidence_type' => 'explain',
+        'contribution' => 1,
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', 'pattern-investigation'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.competence', null)
+            ->where('topic.subtopicCompetence.0.name', 'Pattern recognition')
+            ->where('topic.subtopicCompetence.0.slug', 'pattern-recognition')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.activityTitle', $activity->title)
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
+        );
+});
+
 test('route play completion records configured evidence once per play run', function () {
     Carbon::setTestNow('2026-07-21 10:00:00');
 
