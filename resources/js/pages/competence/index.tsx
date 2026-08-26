@@ -627,17 +627,22 @@ function CompetenceReading({
                 </p>
             </div>
             <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
-                Ways you have engaged here
+                Learning moments represented here
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 grid gap-2">
                 {topic.visual.evidenceTypes.length > 0 ? (
                     topic.visual.evidenceTypes.map((type) => (
-                        <span
-                            className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-2.5 py-1 text-xs text-cyan-100"
+                        <div
+                            className="flex items-start gap-2 text-xs leading-5"
                             key={type}
                         >
-                            {evidenceTypeLabel(type)}
-                        </span>
+                            <span className="shrink-0 rounded-full border border-cyan-200/20 bg-cyan-200/10 px-2.5 py-1 text-cyan-100">
+                                {evidenceTypeLabel(type)}
+                            </span>
+                            <span className="pt-1 text-slate-400">
+                                {evidenceTypeDescription(type)}
+                            </span>
+                        </div>
                     ))
                 ) : (
                     <span className="text-sm text-slate-400">
@@ -660,6 +665,20 @@ function evidenceTypeLabel(type: string): string {
             review: 'reviewing',
             transfer: 'transferring',
         }[type] ?? type
+    );
+}
+
+function evidenceTypeDescription(type: string): string {
+    return (
+        {
+            apply: 'using an idea in a situation',
+            explain: 'putting an idea into your own words',
+            participate: 'taking part in a learning activity',
+            reflect: 'noticing understanding, uncertainty or connections',
+            retrieve: 'bringing an idea back from memory',
+            review: 'returning to earlier material and noticing what changed',
+            transfer: 'using an idea in a new context',
+        }[type] ?? 'engaging with this learning area'
     );
 }
 

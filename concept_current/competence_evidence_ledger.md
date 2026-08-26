@@ -21,6 +21,9 @@ The first activity-derived categories are:
 Each event also records a contribution value used only to calibrate the visual
 map, an outcome, and an assistance level. The current prototype uses
 `untracked` assistance until activities capture meaningful assistance details.
+In the selected-light reading, these categories are paired with plain-language
+descriptions so learners can understand the kinds of moments represented by a
+light without seeing the internal event record.
 
 ## Activity learning purpose
 
