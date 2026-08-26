@@ -4,7 +4,7 @@ namespace App\Ai\Contracts;
 
 class ActivityReviewContract
 {
-    public const VERSION = '1.0';
+    public const VERSION = '1.1';
 
     /** @return array<string, mixed> */
     public function responseFormat(): array
@@ -33,11 +33,23 @@ class ActivityReviewContract
                 'note' => ['type' => 'string', 'maxLength' => 600],
             ],
         ];
+        $alignmentDimension = [
+            'type' => 'object',
+            'additionalProperties' => false,
+            'required' => ['signal', 'note'],
+            'properties' => [
+                'signal' => [
+                    'type' => 'string',
+                    'enum' => ['aligned', 'unclear', 'mismatch'],
+                ],
+                'note' => ['type' => 'string', 'maxLength' => 600],
+            ],
+        ];
 
         return [
             'type' => 'object',
             'additionalProperties' => false,
-            'required' => ['summary', 'strengths', 'suggestions', 'sdt'],
+            'required' => ['summary', 'strengths', 'suggestions', 'sdt', 'learningDesign'],
             'properties' => [
                 'summary' => ['type' => 'string', 'maxLength' => 1200],
                 'strengths' => [
@@ -58,6 +70,15 @@ class ActivityReviewContract
                         'autonomy' => $dimension,
                         'competence' => $dimension,
                         'relatedness' => $dimension,
+                    ],
+                ],
+                'learningDesign' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['purpose', 'topics'],
+                    'properties' => [
+                        'purpose' => $alignmentDimension,
+                        'topics' => $alignmentDimension,
                     ],
                 ],
             ],

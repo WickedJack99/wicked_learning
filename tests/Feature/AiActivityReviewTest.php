@@ -48,7 +48,8 @@ test('an administrator can request a scoped activity review', function () {
 
     expect($activity->refresh()->ai_review_status)->toBe('reviewed')
         ->and($activity->ai_reviewed_at)->not->toBeNull()
-        ->and($activity->ai_review['review']['sdt']['autonomy']['signal'])->toBe('supported');
+        ->and($activity->ai_review['review']['sdt']['autonomy']['signal'])->toBe('supported')
+        ->and($activity->ai_review['review']['learningDesign']['purpose']['signal'])->toBe('aligned');
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
@@ -187,6 +188,10 @@ function activityReviewPayload(): array
             'autonomy' => ['signal' => 'supported', 'note' => 'The learner can decide what to explore.'],
             'competence' => ['signal' => 'unclear', 'note' => 'The prompt could make the next step more visible.'],
             'relatedness' => ['signal' => 'supported', 'note' => 'The tone is invitational and non-judgmental.'],
+        ],
+        'learningDesign' => [
+            'purpose' => ['signal' => 'aligned', 'note' => 'The prompt gives the learner space to revisit their understanding.'],
+            'topics' => ['signal' => 'aligned', 'note' => 'The activity asks the learner to connect the declared systems-thinking topic to an observation.'],
         ],
     ];
 }

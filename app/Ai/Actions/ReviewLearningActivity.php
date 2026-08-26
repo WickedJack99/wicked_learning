@@ -51,6 +51,13 @@ class ReviewLearningActivity
             'sdt.relatedness' => ['required', 'array'],
             'sdt.relatedness.signal' => ['required', 'in:supported,unclear,risk'],
             'sdt.relatedness.note' => ['required', 'string', 'max:600'],
+            'learningDesign' => ['required', 'array'],
+            'learningDesign.purpose' => ['required', 'array'],
+            'learningDesign.purpose.signal' => ['required', 'in:aligned,unclear,mismatch'],
+            'learningDesign.purpose.note' => ['required', 'string', 'max:600'],
+            'learningDesign.topics' => ['required', 'array'],
+            'learningDesign.topics.signal' => ['required', 'in:aligned,unclear,mismatch'],
+            'learningDesign.topics.note' => ['required', 'string', 'max:600'],
         ])->validate();
 
         $activity->forceFill([
@@ -75,7 +82,7 @@ class ReviewLearningActivity
         return implode("\n\n", [
             'Review exactly one Wicked Learning activity for learning usefulness and a supportive learning environment.',
             'This is an authoring aid, not a learner grade and not a claim about learner performance.',
-            'Consider whether the authored learning purpose is coherent with the activity content, and inspect autonomy, competence and relatedness support.',
+            'Compare the declared learning purpose and competence topics with the actual activity content. Flag alignment as unclear or mismatch when the metadata asks for something the activity does not visibly provide. Also inspect autonomy, competence and relatedness support.',
             'Mention strengths before suggestions. Suggestions must be concrete, optional adjustments for the tutor. Do not rewrite or apply the activity.',
             'Use only the scoped activity context below. Do not infer learner data or invent missing content.',
             'Activity review context:\n'.json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

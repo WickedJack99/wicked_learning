@@ -4,6 +4,10 @@ export type ActivityReview = {
     provider: string;
     reviewedByUserId: number;
     review: {
+        learningDesign?: {
+            purpose: ActivityReviewAlignment;
+            topics: ActivityReviewAlignment;
+        };
         sdt: {
             autonomy: ActivityReviewDimension;
             competence: ActivityReviewDimension;
@@ -23,6 +27,11 @@ export type ActivityReview = {
 export type ActivityReviewDimension = {
     note: string;
     signal: 'supported' | 'unclear' | 'risk';
+};
+
+export type ActivityReviewAlignment = {
+    note: string;
+    signal: 'aligned' | 'unclear' | 'mismatch';
 };
 
 export type ActivityReviewResult = {

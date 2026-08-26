@@ -19,6 +19,7 @@ import {
 import type { ActivityReviewTemplate } from '@/pages/settings/worlds/edit-node-activity-types';
 import { reviewActivity } from './activity-review-client';
 import type {
+    ActivityReviewAlignment,
     ActivityReview,
     ActivityReviewResult,
 } from './activity-review-client';
@@ -252,6 +253,23 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
                 items={review.review.suggestions}
                 title="Possible adjustments"
             />
+            {review.review.learningDesign ? (
+                <div className="grid gap-3">
+                    <p className="text-sm font-semibold">
+                        Learning design alignment
+                    </p>
+                    <div className="grid gap-3">
+                        <AlignmentView
+                            alignment={review.review.learningDesign.purpose}
+                            label="Learning purpose"
+                        />
+                        <AlignmentView
+                            alignment={review.review.learningDesign.topics}
+                            label="Competence topics"
+                        />
+                    </div>
+                </div>
+            ) : null}
             <div className="grid gap-3">
                 <p className="text-sm font-semibold">SDT support signals</p>
                 <div className="grid gap-3">
@@ -277,6 +295,28 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
                 <CheckCircle2 className="size-3.5" />
                 This is a suggestion for the tutor. No activity changes were
                 applied.
+            </p>
+        </div>
+    );
+}
+
+function AlignmentView({
+    alignment,
+    label,
+}: {
+    alignment: ActivityReviewAlignment;
+    label: string;
+}) {
+    return (
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{label}</p>
+                <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                    {alignment.signal}
+                </span>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {alignment.note}
             </p>
         </div>
     );
