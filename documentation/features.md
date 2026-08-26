@@ -187,6 +187,11 @@ fresh slug when saved and places the new activity in the AI review queue. This
 is intentionally a local starting point; a shared cross-map template library
 is not yet part of the prototype.
 
+The World Builder graph surfaces the same review state on each map card. Maps
+with waiting activity reviews link directly to the first affected node, so an
+author can discover and enter the scoped review queue without opening maps one
+by one.
+
 Selecting a MapAsset opens its editor directly. Admins do not create or link a
 separate LearningNode; the backend creates the internal compatibility record as
 part of the MapAsset operation.

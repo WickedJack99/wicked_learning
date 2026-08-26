@@ -81,6 +81,11 @@ The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the
 tutor remains responsible for deciding whether any suggestion is useful.
 
+At the World Builder graph, each map card also shows its current activity
+review state. A map with waiting reviews links directly to the first affected
+node, making the scoped queue discoverable before an author opens individual
+maps.
+
 The first content-authoring contract supports Markdown, Reflection, Message
 prompt and Shared task activities. A Message prompt receives a scoped shared
 topic and input label. A Shared task is applied as a text contribution task

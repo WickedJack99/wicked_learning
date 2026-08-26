@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 export type WorldSummary = {
@@ -203,14 +204,11 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
     useEffect(() => {
         if (!flowInstance || initialNodes.length === 0) {
-            setIsFittingGraph(false);
-
             return;
         }
 
         const requestId = fitRequestId.current + 1;
         fitRequestId.current = requestId;
-        setIsFittingGraph(true);
 
         requestAnimationFrame(() => {
             void flowInstance.fitView(fitViewOptions).finally(() => {
@@ -284,7 +282,9 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         <Controls fitViewOptions={fitViewOptions} />
                         <MiniMap pannable zoomable />
                     </ReactFlow>
-                    {isFittingGraph ? <GraphViewportLoadingOverlay /> : null}
+                    {isFittingGraph && initialNodes.length > 0 ? (
+                        <GraphViewportLoadingOverlay />
+                    ) : null}
                 </div>
 
                 <aside className="flex min-h-0 flex-col border-[var(--settings-border-color)] bg-[var(--settings-panel-background)]">
@@ -462,7 +462,11 @@ function MapGraphNode({
     data: MapNodeData;
     selected: boolean;
 }) {
+    const t = usePlatformTranslation();
     const map = data.map;
+    const firstNodeNeedingReview = map.nodes.find(
+        (node) => node.activityReviewCount > 0,
+    );
 
     return (
         <div
@@ -482,9 +486,44 @@ function MapGraphNode({
             <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
                 {map.nodeCount} tile{map.nodeCount === 1 ? '' : 's'}
             </span>
-            <span className="mt-3 block rounded-md bg-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                Tags: not assigned yet
+            <span
+                className={cn(
+                    'mt-3 block rounded-md px-2 py-1 text-[11px] font-medium',
+                    map.reviewCount > 0
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-300/10 dark:text-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-200',
+                )}
+            >
+                {map.reviewCount > 0
+                    ? t(
+                          map.reviewCount === 1
+                              ? 'settings.world_builder.review.waiting_one'
+                              : 'settings.world_builder.review.waiting_many',
+                          map.reviewCount === 1
+                              ? '1 activity awaiting AI review'
+                              : ':count activities awaiting AI review',
+                          { count: map.reviewCount },
+                      )
+                    : t(
+                          'settings.world_builder.review.current',
+                          'Activity reviews current',
+                      )}
             </span>
+            {firstNodeNeedingReview ? (
+                <Link
+                    className="nodrag nopan mt-2 inline-flex text-[11px] font-semibold text-[var(--settings-accent)] underline-offset-2 hover:underline"
+                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${firstNodeNeedingReview.id}&worldView=nodes`}
+                    onClick={(event) => event.stopPropagation()}
+                >
+                    {t(
+                        'settings.world_builder.review.open_queue',
+                        'Open review queue',
+                    )}
+                    <span aria-hidden="true" className="ml-1">
+                        →
+                    </span>
+                </Link>
+            ) : null}
         </div>
     );
 }
