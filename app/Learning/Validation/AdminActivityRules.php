@@ -25,6 +25,7 @@ class AdminActivityRules
             ...$this->markdownRules(),
             ...$this->messageRules($node),
             ...$this->obstacleRules(),
+            ...$this->openPracticeRules(),
             ...$this->portalRules(),
             ...$this->reflectionRules(),
             ...$this->sharedTaskRules(),
@@ -59,6 +60,7 @@ class AdminActivityRules
             ...$this->markdownRules('sometimes'),
             ...$this->messageRules($activity->node, 'sometimes'),
             ...$this->obstacleRules('sometimes'),
+            ...$this->openPracticeRules('sometimes'),
             ...$this->portalRules('sometimes'),
             ...$this->reflectionRules('sometimes'),
             ...$this->sharedTaskRules('sometimes'),
@@ -281,6 +283,14 @@ class AdminActivityRules
             'shared_task_repeat_policy' => [$modifier, 'string', Rule::in(['once_per_user', 'unlimited'])],
             'shared_task_validation_mode' => [$modifier, 'string', Rule::in(['minimum_length', 'none'])],
             'shared_task_cycle_mode' => [$modifier, 'string', Rule::in(['none', 'question_response_question'])],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function openPracticeRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'open_practice_next_step' => $this->optional($modifier, ['string', 'max:4000']),
         ];
     }
 

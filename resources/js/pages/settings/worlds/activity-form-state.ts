@@ -53,6 +53,8 @@ export function emptyCreateForm(type: string): CreateActivityForm {
                 to: 'end',
             },
         ],
+        open_practice_next_step:
+            'Choose a useful next step, then continue when you are ready.',
         message_accent_color_dark: '#5eead4',
         message_accent_color_light: '#0f766e',
         message_card_border_color_dark: '#2dd4bf',
@@ -257,6 +259,10 @@ export function activityFormFromActivity(
         markdown_graph_layout: graphLayout(activity.config.markdownGraphLayout),
         markdown_transitions: markdownTransitions(
             activity.config.markdownTransitions,
+        ),
+        open_practice_next_step: stringConfig(
+            activity.config.nextStep,
+            'Choose a useful next step, then continue when you are ready.',
         ),
         message_accent_color_dark: stringConfig(
             messageUi.accentColorDark,

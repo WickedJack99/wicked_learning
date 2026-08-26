@@ -297,6 +297,7 @@ export type CreateActivityForm = {
     markdown_pages: MarkdownPageForm[];
     markdown_graph_layout: GraphLayout;
     markdown_transitions: MarkdownTransitionForm[];
+    open_practice_next_step: string;
     message_accent_color_dark: string;
     message_accent_color_light: string;
     message_card_border_color_dark: string;

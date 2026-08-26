@@ -10,6 +10,7 @@ use App\Learning\Services\MarkdownActivityConfiguration;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
+use App\Learning\Services\OpenPracticeActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Services\ReflectionActivityConfiguration;
@@ -31,6 +32,7 @@ class CreateLearningActivity
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
         private readonly ObstacleActivityConfiguration $obstacleConfig,
+        private readonly OpenPracticeActivityConfiguration $openPracticeConfig,
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ReflectionActivityConfiguration $reflectionConfig,
@@ -78,6 +80,7 @@ class CreateLearningActivity
             'markdown' => $this->markdownConfig->fromData($data),
             'message_prompt', 'message_wall' => $this->messageConfig->fromData($node, $data),
             'obstacle' => $this->obstacleConfig->fromData($data),
+            'open_practice' => $this->openPracticeConfig->fromData($data),
             'portal' => $this->portalConfig->fromData($data),
             'reflection' => $this->reflectionConfig->fromData($data),
             'shared_task' => $this->sharedTaskConfig->fromData($data),

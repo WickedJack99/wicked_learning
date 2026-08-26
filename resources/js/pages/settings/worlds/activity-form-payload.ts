@@ -42,6 +42,10 @@ const obstacleFields: Array<keyof ActivityForm> = [
     'obstacle_typing_speed',
 ];
 
+const openPracticeFields: Array<keyof ActivityForm> = [
+    'open_practice_next_step',
+];
+
 const itemGrantFields: Array<keyof ActivityForm> = [
     'item_grant_background_dark',
     'item_grant_background_light',
@@ -179,6 +183,10 @@ function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
 
     if (type === 'obstacle') {
         return obstacleFields;
+    }
+
+    if (type === 'open_practice') {
+        return openPracticeFields;
     }
 
     if (type === 'markdown') {

@@ -11,6 +11,7 @@ use App\Learning\Services\MarkdownActivityConfiguration;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\NpcDialogueConfiguration;
 use App\Learning\Services\ObstacleActivityConfiguration;
+use App\Learning\Services\OpenPracticeActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
 use App\Learning\Services\ReflectionActivityConfiguration;
@@ -33,6 +34,7 @@ class UpdateLearningActivity
         private readonly ItemGrantActivityConfiguration $itemGrantConfig,
         private readonly ItemObstacleActivityConfiguration $itemObstacleConfig,
         private readonly ObstacleActivityConfiguration $obstacleConfig,
+        private readonly OpenPracticeActivityConfiguration $openPracticeConfig,
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly ReflectionActivityConfiguration $reflectionConfig,
@@ -83,6 +85,7 @@ class UpdateLearningActivity
             || $this->itemObstacleConfig->shouldUpdate($data, $updates)
             || $this->obstacleConfig->shouldUpdate($data, $updates)
             || $this->toolGrantConfig->shouldUpdate($data, $updates)
+            || $this->openPracticeConfig->shouldUpdate($data, $updates)
             || $this->reflectionConfig->shouldUpdate($data, $updates)
             || $this->sharedTaskConfig->shouldUpdate($data, $updates)
             || $this->ambientSoundConfig->shouldUpdate($data)
@@ -108,6 +111,7 @@ class UpdateLearningActivity
             'markdown' => $this->markdownConfig->fromData($data, $existing),
             'message_prompt', 'message_wall' => $this->messageConfig->fromData($node, $data, $existing),
             'obstacle' => $this->obstacleConfig->fromData($data, $existing),
+            'open_practice' => $this->openPracticeConfig->fromData($data, $existing),
             'portal' => $this->portalConfig->fromData($data, $existing),
             'reflection' => $this->reflectionConfig->fromData($data, $existing),
             'shared_task' => $this->sharedTaskConfig->fromData($data, $existing),

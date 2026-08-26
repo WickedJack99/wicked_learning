@@ -960,10 +960,21 @@ test('admin users can create and connect activity graph nodes', function () {
             'title' => 'Choose a note path',
             'type' => 'open_practice',
             'introduction' => 'A branchable activity shell.',
+            'open_practice_next_step' => 'Choose one observation to investigate next.',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
     $activity = LearningActivity::query()->where('slug', 'choose-a-note-path')->firstOrFail();
+
+    expect($activity->config['nextStep'])->toBe('Choose one observation to investigate next.');
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'open_practice_next_step' => 'Follow the clue that feels most useful.',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($activity->refresh()->config['nextStep'])->toBe('Follow the clue that feels most useful.');
 
     $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activities.start.update', $node), [

@@ -28,6 +28,9 @@ import { postJson } from './api';
 import { PortalScene } from './portal-scene';
 import type { PortalSceneAsset } from './portal-scene';
 
+const DEFAULT_OPEN_PRACTICE_STEP =
+    'Choose a useful next step, then continue when you are ready.';
+
 export function OpenPracticeActivity({
     activity,
     onComplete,
@@ -42,7 +45,7 @@ export function OpenPracticeActivity({
     const nextStep =
         typeof activity.config.nextStep === 'string'
             ? activity.config.nextStep
-            : 'Choose a useful next step, then continue when you are ready.';
+            : DEFAULT_OPEN_PRACTICE_STEP;
     const complete = async () => {
         await onComplete(activity);
         onMoveToActivity(transition?.toActivityId ?? null);

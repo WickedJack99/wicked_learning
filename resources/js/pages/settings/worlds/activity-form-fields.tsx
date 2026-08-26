@@ -125,7 +125,8 @@ export function ActivityFormFields({
         form.type === 'shared_task' ||
         form.type === 'reflection' ||
         form.type === 'message_prompt' ||
-        form.type === 'message_wall';
+        form.type === 'message_wall' ||
+        form.type === 'open_practice';
     const hasPresentationSettings =
         form.type === 'portal' ||
         form.type === 'item_grant' ||
@@ -448,6 +449,36 @@ export function ActivityFormFields({
                                         form={form}
                                         onChange={onChange}
                                     />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'open_practice' ? (
+                                <SettingsConfigurationSection
+                                    description="Give the learner a clear invitation for the self-directed step before they continue."
+                                    title="Open practice prompt"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="open-practice-next-step">
+                                            Learner invitation
+                                        </Label>
+                                        <textarea
+                                            className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                            id="open-practice-next-step"
+                                            onChange={(event) =>
+                                                onChange((current) => ({
+                                                    ...current,
+                                                    open_practice_next_step:
+                                                        event.target.value,
+                                                }))
+                                            }
+                                            value={form.open_practice_next_step}
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.open_practice_next_step
+                                            }
+                                        />
+                                    </div>
                                 </SettingsConfigurationSection>
                             ) : null}
 
