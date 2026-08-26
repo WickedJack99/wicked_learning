@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Models\LearningMap;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use Illuminate\Support\Collection;
@@ -14,7 +15,7 @@ class LearningTopicSerializer
      */
     public function overview(Collection $areas): array
     {
-        return $areas
+        return array_values($areas
             ->map(fn (LearningTopicArea $area): array => [
                 'description' => $area->description,
                 'id' => $area->id,
@@ -26,7 +27,7 @@ class LearningTopicSerializer
                     ->all(),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /** @return array<string, mixed> */
@@ -45,6 +46,16 @@ class LearningTopicSerializer
                 ->map(fn (LearningTopic $child): array => $this->summary($child))
                 ->values()
                 ->all(),
+            'maps' => $topic->maps
+                ->map(fn (LearningMap $map): array => [
+                    'description' => $map->description,
+                    'href' => route('world', ['map' => $map->slug], false),
+                    'id' => $map->id,
+                    'slug' => $map->slug,
+                    'title' => $map->title,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -54,7 +65,7 @@ class LearningTopicSerializer
      */
     public function administration(Collection $areas): array
     {
-        return $areas
+        return array_values($areas
             ->map(fn (LearningTopicArea $area): array => [
                 'description' => $area->description,
                 'id' => $area->id,
@@ -72,7 +83,7 @@ class LearningTopicSerializer
                     ->all(),
             ])
             ->values()
-            ->all();
+            ->all());
     }
 
     /** @return array<string, mixed> */

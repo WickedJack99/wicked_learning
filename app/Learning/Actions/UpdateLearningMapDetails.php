@@ -14,6 +14,9 @@ class UpdateLearningMapDetails
         $map->forceFill([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
+            'learning_topic_id' => array_key_exists('topic_id', $data)
+                ? ($data['topic_id'] !== null ? (int) $data['topic_id'] : null)
+                : $map->learning_topic_id,
             'map_assets_locked' => array_key_exists('map_assets_locked', $data)
                 ? (bool) $data['map_assets_locked']
                 : $map->map_assets_locked,

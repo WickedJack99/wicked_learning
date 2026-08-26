@@ -1,7 +1,10 @@
 <?php
 
+use App\Learning\CurrentWorldResolver;
+use App\Models\LearningMap;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
+use App\Models\LearningWorld;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
 
@@ -98,6 +101,59 @@ test('a published topic page exposes its published subtopics alphabetically', fu
             ->where('topic.subtopics.0.title', 'Energy')
             ->where('topic.subtopics.1.title', 'Waves')
             ->has('topic.subtopics', 2)
+        );
+});
+
+test('a topic page exposes assigned maps that the learner can access', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+        'sort_order' => 10,
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'admin-observatory',
+        'title' => 'Admin Observatory',
+        'access_roles' => [User::ROLE_ADMIN],
+        'learning_topic_id' => $topic->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'description' => 'A place to explore the night sky.',
+            'map_assets_locked' => false,
+            'topic_id' => $topic->id,
+            'title' => 'Night Sky',
+        ])
+        ->assertRedirect();
+
+    expect($map->refresh()->learning_topic_id)->toBe($topic->id);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.maps.0.title', 'Night Sky')
+            ->where('topic.maps.0.href', '/world?map=night-sky')
+            ->has('topic.maps', 1)
         );
 });
 

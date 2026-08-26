@@ -47,4 +47,11 @@ class LearningTopic extends Model
     {
         return $this->hasMany(self::class, 'parent_id')->orderBy('title');
     }
+
+    /** @return HasMany<LearningMap, $this> */
+    public function maps(): HasMany
+    {
+        return $this->hasMany(LearningMap::class, 'learning_topic_id')
+            ->orderBy('title');
+    }
 }

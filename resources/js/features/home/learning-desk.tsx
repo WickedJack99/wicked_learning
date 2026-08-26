@@ -75,7 +75,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         'home.learning_desk.continue.empty_body',
                                         'Start a learning route and it will wait for you here.',
                                     )}
-                                    href="/world"
+                                    href="/topics"
                                     link={t(
                                         'home.learning_desk.continue.empty_action',
                                         'Browse topics',

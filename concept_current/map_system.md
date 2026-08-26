@@ -43,6 +43,20 @@ Current learner behavior:
 - Maps can restrict learner access by role.
 - The learner surface does not allow dragging MapAssets.
 
+Topic connection:
+
+- A topic is a semantic entry point, while a map is an exploratory surface
+  through which that topic can be encountered.
+- A map may be assigned to zero or one topic, and a topic may expose multiple
+  maps. The first relationship stays intentionally simple until real reuse
+  patterns justify sharing one map across several topics.
+- Assigned maps appear on the published topic page only when the learner can
+  access the map. The topic page links into the map with its existing map
+  context rather than duplicating map content.
+- Topic nesting remains optional and independent from map assignment. A topic
+  can be a subtopic in one area without requiring every topic or map to form a
+  single rigid tree.
+
 ## Current Admin Editing
 
 - World Builder separates graph editing from structural navigation.

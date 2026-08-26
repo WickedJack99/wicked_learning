@@ -116,6 +116,7 @@ type EditableMap = {
     nodeCount: number;
     nodes: EditableNode[];
     slug: string;
+    topicId: number | null;
     title: string;
 };
 

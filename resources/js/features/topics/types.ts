@@ -21,8 +21,17 @@ export type TopicDetail = TopicSummary & {
         title: string;
     };
     content: string | null;
+    maps: TopicMapSummary[];
     parent: TopicSummary | null;
     subtopics: TopicSummary[];
+};
+
+export type TopicMapSummary = {
+    description: string | null;
+    href: string;
+    id: number;
+    slug: string;
+    title: string;
 };
 
 export type AdminTopic = TopicSummary & {

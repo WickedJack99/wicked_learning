@@ -161,6 +161,7 @@ type SelectedWorldMap = {
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
     learningGroups: LearningGroupOption[];
+    topicOptions: LearningTopicOption[];
     tools: LearningTool[];
 };
 
@@ -169,6 +170,12 @@ type LearningGroupOption = {
     id: number;
     name: string;
     slug: string;
+};
+
+type LearningTopicOption = {
+    id: number;
+    label: string;
+    title: string;
 };
 
 type SelectedWorldNode = {
@@ -785,6 +792,7 @@ function SettingsDetail({
                                 editableMap={selectedWorldMap.editableMap}
                                 embedded
                                 learningGroups={selectedWorldMap.learningGroups}
+                                topicOptions={selectedWorldMap.topicOptions}
                             />
                         ) : (
                             <EditWorldMap

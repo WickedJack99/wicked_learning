@@ -1,5 +1,10 @@
 import { Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, BookOpenText } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    BookOpenText,
+    Map as MapIcon,
+} from 'lucide-react';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -33,6 +38,60 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         </p>
                     ) : null}
                 </header>
+
+                {topic.maps.length > 0 ? (
+                    <section
+                        aria-labelledby="topic-maps-heading"
+                        className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
+                    >
+                        <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+                            {t(
+                                'topics.detail.maps.eyebrow',
+                                'Explore this topic',
+                            )}
+                        </p>
+                        <h2
+                            className="mt-2 text-xl font-medium"
+                            id="topic-maps-heading"
+                        >
+                            {t('topics.detail.maps.title', 'Map surfaces')}
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            {t(
+                                'topics.detail.maps.description',
+                                'Open a map to explore this topic through places, activities and connected paths.',
+                            )}
+                        </p>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            {topic.maps.map((map) => (
+                                <Link
+                                    className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                                    href={map.href}
+                                    key={map.id}
+                                >
+                                    <MapIcon className="mt-0.5 size-5 shrink-0 text-cyan-700 dark:text-cyan-400" />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                                            {map.title}
+                                        </span>
+                                        {map.description ? (
+                                            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-slate-500 dark:text-slate-400">
+                                                {map.description}
+                                            </span>
+                                        ) : null}
+                                        <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:text-cyan-400">
+                                            {t(
+                                                'topics.detail.maps.open',
+                                                'Open map',
+                                            )}
+                                            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                                        </span>
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
 
                 <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
                     <article className="min-w-0">

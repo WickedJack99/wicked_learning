@@ -18,6 +18,7 @@ use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearningGroupOptions;
 use App\Learning\Queries\LoadLearningMapAccessGroups;
+use App\Learning\Queries\LoadLearningTopicOptions;
 use App\Learning\Queries\LoadReusableImageAssets;
 use App\Learning\Serializers\AdminActivityGraphSerializer;
 use App\Learning\Serializers\AdminItemSerializer;
@@ -70,6 +71,7 @@ class LoadSettingsIndex
         private readonly LoadEditableSounds $loadEditableSounds,
         private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
         private readonly LoadLearningGroupOptions $loadLearningGroupOptions,
+        private readonly LoadLearningTopicOptions $loadLearningTopicOptions,
         private readonly AdminToolSerializer $adminToolSerializer,
         private readonly AdminItemSerializer $adminItemSerializer,
         private readonly LearningItemSerializer $itemSerializer,
@@ -439,7 +441,7 @@ class LoadSettingsIndex
 
     /**
      * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
-     * @return array{accessGroups: array<int, array<string, mixed>>, canDeleteWorldMaps: bool, editableMap: array<string, mixed>, learningGroups: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>}|null
+     * @return array{accessGroups: array<int, array<string, mixed>>, canDeleteWorldMaps: bool, editableMap: array<string, mixed>, learningGroups: array<int, array<string, mixed>>, topicOptions: list<array{id: int, label: string, title: string}>, tools: array<int, array<string, mixed>>}|null
      */
     private function selectedWorldMap(User $user, ?int $mapId, array $capabilities): ?array
     {
@@ -460,6 +462,7 @@ class LoadSettingsIndex
                 $this->loadEditableMap->handle($map),
             ),
             'learningGroups' => $this->loadLearningGroupOptions->handle(),
+            'topicOptions' => $this->loadLearningTopicOptions->handle(),
             'tools' => $this->loadEditableTools
                 ->handle()
                 ->map(fn (LearningTool $tool): array => $this->adminToolSerializer->serialize($tool))

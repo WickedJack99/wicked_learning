@@ -56,6 +56,7 @@ type EditableMap = {
     mapAssetsLocked: boolean;
     nodeCount: number;
     slug: string;
+    topicId: number | null;
     title: string;
 };
 
@@ -75,6 +76,12 @@ type LearningGroupOption = {
     id: number;
     name: string;
     slug: string;
+};
+
+type LearningTopicOption = {
+    id: number;
+    label: string;
+    title: string;
 };
 
 type ThemeMode = 'dark' | 'light';
@@ -142,6 +149,7 @@ type MapVisualForm = {
 type DetailsForm = {
     description: string;
     map_assets_locked: boolean;
+    topic_id: number | null;
     title: string;
 };
 
@@ -296,12 +304,14 @@ export default function ConfigureMap({
     canDeleteWorldMaps,
     editableMap,
     learningGroups,
+    topicOptions,
 }: {
     accessGroups: AccessGroup[];
     embedded?: boolean;
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
     learningGroups: LearningGroupOption[];
+    topicOptions: LearningTopicOption[];
 }) {
     const { map, world } = editableMap;
     const [mainSection, setMainSection] = useState<MainSection>(() =>
@@ -314,6 +324,7 @@ export default function ConfigureMap({
     const [detailsForm, setDetailsForm] = useState<DetailsForm>({
         description: map.description ?? '',
         map_assets_locked: map.mapAssetsLocked,
+        topic_id: map.topicId,
         title: map.title,
     });
     const [visualForm, setVisualForm] = useState<MapVisualForm>(() =>
@@ -340,6 +351,7 @@ export default function ConfigureMap({
     const hasDetailsChanges = useDirtyState(detailsForm, {
         description: map.description ?? '',
         map_assets_locked: map.mapAssetsLocked,
+        topic_id: map.topicId,
         title: map.title,
     });
     const hasVisualChanges = useDirtyState(
@@ -491,6 +503,7 @@ export default function ConfigureMap({
                     form={detailsForm}
                     onChange={setDetailsForm}
                     previewTheme={resolvedTheme}
+                    topicOptions={topicOptions}
                 />
             ) : null}
             {mainSection === 'visuals' ? (
@@ -617,12 +630,14 @@ function MapDetailsSection({
     form,
     onChange,
     previewTheme,
+    topicOptions,
 }: {
     action: ReactNode;
     errors: Record<string, string>;
     form: DetailsForm;
     onChange: (form: DetailsForm) => void;
     previewTheme: MapVisualThemeFields;
+    topicOptions: LearningTopicOption[];
 }) {
     return (
         <div className="flex h-full min-h-0 flex-col">
@@ -638,6 +653,34 @@ function MapDetailsSection({
                         onChange={(title) => onChange({ ...form, title })}
                         value={form.title}
                     />
+                    <div className="grid gap-2">
+                        <Label htmlFor="map-topic">Learning topic</Label>
+                        <select
+                            className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                            id="map-topic"
+                            onChange={(event) =>
+                                onChange({
+                                    ...form,
+                                    topic_id: event.currentTarget.value
+                                        ? Number(event.currentTarget.value)
+                                        : null,
+                                })
+                            }
+                            value={form.topic_id ?? ''}
+                        >
+                            <option value="">No topic assigned</option>
+                            {topicOptions.map((topic) => (
+                                <option key={topic.id} value={topic.id}>
+                                    {topic.label}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError message={errors.topic_id} />
+                        <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
+                            This map will appear as an exploration surface on
+                            the selected topic page.
+                        </p>
+                    </div>
                     <div className="grid gap-2">
                         <Label htmlFor="map-description">Description</Label>
                         <textarea

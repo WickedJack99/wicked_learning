@@ -29,11 +29,11 @@ class LearningTopicController extends Controller
         ]);
     }
 
-    public function show(LearningTopic $topic): Response
+    public function show(Request $request, LearningTopic $topic): Response
     {
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
-                $this->topics->publishedDetail($topic),
+                $this->topics->publishedDetail($topic, $request->user()),
             ),
         ]);
     }

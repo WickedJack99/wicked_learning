@@ -27,6 +27,7 @@ class EditableMapSerializer
                     ->all(),
                 'gridConfig' => $map->grid_config ?? [],
                 'mapAssetsLocked' => (bool) $map->map_assets_locked,
+                'topicId' => $map->learning_topic_id,
                 'mapAssets' => $map->assets
                     ->map(fn (LearningMapAsset $asset): array => $this->asset($asset))
                     ->values()
