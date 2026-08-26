@@ -7,6 +7,7 @@ import {
     Compass,
     Pin,
 } from 'lucide-react';
+import { competenceTopicHref } from '@/features/competence/competence-links';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskHeader } from './learning-desk-header';
@@ -492,7 +493,10 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
             {route.learningAreas.map((area) => (
                 <Link
                     className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
-                    href={`/competence?topic=${encodeURIComponent(area.slug)}${route.topic ? `&from=${encodeURIComponent(route.topic.slug)}` : ''}`}
+                    href={competenceTopicHref(
+                        area.slug,
+                        route.topic?.slug,
+                    )}
                     key={area.slug}
                 >
                     {area.name}

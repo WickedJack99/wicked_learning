@@ -48,6 +48,7 @@ type PendingLearningCheckIn = {
     activityTitle: string;
     destination: CheckInDestination | null;
     learningAreas: Array<{ name: string; slug: string | null }>;
+    originTopicSlug: string | null;
 };
 
 export default function NodePlay({
@@ -145,6 +146,7 @@ export default function NodePlay({
             `/world?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`,
         );
     }, [node.mapSlug, node.slug]);
+    const originTopicSlug = node.topic?.slug ?? null;
 
     const markCompleted = useCallback(
         async (activity: LearningActivity, options: CompletionOptions = {}) => {
@@ -203,11 +205,12 @@ export default function NodePlay({
                 activityTitle: activity.title,
                 destination: null,
                 learningAreas: learningAreaNames(activity),
+                originTopicSlug,
             } satisfies PendingLearningCheckIn;
             pendingLearningCheckInRef.current = checkIn;
             setPendingLearningCheckIn(checkIn);
         },
-        [isAuthenticated, playRunId],
+        [isAuthenticated, originTopicSlug, playRunId],
     );
 
     const moveToActivity = useCallback(
@@ -421,6 +424,9 @@ export default function NodePlay({
                         <LearningCheckIn
                             activityTitle={pendingLearningCheckIn.activityTitle}
                             learningAreas={pendingLearningCheckIn.learningAreas}
+                            originTopicSlug={
+                                pendingLearningCheckIn.originTopicSlug
+                            }
                             onContinue={continueAfterCheckIn}
                         />
                     ) : null}

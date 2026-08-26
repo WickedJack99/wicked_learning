@@ -47,6 +47,7 @@ export type JournalLearningCheckIn = {
     feeling: string;
     nodeTitle: string;
     nodeHref: string;
+    originTopicSlug: string | null;
     recordedAt: string;
     topics: { slug: string; name: string }[];
 };

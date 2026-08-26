@@ -21,6 +21,7 @@ export type LearningMap = {
     topic: {
         competenceHref: string;
         href: string;
+        slug: string;
         title: string;
     } | null;
     backgroundConfig: ThemeVariant<{
@@ -126,6 +127,7 @@ export type LearningNode = {
     topic: {
         competenceHref: string;
         href: string;
+        slug: string;
         title: string;
     } | null;
     slug: string;

@@ -13,7 +13,7 @@ class LoadLearnerActivityCheckIns
     public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
 
     /**
-     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>
+     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string, nodeTitle: string, nodeHref: string, originTopicSlug: string|null, recordedAt: string, topics: list<array{slug: string, name: string}>}>
      */
     public function handle(User $user): array
     {
@@ -22,7 +22,7 @@ class LoadLearnerActivityCheckIns
         LearnerActivityProgress::query()
             ->where('user_id', $user->id)
             ->where('status', 'completed')
-            ->with('activity.node')
+            ->with('activity.node.map.topic')
             ->latest('updated_at')
             ->get()
             ->each(function (LearnerActivityProgress $progress) use (&$checkIns): void {
@@ -58,6 +58,9 @@ class LoadLearnerActivityCheckIns
                         'feeling' => $checkIn['feeling'],
                         'nodeTitle' => $activity->node->title,
                         'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),
+                        'originTopicSlug' => $activity->node->map->topic?->is_published
+                            ? $activity->node->map->topic->slug
+                            : null,
                         'recordedAt' => $checkIn['recordedAt'],
                         'topics' => array_map(
                             fn (array $topic): array => [

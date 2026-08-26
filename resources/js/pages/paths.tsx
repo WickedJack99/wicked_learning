@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
+import { competenceTopicHref } from '@/features/competence/competence-links';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -144,7 +145,10 @@ function PathCard({ path }: { path: LearningPath }) {
                             {path.learningAreas.map((area) => (
                                 <Link
                                     className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
-                                    href={`/competence?topic=${encodeURIComponent(area.slug)}${path.topic ? `&from=${encodeURIComponent(path.topic.slug)}` : ''}`}
+                                    href={competenceTopicHref(
+                                        area.slug,
+                                        path.topic?.slug,
+                                    )}
                                     key={area.slug}
                                     onClick={(event) => event.stopPropagation()}
                                 >

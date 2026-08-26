@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import { ArrowRight, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { competenceTopicHref } from '@/features/competence/competence-links';
 import type { LearningCheckInFeeling } from '@/types';
 
 const feelings: Array<{
@@ -34,10 +35,12 @@ const feelings: Array<{
 export function LearningCheckIn({
     activityTitle,
     learningAreas,
+    originTopicSlug,
     onContinue,
 }: {
     activityTitle: string;
     learningAreas: Array<{ name: string; slug: string | null }>;
+    originTopicSlug?: string | null;
     onContinue: (feeling: LearningCheckInFeeling | null) => Promise<void>;
 }) {
     const [isSaving, setIsSaving] = useState(false);
@@ -96,7 +99,10 @@ export function LearningCheckIn({
                             area.slug ? (
                                 <Link
                                     className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 underline decoration-cyan-700/40 underline-offset-2 transition hover:border-cyan-500 hover:bg-cyan-100 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100 dark:decoration-teal-100/40 dark:hover:border-teal-100/50 dark:hover:bg-teal-100/15"
-                                    href={`/competence?topic=${encodeURIComponent(area.slug)}`}
+                                    href={competenceTopicHref(
+                                        area.slug,
+                                        originTopicSlug,
+                                    )}
                                     key={area.slug}
                                 >
                                     {area.name}

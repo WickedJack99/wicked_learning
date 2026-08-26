@@ -6,6 +6,10 @@ import {
     Map as MapIcon,
     Route,
 } from 'lucide-react';
+import {
+    competenceContextHref,
+    competenceTopicHref,
+} from '@/features/competence/competence-links';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { learningIntentLabel } from '@/features/world/activity-utils';
@@ -273,7 +277,7 @@ function TopicLearningAreas({
                 {areas.map((area) => (
                     <Link
                         className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
-                        href={`/competence?topic=${encodeURIComponent(area.slug)}&from=${encodeURIComponent(topicSlug)}`}
+                        href={competenceTopicHref(area.slug, topicSlug)}
                         key={area.slug}
                     >
                         <span className="min-w-0">
@@ -371,8 +375,8 @@ function TopicCompetenceCard({
     const firstTrail = competence ?? subtopicCompetence[0] ?? null;
     const focusedSlug = competence ? topicSlug : firstTrail?.slug;
     const competenceHref = focusedSlug
-        ? `/competence?topic=${encodeURIComponent(focusedSlug)}&from=${encodeURIComponent(topicSlug)}`
-        : `/competence?from=${encodeURIComponent(topicSlug)}`;
+        ? competenceTopicHref(focusedSlug, topicSlug)
+        : competenceContextHref(topicSlug);
     const starSize = firstTrail
         ? 30 + Math.round(firstTrail.visual.sizeRatio * 18)
         : 30;

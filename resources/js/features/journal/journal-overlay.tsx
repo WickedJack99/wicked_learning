@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { competenceTopicHref } from '@/features/competence/competence-links';
 import {
     createJournalPage,
     deleteJournalPage,
@@ -620,7 +621,10 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                                 {checkIn.topics.map((topic) => (
                                     <a
                                         className="rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
-                                        href={`/competence?topic=${encodeURIComponent(topic.slug)}`}
+                                        href={competenceTopicHref(
+                                            topic.slug,
+                                            checkIn.originTopicSlug,
+                                        )}
                                         key={topic.slug}
                                         style={{
                                             borderColor:

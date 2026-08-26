@@ -11,6 +11,7 @@ import {
 import { useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
+import { competenceTopicHref } from '@/features/competence/competence-links';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -391,7 +392,11 @@ export function ActivityPlayer({
     }
 
     return (
-        <ActivityFrame activity={activity} onRestart={onRestart}>
+        <ActivityFrame
+            activity={activity}
+            onRestart={onRestart}
+            originTopicSlug={node.topic?.slug}
+        >
             <ActivityAmbientSound activity={activity} />
             {activity.type === 'dialogue' ? (
                 <DialogueActivity
@@ -600,10 +605,12 @@ function LockedActivityState() {
 function ActivityFrame({
     activity,
     children,
+    originTopicSlug,
     onRestart,
 }: {
     activity: LearningActivity;
     children: React.ReactNode;
+    originTopicSlug?: string | null;
     onRestart: () => void;
 }) {
     const relatedLearningAreas = learningAreaNames(activity);
@@ -636,10 +643,10 @@ function ActivityFrame({
                                 area.slug ? (
                                     <Link
                                         className="rounded-sm underline decoration-cyan-500/40 underline-offset-2 transition hover:text-cyan-950 dark:decoration-teal-200/40 dark:hover:text-white"
-                                        href={
-                                            '/competence?topic=' +
-                                            encodeURIComponent(area.slug)
-                                        }
+                                        href={competenceTopicHref(
+                                            area.slug,
+                                            originTopicSlug,
+                                        )}
                                         key={area.slug}
                                     >
                                         {area.name}

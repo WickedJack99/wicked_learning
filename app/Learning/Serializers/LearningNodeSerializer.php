@@ -141,7 +141,7 @@ class LearningNodeSerializer
         ];
     }
 
-    /** @return array{href: string, title: string}|null */
+    /** @return array{competenceHref: string, href: string, slug: string, title: string}|null */
     private function topic(mixed $topic): ?array
     {
         if (! $topic instanceof LearningTopic || ! $topic->is_published) {
@@ -153,6 +153,7 @@ class LearningNodeSerializer
                 'topic' => $topic->slug,
             ], false),
             'href' => route('topics.show', $topic, false),
+            'slug' => $topic->slug,
             'title' => $topic->title,
         ];
     }
