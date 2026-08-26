@@ -59,52 +59,50 @@ export default function CompetenceStarMap({
         <>
             <Head title="Competence Star Map" />
             <main className="min-h-svh overflow-y-auto bg-black px-4 py-6 pb-24 text-white">
-                <div className="grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                    <AccentHeading
-                        action={
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                    asChild
-                                    className="text-slate-300 hover:bg-white/10 hover:text-white"
-                                    variant="ghost"
+                <AccentHeading
+                    action={
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                                asChild
+                                className="text-slate-300 hover:bg-white/10 hover:text-white"
+                                variant="ghost"
+                            >
+                                <Link href="/home">
+                                    <House className="size-4" />
+                                    Learning desk
+                                </Link>
+                            </Button>
+                            <Button asChild variant="secondary">
+                                <Link href={selectedTopic?.href ?? '/world'}>
+                                    <ArrowLeft className="size-4" />
+                                    {selectedTopic
+                                        ? `Back to ${selectedTopic.title}`
+                                        : 'Back to world'}
+                                </Link>
+                            </Button>
+                        </div>
+                    }
+                    accentColor="var(--map-floating-accent-color)"
+                    description={
+                        selectedTopic ? (
+                            <>
+                                Viewing the learning trail around{' '}
+                                <Link
+                                    className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
+                                    href={selectedTopic.href}
                                 >
-                                    <Link href="/home">
-                                        <House className="size-4" />
-                                        Learning desk
-                                    </Link>
-                                </Button>
-                                <Button asChild variant="secondary">
-                                    <Link
-                                        href={selectedTopic?.href ?? '/world'}
-                                    >
-                                        <ArrowLeft className="size-4" />
-                                        {selectedTopic
-                                            ? `Back to ${selectedTopic.title}`
-                                            : 'Back to world'}
-                                    </Link>
-                                </Button>
-                            </div>
-                        }
-                        accentColor="var(--map-floating-accent-color)"
-                        description={
-                            selectedTopic ? (
-                                <>
-                                    Viewing the learning trail around{' '}
-                                    <Link
-                                        className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
-                                        href={selectedTopic.href}
-                                    >
-                                        {selectedTopic.title}
-                                    </Link>
-                                    .
-                                </>
-                            ) : undefined
-                        }
-                        eyebrow="Competence"
-                        icon={<Sparkles className="size-5" />}
-                        title="Star Map"
-                    />
+                                    {selectedTopic.title}
+                                </Link>
+                                .
+                            </>
+                        ) : undefined
+                    }
+                    eyebrow="Competence"
+                    icon={<Sparkles className="size-5" />}
+                    title="Star Map"
+                />
 
+                <div className="mt-5 grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
                     <section className="relative h-[min(72svh,680px)] min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-[calc(100svh-7rem)]">
                         {positionedTopics.length === 0 ? (
                             <div className="grid h-full place-items-center p-6 text-center">
@@ -474,10 +472,7 @@ function CompetenceMapGuide({
     recentWindowDays: number;
 }) {
     return (
-        <details
-            className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur"
-            open
-        >
+        <details className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur">
             <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
                 How to read this map
             </summary>

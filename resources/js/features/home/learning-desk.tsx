@@ -113,10 +113,6 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             )}
                         </section>
 
-                        {desk.checkIns.length > 0 ? (
-                            <LearningPulse checkIns={desk.checkIns} />
-                        ) : null}
-
                         <section
                             className="mt-14"
                             aria-labelledby="connections-heading"
@@ -264,93 +260,6 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
             </div>
         </aside>
     );
-}
-
-function LearningPulse({
-    checkIns,
-}: {
-    checkIns: LearningDeskData['checkIns'];
-}) {
-    const t = usePlatformTranslation();
-
-    return (
-        <section aria-labelledby="learning-pulse-heading" className="mt-14">
-            <SectionHeading
-                id="learning-pulse-heading"
-                label={t(
-                    'home.learning_desk.pulse.title',
-                    'Recent learning moments',
-                )}
-            />
-            <div className="border-b border-slate-200 py-5 dark:border-white/10">
-                <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    {t(
-                        'home.learning_desk.pulse.description',
-                        'A few observations you chose to keep after learning. They are not a grade or an instant measure of growth.',
-                    )}
-                </p>
-                <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
-                    {checkIns.map((checkIn) => (
-                        <Link
-                            className="group flex items-start justify-between gap-4 py-4"
-                            href={checkIn.activityHref}
-                            key={`${checkIn.activityId}:${checkIn.recordedAt}`}
-                        >
-                            <span className="min-w-0">
-                                <span className="block text-sm font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
-                                    {learningPulseFeelingLabel(checkIn.feeling)}
-                                </span>
-                                <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
-                                    {checkIn.activityTitle} ·{' '}
-                                    {checkIn.nodeTitle}
-                                </span>
-                            </span>
-                            <time
-                                className="shrink-0 text-xs text-slate-400 dark:text-slate-500"
-                                dateTime={checkIn.recordedAt}
-                            >
-                                {formatLearningPulseDate(checkIn.recordedAt)}
-                            </time>
-                        </Link>
-                    ))}
-                </div>
-                <Link
-                    className="mt-4 inline-flex text-sm font-medium text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
-                    href="/competence"
-                >
-                    {t(
-                        'home.learning_desk.pulse.open',
-                        'See the full learning trail',
-                    )}
-                    <ArrowRight className="ml-2 size-4" />
-                </Link>
-            </div>
-        </section>
-    );
-}
-
-function learningPulseFeelingLabel(value: string): string {
-    return (
-        {
-            clearer: 'Something clicked',
-            forming: 'Still taking shape',
-            stretched: 'It stretched me',
-            stuck: 'I got stuck',
-        }[value] ?? value
-    );
-}
-
-function formatLearningPulseDate(value: string): string {
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-
-    return new Intl.DateTimeFormat(undefined, {
-        day: 'numeric',
-        month: 'short',
-    }).format(date);
 }
 
 function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
