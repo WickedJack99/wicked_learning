@@ -123,7 +123,11 @@ export type LearningNode = {
     mapId: number;
     mapSlug: string;
     mapTitle: string;
-    topic: { href: string; title: string } | null;
+    topic: {
+        competenceHref: string;
+        href: string;
+        title: string;
+    } | null;
     slug: string;
     title: string;
     description: string | null;

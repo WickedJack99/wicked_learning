@@ -149,6 +149,9 @@ class LearningNodeSerializer
         }
 
         return [
+            'competenceHref' => route('competence.index', [
+                'topic' => $topic->slug,
+            ], false),
             'href' => route('topics.show', $topic, false),
             'title' => $topic->title,
         ];

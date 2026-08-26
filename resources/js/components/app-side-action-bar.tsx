@@ -20,13 +20,24 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { useInitials } from '@/hooks/use-initials';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
-import type { LearningItem, LearningTool, User } from '@/types';
+import type {
+    LearningItem,
+    LearningTool,
+    LearningWorld,
+    LearningNode,
+    User,
+} from '@/types';
 
 type OverlayMode = 'inventory' | 'journal' | 'tools' | null;
 type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
 
 export function AppSideActionBar() {
     const { props, url } = usePage();
+    const pageProps = props as typeof props & {
+        node?: LearningNode;
+        world?: LearningWorld | null;
+    };
+    const { node, world } = pageProps;
     const { resolvedAppearance } = useAppearance();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
     const sideActionRef = useRef<HTMLElement | null>(null);
@@ -34,6 +45,10 @@ export function AppSideActionBar() {
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
     const user = props.auth.user;
+    const competenceHref = useMemo(
+        () => competenceMapHref({ node, world }, url),
+        [node, url, world],
+    );
     const shouldShow = useMemo(
         () =>
             Boolean(props.auth.user) &&
@@ -190,7 +205,7 @@ export function AppSideActionBar() {
                     label="Open competence star map"
                     onClick={() => {
                         setOverlay(null);
-                        router.visit('/competence');
+                        router.visit(competenceHref);
                     }}
                 >
                     <Sparkles className="size-5" />
@@ -198,6 +213,34 @@ export function AppSideActionBar() {
             </nav>
         </aside>
     );
+}
+
+function competenceMapHref(
+    props: {
+        node?: LearningNode;
+        world?: LearningWorld | null;
+    },
+    url: string,
+): string {
+    const nodeTopic = props.node?.topic;
+
+    if (url.startsWith('/learning/') && nodeTopic) {
+        return nodeTopic.competenceHref;
+    }
+
+    if (!url.startsWith('/world') || !props.world) {
+        return '/competence';
+    }
+
+    const mapSlug = new URL(url, 'http://learning.local').searchParams.get(
+        'map',
+    );
+    const map = props.world.maps.find(
+        (candidate) =>
+            candidate.slug === mapSlug || candidate.id.toString() === mapSlug,
+    );
+
+    return map?.topic?.competenceHref ?? '/competence';
 }
 
 function ProfileActionAvatar({ user }: { user: User | null }) {

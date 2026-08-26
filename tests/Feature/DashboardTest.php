@@ -173,6 +173,7 @@ test('playing a node records that node map as the learner location', function ()
             ->component('learning/node-play')
             ->where('node.mapSlug', 'signal-archive')
             ->where('node.topic.title', 'Play topic')
+            ->where('node.topic.competenceHref', '/competence?topic=play-topic')
             ->where('node.topic.href', '/topics/play-topic'));
 
     expect($user->refresh()->preference?->settings['learning']['lastMapSlug'] ?? null)
