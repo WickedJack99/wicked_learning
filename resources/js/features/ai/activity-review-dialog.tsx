@@ -267,6 +267,9 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
                             alignment={review.review.learningDesign.topics}
                             label="Competence topics"
                         />
+                        <MetadataSuggestions
+                            learningDesign={review.review.learningDesign}
+                        />
                     </div>
                 </div>
             ) : null}
@@ -296,6 +299,41 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
                 This is a suggestion for the tutor. No activity changes were
                 applied.
             </p>
+        </div>
+    );
+}
+
+function MetadataSuggestions({
+    learningDesign,
+}: {
+    learningDesign: {
+        suggestedCompetenceTopics: string[];
+        suggestedLearningIntent: string | null;
+    };
+}) {
+    const suggestions = [
+        learningDesign.suggestedLearningIntent
+            ? `Learning purpose: ${learningDesign.suggestedLearningIntent}`
+            : null,
+        learningDesign.suggestedCompetenceTopics.length > 0
+            ? `Competence topics: ${learningDesign.suggestedCompetenceTopics.join(', ')}`
+            : null,
+    ].filter((suggestion): suggestion is string => suggestion !== null);
+
+    return (
+        <div className="rounded-lg border border-dashed border-slate-300 p-3 dark:border-white/20">
+            <p className="text-sm font-medium">Optional metadata suggestions</p>
+            {suggestions.length > 0 ? (
+                <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {suggestions.map((suggestion) => (
+                        <li key={suggestion}>{suggestion}</li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    No metadata change suggested.
+                </p>
+            )}
         </div>
     );
 }

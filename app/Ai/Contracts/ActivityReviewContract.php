@@ -2,6 +2,8 @@
 
 namespace App\Ai\Contracts;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
+
 class ActivityReviewContract
 {
     public const VERSION = '1.1';
@@ -75,10 +77,21 @@ class ActivityReviewContract
                 'learningDesign' => [
                     'type' => 'object',
                     'additionalProperties' => false,
-                    'required' => ['purpose', 'topics'],
+                    'required' => ['purpose', 'topics', 'suggestedLearningIntent', 'suggestedCompetenceTopics'],
                     'properties' => [
                         'purpose' => $alignmentDimension,
                         'topics' => $alignmentDimension,
+                        'suggestedLearningIntent' => [
+                            'type' => ['string', 'null'],
+                            'description' => 'Optional replacement learning intent when the current purpose is unclear or mismatched.',
+                            'enum' => [...ActivityCompetenceConfiguration::LEARNING_INTENTS, null],
+                        ],
+                        'suggestedCompetenceTopics' => [
+                            'type' => 'array',
+                            'description' => 'Optional replacement topic labels when the current topics are unclear or mismatched.',
+                            'maxItems' => 3,
+                            'items' => ['type' => 'string', 'maxLength' => 120],
+                        ],
                     ],
                 ],
             ],

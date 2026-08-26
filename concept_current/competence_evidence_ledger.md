@@ -70,8 +70,6 @@ require the learner to prove that competence increased.
 
 ## Next evolution
 
-Next, let the activity-review assistant suggest a revised purpose or topic
-scope when alignment is unclear, while keeping the tutor in control of the
-final activity. Then add confidence and feedback outcomes where the activity
-actually collects them, without making a feeling check or reflection require
-an answer from the learner.
+Next, add confidence and feedback outcomes where the activity actually collects
+them, without making a feeling check or reflection require an answer from the
+learner.

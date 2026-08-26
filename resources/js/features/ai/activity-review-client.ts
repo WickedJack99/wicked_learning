@@ -6,6 +6,8 @@ export type ActivityReview = {
     review: {
         learningDesign?: {
             purpose: ActivityReviewAlignment;
+            suggestedCompetenceTopics: string[];
+            suggestedLearningIntent: string | null;
             topics: ActivityReviewAlignment;
         };
         sdt: {
