@@ -108,7 +108,7 @@ export default function CompetenceStarMap({
                             <div className="grid h-full place-items-center p-6 text-center">
                                 <div>
                                     <Sparkles className="mx-auto size-12 text-cyan-200" />
-                                    <h2 className="mt-4 text-2xl font-semibold">
+                                    <h2 className="mt-4 text-3xl font-semibold">
                                         No stars yet
                                     </h2>
                                     <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">
@@ -540,7 +540,7 @@ function LearningPulseTimeline({
                     <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
                         Your learning pulse
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold text-white">
+                    <h2 className="mt-1 text-sm font-semibold text-white">
                         Moments along the way
                     </h2>
                 </div>
@@ -586,7 +586,7 @@ function LearningPulseTimeline({
                                     </span>
                                     {checkIn.topics.map((topic) => (
                                         <button
-                                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-[11px] text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15"
+                                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-xs text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15"
                                             key={topic.slug}
                                             onClick={() =>
                                                 onTopicSelect(topic.slug)
@@ -705,11 +705,11 @@ function CompetenceReading({
                     <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
                         Reading this light
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold">{topic.name}</h2>
+                    <h2 className="mt-1 text-sm font-semibold">{topic.name}</h2>
                 </div>
                 <button
                     aria-label="Close competence reading"
-                    className="rounded-md px-2 py-1 text-lg leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    className="rounded-md px-2 py-1 text-sm leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
                     onClick={onClose}
                     type="button"
                 >
@@ -721,7 +721,7 @@ function CompetenceReading({
             </p>
             {topic.relatedTopic ? (
                 <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
-                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
                         {translate(
                             'competence.reading.topic_context',
                             'Topic context',
@@ -743,7 +743,7 @@ function CompetenceReading({
                 </div>
             ) : null}
             <div className="mt-3 rounded-lg border border-cyan-200/10 bg-cyan-200/5 px-3 py-2">
-                <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                <p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
                     Recent rhythm
                 </p>
                 <p className="mt-1 text-xs leading-5 text-slate-300">
@@ -751,13 +751,13 @@ function CompetenceReading({
                 </p>
             </div>
             <div className="mt-3">
-                <p className="text-[11px] font-medium tracking-[0.14em] text-slate-400 uppercase">
+                <p className="text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
                     Learning trail
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                     {topic.visual.learningPeriods.map((period) => (
                         <span
-                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-1 text-[11px] text-cyan-100"
+                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-1 text-xs text-cyan-100"
                             key={period}
                         >
                             {period}
@@ -771,7 +771,7 @@ function CompetenceReading({
             </div>
             {relatedCheckIns.length > 0 ? (
                 <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
-                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
                         Your notes about this light
                     </p>
                     <div className="mt-2 grid gap-2">
@@ -783,7 +783,7 @@ function CompetenceReading({
                                 <p className="text-xs font-medium text-slate-200">
                                     {checkInFeelingLabel(checkIn.feeling)}
                                 </p>
-                                <p className="mt-1 text-[11px] leading-5 text-slate-400">
+                                <p className="mt-1 text-xs leading-5 text-slate-400">
                                     {checkIn.activityTitle} ·{' '}
                                     {formatCheckInDate(checkIn.recordedAt)}
                                 </p>
@@ -797,7 +797,7 @@ function CompetenceReading({
             ) : null}
             {topic.revisit ? (
                 <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
-                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
                         Return if you want to
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-300">
@@ -838,7 +838,7 @@ function CompetenceReading({
             </div>
             {topic.evidenceLedger.length > 0 ? (
                 <details className="mt-4 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
-                    <summary className="cursor-pointer text-[11px] font-medium tracking-[0.14em] text-cyan-100/80 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
+                    <summary className="cursor-pointer text-xs font-medium tracking-[0.14em] text-cyan-100/80 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
                         Evidence ledger
                     </summary>
                     <p className="mt-2 text-xs leading-5 text-slate-400">
@@ -854,7 +854,7 @@ function CompetenceReading({
                                             {evidence.activityTitle ??
                                                 'Learning moment'}
                                         </span>
-                                        <span className="mt-1 block text-[11px] text-slate-400">
+                                        <span className="mt-1 block text-xs text-slate-400">
                                             {evidenceTypeLabel(
                                                 evidence.evidenceType,
                                             )}
@@ -864,7 +864,7 @@ function CompetenceReading({
                                         </span>
                                     </span>
                                     {evidence.recordedAt ? (
-                                        <span className="shrink-0 text-[11px] text-slate-500">
+                                        <span className="shrink-0 text-xs text-slate-500">
                                             {formatCheckInDate(
                                                 evidence.recordedAt,
                                             )}
@@ -926,11 +926,11 @@ function UnseenCompetenceReading({
                             'Not on your map yet',
                         )}
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold">{topicTitle}</h2>
+                    <h2 className="mt-1 text-sm font-semibold">{topicTitle}</h2>
                 </div>
                 <button
                     aria-label="Close competence reading"
-                    className="rounded-md px-2 py-1 text-lg leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    className="rounded-md px-2 py-1 text-sm leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
                     onClick={onClose}
                     type="button"
                 >
