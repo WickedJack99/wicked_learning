@@ -5,6 +5,7 @@ export type LearningDeskBookmark = {
     imageUrl: string | null;
     mapTitle: string;
     nodeId: number;
+    topic: { href: string; title: string } | null;
     title: string;
 };
 

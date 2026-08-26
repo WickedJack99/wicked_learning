@@ -63,6 +63,7 @@ class LearningDeskSerializer
             'imageUrl' => $node->mapAsset?->image_url,
             'mapTitle' => $map->title,
             'nodeId' => $node->id,
+            'topic' => $this->topic($map->topic),
             'title' => $node->title,
         ];
     }

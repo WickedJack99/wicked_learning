@@ -229,6 +229,11 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                                     <span className="mt-1 block text-xs text-slate-500 dark:text-slate-500">
                                         {bookmark.mapTitle}
                                     </span>
+                                    {bookmark.topic ? (
+                                        <span className="mt-1 block text-xs text-violet-700 dark:text-violet-300">
+                                            {bookmark.topic.title}
+                                        </span>
+                                    ) : null}
                                 </span>
                             </Link>
                         ))
@@ -277,6 +282,14 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
                 {bookmark.mapTitle}
             </p>
+            {bookmark.topic ? (
+                <Link
+                    className="mt-1 inline-flex text-xs text-violet-700 underline decoration-violet-300 underline-offset-4 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                    href={bookmark.topic.href}
+                >
+                    {bookmark.topic.title}
+                </Link>
+            ) : null}
             {bookmark.description ? (
                 <p className="mt-4 line-clamp-5 text-sm leading-6 text-slate-600 dark:text-slate-400">
                     {bookmark.description}

@@ -41,8 +41,19 @@ test('the learning desk presents current work and saved topics', function () {
         'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
         'title' => 'Learning World',
     ]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'body-area',
+        'title' => 'The human body',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'circulation-topic',
+        'title' => 'Circulation',
+        'is_published' => true,
+    ]);
     $map = LearningMap::query()->create([
         'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
         'slug' => 'circulation',
         'title' => 'Circulation',
         'access_roles' => [User::ROLE_USER],
@@ -100,6 +111,8 @@ test('the learning desk presents current work and saved topics', function () {
             ->where('desk.currentRoutes.0.imageUrl', '/images/heart.png')
             ->has('desk.bookmarks', 1)
             ->where('desk.bookmarks.0.title', 'Heart valves')
+            ->where('desk.bookmarks.0.topic.title', 'Circulation')
+            ->where('desk.bookmarks.0.topic.href', '/topics/circulation-topic')
             ->where('desk.featuredBookmark.title', 'Heart valves')
         );
 });

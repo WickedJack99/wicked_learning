@@ -21,7 +21,7 @@ class LoadLearnerBookmarks
     public function visibleForUser(int $userId): Collection
     {
         return LearningNodeBookmark::query()
-            ->with(['node.map.world', 'node.mapAsset'])
+            ->with(['node.map.world', 'node.map.topic', 'node.mapAsset'])
             ->where('user_id', $userId)
             ->oldest()
             ->get()

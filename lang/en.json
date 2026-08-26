@@ -222,6 +222,7 @@
     "navigation.bottom.settings": "Settings",
     "navigation.bottom.log_out": "Log out",
     "navigation.bottom.return_to_activity": "Return to :title",
+    "bookmarks.panel.open_topic": "Open topic",
     "world.search.clear": "Clear search",
     "world.search.close": "Close map search",
     "world.search.empty": "No visible maps or tiles found.",

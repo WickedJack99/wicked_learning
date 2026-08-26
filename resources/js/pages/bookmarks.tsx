@@ -6,6 +6,7 @@ import { deleteJson } from '@/features/world/api';
 import { resolveThemeVariant } from '@/features/world/theme';
 import { WorldMap } from '@/features/world/world-map';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type { LearningMap, LearningNode } from '@/types';
 
@@ -135,6 +136,7 @@ function BookmarkPanel({
     onClose: () => void;
     onRemove: () => void;
 }) {
+    const t = usePlatformTranslation();
     const panelBorderColor =
         typeof mapTheme.sidePanelBorderColor === 'string'
             ? mapTheme.sidePanelBorderColor
@@ -167,6 +169,15 @@ function BookmarkPanel({
                     <MapPin className="size-4" />
                     <span>{node.mapTitle}</span>
                 </div>
+                {node.topic ? (
+                    <Link
+                        className="mb-3 inline-flex text-sm text-violet-700 underline decoration-violet-300 underline-offset-4 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                        href={node.topic.href}
+                    >
+                        {t('bookmarks.panel.open_topic', 'Open topic')}:{' '}
+                        {node.topic.title}
+                    </Link>
+                ) : null}
                 <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
                     {node.description ?? 'No summary has been added yet.'}
                 </p>

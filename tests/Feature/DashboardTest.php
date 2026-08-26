@@ -169,6 +169,17 @@ test('authenticated users can visit their bookmark map', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();
     $node = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'bookmark-area',
+        'title' => 'Bookmark area',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'bookmark-topic',
+        'title' => 'Bookmark topic',
+        'is_published' => true,
+    ]);
+    $node->map->update(['learning_topic_id' => $topic->id]);
 
     LearningNodeBookmark::query()->create([
         'user_id' => $user->id,
@@ -192,6 +203,8 @@ test('authenticated users can visit their bookmark map', function () {
             ->where('bookmarkMap.mapAssets.0.nodeId', $node->id)
             ->where('bookmarkMap.nodes.0.slug', 'portal-foundation')
             ->where('bookmarkMap.nodes.0.mapSlug', 'first-sector')
+            ->where('bookmarkMap.nodes.0.topic.title', 'Bookmark topic')
+            ->where('bookmarkMap.nodes.0.topic.href', '/topics/bookmark-topic')
             ->where('bookmarkMap.nodes.0.position.q', 0)
             ->where('bookmarkMap.nodes.0.position.r', 0)
         );

@@ -12,6 +12,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\LearningTopic;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -129,14 +130,28 @@ class LearningNodeSerializer
      */
     public function serializeBookmarkNode(LearningNode $node, array $position): array
     {
-        $node->loadMissing('map');
+        $node->loadMissing('map.topic');
 
         return [
             ...$this->baseNode($node, $position),
+            'topic' => $this->topic($node->map->topic),
             'outgoingPortalLinks' => [],
             'startActivityId' => null,
             'startRoutes' => [],
             'activities' => [],
+        ];
+    }
+
+    /** @return array{href: string, title: string}|null */
+    private function topic(mixed $topic): ?array
+    {
+        if (! $topic instanceof LearningTopic || ! $topic->is_published) {
+            return null;
+        }
+
+        return [
+            'href' => route('topics.show', $topic, false),
+            'title' => $topic->title,
         ];
     }
 
