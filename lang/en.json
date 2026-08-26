@@ -245,6 +245,7 @@
     "topics.detail.maps.title": "Map surfaces",
     "topics.detail.maps.description": "Open a map to explore this topic through places, activities and connected paths.",
     "topics.detail.maps.open": "Open map",
+    "topics.detail.learning_trail.open": "See your learning trail",
     "activities.item_grant.error": "The item grant could not be resolved right now.",
     "activities.item_grant.loading": "Rolling for items...",
     "activities.item_grant.received": "Item received:",
