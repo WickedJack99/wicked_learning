@@ -72,6 +72,12 @@ observations connected to that topic. They remain the learner's own words and
 simple feeling labels: they are not converted into evidence, interpreted by
 AI, or used to adjust the visual signal.
 
+The related topic page can show up to four of the learner's recent pulse
+observations when their connected learning areas belong to that topic. This
+keeps reflection close to the subject where it happened and links each entry
+back to its learning place. The topic page does not turn these observations
+into a progress measure.
+
 Selecting a light can also offer an optional return to the latest learning
 place that contributed to that topic. The link is a doorway back into the
 world, not a required next step or a corrective assignment.

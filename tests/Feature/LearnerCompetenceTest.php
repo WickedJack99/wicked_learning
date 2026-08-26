@@ -3,6 +3,7 @@
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Models\CompetenceTopicDefinition;
+use App\Models\LearnerActivityProgress;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerRouteProgress;
@@ -88,6 +89,43 @@ test('a demo topic exposes authored learning areas before evidence exists', func
             ->where('topic.learningAreas.0.slug', 'investigation-focus')
             ->where('topic.learningAreas.1.name', 'Pattern recognition')
             ->where('topic.learningAreas.1.slug', 'pattern-recognition')
+        );
+});
+
+test('a topic shows private reflections connected to its learning areas', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $activity = LearningActivity::query()
+        ->where('slug', 'write-a-field-note')
+        ->firstOrFail();
+
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'completed_at' => now(),
+        'metadata' => [
+            'learningCheckIns' => [[
+                'feeling' => 'forming',
+                'recordedAt' => '2026-08-27T10:00:00+00:00',
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', 'pattern-investigation'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.learningPulse', 1)
+            ->where('topic.learningPulse.0.activityTitle', 'Write a field note')
+            ->where('topic.learningPulse.0.feeling', 'forming')
+            ->where('topic.learningPulse.0.nodeTitle', 'Field Notes')
+            ->where('topic.learningPulse.0.activityHref', route('learning.nodes.play', [
+                'activity_id' => $activity->id,
+                'node' => $activity->node,
+            ]))
         );
 });
 

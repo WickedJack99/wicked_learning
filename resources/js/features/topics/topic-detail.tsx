@@ -14,6 +14,7 @@ import type {
     TopicCompetence,
     TopicDetail as TopicDetailData,
     TopicLearningArea,
+    TopicLearningPulse,
     TopicPath,
 } from './types';
 
@@ -53,6 +54,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 />
 
                 <TopicLearningAreas areas={topic.learningAreas} />
+
+                <TopicLearningPulse entries={topic.learningPulse} />
 
                 {topic.paths.length > 0 ? (
                     <section
@@ -282,6 +285,70 @@ function TopicLearningAreas({ areas }: { areas: TopicLearningArea[] }) {
                 ))}
             </div>
         </section>
+    );
+}
+
+function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
+    const t = usePlatformTranslation();
+
+    if (entries.length === 0) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="topic-learning-pulse-heading"
+            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+        >
+            <p className="text-xs font-semibold tracking-[0.2em] text-violet-700 uppercase dark:text-violet-300">
+                {t('topics.detail.learning_pulse.eyebrow', 'Recent reflections')}
+            </p>
+            <h2
+                className="mt-2 text-sm font-semibold"
+                id="topic-learning-pulse-heading"
+            >
+                {t(
+                    'topics.detail.learning_pulse.title',
+                    'Moments you chose to keep',
+                )}
+            </h2>
+            <div className="mt-4 divide-y divide-slate-200 dark:divide-white/10">
+                {entries.map((entry) => (
+                    <Link
+                        className="group flex items-start justify-between gap-4 py-3 transition hover:text-violet-800 dark:hover:text-violet-200"
+                        href={entry.activityHref}
+                        key={`${entry.activityId}:${entry.recordedAt}`}
+                    >
+                        <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium">
+                                {entry.activityTitle}
+                            </span>
+                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                {learningPulseLabel(entry.feeling)} ·{' '}
+                                {entry.nodeTitle}
+                            </span>
+                        </span>
+                        <time
+                            className="shrink-0 text-xs text-slate-500 dark:text-slate-400"
+                            dateTime={entry.recordedAt}
+                        >
+                            {formatTopicDate(entry.recordedAt)}
+                        </time>
+                    </Link>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function learningPulseLabel(feeling: string): string {
+    return (
+        {
+            clearer: 'Something clicked',
+            forming: 'Still taking shape',
+            stretched: 'It stretched me',
+            stuck: 'I got stuck',
+        }[feeling] ?? feeling
     );
 }
 

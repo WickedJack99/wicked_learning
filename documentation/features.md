@@ -110,6 +110,10 @@ Recent journal check-ins retain their related learning areas. Each area can
 open its focused competence-map reading, while the activity itself remains a
 separate route back to the learning place.
 
+Topic pages can also show a short private trail of recent learning-pulse
+reflections connected to that topic. Each entry links back to the activity and
+its map place.
+
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments,
 while authorized support staff receive scoped signals for orientation and

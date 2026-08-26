@@ -56,6 +56,10 @@ class LearningTopicController extends Controller
             ->values();
         $competence = $competenceTopics->firstWhere('slug', $topic->slug);
         $learningAreas = $this->learningAreas($topic);
+        $learningPulse = $this->learningPulse(
+            $competenceMap['checkIns'] ?? [],
+            $learningAreas,
+        );
 
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
@@ -68,6 +72,7 @@ class LearningTopicController extends Controller
                     ->reject(fn (array $entry): bool => $entry['slug'] === $topic->slug)
                     ->all(),
                 $learningAreas,
+                $learningPulse,
             ),
         ]);
     }
@@ -105,6 +110,24 @@ class LearningTopicController extends Controller
                     ->all(),
             ])
             ->sortBy('name')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $checkIns
+     * @param  list<array{name: string, slug: string, learningIntents: list<string>}>  $learningAreas
+     * @return list<array<string, mixed>>
+     */
+    private function learningPulse(array $checkIns, array $learningAreas): array
+    {
+        $areaSlugs = collect($learningAreas)->pluck('slug');
+
+        return collect($checkIns)
+            ->filter(fn (array $checkIn): bool => collect($checkIn['topics'] ?? [])
+                ->contains(fn (mixed $area): bool => is_array($area)
+                    && $areaSlugs->contains($area['slug'] ?? null)))
+            ->take(4)
             ->values()
             ->all();
     }

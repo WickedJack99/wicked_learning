@@ -24,6 +24,7 @@ export type TopicDetail = TopicSummary & {
     content: string | null;
     competence: TopicCompetence | null;
     learningAreas: TopicLearningArea[];
+    learningPulse: TopicLearningPulse[];
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
     paths: TopicPath[];
@@ -68,6 +69,17 @@ export type TopicLearningArea = {
     learningIntents: string[];
     name: string;
     slug: string;
+};
+
+export type TopicLearningPulse = {
+    activityHref: string;
+    activityId: number;
+    activityTitle: string;
+    feeling: string;
+    nodeHref: string;
+    nodeTitle: string;
+    recordedAt: string;
+    topics: { name: string; slug: string }[];
 };
 
 export type TopicPath = {
