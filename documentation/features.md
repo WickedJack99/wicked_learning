@@ -59,6 +59,10 @@ Search results navigate to the matching map and focusable place.
 Learners can bookmark focusable MapAssets. Bookmarks appear on a personal map
 and link back to the original learning place.
 
+The learning desk separates unfinished route progress from recent completed
+traces. When the same route has both an active run and an older completion, it
+appears only under Continue learning so the desk keeps one clear next step.
+
 ### Activities And Routes
 
 A focusable MapAsset can expose several route starts. Activities play on a

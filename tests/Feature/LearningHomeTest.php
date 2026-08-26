@@ -191,6 +191,79 @@ test('the learning desk keeps a quiet trail of recently completed routes', funct
         );
 });
 
+test('the learning desk does not repeat an active route in recent traces', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'active-route-map',
+        'title' => 'Active Route Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'active-route-node',
+        'title' => 'Active Route Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'active-route-activity',
+        'title' => 'Active Route Activity',
+        'type' => 'markdown',
+        'sort_order' => 10,
+    ]);
+    $completedActivity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'completed-route-activity',
+        'title' => 'Completed Route Activity',
+        'type' => 'markdown',
+        'sort_order' => 20,
+    ]);
+    $start = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'label' => 'Continue route',
+        'sort_order' => 10,
+    ]);
+    $completedStart = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $completedActivity->id,
+        'label' => 'Explore another route',
+        'sort_order' => 20,
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'status' => 'in_progress',
+        'last_entered_at' => now(),
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $completedStart->id,
+        'start_learning_activity_id' => $completedActivity->id,
+        'status' => 'completed',
+        'last_completed_at' => now()->subDay(),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.currentRoutes', 1)
+            ->has('desk.recentRoutes', 0)
+        );
+});
+
 test('the learning desk shows recent private learning check-ins without treating them as progress scores', function () {
     Carbon::setTestNow('2026-08-26 16:00:00');
     $user = User::factory()->create();

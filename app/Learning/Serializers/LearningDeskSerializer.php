@@ -29,6 +29,12 @@ class LearningDeskSerializer
      */
     public function serialize(array $desk): array
     {
+        $currentPlaceIds = $desk['currentRoutes']->mapWithKeys(
+            fn (LearnerRouteProgress $progress): array => [
+                $this->placeKey($progress) => true,
+            ],
+        );
+
         return [
             'bookmarks' => $desk['bookmarks']
                 ->map(fn (LearningNodeBookmark $bookmark): array => $this->bookmark($bookmark))
@@ -46,6 +52,7 @@ class LearningDeskSerializer
                 ->values()
                 ->all(),
             'recentRoutes' => $desk['recentRoutes']
+                ->reject(fn (LearnerRouteProgress $progress): bool => $currentPlaceIds->has($this->placeKey($progress)))
                 ->map(fn (LearnerRouteProgress $progress): array => $this->recentRoute($progress))
                 ->values()
                 ->all(),
@@ -53,6 +60,11 @@ class LearningDeskSerializer
                 ? $this->bookmark($desk['featuredBookmark'])
                 : null,
         ];
+    }
+
+    private function placeKey(LearnerRouteProgress $progress): int
+    {
+        return $progress->learning_node_id;
     }
 
     /** @return array<string, mixed> */
