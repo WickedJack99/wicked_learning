@@ -499,6 +499,8 @@ function LearningPulseTimeline({
     checkIns: CompetenceCheckIn[];
     onTopicSelect: (slug: string) => void;
 }) {
+    const translate = usePlatformTranslation();
+
     return (
         <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-[calc(100svh-7rem)] xl:overflow-y-auto">
             <div className="flex items-start gap-3">
@@ -541,9 +543,12 @@ function LearningPulseTimeline({
                             </p>
                             <Link
                                 className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
-                                href={checkIn.nodeHref}
+                                href={checkIn.activityHref}
                             >
-                                Revisit this node
+                                {translate(
+                                    'competence.pulse.revisit_activity',
+                                    'Revisit this activity',
+                                )}
                             </Link>
                             {checkIn.topics.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-1.5">

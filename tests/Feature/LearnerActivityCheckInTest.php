@@ -132,6 +132,10 @@ test('the competence page shows only the current learners private check-ins', fu
             ->has('competenceMap.checkIns', 1)
             ->where('competenceMap.checkIns.0.activityTitle', 'Check-in Activity')
             ->where('competenceMap.checkIns.0.feeling', 'clearer')
+            ->where('competenceMap.checkIns.0.activityHref', route('learning.nodes.play', [
+                'activity_id' => $activity->id,
+                'node' => $activity->node,
+            ]))
             ->where('competenceMap.checkIns.0.nodeHref', route('learning.nodes.play', ['node' => $activity->learning_node_id]))
             ->where('competenceMap.checkIns.0.topics.0.slug', 'systems-thinking')
             ->where('competenceMap.checkIns.0.topics.0.name', 'Systems Thinking')

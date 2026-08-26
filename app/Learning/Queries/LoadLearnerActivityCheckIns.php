@@ -13,7 +13,7 @@ class LoadLearnerActivityCheckIns
     public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
 
     /**
-     * @return list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>
+     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>
      */
     public function handle(User $user): array
     {
@@ -51,6 +51,10 @@ class LoadLearnerActivityCheckIns
                     $checkIns[] = [
                         'activityId' => $activity->id,
                         'activityTitle' => $activity->title,
+                        'activityHref' => route('learning.nodes.play', [
+                            'activity_id' => $activity->id,
+                            'node' => $activity->node,
+                        ]),
                         'feeling' => $checkIn['feeling'],
                         'nodeTitle' => $activity->node->title,
                         'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),

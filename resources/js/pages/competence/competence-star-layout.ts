@@ -42,6 +42,7 @@ export type CompetenceTransition = {
 
 export type CompetenceCheckIn = {
     activityId: number;
+    activityHref: string;
     activityTitle: string;
     feeling: string;
     nodeTitle: string;
