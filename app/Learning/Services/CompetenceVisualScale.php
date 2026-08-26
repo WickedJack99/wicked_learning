@@ -36,7 +36,7 @@ class CompetenceVisualScale
         array $evidenceLedger = [],
     ): array {
         $sizeRatio = $this->ratio($totalSignal, $growthThreshold);
-        $brightnessRatio = $this->ratio($totalSignal, $brightnessThreshold);
+        $brightnessRatio = $this->ratio($recentSignal, $brightnessThreshold);
         $auraRatio = $this->ratio($recentSignal, $auraThreshold);
         $sizeTier = $this->tier($sizeRatio);
 

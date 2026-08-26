@@ -283,7 +283,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.slug', 'algebra')
             ->where('competenceMap.topics.0.name', 'Algebra Foundations')
             ->where('competenceMap.topics.0.visual.sizeRatio', 0.6667)
-            ->where('competenceMap.topics.0.visual.brightnessRatio', 0.5)
+            ->where('competenceMap.topics.0.visual.brightnessRatio', 0.3125)
             ->where('competenceMap.topics.0.visual.auraRatio', 0.8333)
             ->where('competenceMap.topics.0.visual.sizeTier', 'beacon')
             ->where('competenceMap.topics.0.visual.description', 'A well-established light.')
