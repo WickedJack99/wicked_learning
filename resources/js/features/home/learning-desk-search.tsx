@@ -1,5 +1,11 @@
 import { router } from '@inertiajs/react';
-import { ArrowRight, LoaderCircle, Map, Search } from 'lucide-react';
+import {
+    ArrowRight,
+    BookOpenText,
+    LoaderCircle,
+    Map,
+    Search,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { getJson } from '@/features/world/api';
@@ -61,13 +67,7 @@ export function LearningDeskSearch() {
     }, [query]);
 
     const visit = (result: LearningSearchResult) => {
-        const parameters = new URLSearchParams({ map: result.mapSlug });
-
-        if (result.nodeSlug) {
-            parameters.set('focused', result.nodeSlug);
-        }
-
-        router.visit(`/world?${parameters.toString()}`);
+        router.visit(result.href);
     };
 
     const submit = (event: FormEvent) => {
@@ -138,7 +138,11 @@ export function LearningDeskSearch() {
                                         type="button"
                                     >
                                         <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
-                                            <Map className="size-4" />
+                                            {result.kind === 'topic' ? (
+                                                <BookOpenText className="size-4" />
+                                            ) : (
+                                                <Map className="size-4" />
+                                            )}
                                         </span>
                                         <span className="min-w-0">
                                             <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">

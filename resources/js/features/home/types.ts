@@ -46,10 +46,11 @@ export type LearningDeskData = {
 };
 
 export type LearningSearchResult = {
+    href: string;
     id: string;
-    kind: 'map' | 'node';
-    mapId: number;
-    mapSlug: string;
+    kind: 'map' | 'node' | 'topic';
+    mapId?: number;
+    mapSlug?: string;
     nodeId?: number;
     nodeSlug?: string;
     subtitle: string;

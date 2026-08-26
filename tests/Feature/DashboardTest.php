@@ -276,6 +276,31 @@ test('authenticated users can search visible maps and nodes', function () {
         ]);
 });
 
+test('authenticated users can search published topics', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $user = User::factory()->create();
+
+    LearningTopic::query()->create([
+        'description' => 'A private draft topic.',
+        'is_published' => false,
+        'learning_topic_area_id' => LearningTopicArea::query()->firstOrFail()->id,
+        'slug' => 'private-patterns',
+        'title' => 'Private patterns',
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', ['query' => 'pattern investigation']))
+        ->assertOk()
+        ->assertJsonPath('results.0.kind', 'topic')
+        ->assertJsonPath('results.0.title', 'Pattern investigation')
+        ->assertJsonPath('results.0.href', '/topics/pattern-investigation');
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', ['query' => 'private patterns']))
+        ->assertOk()
+        ->assertJsonCount(0, 'results');
+});
+
 test('world map serializes outgoing portal links for learner travel', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();

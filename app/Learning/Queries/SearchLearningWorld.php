@@ -6,6 +6,7 @@ use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningTopic;
 use App\Models\User;
 
 class SearchLearningWorld
@@ -20,6 +21,7 @@ class SearchLearningWorld
         $term = trim($query);
 
         return [
+            ...$this->topicResults($term),
             ...$this->mapResults($term, $user),
             ...$this->nodeResults($term, $user),
         ];
@@ -33,6 +35,34 @@ class SearchLearningWorld
     private function likeTerm(string $term): string
     {
         return '%'.$this->escapedLikeTerm($term).'%';
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function topicResults(string $term): array
+    {
+        $likeTerm = $this->likeTerm($term);
+
+        return LearningTopic::query()
+            ->where('is_published', true)
+            ->where(function ($query) use ($likeTerm): void {
+                $query
+                    ->where('title', 'like', $likeTerm)
+                    ->orWhere('description', 'like', $likeTerm)
+                    ->orWhere('slug', 'like', $likeTerm);
+            })
+            ->orderBy('title')
+            ->limit(8)
+            ->get()
+            ->map(fn (LearningTopic $topic): array => [
+                'href' => route('topics.show', $topic, false),
+                'id' => "topic:{$topic->id}",
+                'kind' => 'topic',
+                'subtitle' => 'Topic',
+                'title' => $topic->title,
+            ])
+            ->all();
     }
 
     /**
@@ -54,6 +84,7 @@ class SearchLearningWorld
             ->get()
             ->filter(fn (LearningMap $map): bool => $this->mapAccess->canViewMap($map, $user))
             ->map(fn (LearningMap $map): array => [
+                'href' => route('world', ['map' => $map->slug], false),
                 'id' => "map:{$map->id}",
                 'kind' => 'map',
                 'mapId' => $map->id,
@@ -88,6 +119,10 @@ class SearchLearningWorld
                 && $this->mapAccess->canViewMap($node->map, $user))
             ->take(24)
             ->map(fn (LearningNode $node): array => [
+                'href' => route('world', [
+                    'map' => $node->map->slug,
+                    'focused' => $node->slug,
+                ], false),
                 'id' => "node:{$node->id}",
                 'kind' => 'node',
                 'mapId' => $node->map->id,
