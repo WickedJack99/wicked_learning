@@ -46,6 +46,8 @@ export default function CompetenceStarMap({
     const activeTopic = activeTopicSlug
         ? topicBySlug.get(activeTopicSlug)
         : undefined;
+    const selectedTopicNotFound =
+        selectedTopicSlug !== null && !topicBySlug.has(selectedTopicSlug);
 
     return (
         <>
@@ -403,6 +405,14 @@ export default function CompetenceStarMap({
                                     setSelectedTopicSlug(null);
                                 }}
                                 topic={activeTopic}
+                            />
+                        ) : selectedTopicNotFound ? (
+                            <UnseenCompetenceReading
+                                onClose={() => {
+                                    setHoveredTopicSlug(null);
+                                    setSelectedTopicSlug(null);
+                                }}
+                                topicSlug={selectedTopicSlug}
                             />
                         ) : null}
                     </section>
@@ -830,6 +840,67 @@ function CompetenceReading({
             ) : null}
         </aside>
     );
+}
+
+function UnseenCompetenceReading({
+    onClose,
+    topicSlug,
+}: {
+    onClose: () => void;
+    topicSlug: string;
+}) {
+    const translate = usePlatformTranslation();
+
+    return (
+        <aside
+            aria-live="polite"
+            className="absolute bottom-4 left-4 max-w-sm rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
+                        {translate(
+                            'competence.reading.unseen.eyebrow',
+                            'Not on your map yet',
+                        )}
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold">
+                        {topicLabel(topicSlug)}
+                    </h2>
+                </div>
+                <button
+                    aria-label="Close competence reading"
+                    className="rounded-md px-2 py-1 text-lg leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    onClick={onClose}
+                    type="button"
+                >
+                    ×
+                </button>
+            </div>
+            <p className="mt-2 text-sm leading-5 text-slate-300">
+                {translate(
+                    'competence.reading.unseen.description',
+                    'There is no learning moment for this area on your trail yet. Explore an activity connected to it, and this map can begin reflecting what you notice over time.',
+                )}
+            </p>
+            <Link
+                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white"
+                href="/world"
+            >
+                {translate(
+                    'competence.reading.unseen.open_world',
+                    'Explore activities',
+                )}
+                <ArrowRight className="size-3.5" />
+            </Link>
+        </aside>
+    );
+}
+
+function topicLabel(slug: string): string {
+    return slug
+        .replaceAll('-', ' ')
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function evidenceTypeLabel(type: string): string {
