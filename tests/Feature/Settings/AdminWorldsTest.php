@@ -42,6 +42,8 @@ test('admin users can see the world graph with portal links', function () {
             ->has('worldGraph.maps', 2)
             ->where('worldGraph.maps.0.slug', 'first-sector')
             ->where('worldGraph.maps.0.reviewCount', $reviewCount)
+            ->where('worldGraph.maps.0.nodes.0.slug', 'portal-foundation')
+            ->where('worldGraph.maps.0.nodes.0.activityReviewCount', 1)
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')

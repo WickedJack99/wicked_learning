@@ -18,6 +18,8 @@ import type {
 import {
     ArrowLeft,
     ArrowRight,
+    CircleAlert,
+    CircleCheck,
     GitBranch,
     Map as MapIcon,
     Pencil,
@@ -518,6 +520,10 @@ function MapGraphHandles() {
 }
 
 function MapDetails({ map }: { map: MapSummary }) {
+    const nodesNeedingReview = map.nodes.filter(
+        (node) => node.activityReviewCount > 0,
+    );
+
     return (
         <div>
             <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
@@ -531,6 +537,51 @@ function MapDetails({ map }: { map: MapSummary }) {
                 <Detail label="Slug" value={map.slug} />
                 <Detail label="Tiles" value={map.nodeCount.toString()} />
             </dl>
+            <section className="mt-6 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                <div className="flex items-start gap-3">
+                    {map.reviewCount > 0 ? (
+                        <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-300" />
+                    ) : (
+                        <CircleCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                    )}
+                    <div>
+                        <p className="text-sm font-semibold">
+                            Authoring review
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                            {map.reviewCount > 0
+                                ? `${map.reviewCount} ${map.reviewCount === 1 ? 'activity needs' : 'activities need'} AI review before the next authoring pass.`
+                                : 'No activities are waiting for AI review.'}
+                        </p>
+                    </div>
+                </div>
+                {nodesNeedingReview.length > 0 ? (
+                    <div className="mt-3 grid gap-2">
+                        {nodesNeedingReview.map((node) => (
+                            <Button
+                                asChild
+                                className="h-auto justify-between gap-3 px-3 py-2 text-left"
+                                key={node.id}
+                                variant="outline"
+                            >
+                                <Link
+                                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes`}
+                                >
+                                    <span className="min-w-0 truncate text-xs">
+                                        {node.title}
+                                    </span>
+                                    <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                                        {node.activityReviewCount}{' '}
+                                        {node.activityReviewCount === 1
+                                            ? 'activity'
+                                            : 'activities'}
+                                    </span>
+                                </Link>
+                            </Button>
+                        ))}
+                    </div>
+                ) : null}
+            </section>
             <Button asChild className="mt-6 w-full">
                 <Link
                     href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&worldView=nodes`}
