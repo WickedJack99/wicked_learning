@@ -46,6 +46,36 @@ test('the demo route seeds competence evidence metadata', function () {
             ->exists())->toBeTrue();
 });
 
+test('the demo route gives its practice activities a shared competence vocabulary', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $activities = LearningActivity::query()
+        ->whereIn('slug', [
+            'guided-signal-dialogue',
+            'clear-the-noisy-gate',
+            'write-a-field-note',
+        ])
+        ->get()
+        ->keyBy('slug');
+
+    expect($activities)->toHaveCount(3);
+
+    foreach ($activities as $activity) {
+        expect($activity->config['competenceTopics'])->toHaveCount(2)
+            ->and($activity->config['competenceTopics'][0]['slug'])
+            ->toBe('pattern-recognition')
+            ->and($activity->config['competenceTopics'][1]['slug'])
+            ->toBe('investigation-focus');
+    }
+
+    expect($activities['guided-signal-dialogue']->config['learningIntent'])
+        ->toBe('explain')
+        ->and($activities['clear-the-noisy-gate']->config['learningIntent'])
+        ->toBe('apply')
+        ->and($activities['write-a-field-note']->config['learningIntent'])
+        ->toBe('reflect');
+});
+
 test('route play completion records configured evidence once per play run', function () {
     Carbon::setTestNow('2026-07-21 10:00:00');
 

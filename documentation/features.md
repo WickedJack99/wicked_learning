@@ -115,6 +115,11 @@ qualitative competence map, topic trails and bounded linked learning moments,
 while authorized support staff receive scoped signals for orientation and
 support conversations rather than ranking.
 
+The demo learning world uses the same two competence topics across its dialogue,
+question, review, obstacle and field-note activities. This keeps the example
+world inspectable end to end: different kinds of participation can leave
+different evidence types without introducing a separate progression system.
+
 Organizations, learning groups, group chat and shared-task activities form an
 early collaboration slice. Their purpose is contribution and coordination, not
 public scoring.

@@ -360,7 +360,13 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => 'Guided pattern dialogue',
             'introduction' => 'A graph-based NPC dialogue with a question, private feedback and a review loop.',
             'sort_order' => 15,
-            'config' => [],
+            'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                    ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
+                ],
+                'learningIntent' => 'explain',
+            ],
         ]);
 
         $intro = $this->createNpcMonologue($npcDialogue, [
@@ -525,6 +531,11 @@ class DemoLearningWorldSeeder extends Seeder
             'introduction' => 'Equip a tool and resolve a small blocker without any scoring pressure.',
             'sort_order' => 25,
             'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                    ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
+                ],
+                'learningIntent' => 'apply',
                 'allowedToolIds' => [$tool->id],
                 'backgroundDark' => '/images/obstacles/static-field-dark.svg',
                 'backgroundLight' => '/images/obstacles/static-field-light.svg',
@@ -695,6 +706,11 @@ class DemoLearningWorldSeeder extends Seeder
             'introduction' => 'Capture one observation in your own words.',
             'sort_order' => 10,
             'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                    ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
+                ],
+                'learningIntent' => 'reflect',
                 'prompt' => 'What is one idea from this map that you want to remember or question later?',
                 'note' => 'Field notes are for orientation, not for ranking.',
             ],
