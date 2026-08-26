@@ -14,9 +14,30 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
+
+test('the demo route seeds competence evidence metadata', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'read-the-first-signal')
+        ->firstOrFail();
+
+    expect($activity->config['learningIntent'])->toBe('retrieve')
+        ->and($activity->config['competenceTopics'])->toBe([
+            [
+                'slug' => 'pattern-recognition',
+                'topic' => 'Pattern recognition',
+                'weight' => 1,
+            ],
+        ])
+        ->and(CompetenceTopicDefinition::query()
+            ->where('slug', 'pattern-recognition')
+            ->exists())->toBeTrue();
+});
 
 test('route play completion records configured evidence once per play run', function () {
     Carbon::setTestNow('2026-07-21 10:00:00');

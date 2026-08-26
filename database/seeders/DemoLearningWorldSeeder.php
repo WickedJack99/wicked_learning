@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\ActivityTransition;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -78,6 +79,8 @@ class DemoLearningWorldSeeder extends Seeder
             ],
         ]);
 
+        $this->seedCompetenceTopicDefinitions();
+
         $signalGate = LearningNode::query()->create([
             'learning_map_id' => $map->id,
             'slug' => 'signal-gate',
@@ -116,6 +119,10 @@ class DemoLearningWorldSeeder extends Seeder
             'sort_order' => 10,
             'config' => [
                 'allowBackward' => true,
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                ],
+                'learningIntent' => 'participate',
             ],
         ]);
 
@@ -162,6 +169,12 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => 'Read the first pattern',
             'introduction' => 'Choose the clue that best explains the observation.',
             'sort_order' => 20,
+            'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                ],
+                'learningIntent' => 'retrieve',
+            ],
         ]);
 
         $question = LearningQuestion::query()->create([
@@ -212,6 +225,13 @@ class DemoLearningWorldSeeder extends Seeder
             'title' => 'Review the pattern spread',
             'introduction' => 'A short loop that points back to the question.',
             'sort_order' => 30,
+            'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                    ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
+                ],
+                'learningIntent' => 'review',
+            ],
         ]);
 
         DialogueStage::query()->create([
@@ -234,6 +254,11 @@ class DemoLearningWorldSeeder extends Seeder
             'introduction' => 'A small competence reflection rather than a reward screen.',
             'sort_order' => 40,
             'config' => [
+                'competenceTopics' => [
+                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
+                    ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
+                ],
+                'learningIntent' => 'reflect',
                 'prompt' => 'In your own words, what did the spread of starting points help you understand?',
                 'note' => 'This note is private orientation for your own thinking.',
             ],
@@ -283,6 +308,26 @@ class DemoLearningWorldSeeder extends Seeder
 
         $portal = $this->seedSecondaryNodes($map);
         $this->seedPortalSibling($world, $map, $portal);
+    }
+
+    private function seedCompetenceTopicDefinitions(): void
+    {
+        foreach ([
+            ['slug' => 'pattern-recognition', 'name' => 'Pattern recognition'],
+            ['slug' => 'investigation-focus', 'name' => 'Investigation focus'],
+        ] as $topic) {
+            CompetenceTopicDefinition::query()->firstOrCreate(
+                ['slug' => $topic['slug']],
+                [
+                    'aura_threshold' => 2,
+                    'description' => null,
+                    'emittance_threshold' => 3,
+                    'growth_threshold' => 4,
+                    'is_active' => true,
+                    'name' => $topic['name'],
+                ],
+            );
+        }
     }
 
     private function seedNpcDialogueExample(LearningNode $signalGate, LearningActivity $reflection): void

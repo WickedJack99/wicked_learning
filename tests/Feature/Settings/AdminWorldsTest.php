@@ -106,7 +106,11 @@ test('admin users can open world builder map configuration and node inside setti
             ->has('selectedWorldNode.activityGraph.transitions', 6)
             ->has('selectedWorldNode.activityGraph.portalCandidates')
             ->has('selectedWorldNode.activityGraph.activityTypes')
-            ->where('selectedWorldNode.activityGraph.competenceTopicOptions', ['Systems Thinking'])
+            ->where('selectedWorldNode.activityGraph.competenceTopicOptions', [
+                'Investigation focus',
+                'Pattern recognition',
+                'Systems Thinking',
+            ])
         );
 });
 
