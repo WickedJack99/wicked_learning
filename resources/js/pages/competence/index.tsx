@@ -21,7 +21,12 @@ export default function CompetenceStarMap({
 }: {
     competenceMap: CompetenceMap;
 }) {
-    const [activeTopicSlug, setActiveTopicSlug] = useState<string | null>(null);
+    const [hoveredTopicSlug, setHoveredTopicSlug] = useState<string | null>(
+        null,
+    );
+    const [selectedTopicSlug, setSelectedTopicSlug] = useState<string | null>(
+        null,
+    );
     const positionedTopics = useMemo(
         () =>
             buildCompetenceStarLayout(
@@ -33,6 +38,10 @@ export default function CompetenceStarMap({
     const topicBySlug = new Map(
         positionedTopics.map((topic) => [topic.slug, topic]),
     );
+    const activeTopicSlug = hoveredTopicSlug ?? selectedTopicSlug;
+    const activeTopic = activeTopicSlug
+        ? topicBySlug.get(activeTopicSlug)
+        : undefined;
 
     return (
         <>
@@ -331,13 +340,30 @@ export default function CompetenceStarMap({
                                                 activeTopicSlug === topic.slug
                                             }
                                             key={topic.slug}
-                                            onActiveChange={setActiveTopicSlug}
+                                            onActiveChange={setHoveredTopicSlug}
+                                            onSelect={() =>
+                                                setSelectedTopicSlug(
+                                                    (current) =>
+                                                        current === topic.slug
+                                                            ? null
+                                                            : topic.slug,
+                                                )
+                                            }
                                             topic={topic}
                                         />
                                     ))}
                                 </g>
                             </svg>
                         )}
+                        {activeTopic ? (
+                            <CompetenceReading
+                                onClose={() => {
+                                    setHoveredTopicSlug(null);
+                                    setSelectedTopicSlug(null);
+                                }}
+                                topic={activeTopic}
+                            />
+                        ) : null}
                     </section>
                 </div>
             </main>
@@ -388,13 +414,82 @@ function CompetencePath({
     );
 }
 
+function CompetenceReading({
+    onClose,
+    topic,
+}: {
+    onClose: () => void;
+    topic: PositionedTopic;
+}) {
+    return (
+        <aside
+            aria-live="polite"
+            className="absolute bottom-4 left-4 max-w-sm rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
+                        Reading this light
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold">{topic.name}</h2>
+                </div>
+                <button
+                    aria-label="Close competence reading"
+                    className="rounded-md px-2 py-1 text-lg leading-none text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    onClick={onClose}
+                    type="button"
+                >
+                    ×
+                </button>
+            </div>
+            <p className="mt-2 text-sm leading-5 text-slate-300">
+                {topic.visual.description}
+            </p>
+            <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
+                Ways you have engaged here
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+                {topic.visual.evidenceTypes.length > 0 ? (
+                    topic.visual.evidenceTypes.map((type) => (
+                        <span
+                            className="rounded-full border border-cyan-200/20 bg-cyan-200/10 px-2.5 py-1 text-xs text-cyan-100"
+                            key={type}
+                        >
+                            {evidenceTypeLabel(type)}
+                        </span>
+                    ))
+                ) : (
+                    <span className="text-sm text-slate-400">
+                        No evidence pattern yet.
+                    </span>
+                )}
+            </div>
+        </aside>
+    );
+}
+
+function evidenceTypeLabel(type: string): string {
+    return (
+        {
+            apply: 'applying',
+            explain: 'explaining',
+            participate: 'participating',
+            reflect: 'reflecting',
+            retrieve: 'retrieving',
+            transfer: 'transferring',
+        }[type] ?? type
+    );
+}
+
 function CompetenceStar({
     active,
     onActiveChange,
+    onSelect,
     topic,
 }: {
     active: boolean;
     onActiveChange: (slug: string | null) => void;
+    onSelect: () => void;
     topic: PositionedTopic;
 }) {
     const flareLength = topic.size * (2.8 + topic.brightness * 2.4);
@@ -406,9 +501,21 @@ function CompetenceStar({
     return (
         <g
             aria-label={`${topic.name}: ${topic.visual.description}`}
+            aria-pressed={active}
+            className="cursor-pointer outline-none"
+            onClick={onSelect}
+            onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                onSelect();
+            }}
             onPointerEnter={() => onActiveChange(topic.slug)}
             onPointerLeave={() => onActiveChange(null)}
-            role="img"
+            role="button"
+            tabIndex={0}
             transform={`translate(${topic.x} ${topic.y})`}
         >
             <title>
