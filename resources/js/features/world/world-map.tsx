@@ -271,7 +271,7 @@ export function WorldMap({
             />
 
             <div
-                className="pointer-events-none absolute top-20 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md md:top-24 md:left-8 md:w-auto md:translate-x-0"
+                className="pointer-events-none absolute top-28 left-1/2 z-10 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 rounded-lg border border-white/10 p-4 text-left shadow-2xl backdrop-blur-md sm:top-24 md:left-8 md:w-auto md:translate-x-0"
                 style={{
                     background:
                         mapTheme.panelBackground ?? 'rgba(5, 15, 22, 0.72)',
