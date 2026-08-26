@@ -523,6 +523,7 @@ class LoadSettingsIndex
     {
         return [
             'id' => $token->id,
+            'note' => $token->note,
             'role' => $token->role,
             'roles' => $token->grantedRoles(),
             'created_at' => $this->dateForFrontend($token->created_at),

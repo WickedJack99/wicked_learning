@@ -1124,6 +1124,7 @@ function AdminUsersPanel({
         assignableRegistrationRoles[0] ?? 'user',
     );
     const [tokenExpiresAt, setTokenExpiresAt] = useState('');
+    const [tokenNote, setTokenNote] = useState('');
     const [formOverrides, setFormOverrides] = useState<
         Record<number, Partial<AccessFormState>>
     >({});
@@ -1167,6 +1168,7 @@ function AdminUsersPanel({
             {
                 roles: tokenRoles,
                 expires_at: tokenExpiresAt || null,
+                note: tokenNote.trim() || null,
             },
             {
                 preserveScroll: true,
@@ -1176,6 +1178,7 @@ function AdminUsersPanel({
                     setTokenRoles([assignableRegistrationRoles[0] ?? 'user']);
                     setTokenRoleToAdd(assignableRegistrationRoles[0] ?? 'user');
                     setTokenExpiresAt('');
+                    setTokenNote('');
                 },
             },
         );
@@ -1186,6 +1189,7 @@ function AdminUsersPanel({
         setTokenRoles([assignableRegistrationRoles[0] ?? 'user']);
         setTokenRoleToAdd(assignableRegistrationRoles[0] ?? 'user');
         setTokenExpiresAt('');
+        setTokenNote('');
     };
 
     const copyCreatedToken = async () => {
@@ -1298,7 +1302,7 @@ function AdminUsersPanel({
                         <DialogDescription>
                             {t(
                                 'settings.access.tokens.dialog_description',
-                                'Choose the roles this one-use token grants and optionally set an expiration date.',
+                                'Choose the roles this one-use token grants, optionally set an expiration date, and add a note for later reference.',
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -1326,6 +1330,27 @@ function AdminUsersPanel({
                                 }
                                 type="datetime-local"
                                 value={tokenExpiresAt}
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <Label htmlFor="token-note">
+                                {t(
+                                    'settings.access.tokens.note',
+                                    'Note (optional)',
+                                )}
+                            </Label>
+                            <textarea
+                                className="min-h-20 resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                id="token-note"
+                                maxLength={500}
+                                onChange={(event) =>
+                                    setTokenNote(event.currentTarget.value)
+                                }
+                                placeholder={t(
+                                    'settings.access.tokens.note_placeholder',
+                                    'For example: biology pilot group',
+                                )}
+                                value={tokenNote}
                             />
                         </div>
                     </div>
@@ -1582,6 +1607,11 @@ function AdminUsersPanel({
                                             },
                                         )}
                                     </span>
+                                    {token.note ? (
+                                        <p className="mt-1 max-w-xl text-xs text-[var(--settings-muted-text)]">
+                                            {token.note}
+                                        </p>
+                                    ) : null}
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <RoleBadges
@@ -1890,6 +1920,19 @@ function UserDetailsDialog({
                                     'Token roles',
                                 )}
                                 value={roleListLabel(token.roles, roleOptions)}
+                            />
+                            <DetailRow
+                                label={t(
+                                    'settings.access.users.details.token_note',
+                                    'Token note',
+                                )}
+                                value={
+                                    token.note ??
+                                    t(
+                                        'settings.access.users.details.no_token_note',
+                                        'No note added',
+                                    )
+                                }
                             />
                             <DetailRow
                                 label={t(

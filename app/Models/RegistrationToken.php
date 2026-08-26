@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 /**
  * A one-use invite token required to create a new account.
  */
-#[Fillable(['token_hash', 'role', 'roles', 'created_by_user_id', 'used_by_user_id', 'used_at', 'expires_at'])]
+#[Fillable(['token_hash', 'note', 'role', 'roles', 'created_by_user_id', 'used_by_user_id', 'used_at', 'expires_at'])]
 #[Hidden(['token_hash'])]
 class RegistrationToken extends Model
 {
@@ -44,12 +44,14 @@ class RegistrationToken extends Model
         User $creator,
         array|string $roles = [User::ROLE_USER],
         Carbon|string|null $expiresAt = null,
+        ?string $note = null,
     ): string {
         $plainToken = Str::random(40);
         $normalizedRoles = User::normalizeRoles($roles);
 
         static::query()->create([
             'token_hash' => static::hashToken($plainToken),
+            'note' => $note,
             'role' => self::primaryRole($normalizedRoles),
             'roles' => $normalizedRoles,
             'created_by_user_id' => $creator->id,

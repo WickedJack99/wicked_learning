@@ -82,6 +82,7 @@ test('admins can create registration tokens for assignable roles', function () {
         ->post(route('settings.registration-tokens.store'), [
             'roles' => [User::ROLE_USER, User::ROLE_ADMIN],
             'expires_at' => $expiresAt,
+            'note' => 'Biology pilot group',
         ]);
 
     $response->assertRedirect(route('settings.index', [
@@ -97,8 +98,18 @@ test('admins can create registration tokens for assignable roles', function () {
         ->and($token?->created_by_user_id)->toBe($admin->id)
         ->and($token?->role)->toBe(User::ROLE_ADMIN)
         ->and($token?->grantedRoles())->toBe([User::ROLE_USER, User::ROLE_ADMIN])
+        ->and($token?->note)->toBe('Biology pilot group')
         ->and($token?->expires_at?->format('Y-m-d H:i:s'))->toBe($expiresAt)
         ->and($token?->used_at)->toBeNull();
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'users',
+        ]))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('registrationTokens.0.note', 'Biology pilot group')
+        );
 });
 
 test('admins can update another users access controls', function () {

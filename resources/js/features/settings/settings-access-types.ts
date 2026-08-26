@@ -35,6 +35,7 @@ export type RegistrationTokenSummary = {
     id: number;
     is_expired: boolean;
     is_used: boolean;
+    note: string | null;
     role: UserRole;
     roles: UserRole[];
     used_at: string | null;

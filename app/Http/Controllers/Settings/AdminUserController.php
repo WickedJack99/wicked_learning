@@ -20,12 +20,14 @@ class AdminUserController extends Controller
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => ['required', 'string', Rule::in($request->user()->assignableRoles())],
             'expires_at' => ['nullable', 'date', 'after:now'],
+            'note' => ['nullable', 'string', 'max:500'],
         ]);
 
         $plainToken = RegistrationToken::createFor(
             $request->user(),
             $data['roles'],
             $data['expires_at'] ?? null,
+            filled($data['note'] ?? null) ? trim($data['note']) : null,
         );
 
         return $this->redirectToSettingsAccess($request)
