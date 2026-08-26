@@ -2,6 +2,7 @@
 
 namespace App\Learning\Queries;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
@@ -9,8 +10,10 @@ use App\Models\User;
 /** Loads the current learner's recent private check-in history. */
 class LoadLearnerActivityCheckIns
 {
+    public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
+
     /**
-     * @return list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, recordedAt: string}>
+     * @return list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>
      */
     public function handle(User $user): array
     {
@@ -51,6 +54,13 @@ class LoadLearnerActivityCheckIns
                         'feeling' => $checkIn['feeling'],
                         'nodeTitle' => $activity->node->title,
                         'recordedAt' => $checkIn['recordedAt'],
+                        'topics' => array_map(
+                            fn (array $topic): array => [
+                                'slug' => $topic['slug'],
+                                'name' => $topic['topic'],
+                            ],
+                            $this->competence->topicsForActivity($activity),
+                        ),
                     ];
                 }
             });

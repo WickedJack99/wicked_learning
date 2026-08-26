@@ -53,7 +53,9 @@ stretched me, or I got stuck. They can also continue without answering.
 This is a learner-owned observation, not an evidence event, competence score,
 diagnosis, or answer for an AI system. The prototype keeps a bounded history in
 that learner's activity-progress metadata so it can support later reflection
-without changing the star-map calculation or exposing a new tutor ranking.
+without changing the star-map calculation or exposing a new tutor ranking. When
+an activity is connected to competence topics, the learner can follow that
+context back to the related light without seeing the internal topic weights.
 
 ## Next evolution
 

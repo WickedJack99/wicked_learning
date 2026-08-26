@@ -366,7 +366,13 @@ export default function CompetenceStarMap({
                             />
                         ) : null}
                     </section>
-                    <LearningPulseTimeline checkIns={competenceMap.checkIns} />
+                    <LearningPulseTimeline
+                        checkIns={competenceMap.checkIns}
+                        onTopicSelect={(slug) => {
+                            setHoveredTopicSlug(null);
+                            setSelectedTopicSlug(slug);
+                        }}
+                    />
                 </div>
             </main>
         </>
@@ -375,8 +381,10 @@ export default function CompetenceStarMap({
 
 function LearningPulseTimeline({
     checkIns,
+    onTopicSelect,
 }: {
     checkIns: CompetenceCheckIn[];
+    onTopicSelect: (slug: string) => void;
 }) {
     return (
         <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-[calc(100svh-7rem)] xl:overflow-y-auto">
@@ -418,6 +426,25 @@ function LearningPulseTimeline({
                             <p className="mt-1 text-xs leading-5 text-slate-400">
                                 {checkIn.activityTitle} · {checkIn.nodeTitle}
                             </p>
+                            {checkIn.topics.length > 0 ? (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                    <span className="sr-only">
+                                        Connected lights:
+                                    </span>
+                                    {checkIn.topics.map((topic) => (
+                                        <button
+                                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-0.5 text-left text-[11px] text-cyan-100 transition hover:border-cyan-200/40 hover:bg-cyan-200/15"
+                                            key={topic.slug}
+                                            onClick={() =>
+                                                onTopicSelect(topic.slug)
+                                            }
+                                            type="button"
+                                        >
+                                            {topic.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : null}
                         </li>
                     ))}
                 </ol>

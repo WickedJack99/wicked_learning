@@ -25,6 +25,10 @@ export type CompetenceCheckIn = {
     feeling: string;
     nodeTitle: string;
     recordedAt: string;
+    topics: Array<{
+        name: string;
+        slug: string;
+    }>;
 };
 
 export type CompetenceMap = {
