@@ -256,10 +256,11 @@ prior knowledge, route length and allowed Activity types. The AI returns a
 versioned structured ContentPlan. Nothing is created until the admin reviews the
 MapAsset, linear route, warnings and token usage and explicitly applies it.
 
-The first authoring slice creates one focusable MapAsset at the map center and
-one to three Markdown/reflection Activities. Applying the draft revalidates the
-plan and writes the MapAsset, Activities, route start and transitions in one
-database transaction. See [AI-assisted authoring](ai-authoring.md).
+The authoring slice creates one focusable MapAsset at the map center and one to
+three selected Markdown, Reflection, Message prompt, Shared task or Open
+practice Activities. Applying the draft revalidates the plan and writes the
+MapAsset, Activities, route start and transitions in one database transaction.
+See [AI-assisted authoring](ai-authoring.md).
 
 ### Content API
 

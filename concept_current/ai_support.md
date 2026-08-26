@@ -89,8 +89,8 @@ maps.
 The content-authoring contract supports Markdown, Reflection, Message
 prompt, Shared task and Open practice activities. An Open practice activity
 receives a concrete invitation for a learner-owned next step. A Message prompt
-receives a scoped shared topic and input label. A Shared task is applied as a text contribution task
-with a concrete prompt, optional instructions and the existing minimum-length
+receives a scoped shared topic and input label. A Shared task is applied as a
+text contribution task with a concrete prompt, optional instructions and the existing minimum-length
 validation defaults; tutors can refine its participation settings afterward.
 All activity types use the same validated activity creation path, and the AI
 does not receive or invent learner messages.

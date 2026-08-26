@@ -102,7 +102,7 @@ unsupported generation controls from being sent for known models, while
 `AiProviderError` converts provider failures into sanitized categories and
 retryable application responses.
 
-The first content-authoring workflow sends an administrator brief plus scoped
+The content-authoring workflow sends an administrator brief plus scoped
 map context and a strict `ContentPlanContract`. The returned plan is validated
 before it is stored as a draft. Explicit approval invokes `ApplyAiContentPlan`,
 which revalidates and creates the MapAsset, Activities, route start and
