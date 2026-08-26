@@ -10,10 +10,12 @@ class CompetenceVisualScale
      * The numeric inputs remain internal implementation details. Learners receive
      * visual ratios and a human description instead of a score or point total.
      *
+     * @param  list<string>  $evidenceTypes
      * @return array{
      *     auraRatio: float,
      *     brightnessRatio: float,
      *     description: string,
+     *     evidenceTypes: list<string>,
      *     sizeRatio: float,
      *     sizeTier: string
      * }
@@ -24,6 +26,7 @@ class CompetenceVisualScale
         float $growthThreshold,
         float $brightnessThreshold,
         float $auraThreshold,
+        array $evidenceTypes = [],
     ): array {
         $sizeRatio = $this->ratio($totalSignal, $growthThreshold);
         $brightnessRatio = $this->ratio($totalSignal, $brightnessThreshold);
@@ -34,6 +37,7 @@ class CompetenceVisualScale
             'auraRatio' => $auraRatio,
             'brightnessRatio' => $brightnessRatio,
             'description' => $this->description($sizeTier),
+            'evidenceTypes' => $evidenceTypes,
             'sizeRatio' => $sizeRatio,
             'sizeTier' => $sizeTier,
         ];

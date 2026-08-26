@@ -2,12 +2,9 @@
 
 namespace App\Learning\Services;
 
-use App\Models\LearnerCompetenceTopic;
-use App\Models\LearnerCompetenceTopicMonth;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearningActivity;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class LearnerCompetenceService
@@ -22,25 +19,23 @@ class LearnerCompetenceService
             return;
         }
 
-        DB::transaction(function () use ($activity, $playRunId, $topics, $user): void {
+        $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
+
+        DB::transaction(function () use ($activity, $evidenceType, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
-                $inserted = DB::table('learner_competence_activity_awards')->insertOrIgnore([
+                DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
                     'learning_activity_id' => $activity->id,
                     'play_run_id' => $playRunId,
                     'topic_slug' => $topic['slug'],
                     'topic_name' => $topic['topic'],
-                    'points' => $topic['weight'],
+                    'evidence_type' => $evidenceType,
+                    'contribution' => $topic['weight'],
+                    'outcome' => 'completed',
+                    'assistance_level' => 'untracked',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-
-                if ($inserted !== 1) {
-                    continue;
-                }
-
-                $this->incrementTopic($user, $topic['slug'], $topic['topic'], $topic['weight']);
-                $this->incrementMonthlyTopic($user, $topic['slug'], $topic['topic'], $topic['weight']);
             }
         });
     }
@@ -96,31 +91,6 @@ class LearnerCompetenceService
                 $transition->save();
             }
         }
-    }
-
-    private function incrementTopic(User $user, string $slug, string $name, float $points): void
-    {
-        $topic = LearnerCompetenceTopic::query()->firstOrNew([
-            'user_id' => $user->id,
-            'topic_slug' => $slug,
-        ]);
-
-        $topic->topic_name = $name;
-        $topic->total_points = round(((float) $topic->total_points) + $points, 2);
-        $topic->save();
-    }
-
-    private function incrementMonthlyTopic(User $user, string $slug, string $name, float $points): void
-    {
-        $topic = LearnerCompetenceTopicMonth::query()->firstOrNew([
-            'user_id' => $user->id,
-            'topic_slug' => $slug,
-            'month_key' => Carbon::now()->format('Y-m'),
-        ]);
-
-        $topic->topic_name = $name;
-        $topic->points = round(((float) $topic->points) + $points, 2);
-        $topic->save();
     }
 
     /**

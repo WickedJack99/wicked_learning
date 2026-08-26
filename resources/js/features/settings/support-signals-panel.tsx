@@ -3,16 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import {
     SettingsItemPanelHeader,
     SettingsSectionWorkspace,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { cn } from '@/lib/utils';
 
 export type SupportSignalsSettings = {
     activityOverview30Days: {
         activeLearners: number;
         date: string;
-        pointsAwarded: number;
-        topicAwards: number;
+        contributionRecorded: number;
+        evidenceEvents: number;
     }[];
     learners: SupportLearner[];
     monthKey: string;
@@ -38,10 +38,11 @@ type SupportLearner = {
         tone: 'attention' | 'quiet' | 'support' | string;
     }[];
     topics: {
-        monthlyPoints: number;
+        monthlyContribution: number;
         name: string;
         slug: string;
-        totalPoints: number;
+        totalContribution: number;
+        evidenceTypes: string[];
     }[];
     username: string | null;
 };
@@ -61,7 +62,8 @@ const supportSignalSections = [
         label: 'Collective Overview',
     },
     {
-        description: 'Review learner-specific counters as support prompts.',
+        description:
+            'Review learner-specific evidence patterns as support prompts.',
         icon: HeartHandshake,
         key: 'individual',
         label: 'Individual Support',
@@ -72,7 +74,7 @@ const supportSignalDescriptions = {
     collective:
         'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
     individual:
-        'Use learner-specific counters as conversation starters for support. They are not rankings and should not be used to compare learners.',
+        'Use learner-specific evidence patterns as conversation starters for support. They are not rankings and should not be used to compare learners.',
 } satisfies Record<SupportSignalsView, string>;
 
 const defaultSupportSignalsView: SupportSignalsView = 'collective';
@@ -128,6 +130,8 @@ export function SupportSignalsPanel({ sectionItem, settings }: Props) {
             return;
         }
 
+        // Keep a valid selection when the scoped learner list changes.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedLearnerId(settings.learners[0]?.id ?? null);
     }, [selectedLearnerId, settings.learners]);
 
@@ -265,7 +269,7 @@ function CollectiveSummary({ settings }: { settings: SupportSignalsSettings }) {
         ),
     );
     const topicSignals = settings.activityOverview30Days.reduce(
-        (sum, bucket) => sum + bucket.topicAwards,
+        (sum, bucket) => sum + bucket.evidenceEvents,
         0,
     );
     const items = [
@@ -472,7 +476,7 @@ function ActivityOverview({
                                 cy={y}
                             />
                             <title>
-                                {`${formatDate(bucket.date)}: ${bucket.activeLearners} active learners, ${bucket.topicAwards} topic signals`}
+                                {`${formatDate(bucket.date)}: ${bucket.activeLearners} active learners, ${bucket.evidenceEvents} evidence events`}
                             </title>
                         </g>
                     ))}
@@ -644,9 +648,9 @@ function TopicSignals({ topics }: { topics: SupportLearner['topics'] }) {
             <section className="grid gap-2 py-4 text-sm text-[var(--settings-muted-text)]">
                 <Sparkles className="size-5 text-[var(--settings-accent)]" />
                 <p>
-                    No topic counters are available yet. The useful next step is
-                    to help the learner find an activity that fits their current
-                    path.
+                    No topic evidence profile is available yet. The useful next
+                    step is to help the learner find an activity that fits their
+                    current path.
                 </p>
             </section>
         );
@@ -656,7 +660,7 @@ function TopicSignals({ topics }: { topics: SupportLearner['topics'] }) {
         <section className="grid gap-3">
             <div className="grid grid-cols-[minmax(0,1fr)_8rem_8rem] gap-4 border-b border-[var(--settings-border-color)] pb-2 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                 <span>Topic</span>
-                <span className="text-right">Total</span>
+                <span className="text-right">Contribution</span>
                 <span className="text-right">This month</span>
             </div>
             {topics.map((topic) => (
@@ -673,10 +677,10 @@ function TopicSignals({ topics }: { topics: SupportLearner['topics'] }) {
                         </p>
                     </div>
                     <p className="text-right font-medium text-[var(--settings-primary-text)]">
-                        {formatPoints(topic.totalPoints)}
+                        {formatContribution(topic.totalContribution)}
                     </p>
                     <p className="text-right font-medium text-[var(--settings-accent)]">
-                        {formatPoints(topic.monthlyPoints)}
+                        {formatContribution(topic.monthlyContribution)}
                     </p>
                 </div>
             ))}
@@ -693,7 +697,7 @@ function EmptySupportSignals() {
                     No support signals yet
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
-                    Competence counters appear here after learners complete
+                    Evidence events appear here after learners complete
                     activities with configured topics.
                 </p>
             </div>
@@ -740,7 +744,7 @@ function createDateAxisTickIndexes(length: number): number[] {
     return [...indexes].sort((left, right) => left - right);
 }
 
-function formatPoints(value: number): string {
+function formatContribution(value: number): string {
     return new Intl.NumberFormat(undefined, {
         maximumFractionDigits: 2,
     }).format(value);

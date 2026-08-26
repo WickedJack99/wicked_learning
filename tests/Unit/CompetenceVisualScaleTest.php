@@ -9,6 +9,7 @@ test('visual scale maps internal signals to stable visual tiers', function () {
         growthThreshold: 12,
         brightnessThreshold: 16,
         auraThreshold: 6,
+        evidenceTypes: ['participate', 'retrieve'],
     );
 
     expect($visual)
@@ -16,6 +17,7 @@ test('visual scale maps internal signals to stable visual tiers', function () {
             'auraRatio' => 0.8333,
             'brightnessRatio' => 0.5,
             'description' => 'A well-established light.',
+            'evidenceTypes' => ['participate', 'retrieve'],
             'sizeRatio' => 0.6667,
             'sizeTier' => 'beacon',
         ]);

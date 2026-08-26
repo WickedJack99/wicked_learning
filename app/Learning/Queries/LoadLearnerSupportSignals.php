@@ -5,9 +5,7 @@ namespace App\Learning\Queries;
 use App\Access\AccessLevel;
 use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
-use App\Models\LearnerCompetenceActivityAward;
-use App\Models\LearnerCompetenceTopic;
-use App\Models\LearnerCompetenceTopicMonth;
+use App\Models\LearnerEvidenceEvent;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,7 +15,7 @@ use Illuminate\Support\Collection;
 class LoadLearnerSupportSignals
 {
     /**
-     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, pointsAwarded: float, topicAwards: int}>, monthKey: string, learners: list<array<string, mixed>>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
+     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>, monthKey: string, learners: list<array<string, mixed>>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
      */
     public function handle(User $viewer): array
     {
@@ -33,25 +31,15 @@ class LoadLearnerSupportSignals
             ->values()
             ->all();
         $lastActivityByUser = $this->lastActivityByUser($learnerIds);
-        $topicsByUser = LearnerCompetenceTopic::query()
+        $eventsByUser = LearnerEvidenceEvent::query()
             ->whereIn('user_id', $learnerIds)
-            ->where('total_points', '>', 0)
-            ->orderByDesc('total_points')
-            ->orderBy('topic_name')
             ->get()
             ->groupBy('user_id');
-        $monthlyTopicsByUser = LearnerCompetenceTopicMonth::query()
-            ->whereIn('user_id', $learnerIds)
-            ->where('month_key', $monthKey)
-            ->where('points', '>', 0)
-            ->get()
-            ->groupBy('user_id')
-            ->map(fn (Collection $topics): Collection => $topics->keyBy('topic_slug'));
         $supportLearners = $learners
             ->map(fn (User $learner): array => $this->learnerSignals(
                 $learner,
-                $topicsByUser->get($learner->id, collect()),
-                $monthlyTopicsByUser->get($learner->id, collect()),
+                $eventsByUser->get($learner->id, collect()),
+                $monthKey,
                 $lastActivityByUser->get($learner->id),
             ))
             ->values()
@@ -69,7 +57,7 @@ class LoadLearnerSupportSignals
                     ->count(),
                 'topicsWithMonthlyActivity' => collect($supportLearnerList)
                     ->flatMap(fn (array $learner): array => $learner['topics'])
-                    ->filter(fn (array $topic): bool => (float) $topic['monthlyPoints'] > 0)
+                    ->filter(fn (array $topic): bool => (float) $topic['monthlyContribution'] > 0)
                     ->count(),
             ],
         ];
@@ -113,14 +101,15 @@ class LoadLearnerSupportSignals
     }
 
     /**
-     * @param  Collection<int, LearnerCompetenceTopic>  $topics
-     * @param  Collection<string, LearnerCompetenceTopicMonth>  $monthlyTopics
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
      * @return array<string, mixed>
      */
-    private function learnerSignals(User $learner, Collection $topics, Collection $monthlyTopics, mixed $lastActivityAt): array
+    private function learnerSignals(User $learner, Collection $events, string $monthKey, mixed $lastActivityAt): array
     {
-        $topicSignals = $topics
-            ->map(fn (LearnerCompetenceTopic $topic): array => $this->topicSignal($topic, $monthlyTopics))
+        $topicSignals = $events
+            ->groupBy('topic_slug')
+            ->map(fn (Collection $topicEvents): array => $this->topicSignal($topicEvents, $monthKey))
+            ->sortByDesc('totalContribution')
             ->values()
             ->all();
         $topicSignalList = array_values($topicSignals);
@@ -145,27 +134,48 @@ class LoadLearnerSupportSignals
     }
 
     /**
-     * @param  Collection<string, LearnerCompetenceTopicMonth>  $monthlyTopics
-     * @return array{slug: string, name: string, totalPoints: float, monthlyPoints: float}
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return array{slug: string, name: string, totalContribution: float, monthlyContribution: float, evidenceTypes: list<string>}
      */
-    private function topicSignal(LearnerCompetenceTopic $topic, Collection $monthlyTopics): array
+    private function topicSignal(Collection $events, string $monthKey): array
     {
-        $monthlyTopic = $monthlyTopics->get($topic->topic_slug);
+        /** @var LearnerEvidenceEvent $firstEvent */
+        $firstEvent = $events->first();
 
         return [
-            'slug' => $topic->topic_slug,
-            'name' => $topic->topic_name,
-            'totalPoints' => round((float) $topic->total_points, 2),
-            'monthlyPoints' => round((float) (
-                $monthlyTopic instanceof LearnerCompetenceTopicMonth
-                    ? $monthlyTopic->points
-                    : 0
-            ), 2),
+            'slug' => $firstEvent->topic_slug,
+            'name' => $firstEvent->topic_name,
+            'totalContribution' => round((float) $events->sum('contribution'), 2),
+            'monthlyContribution' => round((float) $events
+                ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->format('Y-m') === $monthKey)
+                ->sum('contribution'), 2),
+            'evidenceTypes' => $this->evidenceTypes($events),
         ];
     }
 
     /**
-     * @param  list<array{slug: string, name: string, totalPoints: float, monthlyPoints: float}>  $topics
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return list<string>
+     */
+    private function evidenceTypes(Collection $events): array
+    {
+        $types = [];
+
+        foreach ($events->pluck('evidence_type') as $type) {
+            if (! is_string($type) || $type === '' || in_array($type, $types, true)) {
+                continue;
+            }
+
+            $types[] = $type;
+        }
+
+        sort($types);
+
+        return $types;
+    }
+
+    /**
+     * @param  list<array{slug: string, name: string, totalContribution: float, monthlyContribution: float, evidenceTypes: list<string>}>  $topics
      * @return list<array{tone: string, text: string}>
      */
     private function supportNotes(array $topics): array
@@ -177,7 +187,7 @@ class LoadLearnerSupportSignals
             ]];
         }
 
-        $monthlyTotal = array_sum(array_column($topics, 'monthlyPoints'));
+        $monthlyTotal = array_sum(array_column($topics, 'monthlyContribution'));
         $notes = [];
 
         if ($monthlyTotal <= 0) {
@@ -188,11 +198,11 @@ class LoadLearnerSupportSignals
         } else {
             $monthlyTopics = array_values(array_filter(
                 $topics,
-                fn (array $topic): bool => $topic['monthlyPoints'] > 0,
+                fn (array $topic): bool => $topic['monthlyContribution'] > 0,
             ));
             usort(
                 $monthlyTopics,
-                fn (array $a, array $b): int => $b['monthlyPoints'] <=> $a['monthlyPoints'],
+                fn (array $a, array $b): int => $b['monthlyContribution'] <=> $a['monthlyContribution'],
             );
 
             $notes[] = [
@@ -221,7 +231,7 @@ class LoadLearnerSupportSignals
             return collect();
         }
 
-        return LearnerCompetenceActivityAward::query()
+        return LearnerEvidenceEvent::query()
             ->whereIn('user_id', $learnerIds)
             ->selectRaw('user_id, MAX(created_at) as last_activity_at')
             ->groupBy('user_id')
@@ -230,7 +240,7 @@ class LoadLearnerSupportSignals
 
     /**
      * @param  array<int, int>  $learnerIds
-     * @return list<array{activeLearners: int, date: string, pointsAwarded: float, topicAwards: int}>
+     * @return list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>
      */
     private function activityOverview(array $learnerIds, Carbon $now): array
     {
@@ -240,30 +250,30 @@ class LoadLearnerSupportSignals
             return $this->activityBucketList($buckets);
         }
 
-        LearnerCompetenceActivityAward::query()
+        LearnerEvidenceEvent::query()
             ->whereIn('user_id', $learnerIds)
             ->whereBetween('created_at', [
                 $now->copy()->subDays(29)->startOfDay(),
                 $now->copy()->endOfDay(),
             ])
-            ->get(['user_id', 'points', 'created_at'])
-            ->each(function (LearnerCompetenceActivityAward $award) use (&$buckets): void {
-                $date = $this->dateKey($award->created_at);
+            ->get(['user_id', 'contribution', 'created_at'])
+            ->each(function (LearnerEvidenceEvent $event) use (&$buckets): void {
+                $date = $this->dateKey($event->created_at);
 
                 if (! isset($buckets[$date])) {
                     return;
                 }
 
-                $buckets[$date]['activeLearnerIds'][(int) $award->user_id] = true;
-                $buckets[$date]['pointsAwarded'] = round($buckets[$date]['pointsAwarded'] + (float) $award->points, 2);
-                $buckets[$date]['topicAwards']++;
+                $buckets[$date]['activeLearnerIds'][(int) $event->user_id] = true;
+                $buckets[$date]['contributionRecorded'] = round($buckets[$date]['contributionRecorded'] + (float) $event->contribution, 2);
+                $buckets[$date]['evidenceEvents']++;
             });
 
         return $this->activityBucketList($buckets);
     }
 
     /**
-     * @return array<string, array{activeLearnerIds: array<int, true>, date: string, pointsAwarded: float, topicAwards: int}>
+     * @return array<string, array{activeLearnerIds: array<int, true>, date: string, contributionRecorded: float, evidenceEvents: int}>
      */
     private function emptyActivityBuckets(Carbon $now): array
     {
@@ -275,8 +285,8 @@ class LoadLearnerSupportSignals
             $buckets[$date] = [
                 'activeLearnerIds' => [],
                 'date' => $date,
-                'pointsAwarded' => 0.0,
-                'topicAwards' => 0,
+                'contributionRecorded' => 0.0,
+                'evidenceEvents' => 0,
             ];
         }
 
@@ -284,8 +294,8 @@ class LoadLearnerSupportSignals
     }
 
     /**
-     * @param  array<string, array{activeLearnerIds: array<int, true>, date: string, pointsAwarded: float, topicAwards: int}>  $buckets
-     * @return list<array{activeLearners: int, date: string, pointsAwarded: float, topicAwards: int}>
+     * @param  array<string, array{activeLearnerIds: array<int, true>, date: string, contributionRecorded: float, evidenceEvents: int}>  $buckets
+     * @return list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>
      */
     private function activityBucketList(array $buckets): array
     {
@@ -293,8 +303,8 @@ class LoadLearnerSupportSignals
             fn (array $bucket): array => [
                 'activeLearners' => count($bucket['activeLearnerIds']),
                 'date' => $bucket['date'],
-                'pointsAwarded' => round($bucket['pointsAwarded'], 2),
-                'topicAwards' => $bucket['topicAwards'],
+                'contributionRecorded' => round($bucket['contributionRecorded'], 2),
+                'evidenceEvents' => $bucket['evidenceEvents'],
             ],
             $buckets,
         ));

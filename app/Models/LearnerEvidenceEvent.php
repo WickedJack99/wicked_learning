@@ -8,18 +8,28 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
+    'learning_activity_id',
+    'play_run_id',
     'topic_slug',
     'topic_name',
-    'month_key',
-    'points',
+    'evidence_type',
+    'contribution',
+    'outcome',
+    'assistance_level',
 ])]
-class LearnerCompetenceTopicMonth extends Model
+class LearnerEvidenceEvent extends Model
 {
     protected function casts(): array
     {
         return [
-            'points' => 'float',
+            'contribution' => 'float',
         ];
+    }
+
+    /** @return BelongsTo<LearningActivity, $this> */
+    public function activity(): BelongsTo
+    {
+        return $this->belongsTo(LearningActivity::class, 'learning_activity_id');
     }
 
     /** @return BelongsTo<User, $this> */

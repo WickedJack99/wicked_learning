@@ -18,11 +18,11 @@ The ratios are capped at `1` and are converted into stable visual tiers:
 `spark`, `star`, `beacon` and `constellation`. Learner accessibility text uses
 the tier description instead of exposing raw totals or thresholds.
 
-The current demo stores the signals in the existing competence tables. There is
-no production compatibility promise: those tables may be replaced directly
-when the evidence ledger is introduced. The visual contract is centralized so
-that migration can change the learning model without changing the learner's
-map experience.
+The demo now stores immutable `LearnerEvidenceEvent` records instead of
+cumulative competence and monthly point tables. Each event records its topic,
+evidence type, contribution, outcome and assistance state. The visual contract
+can therefore change its aggregation rules without changing the learner's map
+experience.
 
 ## Design boundaries
 

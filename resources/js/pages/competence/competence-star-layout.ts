@@ -5,6 +5,7 @@ export type CompetenceTopic = {
         auraRatio: number;
         brightnessRatio: number;
         description: string;
+        evidenceTypes: string[];
         sizeRatio: number;
         sizeTier: string;
     };

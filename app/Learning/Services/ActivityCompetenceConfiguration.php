@@ -9,6 +9,26 @@ class ActivityCompetenceConfiguration
 {
     public const CONFIG_KEY = 'competenceTopics';
 
+    public const EVIDENCE_TYPES = [
+        'apply',
+        'explain',
+        'participate',
+        'reflect',
+        'retrieve',
+        'transfer',
+    ];
+
+    public function evidenceTypeForActivity(LearningActivity $activity): string
+    {
+        return match ($activity->type) {
+            'question' => 'retrieve',
+            'reflection' => 'reflect',
+            'shared_task', 'message_prompt', 'message_wall' => 'explain',
+            'obstacle', 'item_obstacle', 'tool_obstacle' => 'apply',
+            default => 'participate',
+        };
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @param  array<string, mixed>  $existing
@@ -44,6 +64,7 @@ class ActivityCompetenceConfiguration
         return $this->fromSubmittedValue($topics);
     }
 
+    /** @param array<string, mixed> $data */
     public function shouldUpdate(array $data): bool
     {
         return array_key_exists('competence_topics', $data);

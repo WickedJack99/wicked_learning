@@ -3,10 +3,8 @@
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Models\CompetenceTopicDefinition;
-use App\Models\LearnerCompetenceActivityAward;
-use App\Models\LearnerCompetenceTopic;
-use App\Models\LearnerCompetenceTopicMonth;
 use App\Models\LearnerCompetenceTopicTransition;
+use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -18,7 +16,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
-test('route play completion awards configured competence topics once per play run', function () {
+test('route play completion records configured evidence once per play run', function () {
     Carbon::setTestNow('2026-07-21 10:00:00');
 
     $learner = User::factory()->create();
@@ -55,16 +53,15 @@ test('route play completion awards configured competence topics once per play ru
         ])
         ->assertOk();
 
-    expect(LearnerCompetenceActivityAward::query()->where('user_id', $learner->id)->count())->toBe(2)
-        ->and((float) LearnerCompetenceTopic::query()
+    expect(LearnerEvidenceEvent::query()->where('user_id', $learner->id)->count())->toBe(2)
+        ->and((float) LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'algebra')
-            ->value('total_points'))->toBe(2.5)
-        ->and((float) LearnerCompetenceTopicMonth::query()
+            ->value('contribution'))->toBe(2.5)
+        ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'systems-thinking')
-            ->where('month_key', '2026-07')
-            ->value('points'))->toBe(4.0);
+            ->value('evidence_type'))->toBe('participate');
 });
 
 test('admins can configure competence topics on any activity', function () {
@@ -221,12 +218,20 @@ test('competence star map shows studied topics and transitions', function () {
 
     $learner = User::factory()->create();
 
-    LearnerCompetenceTopic::query()->create([
+    [, $activity] = competenceRoute([]);
+    $olderEvent = LearnerEvidenceEvent::query()->create([
         'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
         'topic_slug' => 'algebra',
         'topic_name' => 'Algebra',
-        'total_points' => 8,
+        'evidence_type' => 'retrieve',
+        'contribution' => 3,
     ]);
+    $olderEvent->forceFill([
+        'created_at' => Carbon::parse('2026-06-20 10:00:00'),
+        'updated_at' => Carbon::parse('2026-06-20 10:00:00'),
+    ])->save();
     CompetenceTopicDefinition::query()->create([
         'slug' => 'algebra',
         'name' => 'Algebra Foundations',
@@ -234,18 +239,23 @@ test('competence star map shows studied topics and transitions', function () {
         'emittance_threshold' => 16,
         'aura_threshold' => 6,
     ]);
-    LearnerCompetenceTopic::query()->create([
+    LearnerEvidenceEvent::query()->create([
         'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
         'topic_slug' => 'geometry',
         'topic_name' => 'Geometry',
-        'total_points' => 3,
+        'evidence_type' => 'apply',
+        'contribution' => 3,
     ]);
-    LearnerCompetenceTopicMonth::query()->create([
+    LearnerEvidenceEvent::query()->create([
         'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
         'topic_slug' => 'algebra',
         'topic_name' => 'Algebra',
-        'month_key' => '2026-07',
-        'points' => 5,
+        'evidence_type' => 'explain',
+        'contribution' => 5,
     ]);
     LearnerCompetenceTopicTransition::query()->create([
         'user_id' => $learner->id,
@@ -269,8 +279,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.auraRatio', 0.8333)
             ->where('competenceMap.topics.0.visual.sizeTier', 'beacon')
             ->where('competenceMap.topics.0.visual.description', 'A well-established light.')
-            ->missing('competenceMap.topics.0.totalPoints')
-            ->missing('competenceMap.topics.0.monthlyPoints')
+            ->where('competenceMap.topics.0.visual.evidenceTypes', ['explain', 'retrieve'])
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')
             ->where('competenceMap.transitions.0.toTopicSlug', 'geometry')
         );
@@ -287,28 +296,25 @@ test('learning support signals show scoped competence values without ranking lea
     ]);
     [, $activity] = competenceRoute([]);
 
-    LearnerCompetenceTopic::query()->create([
-        'user_id' => $learner->id,
-        'topic_slug' => 'systems-thinking',
-        'topic_name' => 'Systems Thinking',
-        'total_points' => 12,
-    ]);
-    LearnerCompetenceTopicMonth::query()->create([
-        'user_id' => $learner->id,
-        'topic_slug' => 'systems-thinking',
-        'topic_name' => 'Systems Thinking',
-        'month_key' => '2026-07',
-        'points' => 4,
-    ]);
-    $award = LearnerCompetenceActivityAward::query()->create([
+    LearnerEvidenceEvent::query()->create([
         'user_id' => $learner->id,
         'learning_activity_id' => $activity->id,
         'play_run_id' => (string) Str::uuid(),
         'topic_slug' => 'systems-thinking',
         'topic_name' => 'Systems Thinking',
-        'points' => 4,
+        'evidence_type' => 'explain',
+        'contribution' => 12,
     ]);
-    $award->forceFill([
+    $event = LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'systems-thinking',
+        'topic_name' => 'Systems Thinking',
+        'evidence_type' => 'retrieve',
+        'contribution' => 4,
+    ]);
+    $event->forceFill([
         'created_at' => Carbon::parse('2026-07-20 11:00:00'),
         'updated_at' => Carbon::parse('2026-07-20 11:00:00'),
     ])->save();
@@ -321,12 +327,12 @@ test('learning support signals show scoped competence values without ranking lea
         ->and($signals['summary']['learnersWithSignals'])->toBe(1)
         ->and($signals['activityOverview30Days'])->toHaveCount(30)
         ->and($activityBucket['activeLearners'] ?? null)->toBe(1)
-        ->and($activityBucket['topicAwards'] ?? null)->toBe(1)
-        ->and($activityBucket['pointsAwarded'] ?? null)->toBe(4.0)
+        ->and($activityBucket['evidenceEvents'] ?? null)->toBe(1)
+        ->and($activityBucket['contributionRecorded'] ?? null)->toBe(4.0)
         ->and($learnerSignals['lastActivityAt'] ?? null)->not->toBeNull()
         ->and($learnerSignals['topics'][0]['name'])->toBe('Systems Thinking')
-        ->and($learnerSignals['topics'][0]['totalPoints'])->toBe(12.0)
-        ->and($learnerSignals['topics'][0]['monthlyPoints'])->toBe(4.0)
+        ->and($learnerSignals['topics'][0]['totalContribution'])->toBe(16.0)
+        ->and($learnerSignals['topics'][0]['monthlyContribution'])->toBe(16.0)
         ->and($learnerSignals)->not->toHaveKey('rank');
 });
 

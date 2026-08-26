@@ -4,11 +4,11 @@ namespace App\Learning\Queries;
 
 use App\Learning\Services\CompetenceVisualScale;
 use App\Models\CompetenceTopicDefinition;
-use App\Models\LearnerCompetenceTopic;
-use App\Models\LearnerCompetenceTopicMonth;
 use App\Models\LearnerCompetenceTopicTransition;
+use App\Models\LearnerEvidenceEvent;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class LoadLearnerCompetenceMap
 {
@@ -20,11 +20,6 @@ class LoadLearnerCompetenceMap
     public function handle(User $user): array
     {
         $monthKey = Carbon::now()->format('Y-m');
-        $months = LearnerCompetenceTopicMonth::query()
-            ->where('user_id', $user->id)
-            ->where('month_key', $monthKey)
-            ->get()
-            ->keyBy('topic_slug');
         $definitions = CompetenceTopicDefinition::query()
             ->where('is_active', true)
             ->get()
@@ -32,29 +27,27 @@ class LoadLearnerCompetenceMap
 
         $topics = [];
 
-        LearnerCompetenceTopic::query()
+        LearnerEvidenceEvent::query()
             ->where('user_id', $user->id)
-            ->where('total_points', '>', 0)
-            ->orderByDesc('total_points')
-            ->orderBy('topic_name')
             ->get()
-            ->each(function (LearnerCompetenceTopic $topic) use (&$topics, $definitions, $months): void {
-                $definition = $definitions->get($topic->topic_slug);
-                $month = $months->get($topic->topic_slug);
+            ->groupBy('topic_slug')
+            ->sortByDesc(fn (Collection $events): float => (float) $events->sum('contribution'))
+            ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $monthKey): void {
+                $event = $events->first();
+                $definition = $definitions->get($topicSlug);
                 $hasDefinition = $definition instanceof CompetenceTopicDefinition;
+                $recentSignal = $events
+                    ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->format('Y-m') === $monthKey)
+                    ->sum('contribution');
 
                 $topics[] = [
-                    'slug' => $topic->topic_slug,
+                    'slug' => $topicSlug,
                     'name' => $hasDefinition
                         ? $definition->name
-                        : $topic->topic_name,
+                        : $event->topic_name,
                     'visual' => $this->visualScale->forTopic(
-                        totalSignal: (float) $topic->total_points,
-                        recentSignal: (float) (
-                            $month instanceof LearnerCompetenceTopicMonth
-                                ? $month->points
-                                : 0
-                        ),
+                        totalSignal: (float) $events->sum('contribution'),
+                        recentSignal: (float) $recentSignal,
                         growthThreshold: (float) (
                             $hasDefinition ? $definition->growth_threshold : 20
                         ),
@@ -64,6 +57,7 @@ class LoadLearnerCompetenceMap
                         auraThreshold: (float) (
                             $hasDefinition ? $definition->aura_threshold : 10
                         ),
+                        evidenceTypes: $this->evidenceTypes($events),
                     ),
                 ];
             });
@@ -93,5 +87,26 @@ class LoadLearnerCompetenceMap
             'topics' => $topics,
             'transitions' => $transitions,
         ];
+    }
+
+    /**
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return list<string>
+     */
+    private function evidenceTypes(Collection $events): array
+    {
+        $types = [];
+
+        foreach ($events->pluck('evidence_type') as $type) {
+            if (! is_string($type) || $type === '' || in_array($type, $types, true)) {
+                continue;
+            }
+
+            $types[] = $type;
+        }
+
+        sort($types);
+
+        return $types;
     }
 }
