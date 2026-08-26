@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -619,12 +619,27 @@ function ActivityFrame({
                         </p>
                     ) : null}
                     {relatedLearningAreas.length > 0 ? (
-                        <p className="mt-2 text-xs leading-5 text-cyan-700 dark:text-teal-200/80">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-cyan-700 dark:text-teal-200/80">
                             <span className="font-medium">
                                 Related learning areas:
-                            </span>{' '}
-                            {relatedLearningAreas.join(' · ')}
-                        </p>
+                            </span>
+                            {relatedLearningAreas.map((area) =>
+                                area.slug ? (
+                                    <Link
+                                        className="rounded-sm underline decoration-cyan-500/40 underline-offset-2 transition hover:text-cyan-950 dark:decoration-teal-200/40 dark:hover:text-white"
+                                        href={
+                                            '/competence?topic=' +
+                                            encodeURIComponent(area.slug)
+                                        }
+                                        key={area.slug}
+                                    >
+                                        {area.name}
+                                    </Link>
+                                ) : (
+                                    <span key={area.name}>{area.name}</span>
+                                ),
+                            )}
+                        </div>
                     ) : null}
                 </div>
             </div>
@@ -634,7 +649,9 @@ function ActivityFrame({
     );
 }
 
-function learningAreaNames(activity: LearningActivity): string[] {
+function learningAreaNames(
+    activity: LearningActivity,
+): Array<{ name: string; slug: string | null }> {
     const topics = activity.config.competenceTopics;
 
     if (!Array.isArray(topics)) {
@@ -651,7 +668,13 @@ function learningAreaNames(activity: LearningActivity): string[] {
             return [];
         }
 
-        return topic.topic.trim() === '' ? [] : [topic.topic];
+        const name = topic.topic.trim();
+        const slug =
+            'slug' in topic && typeof topic.slug === 'string'
+                ? topic.slug
+                : null;
+
+        return name === '' ? [] : [{ name, slug }];
     });
 }
 

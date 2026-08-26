@@ -92,7 +92,8 @@ into a rigid curriculum or a learner-facing taxonomy.
 Learner activity surfaces may name the related learning areas so the learner
 can connect an activity with the wider trail. The internal contribution
 weights are not included in learner responses and are never presented as
-points.
+points. When a topic has a stable slug, its label can open that light directly
+on the star map; this is an optional orientation link, not a required route.
 
 ## Next evolution
 

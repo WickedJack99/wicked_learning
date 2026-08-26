@@ -70,7 +70,10 @@ class LearningActivitySerializer
 
         $config['competenceTopics'] = array_values(array_filter(array_map(
             static fn (mixed $topic): ?array => is_array($topic) && is_string($topic['topic'] ?? null)
-                ? ['topic' => $topic['topic']]
+                ? [
+                    'slug' => is_string($topic['slug'] ?? null) ? $topic['slug'] : null,
+                    'topic' => $topic['topic'],
+                ]
                 : null,
             $topics,
         )));

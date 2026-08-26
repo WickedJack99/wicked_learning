@@ -298,6 +298,18 @@ test('competence star map shows studied topics and transitions', function () {
         );
 });
 
+test('competence star map accepts a topic to open from an activity link', function () {
+    $learner = User::factory()->create();
+
+    $this->actingAs($learner)
+        ->get(route('competence.index', ['topic' => 'systems-thinking']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('competence/index')
+            ->where('selectedTopicSlug', 'systems-thinking')
+        );
+});
+
 test('learning support signals show scoped competence values without ranking learners', function () {
     Carbon::setTestNow('2026-07-21 10:00:00');
 

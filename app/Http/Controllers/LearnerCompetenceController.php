@@ -15,6 +15,7 @@ class LearnerCompetenceController extends Controller
     {
         return Inertia::render('competence/index', [
             'competenceMap' => $this->competenceMap->handle($request->user()),
+            'selectedTopicSlug' => $request->string('topic')->trim()->toString() ?: null,
         ]);
     }
 }

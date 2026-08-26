@@ -19,14 +19,16 @@ import type {
 
 export default function CompetenceStarMap({
     competenceMap,
+    selectedTopicSlug: initialTopicSlug,
 }: {
     competenceMap: CompetenceMap;
+    selectedTopicSlug?: string | null;
 }) {
     const [hoveredTopicSlug, setHoveredTopicSlug] = useState<string | null>(
         null,
     );
     const [selectedTopicSlug, setSelectedTopicSlug] = useState<string | null>(
-        null,
+        initialTopicSlug ?? null,
     );
     const positionedTopics = useMemo(
         () =>

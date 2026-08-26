@@ -72,6 +72,6 @@ test('clearing ambience removes it without replacing other activity configuratio
     $payload = app(LearningActivitySerializer::class)->serialize($activity);
 
     expect($payload['config']['competenceTopics'])->toBe([
-        ['topic' => 'Notes'],
+        ['slug' => 'notes', 'topic' => 'Notes'],
     ]);
 });
