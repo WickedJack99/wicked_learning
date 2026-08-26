@@ -17,7 +17,6 @@ import {
 } from '@/features/tools/tool-selection';
 import { toolImageUrl } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
-import { useInitials } from '@/hooks/use-initials';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
 import type {
@@ -25,7 +24,6 @@ import type {
     LearningTool,
     LearningWorld,
     LearningNode,
-    User,
 } from '@/types';
 
 type OverlayMode = 'inventory' | 'journal' | 'tools' | null;
@@ -44,7 +42,6 @@ export function AppSideActionBar() {
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
-    const user = props.auth.user;
     const competenceHref = useMemo(
         () => competenceMapHref({ node, world }, url),
         [node, url, world],
@@ -135,15 +132,6 @@ export function AppSideActionBar() {
                     cursor: 'var(--platform-cursor)',
                 }}
             >
-                <ActionButton
-                    label="Open personal settings"
-                    onClick={() => {
-                        setOverlay(null);
-                        router.visit('/settings?panel=personal');
-                    }}
-                >
-                    <ProfileActionAvatar user={user} />
-                </ActionButton>
                 <ActionButton
                     label="Open organizations"
                     onClick={() => {
@@ -241,45 +229,6 @@ function competenceMapHref(
     );
 
     return map?.topic?.competenceHref ?? '/competence';
-}
-
-function ProfileActionAvatar({ user }: { user: User | null }) {
-    const getInitials = useInitials();
-    const displayName = user?.username || user?.name || 'User';
-    const imageUrl = normalizeMediaUrl(user?.profile_image || user?.avatar);
-
-    if (imageUrl) {
-        return (
-            <span
-                className="grid size-7 place-items-center overflow-hidden rounded-full border"
-                style={{
-                    borderColor: 'var(--map-floating-accent-color)',
-                }}
-            >
-                <img
-                    alt=""
-                    className="h-full w-full object-cover"
-                    draggable={false}
-                    src={imageUrl}
-                />
-            </span>
-        );
-    }
-
-    return (
-        <span
-            className="grid size-7 place-items-center rounded-full text-xs font-semibold"
-            style={{
-                background:
-                    'color-mix(in srgb, var(--map-floating-accent-color) 28%, transparent)',
-                boxShadow:
-                    'inset 0 0 0 1px color-mix(in srgb, var(--map-floating-accent-color) 62%, transparent)',
-                color: 'var(--map-floating-accent-color)',
-            }}
-        >
-            {getInitials(displayName)}
-        </span>
-    );
 }
 
 function ItemGrid({

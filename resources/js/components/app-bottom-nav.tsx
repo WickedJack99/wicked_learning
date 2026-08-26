@@ -2,7 +2,10 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bookmark, Cog, DoorOpen, Home, Map, PlayCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import AppLogoIcon from '@/components/app-logo-icon';
+import {
+    LearnerAccountControls,
+    LearnerBrand,
+} from '@/components/learner-account-controls';
 import {
     clearPersistedActiveActivity,
     readPersistedActiveActivity,
@@ -110,6 +113,7 @@ export function AppBottomNav() {
         [url],
     );
     const isSettingsActive = useMemo(() => url.startsWith('/settings'), [url]);
+    const usesImmersiveTopNav = isMapActive || isBookmarksActive;
     const mapNavigationHref = useMemo(
         () =>
             pageNode && url.startsWith('/learning/')
@@ -149,23 +153,33 @@ export function AppBottomNav() {
                           id: 'bookmarks',
                           label: t('navigation.bottom.bookmarks', 'Bookmarks'),
                       },
-                      {
-                          active: isSettingsActive,
-                          href: '/settings',
-                          icon: <Cog className="size-5" />,
-                          id: 'settings',
-                          label: t('navigation.bottom.settings', 'Settings'),
-                      },
-                      {
-                          active: false,
-                          asButton: true,
-                          href: logout(),
-                          icon: <DoorOpen className="size-5" />,
-                          id: 'logout',
-                          label: t('navigation.bottom.log_out', 'Log out'),
-                          onClick: handleLogout,
-                          danger: true,
-                      },
+                      ...(!usesImmersiveTopNav
+                          ? [
+                                {
+                                    active: isSettingsActive,
+                                    href: '/settings',
+                                    icon: <Cog className="size-5" />,
+                                    id: 'settings',
+                                    label: t(
+                                        'navigation.bottom.settings',
+                                        'Settings',
+                                    ),
+                                },
+                                {
+                                    active: false,
+                                    asButton: true,
+                                    href: logout(),
+                                    icon: <DoorOpen className="size-5" />,
+                                    id: 'logout',
+                                    label: t(
+                                        'navigation.bottom.log_out',
+                                        'Log out',
+                                    ),
+                                    onClick: handleLogout,
+                                    danger: true,
+                                },
+                            ]
+                          : []),
                   ]
                 : []),
         ];
@@ -207,6 +221,7 @@ export function AppBottomNav() {
         isSettingsActive,
         handleLogout,
         isAuthenticated,
+        usesImmersiveTopNav,
         shouldAnimateActiveActivity,
         t,
     ]);
@@ -257,22 +272,15 @@ function ImmersiveTopNav({ items }: { items: NavItem[] }) {
             className="fixed top-0 right-0 left-0 z-[70] border-b border-slate-200/80 bg-slate-50/94 backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94"
         >
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
-                <Link
-                    aria-label="Learning Worlds"
-                    className="flex shrink-0 items-center gap-3"
-                    href="/home"
-                >
-                    <AppLogoIcon className="size-8 text-violet-600 dark:text-violet-400" />
-                    <span className="hidden text-sm font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
-                        Learning Worlds
-                    </span>
-                </Link>
+                <LearnerBrand />
 
                 <div className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full gap-1 overflow-x-auto border-t border-slate-200/70 px-4 sm:order-none sm:mx-0 sm:w-auto sm:basis-auto sm:border-t-0 sm:px-0 dark:border-white/8">
                     {items.map((item) => (
                         <ImmersiveTopNavItem item={item} key={item.id} />
                     ))}
                 </div>
+
+                <LearnerAccountControls mapThemed />
             </div>
         </nav>
     );
