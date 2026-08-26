@@ -44,6 +44,10 @@ class LearningWorldSerializer
             'slug' => $map->slug,
             'title' => $map->title,
             'description' => $map->description,
+            'topic' => $map->topic?->is_published ? [
+                'href' => route('topics.show', $map->topic, false),
+                'title' => $map->topic->title,
+            ] : null,
             'accessRoles' => $this->mapAccess->rolesForMap($map),
             'backgroundConfig' => $map->background_config ?? [],
             'gridConfig' => $map->grid_config ?? [],

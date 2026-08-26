@@ -1,4 +1,6 @@
+import { Link } from '@inertiajs/react';
 import {
+    ArrowLeft,
     BookOpen,
     LockKeyhole,
     Map as MapIcon,
@@ -14,6 +16,7 @@ import {
     toolAnimationWidthPercent,
     toolAnimationWidthStyle,
 } from '@/features/tools/tool-visuals';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
 import type {
@@ -68,6 +71,7 @@ export function WorldMap({
     selectedNode: LearningNode | null;
     selectedTool: LearningTool | null;
 }) {
+    const t = usePlatformTranslation();
     const [toolAnimation, setToolAnimation] = useState<ToolUseAnimation | null>(
         null,
     );
@@ -290,6 +294,17 @@ export function WorldMap({
                     >
                         {map.description}
                     </p>
+                ) : null}
+                {map.topic ? (
+                    <Link
+                        className="pointer-events-auto mt-4 inline-flex items-center gap-2 text-sm font-medium underline decoration-white/35 underline-offset-4 transition hover:decoration-current"
+                        href={map.topic.href}
+                    >
+                        <ArrowLeft className="size-4" />
+                        {t('world.map.back_to_topic', 'Back to :title', {
+                            title: map.topic.title,
+                        })}
+                    </Link>
                 ) : null}
             </div>
 

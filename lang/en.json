@@ -231,6 +231,7 @@
     "world.search.mobile_prompt": "Enter a word to search visible maps and tiles.",
     "world.search.open": "Open map search",
     "world.search.title": "Map search",
+    "world.map.back_to_topic": "Back to :title",
     "topics.detail.maps.eyebrow": "Explore this topic",
     "topics.detail.maps.title": "Map surfaces",
     "topics.detail.maps.description": "Open a map to explore this topic through places, activities and connected paths.",

@@ -11,6 +11,8 @@ use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTool;
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -76,6 +78,56 @@ test('authenticated users can visit the world map', function () {
 
     $response = $this->get(route('world'));
     $response->assertOk();
+});
+
+test('world maps expose published topic context without exposing draft topics', function () {
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $draft = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'draft-astronomy',
+        'title' => 'Draft astronomy',
+        'is_published' => false,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $draft->id,
+        'slug' => 'draft-sky',
+        'title' => 'Draft Sky',
+    ]);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps', fn ($maps): bool => $maps->contains(
+                fn (array $map): bool => $map['title'] === 'Night Sky'
+                    && $map['topic']['title'] === 'Astronomy'
+                    && $map['topic']['href'] === '/topics/astronomy',
+            ) && $maps->contains(
+                fn (array $map): bool => $map['title'] === 'Draft Sky'
+                    && $map['topic'] === null,
+            ))
+        );
 });
 
 test('authenticated users return to the last world map stored on their account', function () {
