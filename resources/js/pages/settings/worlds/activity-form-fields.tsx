@@ -137,7 +137,7 @@ export function ActivityFormFields({
 
     return (
         <SettingsConfigurationLayout
-            className="max-h-[calc(90svh-14rem)] min-h-[32rem]"
+            className="h-full max-h-[calc(90svh-14rem)] min-h-[32rem]"
             sidebar={
                 <SettingsSidebar>
                     <ActivitySettingsSwitcher
