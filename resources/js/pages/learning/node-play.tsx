@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
-import { persistActiveActivity } from '@/features/world/active-activity';
+import {
+    clearPersistedActiveActivity,
+    persistActiveActivity,
+} from '@/features/world/active-activity';
 import {
     ActivityPlayer,
     learningAreaNames,
@@ -144,6 +147,11 @@ export default function NodePlay({
 
     const markCompleted = useCallback(
         async (activity: LearningActivity, options: CompletionOptions = {}) => {
+            // The bottom-nav action is a resume affordance, not a history link.
+            // Clear it before the optional check-in so completed work does not
+            // follow the learner around the desk and map.
+            clearPersistedActiveActivity();
+
             if (!isAuthenticated) {
                 setActivityProgress((current) => ({
                     ...current,
