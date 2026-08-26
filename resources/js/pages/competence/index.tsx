@@ -66,13 +66,14 @@ export default function CompetenceStarMap({
                         action={
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button asChild variant="secondary">
-                                    <Link
-                                        href={selectedTopic?.href ?? '/world'}
-                                    >
+                                    <Link href={selectedTopic?.href ?? '/home'}>
                                         <ArrowLeft className="size-4" />
                                         {selectedTopic
                                             ? `Back to ${selectedTopic.title}`
-                                            : 'Back to world'}
+                                            : translate(
+                                                  'competence.navigation.back_to_desk',
+                                                  'Learning desk',
+                                              )}
                                     </Link>
                                 </Button>
                             </div>
