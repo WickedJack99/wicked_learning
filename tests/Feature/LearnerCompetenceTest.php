@@ -280,6 +280,7 @@ test('competence star map shows studied topics and transitions', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('competence/index')
             ->where('competenceMap.monthKey', '2026-07')
+            ->where('competenceMap.recentWindowDays', 30)
             ->where('competenceMap.topics.0.slug', 'algebra')
             ->where('competenceMap.topics.0.name', 'Algebra Foundations')
             ->where('competenceMap.topics.0.visual.sizeRatio', 0.6667)
@@ -299,6 +300,44 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.revisit.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')
             ->where('competenceMap.transitions.0.toTopicSlug', 'geometry')
+        );
+});
+
+test('competence star map keeps recent glow across month boundaries', function () {
+    Carbon::setTestNow('2026-08-01 10:00:00');
+
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([]);
+    CompetenceTopicDefinition::query()->create([
+        'slug' => 'algebra',
+        'name' => 'Algebra Foundations',
+        'growth_threshold' => 12,
+        'emittance_threshold' => 16,
+        'aura_threshold' => 10,
+    ]);
+
+    $event = LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'algebra',
+        'topic_name' => 'Algebra',
+        'evidence_type' => 'retrieve',
+        'contribution' => 4,
+    ]);
+    $event->forceFill([
+        'created_at' => Carbon::parse('2026-07-15 10:00:00'),
+        'updated_at' => Carbon::parse('2026-07-15 10:00:00'),
+    ])->save();
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.recentWindowDays', 30)
+            ->where('competenceMap.topics.0.visual.brightnessRatio', 0.25)
+            ->where('competenceMap.topics.0.visual.auraRatio', 0.4)
+            ->where('competenceMap.topics.0.visual.recentDescription', 'A recent learning moment is gently lighting this area.')
         );
 });
 

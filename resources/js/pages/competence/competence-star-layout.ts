@@ -50,6 +50,7 @@ export type CompetenceCheckIn = {
 export type CompetenceMap = {
     checkIns: CompetenceCheckIn[];
     monthKey: string;
+    recentWindowDays: number;
     topics: CompetenceTopic[];
     transitions: CompetenceTransition[];
 };

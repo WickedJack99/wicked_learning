@@ -379,7 +379,9 @@ export default function CompetenceStarMap({
                                 </g>
                             </svg>
                         )}
-                        <CompetenceMapGuide />
+                        <CompetenceMapGuide
+                            recentWindowDays={competenceMap.recentWindowDays}
+                        />
                         {activeTopic ? (
                             <CompetenceReading
                                 checkIns={competenceMap.checkIns}
@@ -404,7 +406,11 @@ export default function CompetenceStarMap({
     );
 }
 
-function CompetenceMapGuide() {
+function CompetenceMapGuide({
+    recentWindowDays,
+}: {
+    recentWindowDays: number;
+}) {
     return (
         <details className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur">
             <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
@@ -424,7 +430,8 @@ function CompetenceMapGuide() {
                     <div>
                         <dt className="font-medium text-slate-100">Glow</dt>
                         <dd>
-                            Learning activity recorded during the current month.
+                            Learning activity recorded during the last{' '}
+                            {recentWindowDays} days.
                         </dd>
                     </div>
                     <div>

@@ -13,17 +13,21 @@ use Illuminate\Support\Collection;
 
 class LoadLearnerCompetenceMap
 {
+    private const RECENT_WINDOW_DAYS = 30;
+
     public function __construct(
         private readonly CompetenceVisualScale $visualScale,
         private readonly LoadLearnerActivityCheckIns $checkIns,
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
-        $monthKey = Carbon::now()->format('Y-m');
+        $now = Carbon::now();
+        $monthKey = $now->format('Y-m');
+        $recentSince = $now->copy()->subDays(self::RECENT_WINDOW_DAYS);
         $definitions = CompetenceTopicDefinition::query()
             ->where('is_active', true)
             ->get()
@@ -37,7 +41,7 @@ class LoadLearnerCompetenceMap
             ->get()
             ->groupBy('topic_slug')
             ->sortByDesc(fn (Collection $events): float => (float) $events->sum('contribution'))
-            ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $monthKey): void {
+            ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $recentSince): void {
                 $events = $events
                     ->sortByDesc(fn (LearnerEvidenceEvent $event): int => $event->created_at?->getTimestamp() ?? 0)
                     ->values();
@@ -45,7 +49,7 @@ class LoadLearnerCompetenceMap
                 $definition = $definitions->get($topicSlug);
                 $hasDefinition = $definition instanceof CompetenceTopicDefinition;
                 $recentSignal = $events
-                    ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->format('Y-m') === $monthKey)
+                    ->filter(fn (LearnerEvidenceEvent $event): bool => $event->created_at?->greaterThanOrEqualTo($recentSince) ?? false)
                     ->sum('contribution');
 
                 $topics[] = [
@@ -96,6 +100,7 @@ class LoadLearnerCompetenceMap
         return [
             'checkIns' => $this->checkIns->handle($user),
             'monthKey' => $monthKey,
+            'recentWindowDays' => self::RECENT_WINDOW_DAYS,
             'topics' => $topics,
             'transitions' => $transitions,
         ];
