@@ -68,6 +68,11 @@ Applying a draft:
 These writes run in one database transaction. A validation or write failure
 does not leave a partially created route.
 
+Activity review results are available from the same World Builder graph. A
+tutor can open the Activity editor directly from a result, then decide whether
+to save any content or metadata changes. Saving a change places the Activity
+back in the review queue.
+
 ## Current Boundaries
 
 - Generation is synchronous; it is not a queued background job yet.

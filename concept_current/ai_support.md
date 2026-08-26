@@ -69,14 +69,14 @@ review state. Creating or materially editing an activity places it in a
 authoring scope so a tutor can see which activity definitions still need
 attention without implying that an AI provider has already inspected them.
 
-AI review should be opt-in and scoped to the selected activity, its learning
-purpose, its competence topics, and only the nearby graph context needed for a
-useful judgment. The review also receives the active competence-topic
-vocabulary so optional metadata suggestions can reuse established labels;
-learner data, thresholds and contribution weights are excluded. A future
-review action can then write `ai_reviewed_at` and a review result after the
-tutor has seen and accepted the scope. Layout-only changes should not create
-pedagogical review noise.
+AI review is opt-in and scoped to the selected activity, its learning purpose,
+its competence topics, and only the nearby graph context needed for a useful
+judgment. The review also receives the active competence-topic vocabulary so
+optional metadata suggestions can reuse established labels; learner data,
+thresholds and contribution weights are excluded. The review writes
+`ai_reviewed_at` and a structured result, while the tutor remains responsible
+for deciding whether any suggestion is useful. Layout-only changes should not
+create pedagogical review noise.
 
 The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the

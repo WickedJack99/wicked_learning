@@ -223,6 +223,9 @@ The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an
 author can discover and enter the scoped review queue without opening maps one
 by one.
+Review results can open the affected Activity editor directly, so content
+suggestions and optional metadata suggestions can be considered in the same
+scoped authoring flow.
 
 Selecting a MapAsset opens its editor directly. Admins do not create or link a
 separate LearningNode; the backend creates the internal compatibility record as

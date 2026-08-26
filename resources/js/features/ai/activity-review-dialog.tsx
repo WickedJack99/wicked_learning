@@ -1,4 +1,10 @@
-import { ArrowRight, Bot, CheckCircle2, Sparkles } from 'lucide-react';
+import {
+    ArrowRight,
+    Bot,
+    CheckCircle2,
+    Pencil,
+    Sparkles,
+} from 'lucide-react';
 import { useState } from 'react';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { Button } from '@/components/ui/button';
@@ -38,12 +44,14 @@ type ReviewableActivity = {
 export function ActivityReviewDialog({
     activity,
     onClose,
+    onEdit,
     onReviewed,
     onUseMetadata,
     templates,
 }: {
     activity: ReviewableActivity | null;
     onClose: () => void;
+    onEdit: (activityId: number) => void;
     onReviewed: (result: ActivityReviewResult) => void;
     onUseMetadata: (
         activityId: number,
@@ -146,6 +154,10 @@ export function ActivityReviewDialog({
                         {result ? (
                             <ActivityReviewResultView
                                 activityId={activity.id}
+                                onEdit={(activityId) => {
+                                    onClose();
+                                    onEdit(activityId);
+                                }}
                                 onUseMetadata={onUseMetadata}
                                 review={result}
                             />
@@ -246,10 +258,12 @@ function formatReviewDate(value: string): string {
 
 function ActivityReviewResultView({
     activityId,
+    onEdit,
     onUseMetadata,
     review,
 }: {
     activityId: number;
+    onEdit: (activityId: number) => void;
     onUseMetadata: (
         activityId: number,
         suggestions: ActivityReviewMetadataSuggestions,
@@ -274,6 +288,15 @@ function ActivityReviewResultView({
                 items={review.review.suggestions}
                 title="Possible adjustments"
             />
+            <Button
+                className="w-fit"
+                onClick={() => onEdit(activityId)}
+                type="button"
+                variant="outline"
+            >
+                <Pencil className="size-4" />
+                Open activity editor
+            </Button>
             {review.review.learningDesign ? (
                 <div className="grid gap-3">
                     <p className="text-sm font-semibold">

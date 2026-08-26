@@ -657,6 +657,16 @@ export default function EditNodeActivities({
             <ActivityReviewDialog
                 activity={reviewingActivity}
                 onClose={() => setReviewingActivity(null)}
+                onEdit={(activityId) => {
+                    const activity =
+                        activityGraph.activities.find(
+                            (candidate) => candidate.id === activityId,
+                        ) ?? null;
+
+                    if (activity) {
+                        openEdit(activity);
+                    }
+                }}
                 onReviewed={() => {
                     router.reload({
                         only: ['selectedWorldNode'],
