@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Bell, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -8,12 +9,11 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { UserMenuContent } from '@/components/user-menu-content';
+import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { useInitials } from '@/hooks/use-initials';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 
 const navigation = [
     {
@@ -30,6 +30,11 @@ const navigation = [
         href: '/topics',
         key: 'home.learning_desk.navigation.topics',
         fallback: 'Topics',
+    },
+    {
+        href: '/world',
+        key: 'home.learning_desk.navigation.explore',
+        fallback: 'Explore',
     },
     {
         href: '/competence',
