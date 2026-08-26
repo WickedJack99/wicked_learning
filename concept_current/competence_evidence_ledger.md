@@ -42,7 +42,10 @@ of accumulated evidence rather than a live test result.
 The learner map aggregates events by topic and derives a visual profile. It does
 not expose event counts, contribution totals, or evidence categories as grades.
 The categories remain available to future explanations, support conversations,
-and richer star-map lenses.
+and richer star-map lenses. The map explains its visual channels in the learner
+surface: size represents how established a pattern is over time, glow represents
+activity in the current month, and paths represent topics encountered together.
+These are interpretive signals, not a hidden score scale presented in disguise.
 
 ## Learning pulse check-in
 
