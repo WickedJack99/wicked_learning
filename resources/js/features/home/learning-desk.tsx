@@ -373,6 +373,7 @@ function RouteRow({
                         {route.topic.title}
                     </Link>
                 ) : null}
+                <RouteLearningAreas route={route} />
                 {route.currentActivityTitle ? (
                     <span className="mt-2 block truncate text-xs font-medium text-cyan-700 dark:text-cyan-400">
                         {t('home.learning_desk.continue.next', 'Current step')}:{' '}
@@ -460,6 +461,7 @@ function RecentRouteRow({
                         {route.topic.title}
                     </Link>
                 ) : null}
+                <RouteLearningAreas route={route} />
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastCompletedAt ? (
@@ -475,6 +477,27 @@ function RecentRouteRow({
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
             </span>
+        </div>
+    );
+}
+
+function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
+    if (route.learningAreas.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+            <span>Learning areas:</span>
+            {route.learningAreas.map((area) => (
+                <Link
+                    className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                    href={`/competence?topic=${encodeURIComponent(area.slug)}${route.topic ? `&from=${encodeURIComponent(route.topic.slug)}` : ''}`}
+                    key={area.slug}
+                >
+                    {area.name}
+                </Link>
+            ))}
         </div>
     );
 }

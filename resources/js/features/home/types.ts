@@ -14,6 +14,7 @@ export type LearningDeskRoute = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     lastCompletedAt: string | null;
     lastEnteredAt: string | null;
@@ -22,7 +23,7 @@ export type LearningDeskRoute = {
     nodeHref: string;
     nodeTitle: string;
     routeLabel: string | null;
-    topic: { href: string; title: string } | null;
+    topic: { href: string; slug: string; title: string } | null;
 };
 
 export type LearningDeskCheckIn = {

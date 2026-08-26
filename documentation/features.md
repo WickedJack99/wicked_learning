@@ -62,6 +62,9 @@ and link back to the original learning place.
 The learning desk separates unfinished route progress from recent completed
 traces. When the same route has both an active run and an older completion, it
 appears only under Continue learning so the desk keeps one clear next step.
+Current and recent route rows also retain their authored learning-area links,
+so the desk can lead directly to the corresponding competence reading without
+adding a separate progression panel.
 
 ### Activities And Routes
 

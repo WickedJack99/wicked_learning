@@ -115,6 +115,9 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
+            'learningAreas' => $this->learningAreas(
+                $progress->currentActivity ?? $route?->activity,
+            ),
             'learningIntent' => $this->learningIntent(
                 $progress->currentActivity ?? $route?->activity,
             ),
@@ -146,6 +149,7 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
+            'learningAreas' => $this->learningAreas($route?->activity),
             'learningIntent' => $this->learningIntent($route?->activity),
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
@@ -170,8 +174,21 @@ class LearningDeskSerializer
 
         return [
             'href' => route('topics.show', $topic, false),
+            'slug' => $topic->slug,
             'title' => $topic->title,
         ];
+    }
+
+    /** @return list<array{name: string, slug: string}> */
+    private function learningAreas(?LearningActivity $activity): array
+    {
+        return array_map(
+            fn (array $area): array => [
+                'name' => $area['topic'],
+                'slug' => $area['slug'],
+            ],
+            $activity ? $this->competence->topicsForActivity($activity) : [],
+        );
     }
 
     private function learningIntent(?LearningActivity $activity): ?string

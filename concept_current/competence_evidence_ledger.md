@@ -126,6 +126,10 @@ that topic as its return context. This is navigation state only: it does not
 make a competence area into a formal topic or change how the star map is
 calculated.
 
+The learning desk uses the same compact links on current and recent route rows.
+This keeps the learner's return surface connected to the same authored context
+without adding another progression view.
+
 ## Next evolution
 
 Next, add confidence and feedback outcomes where the activity actually collects
