@@ -366,6 +366,42 @@ test('competence star map accepts a topic to open from an activity link', functi
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('competence/index')
             ->where('selectedTopicSlug', 'systems-thinking')
+            ->where('selectedTopic', null)
+        );
+});
+
+test('competence star map exposes only published context for a selected topic', function () {
+    $learner = User::factory()->create();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'biology',
+        'title' => 'Biology',
+        'is_published' => true,
+    ]);
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'draft-biology',
+        'title' => 'Draft Biology',
+        'is_published' => false,
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index', ['topic' => $topic->slug]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('selectedTopic.title', 'Biology')
+            ->where('selectedTopic.href', route('topics.show', $topic, false))
+        );
+
+    $this->actingAs($learner)
+        ->get(route('competence.index', ['topic' => 'draft-biology']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('selectedTopic', null)
         );
 });
 

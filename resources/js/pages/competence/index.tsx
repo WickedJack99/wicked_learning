@@ -21,10 +21,16 @@ import type {
 export default function CompetenceStarMap({
     competenceMap,
     selectedTopicSlug: initialTopicSlug,
+    selectedTopic,
 }: {
     competenceMap: CompetenceMap;
+    selectedTopic?: {
+        href: string;
+        title: string;
+    } | null;
     selectedTopicSlug?: string | null;
 }) {
+    const translate = usePlatformTranslation();
     const [hoveredTopicSlug, setHoveredTopicSlug] = useState<string | null>(
         null,
     );
@@ -412,7 +418,22 @@ export default function CompetenceStarMap({
                                     setHoveredTopicSlug(null);
                                     setSelectedTopicSlug(null);
                                 }}
-                                topicSlug={selectedTopicSlug}
+                                topicHref={selectedTopic?.href ?? '/topics'}
+                                topicLinkLabel={
+                                    selectedTopic
+                                        ? translate(
+                                              'competence.reading.unseen.open_topic',
+                                              'Open topic',
+                                          )
+                                        : translate(
+                                              'competence.reading.unseen.browse_topics',
+                                              'Browse topics',
+                                          )
+                                }
+                                topicTitle={
+                                    selectedTopic?.title ??
+                                    topicLabel(selectedTopicSlug ?? '')
+                                }
                             />
                         ) : null}
                     </section>
@@ -847,10 +868,14 @@ function CompetenceReading({
 
 function UnseenCompetenceReading({
     onClose,
-    topicSlug,
+    topicHref,
+    topicLinkLabel,
+    topicTitle,
 }: {
     onClose: () => void;
-    topicSlug: string;
+    topicHref: string;
+    topicLinkLabel: string;
+    topicTitle: string;
 }) {
     const translate = usePlatformTranslation();
 
@@ -867,9 +892,7 @@ function UnseenCompetenceReading({
                             'Not on your map yet',
                         )}
                     </p>
-                    <h2 className="mt-1 text-lg font-semibold">
-                        {topicLabel(topicSlug)}
-                    </h2>
+                    <h2 className="mt-1 text-lg font-semibold">{topicTitle}</h2>
                 </div>
                 <button
                     aria-label="Close competence reading"
@@ -889,12 +912,9 @@ function UnseenCompetenceReading({
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <Link
                     className="inline-flex items-center gap-1 text-xs font-medium text-cyan-200 transition hover:text-white"
-                    href={`/topics/${encodeURIComponent(topicSlug)}`}
+                    href={topicHref}
                 >
-                    {translate(
-                        'competence.reading.unseen.open_topic',
-                        'Open topic',
-                    )}
+                    {topicLinkLabel}
                     <ArrowRight className="size-3.5" />
                 </Link>
                 <Link
