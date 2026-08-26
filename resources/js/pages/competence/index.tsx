@@ -471,6 +471,8 @@ function CompetenceMapGuide({
 }: {
     recentWindowDays: number;
 }) {
+    const translate = usePlatformTranslation();
+
     return (
         <details className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur">
             <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
@@ -487,8 +489,8 @@ function CompetenceMapGuide({
                         <dt className="font-medium text-slate-100">Size</dt>
                         <dd>
                             How established the learning pattern is over time.
-                            It grows on a stable, capped scale rather than
-                            showing a point total.
+                            It grows on a stable, capped scale as the pattern
+                            becomes more established.
                         </dd>
                     </div>
                     <div>
@@ -496,7 +498,7 @@ function CompetenceMapGuide({
                         <dd>
                             How much learning activity was recorded during the
                             last {recentWindowDays} days. It changes brightness
-                            without rewriting the established size.
+                            while the established size remains steady.
                         </dd>
                     </div>
                     <div>
@@ -513,8 +515,10 @@ function CompetenceMapGuide({
                     </div>
                 </dl>
                 <p className="text-slate-400">
-                    This is a reflection of your learning trail, not a score or
-                    diagnosis.
+                    {translate(
+                        'competence.guide.evidence_intro',
+                        'Recent learning moments informing this light.',
+                    )}
                 </p>
             </div>
         </details>
@@ -546,8 +550,10 @@ function LearningPulseTimeline({
                 </div>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-                These are your own words about how activities felt. They do not
-                change the stars and are not a grade or diagnosis.
+                {translate(
+                    'competence.pulse.description',
+                    'Your notes about how the activities felt, kept alongside your learning trail.',
+                )}
             </p>
 
             {checkIns.length > 0 ? (
@@ -791,7 +797,7 @@ function CompetenceReading({
                         ))}
                     </div>
                     <p className="mt-2 text-xs leading-5 text-slate-400">
-                        Your observations stay here without interpretation.
+                        Your observations appear alongside this learning area.
                     </p>
                 </div>
             ) : null}
@@ -842,8 +848,7 @@ function CompetenceReading({
                         Evidence ledger
                     </summary>
                     <p className="mt-2 text-xs leading-5 text-slate-400">
-                        Recent learning moments informing this light. This is a
-                        trace, not a score.
+                        Recent learning moments informing this light.
                     </p>
                     <div className="mt-3 grid gap-2">
                         {topic.evidenceLedger.map((evidence) => {
