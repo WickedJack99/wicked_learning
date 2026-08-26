@@ -123,7 +123,7 @@ test('world maps expose published topic context without exposing draft topics', 
                 fn (array $map): bool => $map['title'] === 'Night Sky'
                     && $map['topic']['title'] === 'Astronomy'
                     && $map['topic']['href'] === '/topics/astronomy'
-                    && $map['topic']['competenceHref'] === '/competence',
+                    && $map['topic']['competenceHref'] === '/competence?topic=astronomy',
             ) && $maps->contains(
                 fn (array $map): bool => $map['title'] === 'Draft Sky'
                     && $map['topic'] === null,
@@ -173,7 +173,7 @@ test('playing a node records that node map as the learner location', function ()
             ->component('learning/node-play')
             ->where('node.mapSlug', 'signal-archive')
             ->where('node.topic.title', 'Play topic')
-            ->where('node.topic.competenceHref', '/competence')
+            ->where('node.topic.competenceHref', '/competence?topic=play-topic')
             ->where('node.topic.href', '/topics/play-topic'));
 
     expect($user->refresh()->preference?->settings['learning']['lastMapSlug'] ?? null)
