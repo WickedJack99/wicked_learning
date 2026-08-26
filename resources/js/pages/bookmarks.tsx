@@ -71,7 +71,7 @@ export default function Bookmarks({ bookmarkMap }: BookmarksProps) {
 
                 <aside
                     className={cn(
-                        'absolute inset-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
+                        'absolute inset-x-0 top-28 bottom-0 z-50 w-full border-l border-slate-200 bg-white text-slate-950 shadow-2xl transition-transform duration-300 ease-out sm:top-16 md:left-auto md:max-w-[420px] dark:border-white/10 dark:bg-[#111820] dark:text-slate-100',
                         selectedNode
                             ? 'translate-x-0'
                             : 'pointer-events-none translate-x-full',
