@@ -45,9 +45,7 @@ class LearningWorldSerializer
             'title' => $map->title,
             'description' => $map->description,
             'topic' => $map->topic?->is_published ? [
-                'competenceHref' => route('competence.index', [
-                    'topic' => $map->topic->slug,
-                ], false),
+                'competenceHref' => route('competence.index', [], false),
                 'href' => route('topics.show', $map->topic, false),
                 'title' => $map->topic->title,
             ] : null,
