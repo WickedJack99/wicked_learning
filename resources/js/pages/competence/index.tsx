@@ -59,10 +59,11 @@ export default function CompetenceStarMap({
     return (
         <>
             <Head title="Competence Star Map" />
-            <main className="min-h-svh overflow-y-auto bg-black text-white">
+            <main className="flex min-h-svh flex-col overflow-y-auto bg-black text-white xl:h-svh xl:overflow-hidden">
                 <LearningDeskHeader />
-                <div className="px-4 py-6 pb-24">
+                <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-6">
                     <AccentHeading
+                        className="shrink-0"
                         action={
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button asChild variant="secondary">
@@ -98,8 +99,8 @@ export default function CompetenceStarMap({
                         title="Star Map"
                     />
 
-                    <div className="mt-5 grid w-full gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                        <section className="relative h-[min(72svh,680px)] min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-[calc(100svh-7rem)]">
+                    <div className="mt-5 grid w-full gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                        <section className="relative min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-full xl:min-h-0">
                             {positionedTopics.length === 0 ? (
                                 <div className="grid h-full place-items-center p-6 text-center">
                                     <div>
@@ -540,7 +541,7 @@ function LearningPulseTimeline({
     const translate = usePlatformTranslation();
 
     return (
-        <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-[calc(100svh-7rem)] xl:overflow-y-auto">
+        <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-full xl:min-h-0 xl:overflow-y-auto">
             <div className="flex items-start gap-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-200/10 text-cyan-200">
                     <Heart className="size-4" />
@@ -709,7 +710,7 @@ function CompetenceReading({
     return (
         <aside
             aria-live="polite"
-            className="absolute bottom-4 left-4 max-w-sm rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
+            className="absolute bottom-4 left-4 max-h-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
         >
             <div className="flex items-start justify-between gap-4">
                 <div>
@@ -926,7 +927,7 @@ function UnseenCompetenceReading({
     return (
         <aside
             aria-live="polite"
-            className="absolute bottom-4 left-4 max-w-sm rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
+            className="absolute bottom-4 left-4 max-h-[calc(100%-2rem)] max-w-sm overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/90 p-4 text-slate-100 shadow-xl backdrop-blur"
         >
             <div className="flex items-start justify-between gap-4">
                 <div>
