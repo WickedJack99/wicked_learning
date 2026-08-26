@@ -11,6 +11,7 @@ type LearningPath = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     label: string;
     mapHref: string;
@@ -22,7 +23,7 @@ type LearningPath = {
         lastEnteredAt: string | null;
         status: string;
     } | null;
-    topic: { href: string; title: string } | null;
+    topic: { href: string; slug: string; title: string } | null;
 };
 
 export default function Paths({ paths }: { paths: LearningPath[] }) {
@@ -136,6 +137,21 @@ function PathCard({ path }: { path: LearningPath }) {
                         <p className="mt-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
                             {learningIntentLabel(path.learningIntent, t)}
                         </p>
+                    ) : null}
+                    {path.learningAreas.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                            <span>Learning areas:</span>
+                            {path.learningAreas.map((area) => (
+                                <Link
+                                    className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                                    href={`/competence?topic=${encodeURIComponent(area.slug)}${path.topic ? `&from=${encodeURIComponent(path.topic.slug)}` : ''}`}
+                                    key={area.slug}
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    {area.name}
+                                </Link>
+                            ))}
+                        </div>
                     ) : null}
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         <Link

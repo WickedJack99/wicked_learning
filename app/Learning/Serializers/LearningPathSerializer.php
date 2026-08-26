@@ -42,6 +42,13 @@ class LearningPathSerializer
                     ], false),
                     'id' => $route->id,
                     'imageUrl' => $node->mapAsset?->image_url,
+                    'learningAreas' => array_map(
+                        fn (array $area): array => [
+                            'name' => $area['topic'],
+                            'slug' => $area['slug'],
+                        ],
+                        $this->competence->topicsForActivity($route->activity),
+                    ),
                     'learningIntent' => $this->competence->learningIntentForActivity(
                         $route->activity,
                     ),
@@ -60,6 +67,7 @@ class LearningPathSerializer
                     ] : null,
                     'topic' => $topic?->is_published ? [
                         'href' => route('topics.show', $topic, false),
+                        'slug' => $topic->slug,
                         'title' => $topic->title,
                     ] : null,
                 ];

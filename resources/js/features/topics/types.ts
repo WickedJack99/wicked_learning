@@ -89,6 +89,7 @@ export type TopicPath = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     label: string;
     mapHref: string;

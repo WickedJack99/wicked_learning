@@ -71,6 +71,10 @@ course sequence. Backend route progress preserves the current run and activity
 across refreshes; learners can restart or reset routes according to the authored
 rules.
 
+The Paths directory shows each route's authored learning areas and links those
+areas to the focused competence reading. The route remains a suggested way in,
+not a required sequence.
+
 Implemented activity types are:
 
 - dialogue and graph-based NPC dialogue
