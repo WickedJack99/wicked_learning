@@ -1,5 +1,10 @@
 export type CompetenceTopic = {
     name: string;
+    revisit: {
+        activityTitle: string;
+        nodeHref: string;
+        nodeTitle: string;
+    } | null;
     slug: string;
     visual: {
         auraRatio: number;

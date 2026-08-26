@@ -626,6 +626,23 @@ function CompetenceReading({
                     learning trail.
                 </p>
             </div>
+            {topic.revisit ? (
+                <div className="mt-3 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
+                    <p className="text-[11px] font-medium tracking-[0.14em] text-cyan-100/75 uppercase">
+                        Return if you want to
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-300">
+                        {topic.revisit.activityTitle} ·{' '}
+                        {topic.revisit.nodeTitle}
+                    </p>
+                    <Link
+                        className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
+                        href={topic.revisit.nodeHref}
+                    >
+                        Revisit this place
+                    </Link>
+                </div>
+            ) : null}
             <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
                 Learning moments represented here
             </p>

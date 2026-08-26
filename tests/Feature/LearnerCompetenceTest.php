@@ -290,6 +290,9 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.learningPeriods', ['Jun 2026', 'Jul 2026'])
             ->where('competenceMap.topics.0.visual.recentDescription', 'Recent learning moments are gently lighting this area.')
             ->where('competenceMap.topics.0.visual.evidenceTypes', ['explain', 'retrieve'])
+            ->where('competenceMap.topics.0.revisit.activityTitle', $activity->title)
+            ->where('competenceMap.topics.0.revisit.nodeTitle', $activity->node->title)
+            ->where('competenceMap.topics.0.revisit.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')
             ->where('competenceMap.transitions.0.toTopicSlug', 'geometry')
         );

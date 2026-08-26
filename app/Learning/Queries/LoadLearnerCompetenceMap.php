@@ -6,6 +6,7 @@ use App\Learning\Services\CompetenceVisualScale;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearningActivity;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -32,10 +33,14 @@ class LoadLearnerCompetenceMap
 
         LearnerEvidenceEvent::query()
             ->where('user_id', $user->id)
+            ->with('activity.node')
             ->get()
             ->groupBy('topic_slug')
             ->sortByDesc(fn (Collection $events): float => (float) $events->sum('contribution'))
             ->each(function (Collection $events, string $topicSlug) use (&$topics, $definitions, $monthKey): void {
+                $events = $events
+                    ->sortByDesc(fn (LearnerEvidenceEvent $event): int => $event->created_at?->getTimestamp() ?? 0)
+                    ->values();
                 $event = $events->first();
                 $definition = $definitions->get($topicSlug);
                 $hasDefinition = $definition instanceof CompetenceTopicDefinition;
@@ -48,6 +53,7 @@ class LoadLearnerCompetenceMap
                     'name' => $hasDefinition
                         ? $definition->name
                         : $event->topic_name,
+                    'revisit' => $this->revisit($event->activity),
                     'visual' => $this->visualScale->forTopic(
                         totalSignal: (float) $events->sum('contribution'),
                         recentSignal: (float) $recentSignal,
@@ -134,5 +140,19 @@ class LoadLearnerCompetenceMap
             ->values()
             ->map(fn (string $period): string => Carbon::parse($period.'-01')->format('M Y'))
             ->all();
+    }
+
+    /** @return array{activityTitle: string, nodeHref: string, nodeTitle: string}|null */
+    private function revisit(?LearningActivity $activity): ?array
+    {
+        if (! $activity instanceof LearningActivity || ! $activity->node) {
+            return null;
+        }
+
+        return [
+            'activityTitle' => $activity->title,
+            'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),
+            'nodeTitle' => $activity->node->title,
+        ];
     }
 }

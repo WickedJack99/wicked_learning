@@ -66,6 +66,10 @@ Each pulse entry also offers a route back to its node; this is a learner-chosen
 revisit path, not a remediation assignment or a claim that the learner is
 behind.
 
+Selecting a light can also offer an optional return to the latest learning
+place that contributed to that topic. The link is a doorway back into the
+world, not a required next step or a corrective assignment.
+
 When a reflection is authored with the `review` learning purpose, the learner
 sees it as `Review / revisit` with language that invites comparison over time.
 It still uses the private reflection journal and does not become a test or
