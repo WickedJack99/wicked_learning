@@ -6,8 +6,10 @@ export type ContentPlanActivityType =
 
 export type ContentPlanActivity = {
     body: string | null;
+    competenceTopics: string[];
     introduction: string | null;
     inputLabel: string | null;
+    learningIntent: string;
     note: string | null;
     prompt: string | null;
     topic: string | null;

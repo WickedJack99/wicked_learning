@@ -65,6 +65,11 @@ test('an administrator can generate review and atomically apply a content plan',
         ->and(ActivityTransition::query()->count())->toBe(2)
         ->and(AiContentAuthoringRun::query()->sole()->status)->toBe('applied');
 
+    expect($asset->node->activities->first()->config['competenceTopics'])->toBe([
+        ['topic' => 'Energy systems', 'slug' => 'energy-systems', 'weight' => 1],
+    ])
+        ->and($asset->node->activities->first()->config['learningIntent'])->toBe('explain');
+
     $this->actingAs($admin)
         ->postJson(route('settings.ai-content-plans.apply', $run))
         ->assertConflict();
@@ -139,6 +144,8 @@ test('an administrator can include a learner message prompt in a content plan', 
     expect($activity->type)->toBe('message_prompt')
         ->and($activity->config['messagePrompt'])->toBe('What did you notice in the energy path?')
         ->and($activity->config['messageInputLabel'])->toBe('Share an observation')
+        ->and($activity->config['competenceTopics'][0]['topic'])->toBe('Energy conversion')
+        ->and($activity->config['learningIntent'])->toBe('explain')
         ->and($topic->title)->toBe('Energy observations');
 });
 
@@ -175,7 +182,9 @@ test('an administrator can include a shared task in a content plan', function ()
         ->and($activity->config['instructions'])->toBe('Write one concrete observation and explain why it matters.')
         ->and($activity->config['inputLabel'])->toBe('Add an observation')
         ->and($activity->config['minimumLength'])->toBe(20)
-        ->and($activity->config['validationMode'])->toBe('minimum_length');
+        ->and($activity->config['validationMode'])->toBe('minimum_length')
+        ->and($activity->config['competenceTopics'][0]['topic'])->toBe('Energy systems')
+        ->and($activity->config['learningIntent'])->toBe('explain');
 });
 
 test('only the administrator who generated a draft can apply it', function () {
@@ -268,6 +277,8 @@ function aiContentPlan(): array
                 'note' => null,
                 'topic' => null,
                 'inputLabel' => null,
+                'competenceTopics' => ['Energy systems'],
+                'learningIntent' => 'explain',
             ],
             [
                 'type' => 'reflection',
@@ -278,6 +289,8 @@ function aiContentPlan(): array
                 'note' => 'Name both the input and output.',
                 'topic' => null,
                 'inputLabel' => null,
+                'competenceTopics' => ['Energy systems'],
+                'learningIntent' => 'explain',
             ],
         ],
     ];
@@ -302,6 +315,8 @@ function messageContentPlan(): array
             'note' => null,
             'topic' => 'Energy observations',
             'inputLabel' => 'Share an observation',
+            'competenceTopics' => ['Energy conversion'],
+            'learningIntent' => 'explain',
         ]],
     ];
 }
@@ -325,6 +340,8 @@ function sharedTaskContentPlan(): array
             'note' => 'Write one concrete observation and explain why it matters.',
             'topic' => null,
             'inputLabel' => 'Add an observation',
+            'competenceTopics' => ['Energy systems'],
+            'learningIntent' => 'explain',
         ]],
     ];
 }

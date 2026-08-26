@@ -13,7 +13,7 @@ test('the content contract is available only to authorized administrators', func
         ->assertOk()
         ->assertJsonPath('data.version', '1.1')
         ->assertJsonPath('data.basePath', '/api/content/v1')
-        ->assertJsonPath('data.contentPlan.version', '1.2')
+        ->assertJsonPath('data.contentPlan.version', '1.3')
         ->assertJsonPath('data.contentPlan.humanApprovalRequired', true)
         ->assertJsonCount(7, 'data.operations');
 

@@ -109,6 +109,8 @@ class ApplyAiContentPlan
             'title' => $plan['title'],
             'type' => $plan['type'],
             'introduction' => $plan['introduction'] ?? null,
+            'competence_topics' => $this->competenceTopics($plan['competenceTopics']),
+            'learning_intent' => $plan['learningIntent'],
             'graph_position_x' => 120 + ($index * 260),
             'graph_position_y' => 80,
         ];
@@ -164,6 +166,15 @@ class ApplyAiContentPlan
                 'end' => ['x' => 520, 'y' => 80],
             ],
         ];
+    }
+
+    /** @param list<string> $topics @return list<array{topic: string, weight: int}> */
+    private function competenceTopics(array $topics): array
+    {
+        return array_map(
+            fn (string $topic): array => ['topic' => $topic, 'weight' => 1],
+            $topics,
+        );
     }
 
     /** @param list<LearningActivity> $activities */

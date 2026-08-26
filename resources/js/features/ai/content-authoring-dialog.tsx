@@ -607,6 +607,11 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                         {activity.note}
                                     </p>
                                 ) : null}
+                                <p className="mt-2 text-xs text-[var(--settings-muted-text)]">
+                                    Learning purpose: {activity.learningIntent}{' '}
+                                    · Topics:{' '}
+                                    {activity.competenceTopics.join(', ')}
+                                </p>
                                 {(activity.type === 'message_prompt' ||
                                     activity.type === 'shared_task') &&
                                 (activity.topic || activity.inputLabel) ? (

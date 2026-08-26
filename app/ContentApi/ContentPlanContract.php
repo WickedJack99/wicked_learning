@@ -2,9 +2,11 @@
 
 namespace App\ContentApi;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
+
 class ContentPlanContract
 {
-    public const VERSION = '1.2';
+    public const VERSION = '1.3';
 
     public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt', 'shared_task'];
 
@@ -67,7 +69,7 @@ class ContentPlanContract
                     'items' => [
                         'type' => 'object',
                         'additionalProperties' => false,
-                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note', 'topic', 'inputLabel'],
+                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note', 'topic', 'inputLabel', 'competenceTopics', 'learningIntent'],
                         'properties' => [
                             'type' => ['type' => 'string', 'enum' => self::ACTIVITY_TYPES],
                             'title' => ['type' => 'string', 'maxLength' => 120],
@@ -96,6 +98,18 @@ class ContentPlanContract
                                 'type' => ['string', 'null'],
                                 'description' => 'Optional learner message or shared-task input label; null for other activity types.',
                                 'maxLength' => 120,
+                            ],
+                            'competenceTopics' => [
+                                'type' => 'array',
+                                'description' => 'One to three short competence topic labels this activity intentionally nourishes.',
+                                'minItems' => 1,
+                                'maxItems' => 3,
+                                'items' => ['type' => 'string', 'maxLength' => 120],
+                            ],
+                            'learningIntent' => [
+                                'type' => 'string',
+                                'description' => 'The primary learning purpose of this activity, not a grade or performance judgment.',
+                                'enum' => ActivityCompetenceConfiguration::LEARNING_INTENTS,
                             ],
                         ],
                     ],

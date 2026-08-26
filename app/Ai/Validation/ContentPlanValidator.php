@@ -3,6 +3,7 @@
 namespace App\Ai\Validation;
 
 use App\ContentApi\ContentPlanContract;
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearningMap;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,9 @@ class ContentPlanValidator
             'activities.*.note' => ['nullable', 'string', 'max:2000'],
             'activities.*.topic' => ['nullable', 'string', 'max:120'],
             'activities.*.inputLabel' => ['nullable', 'string', 'max:120'],
+            'activities.*.competenceTopics' => ['required', 'array', 'min:1', 'max:3'],
+            'activities.*.competenceTopics.*' => ['required', 'string', 'max:120'],
+            'activities.*.learningIntent' => ['required', 'string', Rule::in(ActivityCompetenceConfiguration::LEARNING_INTENTS)],
         ]);
         $validator->after(function ($validator) use ($plan): void {
             $activities = is_array($plan['activities'] ?? null) ? $plan['activities'] : [];
@@ -40,6 +44,19 @@ class ContentPlanValidator
             foreach ($activities as $index => $activity) {
                 if (! is_array($activity)) {
                     continue;
+                }
+
+                $topics = is_array($activity['competenceTopics'] ?? null)
+                    ? $activity['competenceTopics']
+                    : [];
+
+                foreach ($topics as $topicIndex => $topic) {
+                    if (blank($topic)) {
+                        $validator->errors()->add(
+                            "activities.{$index}.competenceTopics.{$topicIndex}",
+                            'Competence topics need a readable label.',
+                        );
+                    }
                 }
 
                 if (($activity['type'] ?? null) === 'markdown' && blank($activity['body'] ?? null)) {
