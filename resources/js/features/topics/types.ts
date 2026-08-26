@@ -22,10 +22,28 @@ export type TopicDetail = TopicSummary & {
         title: string;
     };
     content: string | null;
+    competence: TopicCompetence | null;
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
     paths: TopicPath[];
     subtopics: TopicSummary[];
+};
+
+export type TopicCompetence = {
+    evidenceTypes: string[];
+    learningPeriods: string[];
+    recentDescription: string;
+    revisit: {
+        activityHref: string;
+        activityTitle: string;
+        nodeTitle: string;
+    } | null;
+    visual: {
+        auraRatio: number;
+        brightnessRatio: number;
+        description: string;
+        sizeRatio: number;
+    };
 };
 
 export type TopicPath = {

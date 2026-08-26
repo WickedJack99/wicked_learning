@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Models\LearnerEvidenceEvent;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -9,6 +10,8 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
 test('guests cannot open the topic directory', function () {
@@ -249,6 +252,72 @@ test('a topic page exposes playable routes from its assigned maps', function () 
             ->where('topic.paths.0.nodeHref', '/world?map=night-sky&focused=constellations')
             ->where('topic.maps.0.nodeCount', 1)
             ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
+        );
+});
+
+test('a topic page exposes its scoped learning trail', function () {
+    Carbon::setTestNow('2026-08-26 10:00:00');
+
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'constellations',
+        'title' => 'Constellations',
+        'position_q' => 0,
+        'position_r' => 0,
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'notice-patterns',
+        'title' => 'Notice patterns',
+        'type' => 'markdown',
+        'config' => [
+            'competenceTopics' => [[
+                'slug' => 'astronomy',
+                'topic' => 'Astronomy',
+                'weight' => 1,
+            ]],
+        ],
+        'sort_order' => 10,
+    ]);
+    LearnerEvidenceEvent::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
+        'topic_slug' => 'astronomy',
+        'topic_name' => 'Astronomy',
+        'evidence_type' => 'retrieve',
+        'contribution' => 4,
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.competence.evidenceTypes', ['retrieve'])
+            ->where('topic.competence.learningPeriods', ['Aug 2026'])
+            ->where('topic.competence.revisit.activityTitle', 'Notice patterns')
         );
 });
 

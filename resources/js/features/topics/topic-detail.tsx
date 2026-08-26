@@ -11,7 +11,11 @@ import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import type { TopicDetail as TopicDetailData, TopicPath } from './types';
+import type {
+    TopicCompetence,
+    TopicDetail as TopicDetailData,
+    TopicPath,
+} from './types';
 
 export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
@@ -52,6 +56,11 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         <ArrowRight className="size-4" />
                     </Link>
                 </header>
+
+                <TopicCompetenceCard
+                    competence={topic.competence}
+                    topicSlug={topic.slug}
+                />
 
                 {topic.paths.length > 0 ? (
                     <section
@@ -233,6 +242,143 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             </div>
         </main>
     );
+}
+
+function TopicCompetenceCard({
+    competence,
+    topicSlug,
+}: {
+    competence: TopicCompetence | null;
+    topicSlug: string;
+}) {
+    const t = usePlatformTranslation();
+    const starSize = competence
+        ? 30 + Math.round(competence.visual.sizeRatio * 18)
+        : 30;
+    const glowSize = competence
+        ? 14 + Math.round(competence.visual.auraRatio * 18)
+        : 12;
+    const glowOpacity = competence
+        ? 0.35 + competence.visual.brightnessRatio * 0.55
+        : 0.28;
+
+    return (
+        <section
+            aria-labelledby="topic-learning-trail-heading"
+            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+        >
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-4">
+                    <span
+                        aria-hidden="true"
+                        className="mt-1 shrink-0 rounded-full bg-cyan-300/10"
+                        style={{
+                            boxShadow: `0 0 ${glowSize}px ${glowSize / 2}px rgba(103, 232, 249, ${glowOpacity})`,
+                            height: starSize,
+                            width: starSize,
+                        }}
+                    />
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+                            {t('topics.detail.competence.eyebrow', 'Learning trail')}
+                        </p>
+                        <h2
+                            className="mt-2 text-sm font-semibold"
+                            id="topic-learning-trail-heading"
+                        >
+                            {t(
+                                'topics.detail.competence.title',
+                                'Your trail in this topic',
+                            )}
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            {competence
+                                ? competence.visual.description
+                                : t(
+                                      'topics.detail.competence.empty',
+                                      'A first light will appear here as you work with this topic.',
+                                  )}
+                        </p>
+                    </div>
+                </div>
+                <Link
+                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-cyan-700 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                    href={
+                        competence
+                            ? `/competence?topic=${encodeURIComponent(topicSlug)}`
+                            : '/competence'
+                    }
+                >
+                    {t(
+                        competence
+                            ? 'topics.detail.competence.open'
+                            : 'topics.detail.competence.open_all',
+                        competence ? 'Open focused map' : 'Open competence map',
+                    )}
+                    <ArrowRight className="size-4" />
+                </Link>
+            </div>
+
+            {competence ? (
+                <div className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-white/10">
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                            {t(
+                                'topics.detail.competence.ways',
+                                'Ways you have been learning',
+                            )}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                            {competence.evidenceTypes.map((type) => (
+                                <span
+                                    className="border border-cyan-700/20 px-2.5 py-1 text-xs text-cyan-800 dark:border-cyan-300/20 dark:text-cyan-200"
+                                    key={type}
+                                >
+                                    {evidenceTypeLabel(type, t)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                            {t(
+                                'topics.detail.competence.recent',
+                                'Recently',
+                            )}
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            {competence.recentDescription}
+                        </p>
+                        {competence.learningPeriods.length > 0 ? (
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                {competence.learningPeriods.join(' · ')}
+                            </p>
+                        ) : null}
+                    </div>
+                </div>
+            ) : null}
+
+            {competence?.revisit ? (
+                <Link
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-700 transition hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                    href={competence.revisit.activityHref}
+                >
+                    {t('topics.detail.competence.revisit', 'Return to')}{' '}
+                    {competence.revisit.activityTitle}
+                    <ArrowRight className="size-4" />
+                </Link>
+            ) : null}
+        </section>
+    );
+}
+
+function evidenceTypeLabel(
+    type: string,
+    translate: (key: string, fallback?: string) => string,
+): string {
+    const label = learningIntentLabel(type, translate);
+
+    return label ?? type;
 }
 
 function TopicPathCard({ path }: { path: TopicPath }) {

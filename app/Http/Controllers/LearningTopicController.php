@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
+use App\Learning\Queries\LoadLearnerCompetenceMap;
 use App\Learning\Queries\LoadLearningPaths;
 use App\Learning\Queries\LoadLearningTopics;
 use App\Learning\Serializers\LearningPathSerializer;
@@ -18,6 +19,7 @@ class LearningTopicController extends Controller
     public function __construct(
         private readonly LoadLearningTopics $topics,
         private readonly LoadLearningPaths $paths,
+        private readonly LoadLearnerCompetenceMap $competenceMap,
         private readonly LearningPathSerializer $pathSerializer,
         private readonly LearningTopicSerializer $serializer,
     ) {}
@@ -35,11 +37,17 @@ class LearningTopicController extends Controller
 
     public function show(Request $request, LearningTopic $topic): Response
     {
+        $competenceMap = $this->competenceMap->handle($request->user());
+
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
                 $this->topics->publishedDetail($topic, $request->user()),
                 $this->pathSerializer->serialize(
                     $this->paths->handle($request->user(), $topic),
+                ),
+                collect($competenceMap['topics'])->firstWhere(
+                    'slug',
+                    $topic->slug,
                 ),
             ),
         ]);

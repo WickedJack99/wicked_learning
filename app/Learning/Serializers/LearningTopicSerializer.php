@@ -37,8 +37,11 @@ class LearningTopicSerializer
      * @param  list<array<string, mixed>>  $paths
      * @return array<string, mixed>
      */
-    public function detail(LearningTopic $topic, array $paths = []): array
-    {
+    public function detail(
+        LearningTopic $topic,
+        array $paths = [],
+        ?array $competence = null,
+    ): array {
         return [
             ...$this->summary($topic),
             'area' => [
@@ -47,6 +50,7 @@ class LearningTopicSerializer
                 'title' => $topic->area->title,
             ],
             'content' => $topic->content,
+            'competence' => $this->competence($competence),
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
             'subtopics' => $topic->children
@@ -106,6 +110,39 @@ class LearningTopicSerializer
             'id' => $topic->id,
             'slug' => $topic->slug,
             'title' => $topic->title,
+        ];
+    }
+
+    /** @param array<string, mixed>|null $competence */
+    private function competence(?array $competence): ?array
+    {
+        if ($competence === null || ! is_array($competence['visual'] ?? null)) {
+            return null;
+        }
+
+        $visual = $competence['visual'];
+
+        return [
+            'evidenceTypes' => is_array($visual['evidenceTypes'] ?? null)
+                ? array_values($visual['evidenceTypes'])
+                : [],
+            'learningPeriods' => is_array($visual['learningPeriods'] ?? null)
+                ? array_values($visual['learningPeriods'])
+                : [],
+            'recentDescription' => (string) ($visual['recentDescription'] ?? ''),
+            'revisit' => is_array($competence['revisit'] ?? null)
+                ? [
+                    'activityHref' => (string) ($competence['revisit']['activityHref'] ?? ''),
+                    'activityTitle' => (string) ($competence['revisit']['activityTitle'] ?? ''),
+                    'nodeTitle' => (string) ($competence['revisit']['nodeTitle'] ?? ''),
+                ]
+                : null,
+            'visual' => [
+                'auraRatio' => (float) ($visual['auraRatio'] ?? 0),
+                'brightnessRatio' => (float) ($visual['brightnessRatio'] ?? 0),
+                'description' => (string) ($visual['description'] ?? ''),
+                'sizeRatio' => (float) ($visual['sizeRatio'] ?? 0),
+            ],
         ];
     }
 }
