@@ -8,6 +8,8 @@ use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia;
@@ -25,7 +27,7 @@ test('authenticated learners can open an empty learning desk', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('home')
-        ->has('desk.currentRoutes', 0)
+            ->has('desk.currentRoutes', 0)
             ->has('desk.recentRoutes', 0)
             ->has('desk.bookmarks', 0)
             ->has('desk.connections', 0)
@@ -104,12 +106,23 @@ test('the learning desk presents current work and saved topics', function () {
 
 test('the learning desk keeps a quiet trail of recently completed routes', function () {
     $user = User::factory()->create();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'recent-area',
+        'title' => 'Recent Area',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'recent-topic',
+        'title' => 'Recent Topic',
+        'is_published' => true,
+    ]);
     $world = LearningWorld::query()->create([
         'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
         'title' => 'Learning World',
     ]);
     $map = LearningMap::query()->create([
         'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
         'slug' => 'recent-map',
         'title' => 'Recent Map',
         'access_roles' => [User::ROLE_USER],
@@ -152,6 +165,9 @@ test('the learning desk keeps a quiet trail of recently completed routes', funct
             ->has('desk.recentRoutes', 1)
             ->where('desk.recentRoutes.0.routeLabel', 'Explore again')
             ->where('desk.recentRoutes.0.nodeTitle', 'Recent Node')
+            ->where('desk.recentRoutes.0.topic.title', 'Recent Topic')
+            ->where('desk.recentRoutes.0.topic.href', '/topics/recent-topic')
+            ->where('desk.recentRoutes.0.mapHref', '/world?map=recent-map')
             ->where('desk.recentRoutes.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });

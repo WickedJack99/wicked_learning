@@ -4,6 +4,7 @@ namespace App\Learning\Serializers;
 
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningNodeBookmark;
+use App\Models\LearningTopic;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -95,9 +96,11 @@ class LearningDeskSerializer
             'imageUrl' => $node->mapAsset?->image_url,
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
+            'mapHref' => route('world', ['map' => $node->map->slug], false),
             'mapTitle' => $node->map->title,
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
+            'topic' => $this->topic($node->map->topic),
         ];
     }
 
@@ -117,9 +120,24 @@ class LearningDeskSerializer
             'imageUrl' => $node->mapAsset?->image_url,
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
+            'mapHref' => route('world', ['map' => $node->map->slug], false),
             'mapTitle' => $node->map->title,
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
+            'topic' => $this->topic($node->map->topic),
+        ];
+    }
+
+    /** @return array{href: string, title: string}|null */
+    private function topic(mixed $topic): ?array
+    {
+        if (! $topic instanceof LearningTopic || ! $topic->is_published) {
+            return null;
+        }
+
+        return [
+            'href' => route('topics.show', $topic, false),
+            'title' => $topic->title,
         ];
     }
 

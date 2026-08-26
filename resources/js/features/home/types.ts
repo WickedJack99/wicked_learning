@@ -15,9 +15,11 @@ export type LearningDeskRoute = {
     imageUrl: string | null;
     lastCompletedAt: string | null;
     lastEnteredAt: string | null;
+    mapHref: string;
     mapTitle: string;
     nodeTitle: string;
     routeLabel: string | null;
+    topic: { href: string; title: string } | null;
 };
 
 export type LearningDeskData = {

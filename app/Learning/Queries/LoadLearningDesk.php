@@ -56,7 +56,7 @@ class LoadLearningDesk
             ->with([
                 'activityStart.activity',
                 'currentActivity',
-                'node.map',
+                'node.map.topic',
                 'node.mapAsset',
             ])
             ->where('user_id', $user->id)

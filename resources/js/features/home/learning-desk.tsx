@@ -305,14 +305,15 @@ function RouteRow({
     const t = usePlatformTranslation();
 
     return (
-        <Link
-            className="group relative grid gap-4 py-6 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center"
-            href={route.href}
-        >
+        <div className="group relative grid gap-4 py-6 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
             {emphasized ? (
                 <span className="absolute top-3 bottom-3 -left-4 w-0.5 bg-violet-500 sm:-left-6" />
             ) : null}
-            <span className="grid size-12 place-items-center border border-slate-200 text-violet-600 transition group-hover:border-violet-300 dark:border-white/10 dark:text-violet-300 dark:group-hover:border-violet-400/60">
+            <Link
+                aria-label={route.routeLabel ?? route.nodeTitle}
+                className="grid size-12 place-items-center border border-slate-200 text-violet-600 transition hover:border-violet-300 dark:border-white/10 dark:text-violet-300 dark:hover:border-violet-400/60"
+                href={route.href}
+            >
                 {route.imageUrl ? (
                     <img
                         alt=""
@@ -322,14 +323,31 @@ function RouteRow({
                 ) : (
                     <BookOpenText className="size-5" />
                 )}
-            </span>
+            </Link>
             <span className="min-w-0">
-                <span className="block truncate text-lg font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
+                <Link
+                    className="block truncate text-lg font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    href={route.href}
+                >
                     {route.routeLabel ?? route.nodeTitle}
-                </span>
+                </Link>
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
-                    {route.nodeTitle} · {route.mapTitle}
+                    {route.nodeTitle} ·{' '}
+                    <Link
+                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        href={route.mapHref}
+                    >
+                        {route.mapTitle}
+                    </Link>
                 </span>
+                {route.topic ? (
+                    <Link
+                        className="mt-2 inline-block truncate text-xs font-medium text-violet-700 hover:underline dark:text-violet-300"
+                        href={route.topic.href}
+                    >
+                        {route.topic.title}
+                    </Link>
+                ) : null}
                 {route.currentActivityTitle ? (
                     <span className="mt-2 block truncate text-xs font-medium text-cyan-700 dark:text-cyan-400">
                         {t('home.learning_desk.continue.next', 'Current step')}:{' '}
@@ -344,12 +362,15 @@ function RouteRow({
                         {formatDate(route.lastEnteredAt, locale)}
                     </span>
                 ) : null}
-                <span className="inline-flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300">
+                <Link
+                    className="inline-flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300"
+                    href={route.href}
+                >
                     {t('common.continue', 'Continue')}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                </span>
+                </Link>
             </span>
-        </Link>
+        </div>
     );
 }
 
@@ -363,11 +384,12 @@ function RecentRouteRow({
     const t = usePlatformTranslation();
 
     return (
-        <Link
-            className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center"
-            href={route.href}
-        >
-            <span className="grid size-12 place-items-center border border-slate-200 text-cyan-600 dark:border-white/10 dark:text-cyan-300">
+        <div className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
+            <Link
+                aria-label={route.routeLabel ?? route.nodeTitle}
+                className="grid size-12 place-items-center border border-slate-200 text-cyan-600 hover:border-cyan-300 dark:border-white/10 dark:text-cyan-300 dark:hover:border-cyan-300/60"
+                href={route.href}
+            >
                 {route.imageUrl ? (
                     <img
                         alt=""
@@ -377,14 +399,31 @@ function RecentRouteRow({
                 ) : (
                     <Clock3 className="size-5" />
                 )}
-            </span>
+            </Link>
             <span className="min-w-0">
-                <span className="block truncate text-base font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
+                <Link
+                    className="block truncate text-base font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    href={route.href}
+                >
                     {route.routeLabel ?? route.nodeTitle}
-                </span>
+                </Link>
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
-                    {route.nodeTitle} · {route.mapTitle}
+                    {route.nodeTitle} ·{' '}
+                    <Link
+                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        href={route.mapHref}
+                    >
+                        {route.mapTitle}
+                    </Link>
                 </span>
+                {route.topic ? (
+                    <Link
+                        className="mt-2 inline-block truncate text-xs font-medium text-violet-700 hover:underline dark:text-violet-300"
+                        href={route.topic.href}
+                    >
+                        {route.topic.title}
+                    </Link>
+                ) : null}
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastCompletedAt ? (
@@ -392,12 +431,15 @@ function RecentRouteRow({
                         {formatDate(route.lastCompletedAt, locale)}
                     </span>
                 ) : null}
-                <span className="inline-flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-cyan-300">
+                <Link
+                    className="inline-flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-cyan-300"
+                    href={route.href}
+                >
                     {t('home.learning_desk.recent.action', 'Revisit')}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                </span>
+                </Link>
             </span>
-        </Link>
+        </div>
     );
 }
 
