@@ -649,6 +649,8 @@
     "topics.empty.action": "Create the first topic area",
     "topics.detail.no_content": "This topic currently serves as an overview. Continue with one of its subtopics.",
     "topics.detail.subtopics": "Subtopics",
+    "topics.detail.subtopics.map_count.one": "1 map available",
+    "topics.detail.subtopics.map_count.many": ":count maps available",
     "topics.detail.no_subtopics": "No subtopics have been published here yet.",
     "topics.admin.back": "Back to topics",
     "topics.admin.eyebrow": "Content administration",

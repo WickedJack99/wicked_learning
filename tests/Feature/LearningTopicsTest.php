@@ -84,8 +84,9 @@ test('a published topic page exposes its published subtopics alphabetically', fu
         'is_published' => true,
     ]);
 
+    $subtopics = [];
     foreach ([['Waves', true], ['Energy', true], ['Hidden', false]] as [$title, $published]) {
-        LearningTopic::query()->create([
+        $subtopics[$title] = LearningTopic::query()->create([
             'learning_topic_area_id' => $area->id,
             'parent_id' => $topic->id,
             'slug' => strtolower($title),
@@ -93,6 +94,17 @@ test('a published topic page exposes its published subtopics alphabetically', fu
             'is_published' => $published,
         ]);
     }
+    $world = LearningWorld::query()->create([
+        'slug' => 'physics-world',
+        'title' => 'Physics World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $subtopics['Waves']->id,
+        'slug' => 'waves-map',
+        'title' => 'Waves Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
 
     $this->actingAs($user)
         ->get(route('topics.show', $topic))
@@ -102,7 +114,9 @@ test('a published topic page exposes its published subtopics alphabetically', fu
             ->where('topic.title', 'Physics')
             ->where('topic.content', '# Motion')
             ->where('topic.subtopics.0.title', 'Energy')
+            ->where('topic.subtopics.0.mapCount', 0)
             ->where('topic.subtopics.1.title', 'Waves')
+            ->where('topic.subtopics.1.mapCount', 1)
             ->has('topic.subtopics', 2)
         );
 });

@@ -2,6 +2,7 @@ export type TopicSummary = {
     description: string | null;
     href: string;
     id: number;
+    mapCount?: number;
     slug: string;
     title: string;
 };

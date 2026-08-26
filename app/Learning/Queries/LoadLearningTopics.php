@@ -34,11 +34,16 @@ class LoadLearningTopics
             'parent',
             'children' => fn ($query) => $query
                 ->where('is_published', true)
-                ->orderBy('title'),
+                ->orderBy('title')
+                ->with('maps'),
             'maps',
         ]);
 
         $topic->setRelation('maps', $this->mapAccess->visibleMaps($topic->maps, $user));
+        $topic->children->each(fn (LearningTopic $child) => $child->setRelation(
+            'maps',
+            $this->mapAccess->visibleMaps($child->maps, $user),
+        ));
 
         return $topic;
     }

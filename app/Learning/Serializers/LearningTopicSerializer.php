@@ -47,7 +47,10 @@ class LearningTopicSerializer
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
             'subtopics' => $topic->children
-                ->map(fn (LearningTopic $child): array => $this->summary($child))
+                ->map(fn (LearningTopic $child): array => [
+                    ...$this->summary($child),
+                    'mapCount' => $child->maps->count(),
+                ])
                 ->values()
                 ->all(),
             'maps' => $topic->maps

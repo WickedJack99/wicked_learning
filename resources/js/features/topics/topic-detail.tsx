@@ -181,6 +181,22 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                             <span className="font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
                                                 {subtopic.title}
                                             </span>
+                                            {subtopic.mapCount ? (
+                                                <span className="mt-1 block text-xs text-cyan-700 dark:text-cyan-300">
+                                                    {subtopic.mapCount === 1
+                                                        ? t(
+                                                              'topics.detail.subtopics.map_count.one',
+                                                              '1 map available',
+                                                          )
+                                                        : t(
+                                                              'topics.detail.subtopics.map_count.many',
+                                                              ':count maps available',
+                                                              {
+                                                                  count: subtopic.mapCount,
+                                                              },
+                                                          )}
+                                                </span>
+                                            ) : null}
                                             {subtopic.description ? (
                                                 <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
                                                     {subtopic.description}
