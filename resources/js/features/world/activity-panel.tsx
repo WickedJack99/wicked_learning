@@ -12,6 +12,7 @@ import { useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
     ActivityTransition,
@@ -22,6 +23,7 @@ import type {
     QuestionAnswerProgress,
 } from '@/types';
 import { ActivityAmbientSound } from './activity-ambient-sound';
+import { learningFocusLabel } from './activity-utils';
 import { postJson } from './api';
 import { ItemGrantActivity } from './item-grant-activity';
 import { ItemObstacleActivity } from './item-obstacle-activity';
@@ -599,6 +601,7 @@ function ActivityFrame({
     children: React.ReactNode;
 }) {
     const relatedLearningAreas = learningAreaNames(activity);
+    const translate = usePlatformTranslation();
 
     return (
         <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/28">
@@ -608,7 +611,7 @@ function ActivityFrame({
                 </span>
                 <div className="min-w-0">
                     <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
-                        {activity.type}
+                        {learningFocusLabel(activity, translate)}
                     </p>
                     <h3 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
                         {activity.title}

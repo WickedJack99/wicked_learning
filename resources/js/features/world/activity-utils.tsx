@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { LearningActivity } from '@/types';
 
+type PlatformTranslate = (key: string, fallback?: string) => string;
+
+const learningFocusCopy: Record<string, [string, string]> = {
+    apply: ['activities.focus.apply', 'Apply an idea'],
+    explain: ['activities.focus.explain', 'Explain an idea in your own words'],
+    participate: ['activities.focus.participate', 'Participate'],
+    reflect: ['activities.focus.reflect', 'Reflect'],
+    retrieve: ['activities.focus.retrieve', 'Retrieve an idea'],
+    review: ['activities.focus.review', 'Review / revisit'],
+    transfer: ['activities.focus.transfer', 'Try an idea in a new context'],
+};
+
 export function TypingText({ speed, text }: { speed: number; text: string }) {
     const [visibleText, setVisibleText] = useState('');
 
@@ -59,6 +71,31 @@ export function activityBubbleStyle(
         backgroundColor: colorWithOpacity(backgroundColor, opacity),
         borderColor,
     };
+}
+
+export function learningFocusLabel(
+    activity: LearningActivity,
+    translate: PlatformTranslate,
+): string {
+    const intent = activity.config.learningIntent;
+
+    if (typeof intent === 'string' && learningFocusCopy[intent]) {
+        const [key, fallback] = learningFocusCopy[intent];
+
+        return translate(key, fallback);
+    }
+
+    return activityTypeLabel(activity.type);
+}
+
+function activityTypeLabel(type: string): string {
+    const label = type.replaceAll('_', ' ').trim();
+
+    if (label === '') {
+        return 'Learning activity';
+    }
+
+    return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function themedConfig(
