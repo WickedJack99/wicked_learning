@@ -214,9 +214,14 @@ export function AppBottomNav() {
 }
 
 function ImmersiveTopNav({ items }: { items: NavItem[] }) {
+    const orderedItems = [
+        ...items.filter((item) => item.id !== 'active-activity'),
+        ...items.filter((item) => item.id === 'active-activity'),
+    ];
+
     return (
         <LearnerNavigationHeader
-            items={items.map((item) => ({
+            items={orderedItems.map((item) => ({
                 active: item.active,
                 href: item.href,
                 label: item.label,
