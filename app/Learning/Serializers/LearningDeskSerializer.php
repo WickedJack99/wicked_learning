@@ -99,6 +99,10 @@ class LearningDeskSerializer
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
             'mapTitle' => $node->map->title,
+            'nodeHref' => route('world', [
+                'map' => $node->map->slug,
+                'focused' => $node->slug,
+            ], false),
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
             'topic' => $this->topic($node->map->topic),
@@ -123,6 +127,10 @@ class LearningDeskSerializer
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
             'mapTitle' => $node->map->title,
+            'nodeHref' => route('world', [
+                'map' => $node->map->slug,
+                'focused' => $node->slug,
+            ], false),
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
             'topic' => $this->topic($node->map->topic),

@@ -109,6 +109,7 @@ test('the learning desk presents current work and saved topics', function () {
             ->where('desk.currentRoutes.0.routeLabel', 'Follow the blood flow')
             ->where('desk.currentRoutes.0.currentActivityTitle', 'Observe the flow')
             ->where('desk.currentRoutes.0.imageUrl', '/images/heart.png')
+            ->where('desk.currentRoutes.0.nodeHref', '/world?map=circulation&focused=heart-valves')
             ->has('desk.bookmarks', 1)
             ->where('desk.bookmarks.0.title', 'Heart valves')
             ->where('desk.bookmarks.0.topic.title', 'Circulation')
@@ -181,6 +182,7 @@ test('the learning desk keeps a quiet trail of recently completed routes', funct
             ->where('desk.recentRoutes.0.topic.title', 'Recent Topic')
             ->where('desk.recentRoutes.0.topic.href', '/topics/recent-topic')
             ->where('desk.recentRoutes.0.mapHref', '/world?map=recent-map')
+            ->where('desk.recentRoutes.0.nodeHref', '/world?map=recent-map&focused=recent-node')
             ->where('desk.recentRoutes.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });

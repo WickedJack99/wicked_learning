@@ -18,6 +18,7 @@ export type LearningDeskRoute = {
     lastEnteredAt: string | null;
     mapHref: string;
     mapTitle: string;
+    nodeHref: string;
     nodeTitle: string;
     routeLabel: string | null;
     topic: { href: string; title: string } | null;

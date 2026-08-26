@@ -345,7 +345,13 @@ function RouteRow({
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
-                    {route.nodeTitle} ·{' '}
+                    <Link
+                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        href={route.nodeHref}
+                    >
+                        {route.nodeTitle}
+                    </Link>{' '}
+                    ·{' '}
                     <Link
                         className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
                         href={route.mapHref}
@@ -421,7 +427,13 @@ function RecentRouteRow({
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
-                    {route.nodeTitle} ·{' '}
+                    <Link
+                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        href={route.nodeHref}
+                    >
+                        {route.nodeTitle}
+                    </Link>{' '}
+                    ·{' '}
                     <Link
                         className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
                         href={route.mapHref}
