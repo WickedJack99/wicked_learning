@@ -96,8 +96,9 @@ weights are not included in learner responses and are never presented as
 points. When a topic has a stable slug, its label can open that light directly
 on the star map; this is an optional orientation link, not a required route.
 The optional completion pause can repeat these labels beside the learner's
-feeling check-in, helping them place the moment without changing the map or
-interpreting the feeling.
+feeling check-in. When a label has a stable topic slug, it can open that
+topic's focused competence reading; this is a learner-chosen orientation link,
+not a claim that the activity produced an immediate change.
 
 ## Next evolution
 

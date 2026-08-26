@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import { ArrowRight, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -91,14 +92,24 @@ export function LearningCheckIn({
                         Connected learning areas
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
-                        {learningAreas.map((area) => (
-                            <span
-                                className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100"
-                                key={area.slug ?? area.name}
-                            >
-                                {area.name}
-                            </span>
-                        ))}
+                        {learningAreas.map((area) =>
+                            area.slug ? (
+                                <Link
+                                    className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 underline decoration-cyan-700/40 underline-offset-2 transition hover:border-cyan-500 hover:bg-cyan-100 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100 dark:decoration-teal-100/40 dark:hover:border-teal-100/50 dark:hover:bg-teal-100/15"
+                                    href={`/competence?topic=${encodeURIComponent(area.slug)}`}
+                                    key={area.slug}
+                                >
+                                    {area.name}
+                                </Link>
+                            ) : (
+                                <span
+                                    className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100"
+                                    key={area.name}
+                                >
+                                    {area.name}
+                                </span>
+                            ),
+                        )}
                     </div>
                 </div>
             ) : null}
