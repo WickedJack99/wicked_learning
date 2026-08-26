@@ -185,11 +185,13 @@ export function AppBottomNav() {
                 id: 'active-activity',
                 shouldAnimateInsertion: shouldAnimateActiveActivity,
                 label: t(
-                    isMapActive
+                    isMapActive || isBookmarksActive
                         ? 'navigation.bottom.continue_activity'
                         : 'navigation.bottom.return_to_activity',
-                    isMapActive ? 'Continue activity' : 'Return to :title',
-                    isMapActive
+                    isMapActive || isBookmarksActive
+                        ? 'Continue activity'
+                        : 'Return to :title',
+                    isMapActive || isBookmarksActive
                         ? undefined
                         : { title: activeActivity.activityTitle },
                 ),
@@ -213,7 +215,7 @@ export function AppBottomNav() {
         return null;
     }
 
-    if (isMapActive) {
+    if (isMapActive || isBookmarksActive) {
         return <ImmersiveTopNav items={items} />;
     }
 
@@ -244,17 +246,17 @@ export function AppBottomNav() {
 }
 
 function ImmersiveTopNav({ items }: { items: NavItem[] }) {
+    const t = usePlatformTranslation();
+
     return (
         <nav
-            aria-label="Primary"
-            className="fixed top-0 right-0 left-0 z-[70] border-b border-slate-200/80 bg-slate-50/94 text-slate-950 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94 dark:text-slate-100"
-            style={{
-                background: 'var(--map-bottom-nav-background)',
-                borderColor: 'var(--map-bottom-nav-border-color)',
-                color: 'var(--map-bottom-nav-text-color)',
-            }}
+            aria-label={t(
+                'home.learning_desk.navigation.label',
+                'Learner navigation',
+            )}
+            className="fixed top-0 right-0 left-0 z-[70] border-b border-slate-200/80 bg-slate-50/94 backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94"
         >
-            <div className="flex min-h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
+            <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
                 <Link
                     aria-label="Learning Worlds"
                     className="flex shrink-0 items-center gap-3"
@@ -266,7 +268,7 @@ function ImmersiveTopNav({ items }: { items: NavItem[] }) {
                     </span>
                 </Link>
 
-                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+                <div className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full gap-1 overflow-x-auto border-t border-slate-200/70 px-4 sm:order-none sm:mx-0 sm:w-auto sm:basis-auto sm:border-t-0 sm:px-0 dark:border-white/8">
                     {items.map((item) => (
                         <ImmersiveTopNavItem item={item} key={item.id} />
                     ))}
@@ -282,25 +284,16 @@ function ImmersiveTopNavItem({ item }: { item: NavItem }) {
             aria-label={item.label}
             as={item.asButton ? 'button' : undefined}
             className={cn(
-                'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-slate-200/70 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none dark:hover:bg-white/10 dark:hover:text-white',
+                'relative shrink-0 px-3 py-3 text-sm text-slate-500 transition hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none sm:py-[1.35rem] dark:text-slate-400 dark:hover:text-white',
                 item.active &&
-                    'bg-[var(--map-bottom-nav-active-background)] text-[var(--map-bottom-nav-active-text-color)] hover:bg-[var(--map-bottom-nav-active-background)] hover:text-[var(--map-bottom-nav-active-text-color)]',
+                    'text-slate-950 after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-violet-500 dark:text-white',
+                item.danger &&
+                    'text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300',
             )}
             href={item.href}
             onClick={item.onClick}
-            style={{
-                background: item.active
-                    ? 'var(--map-bottom-nav-active-background)'
-                    : undefined,
-                color: item.active
-                    ? 'var(--map-bottom-nav-active-text-color)'
-                    : item.danger
-                      ? 'var(--map-bottom-nav-exit-icon-color)'
-                      : 'var(--map-bottom-nav-text-color)',
-                cursor: 'var(--platform-action-cursor)',
-            }}
+            style={{ cursor: 'var(--platform-action-cursor)' }}
         >
-            {item.icon}
             <span>{item.label}</span>
         </Link>
     );

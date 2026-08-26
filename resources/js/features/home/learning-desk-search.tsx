@@ -121,7 +121,7 @@ export function LearningDeskSearch() {
                     className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-500/70 px-6 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-500/10 focus-visible:ring-3 focus-visible:ring-cyan-500/20 focus-visible:outline-none dark:text-cyan-300"
                     type="submit"
                 >
-                    {t('home.learning_desk.search.action', 'Explore')}
+                    {t('home.learning_desk.search.action', 'Search')}
                     <ArrowRight className="size-4" />
                 </button>
             </form>

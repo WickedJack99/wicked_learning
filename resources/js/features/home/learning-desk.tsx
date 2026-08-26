@@ -162,7 +162,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     href="/world"
                                     link={t(
                                         'home.learning_desk.connections.empty_action',
-                                        'Explore the world',
+                                        'Open the map',
                                     )}
                                     title={t(
                                         'home.learning_desk.connections.empty_title',
