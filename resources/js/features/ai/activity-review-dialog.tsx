@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, Sparkles } from 'lucide-react';
+import { ArrowRight, Bot, CheckCircle2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { reviewActivity } from './activity-review-client';
 import type {
     ActivityReviewAlignment,
     ActivityReview,
+    ActivityReviewMetadataSuggestions,
     ActivityReviewResult,
 } from './activity-review-client';
 
@@ -38,11 +39,16 @@ export function ActivityReviewDialog({
     activity,
     onClose,
     onReviewed,
+    onUseMetadata,
     templates,
 }: {
     activity: ReviewableActivity | null;
     onClose: () => void;
     onReviewed: (result: ActivityReviewResult) => void;
+    onUseMetadata: (
+        activityId: number,
+        suggestions: ActivityReviewMetadataSuggestions,
+    ) => void;
     templates: ActivityReviewTemplate[];
 }) {
     const [processing, setProcessing] = useState(false);
@@ -138,7 +144,11 @@ export function ActivityReviewDialog({
                         </div>
 
                         {result ? (
-                            <ActivityReviewResultView review={result} />
+                            <ActivityReviewResultView
+                                activityId={activity.id}
+                                onUseMetadata={onUseMetadata}
+                                review={result}
+                            />
                         ) : (
                             <div className="grid gap-4">
                                 {templates.length > 1 ? (
@@ -234,7 +244,18 @@ function formatReviewDate(value: string): string {
           }).format(date);
 }
 
-function ActivityReviewResultView({ review }: { review: ActivityReview }) {
+function ActivityReviewResultView({
+    activityId,
+    onUseMetadata,
+    review,
+}: {
+    activityId: number;
+    onUseMetadata: (
+        activityId: number,
+        suggestions: ActivityReviewMetadataSuggestions,
+    ) => void;
+    review: ActivityReview;
+}) {
     const dimensions = [
         ['Autonomy', review.review.sdt.autonomy],
         ['Competence', review.review.sdt.competence],
@@ -269,6 +290,9 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
                         />
                         <MetadataSuggestions
                             learningDesign={review.review.learningDesign}
+                            onUseMetadata={(suggestions) =>
+                                onUseMetadata(activityId, suggestions)
+                            }
                         />
                     </div>
                 </div>
@@ -305,11 +329,10 @@ function ActivityReviewResultView({ review }: { review: ActivityReview }) {
 
 function MetadataSuggestions({
     learningDesign,
+    onUseMetadata,
 }: {
-    learningDesign: {
-        suggestedCompetenceTopics: string[];
-        suggestedLearningIntent: string | null;
-    };
+    learningDesign: ActivityReviewMetadataSuggestions;
+    onUseMetadata: (suggestions: ActivityReviewMetadataSuggestions) => void;
 }) {
     const suggestions = [
         learningDesign.suggestedLearningIntent
@@ -324,11 +347,26 @@ function MetadataSuggestions({
         <div className="rounded-lg border border-dashed border-slate-300 p-3 dark:border-white/20">
             <p className="text-sm font-medium">Optional metadata suggestions</p>
             {suggestions.length > 0 ? (
-                <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                    {suggestions.map((suggestion) => (
-                        <li key={suggestion}>{suggestion}</li>
-                    ))}
-                </ul>
+                <>
+                    <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {suggestions.map((suggestion) => (
+                            <li key={suggestion}>{suggestion}</li>
+                        ))}
+                    </ul>
+                    <Button
+                        className="mt-3"
+                        onClick={() => onUseMetadata(learningDesign)}
+                        type="button"
+                        variant="outline"
+                    >
+                        <ArrowRight className="size-4" />
+                        Edit with these suggestions
+                    </Button>
+                    <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        This only opens the editor with a draft. Nothing changes
+                        until you save.
+                    </p>
+                </>
             ) : (
                 <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     No metadata change suggested.

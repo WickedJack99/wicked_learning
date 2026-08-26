@@ -36,6 +36,11 @@ export type ActivityReviewAlignment = {
     signal: 'aligned' | 'unclear' | 'mismatch';
 };
 
+export type ActivityReviewMetadataSuggestions = {
+    suggestedCompetenceTopics: string[];
+    suggestedLearningIntent: string | null;
+};
+
 export type ActivityReviewResult = {
     activityId: number;
     aiReview: ActivityReview;

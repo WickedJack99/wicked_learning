@@ -22,6 +22,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type { ActivityReviewMetadataSuggestions } from '@/features/ai/activity-review-client';
 import { ActivityReviewDialog } from '@/features/ai/activity-review-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
@@ -134,6 +135,46 @@ export default function EditNodeActivities({
     const requestReview = useCallback((activity: ActivitySummary) => {
         setReviewingActivity(activity);
     }, []);
+
+    const editWithReviewSuggestions = useCallback(
+        (
+            activityId: number,
+            suggestions: ActivityReviewMetadataSuggestions,
+        ) => {
+            const activity =
+                activityGraph.activities.find(
+                    (candidate) => candidate.id === activityId,
+                ) ?? null;
+
+            if (!activity) {
+                return;
+            }
+
+            const currentForm = activityFormFromActivity(activity, firstType);
+
+            setEditingActivity(activity);
+            setEditForm({
+                ...currentForm,
+                competence_topics:
+                    suggestions.suggestedCompetenceTopics.length > 0
+                        ? suggestions.suggestedCompetenceTopics.map(
+                              (topic) => ({
+                                  topic,
+                                  weight: '1',
+                              }),
+                          )
+                        : currentForm.competence_topics,
+                learning_intent:
+                    suggestions.suggestedLearningIntent ??
+                    currentForm.learning_intent,
+            });
+            setEditErrors({});
+            resetImageUploadErrors();
+            setReviewingActivity(null);
+            setEditOpen(true);
+        },
+        [activityGraph.activities, firstType, resetImageUploadErrors],
+    );
 
     const initialNodes = useMemo(
         () =>
@@ -553,6 +594,7 @@ export default function EditNodeActivities({
                         only: ['selectedWorldNode'],
                     });
                 }}
+                onUseMetadata={editWithReviewSuggestions}
                 templates={activityGraph.aiReviewTemplates}
             />
 
