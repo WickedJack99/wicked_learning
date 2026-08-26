@@ -2,6 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { Bookmark, Cog, DoorOpen, Home, Map, PlayCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import AppLogoIcon from '@/components/app-logo-icon';
 import {
     clearPersistedActiveActivity,
     readPersistedActiveActivity,
@@ -208,6 +209,10 @@ export function AppBottomNav() {
         return null;
     }
 
+    if (isMapActive) {
+        return <ImmersiveTopNav items={items} />;
+    }
+
     const navWidth =
         navPadding +
         items.length * navItemSize +
@@ -231,6 +236,69 @@ export function AppBottomNav() {
                 ))}
             </div>
         </nav>
+    );
+}
+
+function ImmersiveTopNav({ items }: { items: NavItem[] }) {
+    return (
+        <nav
+            aria-label="Primary"
+            className="fixed top-0 right-0 left-0 z-[70] border-b border-slate-200/80 bg-slate-50/94 text-slate-950 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94 dark:text-slate-100"
+            style={{
+                background: 'var(--map-bottom-nav-background)',
+                borderColor: 'var(--map-bottom-nav-border-color)',
+                color: 'var(--map-bottom-nav-text-color)',
+            }}
+        >
+            <div className="flex min-h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
+                <Link
+                    aria-label="Learning Worlds"
+                    className="flex shrink-0 items-center gap-3"
+                    href="/home"
+                >
+                    <AppLogoIcon className="size-8 text-violet-600 dark:text-violet-400" />
+                    <span className="hidden text-base font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
+                        Learning Worlds
+                    </span>
+                </Link>
+
+                <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+                    {items.map((item) => (
+                        <ImmersiveTopNavItem item={item} key={item.id} />
+                    ))}
+                </div>
+            </div>
+        </nav>
+    );
+}
+
+function ImmersiveTopNavItem({ item }: { item: NavItem }) {
+    return (
+        <Link
+            aria-label={item.label}
+            as={item.asButton ? 'button' : undefined}
+            className={cn(
+                'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition hover:bg-slate-200/70 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none dark:hover:bg-white/10 dark:hover:text-white',
+                item.active &&
+                    'bg-[var(--map-bottom-nav-active-background)] text-[var(--map-bottom-nav-active-text-color)] hover:bg-[var(--map-bottom-nav-active-background)] hover:text-[var(--map-bottom-nav-active-text-color)]',
+            )}
+            href={item.href}
+            onClick={item.onClick}
+            style={{
+                background: item.active
+                    ? 'var(--map-bottom-nav-active-background)'
+                    : undefined,
+                color: item.active
+                    ? 'var(--map-bottom-nav-active-text-color)'
+                    : item.danger
+                      ? 'var(--map-bottom-nav-exit-icon-color)'
+                      : 'var(--map-bottom-nav-text-color)',
+                cursor: 'var(--platform-action-cursor)',
+            }}
+        >
+            {item.icon}
+            <span>{item.label}</span>
+        </Link>
     );
 }
 

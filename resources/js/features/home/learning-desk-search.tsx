@@ -93,7 +93,7 @@ export function LearningDeskSearch() {
                     <Search className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-slate-400" />
                     <input
                         autoComplete="off"
-                        className="h-14 w-full rounded-xl border border-slate-300 bg-white pr-12 pl-13 text-base text-slate-950 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-3 focus:ring-cyan-500/15 dark:border-white/12 dark:bg-[#0d1825] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
+                        className="h-14 w-full rounded-xl border border-slate-300 bg-white pr-12 pl-13 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-3 focus:ring-cyan-500/15 dark:border-white/12 dark:bg-[#0d1825] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
                         onChange={(event) => {
                             const value = event.target.value;
 

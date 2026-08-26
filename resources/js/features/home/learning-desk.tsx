@@ -36,10 +36,10 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     'Your learning desk',
                                 )}
                             </p>
-                            <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl lg:text-[2.75rem]">
+                            <h1 className="mt-3 text-3xl font-medium tracking-tight">
                                 {greeting(t)}, {firstName}.
                             </h1>
-                            <p className="mt-2 text-lg text-slate-500 sm:text-xl dark:text-slate-400">
+                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                                 {t(
                                     'home.learning_desk.prompt',
                                     'What would you like to think about next?',
@@ -126,7 +126,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             />
                             {desk.connections.length > 0 ? (
                                 <div className="border-b border-slate-200 py-6 dark:border-white/10">
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-lg sm:text-xl">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
                                         {desk.connections.map(
                                             (connection, index) => (
                                                 <div
@@ -279,7 +279,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
             <p className="text-xs font-medium tracking-[0.16em] text-violet-600 uppercase dark:text-violet-400">
                 {t('home.learning_desk.rail.featured', 'Pinned place')}
             </p>
-            <h2 className="mt-3 text-xl font-medium">{bookmark.title}</h2>
+            <h2 className="mt-3 text-sm font-semibold">{bookmark.title}</h2>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
                 {bookmark.mapTitle}
             </p>
@@ -340,7 +340,7 @@ function RouteRow({
             </Link>
             <span className="min-w-0">
                 <Link
-                    className="block truncate text-lg font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    className="block truncate text-sm font-medium hover:text-violet-700 dark:hover:text-violet-300"
                     href={route.href}
                 >
                     {route.routeLabel ?? route.nodeTitle}
@@ -427,7 +427,7 @@ function RecentRouteRow({
             </Link>
             <span className="min-w-0">
                 <Link
-                    className="block truncate text-base font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    className="block truncate text-sm font-medium hover:text-violet-700 dark:hover:text-violet-300"
                     href={route.href}
                 >
                     {route.routeLabel ?? route.nodeTitle}

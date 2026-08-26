@@ -65,7 +65,7 @@ export function LearningDeskHeader() {
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
                 <Link className="flex shrink-0 items-center gap-3" href="/home">
                     <AppLogoIcon className="size-8 text-violet-600 dark:text-violet-400" />
-                    <span className="hidden text-base font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
+                    <span className="hidden text-sm font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
                         {name}
                     </span>
                 </Link>
