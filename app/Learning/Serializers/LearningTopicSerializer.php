@@ -30,8 +30,11 @@ class LearningTopicSerializer
             ->all());
     }
 
-    /** @return array<string, mixed> */
-    public function detail(LearningTopic $topic): array
+    /**
+     * @param  list<array<string, mixed>>  $paths
+     * @return array<string, mixed>
+     */
+    public function detail(LearningTopic $topic, array $paths = []): array
     {
         return [
             ...$this->summary($topic),
@@ -42,6 +45,7 @@ class LearningTopicSerializer
             ],
             'content' => $topic->content,
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
+            'paths' => $paths,
             'subtopics' => $topic->children
                 ->map(fn (LearningTopic $child): array => $this->summary($child))
                 ->values()

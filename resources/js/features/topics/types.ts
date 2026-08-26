@@ -23,7 +23,25 @@ export type TopicDetail = TopicSummary & {
     content: string | null;
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
+    paths: TopicPath[];
     subtopics: TopicSummary[];
+};
+
+export type TopicPath = {
+    activityTitle: string;
+    activityType: string;
+    description: string | null;
+    href: string;
+    id: number;
+    imageUrl: string | null;
+    label: string;
+    mapTitle: string;
+    nodeTitle: string;
+    progress: {
+        currentActivityTitle: string | null;
+        lastEnteredAt: string | null;
+        status: string;
+    } | null;
 };
 
 export type TopicMapSummary = {

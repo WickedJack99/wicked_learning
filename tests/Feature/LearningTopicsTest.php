@@ -1,7 +1,10 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Models\LearningActivity;
+use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
+use App\Models\LearningNode;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
@@ -154,6 +157,62 @@ test('a topic page exposes assigned maps that the learner can access', function 
             ->where('topic.maps.0.title', 'Night Sky')
             ->where('topic.maps.0.href', '/world?map=night-sky')
             ->has('topic.maps', 1)
+        );
+});
+
+test('a topic page exposes playable routes from its assigned maps', function () {
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'constellations',
+        'title' => 'Constellations',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'notice-patterns',
+        'title' => 'Notice patterns',
+        'type' => 'markdown',
+        'sort_order' => 10,
+    ]);
+    $start = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'label' => 'Begin observing',
+        'sort_order' => 10,
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 1)
+            ->where('topic.paths.0.label', 'Begin observing')
+            ->where('topic.paths.0.mapTitle', 'Night Sky')
+            ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
 });
 

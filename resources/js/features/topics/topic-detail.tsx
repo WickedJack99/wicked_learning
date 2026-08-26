@@ -4,11 +4,12 @@ import {
     ArrowRight,
     BookOpenText,
     Map as MapIcon,
+    Route,
 } from 'lucide-react';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import type { TopicDetail as TopicDetailData } from './types';
+import type { TopicDetail as TopicDetailData, TopicPath } from './types';
 
 export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
@@ -38,6 +39,45 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         </p>
                     ) : null}
                 </header>
+
+                {topic.paths.length > 0 ? (
+                    <section
+                        aria-labelledby="topic-paths-heading"
+                        className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
+                    >
+                        <div className="flex items-start gap-3">
+                            <Route className="mt-0.5 size-5 shrink-0 text-violet-600 dark:text-violet-400" />
+                            <div>
+                                <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
+                                    {t(
+                                        'topics.detail.paths.eyebrow',
+                                        'Optional ways in',
+                                    )}
+                                </p>
+                                <h2
+                                    className="mt-2 text-xl font-medium"
+                                    id="topic-paths-heading"
+                                >
+                                    {t(
+                                        'topics.detail.paths.title',
+                                        'Start with a route',
+                                    )}
+                                </h2>
+                                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'topics.detail.paths.description',
+                                        'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                            {topic.paths.map((path) => (
+                                <TopicPathCard key={path.id} path={path} />
+                            ))}
+                        </div>
+                    </section>
+                ) : null}
 
                 {topic.maps.length > 0 ? (
                     <section
@@ -151,5 +191,43 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 </div>
             </div>
         </main>
+    );
+}
+
+function TopicPathCard({ path }: { path: TopicPath }) {
+    const t = usePlatformTranslation();
+    const isInProgress = path.progress?.status === 'in_progress';
+
+    return (
+        <Link
+            className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-violet-400/60 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-violet-400/40 dark:hover:bg-violet-400/[0.06]"
+            href={path.href}
+        >
+            <span className="grid size-10 shrink-0 place-items-center border border-violet-200 text-violet-700 dark:border-violet-300/20 dark:text-violet-300">
+                {path.imageUrl ? (
+                    <img
+                        alt=""
+                        className="size-8 object-contain"
+                        src={path.imageUrl}
+                    />
+                ) : (
+                    <Route className="size-4" />
+                )}
+            </span>
+            <span className="min-w-0 flex-1">
+                <span className="block font-medium group-hover:text-violet-800 dark:group-hover:text-violet-200">
+                    {path.label}
+                </span>
+                <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                    {path.nodeTitle} · {path.mapTitle}
+                </span>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:text-violet-300">
+                    {isInProgress
+                        ? t('topics.detail.paths.continue', 'Continue')
+                        : t('topics.detail.paths.enter', 'Enter route')}
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+            </span>
+        </Link>
     );
 }

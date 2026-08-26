@@ -8,6 +8,7 @@ use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningNodeStateResolver;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivityStart;
+use App\Models\LearningTopic;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -26,7 +27,7 @@ class LoadLearningPaths
      *     progress: array<string, LearnerRouteProgress>
      * }
      */
-    public function handle(User $user): array
+    public function handle(User $user, ?LearningTopic $topic = null): array
     {
         $worldId = $this->worldResolver->query()->value('id');
 
@@ -43,7 +44,10 @@ class LoadLearningPaths
                 'node.map.topic.area',
                 'node.mapAsset',
             ])
-            ->whereHas('node.map', fn ($query) => $query->where('learning_world_id', $worldId))
+            ->whereHas('node.map', function ($query) use ($topic, $worldId): void {
+                $query->where('learning_world_id', $worldId)
+                    ->when($topic !== null, fn ($mapQuery) => $mapQuery->where('learning_topic_id', $topic->id));
+            })
             ->orderBy('learning_node_id')
             ->orderBy('sort_order')
             ->orderBy('id')
