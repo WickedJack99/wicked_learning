@@ -30,6 +30,11 @@ const navigation = [
         fallback: 'Topics',
     },
     {
+        href: '/competence',
+        key: 'home.learning_desk.navigation.competence',
+        fallback: 'Competence map',
+    },
+    {
         href: '/learning/journal',
         key: 'home.learning_desk.navigation.journal',
         fallback: 'Journal',
