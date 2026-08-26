@@ -32,11 +32,11 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
                         {topic.area.title}
                     </p>
-                    <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-5xl">
+                    <h1 className="mt-3 text-3xl font-medium tracking-tight">
                         {topic.title}
                     </h1>
                     {topic.description ? (
-                        <p className="mt-5 text-base leading-7 text-slate-600 dark:text-slate-300">
+                        <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
                             {topic.description}
                         </p>
                     ) : null}
@@ -68,7 +68,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                     )}
                                 </p>
                                 <h2
-                                    className="mt-2 text-xl font-medium"
+                                    className="mt-2 text-sm font-semibold"
                                     id="topic-paths-heading"
                                 >
                                     {t(
@@ -104,7 +104,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             )}
                         </p>
                         <h2
-                            className="mt-2 text-xl font-medium"
+                            className="mt-2 text-sm font-semibold"
                             id="topic-maps-heading"
                         >
                             {t('topics.detail.maps.title', 'Map surfaces')}

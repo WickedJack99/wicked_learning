@@ -22,7 +22,7 @@ export function TopicDirectory({
                         <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
                             {t('topics.eyebrow', 'Knowledge directory')}
                         </p>
-                        <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">
+                        <h1 className="mt-3 text-3xl font-medium tracking-tight">
                             {t('topics.title', 'Topics')}
                         </h1>
                         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -51,7 +51,7 @@ export function TopicDirectory({
                                 key={area.id}
                             >
                                 <div className="border-b border-slate-300 pb-3 dark:border-white/28">
-                                    <h2 className="text-xl font-medium sm:text-2xl">
+                                    <h2 className="text-sm font-semibold">
                                         {area.title}
                                     </h2>
                                     {area.description ? (
@@ -63,7 +63,7 @@ export function TopicDirectory({
                                 <div className="divide-y divide-slate-200/70 dark:divide-white/6">
                                     {area.topics.map((topic) => (
                                         <Link
-                                            className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-base text-slate-600 transition hover:text-violet-700 dark:text-slate-300 dark:hover:text-violet-300"
+                                            className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-slate-600 transition hover:text-violet-700 dark:text-slate-300 dark:hover:text-violet-300"
                                             href={topic.href}
                                             key={topic.id}
                                         >
@@ -97,7 +97,7 @@ export function TopicDirectory({
                     <div className="mx-auto grid min-h-[50svh] max-w-lg place-items-center text-center">
                         <div>
                             <FolderTree className="mx-auto size-8 text-cyan-600 dark:text-cyan-400" />
-                            <h2 className="mt-5 text-xl font-medium">
+                            <h2 className="mt-5 text-sm font-semibold">
                                 {t(
                                     'topics.empty.title',
                                     'No topics have been published yet',
