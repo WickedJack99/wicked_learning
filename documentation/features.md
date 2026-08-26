@@ -115,6 +115,10 @@ qualitative competence map, topic trails and bounded linked learning moments,
 while authorized support staff receive scoped signals for orientation and
 support conversations rather than ranking.
 
+Published topic pages also show the authored learning areas woven through their
+accessible map activities, with links into the corresponding focused
+competence-map reading.
+
 The demo learning world uses the same two competence topics across its dialogue,
 question, review, obstacle and field-note activities. This keeps the example
 world inspectable end to end: different kinds of participation can leave

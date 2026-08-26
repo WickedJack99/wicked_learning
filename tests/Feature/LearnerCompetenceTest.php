@@ -76,6 +76,21 @@ test('the demo route gives its practice activities a shared competence vocabular
         ->toBe('reflect');
 });
 
+test('a demo topic exposes authored learning areas before evidence exists', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $this->actingAs(User::factory()->create())
+        ->get(route('topics.show', 'pattern-investigation'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.learningAreas', 2)
+            ->where('topic.learningAreas.0.name', 'Investigation focus')
+            ->where('topic.learningAreas.0.slug', 'investigation-focus')
+            ->where('topic.learningAreas.1.name', 'Pattern recognition')
+            ->where('topic.learningAreas.1.slug', 'pattern-recognition')
+        );
+});
+
 test('a topic shows competence evidence encountered through its map', function () {
     $this->seed(DemoLearningWorldSeeder::class);
 

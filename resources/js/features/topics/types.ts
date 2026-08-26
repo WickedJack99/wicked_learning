@@ -23,6 +23,7 @@ export type TopicDetail = TopicSummary & {
     };
     content: string | null;
     competence: TopicCompetence | null;
+    learningAreas: TopicLearningArea[];
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
     paths: TopicPath[];
@@ -61,6 +62,12 @@ export type TopicEvidenceLedgerEntry = {
     id: number;
     nodeTitle: string | null;
     recordedAt: string | null;
+};
+
+export type TopicLearningArea = {
+    learningIntents: string[];
+    name: string;
+    slug: string;
 };
 
 export type TopicPath = {

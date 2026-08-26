@@ -42,6 +42,7 @@ class LearningTopicSerializer
         array $paths = [],
         ?array $competence = null,
         array $subtopicCompetence = [],
+        array $learningAreas = [],
     ): array {
         return [
             ...$this->summary($topic),
@@ -52,6 +53,7 @@ class LearningTopicSerializer
             ],
             'content' => $topic->content,
             'competence' => $this->competence($competence),
+            'learningAreas' => $learningAreas,
             'subtopicCompetence' => array_values(array_filter(
                 array_map(fn (array $entry): ?array => $this->competence($entry), $subtopicCompetence),
             )),

@@ -13,6 +13,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     TopicCompetence,
     TopicDetail as TopicDetailData,
+    TopicLearningArea,
     TopicPath,
 } from './types';
 
@@ -50,6 +51,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     subtopicCompetence={topic.subtopicCompetence}
                     topicSlug={topic.slug}
                 />
+
+                <TopicLearningAreas areas={topic.learningAreas} />
 
                 {topic.paths.length > 0 ? (
                     <section
@@ -230,6 +233,55 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 </div>
             </div>
         </main>
+    );
+}
+
+function TopicLearningAreas({ areas }: { areas: TopicLearningArea[] }) {
+    const t = usePlatformTranslation();
+
+    if (areas.length === 0) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="topic-learning-areas-heading"
+            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+        >
+            <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+                {t('topics.detail.learning_areas.eyebrow', 'Learning areas')}
+            </p>
+            <h2
+                className="mt-2 text-sm font-semibold"
+                id="topic-learning-areas-heading"
+            >
+                {t(
+                    'topics.detail.learning_areas.title',
+                    'What you can practice here',
+                )}
+            </h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {areas.map((area) => (
+                    <Link
+                        className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                        href={`/competence?topic=${encodeURIComponent(area.slug)}`}
+                        key={area.slug}
+                    >
+                        <span className="min-w-0">
+                            <span className="block font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                                {area.name}
+                            </span>
+                            <span className="mt-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {area.learningIntents
+                                    .map((intent) => learningIntentLabel(intent, t))
+                                    .join(' · ')}
+                            </span>
+                        </span>
+                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-cyan-600 transition-transform group-hover:translate-x-1 dark:text-cyan-400" />
+                    </Link>
+                ))}
+            </div>
+        </section>
     );
 }
 

@@ -9,6 +9,7 @@ use App\Learning\Queries\LoadLearningPaths;
 use App\Learning\Queries\LoadLearningTopics;
 use App\Learning\Serializers\LearningPathSerializer;
 use App\Learning\Serializers\LearningTopicSerializer;
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearningTopic;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +23,7 @@ class LearningTopicController extends Controller
         private readonly LoadLearnerCompetenceMap $competenceMap,
         private readonly LearningPathSerializer $pathSerializer,
         private readonly LearningTopicSerializer $serializer,
+        private readonly ActivityCompetenceConfiguration $competenceConfiguration,
     ) {}
 
     public function index(Request $request): Response
@@ -53,6 +55,7 @@ class LearningTopicController extends Controller
             })
             ->values();
         $competence = $competenceTopics->firstWhere('slug', $topic->slug);
+        $learningAreas = $this->learningAreas($topic);
 
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
@@ -64,7 +67,45 @@ class LearningTopicController extends Controller
                 $competenceTopics
                     ->reject(fn (array $entry): bool => $entry['slug'] === $topic->slug)
                     ->all(),
+                $learningAreas,
             ),
         ]);
+    }
+
+    /** @return list<array{name: string, slug: string, learningIntents: list<string>}> */
+    private function learningAreas(LearningTopic $topic): array
+    {
+        $entries = collect();
+
+        foreach ($topic->maps as $map) {
+            foreach ($map->nodes as $node) {
+                foreach ($node->activities as $activity) {
+                    foreach ($this->competenceConfiguration->topicsForActivity($activity) as $area) {
+                        $entries->push([
+                            'name' => $area['topic'],
+                            'slug' => $area['slug'],
+                            'learningIntent' => $this->competenceConfiguration
+                                ->learningIntentForActivity($activity),
+                        ]);
+                    }
+                }
+            }
+        }
+
+        return $entries
+            ->groupBy('slug')
+            ->map(fn ($areaEntries): array => [
+                'name' => (string) $areaEntries->first()['name'],
+                'slug' => (string) $areaEntries->first()['slug'],
+                'learningIntents' => $areaEntries
+                    ->pluck('learningIntent')
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all(),
+            ])
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 }

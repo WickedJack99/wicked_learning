@@ -105,6 +105,12 @@ feeling check-in. When a label has a stable topic slug, it can open that
 topic's focused competence reading; this is a learner-chosen orientation link,
 not a claim that the activity produced an immediate change.
 
+Published topic pages also show the authored learning areas woven through their
+accessible map activities, even before the learner has recorded evidence. Each
+area links to its focused star-map reading and names the learning purposes
+present in that topic. This describes the opportunities a topic offers without
+turning the topic page into a curriculum checklist.
+
 ## Next evolution
 
 Next, add confidence and feedback outcomes where the activity actually collects
