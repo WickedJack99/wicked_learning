@@ -53,7 +53,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     topicSlug={topic.slug}
                 />
 
-                <TopicLearningAreas areas={topic.learningAreas} />
+                <TopicLearningAreas areas={topic.learningAreas} topicSlug={topic.slug} />
 
                 <TopicLearningPulse entries={topic.learningPulse} />
 
@@ -239,7 +239,13 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     );
 }
 
-function TopicLearningAreas({ areas }: { areas: TopicLearningArea[] }) {
+function TopicLearningAreas({
+    areas,
+    topicSlug,
+}: {
+    areas: TopicLearningArea[];
+    topicSlug: string;
+}) {
     const t = usePlatformTranslation();
 
     if (areas.length === 0) {
@@ -267,7 +273,7 @@ function TopicLearningAreas({ areas }: { areas: TopicLearningArea[] }) {
                 {areas.map((area) => (
                     <Link
                         className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
-                        href={`/competence?topic=${encodeURIComponent(area.slug)}`}
+                        href={`/competence?topic=${encodeURIComponent(area.slug)}&from=${encodeURIComponent(topicSlug)}`}
                         key={area.slug}
                     >
                         <span className="min-w-0">

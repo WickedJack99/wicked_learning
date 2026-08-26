@@ -117,6 +117,11 @@ area links to its focused star-map reading and names the learning purposes
 present in that topic. This describes the opportunities a topic offers without
 turning the topic page into a curriculum checklist.
 
+When a learner opens an area from a topic page, the competence reading retains
+that topic as its return context. This is navigation state only: it does not
+make a competence area into a formal topic or change how the star map is
+calculated.
+
 ## Next evolution
 
 Next, add confidence and feedback outcomes where the activity actually collects

@@ -584,6 +584,32 @@ test('competence star map accepts a topic to open from an activity link', functi
         );
 });
 
+test('competence area links can retain a published topic as return context', function () {
+    $learner = User::factory()->create();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index', [
+            'topic' => 'pattern-recognition',
+            'from' => $topic->slug,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('selectedTopicSlug', 'pattern-recognition')
+            ->where('selectedTopic.title', 'Astronomy')
+            ->where('selectedTopic.href', route('topics.show', $topic, false))
+        );
+});
+
 test('competence star map exposes only published context for a selected topic', function () {
     $learner = User::factory()->create();
     $area = LearningTopicArea::query()->create([

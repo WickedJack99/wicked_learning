@@ -121,7 +121,8 @@ support conversations rather than ranking.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused
-competence-map reading.
+competence-map reading. Those links retain the originating topic as a return
+path even when the competence area is not itself a formal topic.
 
 The demo learning world uses the same two competence topics across its dialogue,
 question, review, obstacle and field-note activities. This keeps the example
