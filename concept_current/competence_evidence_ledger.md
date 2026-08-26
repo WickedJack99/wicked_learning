@@ -48,7 +48,7 @@ not expose event counts, contribution totals, or evidence categories as grades.
 The categories support explanations, topic trails, support conversations and
 richer star-map lenses. The map explains its visual channels in the learner
 surface: size represents how established a pattern is over time, glow represents
-activity in the current month, and paths represent topics encountered together.
+activity in the trailing 30-day window, and paths represent topics encountered together.
 These are interpretive signals, not a hidden score scale presented in disguise.
 
 ## Learning pulse check-in

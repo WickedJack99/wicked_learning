@@ -21,8 +21,8 @@ import {
     SettingsConfigurationShell,
     SettingsPanelHeader,
     SettingsSectionNavigation,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -392,9 +392,11 @@ function CompetenceTopicsSection({
                                 Competence topic definitions
                             </h2>
                         </div>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                            Thresholds decide how quickly each topic star grows,
-                            brightens and shows its monthly aura.
+                        <p className="mt-1 max-w-3xl text-sm text-slate-500 dark:text-slate-400">
+                            Size uses all recorded evidence. Brightness and glow
+                            use the trailing 30 days, so authors can calibrate
+                            the visual language without exposing measurements to
+                            learners.
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -463,7 +465,7 @@ function CompetenceTopicsSection({
                             <div className="grid gap-3 pt-1 lg:grid-cols-[8rem_8rem_8rem_auto] lg:items-end">
                                 <ThresholdInput
                                     id={`competence-growth-${index}`}
-                                    label="Growth"
+                                    label="Size threshold"
                                     onChange={(value) =>
                                         updateTopic(
                                             index,
@@ -475,7 +477,7 @@ function CompetenceTopicsSection({
                                 />
                                 <ThresholdInput
                                     id={`competence-emittance-${index}`}
-                                    label="Emittance"
+                                    label="Brightness threshold"
                                     onChange={(value) =>
                                         updateTopic(
                                             index,
@@ -487,7 +489,7 @@ function CompetenceTopicsSection({
                                 />
                                 <ThresholdInput
                                     id={`competence-aura-${index}`}
-                                    label="Aura"
+                                    label="Glow threshold"
                                     onChange={(value) =>
                                         updateTopic(
                                             index,

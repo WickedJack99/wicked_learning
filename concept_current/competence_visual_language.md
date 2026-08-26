@@ -9,10 +9,12 @@ comparison surface.
 The backend `CompetenceVisualScale` converts the existing stored topic signals
 into three bounded ratios:
 
-- `sizeRatio` controls the star's base size and uses the topic growth threshold.
-- `brightnessRatio` controls the star's presence and uses the topic brightness
-  threshold.
-- `auraRatio` controls the surrounding aura and uses the current-period signal.
+- `sizeRatio` controls the star's base size and uses all recorded evidence
+  against the topic's size threshold.
+- `brightnessRatio` controls the star's presence and uses evidence from the
+  trailing 30 days against the topic's brightness threshold.
+- `auraRatio` controls the surrounding glow and uses that same trailing
+  30-day signal against the topic's glow threshold.
 
 The learner reading translates the aura ratio into a qualitative recent-rhythm
 description. It can say that recent learning is gently or strongly lighting an
@@ -29,9 +31,9 @@ The ratios are capped at `1` and are converted into stable visual tiers:
 the tier description instead of exposing raw totals or thresholds.
 
 The demo stores immutable `LearnerEvidenceEvent` records instead of cumulative
-competence and monthly point tables. Each event records its topic, evidence
-type, contribution, outcome and assistance state. The visual contract can
-therefore change its aggregation rules without changing the learner's map
+competence records or monthly point tables. Each event records its topic,
+evidence type, contribution, outcome and assistance state. The visual contract
+can therefore change its aggregation rules without changing the learner's map
 experience. Topic pages and selected-light readings may expose a small linked
 ledger of these moments so learners can recognize what shaped a trail.
 
