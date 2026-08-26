@@ -2,7 +2,9 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearnerRouteProgress;
+use App\Models\LearningActivity;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTopic;
 use DateTimeInterface;
@@ -11,6 +13,10 @@ use Illuminate\Support\Collection;
 
 class LearningDeskSerializer
 {
+    public function __construct(
+        private readonly ActivityCompetenceConfiguration $competence,
+    ) {}
+
     /**
      * @param  array{
      *     bookmarks: Collection<int, LearningNodeBookmark>,
@@ -95,6 +101,9 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
+            'learningIntent' => $this->learningIntent(
+                $progress->currentActivity ?? $route?->activity,
+            ),
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
@@ -123,6 +132,7 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
+            'learningIntent' => $this->learningIntent($route?->activity),
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
@@ -148,6 +158,13 @@ class LearningDeskSerializer
             'href' => route('topics.show', $topic, false),
             'title' => $topic->title,
         ];
+    }
+
+    private function learningIntent(?LearningActivity $activity): ?string
+    {
+        return $activity
+            ? $this->competence->learningIntentForActivity($activity)
+            : null;
     }
 
     private function dateTimeString(mixed $value): ?string

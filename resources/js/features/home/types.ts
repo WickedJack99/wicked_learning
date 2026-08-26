@@ -14,6 +14,7 @@ export type LearningDeskRoute = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningIntent: string | null;
     lastCompletedAt: string | null;
     lastEnteredAt: string | null;
     mapHref: string;

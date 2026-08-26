@@ -2,13 +2,17 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearnerRouteProgress;
-use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use Illuminate\Support\Collection;
 
 class LearningPathSerializer
 {
+    public function __construct(
+        private readonly ActivityCompetenceConfiguration $competence,
+    ) {}
+
     /**
      * @param  array{
      *     routes: Collection<int, LearningActivityStart>,
@@ -38,7 +42,9 @@ class LearningPathSerializer
                     ], false),
                     'id' => $route->id,
                     'imageUrl' => $node->mapAsset?->image_url,
-                    'learningIntent' => $this->learningIntent($route->activity),
+                    'learningIntent' => $this->competence->learningIntentForActivity(
+                        $route->activity,
+                    ),
                     'label' => $route->label ?: $route->activity->title,
                     'mapHref' => route('world', ['map' => $map->slug], false),
                     'mapTitle' => $map->title,
@@ -65,22 +71,5 @@ class LearningPathSerializer
     private function progressKey(int $nodeId, int $activityId): string
     {
         return $nodeId.':'.$activityId;
-    }
-
-    private function learningIntent(LearningActivity $activity): ?string
-    {
-        $intent = is_array($activity->config)
-            ? $activity->config['learningIntent'] ?? null
-            : null;
-
-        return is_string($intent) && in_array($intent, [
-            'apply',
-            'explain',
-            'participate',
-            'reflect',
-            'retrieve',
-            'review',
-            'transfer',
-        ], true) ? $intent : null;
     }
 }

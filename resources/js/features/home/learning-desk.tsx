@@ -7,6 +7,7 @@ import {
     Compass,
     Pin,
 } from 'lucide-react';
+import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskHeader } from './learning-desk-header';
 import { LearningDeskSearch } from './learning-desk-search';
@@ -344,6 +345,11 @@ function RouteRow({
                 >
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
+                {route.learningIntent ? (
+                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        {learningIntentLabel(route.learningIntent, t)}
+                    </span>
+                ) : null}
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
                     <Link
                         className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
@@ -426,6 +432,11 @@ function RecentRouteRow({
                 >
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
+                {route.learningIntent ? (
+                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        {learningIntentLabel(route.learningIntent, t)}
+                    </span>
+                ) : null}
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
                     <Link
                         className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
