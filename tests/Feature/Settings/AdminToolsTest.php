@@ -154,6 +154,10 @@ test('admin users can replace and delete reusable media assets', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/index')
             ->has('assetsWorldObjects.visuals')
+            ->where('assetsWorldObjects.visuals.0.referenceCount', 1)
+            ->where('assetsWorldObjects.visuals.0.referenceGroups', [
+                ['count' => 1, 'label' => 'Tools'],
+            ])
         );
 
     $this->actingAs($admin)

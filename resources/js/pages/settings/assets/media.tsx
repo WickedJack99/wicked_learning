@@ -20,6 +20,8 @@ export type ReusableMediaAsset = {
     canViewPath: boolean;
     extension: string;
     label: string;
+    referenceCount: number;
+    referenceGroups: Array<{ count: number; label: string }>;
     source: string;
     uploaded: boolean;
     url: string;
@@ -79,6 +81,14 @@ export default function AdminMediaAssets({
             return;
         }
 
+        if (
+            !window.confirm(
+                `Replace ${selectedAsset.label}?\n\n${referenceDescription(selectedAsset)}`,
+            )
+        ) {
+            return;
+        }
+
         const formData = new FormData();
         formData.append('url', selectedAsset.url);
         formData.append('file', file);
@@ -89,12 +99,28 @@ export default function AdminMediaAssets({
         });
     };
 
+    const referenceDescription = (asset: ReusableMediaAsset) => {
+        if (asset.referenceCount === 0) {
+            return 'This visual is not currently used by saved learning content.';
+        }
+
+        const groups = asset.referenceGroups
+            .map(({ count, label }) => `${count} ${label.toLowerCase()}`)
+            .join(', ');
+
+        return `This visual is used in ${groups}. Replacing it keeps those links intact; deleting it clears them.`;
+    };
+
     const deleteSelectedAsset = () => {
         if (!selectedAsset) {
             return;
         }
 
-        if (!window.confirm(`Delete ${selectedAsset.label}?`)) {
+        if (
+            !window.confirm(
+                `Delete ${selectedAsset.label}?\n\n${referenceDescription(selectedAsset)}`,
+            )
+        ) {
             return;
         }
 
@@ -271,6 +297,11 @@ function AssetDetails({
                         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                             {asset.source} / {asset.extension.toUpperCase()}
                         </p>
+                        <p className="mt-3 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
+                            {asset.referenceCount === 0
+                                ? 'Not currently used by saved learning content.'
+                                : `Used in ${asset.referenceGroups.map(({ count, label }) => `${count} ${label.toLowerCase()}`).join(', ')}.`}
+                        </p>
                         {asset.canViewPath ? (
                             <p className="mt-2 text-xs break-all text-slate-400 dark:text-slate-500">
                                 {asset.url}
@@ -285,7 +316,7 @@ function AssetDetails({
                             variant="secondary"
                         >
                             <Upload className="size-4" />
-                            Replace and keep
+                            Replace and keep links
                         </Button>
                         <Button asChild type="button" variant="ghost">
                             <a download href={asset.url} rel="noreferrer">

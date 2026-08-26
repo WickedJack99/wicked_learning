@@ -46,6 +46,46 @@ class ReusableMediaAssetManager
         return $this->deleteAsset($url);
     }
 
+    /**
+     * @return array{count: int, groups: list<array{count: int, label: string}>}
+     */
+    public function referenceSummary(string $url): array
+    {
+        $groups = collect([
+            'Tools' => $this->countStringColumns(
+                LearningTool::class,
+                ['image_dark', 'image_light', 'animation_dark', 'animation_light'],
+                $url,
+            ),
+            'Activity starts' => $this->countStringColumns(
+                LearningActivityStart::class,
+                ['image_dark', 'image_light'],
+                $url,
+            ),
+            'Dialogue' => $this->countStringColumns(DialogueStage::class, ['portrait_url'], $url)
+                + $this->countJsonColumnReferences(DialogueStage::class, 'visual_config', $url)
+                + $this->countJsonColumnReferences(NpcDialogueNode::class, 'config', $url),
+            'Activities' => $this->countJsonColumnReferences(LearningActivity::class, 'config', $url),
+            'Maps' => $this->countJsonColumnReferences(LearningMap::class, 'background_config', $url),
+            'Map places' => $this->countJsonColumnReferences(LearningMapAsset::class, 'visual_config', $url)
+                + $this->countStringColumns(LearningMapAsset::class, ['image_url'], $url),
+            'Learning nodes' => $this->countJsonColumnReferences(LearningNode::class, 'visual_config', $url),
+            'Presentation' => $this->countJsonColumnReferences(PlatformPresentationSetting::class, 'value', $url),
+        ])
+            ->filter(fn (int $count): bool => $count > 0)
+            ->map(fn (int $count, string $label): array => [
+                'count' => $count,
+                'label' => $label,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'count' => collect($groups)->sum('count'),
+            'groups' => $groups,
+        ];
+    }
+
     public function deleteAsset(string $url): int
     {
         $path = $this->storagePathFromUrl($url);
@@ -138,6 +178,16 @@ class ReusableMediaAssetManager
 
     /**
      * @param  class-string<Model>  $modelClass
+     * @param  list<string>  $columns
+     */
+    private function countStringColumns(string $modelClass, array $columns, string $url): int
+    {
+        return collect($columns)
+            ->sum(fn (string $column): int => $modelClass::query()->where($column, $url)->count());
+    }
+
+    /**
+     * @param  class-string<Model>  $modelClass
      */
     private function replaceJsonColumnReferences(
         string $modelClass,
@@ -169,6 +219,23 @@ class ReusableMediaAssetManager
     }
 
     /**
+     * @param  class-string<Model>  $modelClass
+     */
+    private function countJsonColumnReferences(string $modelClass, string $column, string $url): int
+    {
+        $count = 0;
+
+        $modelClass::query()
+            ->each(function ($model) use ($column, $url, &$count): void {
+                if ($this->containsValue($model->{$column}, $url)) {
+                    $count++;
+                }
+            });
+
+        return $count;
+    }
+
+    /**
      * @return array{0: mixed, 1: bool}
      */
     private function replaceInValue(mixed $value, string $oldUrl, string $newUrl): array
@@ -190,6 +257,25 @@ class ReusableMediaAssetManager
         }
 
         return [$value, $changed];
+    }
+
+    private function containsValue(mixed $value, string $needle): bool
+    {
+        if ($value === $needle) {
+            return true;
+        }
+
+        if (! is_array($value)) {
+            return false;
+        }
+
+        foreach ($value as $item) {
+            if ($this->containsValue($item, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function storagePathFromUrl(string $url): ?string

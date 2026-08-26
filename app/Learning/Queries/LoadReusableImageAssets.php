@@ -4,6 +4,7 @@ namespace App\Learning\Queries;
 
 use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
+use App\Learning\Services\ReusableMediaAssetManager;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -12,8 +13,10 @@ use SplFileInfo;
 
 class LoadReusableImageAssets
 {
+    public function __construct(private readonly ReusableMediaAssetManager $mediaAssetManager) {}
+
     /**
-     * @return list<array{canDelete: bool, canViewPath: bool, extension: string, label: string, source: string, uploaded: bool, url: string}>
+     * @return list<array{canDelete: bool, canViewPath: bool, extension: string, label: string, referenceCount: int, referenceGroups: list<array{count: int, label: string}>, source: string, uploaded: bool, url: string}>
      */
     public function handle(?string $search = null, ?User $user = null): array
     {
@@ -31,15 +34,21 @@ class LoadReusableImageAssets
                 ['modifiedAt', 'desc'],
                 ['url', 'asc'],
             ])
-            ->map(fn (array $asset): array => [
-                'canDelete' => true,
-                'canViewPath' => $canViewPath,
-                'extension' => $asset['extension'],
-                'label' => $asset['label'],
-                'source' => $asset['source'],
-                'uploaded' => $asset['uploaded'],
-                'url' => $asset['url'],
-            ])
+            ->map(function (array $asset) use ($canViewPath): array {
+                $references = $this->mediaAssetManager->referenceSummary($asset['url']);
+
+                return [
+                    'canDelete' => true,
+                    'canViewPath' => $canViewPath,
+                    'extension' => $asset['extension'],
+                    'label' => $asset['label'],
+                    'referenceCount' => $references['count'],
+                    'referenceGroups' => $references['groups'],
+                    'source' => $asset['source'],
+                    'uploaded' => $asset['uploaded'],
+                    'url' => $asset['url'],
+                ];
+            })
             ->values()
             ->all();
     }
