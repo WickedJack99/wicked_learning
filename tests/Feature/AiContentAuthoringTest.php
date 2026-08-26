@@ -189,6 +189,40 @@ test('an administrator can include a shared task in a content plan', function ()
         ->and($activity->config['learningIntent'])->toBe('explain');
 });
 
+test('an administrator can include an open practice activity in a content plan', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_open_practice',
+            'output_text' => json_encode(openPracticeContentPlan()),
+        ]),
+    ]);
+
+    $generateResponse = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Help learners choose a useful next investigation step.',
+            'route_length' => 1,
+            'activity_types' => ['open_practice'],
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.plan.activities.0.type', 'open_practice');
+    $run = AiContentAuthoringRun::query()->findOrFail($generateResponse->json('data.id'));
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai-content-plans.apply', $run))
+        ->assertCreated()
+        ->assertJsonPath('data.mapAsset.activityCount', 1);
+
+    $activity = LearningActivity::query()->sole();
+
+    expect($activity->type)->toBe('open_practice')
+        ->and($activity->config['nextStep'])->toBe('Choose one observation to investigate next.')
+        ->and($activity->config['competenceTopics'][0]['topic'])->toBe('Investigation practice')
+        ->and($activity->config['learningIntent'])->toBe('participate');
+});
+
 test('only the administrator who generated a draft can apply it', function () {
     $creator = aiAuthoringUser();
     $otherAdmin = aiAuthoringUser();
@@ -350,6 +384,31 @@ function sharedTaskContentPlan(): array
             'inputLabel' => 'Add an observation',
             'competenceTopics' => ['Energy systems'],
             'learningIntent' => 'explain',
+        ]],
+    ];
+}
+
+/** @return array<string, mixed> */
+function openPracticeContentPlan(): array
+{
+    return [
+        'summary' => 'A self-directed pause before the next investigation.',
+        'mapAsset' => [
+            'title' => 'Investigation pause',
+            'description' => 'Choose a useful next step before continuing.',
+            'label' => 'Choose a next step',
+        ],
+        'activities' => [[
+            'type' => 'open_practice',
+            'title' => 'Choose the next clue',
+            'introduction' => 'Take a moment to decide where your attention should go next.',
+            'body' => null,
+            'prompt' => 'Choose one observation to investigate next.',
+            'note' => null,
+            'topic' => null,
+            'inputLabel' => null,
+            'competenceTopics' => ['Investigation practice'],
+            'learningIntent' => 'participate',
         ]],
     ];
 }

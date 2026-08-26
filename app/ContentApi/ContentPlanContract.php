@@ -6,9 +6,9 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 
 class ContentPlanContract
 {
-    public const VERSION = '1.3';
+    public const VERSION = '1.4';
 
-    public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt', 'shared_task'];
+    public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt', 'shared_task', 'open_practice'];
 
     /** @return array<string, mixed> */
     public function document(): array
@@ -81,7 +81,7 @@ class ContentPlanContract
                             ],
                             'prompt' => [
                                 'type' => ['string', 'null'],
-                                'description' => 'Learner prompt for reflections, message prompts and shared tasks; null for markdown activities.',
+                                'description' => 'Learner prompt for reflections, message prompts, shared tasks and open practice; null for markdown activities.',
                                 'maxLength' => 4000,
                             ],
                             'note' => [

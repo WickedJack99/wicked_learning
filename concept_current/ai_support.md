@@ -86,12 +86,13 @@ review state. A map with waiting reviews links directly to the first affected
 node, making the scoped queue discoverable before an author opens individual
 maps.
 
-The first content-authoring contract supports Markdown, Reflection, Message
-prompt and Shared task activities. A Message prompt receives a scoped shared
-topic and input label. A Shared task is applied as a text contribution task
+The content-authoring contract supports Markdown, Reflection, Message
+prompt, Shared task and Open practice activities. An Open practice activity
+receives a concrete invitation for a learner-owned next step. A Message prompt
+receives a scoped shared topic and input label. A Shared task is applied as a text contribution task
 with a concrete prompt, optional instructions and the existing minimum-length
 validation defaults; tutors can refine its participation settings afterward.
-Both activity types use the same validated activity creation path, and the AI
+All activity types use the same validated activity creation path, and the AI
 does not receive or invent learner messages.
 
 Depending on the administrator-selected scope, the agent should receive or load relevant context such as:

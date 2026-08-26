@@ -95,6 +95,13 @@ class ContentPlanValidator
                         'Shared tasks need an invitation for learner contributions.',
                     );
                 }
+
+                if (($activity['type'] ?? null) === 'open_practice' && blank($activity['prompt'] ?? null)) {
+                    $validator->errors()->add(
+                        "activities.{$index}.prompt",
+                        'Open practice activities need an invitation for the learner-owned next step.',
+                    );
+                }
             }
         });
 

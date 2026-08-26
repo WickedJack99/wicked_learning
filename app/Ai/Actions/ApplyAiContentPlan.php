@@ -149,6 +149,13 @@ class ApplyAiContentPlan
             ];
         }
 
+        if ($plan['type'] === 'open_practice') {
+            return [
+                ...$base,
+                'open_practice_next_step' => $plan['prompt'],
+            ];
+        }
+
         return [
             ...$base,
             'markdown_pages' => [[

@@ -57,6 +57,7 @@ const contentAuthoringActivityTypes: ContentPlanActivityType[] = [
     'reflection',
     'message_prompt',
     'shared_task',
+    'open_practice',
 ];
 
 export function ContentAuthoringDialog({
@@ -652,6 +653,7 @@ function initialForm(templates: ContentAuthoringTemplate[]): FormState {
             'reflection',
             'message_prompt',
             'shared_task',
+            'open_practice',
         ],
         goal: '',
         priorKnowledge: '',
@@ -684,8 +686,13 @@ function activityTypeLabel(
                   'settings.ai.authoring.activity_type.message_prompt',
                   'Message prompt',
               )
-            : t(
-                  'settings.ai.authoring.activity_type.shared_task',
-                  'Shared task',
-              );
+            : type === 'shared_task'
+              ? t(
+                    'settings.ai.authoring.activity_type.shared_task',
+                    'Shared task',
+                )
+              : t(
+                    'settings.ai.authoring.activity_type.open_practice',
+                    'Open practice',
+                );
 }

@@ -31,7 +31,8 @@ and choose **Create with AI**. The brief asks for:
 - one to three Activities
 - allowed Activity types
 
-The current ContentPlan supports Markdown and Reflection Activities. Generation
+The current ContentPlan supports Markdown, Reflection, Message prompt, Shared
+task and Open practice Activities. Generation
 receives the selected map's title, description and existing MapAsset summaries
 so the model can avoid obvious duplication. It does not receive learner records
 or hidden answer data.
@@ -60,7 +61,7 @@ Applying a draft:
 2. checks that the draft belongs to that user and has not already been applied;
 3. validates the ContentPlan and normal World Builder rules again;
 4. creates one focusable MapAsset at X/Y 50 with default size 14;
-5. creates the Markdown/Reflection Activities and route start;
+5. creates the selected Activities and route start;
 6. connects the linear transitions; and
 7. records who applied the draft and when.
 
