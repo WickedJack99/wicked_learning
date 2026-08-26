@@ -74,14 +74,32 @@ export default function CompetenceStarMap({
                                     </Link>
                                 </Button>
                                 <Button asChild variant="secondary">
-                                    <Link href="/world">
+                                    <Link
+                                        href={selectedTopic?.href ?? '/world'}
+                                    >
                                         <ArrowLeft className="size-4" />
-                                        Back to world
+                                        {selectedTopic
+                                            ? `Back to ${selectedTopic.title}`
+                                            : 'Back to world'}
                                     </Link>
                                 </Button>
                             </div>
                         }
                         accentColor="var(--map-floating-accent-color)"
+                        description={
+                            selectedTopic ? (
+                                <>
+                                    Viewing the learning trail around{' '}
+                                    <Link
+                                        className="font-medium text-cyan-300 underline decoration-cyan-300/40 underline-offset-4 transition hover:text-cyan-100"
+                                        href={selectedTopic.href}
+                                    >
+                                        {selectedTopic.title}
+                                    </Link>
+                                    .
+                                </>
+                            ) : undefined
+                        }
                         eyebrow="Competence"
                         icon={<Sparkles className="size-5" />}
                         title="Star Map"
