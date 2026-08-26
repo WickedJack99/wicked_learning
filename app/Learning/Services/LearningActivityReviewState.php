@@ -27,6 +27,7 @@ class LearningActivityReviewState
         $activity->forceFill([
             'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW,
             'ai_reviewed_at' => null,
+            'ai_review' => null,
         ])->save();
     }
 }

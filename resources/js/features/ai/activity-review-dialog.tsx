@@ -176,14 +176,18 @@ export function ActivityReviewDialog({
                     >
                         Close
                     </Button>
-                    {activity && !result ? (
+                    {activity ? (
                         <Button
                             disabled={processing || templateId === ''}
                             onClick={runReview}
                             type="button"
                         >
                             <Sparkles className="size-4" />
-                            {processing ? 'Reviewing…' : 'Review activity'}
+                            {processing
+                                ? 'Reviewing…'
+                                : result
+                                  ? 'Review again'
+                                  : 'Review activity'}
                         </Button>
                     ) : null}
                 </DialogFooter>

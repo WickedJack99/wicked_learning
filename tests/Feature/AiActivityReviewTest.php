@@ -49,6 +49,16 @@ test('an administrator can request a scoped activity review', function () {
     expect($activity->refresh()->ai_review_status)->toBe('reviewed')
         ->and($activity->ai_reviewed_at)->not->toBeNull()
         ->and($activity->ai_review['review']['sdt']['autonomy']['signal'])->toBe('supported');
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Next reflection, revised',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
+
+    expect($activity->refresh()->ai_review_status)->toBe('needs_review')
+        ->and($activity->ai_reviewed_at)->toBeNull()
+        ->and($activity->ai_review)->toBeNull();
 });
 
 test('activity review rejects templates from another AI purpose', function () {
