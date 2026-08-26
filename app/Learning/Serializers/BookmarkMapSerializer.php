@@ -3,12 +3,16 @@
 namespace App\Learning\Serializers;
 
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNodeBookmark;
 use Illuminate\Support\Collection;
 
 class BookmarkMapSerializer
 {
-    public function __construct(private readonly LearningNodeSerializer $nodeSerializer) {}
+    public function __construct(
+        private readonly LearningMapAssetSerializer $mapAssetSerializer,
+        private readonly LearningNodeSerializer $nodeSerializer,
+    ) {}
 
     /**
      * @param  Collection<int, LearningNodeBookmark>  $bookmarks
@@ -23,6 +27,13 @@ class BookmarkMapSerializer
             'description' => 'A personal map of places you marked for returning later.',
             'backgroundConfig' => $this->backgroundConfig($templateMap),
             'gridConfig' => $this->gridConfig($templateMap),
+            'mapAssets' => $bookmarks
+                ->map(fn (LearningNodeBookmark $bookmark): ?LearningMapAsset => $bookmark->node->mapAsset)
+                ->filter()
+                ->unique('id')
+                ->map(fn (LearningMapAsset $asset): array => $this->mapAssetSerializer->serialize($asset))
+                ->values()
+                ->all(),
             'nodes' => $bookmarks
                 ->map(fn (LearningNodeBookmark $bookmark, int $index): array => $this->nodeSerializer->serializeBookmarkNode(
                     $bookmark->node,

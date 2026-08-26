@@ -7,6 +7,7 @@ use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTool;
@@ -121,6 +122,13 @@ test('authenticated users can visit their bookmark map', function () {
         'user_id' => $user->id,
         'learning_node_id' => $node->id,
     ]);
+    LearningMapAsset::query()->create([
+        'learning_map_id' => $node->learning_map_id,
+        'learning_node_id' => $node->id,
+        'image_url' => '/images/bookmark.png',
+        'focusable' => true,
+        'interaction_mode' => 'focusable',
+    ]);
 
     $this->actingAs($user)
         ->get(route('bookmarks'))
@@ -128,6 +136,8 @@ test('authenticated users can visit their bookmark map', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('bookmarks')
             ->where('bookmarkMap.slug', 'bookmarks')
+            ->has('bookmarkMap.mapAssets', 1)
+            ->where('bookmarkMap.mapAssets.0.nodeId', $node->id)
             ->where('bookmarkMap.nodes.0.slug', 'portal-foundation')
             ->where('bookmarkMap.nodes.0.mapSlug', 'first-sector')
             ->where('bookmarkMap.nodes.0.position.q', 0)
