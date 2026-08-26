@@ -74,6 +74,11 @@ The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the
 tutor remains responsible for deciding whether any suggestion is useful.
 
+The first content-authoring contract supports Markdown, Reflection and Message
+prompt activities. A Message prompt receives a scoped shared topic and input
+label so it can be applied through the same validated activity creation path;
+the AI does not receive or invent learner messages.
+
 Depending on the administrator-selected scope, the agent should receive or load relevant context such as:
 
 - existing worlds and maps

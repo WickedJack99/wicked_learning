@@ -51,7 +51,7 @@ class ApplyAiContentPlan
             $activities = [];
 
             foreach ($plan['activities'] as $index => $activityPlan) {
-                $activityData = $this->activityData($activityPlan, $index);
+                $activityData = $this->activityData($activityPlan, $index, $asset->node->title);
                 $activities[] = $this->createActivity->handle(
                     $asset->node,
                     Validator::make(
@@ -103,7 +103,7 @@ class ApplyAiContentPlan
      * @param  array<string, mixed>  $plan
      * @return array<string, mixed>
      */
-    private function activityData(array $plan, int $index): array
+    private function activityData(array $plan, int $index, string $defaultMessageTopic): array
     {
         $base = [
             'title' => $plan['title'],
@@ -120,6 +120,15 @@ class ApplyAiContentPlan
                 'reflection_note' => $plan['note'] ?? null,
                 'reflection_topic' => null,
                 'reflection_subtopic' => null,
+            ];
+        }
+
+        if ($plan['type'] === 'message_prompt') {
+            return [
+                ...$base,
+                'message_topic_title' => $plan['topic'] ?? $defaultMessageTopic,
+                'message_prompt_text' => $plan['prompt'],
+                'message_input_label' => $plan['inputLabel'] ?? 'Your message',
             ];
         }
 

@@ -52,6 +52,12 @@ type FormState = {
     templateId: string;
 };
 
+const contentAuthoringActivityTypes: ContentPlanActivityType[] = [
+    'markdown',
+    'reflection',
+    'message_prompt',
+];
+
 export function ContentAuthoringDialog({
     mapId,
     mapTitle,
@@ -386,7 +392,10 @@ function AuthoringForm({
             </div>
             <aside className="grid min-w-0 auto-rows-max gap-5 border-t border-[var(--settings-border-color)] pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-5">
                 <Field
-                    label={t('settings.ai.authoring.template', 'Agent template')}
+                    label={t(
+                        'settings.ai.authoring.template',
+                        'Agent template',
+                    )}
                 >
                     <select
                         className="h-10 w-full min-w-0 rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 text-sm"
@@ -406,7 +415,10 @@ function AuthoringForm({
                     </select>
                     {selectedTemplate ? (
                         <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
-                            {[selectedTemplate.providerLabel, selectedTemplate.model]
+                            {[
+                                selectedTemplate.providerLabel,
+                                selectedTemplate.model,
+                            ]
                                 .filter(Boolean)
                                 .join(' · ')}
                         </p>
@@ -442,7 +454,7 @@ function AuthoringForm({
                             'Allowed Activity types',
                         )}
                     </legend>
-                    {(['markdown', 'reflection'] as const).map((type) => (
+                    {contentAuthoringActivityTypes.map((type) => (
                         <label
                             className="flex items-center gap-3 text-sm"
                             key={type}
@@ -533,7 +545,10 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                     </dt>
                     <dd>{draft.plan.mapAsset.label ?? '—'}</dd>
                     <dt className="text-[var(--settings-muted-text)]">
-                        {t('settings.ai.authoring.description_field', 'Description')}
+                        {t(
+                            'settings.ai.authoring.description_field',
+                            'Description',
+                        )}
                     </dt>
                     <dd>{draft.plan.mapAsset.description ?? '—'}</dd>
                     <dt className="text-[var(--settings-muted-text)]">
@@ -578,8 +593,9 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                 ) : null}
                                 <p
                                     className={cn(
-                                        'mt-3 max-h-28 overflow-auto whitespace-pre-wrap border-l-2 border-[var(--settings-border-color)] pl-3 text-sm leading-6',
-                                        !activity.body && !activity.prompt &&
+                                        'mt-3 max-h-28 overflow-auto border-l-2 border-[var(--settings-border-color)] pl-3 text-sm leading-6 whitespace-pre-wrap',
+                                        !activity.body &&
+                                            !activity.prompt &&
                                             'text-[var(--settings-muted-text)]',
                                     )}
                                 >
@@ -588,6 +604,20 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                 {activity.note ? (
                                     <p className="mt-2 text-xs text-[var(--settings-muted-text)]">
                                         {activity.note}
+                                    </p>
+                                ) : null}
+                                {activity.type === 'message_prompt' &&
+                                (activity.topic || activity.inputLabel) ? (
+                                    <p className="mt-2 text-xs text-[var(--settings-muted-text)]">
+                                        {activity.topic
+                                            ? `Shared topic: ${activity.topic}`
+                                            : null}
+                                        {activity.topic && activity.inputLabel
+                                            ? ' · '
+                                            : null}
+                                        {activity.inputLabel
+                                            ? `Input: ${activity.inputLabel}`
+                                            : null}
                                     </p>
                                 ) : null}
                             </div>
@@ -599,13 +629,7 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
     );
 }
 
-function Field({
-    children,
-    label,
-}: {
-    children: ReactNode;
-    label: string;
-}) {
+function Field({ children, label }: { children: ReactNode; label: string }) {
     return (
         <Label className="grid min-w-0 gap-2 text-sm font-medium">
             {label}
@@ -616,7 +640,7 @@ function Field({
 
 function initialForm(templates: ContentAuthoringTemplate[]): FormState {
     return {
-        activityTypes: ['markdown', 'reflection'],
+        activityTypes: ['markdown', 'reflection', 'message_prompt'],
         goal: '',
         priorKnowledge: '',
         routeLength: '2',
@@ -641,5 +665,10 @@ function activityTypeLabel(
 ): string {
     return type === 'markdown'
         ? t('settings.ai.authoring.activity_type.markdown', 'Markdown')
-        : t('settings.ai.authoring.activity_type.reflection', 'Reflection');
+        : type === 'reflection'
+          ? t('settings.ai.authoring.activity_type.reflection', 'Reflection')
+          : t(
+                'settings.ai.authoring.activity_type.message_prompt',
+                'Message prompt',
+            );
 }

@@ -1,10 +1,15 @@
-export type ContentPlanActivityType = 'markdown' | 'reflection';
+export type ContentPlanActivityType =
+    | 'markdown'
+    | 'message_prompt'
+    | 'reflection';
 
 export type ContentPlanActivity = {
     body: string | null;
     introduction: string | null;
+    inputLabel: string | null;
     note: string | null;
     prompt: string | null;
+    topic: string | null;
     title: string;
     type: ContentPlanActivityType;
 };

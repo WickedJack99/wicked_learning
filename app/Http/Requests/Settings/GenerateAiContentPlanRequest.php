@@ -17,7 +17,7 @@ class GenerateAiContentPlanRequest extends FormRequest
             'target_audience' => ['nullable', 'string', 'max:1000'],
             'prior_knowledge' => ['nullable', 'string', 'max:1000'],
             'route_length' => ['required', 'integer', 'min:1', 'max:3'],
-            'activity_types' => ['required', 'array', 'min:1', 'max:2'],
+            'activity_types' => ['required', 'array', 'min:1', 'max:3'],
             'activity_types.*' => ['required', 'string', 'distinct', Rule::in(ContentPlanContract::ACTIVITY_TYPES)],
         ];
     }

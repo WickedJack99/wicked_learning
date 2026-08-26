@@ -101,6 +101,47 @@ test('content plans reject unsupported or semantically incomplete activities', f
         ->and(LearningMapAsset::query()->count())->toBe(0);
 });
 
+test('an administrator can include a learner message prompt in a content plan', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_message_prompt',
+            'output_text' => json_encode(messageContentPlan()),
+            'usage' => [
+                'input_tokens' => 300,
+                'output_tokens' => 140,
+                'total_tokens' => 440,
+            ],
+        ]),
+    ]);
+
+    $generateResponse = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Help learners share observations about energy conversion.',
+            'route_length' => 1,
+            'activity_types' => ['message_prompt'],
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.plan.activities.0.type', 'message_prompt');
+    $run = AiContentAuthoringRun::query()->findOrFail($generateResponse->json('data.id'));
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai-content-plans.apply', $run))
+        ->assertCreated()
+        ->assertJsonPath('data.mapAsset.activityCount', 1);
+
+    $activity = LearningActivity::query()->sole();
+    $asset = LearningMapAsset::query()->sole();
+    $topic = $asset->messageTopics()->sole();
+
+    expect($activity->type)->toBe('message_prompt')
+        ->and($activity->config['messagePrompt'])->toBe('What did you notice in the energy path?')
+        ->and($activity->config['messageInputLabel'])->toBe('Share an observation')
+        ->and($topic->title)->toBe('Energy observations');
+});
+
 test('only the administrator who generated a draft can apply it', function () {
     $creator = aiAuthoringUser();
     $otherAdmin = aiAuthoringUser();
@@ -189,6 +230,8 @@ function aiContentPlan(): array
                 'body' => '## Energy path\n\nObserve where energy enters and how its form changes.',
                 'prompt' => null,
                 'note' => null,
+                'topic' => null,
+                'inputLabel' => null,
             ],
             [
                 'type' => 'reflection',
@@ -197,7 +240,32 @@ function aiContentPlan(): array
                 'body' => null,
                 'prompt' => 'Which energy forms can you identify before and after the conversion?',
                 'note' => 'Name both the input and output.',
+                'topic' => null,
+                'inputLabel' => null,
             ],
         ],
+    ];
+}
+
+/** @return array<string, mixed> */
+function messageContentPlan(): array
+{
+    return [
+        'summary' => 'A shared observation prompt that invites learners to notice the system together.',
+        'mapAsset' => [
+            'title' => 'Energy observations',
+            'description' => 'A place to compare observations about energy conversion.',
+            'label' => 'Share an observation',
+        ],
+        'activities' => [[
+            'type' => 'message_prompt',
+            'title' => 'Share an observation',
+            'introduction' => 'Add one detail that another learner could build on.',
+            'body' => null,
+            'prompt' => 'What did you notice in the energy path?',
+            'note' => null,
+            'topic' => 'Energy observations',
+            'inputLabel' => 'Share an observation',
+        ]],
     ];
 }

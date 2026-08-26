@@ -4,9 +4,9 @@ namespace App\ContentApi;
 
 class ContentPlanContract
 {
-    public const VERSION = '1.0';
+    public const VERSION = '1.1';
 
-    public const ACTIVITY_TYPES = ['markdown', 'reflection'];
+    public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt'];
 
     /** @return array<string, mixed> */
     public function document(): array
@@ -67,7 +67,7 @@ class ContentPlanContract
                     'items' => [
                         'type' => 'object',
                         'additionalProperties' => false,
-                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note'],
+                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note', 'topic', 'inputLabel'],
                         'properties' => [
                             'type' => ['type' => 'string', 'enum' => self::ACTIVITY_TYPES],
                             'title' => ['type' => 'string', 'maxLength' => 120],
@@ -86,6 +86,16 @@ class ContentPlanContract
                                 'type' => ['string', 'null'],
                                 'description' => 'Optional reflection guidance; null for markdown activities.',
                                 'maxLength' => 2000,
+                            ],
+                            'topic' => [
+                                'type' => ['string', 'null'],
+                                'description' => 'Shared message topic for message prompts; null for other activity types.',
+                                'maxLength' => 120,
+                            ],
+                            'inputLabel' => [
+                                'type' => ['string', 'null'],
+                                'description' => 'Optional learner message input label; null for other activity types.',
+                                'maxLength' => 120,
                             ],
                         ],
                     ],

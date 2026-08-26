@@ -31,6 +31,8 @@ class ContentPlanValidator
             'activities.*.body' => ['nullable', 'string', 'max:12000'],
             'activities.*.prompt' => ['nullable', 'string', 'max:4000'],
             'activities.*.note' => ['nullable', 'string', 'max:2000'],
+            'activities.*.topic' => ['nullable', 'string', 'max:120'],
+            'activities.*.inputLabel' => ['nullable', 'string', 'max:120'],
         ]);
         $validator->after(function ($validator) use ($plan): void {
             $activities = is_array($plan['activities'] ?? null) ? $plan['activities'] : [];
@@ -52,6 +54,22 @@ class ContentPlanValidator
                         "activities.{$index}.prompt",
                         'Reflection activities need a learner prompt.',
                     );
+                }
+
+                if (($activity['type'] ?? null) === 'message_prompt') {
+                    if (blank($activity['prompt'] ?? null)) {
+                        $validator->errors()->add(
+                            "activities.{$index}.prompt",
+                            'Message prompts need an invitation for learner contributions.',
+                        );
+                    }
+
+                    if (blank($activity['topic'] ?? null)) {
+                        $validator->errors()->add(
+                            "activities.{$index}.topic",
+                            'Message prompts need a shared topic.',
+                        );
+                    }
                 }
             }
         });
