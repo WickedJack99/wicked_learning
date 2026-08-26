@@ -13,7 +13,6 @@ This backlog contains current direction. Historical ideas in `concept/` and
   access and authored portal travel complementary, and preserve optional rather
   than forced topic nesting.
 - Improve private learning analytics and reflection support without rankings.
-- Add clear media-reference warnings before replace or delete operations.
 - Add access-change audit history and registration-token notes.
 
 ## Priority 2 - Authoring And Reuse

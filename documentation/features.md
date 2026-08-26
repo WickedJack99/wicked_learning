@@ -207,6 +207,10 @@ images. Image inputs reuse existing media paths instead of forcing duplicate
 uploads. Sound records include category, icon, volume, looping and optional
 duration metadata, and the browser player supports concurrent sound layers.
 
+The reusable visual library shows where each image is currently referenced
+before an author replaces or deletes it. Replacing an image updates those
+references together; deleting it clears them explicitly after confirmation.
+
 Public pages, auth backgrounds, information pages, source links, platform
 languages and translation catalogs are configurable. Cursor roles currently
 cover normal, action, grab, text and denied states.
