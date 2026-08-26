@@ -24,6 +24,7 @@ export type CompetenceCheckIn = {
     activityTitle: string;
     feeling: string;
     nodeTitle: string;
+    nodeHref: string;
     recordedAt: string;
     topics: Array<{
         name: string;

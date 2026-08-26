@@ -56,6 +56,9 @@ that learner's activity-progress metadata so it can support later reflection
 without changing the star-map calculation or exposing a new tutor ranking. When
 an activity is connected to competence topics, the learner can follow that
 context back to the related light without seeing the internal topic weights.
+Each pulse entry also offers a route back to its node; this is a learner-chosen
+revisit path, not a remediation assignment or a claim that the learner is
+behind.
 
 ## Next evolution
 

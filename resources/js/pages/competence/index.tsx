@@ -426,6 +426,12 @@ function LearningPulseTimeline({
                             <p className="mt-1 text-xs leading-5 text-slate-400">
                                 {checkIn.activityTitle} · {checkIn.nodeTitle}
                             </p>
+                            <Link
+                                className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
+                                href={checkIn.nodeHref}
+                            >
+                                Revisit this node
+                            </Link>
                             {checkIn.topics.length > 0 ? (
                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                     <span className="sr-only">

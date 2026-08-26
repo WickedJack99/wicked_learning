@@ -18,7 +18,7 @@ class LoadLearnerCompetenceMap
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
