@@ -5,6 +5,7 @@ namespace App\Ai\Actions;
 use App\Ai\Validation\ContentPlanValidator;
 use App\ContentApi\ContentApiContract;
 use App\ContentApi\ContentPlanContract;
+use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Models\AiAgentTemplate;
 use App\Models\AiContentAuthoringRun;
 use App\Models\LearningMap;
@@ -18,6 +19,7 @@ class GenerateAiContentPlan
         private readonly RunAiAgentTemplate $runner,
         private readonly ContentPlanContract $planContract,
         private readonly ContentPlanValidator $validator,
+        private readonly LoadCompetenceTopicDefinitions $competenceTopics,
     ) {}
 
     /**
@@ -92,6 +94,7 @@ class GenerateAiContentPlan
                 ])
                 ->values()
                 ->all(),
+            'availableCompetenceTopics' => $this->competenceTopics->names(),
             'brief' => [
                 'goal' => $brief['goal'],
                 'targetAudience' => $brief['target_audience'] ?? null,
@@ -112,7 +115,7 @@ class GenerateAiContentPlan
             'Draft one MapAsset and a short linear learning route for Wicked Learning.',
             'This is a draft only. An administrator will review it before anything is created.',
             'Use exactly '.(int) $brief['route_length'].' Activities and only these Activity types: '.implode(', ', $brief['activity_types']).'.',
-            'For every Activity, provide one to three concise competenceTopics labels drawn from the learning goal, and choose one learningIntent from apply, explain, participate, reflect, retrieve, review or transfer. These are teaching design metadata, not learner scores. For markdown Activities, set body and use null for prompt, note, topic and inputLabel. For reflection Activities, set prompt, optionally note, and use null for body, topic and inputLabel. For message_prompt Activities, set prompt, topic and optionally inputLabel, and use null for body and note. For shared_task Activities, set prompt, optionally note and inputLabel, use null for body and topic, and invite a concrete learner contribution without scores or rankings.',
+            'For every Activity, provide one to three concise competenceTopics labels drawn from the learning goal, and choose one learningIntent from apply, explain, participate, reflect, retrieve, review or transfer. Reuse an available competence topic label exactly when it fits; propose a concise new label only when none fits. These are teaching design metadata, not learner scores, and you must not output topic weights or thresholds. For markdown Activities, set body and use null for prompt, note, topic and inputLabel. For reflection Activities, set prompt, optionally note, and use null for body, topic and inputLabel. For message_prompt Activities, set prompt, topic and optionally inputLabel, and use null for body and note. For shared_task Activities, set prompt, optionally note and inputLabel, use null for body and topic, and invite a concrete learner contribution without scores or rankings.',
             'Do not invent image paths, user data, IDs, scores, rewards, rankings, or claims about learner performance.',
             'Keep the route supportive, concrete, and appropriate for the stated audience and prior knowledge.',
             'Map and authoring context:\n'.json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

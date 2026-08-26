@@ -47,6 +47,18 @@ class LoadCompetenceTopicDefinitions
         return $definitions;
     }
 
+    /** @return list<string> */
+    public function names(bool $activeOnly = true): array
+    {
+        return CompetenceTopicDefinition::query()
+            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
+            ->orderBy('name')
+            ->pluck('name')
+            ->map(fn (mixed $name): string => (string) $name)
+            ->values()
+            ->all();
+    }
+
     /**
      * @param  list<array<string, mixed>>  $definitions
      */

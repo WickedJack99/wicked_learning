@@ -23,7 +23,8 @@ still synchronous and should move behind a queue later.
 World Builder can invoke an enabled `content_authoring` template for one map.
 The administrator supplies a learning goal, optional audience and prior
 knowledge, route length and allowed Activity types. The model receives scoped
-map context plus a strict, versioned ContentPlan schema. Each generated
+map context, the active competence-topic vocabulary, and a strict, versioned
+ContentPlan schema. Each generated
 activity also declares one to three competence topics and one learning intent;
 the apply path gives those topics equal initial contribution weight and uses the
 existing competence configuration.

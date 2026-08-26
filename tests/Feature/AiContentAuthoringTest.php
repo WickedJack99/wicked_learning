@@ -4,6 +4,7 @@ use App\Models\ActivityTransition;
 use App\Models\AiAgentTemplate;
 use App\Models\AiContentAuthoringRun;
 use App\Models\AiProviderCredential;
+use App\Models\CompetenceTopicDefinition;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
@@ -48,6 +49,7 @@ test('an administrator can generate review and atomically apply a content plan',
             && $request['text']['format']['strict'] === true
             && str_contains((string) $request['input'], 'ContentPlan contract');
     });
+    expect($run->context['availableCompetenceTopics'])->toContain('Energy systems');
 
     $this->actingAs($admin)
         ->postJson(route('settings.ai-content-plans.apply', $run))
@@ -252,6 +254,12 @@ function aiAuthoringContext(User $admin): array
         'reasoning_effort' => 'medium',
         'enabled' => true,
         'guarded_context' => true,
+    ]);
+    CompetenceTopicDefinition::query()->create([
+        'name' => 'Energy systems',
+        'slug' => 'energy-systems',
+        'description' => 'Energy relationships in connected systems.',
+        'is_active' => true,
     ]);
 
     return [$map, $template];
