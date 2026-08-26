@@ -116,7 +116,13 @@ export function AppBottomNav() {
                 : worldHref,
         [pageNode, url],
     );
-    const shouldHideOnSettings = isSettingsActive;
+    const isImmersiveSurface = useMemo(
+        () =>
+            url.startsWith('/world') ||
+            url.startsWith('/bookmarks') ||
+            url.startsWith('/learning/'),
+        [url],
+    );
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
             {
@@ -198,7 +204,7 @@ export function AppBottomNav() {
         t,
     ]);
 
-    if (shouldHideOnSettings) {
+    if (!isImmersiveSurface) {
         return null;
     }
 
