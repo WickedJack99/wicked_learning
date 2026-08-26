@@ -1,0 +1,163 @@
+<?php
+
+use App\Models\LearningTopic;
+use App\Models\LearningTopicArea;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia;
+
+test('guests cannot open the topic directory', function () {
+    $this->get(route('topics.index'))
+        ->assertRedirect(route('welcome'));
+});
+
+test('learners see published topic areas in manual order and topics alphabetically', function () {
+    $user = User::factory()->create();
+    $secondArea = LearningTopicArea::query()->create([
+        'slug' => 'technology',
+        'title' => 'Technology',
+        'sort_order' => 20,
+    ]);
+    $firstArea = LearningTopicArea::query()->create([
+        'slug' => 'medicine',
+        'title' => 'Medicine',
+        'sort_order' => 10,
+    ]);
+
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $firstArea->id,
+        'slug' => 'circulation',
+        'title' => 'Circulation',
+        'is_published' => true,
+    ]);
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $firstArea->id,
+        'slug' => 'anatomy',
+        'title' => 'Anatomy',
+        'is_published' => true,
+    ]);
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $firstArea->id,
+        'slug' => 'draft-topic',
+        'title' => 'Draft topic',
+        'is_published' => false,
+    ]);
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $secondArea->id,
+        'slug' => 'networks',
+        'title' => 'Networks',
+        'is_published' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('topics.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('topics/index')
+            ->where('canManageTopics', false)
+            ->has('areas', 2)
+            ->where('areas.0.title', 'Medicine')
+            ->where('areas.0.topics.0.title', 'Anatomy')
+            ->where('areas.0.topics.1.title', 'Circulation')
+            ->has('areas.0.topics', 2)
+            ->where('areas.1.title', 'Technology')
+        );
+});
+
+test('a published topic page exposes its published subtopics alphabetically', function () {
+    $user = User::factory()->create();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+        'sort_order' => 10,
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'physics',
+        'title' => 'Physics',
+        'content' => '# Motion',
+        'is_published' => true,
+    ]);
+
+    foreach ([['Waves', true], ['Energy', true], ['Hidden', false]] as [$title, $published]) {
+        LearningTopic::query()->create([
+            'learning_topic_area_id' => $area->id,
+            'parent_id' => $topic->id,
+            'slug' => strtolower($title),
+            'title' => $title,
+            'is_published' => $published,
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('topics/show')
+            ->where('topic.title', 'Physics')
+            ->where('topic.content', '# Motion')
+            ->where('topic.subtopics.0.title', 'Energy')
+            ->where('topic.subtopics.1.title', 'Waves')
+            ->has('topic.subtopics', 2)
+        );
+});
+
+test('normal users cannot open topic administration', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('admin.topics.index'))
+        ->assertForbidden();
+});
+
+test('admins can insert and reorder areas and create alphabetically sorted topics', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $firstArea = LearningTopicArea::query()->create([
+        'slug' => 'medicine',
+        'title' => 'Medicine',
+        'sort_order' => 10,
+    ]);
+    $lastArea = LearningTopicArea::query()->create([
+        'slug' => 'technology',
+        'title' => 'Technology',
+        'sort_order' => 20,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.topic-areas.store'), [
+            'after_area_id' => $firstArea->id,
+            'title' => 'Natural sciences',
+        ])
+        ->assertRedirect();
+
+    $insertedArea = LearningTopicArea::query()->where('slug', 'natural-sciences')->firstOrFail();
+
+    expect(LearningTopicArea::query()->orderBy('sort_order')->pluck('title')->all())
+        ->toBe(['Medicine', 'Natural sciences', 'Technology']);
+
+    $this->actingAs($admin)
+        ->patch(route('admin.topic-areas.reorder'), [
+            'area_ids' => [$lastArea->id, $insertedArea->id, $firstArea->id],
+        ])
+        ->assertRedirect();
+
+    expect(LearningTopicArea::query()->orderBy('sort_order')->pluck('title')->all())
+        ->toBe(['Technology', 'Natural sciences', 'Medicine']);
+
+    foreach (['Zoology', 'Astronomy'] as $title) {
+        $this->actingAs($admin)
+            ->post(route('admin.topic-areas.topics.store', $insertedArea), [
+                'title' => $title,
+                'is_published' => true,
+            ])
+            ->assertRedirect();
+    }
+
+    $this->actingAs($admin)
+        ->get(route('admin.topics.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/topics')
+            ->where('areas.0.title', 'Technology')
+            ->where('areas.1.title', 'Natural sciences')
+            ->where('areas.1.topics.0.title', 'Astronomy')
+            ->where('areas.1.topics.1.title', 'Zoology')
+        );
+});

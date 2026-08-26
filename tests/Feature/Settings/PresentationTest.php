@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
 test('public pages receive presentation defaults', function () {
-    $this->get(route('home'))
+    $this->get(route('welcome'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('welcome')

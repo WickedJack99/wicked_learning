@@ -72,7 +72,7 @@ class LearningWorldController extends Controller
         $world = $this->loadLearningWorld->forMapView($user);
 
         if (! $user && $world && $world->maps->isEmpty()) {
-            return redirect()->route('home');
+            return redirect()->route('welcome');
         }
 
         if ($user && $world) {
@@ -111,7 +111,7 @@ class LearningWorldController extends Controller
         $node->loadMissing('map');
 
         if (! $user && ! $this->mapAccess->canViewMap($node->map, null)) {
-            return redirect()->route('home');
+            return redirect()->route('welcome');
         }
 
         if ($user && $route && ! $playRunId) {

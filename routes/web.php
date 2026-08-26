@@ -1,14 +1,17 @@
 <?php
 
+use App\Http\Controllers\AdminLearningTopicController;
 use App\Http\Controllers\LearnerCompetenceController;
 use App\Http\Controllers\LearnerJournalController;
 use App\Http\Controllers\LearnerMessageController;
 use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningGroupController;
+use App\Http\Controllers\LearningHomeController;
 use App\Http\Controllers\LearningItemActivityController;
 use App\Http\Controllers\LearningRouteProgressController;
 use App\Http\Controllers\LearningSharedTaskSubmissionController;
+use App\Http\Controllers\LearningTopicController;
 use App\Http\Controllers\LearningWorldController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PlatformInfoPageController;
@@ -16,7 +19,7 @@ use App\Http\Controllers\ProtectedMapMediaController;
 use App\Http\Controllers\SourceCodePageController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::inertia('/', 'welcome')->name('welcome');
 Route::get('about', [PlatformInfoPageController::class, 'show'])
     ->defaults('page', 'about')
     ->name('about');
@@ -41,6 +44,10 @@ Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::cl
     ->name('protected-map-media.show');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('home', LearningHomeController::class)->name('home');
+    Route::inertia('paths', 'paths')->name('paths.index');
+    Route::get('topics', [LearningTopicController::class, 'index'])->name('topics.index');
+    Route::get('topics/{topic:slug}', [LearningTopicController::class, 'show'])->name('topics.show');
     Route::get('bookmarks', [LearningBookmarkController::class, 'index'])->name('bookmarks');
     Route::get('competence', [LearnerCompetenceController::class, 'index'])
         ->name('competence.index');
@@ -134,6 +141,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.item-obstacle-slot');
     Route::post('learning/activities/{activity}/item-obstacle-continue', [LearningItemActivityController::class, 'continueObstacle'])
         ->name('learning.activities.item-obstacle-continue');
+});
+
+Route::middleware(['auth', 'verified', 'can:content_topics.ru'])->group(function () {
+    Route::get('admin/topics', [AdminLearningTopicController::class, 'index'])
+        ->name('admin.topics.index');
+    Route::post('admin/topic-areas', [AdminLearningTopicController::class, 'storeArea'])
+        ->name('admin.topic-areas.store');
+    Route::patch('admin/topic-areas/reorder', [AdminLearningTopicController::class, 'reorderAreas'])
+        ->name('admin.topic-areas.reorder');
+    Route::patch('admin/topic-areas/{area}', [AdminLearningTopicController::class, 'updateArea'])
+        ->name('admin.topic-areas.update');
+    Route::post('admin/topic-areas/{area}/topics', [AdminLearningTopicController::class, 'storeTopic'])
+        ->name('admin.topic-areas.topics.store');
+    Route::patch('admin/topic-areas/{area}/topics/{topic}', [AdminLearningTopicController::class, 'updateTopic'])
+        ->name('admin.topic-areas.topics.update');
 });
 
 require __DIR__.'/settings.php';

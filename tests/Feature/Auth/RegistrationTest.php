@@ -29,7 +29,7 @@ test('new users can register', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('world', absolute: false));
+    $response->assertRedirect(route('home', absolute: false));
 
     $user = User::where('email', 'test@example.com')->first();
 

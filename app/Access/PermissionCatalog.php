@@ -52,6 +52,8 @@ class PermissionCatalog
 
     public const CONTENT_API = 'content_api';
 
+    public const CONTENT_TOPICS = 'content_topics';
+
     /**
      * @return array<string, array{label: string, description: string, group: string}>
      */
@@ -167,6 +169,11 @@ class PermissionCatalog
                 'label' => 'Content API',
                 'description' => 'Read the authoring contract and create learning content through the administration API.',
                 'group' => 'API',
+            ],
+            self::CONTENT_TOPICS => [
+                'label' => 'Topics',
+                'description' => 'Create and arrange learner-facing topic areas, topics and subtopics.',
+                'group' => 'Content',
             ],
         ];
     }

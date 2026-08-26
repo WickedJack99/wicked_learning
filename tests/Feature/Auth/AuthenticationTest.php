@@ -19,7 +19,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('world', absolute: false));
+    $response->assertRedirect(route('home', absolute: false));
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function () {
@@ -88,14 +88,14 @@ test('blocked authenticated sessions are ended on the next request', function ()
 
     $this->actingAs($user)
         ->get(route('world'))
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('welcome'));
 
     $this->assertGuest();
 });
 
 test('guest browser visits to protected pages redirect to welcome', function () {
     $this->get(route('settings.index'))
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('welcome'));
 });
 
 test('guest json visits to protected endpoints stay unauthenticated json responses', function () {
@@ -108,7 +108,7 @@ test('users can logout', function () {
 
     $response = $this->actingAs($user)->post(route('logout'));
 
-    $response->assertRedirect(route('home'));
+    $response->assertRedirect(route('welcome'));
 
     $this->assertGuest();
 });

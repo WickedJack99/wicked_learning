@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(
             fn (Request $request): ?string => $request->expectsJson()
                 ? null
-                : route('home'),
+                : route('welcome'),
         );
 
         $middleware->web(append: [

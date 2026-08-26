@@ -43,7 +43,7 @@ test('guests are redirected home when the world has no public maps', function ()
     ]);
 
     $this->get(route('world'))
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('welcome'));
 });
 
 test('guests are redirected home when playing a node on a private map', function () {
@@ -66,7 +66,7 @@ test('guests are redirected home when playing a node on a private map', function
     ]);
 
     $this->get(route('learning.nodes.play', $node))
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('welcome'));
 });
 
 test('authenticated users can visit the world map', function () {

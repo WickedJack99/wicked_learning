@@ -13,7 +13,7 @@ import {
     getWelcomePages,
 } from '@/theme/presentation';
 
-const worldHref = '/world';
+const homeHref = '/home';
 
 export default function Welcome() {
     const { auth, appearance, publicPresentation } = usePage().props;
@@ -40,7 +40,6 @@ export default function Welcome() {
         ...cursorStyle,
         ...getPublicPresentationStyle(publicPresentation, resolvedAppearance),
     };
-    const platformInfoLinks = getPlatformInformationLinks(publicPresentation);
     const wheelLocked = useRef(false);
 
     const goToPage = useCallback(
@@ -104,13 +103,13 @@ export default function Welcome() {
                         {auth.user ? (
                             <Link
                                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium opacity-95 transition hover:opacity-100"
-                                href={worldHref}
+                                href={homeHref}
                                 style={{
                                     background: 'var(--public-accent)',
                                     color: 'var(--public-control-text)',
                                 }}
                             >
-                                Open world
+                                Open learning desk
                                 <ArrowRight className="size-4" />
                             </Link>
                         ) : (
