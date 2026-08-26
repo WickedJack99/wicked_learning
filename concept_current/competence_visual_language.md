@@ -19,6 +19,11 @@ description. It can say that recent learning is gently or strongly lighting an
 area, or that the glow is resting while the established pattern remains. The
 description does not expose the ratio, threshold or event count.
 
+The selected-light reading also shows a bounded learning trail of months in
+which the topic appeared. These markers make continuity visible without
+turning the map into an activity counter or requiring the learner to maintain a
+streak.
+
 The ratios are capped at `1` and are converted into stable visual tiers:
 `spark`, `star`, `beacon` and `constellation`. Learner accessibility text uses
 the tier description instead of exposing raw totals or thresholds.

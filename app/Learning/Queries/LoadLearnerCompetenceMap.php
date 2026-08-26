@@ -61,6 +61,7 @@ class LoadLearnerCompetenceMap
                             $hasDefinition ? $definition->aura_threshold : 10
                         ),
                         evidenceTypes: $this->evidenceTypes($events),
+                        learningPeriods: $this->learningPeriods($events),
                     ),
                 ];
             });
@@ -112,5 +113,26 @@ class LoadLearnerCompetenceMap
         sort($types);
 
         return $types;
+    }
+
+    /**
+     * Keep the learner's trail qualitative and bounded: each marker means that
+     * this topic appeared in at least one learning event during that month.
+     *
+     * @param  Collection<int, LearnerEvidenceEvent>  $events
+     * @return list<string>
+     */
+    private function learningPeriods(Collection $events): array
+    {
+        return $events
+            ->map(fn (LearnerEvidenceEvent $event): ?string => $event->created_at?->format('Y-m'))
+            ->filter(fn (?string $period): bool => $period !== null)
+            ->unique()
+            ->sortDesc()
+            ->take(12)
+            ->sort()
+            ->values()
+            ->map(fn (string $period): string => Carbon::parse($period.'-01')->format('M Y'))
+            ->all();
     }
 }

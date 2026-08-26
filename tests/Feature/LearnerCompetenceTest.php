@@ -287,6 +287,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.auraRatio', 0.8333)
             ->where('competenceMap.topics.0.visual.sizeTier', 'beacon')
             ->where('competenceMap.topics.0.visual.description', 'A well-established light.')
+            ->where('competenceMap.topics.0.visual.learningPeriods', ['Jun 2026', 'Jul 2026'])
             ->where('competenceMap.topics.0.visual.recentDescription', 'Recent learning moments are gently lighting this area.')
             ->where('competenceMap.topics.0.visual.evidenceTypes', ['explain', 'retrieve'])
             ->where('competenceMap.transitions.0.fromTopicSlug', 'algebra')

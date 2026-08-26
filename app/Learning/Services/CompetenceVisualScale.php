@@ -16,6 +16,7 @@ class CompetenceVisualScale
      *     brightnessRatio: float,
      *     description: string,
      *     evidenceTypes: list<string>,
+     *     learningPeriods: list<string>,
      *     recentDescription: string,
      *     sizeRatio: float,
      *     sizeTier: string
@@ -28,6 +29,7 @@ class CompetenceVisualScale
         float $brightnessThreshold,
         float $auraThreshold,
         array $evidenceTypes = [],
+        array $learningPeriods = [],
     ): array {
         $sizeRatio = $this->ratio($totalSignal, $growthThreshold);
         $brightnessRatio = $this->ratio($totalSignal, $brightnessThreshold);
@@ -39,6 +41,7 @@ class CompetenceVisualScale
             'brightnessRatio' => $brightnessRatio,
             'description' => $this->description($sizeTier),
             'evidenceTypes' => $evidenceTypes,
+            'learningPeriods' => $learningPeriods,
             'recentDescription' => $this->recentDescription($auraRatio),
             'sizeRatio' => $sizeRatio,
             'sizeTier' => $sizeTier,

@@ -18,6 +18,7 @@ test('visual scale maps internal signals to stable visual tiers', function () {
             'brightnessRatio' => 0.5,
             'description' => 'A well-established light.',
             'evidenceTypes' => ['participate', 'retrieve'],
+            'learningPeriods' => [],
             'recentDescription' => 'Recent learning moments are gently lighting this area.',
             'sizeRatio' => 0.6667,
             'sizeTier' => 'beacon',

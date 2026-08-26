@@ -6,6 +6,7 @@ export type CompetenceTopic = {
         brightnessRatio: number;
         description: string;
         evidenceTypes: string[];
+        learningPeriods: string[];
         recentDescription: string;
         sizeRatio: number;
         sizeTier: string;

@@ -607,6 +607,25 @@ function CompetenceReading({
                     {topic.visual.recentDescription}
                 </p>
             </div>
+            <div className="mt-3">
+                <p className="text-[11px] font-medium tracking-[0.14em] text-slate-400 uppercase">
+                    Learning trail
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                    {topic.visual.learningPeriods.map((period) => (
+                        <span
+                            className="rounded-full border border-cyan-200/15 bg-cyan-200/5 px-2 py-1 text-[11px] text-cyan-100"
+                            key={period}
+                        >
+                            {period}
+                        </span>
+                    ))}
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                    Each marker is a month in which this area appeared in your
+                    learning trail.
+                </p>
+            </div>
             <p className="mt-3 text-xs font-medium tracking-[0.14em] text-slate-400 uppercase">
                 Ways you have engaged here
             </p>
