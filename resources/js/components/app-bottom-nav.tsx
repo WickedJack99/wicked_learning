@@ -1,31 +1,24 @@
-import { Link, router, usePage } from '@inertiajs/react';
-import { Bookmark, Cog, DoorOpen, Home, Map, PlayCircle } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { Bookmark, Home, Map, PlayCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
     LearnerAccountControls,
     LearnerBrand,
 } from '@/components/learner-account-controls';
-import {
-    clearPersistedActiveActivity,
-    readPersistedActiveActivity,
-} from '@/features/world/active-activity';
+import { readPersistedActiveActivity } from '@/features/world/active-activity';
 import type { ActiveActivity } from '@/features/world/active-activity';
 import { worldHref } from '@/features/world/types';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
-import { logout } from '@/routes';
 import type { LearningNode } from '@/types';
 
 type NavItem = {
     active: boolean;
-    asButton?: boolean;
-    danger?: boolean;
-    href: string | ReturnType<typeof logout>;
+    href: string;
     icon: ReactNode;
     id: string;
     label: string;
-    onClick?: () => void;
     shouldAnimateInsertion?: boolean;
 };
 
@@ -98,11 +91,6 @@ export function AppBottomNav() {
         return () => window.clearTimeout(refreshTimer);
     }, [applyActiveActivity, url]);
 
-    const handleLogout = useCallback(() => {
-        clearPersistedActiveActivity();
-        router.flushAll();
-    }, []);
-
     const isMapActive = useMemo(() => url.startsWith('/world'), [url]);
     const isLearningDeskActive = useMemo(
         () => url.split('?')[0] === '/home',
@@ -112,8 +100,6 @@ export function AppBottomNav() {
         () => url.startsWith('/bookmarks'),
         [url],
     );
-    const isSettingsActive = useMemo(() => url.startsWith('/settings'), [url]);
-    const usesImmersiveTopNav = isMapActive || isBookmarksActive;
     const mapNavigationHref = useMemo(
         () =>
             pageNode && url.startsWith('/learning/')
@@ -153,33 +139,6 @@ export function AppBottomNav() {
                           id: 'bookmarks',
                           label: t('navigation.bottom.bookmarks', 'Bookmarks'),
                       },
-                      ...(!usesImmersiveTopNav
-                          ? [
-                                {
-                                    active: isSettingsActive,
-                                    href: '/settings',
-                                    icon: <Cog className="size-5" />,
-                                    id: 'settings',
-                                    label: t(
-                                        'navigation.bottom.settings',
-                                        'Settings',
-                                    ),
-                                },
-                                {
-                                    active: false,
-                                    asButton: true,
-                                    href: logout(),
-                                    icon: <DoorOpen className="size-5" />,
-                                    id: 'logout',
-                                    label: t(
-                                        'navigation.bottom.log_out',
-                                        'Log out',
-                                    ),
-                                    onClick: handleLogout,
-                                    danger: true,
-                                },
-                            ]
-                          : []),
                   ]
                 : []),
         ];
@@ -218,10 +177,7 @@ export function AppBottomNav() {
         isLearningDeskActive,
         isMapActive,
         mapNavigationHref,
-        isSettingsActive,
-        handleLogout,
         isAuthenticated,
-        usesImmersiveTopNav,
         shouldAnimateActiveActivity,
         t,
     ]);
@@ -290,16 +246,12 @@ function ImmersiveTopNavItem({ item }: { item: NavItem }) {
     return (
         <Link
             aria-label={item.label}
-            as={item.asButton ? 'button' : undefined}
             className={cn(
                 'relative shrink-0 px-3 py-3 text-sm text-slate-500 transition hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none sm:py-[1.35rem] dark:text-slate-400 dark:hover:text-white',
                 item.active &&
                     'text-slate-950 after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-violet-500 dark:text-white',
-                item.danger &&
-                    'text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300',
             )}
             href={item.href}
-            onClick={item.onClick}
             style={{ cursor: 'var(--platform-action-cursor)' }}
         >
             <span>{item.label}</span>
@@ -320,11 +272,8 @@ function AnimatedNavButton({ item, slot }: { item: NavItem; slot: number }) {
         >
             <FloatingNavLink
                 active={item.active}
-                asButton={item.asButton}
                 href={item.href}
                 label={item.label}
-                onClick={item.onClick}
-                danger={item.danger}
             >
                 {item.icon}
             </FloatingNavLink>
@@ -334,41 +283,31 @@ function AnimatedNavButton({ item, slot }: { item: NavItem; slot: number }) {
 
 function FloatingNavLink({
     active,
-    asButton,
     children,
     href,
     label,
-    onClick,
-    danger = false,
 }: {
     active: boolean;
-    asButton?: boolean;
     children: ReactNode;
-    danger?: boolean;
-    href: string | ReturnType<typeof logout>;
+    href: string;
     label: string;
-    onClick?: () => void;
 }) {
     return (
         <Link
             aria-label={label}
-            as={asButton ? 'button' : undefined}
             className={cn(
                 'flex size-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white',
                 active &&
                     'bg-[var(--map-bottom-nav-active-background)] text-[var(--map-bottom-nav-active-icon-color)] hover:bg-[var(--map-bottom-nav-active-background)] hover:text-[var(--map-bottom-nav-active-icon-color)]',
             )}
             href={href}
-            onClick={onClick}
             style={{
                 background: active
                     ? 'var(--map-bottom-nav-active-background)'
                     : undefined,
                 color: active
                     ? 'var(--map-bottom-nav-active-icon-color, var(--map-bottom-nav-active-text-color))'
-                    : danger
-                      ? 'var(--map-bottom-nav-exit-icon-color)'
-                      : 'var(--map-bottom-nav-icon-color, var(--map-bottom-nav-text-color))',
+                    : 'var(--map-bottom-nav-icon-color, var(--map-bottom-nav-text-color))',
                 cursor: 'var(--platform-action-cursor)',
             }}
         >

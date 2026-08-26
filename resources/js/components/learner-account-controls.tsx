@@ -17,10 +17,14 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 type Props = {
+    className?: string;
     mapThemed?: boolean;
 };
 
-export function LearnerAccountControls({ mapThemed = false }: Props) {
+export function LearnerAccountControls({
+    className,
+    mapThemed = false,
+}: Props) {
     const { props } = usePage();
     const { auth } = props;
     const initials = useInitials();
@@ -49,7 +53,12 @@ export function LearnerAccountControls({ mapThemed = false }: Props) {
         : undefined;
 
     return (
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div
+            className={cn(
+                'ml-auto flex shrink-0 items-center gap-2',
+                className,
+            )}
+        >
             <Button
                 asChild
                 aria-label={t(

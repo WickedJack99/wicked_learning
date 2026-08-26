@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, House, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LearnerAccountControls } from '@/components/learner-account-controls';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
@@ -406,6 +407,7 @@ export default function NodePlay({
                             {node.title}
                         </h1>
                     </div>
+                    <LearnerAccountControls className="order-2 sm:order-none" />
                 </header>
 
                 <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-24 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6 md:pb-28">
