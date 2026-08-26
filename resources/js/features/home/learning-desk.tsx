@@ -48,6 +48,65 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             <LearningDeskSearch />
                         </section>
 
+                        <section
+                            className="mt-10"
+                            aria-labelledby="connections-heading"
+                        >
+                            <SectionHeading
+                                id="connections-heading"
+                                label={t(
+                                    'home.learning_desk.connections.title',
+                                    'Possible connections',
+                                )}
+                            />
+                            {desk.connections.length > 0 ? (
+                                <div className="border-b border-slate-200 py-6 dark:border-white/10">
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
+                                        {desk.connections.map(
+                                            (connection, index) => (
+                                                <div
+                                                    className="flex items-center gap-4"
+                                                    key={connection.id}
+                                                >
+                                                    {index > 0 ? (
+                                                        <ArrowRight className="size-4 text-cyan-600 dark:text-cyan-400" />
+                                                    ) : null}
+                                                    <Link
+                                                        className="underline decoration-transparent underline-offset-4 transition hover:text-violet-600 hover:decoration-violet-400 dark:hover:text-violet-300"
+                                                        href={connection.href}
+                                                    >
+                                                        {connection.title}
+                                                    </Link>
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                    <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'home.learning_desk.connections.saved_reason',
+                                            'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
+                                        )}
+                                    </p>
+                                </div>
+                            ) : (
+                                <EmptyState
+                                    body={t(
+                                        'home.learning_desk.connections.empty_body',
+                                        'Save interesting places and this area can reveal useful paths between them.',
+                                    )}
+                                    href="/world"
+                                    link={t(
+                                        'home.learning_desk.connections.empty_action',
+                                        'Open the map',
+                                    )}
+                                    title={t(
+                                        'home.learning_desk.connections.empty_title',
+                                        'Connections need a little context',
+                                    )}
+                                />
+                            )}
+                        </section>
+
                         {desk.recentRoutes.length > 0 ? (
                             <section
                                 className="mt-14"
@@ -108,65 +167,6 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     title={t(
                                         'home.learning_desk.continue.empty_title',
                                         'Nothing is currently in progress',
-                                    )}
-                                />
-                            )}
-                        </section>
-
-                        <section
-                            className="mt-14"
-                            aria-labelledby="connections-heading"
-                        >
-                            <SectionHeading
-                                id="connections-heading"
-                                label={t(
-                                    'home.learning_desk.connections.title',
-                                    'Possible connections',
-                                )}
-                            />
-                            {desk.connections.length > 0 ? (
-                                <div className="border-b border-slate-200 py-6 dark:border-white/10">
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
-                                        {desk.connections.map(
-                                            (connection, index) => (
-                                                <div
-                                                    className="flex items-center gap-4"
-                                                    key={connection.id}
-                                                >
-                                                    {index > 0 ? (
-                                                        <ArrowRight className="size-4 text-cyan-600 dark:text-cyan-400" />
-                                                    ) : null}
-                                                    <Link
-                                                        className="underline decoration-transparent underline-offset-4 transition hover:text-violet-600 hover:decoration-violet-400 dark:hover:text-violet-300"
-                                                        href={connection.href}
-                                                    >
-                                                        {connection.title}
-                                                    </Link>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                    <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                        {t(
-                                            'home.learning_desk.connections.saved_reason',
-                                            'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
-                                        )}
-                                    </p>
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    body={t(
-                                        'home.learning_desk.connections.empty_body',
-                                        'Save interesting places and this area can reveal useful paths between them.',
-                                    )}
-                                    href="/world"
-                                    link={t(
-                                        'home.learning_desk.connections.empty_action',
-                                        'Open the map',
-                                    )}
-                                    title={t(
-                                        'home.learning_desk.connections.empty_title',
-                                        'Connections need a little context',
                                     )}
                                 />
                             )}
