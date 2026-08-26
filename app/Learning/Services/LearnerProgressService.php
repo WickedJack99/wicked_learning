@@ -96,10 +96,17 @@ class LearnerProgressService
         }
 
         $metadata = is_array($progress->metadata) ? $progress->metadata : [];
-        $metadata['learningCheckIn'] = [
+        $checkIn = [
             'feeling' => $feeling,
             'recordedAt' => Carbon::now()->toIso8601String(),
         ];
+        $history = is_array($metadata['learningCheckIns'] ?? null)
+            ? $metadata['learningCheckIns']
+            : [];
+        $history[] = $checkIn;
+
+        $metadata['learningCheckIns'] = array_values(array_slice($history, -30));
+        $metadata['learningCheckIn'] = $checkIn;
 
         $progress->forceFill(['metadata' => $metadata])->save();
 

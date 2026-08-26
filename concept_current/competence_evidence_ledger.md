@@ -51,7 +51,7 @@ phrase describing the experience: something clicked, still taking shape, it
 stretched me, or I got stuck. They can also continue without answering.
 
 This is a learner-owned observation, not an evidence event, competence score,
-diagnosis, or answer for an AI system. The prototype keeps the latest phrase in
+diagnosis, or answer for an AI system. The prototype keeps a bounded history in
 that learner's activity-progress metadata so it can support later reflection
 without changing the star-map calculation or exposing a new tutor ranking.
 

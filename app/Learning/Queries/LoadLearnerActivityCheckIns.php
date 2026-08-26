@@ -6,7 +6,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
 
-/** Loads the current learner's latest private check-in for each activity. */
+/** Loads the current learner's recent private check-in history. */
 class LoadLearnerActivityCheckIns
 {
     /**
@@ -24,26 +24,41 @@ class LoadLearnerActivityCheckIns
             ->get()
             ->each(function (LearnerActivityProgress $progress) use (&$checkIns): void {
                 $metadata = is_array($progress->metadata) ? $progress->metadata : [];
-                $checkIn = $metadata['learningCheckIn'] ?? null;
+                $history = is_array($metadata['learningCheckIns'] ?? null)
+                    ? $metadata['learningCheckIns']
+                    : [];
+                $history = $history !== []
+                    ? $history
+                    : [$metadata['learningCheckIn'] ?? null];
                 $activity = $progress->activity;
 
-                if (
-                    ! is_array($checkIn)
-                    || ! $activity instanceof LearningActivity
-                    || ! is_string($checkIn['feeling'] ?? null)
-                    || ! is_string($checkIn['recordedAt'] ?? null)
-                ) {
+                if (! $activity instanceof LearningActivity) {
                     return;
                 }
 
-                $checkIns[] = [
-                    'activityId' => $activity->id,
-                    'activityTitle' => $activity->title,
-                    'feeling' => $checkIn['feeling'],
-                    'nodeTitle' => $activity->node->title,
-                    'recordedAt' => $checkIn['recordedAt'],
-                ];
+                foreach ($history as $checkIn) {
+                    if (
+                        ! is_array($checkIn)
+                        || ! is_string($checkIn['feeling'] ?? null)
+                        || ! is_string($checkIn['recordedAt'] ?? null)
+                    ) {
+                        continue;
+                    }
+
+                    $checkIns[] = [
+                        'activityId' => $activity->id,
+                        'activityTitle' => $activity->title,
+                        'feeling' => $checkIn['feeling'],
+                        'nodeTitle' => $activity->node->title,
+                        'recordedAt' => $checkIn['recordedAt'],
+                    ];
+                }
             });
+
+        usort(
+            $checkIns,
+            fn (array $left, array $right): int => strcmp($right['recordedAt'], $left['recordedAt']),
+        );
 
         return array_slice($checkIns, 0, 30);
     }

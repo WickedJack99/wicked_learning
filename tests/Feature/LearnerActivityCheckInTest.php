@@ -37,6 +37,21 @@ test('a learner can keep a private learning check-in after completing an activit
             'feeling' => 'stuck',
             'recordedAt' => now()->toIso8601String(),
         ]);
+
+    Carbon::setTestNow('2026-08-26 14:31:00');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'feeling' => 'clearer',
+        ])
+        ->assertOk();
+
+    expect(LearnerActivityProgress::query()->firstOrFail()->metadata['learningCheckIns'])
+        ->toHaveCount(2)
+        ->and(LearnerActivityProgress::query()->firstOrFail()->metadata['learningCheckIns'][0]['feeling'])
+        ->toBe('stuck')
+        ->and(LearnerActivityProgress::query()->firstOrFail()->metadata['learningCheckIns'][1]['feeling'])
+        ->toBe('clearer');
 });
 
 test('a learner cannot record a check-in before completing an activity', function () {
@@ -117,6 +132,42 @@ test('the competence page shows only the current learners private check-ins', fu
             ->has('competenceMap.checkIns', 1)
             ->where('competenceMap.checkIns.0.activityTitle', 'Check-in Activity')
             ->where('competenceMap.checkIns.0.feeling', 'clearer')
+        );
+});
+
+test('the learning pulse timeline keeps repeated observations in time order', function () {
+    Carbon::setTestNow('2026-08-26 15:00:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 2,
+        'reached_at' => now()->subMinutes(3),
+        'completed_at' => now()->subMinutes(3),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'feeling' => 'stuck',
+        ])
+        ->assertOk();
+
+    Carbon::setTestNow('2026-08-26 15:02:00');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'feeling' => 'clearer',
+        ])
+        ->assertOk();
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.checkIns.0.feeling', 'clearer')
+            ->where('competenceMap.checkIns.1.feeling', 'stuck')
         );
 });
 
