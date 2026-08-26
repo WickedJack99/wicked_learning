@@ -186,9 +186,16 @@ The direction at the moment is practical prototyping: build a usable slice, test
 
 ## Status
 
-Early development.
+Early development, version 0.1.0.
 
 Expect database structures, UI flows, activity types and admin tooling to change. The project is meant to be public and inspectable, but it is not production-ready yet.
+
+## Versioning
+
+The current demo version is recorded in [VERSION](VERSION). Releases use
+Semantic Versioning and Git tags such as `v0.1.0`. While the project remains in
+the `0.x` phase, minor versions may contain breaking changes as the learning
+experience is tested and reshaped.
 
 ## Contributions
 
