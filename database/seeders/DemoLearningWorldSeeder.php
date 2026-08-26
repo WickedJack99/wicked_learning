@@ -329,6 +329,70 @@ class DemoLearningWorldSeeder extends Seeder
 
         $portal = $this->seedSecondaryNodes($map);
         $this->seedPortalSibling($world, $map, $portal);
+        $this->seedMapAssets($map);
+    }
+
+    private function seedMapAssets(LearningMap $map): void
+    {
+        $nodes = $map->nodes()
+            ->whereIn('slug', ['signal-gate', 'field-notes', 'portal-foundation'])
+            ->get()
+            ->keyBy('slug');
+
+        foreach ([
+            [
+                'node' => 'signal-gate',
+                'image_url' => '/images/nodes/fantasy-hex-forest.png',
+                'position_x' => 34,
+                'position_y' => 38,
+                'width' => 16,
+            ],
+            [
+                'node' => 'field-notes',
+                'image_url' => '/images/nodes/fantasy-hex-library.png',
+                'position_x' => 66,
+                'position_y' => 36,
+                'width' => 16,
+            ],
+            [
+                'node' => 'portal-foundation',
+                'image_url' => '/images/nodes/fantasy-hex-crystal-grove.png',
+                'position_x' => 50,
+                'position_y' => 68,
+                'width' => 15,
+            ],
+        ] as $asset) {
+            $node = $nodes->get($asset['node']);
+
+            if (! $node) {
+                continue;
+            }
+
+            $map->assets()->create([
+                'learning_node_id' => $node->id,
+                'image_url' => $asset['image_url'],
+                'position_x' => $asset['position_x'],
+                'position_y' => $asset['position_y'],
+                'position_z' => 2,
+                'width' => $asset['width'],
+                'opacity' => 1,
+                'locked' => false,
+                'focusable' => true,
+                'interaction_mode' => 'focusable',
+                'visual_config' => [
+                    'dark' => [
+                        'borderColor' => '#2dd4bf',
+                        'highlightColor' => '#99f6e4',
+                        'highlightBorderColor' => '#ffffff',
+                    ],
+                    'light' => [
+                        'borderColor' => '#0891b2',
+                        'highlightColor' => '#67e8f9',
+                        'highlightBorderColor' => '#0e7490',
+                    ],
+                ],
+            ]);
+        }
     }
 
     private function seedCompetenceTopicDefinitions(): void

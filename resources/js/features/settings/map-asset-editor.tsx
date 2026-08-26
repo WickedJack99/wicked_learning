@@ -134,7 +134,7 @@ export function MapAssetEditor({
                         return (
                             <button
                                 className={cn(
-                                    'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]',
+                                    'absolute -translate-x-1/2 -translate-y-1/2 text-center transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]',
                                 )}
                                 key={asset.id}
                                 onClick={(event) => {
@@ -189,6 +189,20 @@ export function MapAssetEditor({
                         );
                     })}
                 </div>
+                {assets.length === 0 ? (
+                    <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center px-6 text-center">
+                        <div className="max-w-sm rounded-xl border border-white/10 bg-slate-950/75 px-6 py-5 shadow-2xl backdrop-blur-sm">
+                            <p className="text-sm font-semibold text-white">
+                                No MapAssets yet
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-white/65">
+                                Use Add Asset to place the first visual area on
+                                this map. Select it afterwards to configure its
+                                image, position and learner-facing behavior.
+                            </p>
+                        </div>
+                    </div>
+                ) : null}
                 <div className="pointer-events-none absolute top-4 left-4 text-xs tracking-[0.18em] text-white/70 uppercase">
                     MapAsset surface · no dragging
                 </div>

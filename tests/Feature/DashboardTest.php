@@ -200,13 +200,14 @@ test('authenticated users can visit their bookmark map', function () {
         'user_id' => $user->id,
         'learning_node_id' => $node->id,
     ]);
-    LearningMapAsset::query()->create([
-        'learning_map_id' => $node->learning_map_id,
-        'learning_node_id' => $node->id,
-        'image_url' => '/images/bookmark.png',
-        'focusable' => true,
-        'interaction_mode' => 'focusable',
-    ]);
+    LearningMapAsset::query()
+        ->where('learning_node_id', $node->id)
+        ->firstOrFail()
+        ->update([
+            'image_url' => '/images/bookmark.png',
+            'focusable' => true,
+            'interaction_mode' => 'focusable',
+        ]);
 
     $this->actingAs($user)
         ->get(route('bookmarks'))

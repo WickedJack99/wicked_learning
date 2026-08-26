@@ -7,6 +7,7 @@ use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
+use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\LearningTool;
@@ -26,6 +27,7 @@ test('admin users can see the world graph with portal links', function () {
         'role' => User::ROLE_ADMIN,
     ]);
     $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $assets = LearningMapAsset::query()->where('learning_map_id', $map->id)->get();
     $reviewCount = LearningActivity::query()
         ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
         ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
@@ -49,6 +51,10 @@ test('admin users can see the world graph with portal links', function () {
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')
             ->where('worldGraph.portalLinks.0.targetNode.slug', 'return-gate')
         );
+
+    expect($assets)->toHaveCount(3)
+        ->and($assets->whereNotNull('image_url'))->toHaveCount(3)
+        ->and($assets->pluck('learning_node_id')->unique())->toHaveCount(3);
 
     $this->actingAs($admin)
         ->get(route('settings.worlds.index'))
