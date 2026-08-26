@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
+import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type LearningPath = {
@@ -10,6 +11,7 @@ type LearningPath = {
     href: string;
     id: number;
     imageUrl: string | null;
+    learningIntent: string | null;
     label: string;
     mapHref: string;
     mapTitle: string;
@@ -130,6 +132,11 @@ function PathCard({ path }: { path: LearningPath }) {
                     <h3 className="mt-2 text-lg font-medium text-slate-950 dark:text-white">
                         {path.label}
                     </h3>
+                    {path.learningIntent ? (
+                        <p className="mt-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                            {learningIntentLabel(path.learningIntent, t)}
+                        </p>
+                    ) : null}
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {path.nodeTitle} ·{' '}
                         <Link

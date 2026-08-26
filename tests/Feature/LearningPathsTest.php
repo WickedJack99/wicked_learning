@@ -60,6 +60,7 @@ test('learners can discover accessible authored routes with topic context', func
         'title' => 'Notice patterns',
         'introduction' => 'Start by describing what you notice.',
         'type' => 'markdown',
+        'config' => ['learningIntent' => 'review'],
         'sort_order' => 10,
     ]);
     $start = LearningActivityStart::query()->create([
@@ -78,6 +79,7 @@ test('learners can discover accessible authored routes with topic context', func
             ->where('paths.0.id', $start->id)
             ->where('paths.0.label', 'Begin observing')
             ->where('paths.0.activityTitle', 'Notice patterns')
+            ->where('paths.0.learningIntent', 'review')
             ->where('paths.0.topic.title', 'Astronomy')
             ->where('paths.0.mapHref', '/world?map=night-sky')
             ->where('paths.0.mapTitle', 'Night Sky')

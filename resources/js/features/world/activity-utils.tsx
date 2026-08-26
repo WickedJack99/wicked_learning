@@ -77,15 +77,25 @@ export function learningFocusLabel(
     activity: LearningActivity,
     translate: PlatformTranslate,
 ): string {
-    const intent = activity.config.learningIntent;
+    const intentLabel = learningIntentLabel(
+        activity.config.learningIntent,
+        translate,
+    );
 
+    return intentLabel || activityTypeLabel(activity.type);
+}
+
+export function learningIntentLabel(
+    intent: unknown,
+    translate: PlatformTranslate,
+): string | null {
     if (typeof intent === 'string' && learningFocusCopy[intent]) {
         const [key, fallback] = learningFocusCopy[intent];
 
         return translate(key, fallback);
     }
 
-    return activityTypeLabel(activity.type);
+    return null;
 }
 
 function activityTypeLabel(type: string): string {
