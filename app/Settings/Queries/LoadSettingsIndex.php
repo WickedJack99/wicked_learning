@@ -7,6 +7,7 @@ use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Access\Queries\LoadAccessRoles;
 use App\Access\Serializers\AccessRoleSerializer;
+use App\Ai\Queries\LoadActivityReviewTemplates;
 use App\Ai\Queries\LoadAiSettings;
 use App\Learning\Queries\LoadAdminLearningGroups;
 use App\Learning\Queries\LoadEditableActivityGraph;
@@ -52,6 +53,7 @@ class LoadSettingsIndex
         private readonly LoadAdminLearningGroups $loadLearningGroups,
         private readonly LearningGroupSerializer $learningGroupSerializer,
         private readonly LoadAiSettings $loadAiSettings,
+        private readonly LoadActivityReviewTemplates $loadActivityReviewTemplates,
         private readonly LoadPersonalSettings $personalSettings,
         private readonly LoadColorPaletteSettings $loadColorPaletteSettings,
         private readonly LoadLearningSupportSettings $loadLearningSupportSettings,
@@ -485,9 +487,14 @@ class LoadSettingsIndex
         }
 
         return [
-            'activityGraph' => $this->activityGraphSerializer->serialize(
-                $this->loadEditableActivityGraph->handle($node),
-            ),
+            'activityGraph' => [
+                ...$this->activityGraphSerializer->serialize(
+                    $this->loadEditableActivityGraph->handle($node),
+                ),
+                'aiReviewTemplates' => $this->loadActivityReviewTemplates->handle(
+                    $capabilities[PermissionCatalog::AI]['update'] ?? false,
+                ),
+            ],
             'items' => $this->loadEditableItems
                 ->handle()
                 ->map(fn (LearningItem $item): array => $this->itemSerializer->serialize($item))

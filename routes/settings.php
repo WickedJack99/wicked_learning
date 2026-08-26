@@ -152,6 +152,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
         ->name('settings.worlds.activities.update');
 
+    Route::post('settings/worlds/activities/{activity}/ai-review', [AdminActivityController::class, 'review'])
+        ->name('settings.worlds.activities.ai-review');
+
     Route::patch('settings/worlds/activities/{activity}/graph-layout', [AdminActivityController::class, 'updateActivityGraphLayout'])
         ->name('settings.worlds.activities.graph-layout.update');
 

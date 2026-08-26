@@ -22,6 +22,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { ActivityReviewDialog } from '@/features/ai/activity-review-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { cn } from '@/lib/utils';
@@ -89,6 +90,8 @@ export default function EditNodeActivities({
     const [deleting, setDeleting] = useState(false);
     const [selectedActivity, setSelectedActivity] =
         useState<ActivitySummary | null>(null);
+    const [reviewingActivity, setReviewingActivity] =
+        useState<ActivitySummary | null>(null);
     const [selectedStartRoute, setSelectedStartRoute] =
         useState<ActivityStartRoute | null>(null);
     const [startRouteForm, setStartRouteForm] = useState<StartRouteForm>({
@@ -128,9 +131,19 @@ export default function EditNodeActivities({
         setPendingDelete(activity);
     }, []);
 
+    const requestReview = useCallback((activity: ActivitySummary) => {
+        setReviewingActivity(activity);
+    }, []);
+
     const initialNodes = useMemo(
-        () => buildGraphNodes(activityGraph, openEdit, requestDelete),
-        [activityGraph, openEdit, requestDelete],
+        () =>
+            buildGraphNodes(
+                activityGraph,
+                openEdit,
+                requestDelete,
+                requestReview,
+            ),
+        [activityGraph, openEdit, requestDelete, requestReview],
     );
     const initialEdges = useMemo(
         () => buildGraphEdges(activityGraph),
@@ -531,6 +544,17 @@ export default function EditNodeActivities({
                     </section>
                 </div>
             </main>
+
+            <ActivityReviewDialog
+                activity={reviewingActivity}
+                onClose={() => setReviewingActivity(null)}
+                onReviewed={() => {
+                    router.reload({
+                        only: ['selectedWorldNode'],
+                    });
+                }}
+                templates={activityGraph.aiReviewTemplates}
+            />
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <SettingsConfigurationDialog className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden">

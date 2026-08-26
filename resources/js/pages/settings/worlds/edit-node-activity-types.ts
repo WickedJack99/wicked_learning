@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
+import type { ActivityReview } from '@/features/ai/activity-review-client';
 
 export type Connector = {
     color?: string;
@@ -12,6 +13,13 @@ export type ActivityTypeDefinition = {
     key: string;
     label: string;
     portalModes?: Array<{ key: string; label: string }>;
+};
+
+export type ActivityReviewTemplate = {
+    id: number;
+    model: string | null;
+    name: string;
+    providerLabel: string | null;
 };
 
 export type ActivitySummary = {
@@ -32,6 +40,7 @@ export type ActivitySummary = {
         | boolean
         | null
     >;
+    aiReview: ActivityReview | null;
     connectors: {
         inputs: Connector[];
         outputs: Connector[];
@@ -109,6 +118,7 @@ export type ActivityTransitionSummary = {
 export type ActivityGraphPayload = {
     activities: ActivitySummary[];
     activityTypes: ActivityTypeDefinition[];
+    aiReviewTemplates: ActivityReviewTemplate[];
     map: {
         id: number;
         slug: string;
@@ -222,8 +232,10 @@ export type MarkdownTransitionForm = {
 
 export type ActivityNodeData = {
     activity: ActivitySummary;
+    canReview: boolean;
     onDelete: (activity: ActivitySummary) => void;
     onEdit: (activity: ActivitySummary) => void;
+    onReview: (activity: ActivitySummary) => void;
 };
 
 export type SpecialNodeData = {

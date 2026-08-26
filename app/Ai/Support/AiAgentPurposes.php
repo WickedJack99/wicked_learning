@@ -35,6 +35,11 @@ class AiAgentPurposes
                 'label' => 'Content authoring',
                 'description' => 'Drafts reviewable MapAssets and short Activity routes for administrators.',
             ],
+            [
+                'value' => 'activity_review',
+                'label' => 'Activity review',
+                'description' => 'Reviews one activity in its scoped learning context for clarity and learning support.',
+            ],
         ];
     }
 

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Ai\Actions\ReviewLearningActivity;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\ReviewLearningActivityRequest;
 use App\Learning\Actions\CreateActivityTransition;
 use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
@@ -15,9 +17,11 @@ use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminActivityRules;
 use App\Models\ActivityTransition;
+use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -79,6 +83,27 @@ class AdminActivityController extends Controller
         }
 
         return $this->redirectToActivities($activity->node);
+    }
+
+    public function review(
+        ReviewLearningActivityRequest $request,
+        LearningActivity $activity,
+        ReviewLearningActivity $review,
+    ): JsonResponse {
+        $this->authorizeActivityEdit($request, $activity);
+        $template = AiAgentTemplate::query()->findOrFail($request->integer('template_id'));
+        abort_unless($template->enabled && $template->purpose === 'activity_review', 422);
+
+        $reviewed = $review->handle($activity, $template, $request->user());
+
+        return response()->json([
+            'data' => [
+                'activityId' => $reviewed->id,
+                'aiReviewStatus' => $reviewed->ai_review_status,
+                'aiReviewedAt' => $reviewed->ai_reviewed_at?->toIso8601String(),
+                'aiReview' => $reviewed->ai_review,
+            ],
+        ]);
     }
 
     public function updateNodeGraphLayout(Request $request, LearningNode $node): RedirectResponse

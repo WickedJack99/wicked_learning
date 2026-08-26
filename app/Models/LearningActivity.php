@@ -11,6 +11,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property array<string, mixed>|null $config
+ * @property array<string, mixed>|null $ai_review
  * @property Carbon|null $ai_reviewed_at
  */
 #[Fillable([
@@ -22,6 +23,7 @@ use Illuminate\Support\Carbon;
     'config',
     'ai_review_status',
     'ai_reviewed_at',
+    'ai_review',
     'sort_order',
     'graph_position_x',
     'graph_position_y',
@@ -40,6 +42,7 @@ class LearningActivity extends Model
         return [
             'config' => 'array',
             'ai_reviewed_at' => 'datetime',
+            'ai_review' => 'array',
         ];
     }
 

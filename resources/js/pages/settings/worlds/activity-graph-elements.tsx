@@ -8,6 +8,7 @@ import {
     MessageCircle,
     Pencil,
     Play,
+    Sparkles,
     Trash2,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
@@ -67,7 +68,11 @@ function ActivityGraphNodeCard({
             <h2 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
                 {activity.title}
             </h2>
-            <ActivityReviewBadge activity={activity} />
+            <ActivityReviewBadge
+                activity={activity}
+                canReview={data.canReview}
+                onReview={data.onReview}
+            />
             {activity.introduction ? (
                 <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                     {activity.introduction}
@@ -169,11 +174,19 @@ function ActivityGraphNodeCard({
     );
 }
 
-function ActivityReviewBadge({ activity }: { activity: ActivitySummary }) {
+function ActivityReviewBadge({
+    activity,
+    canReview,
+    onReview,
+}: {
+    activity: ActivitySummary;
+    canReview: boolean;
+    onReview: (activity: ActivitySummary) => void;
+}) {
     const needsReview = activity.aiReviewStatus !== 'reviewed';
 
     return (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+        <div className="nodrag nopan mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span
                 className={cn(
                     'inline-flex items-center gap-1 rounded-full border px-2 py-1 font-medium',
@@ -194,6 +207,20 @@ function ActivityReviewBadge({ activity }: { activity: ActivitySummary }) {
                 )}
                 {needsReview ? 'Needs AI review' : 'AI reviewed'}
             </span>
+            {canReview ? (
+                <Button
+                    className="h-6 px-2 text-[11px]"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onReview(activity);
+                    }}
+                    type="button"
+                    variant="ghost"
+                >
+                    <Sparkles className="size-3" />
+                    Review
+                </Button>
+            ) : null}
             {activity.updatedAt ? (
                 <span className="text-slate-500 dark:text-slate-400">
                     Edited {formatActivityDate(activity.updatedAt)}
@@ -284,11 +311,18 @@ export function buildGraphNodes(
     payload: ActivityGraphPayload,
     onEdit: (activity: ActivitySummary) => void,
     onDelete: (activity: ActivitySummary) => void,
+    onReview: (activity: ActivitySummary) => void,
 ): ActivityGraphNode[] {
     const activities = payload.activities.map((activity, index) => ({
         id: activity.id.toString(),
         type: 'activity' as const,
-        data: { activity, onDelete, onEdit },
+        data: {
+            activity,
+            canReview: payload.aiReviewTemplates.length > 0,
+            onDelete,
+            onEdit,
+            onReview,
+        },
         position:
             activity.position.x !== null
                 ? {
