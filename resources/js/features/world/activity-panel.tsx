@@ -353,6 +353,7 @@ export function ActivityPlayer({
     onAnswer,
     onComplete,
     onMoveToActivity,
+    onRestart,
     playState,
     playRunId,
     onTravel,
@@ -367,6 +368,7 @@ export function ActivityPlayer({
         options?: { endsRoute?: boolean },
     ) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
+    onRestart: () => void;
     playState: Record<string, unknown>;
     playRunId: string | null;
     onTravel: (portalLink: LearningPortalLink) => void;
@@ -389,7 +391,7 @@ export function ActivityPlayer({
     }
 
     return (
-        <ActivityFrame activity={activity}>
+        <ActivityFrame activity={activity} onRestart={onRestart}>
             <ActivityAmbientSound activity={activity} />
             {activity.type === 'dialogue' ? (
                 <DialogueActivity
@@ -598,9 +600,11 @@ function LockedActivityState() {
 function ActivityFrame({
     activity,
     children,
+    onRestart,
 }: {
     activity: LearningActivity;
     children: React.ReactNode;
+    onRestart: () => void;
 }) {
     const relatedLearningAreas = learningAreaNames(activity);
     const translate = usePlatformTranslation();
@@ -650,6 +654,17 @@ function ActivityFrame({
             </div>
 
             {children}
+
+            <div className="mt-auto flex justify-end border-t border-slate-200 pt-3 dark:border-white/10">
+                <Button
+                    className="text-sm"
+                    onClick={onRestart}
+                    type="button"
+                    variant="ghost"
+                >
+                    From beginning
+                </Button>
+            </div>
         </section>
     );
 }

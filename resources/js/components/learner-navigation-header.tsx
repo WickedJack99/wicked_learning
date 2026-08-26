@@ -16,6 +16,7 @@ export type LearnerNavigationItem = {
 };
 
 type LearnerNavigationHeaderProps = {
+    centerContent?: ReactNode;
     items: LearnerNavigationItem[];
     mapThemed?: boolean;
     position?: 'fixed' | 'sticky';
@@ -23,6 +24,7 @@ type LearnerNavigationHeaderProps = {
 
 /** Shared learner header used by the desk and immersive learning surfaces. */
 export function LearnerNavigationHeader({
+    centerContent,
     items,
     mapThemed = false,
     position = 'sticky',
@@ -32,6 +34,7 @@ export function LearnerNavigationHeader({
     return (
         <header
             className={cn(
+                'relative',
                 position === 'fixed' && 'fixed top-0 right-0 left-0 z-[70]',
                 position === 'sticky' && 'sticky top-0 z-40',
                 'border-b border-slate-200/80 bg-slate-50/94 backdrop-blur-xl dark:border-white/10 dark:bg-[#08111b]/94',
@@ -39,6 +42,12 @@ export function LearnerNavigationHeader({
         >
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
                 <LearnerBrand />
+
+                {centerContent ? (
+                    <div className="order-2 min-w-0 basis-full text-center sm:absolute sm:top-1/2 sm:left-1/2 sm:w-[min(32rem,calc(100%-18rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:px-2">
+                        {centerContent}
+                    </div>
+                ) : null}
 
                 <nav
                     aria-label={t(

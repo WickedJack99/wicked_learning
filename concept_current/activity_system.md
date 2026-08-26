@@ -80,11 +80,13 @@ Current UI behavior:
 
 - The focused MapAsset panel shows route choices, not the activity player itself.
 - Starting a route navigates to a separate node-play page so the map does not keep unnecessary listeners and rendering work active during activity playback.
-- When an activity becomes active, the bottom navigation can show an activity-return button.
+- Activity playback uses the shared learner header with direct links to the map,
+  learning desk and bookmarks.
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
 - Admins edit activity graphs by selecting a MapAsset and opening its `Activities` section.
-- Activity playback pages reserve space for the bottom navigation instead of letting activity controls disappear behind it.
+- The route restart action is kept in the shared activity frame at the lower
+  edge of the activity surface, instead of competing with primary navigation.
 - Route playback stores learner-specific run state on the backend. Refreshing the browser should resume the current activity or current dialogue bubble instead of replaying the first activity by accident.
 - A learner can intentionally restart a route from the beginning. Restarting
   from inside a run should not duplicate grants already made in that run, while

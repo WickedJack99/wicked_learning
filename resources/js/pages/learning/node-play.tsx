@@ -1,7 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, House, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { LearnerAccountControls } from '@/components/learner-account-controls';
+import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
+import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
@@ -148,9 +148,9 @@ export default function NodePlay({
 
     const markCompleted = useCallback(
         async (activity: LearningActivity, options: CompletionOptions = {}) => {
-            // The bottom-nav action is a resume affordance, not a history link.
-            // Clear it before the optional check-in so completed work does not
-            // follow the learner around the desk and map.
+            // Clear the persisted resume affordance before the optional
+            // check-in so completed work does not follow the learner around
+            // the desk and map.
             clearPersistedActiveActivity();
 
             if (!isAuthenticated) {
@@ -356,6 +356,28 @@ export default function NodePlay({
         [returnToMap],
     );
 
+    const mapHref = `/world?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`;
+    const navigationItems: LearnerNavigationItem[] = [
+        {
+            active: false,
+            href: mapHref,
+            label: translate('navigation.bottom.map', 'Map'),
+        },
+        {
+            active: false,
+            href: '/home',
+            label: translate(
+                'navigation.bottom.learning_desk',
+                'Learning desk',
+            ),
+        },
+        {
+            active: false,
+            href: '/bookmarks',
+            label: translate('navigation.bottom.bookmarks', 'Bookmarks'),
+        },
+    ];
+
     return (
         <>
             <Head title={`${node.title} activities`} />
@@ -363,54 +385,29 @@ export default function NodePlay({
                 className="flex h-full min-h-0 flex-col overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
             >
-                <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white/90 px-3 py-3 backdrop-blur sm:gap-4 sm:px-4 dark:border-white/10 dark:bg-slate-950/80">
-                    <Button
-                        className="shrink-0"
-                        onClick={returnToMap}
-                        type="button"
-                        variant="ghost"
-                    >
-                        <ArrowLeft className="size-4" />
-                        Map
-                    </Button>
-                    <Button asChild className="shrink-0" variant="ghost">
-                        <Link href="/home">
-                            <House className="size-4" />
-                            {translate(
-                                'navigation.bottom.learning_desk',
-                                'Learning desk',
-                            )}
-                        </Link>
-                    </Button>
-                    <Button
-                        className="shrink-0"
-                        onClick={() => void restartFromBeginning()}
-                        type="button"
-                        variant="ghost"
-                    >
-                        <RotateCcw className="size-4" />
-                        From beginning
-                    </Button>
-                    <div className="order-last min-w-0 basis-full text-left sm:order-none sm:ml-auto sm:basis-auto sm:text-right">
-                        {node.topic ? (
-                            <Link
-                                className="block truncate text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
-                                href={node.topic.href}
-                            >
-                                {node.topic.title}
-                            </Link>
-                        ) : null}
-                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                            {node.mapTitle}
-                        </p>
-                        <h1 className="truncate text-base font-semibold">
-                            {node.title}
-                        </h1>
-                    </div>
-                    <LearnerAccountControls className="order-2 sm:order-none" />
-                </header>
+                <LearnerNavigationHeader
+                    centerContent={
+                        <div className="min-w-0 text-center">
+                            {node.topic ? (
+                                <Link
+                                    className="block truncate text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                                    href={node.topic.href}
+                                >
+                                    {node.topic.title}
+                                </Link>
+                            ) : null}
+                            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                                {node.mapTitle}
+                            </p>
+                            <h1 className="truncate text-base font-semibold">
+                                {node.title}
+                            </h1>
+                        </div>
+                    }
+                    items={navigationItems}
+                />
 
-                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-24 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6 md:pb-28">
+                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6">
                     {travelBlockedMessage ? (
                         <p
                             aria-live="polite"
@@ -437,6 +434,7 @@ export default function NodePlay({
                             onAnswer={updateAnswer}
                             onComplete={markCompleted}
                             onMoveToActivity={moveToActivity}
+                            onRestart={() => void restartFromBeginning()}
                             playState={activityPlayState}
                             playRunId={playRunId}
                             onTravel={travel}

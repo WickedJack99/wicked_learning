@@ -111,6 +111,7 @@ export function AppBottomNav() {
             url.startsWith('/learning/'),
         [url],
     );
+    const isNodePlay = useMemo(() => url.startsWith('/learning/nodes/'), [url]);
     const items = useMemo<NavItem[]>(() => {
         const baseItems: NavItem[] = [
             {
@@ -180,6 +181,10 @@ export function AppBottomNav() {
     ]);
 
     if (!isImmersiveSurface) {
+        return null;
+    }
+
+    if (isNodePlay) {
         return null;
     }
 
