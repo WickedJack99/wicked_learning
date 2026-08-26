@@ -68,7 +68,7 @@ export function GroupControl({
 
             {isOpen ? (
                 <section
-                    className="absolute top-4 right-4 z-40 grid max-h-[calc(100svh-2rem)] w-[min(28rem,calc(100%-2rem))] gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white/94 p-4 text-slate-950 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/92 dark:text-slate-100"
+                    className="absolute top-28 right-4 z-40 grid max-h-[calc(100svh-7rem)] w-[min(28rem,calc(100%-2rem))] gap-3 overflow-hidden rounded-2xl border border-slate-200 bg-white/94 p-4 text-slate-950 shadow-2xl backdrop-blur-md sm:top-16 sm:max-h-[calc(100svh-5rem)] dark:border-white/10 dark:bg-slate-950/92 dark:text-slate-100"
                     style={{
                         background: 'var(--map-floating-background)',
                         borderColor: 'var(--map-floating-border-color)',
