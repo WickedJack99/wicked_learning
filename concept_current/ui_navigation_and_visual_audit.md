@@ -296,12 +296,19 @@ The shared activity shell also exposes the current place bookmark action for
 authenticated learners. The action uses the same bookmark endpoints as the
 map, reports its pressed state and remains available across activity types.
 
+Map search now handles the same published topic, map and place result contract
+as the learning desk search. Topic results open their topic page directly,
+while map and place results retain their map focus behavior. Matching is
+case-insensitive across PostgreSQL and the test database, and the empty and
+no-result states use the current topic-aware wording.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:
 
-- Search should be tested with empty, exact and no-result input, including the
-  return path from a result.
+- Search empty, lowercase exact, no-result and topic-result return behavior is
+  covered by the current browser smoke pass; backend result filtering remains
+  covered by `DashboardTest`.
 - Topic → competence, topic → map, map → asset and asset → activity link
   contracts are covered by `LearningTopicsTest`; activity completion still
   needs one uninterrupted browser flow.

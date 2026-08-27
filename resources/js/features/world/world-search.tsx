@@ -1,10 +1,18 @@
-import { Map as MapIcon, MapPin, Search, X } from 'lucide-react';
+import { BookOpenText, Map as MapIcon, MapPin, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export type SearchResult =
     | {
+          href: string;
+          id: string;
+          kind: 'topic';
+          subtitle: string;
+          title: string;
+      }
+    | {
+          href: string;
           id: string;
           kind: 'map';
           mapId: number;
@@ -13,6 +21,7 @@ export type SearchResult =
           title: string;
       }
     | {
+          href: string;
           id: string;
           kind: 'node';
           mapId: number;
@@ -50,7 +59,10 @@ export function WorldSearch({
 }) {
     const t = usePlatformTranslation();
     const hasSearch = searchTerm.trim().length > 0;
-    const searchLabel = t('world.search.label', 'Search maps and tiles');
+    const searchLabel = t(
+        'world.search.label',
+        'Search maps, places and topics',
+    );
     const renderSearchResults = () => {
         if (isLoading) {
             return (
@@ -73,7 +85,10 @@ export function WorldSearch({
                         color: 'var(--map-floating-muted-text-color)',
                     }}
                 >
-                    {t('world.search.empty', 'No visible maps or tiles found.')}
+                    {t(
+                        'world.search.empty',
+                        'No visible maps, places or topics found.',
+                    )}
                 </p>
             );
         }
@@ -96,7 +111,9 @@ export function WorldSearch({
                                 color: 'var(--map-floating-accent-color)',
                             }}
                         >
-                            {result.kind === 'map' ? (
+                            {result.kind === 'topic' ? (
+                                <BookOpenText className="size-4" />
+                            ) : result.kind === 'map' ? (
                                 <MapIcon className="size-4" />
                             ) : (
                                 <MapPin className="size-4" />
@@ -269,7 +286,7 @@ export function WorldSearch({
                                 >
                                     {t(
                                         'world.search.mobile_prompt',
-                                        'Enter a word to search visible maps and tiles.',
+                                        'Enter a word to search visible maps, places and topics.',
                                     )}
                                 </p>
                             )}

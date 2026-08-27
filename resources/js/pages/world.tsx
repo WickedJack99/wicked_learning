@@ -267,6 +267,12 @@ export default function World({
         (result: SearchResult) => {
             setIsMobileSearchOpen(false);
 
+            if (result.kind === 'topic') {
+                router.visit(result.href);
+
+                return;
+            }
+
             if (result.kind === 'map') {
                 const resultMap = findMap(world, result.mapSlug);
 

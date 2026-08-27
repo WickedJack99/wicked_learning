@@ -48,9 +48,9 @@ class SearchLearningWorld
             ->where('is_published', true)
             ->where(function ($query) use ($likeTerm): void {
                 $query
-                    ->where('title', 'like', $likeTerm)
-                    ->orWhere('description', 'like', $likeTerm)
-                    ->orWhere('slug', 'like', $likeTerm);
+                    ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(slug) LIKE LOWER(?)', [$likeTerm]);
             })
             ->orderBy('title')
             ->limit(8)
@@ -76,9 +76,9 @@ class SearchLearningWorld
             ->whereHas('world', fn ($query) => $query->where('slug', CurrentWorldResolver::DEFAULT_WORLD_SLUG))
             ->where(function ($query) use ($likeTerm): void {
                 $query
-                    ->where('title', 'like', $likeTerm)
-                    ->orWhere('description', 'like', $likeTerm)
-                    ->orWhere('slug', 'like', $likeTerm);
+                    ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(slug) LIKE LOWER(?)', [$likeTerm]);
             })
             ->limit(8)
             ->get()
@@ -108,10 +108,11 @@ class SearchLearningWorld
             ->whereHas('map.world', fn ($query) => $query->where('slug', CurrentWorldResolver::DEFAULT_WORLD_SLUG))
             ->where(function ($query) use ($likeTerm): void {
                 $query
-                    ->where('title', 'like', $likeTerm)
-                    ->orWhere('description', 'like', $likeTerm)
-                    ->orWhere('slug', 'like', $likeTerm)
-                    ->orWhereHas('map', fn ($mapQuery) => $mapQuery->where('title', 'like', $likeTerm));
+                    ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereRaw('LOWER(slug) LIKE LOWER(?)', [$likeTerm])
+                    ->orWhereHas('map', fn ($mapQuery) => $mapQuery
+                        ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm]));
             })
             ->limit(32)
             ->get()
