@@ -1,13 +1,4 @@
 export type CompetenceTopic = {
-    evidenceLedger: Array<{
-        activityTitle: string | null;
-        activityHref: string | null;
-        evidenceType: string;
-        id: number;
-        nodeHref: string | null;
-        nodeTitle: string | null;
-        recordedAt: string | null;
-    }>;
     name: string;
     relatedTopic: {
         href: string;
@@ -24,6 +15,15 @@ export type CompetenceTopic = {
         auraRatio: number;
         brightnessRatio: number;
         description: string;
+        evidenceLedger: Array<{
+            activityTitle: string | null;
+            activityHref: string | null;
+            evidenceType: string;
+            id: number;
+            nodeHref: string | null;
+            nodeTitle: string | null;
+            recordedAt: string | null;
+        }>;
         evidenceTypes: string[];
         learningPeriods: string[];
         recentDescription: string;

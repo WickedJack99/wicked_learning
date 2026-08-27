@@ -883,7 +883,7 @@ function CompetenceReading({
                     </span>
                 )}
             </div>
-            {topic.evidenceLedger.length > 0 ? (
+            {topic.visual.evidenceLedger.length > 0 ? (
                 <details className="mt-4 rounded-lg border border-cyan-200/15 bg-cyan-200/5 px-3 py-2">
                     <summary className="cursor-pointer text-xs font-medium tracking-[0.14em] text-cyan-100/80 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
                         Evidence ledger
@@ -892,7 +892,7 @@ function CompetenceReading({
                         Recent learning moments informing this light.
                     </p>
                     <div className="mt-3 grid gap-2">
-                        {topic.evidenceLedger.map((evidence) => {
+                        {topic.visual.evidenceLedger.map((evidence) => {
                             const content = (
                                 <span className="flex items-start justify-between gap-3">
                                     <span className="min-w-0">

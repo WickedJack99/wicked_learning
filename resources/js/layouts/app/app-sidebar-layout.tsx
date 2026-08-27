@@ -103,7 +103,9 @@ export default function AppSidebarLayout({
                 } as CSSProperties
             }
         >
-            <main className="h-full overflow-hidden">{children}</main>
+            <main className="flex h-full min-h-0 flex-col overflow-hidden">
+                {children}
+            </main>
             <EquippedToolCursorOverlay
                 mode={resolvedAppearance}
                 tool={selectedTool}

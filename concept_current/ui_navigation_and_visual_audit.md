@@ -26,22 +26,22 @@ instead of being presented as working.
 
 ## Confirmed working in the current demo
 
-| Area                | Checked behavior                                                                                                                                                | Result                                                                                                                   |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Learning desk       | Search, recent traces, continue learning, possible connections, bookmarks aside                                                                                 | Working; possible connections is present below the initial content on the current desktop layout                         |
-| Paths               | Route cards and entry links                                                                                                                                     | Working                                                                                                                  |
-| Topics              | Topic directory, areas, topic links and admin link where available                                                                                              | Working                                                                                                                  |
-| Topic detail        | Competence link, learning areas, routes, maps and subtopics                                                                                                     | Working; the page is a vertically scrollable document, so lower cards are not a clipping defect                          |
-| Bookmarks           | Shared surface header, selected place and bookmark links                                                                                                        | Working                                                                                                                  |
-| Competence          | Star-map empty state, topic return, learning pulse                                                                                                              | Working at the checked desktop state                                                                                     |
-| Map                 | Map selection, asset focus panel, activity links, surface navigation                                                                                            | Working at the checked desktop state                                                                                     |
-| Activity            | Shared header, map/bookmarks/learning-desk links, activity player and “From beginning” action                                                                   | Working                                                                                                                  |
+| Area                | Checked behavior                                                                                                                                                | Result                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Learning desk       | Search, recent traces, continue learning, possible connections, bookmarks aside                                                                                 | Working; possible connections is present below the initial content on the current desktop layout                     |
+| Paths               | Route cards and entry links                                                                                                                                     | Working                                                                                                              |
+| Topics              | Topic directory, areas, topic links and admin link where available                                                                                              | Working                                                                                                              |
+| Topic detail        | Competence link, learning areas, routes, maps and subtopics                                                                                                     | Working; the page is a vertically scrollable document, so lower cards are not a clipping defect                      |
+| Bookmarks           | Shared surface header, selected place and bookmark links                                                                                                        | Working                                                                                                              |
+| Competence          | Star-map empty state, topic return, learning pulse and star reading panel                                                                                       | Working; star activation is covered after correcting the payload-shape regression found in the 2026-08-27 pass       |
+| Map                 | Map selection, asset focus panel, activity links, surface navigation                                                                                            | Working at the checked desktop state                                                                                 |
+| Activity            | Shared header, map/bookmarks/learning-desk links, activity player and “From beginning” action                                                                   | Working                                                                                                              |
 | Journal             | Header action opens the journal dialog, page search/list/edit/save/delete controls and export link                                                              | Working; this is intentionally a dialog interaction from the learning desk, and `/journal` deep-links to that dialog |
-| AI review           | World Builder shows a scoped review queue and links to the review-helper configuration                                                                          | Working and discoverable                                                                                                 |
-| Seeded media        | Pattern Lens has dark and light tool images and reusable-image selection controls                                                                               | Working                                                                                                                  |
-| Scrollbars          | Scrollable areas do not render browser up/down arrow buttons                                                                                                    | Working; this is already implemented in the shared stylesheet                                                            |
-| Settings shell      | Settings search, categories, quick links to Learning desk/Map/Bookmarks, account controls                                                                       | Working                                                                                                                  |
-| Settings categories | Personal, Learning Support, World Builder, Assets & World Objects, Access, AI, Translations, Color palettes, Public pages and API all open their current panels | Working in the smoke pass                                                                                                |
+| AI review           | World Builder shows a scoped review queue and links to the review-helper configuration                                                                          | Working and discoverable                                                                                             |
+| Seeded media        | Pattern Lens has dark and light tool images and reusable-image selection controls                                                                               | Working                                                                                                              |
+| Scrollbars          | Scrollable areas do not render browser up/down arrow buttons                                                                                                    | Working; this is already implemented in the shared stylesheet                                                        |
+| Settings shell      | Settings search, categories, quick links to Learning desk/Map/Bookmarks, account controls                                                                       | Working                                                                                                              |
+| Settings categories | Personal, Learning Support, World Builder, Assets & World Objects, Access, AI, Translations, Color palettes, Public pages and API all open their current panels | Working in the smoke pass                                                                                            |
 
 ## Navigation findings
 
@@ -142,6 +142,23 @@ clip horizontal spill without moving neighboring controls when the list grows.
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
 scrollbar remains arrow-free and retains a visible thumb in both themes.
+
+### Completed — Keep learner document pages inside the app frame
+
+The fixed application frame now gives its page outlet an explicit flex-column
+contract. This allows `.learner-scroll-pane` to receive the available height
+and own vertical scrolling on Topics, topic detail, Paths and the other learner
+document pages. It also keeps the page background continuous instead of exposing
+the outer shell background below short content.
+
+The competence reader now follows the actual map payload contract: evidence
+ledger entries, evidence kinds and learning periods are read from the visual
+description object that supplies them. Activating a star therefore opens the
+reading panel without unmounting the page.
+
+**Result:** `/topics` has one continuous learner surface, topic detail can
+reach all variable-length sections, and activating a competence star keeps the
+map and its reading panel visible.
 
 ## Visual system and color findings
 
