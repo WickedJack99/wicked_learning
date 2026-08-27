@@ -74,6 +74,11 @@ map title panel, MapAsset side panel and right control. Portal travel remains
 an optional exploration connection and is not treated as the only way to reach
 a map.
 
+The active translation catalog now names these shared destinations as
+`navigation.primary.*` and activity return actions as
+`navigation.activity.*`. The former `navigation.bottom.*` names are retained
+only in historical migration and audit context, not in active learner code.
+
 ### P1 — Define one surface-frame ownership rule
 
 The learner shell now has a shared header, maps add map controls and a focus

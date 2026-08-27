@@ -37,19 +37,19 @@ export function SettingsCornerNavigation() {
         {
             href: currentMapHref,
             icon: <Map className="size-4" />,
-            label: t('navigation.bottom.map', 'Map'),
+            label: t('navigation.primary.map', 'Map'),
         },
         {
             href: '/bookmarks',
             icon: <Bookmark className="size-4" />,
-            label: t('navigation.bottom.bookmarks', 'Bookmarks'),
+            label: t('navigation.primary.bookmarks', 'Bookmarks'),
         },
         {
             asButton: true,
             danger: true,
             href: logout(),
             icon: <DoorOpen className="size-4" />,
-            label: t('navigation.bottom.log_out', 'Log out'),
+            label: t('navigation.primary.log_out', 'Log out'),
             onClick: handleLogout,
         },
         {

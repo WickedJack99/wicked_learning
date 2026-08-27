@@ -373,7 +373,7 @@ export default function NodePlay({
         {
             active: false,
             href: mapHref,
-            label: translate('navigation.bottom.map', 'Map'),
+            label: translate('navigation.primary.map', 'Map'),
         },
         {
             active: false,

@@ -74,7 +74,7 @@ export function LearnerSurfaceNavigation() {
             active: isMapSurface,
             href: worldHref,
             id: 'map',
-            label: t('navigation.bottom.map', 'Map'),
+            label: t('navigation.primary.map', 'Map'),
         },
         ...(isAuthenticated
             ? [
@@ -99,10 +99,7 @@ export function LearnerSurfaceNavigation() {
                 activeActivity.worldHref ??
                 worldHref,
             id: 'active-activity',
-            label: t(
-                'navigation.bottom.continue_activity',
-                'Continue activity',
-            ),
+            label: t('navigation.activity.continue', 'Continue activity'),
         });
     }
 
