@@ -188,6 +188,11 @@ export default function AdminMediaAssets({
                                 <div className="min-h-0 flex-1 p-3">
                                     <LearnerPaginatedItems
                                         className="grid gap-2"
+                                        emptyState={
+                                            <p className="px-1 py-4 text-sm text-[var(--settings-muted-text)]">
+                                                No visuals match this search.
+                                            </p>
+                                        }
                                         items={filteredAssets}
                                         key={search}
                                         pageSize={4}

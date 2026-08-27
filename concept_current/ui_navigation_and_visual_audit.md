@@ -382,7 +382,8 @@ changing the preview's continuous inspection behavior.
 The reusable media library applies the same distinction: its searchable visual
 chooser shows four assets per page, while the selected asset's detail surface
 remains continuous. Searching resets the chooser to its first page so a filter
-cannot leave the editor on an empty later page.
+cannot leave the editor on an empty later page; a search with no matches now
+states that directly in the chooser.
 
 ### Completed — Protect the learner journey link contract
 

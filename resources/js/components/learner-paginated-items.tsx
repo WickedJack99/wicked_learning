@@ -5,6 +5,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 export function LearnerPaginatedItems<T>({
     className = 'grid gap-3 sm:grid-cols-2',
+    emptyState = null,
     items,
     pageSize,
     paginationButtonClassName = 'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
@@ -13,6 +14,7 @@ export function LearnerPaginatedItems<T>({
     renderItem,
 }: {
     className?: string;
+    emptyState?: ReactNode;
     items: T[];
     pageSize: number;
     paginationButtonClassName?: string;
@@ -26,7 +28,7 @@ export function LearnerPaginatedItems<T>({
     const currentPage = Math.min(page, Math.max(0, pageCount - 1));
 
     if (items.length === 0) {
-        return null;
+        return emptyState;
     }
 
     return (
