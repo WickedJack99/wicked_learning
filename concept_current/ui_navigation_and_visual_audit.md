@@ -296,6 +296,13 @@ but `aria-pressed` now reflects only an intentional selection. Assistive
 technology therefore does not hear a transient pointer hover as if the learner
 had selected and opened that competence reading.
 
+### Completed — Reserve source-control clearance on the competence map
+
+The competence map and learning-pulse panels now stop above the fixed
+source-code control, so the control remains in its existing position without
+covering either panel. The map guide uses a stable right-aligned wrapper, so
+opening its explanation expands the reading panel without moving the trigger.
+
 ### Completed — Make interactive map assets reachable
 
 Interactive MapAssets now receive pointer input as well as keyboard input;

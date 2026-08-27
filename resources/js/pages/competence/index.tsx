@@ -67,7 +67,7 @@ export default function CompetenceStarMap({
             <Head title="Competence Star Map" />
             <main className="flex min-h-svh flex-col overflow-y-auto bg-black text-white xl:h-svh xl:min-h-0 xl:overflow-hidden">
                 <LearningDeskHeader />
-                <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-6">
+                <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-14">
                     <AccentHeading
                         className="shrink-0"
                         action={
@@ -494,7 +494,7 @@ function CompetenceMapGuide({
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] text-slate-100">
+        <div className="absolute top-4 right-4 z-10 flex w-[min(36rem,calc(100%-2rem))] flex-col items-end text-slate-100">
             <Button
                 aria-controls="competence-map-guide"
                 aria-expanded={isOpen}
@@ -509,7 +509,7 @@ function CompetenceMapGuide({
                 />
             </Button>
             <div
-                className="mt-2 grid max-h-[calc(100%-4.5rem)] gap-3 overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/95 px-3 py-3 text-xs leading-5 text-slate-300 shadow-xl backdrop-blur"
+                className="mt-2 grid max-h-[calc(100%-4.5rem)] w-full gap-3 overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/95 px-3 py-3 text-xs leading-5 text-slate-300 shadow-xl backdrop-blur"
                 hidden={!isOpen}
                 id="competence-map-guide"
             >
