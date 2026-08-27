@@ -15,6 +15,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import type {
     OrganizationGovernanceType,
@@ -88,8 +89,9 @@ export default function OrganizationsIndex({
     return (
         <>
             <Head title="Organizations" />
-            <main className="min-h-svh bg-slate-100 px-4 py-6 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto grid max-w-6xl gap-5">
+            <main className="h-full overflow-y-auto bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+                <LearningDeskHeader />
+                <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 pb-24">
                     <AccentHeading
                         action={
                             <Button

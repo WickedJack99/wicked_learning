@@ -6,9 +6,11 @@ This backlog contains current direction. Historical ideas in `concept/` and
 ## Priority 1 - Strengthen Existing Learning Loops
 
 - Complete the remaining UI audit follow-up in
-  `concept_current/ui_navigation_and_visual_audit.md`: close focused-map
-  narrow overflow, define the learner palette source of truth, and give
-  standalone community pages a deliberate navigation contract.
+  `concept_current/ui_navigation_and_visual_audit.md`: define the learner
+  palette source of truth and add automated responsive/collection coverage.
+  The community navigation contract is now shared by organization pages, and
+  the earlier focused-map overflow signal is not reproducible in the current
+  browser pass.
 - Expand the existing local Activity-template flow into reusable cross-map
   templates only after its context-sensitive fields and asset references are
   defined safely.

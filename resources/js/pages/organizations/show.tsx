@@ -27,6 +27,7 @@ import type { SettingsNavigationItem } from '@/components/settings-configuration
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { formatMessageTime } from '@/features/messages/message-time';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import type {
@@ -221,109 +222,118 @@ export default function OrganizationShow({
     return (
         <>
             <Head title={organization.name} />
-            <main className="fixed inset-0 overflow-hidden bg-slate-100 px-4 pt-5 pb-24 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
-                <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
-                    <div className="shrink-0 pb-5">
-                        <Button asChild className="w-max" variant="ghost">
-                            <Link href="/organizations">
-                                <ArrowLeft className="size-4" />
-                                Organizations
-                            </Link>
-                        </Button>
-                    </div>
-
-                    <section className="grid min-h-0 flex-1 gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl lg:grid-cols-[16rem_minmax(0,1fr)] dark:border-white/10 dark:bg-[#111820]">
-                        <SettingsSidebar>
-                            <SettingsSectionNavigation
-                                activeSection={activeSection}
-                                ariaLabel="Organization sections"
-                                items={sectionItems}
-                                onChange={setSelectedSection}
-                            />
-                        </SettingsSidebar>
-
-                        <div className={contentPaneClassName}>
-                            <OrganizationSummary organization={organization} />
-
-                            {activeSection === 'leader-controls' &&
-                            organization.isLeader ? (
-                                <LeaderPanel
-                                    errors={errors}
-                                    form={form}
-                                    onDelete={deleteOrganization}
-                                    onFormChange={setForm}
-                                    onSubmit={updateOrganization}
-                                    onUpload={uploadIcon}
-                                    uploading={uploading}
-                                />
-                            ) : null}
-
-                            {activeSection === 'chat' && canViewChat ? (
-                                <ChatPanel
-                                    body={chatBody}
-                                    error={errors.body}
-                                    messages={organization.messages}
-                                    showComposer={organization.canSendMessages}
-                                    onBodyChange={setChatBody}
-                                    onDeleteMessage={deleteMessage}
-                                    onHideMessage={hideMessage}
-                                    onSubmit={sendMessage}
-                                />
-                            ) : null}
-
-                            {activeSection === 'membership' ? (
-                                <MembershipPanel
-                                    canLeave={canLeave}
-                                    errors={errors}
-                                    isMember={isMember}
-                                    joinMessage={joinMessage}
-                                    joinRequestStatus={
-                                        organization.viewerJoinRequest
-                                            ?.status ?? null
-                                    }
-                                    onJoinMessageChange={setJoinMessage}
-                                    onLeave={leaveOrganization}
-                                    onOpenLeaderControls={() =>
-                                        setSelectedSection('leader-controls')
-                                    }
-                                    onRequestJoin={requestJoin}
-                                />
-                            ) : null}
-
-                            {activeSection === 'join-requests' &&
-                            organization.isLeader ? (
-                                <JoinRequestPanel
-                                    requests={organization.joinRequests}
-                                />
-                            ) : null}
-
-                            {activeSection === 'members' ? (
-                                <MemberList
-                                    canPromote={
-                                        organization.isLeader &&
-                                        organization.governanceType ===
-                                            'monarchy'
-                                    }
-                                    errors={errors}
-                                    members={organization.members}
-                                    onPromote={promoteMember}
-                                />
-                            ) : null}
-
-                            {activeSection === 'report-icon' &&
-                            organization.iconUrl &&
-                            !organization.isLeader ? (
-                                <ReportIconPanel
-                                    error={errors.icon}
-                                    onReasonChange={setReportReason}
-                                    onSubmit={reportIcon}
-                                    reason={reportReason}
-                                />
-                            ) : null}
+            <div className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+                <LearningDeskHeader />
+                <main className="min-h-0 flex-1 overflow-hidden px-4 pt-5 pb-5">
+                    <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
+                        <div className="shrink-0 pb-5">
+                            <Button asChild className="w-max" variant="ghost">
+                                <Link href="/organizations">
+                                    <ArrowLeft className="size-4" />
+                                    Organizations
+                                </Link>
+                            </Button>
                         </div>
-                    </section>
-                </div>
-            </main>
+
+                        <section className="grid min-h-0 flex-1 gap-5 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl lg:grid-cols-[16rem_minmax(0,1fr)] dark:border-white/10 dark:bg-[#111820]">
+                            <SettingsSidebar>
+                                <SettingsSectionNavigation
+                                    activeSection={activeSection}
+                                    ariaLabel="Organization sections"
+                                    items={sectionItems}
+                                    onChange={setSelectedSection}
+                                />
+                            </SettingsSidebar>
+
+                            <div className={contentPaneClassName}>
+                                <OrganizationSummary
+                                    organization={organization}
+                                />
+
+                                {activeSection === 'leader-controls' &&
+                                organization.isLeader ? (
+                                    <LeaderPanel
+                                        errors={errors}
+                                        form={form}
+                                        onDelete={deleteOrganization}
+                                        onFormChange={setForm}
+                                        onSubmit={updateOrganization}
+                                        onUpload={uploadIcon}
+                                        uploading={uploading}
+                                    />
+                                ) : null}
+
+                                {activeSection === 'chat' && canViewChat ? (
+                                    <ChatPanel
+                                        body={chatBody}
+                                        error={errors.body}
+                                        messages={organization.messages}
+                                        showComposer={
+                                            organization.canSendMessages
+                                        }
+                                        onBodyChange={setChatBody}
+                                        onDeleteMessage={deleteMessage}
+                                        onHideMessage={hideMessage}
+                                        onSubmit={sendMessage}
+                                    />
+                                ) : null}
+
+                                {activeSection === 'membership' ? (
+                                    <MembershipPanel
+                                        canLeave={canLeave}
+                                        errors={errors}
+                                        isMember={isMember}
+                                        joinMessage={joinMessage}
+                                        joinRequestStatus={
+                                            organization.viewerJoinRequest
+                                                ?.status ?? null
+                                        }
+                                        onJoinMessageChange={setJoinMessage}
+                                        onLeave={leaveOrganization}
+                                        onOpenLeaderControls={() =>
+                                            setSelectedSection(
+                                                'leader-controls',
+                                            )
+                                        }
+                                        onRequestJoin={requestJoin}
+                                    />
+                                ) : null}
+
+                                {activeSection === 'join-requests' &&
+                                organization.isLeader ? (
+                                    <JoinRequestPanel
+                                        requests={organization.joinRequests}
+                                    />
+                                ) : null}
+
+                                {activeSection === 'members' ? (
+                                    <MemberList
+                                        canPromote={
+                                            organization.isLeader &&
+                                            organization.governanceType ===
+                                                'monarchy'
+                                        }
+                                        errors={errors}
+                                        members={organization.members}
+                                        onPromote={promoteMember}
+                                    />
+                                ) : null}
+
+                                {activeSection === 'report-icon' &&
+                                organization.iconUrl &&
+                                !organization.isLeader ? (
+                                    <ReportIconPanel
+                                        error={errors.icon}
+                                        onReasonChange={setReportReason}
+                                        onSubmit={reportIcon}
+                                        reason={reportReason}
+                                    />
+                                ) : null}
+                            </div>
+                        </section>
+                    </div>
+                </main>
+            </div>
         </>
     );
 }

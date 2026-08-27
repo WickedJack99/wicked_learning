@@ -26,48 +26,41 @@ instead of being presented as working.
 
 ## Confirmed working in the current demo
 
-| Area | Checked behavior | Result |
-| --- | --- | --- |
-| Learning desk | Search, recent traces, continue learning, possible connections, bookmarks aside | Working; possible connections is present below the initial content on the current desktop layout |
-| Paths | Route cards and entry links | Working |
-| Topics | Topic directory, areas, topic links and admin link where available | Working |
-| Topic detail | Competence link, learning areas, routes, maps and subtopics | Working; the page is a vertically scrollable document, so lower cards are not a clipping defect |
-| Bookmarks | Shared surface header, selected place and bookmark links | Working |
-| Competence | Star-map empty state, topic return, learning pulse | Working at the checked desktop state |
-| Map | Map selection, asset focus panel, activity links, surface navigation | Working at the checked desktop state |
-| Activity | Shared header, map/bookmarks/learning-desk links, activity player and “From beginning” action | Working |
-| Journal | Header action opens the journal dialog, page search/list/edit/save/delete controls and export link | Working; this is intentionally a dialog interaction from the learning desk, while a standalone journal route also exists |
-| AI review | World Builder shows a scoped review queue and links to the review-helper configuration | Working and discoverable |
-| Seeded media | Pattern Lens has dark and light tool images and reusable-image selection controls | Working |
-| Scrollbars | Scrollable areas do not render browser up/down arrow buttons | Working; this is already implemented in the shared stylesheet |
-| Settings shell | Settings search, categories, quick links to Learning desk/Map/Bookmarks, account controls | Working |
-| Settings categories | Personal, Learning Support, World Builder, Assets & World Objects, Access, AI, Translations, Color palettes, Public pages and API all open their current panels | Working in the smoke pass |
+| Area                | Checked behavior                                                                                                                                                | Result                                                                                                                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Learning desk       | Search, recent traces, continue learning, possible connections, bookmarks aside                                                                                 | Working; possible connections is present below the initial content on the current desktop layout                         |
+| Paths               | Route cards and entry links                                                                                                                                     | Working                                                                                                                  |
+| Topics              | Topic directory, areas, topic links and admin link where available                                                                                              | Working                                                                                                                  |
+| Topic detail        | Competence link, learning areas, routes, maps and subtopics                                                                                                     | Working; the page is a vertically scrollable document, so lower cards are not a clipping defect                          |
+| Bookmarks           | Shared surface header, selected place and bookmark links                                                                                                        | Working                                                                                                                  |
+| Competence          | Star-map empty state, topic return, learning pulse                                                                                                              | Working at the checked desktop state                                                                                     |
+| Map                 | Map selection, asset focus panel, activity links, surface navigation                                                                                            | Working at the checked desktop state                                                                                     |
+| Activity            | Shared header, map/bookmarks/learning-desk links, activity player and “From beginning” action                                                                   | Working                                                                                                                  |
+| Journal             | Header action opens the journal dialog, page search/list/edit/save/delete controls and export link                                                              | Working; this is intentionally a dialog interaction from the learning desk, while a standalone journal route also exists |
+| AI review           | World Builder shows a scoped review queue and links to the review-helper configuration                                                                          | Working and discoverable                                                                                                 |
+| Seeded media        | Pattern Lens has dark and light tool images and reusable-image selection controls                                                                               | Working                                                                                                                  |
+| Scrollbars          | Scrollable areas do not render browser up/down arrow buttons                                                                                                    | Working; this is already implemented in the shared stylesheet                                                            |
+| Settings shell      | Settings search, categories, quick links to Learning desk/Map/Bookmarks, account controls                                                                       | Working                                                                                                                  |
+| Settings categories | Personal, Learning Support, World Builder, Assets & World Objects, Access, AI, Translations, Color palettes, Public pages and API all open their current panels | Working in the smoke pass                                                                                                |
 
 ## Navigation findings
 
-### P1 — Give standalone community pages the same navigation contract
+### Completed — Give standalone community pages the same navigation contract
 
-`/organizations` currently renders its own page without the shared learner
-header. It has no direct Learning desk, Topics, Paths, Map, Bookmarks or
-account navigation. The organization detail page has an internal
-“Organizations” return link and a settings-like two-pane layout, but it also
-does not provide the shared learner shell. The map can open organizations from
-an action surface, so a learner can enter a separate navigation world without
-an obvious way back to the main learning context.
+`/organizations` and the organization detail page now use the shared learner
+header. The detail page keeps its local “Organizations” return link and
+settings-like two-pane controls, while the global header owns the return to the
+main learning surfaces and account actions. This keeps community pages useful
+as a separate workspace without creating a third navigation shell.
 
 The `/learning/groups` page could not be runtime-verified in this browser
 because the browser blocked that URL with `ERR_BLOCKED_BY_CLIENT`; this is an
 environment limitation, not evidence that the route is broken. Its source
 usage from map controls still makes it part of this navigation decision.
 
-**Decision to make:** either put community pages inside the shared learner
-surface, or make them an explicit overlay/workspace with a consistent close or
-return action. Do not leave a third navigation shell implicit.
-
-**Acceptance criteria:** entering and leaving an organization or group always
-offers an obvious return to the learner context; the same account controls and
-responsive header rules apply; direct links remain usable without first
-entering a map.
+**Result:** entering and leaving an organization offers an obvious return to
+the learner context, the same account controls and responsive header rules
+apply, and direct links remain usable without first entering a map.
 
 ### Completed — Removed the stale map bottom-navigation authoring concept
 
@@ -107,12 +100,15 @@ small admin feature.
 
 ## Layout and responsive findings
 
-### P1 — Close the narrow focused-map overflow signal
+### Updated — Close the narrow focused-map overflow signal
 
-The responsive pass at 1280×800 found five interactive elements extending
-horizontally beyond the viewport and one clipped element on the focused map
-surface. The desktop map looked contained, so this is a narrow-layout defect
-or an untested breakpoint rather than a general map failure.
+The current responsive pass no longer reproduces the earlier 1280×800
+overflow signal: the document and interactive map surface remain inside the
+viewport. At phone width, the learner header intentionally scrolls its nav
+items on its own horizontal axis; the map, focus panel, search and activity
+actions remain contained and reachable. This should be protected by an
+automated browser assertion rather than repeatedly treated as a new layout
+fix.
 
 **Acceptance criteria:** at 1280×800 and a phone-width viewport, the focused
 map has no horizontal overflow; the top navigation, map controls, search,
@@ -155,14 +151,14 @@ the settings model and documentation.
 
 Using the current configured colors, representative contrast ratios are:
 
-| Pair | Ratio | Reading |
-| --- | ---: | --- |
-| Dark heading `#f8fafc` on `#0b1117` | 18.13:1 | Strong |
-| Dark muted `#94a3b8` on `#0b1117` | 7.40:1 | Strong |
-| Dark accent `#2dd4bf` on `#0b1117` | 10.19:1 | Strong |
-| Light muted `#64748b` on `#f1f5f9` | 4.34:1 | Below 4.5:1 for normal text |
-| Light cyan `#0891b2` on `#f1f5f9` | 3.36:1 | Too weak for normal-size text |
-| Light accent `#0f766e` on `#f1f5f9` | 5.00:1 | Passes normal-text AA threshold |
+| Pair                                |   Ratio | Reading                         |
+| ----------------------------------- | ------: | ------------------------------- |
+| Dark heading `#f8fafc` on `#0b1117` | 18.13:1 | Strong                          |
+| Dark muted `#94a3b8` on `#0b1117`   |  7.40:1 | Strong                          |
+| Dark accent `#2dd4bf` on `#0b1117`  | 10.19:1 | Strong                          |
+| Light muted `#64748b` on `#f1f5f9`  |  4.34:1 | Below 4.5:1 for normal text     |
+| Light cyan `#0891b2` on `#f1f5f9`   |  3.36:1 | Too weak for normal-size text   |
+| Light accent `#0f766e` on `#f1f5f9` |  5.00:1 | Passes normal-text AA threshold |
 
 These are representative token checks, not a substitute for checking every
 foreground/background pair after opacity and overlays are applied. The dark
