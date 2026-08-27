@@ -41,7 +41,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                 <h1 className="mt-3 text-3xl font-medium tracking-tight">
                     {t('paths.title', 'Paths')}
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                     {t(
                         'paths.description',
                         'Choose a prepared route into a place on the learning map. The route is a starting point; what you notice and where you go next can remain open.',
@@ -50,10 +50,10 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
 
                 {paths.length > 0 ? (
                     <section className="mt-12" aria-labelledby="paths-heading">
-                        <div className="flex items-center gap-4 border-b border-slate-200 pb-3 dark:border-white/10">
+                        <div className="flex items-center gap-4 border-b border-[var(--learner-border-color)] pb-3">
                             <Route className="size-5 text-[var(--learner-action-accent)]" />
                             <h2
-                                className="text-xs font-semibold tracking-[0.2em] text-slate-500 uppercase dark:text-slate-400"
+                                className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-muted-text)] uppercase"
                                 id="paths-heading"
                             >
                                 {t('paths.available.title', 'Available routes')}
@@ -66,7 +66,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                         </div>
                     </section>
                 ) : (
-                    <section className="mt-12 border-y border-slate-200 py-10 dark:border-white/10">
+                    <section className="mt-12 border-y border-[var(--learner-border-color)] py-10">
                         <Compass className="size-7 text-[var(--learner-action-accent)]" />
                         <h2 className="mt-5 text-sm font-semibold">
                             {t(
@@ -74,7 +74,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                                 'No routes are available yet',
                             )}
                         </h2>
-                        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
                             {t(
                                 'paths.empty.description',
                                 'You can enter through a topic or open a map directly when a route is added.',
@@ -109,7 +109,7 @@ function PathCard({ path }: { path: LearningPath }) {
     const wasExplored = path.progress?.status === 'completed';
 
     return (
-        <article className="group flex min-h-56 flex-col border border-slate-200 bg-white/60 p-5 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,transparent)] hover:bg-white dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.05]">
+        <article className="group flex min-h-56 flex-col border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_60%,transparent)] p-5 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,var(--learner-border-color))] hover:bg-[var(--learner-panel-background)]">
             <div className="flex items-start gap-4">
                 <div className="grid size-12 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
                     {path.imageUrl ? (
@@ -131,7 +131,7 @@ function PathCard({ path }: { path: LearningPath }) {
                             {path.topic.title}
                         </Link>
                     ) : null}
-                    <h3 className="mt-2 text-sm font-semibold text-slate-950 dark:text-white">
+                    <h3 className="mt-2 text-sm font-semibold text-[var(--learner-heading-text)]">
                         {path.label}
                     </h3>
                     {path.learningIntent ? (
@@ -140,7 +140,7 @@ function PathCard({ path }: { path: LearningPath }) {
                         </p>
                     ) : null}
                     {path.learningAreas.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
                             <span>Learning areas:</span>
                             {path.learningAreas.map((area) => (
                                 <Link
@@ -157,16 +157,16 @@ function PathCard({ path }: { path: LearningPath }) {
                             ))}
                         </div>
                     ) : null}
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
                         <Link
-                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
+                            className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
                             href={path.nodeHref}
                         >
                             {path.nodeTitle}
                         </Link>{' '}
                         ·{' '}
                         <Link
-                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
+                            className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
                             href={path.mapHref}
                         >
                             {path.mapTitle}
@@ -175,12 +175,12 @@ function PathCard({ path }: { path: LearningPath }) {
                 </div>
             </div>
             {path.description ? (
-                <p className="mt-5 line-clamp-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-5 line-clamp-3 text-sm leading-6 text-[var(--learner-body-text)]">
                     {path.description}
                 </p>
             ) : null}
             <div className="mt-auto flex items-end justify-between gap-4 pt-6">
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-[var(--learner-muted-text)]">
                     {isInProgress ? (
                         <span className="font-medium text-[var(--learner-action-accent)]">
                             {t('paths.status.in_progress', 'In progress')}
