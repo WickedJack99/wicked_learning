@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { cn } from '@/lib/utils';
 
 export type PaletteWorkbenchField = {
@@ -80,16 +81,24 @@ export function PaletteWorkbench({
                 </div>
                 <div
                     className={cn(
-                        'min-h-0 flex-1 divide-y divide-[var(--palette-workbench-border)] overflow-y-auto',
+                        'min-h-0 flex-1',
                         disabled && 'pointer-events-none opacity-70',
                     )}
                 >
                     {beforeFields}
-                    {fields.map((field) => (
-                        <div className="px-5 py-4" key={field.field}>
-                            {renderField(field)}
-                        </div>
-                    ))}
+                    <LearnerPaginatedItems
+                        className="divide-y divide-[var(--palette-workbench-border)]"
+                        items={fields}
+                        pageSize={4}
+                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--palette-workbench-accent)] transition hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        paginationClassName="flex items-center justify-between border-t border-[var(--palette-workbench-border)] px-5 py-3"
+                        paginationTextClassName="text-xs text-[var(--palette-workbench-muted)]"
+                        renderItem={(field) => (
+                            <div className="px-5 py-4" key={field.field}>
+                                {renderField(field)}
+                            </div>
+                        )}
+                    />
                 </div>
             </div>
 

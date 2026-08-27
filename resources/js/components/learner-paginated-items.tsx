@@ -7,11 +7,17 @@ export function LearnerPaginatedItems<T>({
     className = 'grid gap-3 sm:grid-cols-2',
     items,
     pageSize,
+    paginationButtonClassName = 'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
+    paginationClassName = 'mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3',
+    paginationTextClassName = 'text-xs text-[var(--learner-muted-text)]',
     renderItem,
 }: {
     className?: string;
     items: T[];
     pageSize: number;
+    paginationButtonClassName?: string;
+    paginationClassName?: string;
+    paginationTextClassName?: string;
     renderItem: (item: T) => ReactNode;
 }) {
     const t = usePlatformTranslation();
@@ -31,13 +37,13 @@ export function LearnerPaginatedItems<T>({
                     .map(renderItem)}
             </div>
             {pageCount > 1 ? (
-                <div className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3">
+                <div className={paginationClassName}>
                     <button
                         aria-label={t(
                             'common.pagination.previous',
                             'Previous items',
                         )}
-                        className="inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                        className={paginationButtonClassName}
                         disabled={currentPage === 0}
                         onClick={() =>
                             setPage((value) => Math.max(0, value - 1))
@@ -49,7 +55,7 @@ export function LearnerPaginatedItems<T>({
                     </button>
                     <span
                         aria-live="polite"
-                        className="text-xs text-[var(--learner-muted-text)]"
+                        className={paginationTextClassName}
                     >
                         {t(
                             'common.pagination.page',
@@ -62,7 +68,7 @@ export function LearnerPaginatedItems<T>({
                     </span>
                     <button
                         aria-label={t('common.pagination.next', 'Next items')}
-                        className="inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                        className={paginationButtonClassName}
                         disabled={currentPage === pageCount - 1}
                         onClick={() =>
                             setPage((value) =>

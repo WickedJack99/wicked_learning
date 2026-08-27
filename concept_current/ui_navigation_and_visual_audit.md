@@ -374,6 +374,11 @@ cards per page while preserving every server-provided route for navigation.
 The Paths feature test now protects that contract with seven accessible routes,
 including the final route that must remain available to the client pager.
 
+The Color palettes workbench now paginates four color fields at a time in its
+left editor and leaves only the preview surface independently scrollable. This
+keeps the editor controls and pager in the visible workbench area without
+changing the preview's continuous inspection behavior.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published
