@@ -14,7 +14,7 @@ export function TopicDirectory({
     const t = usePlatformTranslation();
 
     return (
-        <main className="h-full overflow-y-auto bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
+        <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
             <div className="px-5 py-10 sm:px-8 lg:px-14 lg:py-14">
                 <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-slate-200 pb-7 dark:border-white/10">

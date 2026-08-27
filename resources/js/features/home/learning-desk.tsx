@@ -24,7 +24,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
 
     return (
-        <main className="h-full overflow-y-auto bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
+        <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
 
             <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
@@ -186,7 +186,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
     const featured = desk.featuredBookmark;
 
     return (
-        <aside className="border-t border-slate-200 bg-slate-100/55 px-5 py-9 sm:px-8 lg:sticky lg:top-16 lg:h-[calc(100svh-4rem)] lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7 dark:border-white/10 dark:bg-[#0b1521]">
+        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:sticky lg:top-16 lg:h-[calc(100svh-4rem)] lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7">
             <p className="text-xs font-semibold tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
                 {t('home.learning_desk.rail.title', 'Pinned for later')}
             </p>
@@ -493,10 +493,7 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
             {route.learningAreas.map((area) => (
                 <Link
                     className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
-                    href={competenceTopicHref(
-                        area.slug,
-                        route.topic?.slug,
-                    )}
+                    href={competenceTopicHref(area.slug, route.topic?.slug)}
                     key={area.slug}
                 >
                     {area.name}

@@ -105,6 +105,17 @@
     --map-side-control-background: rgba(255, 255, 255, 0.88);
     --map-side-control-border-color: rgb(226, 232, 240);
     --map-side-control-text-color: rgb(71, 85, 105);
+    /* The learner shell has its own palette; maps may still override their visuals. */
+    --learner-accent: #6d28d9;
+    --learner-action-accent: #0e7490;
+    --learner-border-color: #cbd5e1;
+    --learner-body-text: #334155;
+    --learner-header-background: rgb(248 250 252 / 0.94);
+    --learner-heading-text: #0f172a;
+    --learner-muted-text: #475569;
+    --learner-page-background: #f8fafc;
+    --learner-panel-background: #ffffff;
+    --learner-panel-muted-background: #f1f5f9;
     --platform-action-cursor: pointer;
     --platform-cursor: default;
     --platform-denied-cursor: not-allowed;
@@ -155,6 +166,16 @@
     --map-side-control-background: rgba(2, 6, 23, 0.82);
     --map-side-control-border-color: rgba(255, 255, 255, 0.12);
     --map-side-control-text-color: rgb(203, 213, 225);
+    --learner-accent: #a78bfa;
+    --learner-action-accent: #5eead4;
+    --learner-border-color: rgb(255 255 255 / 0.1);
+    --learner-body-text: #cbd5e1;
+    --learner-header-background: rgb(8 17 27 / 0.94);
+    --learner-heading-text: #f8fafc;
+    --learner-muted-text: #94a3b8;
+    --learner-page-background: #08111b;
+    --learner-panel-background: #111820;
+    --learner-panel-muted-background: #0b1521;
 }
 
 @layer base {

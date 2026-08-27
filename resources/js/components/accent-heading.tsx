@@ -1,8 +1,7 @@
 import type { ElementType, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-const defaultAccentColor =
-    'var(--settings-accent, var(--map-floating-accent-color, #0891b2))';
+const defaultAccentColor = 'var(--learner-accent)';
 
 type AccentHeadingProps = {
     action?: ReactNode;
@@ -64,7 +63,7 @@ export function AccentHeading({
                 {description ? (
                     <p
                         className={cn(
-                            'mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300',
+                            'mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-body-text)]',
                             descriptionClassName,
                         )}
                     >

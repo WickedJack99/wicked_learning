@@ -129,23 +129,22 @@ scrollbar remains arrow-free and retains a visible thumb in both themes.
 
 ## Visual system and color findings
 
-### P1 — Establish the learner color source of truth
+### Completed — Establish the learner color source of truth
 
-Settings exposes separate public-text, settings-UI, journal and map-visual
-palettes. The settings surface correctly receives its configured tokens, for
-example `--settings-accent`, `--settings-panel-background` and
-`--settings-muted-text`. The learner header and several learner pages still
-use hard-coded slate, violet, cyan and dark background classes. Map surfaces
-also combine world-specific colors with shared navigation styles.
+Settings now exposes a separate Learner UI palette alongside public text,
+settings UI, journal and map-visual palettes. The app shell resolves the
+learner palette into semantic `--learner-*` tokens, and shared navigation,
+account controls, headings and the main learner page surfaces consume those
+tokens. Map surfaces continue to resolve their own world-specific visuals.
 
-This means an author can configure a palette and still see learner surfaces
-that do not follow it. That is a system-boundary problem, not merely a color
-preference.
+This makes the boundary explicit: learner-shell presentation is configurable
+at the platform level, while map content can retain its own visual identity.
+The palette editor also previews the learner shell separately, so changes are
+not hidden inside the public-page or map sections.
 
-**Decision to make:** give the learner shell explicit configurable tokens, or
-state and enforce that learner navigation intentionally uses a fixed platform
-palette while map content alone is world-themed. The choice must be visible in
-the settings model and documentation.
+**Result:** the learner shell uses explicit configurable tokens. The current
+defaults preserve the established dark/light visual language, with readable
+body and muted text values and separate orientation/action accents.
 
 ### P1 — Review light-theme normal-text contrast
 
@@ -214,8 +213,9 @@ bottom-navigation or map-entry-only model.
 
 ## Priority order for the next slices
 
-1. Fix focused-map narrow overflow and add long-collection containment checks.
-2. Give community pages a deliberate shared navigation contract.
-3. Decide and implement the learner palette source of truth, including light
-   contrast corrections.
-4. Add the end-to-end browser smoke flow and keyboard/accessibility checks.
+1. Add long-collection containment checks and the end-to-end browser smoke
+   flow.
+2. Review custom learner palette values for light-theme contrast and accent
+   competition.
+3. Add keyboard/accessibility checks for the shared learner shell and complex
+   authoring controls.

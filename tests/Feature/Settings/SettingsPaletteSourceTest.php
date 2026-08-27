@@ -32,6 +32,32 @@ test('every configurable settings color is exposed as a settings CSS variable', 
     }
 });
 
+test('every configurable learner color is exposed as a learner CSS variable', function () {
+    $presentationTheme = file_get_contents(resource_path('js/theme/presentation.ts'));
+
+    $paletteFields = [
+        'accent' => '--learner-accent',
+        'actionAccent' => '--learner-action-accent',
+        'borderColor' => '--learner-border-color',
+        'bodyText' => '--learner-body-text',
+        'headerBackground' => '--learner-header-background',
+        'headingText' => '--learner-heading-text',
+        'mutedText' => '--learner-muted-text',
+        'pageBackground' => '--learner-page-background',
+        'panelBackground' => '--learner-panel-background',
+        'panelMutedBackground' => '--learner-panel-muted-background',
+    ];
+
+    foreach ($paletteFields as $field => $cssVariable) {
+        $escapedVariable = preg_quote($cssVariable, '/');
+        $escapedField = preg_quote($field, '/');
+
+        expect($presentationTheme)->toMatch(
+            "/'{$escapedVariable}': learnerPaletteColor\(\s*palette,\s*'{$escapedField}'/",
+        );
+    }
+});
+
 test('shared settings controls inherit the configurable color palette', function () {
     $settingsCss = file_get_contents(resource_path('css/app.css'));
 

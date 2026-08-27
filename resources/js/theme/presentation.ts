@@ -62,6 +62,23 @@ export type SettingsPaletteField =
 
 export type SettingsPaletteOpacityField = `${SettingsPaletteField}Opacity`;
 
+export type LearnerPaletteField =
+    | 'accent'
+    | 'actionAccent'
+    | 'borderColor'
+    | 'bodyText'
+    | 'headerBackground'
+    | 'headingText'
+    | 'mutedText'
+    | 'pageBackground'
+    | 'panelBackground'
+    | 'panelMutedBackground';
+
+export type LearnerPaletteOpacityField = `${LearnerPaletteField}Opacity`;
+
+export type LearnerPaletteModeSettings = Record<LearnerPaletteField, string> &
+    Partial<Record<LearnerPaletteOpacityField, number | string | null>>;
+
 export type SettingsPaletteModeSettings = Record<SettingsPaletteField, string> &
     Partial<Record<SettingsPaletteOpacityField, number | string | null>>;
 
@@ -104,6 +121,10 @@ export type PublicPresentationSettings = {
     publicPalette: {
         dark: PublicPaletteModeSettings;
         light: PublicPaletteModeSettings;
+    };
+    learnerPalette?: {
+        dark: LearnerPaletteModeSettings;
+        light: LearnerPaletteModeSettings;
     };
     settingsPalette?: {
         dark: SettingsPaletteModeSettings;
@@ -369,6 +390,50 @@ export function getSettingsPalette(
     };
 }
 
+export function getLearnerPalette(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): LearnerPaletteModeSettings {
+    const fallback = defaultLearnerPalette[mode];
+
+    return {
+        ...fallback,
+        ...(presentation?.learnerPalette?.[mode] ?? {}),
+    };
+}
+
+export function getLearnerPresentationStyle(
+    presentation: PublicPresentationSettings | null | undefined,
+    mode: ThemeMode,
+): CSSProperties {
+    const palette = getLearnerPalette(presentation, mode);
+
+    return {
+        '--learner-accent': learnerPaletteColor(palette, 'accent'),
+        '--learner-action-accent': learnerPaletteColor(palette, 'actionAccent'),
+        '--learner-border-color': learnerPaletteColor(palette, 'borderColor'),
+        '--learner-body-text': learnerPaletteColor(palette, 'bodyText'),
+        '--learner-header-background': learnerPaletteColor(
+            palette,
+            'headerBackground',
+        ),
+        '--learner-heading-text': learnerPaletteColor(palette, 'headingText'),
+        '--learner-muted-text': learnerPaletteColor(palette, 'mutedText'),
+        '--learner-page-background': learnerPaletteColor(
+            palette,
+            'pageBackground',
+        ),
+        '--learner-panel-background': learnerPaletteColor(
+            palette,
+            'panelBackground',
+        ),
+        '--learner-panel-muted-background': learnerPaletteColor(
+            palette,
+            'panelMutedBackground',
+        ),
+    } as CSSProperties;
+}
+
 export function getSettingsPresentationStyle(
     presentation: PublicPresentationSettings | null | undefined,
     mode: ThemeMode,
@@ -546,6 +611,56 @@ export const defaultSettingsPalette: Record<
     },
 };
 
+export const defaultLearnerPalette: Record<
+    ThemeMode,
+    LearnerPaletteModeSettings
+> = {
+    dark: {
+        accent: '#a78bfa',
+        accentOpacity: 100,
+        actionAccent: '#5eead4',
+        actionAccentOpacity: 100,
+        borderColor: '#ffffff',
+        borderColorOpacity: 10,
+        bodyText: '#cbd5e1',
+        bodyTextOpacity: 100,
+        headerBackground: '#08111b',
+        headerBackgroundOpacity: 94,
+        headingText: '#f8fafc',
+        headingTextOpacity: 100,
+        mutedText: '#94a3b8',
+        mutedTextOpacity: 100,
+        pageBackground: '#08111b',
+        pageBackgroundOpacity: 100,
+        panelBackground: '#111820',
+        panelBackgroundOpacity: 100,
+        panelMutedBackground: '#0b1521',
+        panelMutedBackgroundOpacity: 100,
+    },
+    light: {
+        accent: '#6d28d9',
+        accentOpacity: 100,
+        actionAccent: '#0e7490',
+        actionAccentOpacity: 100,
+        borderColor: '#cbd5e1',
+        borderColorOpacity: 100,
+        bodyText: '#334155',
+        bodyTextOpacity: 100,
+        headerBackground: '#f8fafc',
+        headerBackgroundOpacity: 94,
+        headingText: '#0f172a',
+        headingTextOpacity: 100,
+        mutedText: '#475569',
+        mutedTextOpacity: 100,
+        pageBackground: '#f8fafc',
+        pageBackgroundOpacity: 100,
+        panelBackground: '#ffffff',
+        panelBackgroundOpacity: 100,
+        panelMutedBackground: '#f1f5f9',
+        panelMutedBackgroundOpacity: 100,
+    },
+};
+
 export function publicPaletteColor(
     palette: PublicPaletteModeSettings,
     field: PublicPaletteField,
@@ -559,6 +674,16 @@ export function publicPaletteColor(
 export function settingsPaletteColor(
     palette: SettingsPaletteModeSettings,
     field: SettingsPaletteField,
+): string {
+    const color = palette[field];
+    const opacity = palette[`${field}Opacity`];
+
+    return applyOpacity(color, opacity);
+}
+
+export function learnerPaletteColor(
+    palette: LearnerPaletteModeSettings,
+    field: LearnerPaletteField,
 ): string {
     const color = palette[field];
     const opacity = palette[`${field}Opacity`];

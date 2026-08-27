@@ -6,7 +6,9 @@ learning logic.
 
 ## Current Configuration
 
-- Shared platform and Settings palette tokens with dark/light variants.
+- Learner UI and Settings palette tokens with dark/light variants.
+- Public text, learner-shell, journal and Settings palettes remain separate so
+  each surface has an explicit owner.
 - World accent and surface colors.
 - Map background image, overlay, title panel and navigation surfaces.
 - MapAsset border, highlight, highlighted border, label and highlighted label

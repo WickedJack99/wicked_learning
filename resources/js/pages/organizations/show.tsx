@@ -222,7 +222,7 @@ export default function OrganizationShow({
     return (
         <>
             <Head title={organization.name} />
-            <div className="flex h-full min-h-0 flex-col bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100">
+            <div className="flex h-full min-h-0 flex-col bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
                 <LearningDeskHeader />
                 <main className="min-h-0 flex-1 overflow-hidden px-4 pt-5 pb-5">
                     <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">

@@ -65,9 +65,10 @@ export function LearnerAccountControls({
                     'home.learning_desk.notifications',
                     'Notifications',
                 )}
-                className="rounded-lg border border-slate-200 bg-white text-slate-600 shadow-none hover:bg-slate-100 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/9 dark:hover:text-white"
+                className="rounded-lg border bg-[var(--learner-panel-background)] text-[var(--learner-muted-text)] shadow-none hover:bg-[var(--learner-panel-muted-background)] hover:text-[var(--learner-heading-text)]"
                 size="icon"
                 variant="ghost"
+                style={{ borderColor: 'var(--learner-border-color)' }}
             >
                 <Link href="/settings?panel=personal&personal=notifications">
                     <Bell className="size-4" />
@@ -77,22 +78,23 @@ export function LearnerAccountControls({
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
-                        className="h-10 gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-slate-900 shadow-none hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/9"
+                        className="h-10 gap-2 rounded-lg border bg-[var(--learner-panel-background)] px-2.5 text-[var(--learner-heading-text)] shadow-none hover:bg-[var(--learner-panel-muted-background)]"
                         variant="ghost"
+                        style={{ borderColor: 'var(--learner-border-color)' }}
                     >
                         <Avatar className="size-7">
                             <AvatarImage
                                 alt={auth.user?.name ?? ''}
                                 src={auth.user?.avatar ?? undefined}
                             />
-                            <AvatarFallback className="bg-violet-500/20 text-xs text-violet-700 dark:text-violet-200">
+                            <AvatarFallback className="bg-[color-mix(in_srgb,var(--learner-accent)_20%,transparent)] text-xs text-[var(--learner-accent)]">
                                 {initials(auth.user?.name ?? '')}
                             </AvatarFallback>
                         </Avatar>
                         <span className="hidden max-w-32 truncate text-sm sm:block">
                             {auth.user?.name}
                         </span>
-                        <ChevronDown className="hidden size-3.5 text-slate-400 sm:block" />
+                        <ChevronDown className="hidden size-3.5 text-[var(--learner-muted-text)] sm:block" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -116,7 +118,7 @@ export function LearnerBrand() {
                 className="size-8 object-contain"
                 aria-hidden="true"
             />
-            <span className="hidden text-sm font-semibold tracking-wide text-slate-900 sm:block dark:text-slate-100">
+            <span className="hidden text-sm font-semibold tracking-wide text-[var(--learner-heading-text)] sm:block">
                 {props.name}
             </span>
         </Link>

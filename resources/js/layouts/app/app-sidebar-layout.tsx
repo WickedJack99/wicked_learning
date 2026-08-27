@@ -15,6 +15,7 @@ import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import { useAppearancePageSync } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
+import { getLearnerPresentationStyle } from '@/theme/presentation';
 import type { AppLayoutProps } from '@/types';
 
 type PlatformCursorStyle = CSSProperties & {
@@ -50,6 +51,10 @@ export default function AppSidebarLayout({
     }, [selectedTool]);
     void breadcrumbs;
     const presentation = props.publicPresentation;
+    const learnerPresentationStyle = getLearnerPresentationStyle(
+        presentation,
+        resolvedAppearance,
+    );
     const platformCursors = usePlatformCursorStyle(
         presentation,
     ) as PlatformCursorStyle;
@@ -92,6 +97,7 @@ export default function AppSidebarLayout({
                     '--platform-grab-cursor': grabCursorValue,
                     '--platform-text-cursor': textCursorValue,
                     '--platform-cursor': platformCursorValue,
+                    ...learnerPresentationStyle,
                     ...menuControlVariables,
                     ...toolCursor,
                 } as CSSProperties

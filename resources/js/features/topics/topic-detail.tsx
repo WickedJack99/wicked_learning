@@ -26,7 +26,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
 
     return (
-        <main className="h-full overflow-y-auto bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
+        <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <Link
@@ -57,7 +57,10 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     topicSlug={topic.slug}
                 />
 
-                <TopicLearningAreas areas={topic.learningAreas} topicSlug={topic.slug} />
+                <TopicLearningAreas
+                    areas={topic.learningAreas}
+                    topicSlug={topic.slug}
+                />
 
                 <TopicLearningPulse entries={topic.learningPulse} />
 
@@ -286,7 +289,9 @@ function TopicLearningAreas({
                             </span>
                             <span className="mt-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
                                 {area.learningIntents
-                                    .map((intent) => learningIntentLabel(intent, t))
+                                    .map((intent) =>
+                                        learningIntentLabel(intent, t),
+                                    )
                                     .join(' · ')}
                             </span>
                         </span>
@@ -311,7 +316,10 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
             className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
         >
             <p className="text-xs font-semibold tracking-[0.2em] text-violet-700 uppercase dark:text-violet-300">
-                {t('topics.detail.learning_pulse.eyebrow', 'Recent reflections')}
+                {t(
+                    'topics.detail.learning_pulse.eyebrow',
+                    'Recent reflections',
+                )}
             </p>
             <h2
                 className="mt-2 text-sm font-semibold"
@@ -475,8 +483,16 @@ function TopicCompetenceCard({
                                     className="mt-1 shrink-0 rounded-full bg-cyan-300/20"
                                     style={{
                                         boxShadow: `0 0 ${8 + Math.round(area.visual.auraRatio * 10)}px ${4 + Math.round(area.visual.auraRatio * 5)}px rgba(103, 232, 249, ${0.2 + area.visual.brightnessRatio * 0.45})`,
-                                        height: 16 + Math.round(area.visual.sizeRatio * 8),
-                                        width: 16 + Math.round(area.visual.sizeRatio * 8),
+                                        height:
+                                            16 +
+                                            Math.round(
+                                                area.visual.sizeRatio * 8,
+                                            ),
+                                        width:
+                                            16 +
+                                            Math.round(
+                                                area.visual.sizeRatio * 8,
+                                            ),
                                     }}
                                 />
                                 <span className="min-w-0">

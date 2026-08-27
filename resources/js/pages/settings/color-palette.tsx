@@ -22,6 +22,8 @@ import { useDirtyState } from '@/hooks/use-dirty-state';
 import { cssColorFromPicker, parseCssColor } from '@/lib/css-color';
 import { cn } from '@/lib/utils';
 import type {
+    LearnerPaletteField,
+    LearnerPaletteModeSettings,
     PublicPaletteField,
     PublicPaletteModeSettings,
     PublicPresentationSettings,
@@ -29,7 +31,9 @@ import type {
     SettingsPaletteModeSettings,
 } from '@/theme/presentation';
 import {
+    getLearnerPalette,
     getSettingsPalette,
+    learnerPaletteColor,
     publicPaletteColor,
     settingsPaletteColor,
 } from '@/theme/presentation';
@@ -64,7 +68,12 @@ type ColorPaletteSettingsProps = ColorPaletteProps & {
     embedded?: boolean;
 };
 
-type PaletteSection = 'presentation' | 'settings' | 'journal' | 'maps';
+type PaletteSection =
+    | 'presentation'
+    | 'learner'
+    | 'settings'
+    | 'journal'
+    | 'maps';
 type MapVisualMode = Record<string, string | number | unknown[]>;
 type MapVisualConfig = {
     dark?: MapVisualMode;
@@ -115,6 +124,22 @@ const settingsFields: Array<{ field: SettingsPaletteField; label: string }> = [
     { field: 'borderColor', label: 'Border color' },
     { field: 'mutedText', label: 'Muted text' },
     { field: 'scrollbarThumb', label: 'Scrollbar thumb' },
+];
+
+const learnerFields: Array<{
+    field: LearnerPaletteField;
+    label: string;
+}> = [
+    { field: 'pageBackground', label: 'Page background' },
+    { field: 'headerBackground', label: 'Header background' },
+    { field: 'panelBackground', label: 'Panel background' },
+    { field: 'panelMutedBackground', label: 'Muted panel background' },
+    { field: 'headingText', label: 'Heading text' },
+    { field: 'bodyText', label: 'Body text' },
+    { field: 'mutedText', label: 'Muted text' },
+    { field: 'accent', label: 'Accent' },
+    { field: 'actionAccent', label: 'Action accent' },
+    { field: 'borderColor', label: 'Border color' },
 ];
 
 const journalFields: PaletteField[] = [
@@ -287,6 +312,16 @@ export default function ColorPaletteSettings({
         <SettingsSidebar>
             {presentationDraft ? (
                 <SettingsSectionButton
+                    active={section === 'learner'}
+                    description="Learner pages, navigation and shared platform surfaces."
+                    icon={Sparkles}
+                    id="learner"
+                    label="Learner UI"
+                    onSelect={setSection}
+                />
+            ) : null}
+            {presentationDraft ? (
+                <SettingsSectionButton
                     active={section === 'presentation'}
                     description="Welcome, auth and public information text and overlay colors."
                     icon={Sparkles}
@@ -336,6 +371,13 @@ export default function ColorPaletteSettings({
                       icon: Sparkles,
                       key: 'presentation' as const,
                       label: 'Public text colors',
+                  },
+                  {
+                      description:
+                          'Learner pages, navigation and shared platform surfaces.',
+                      icon: Sparkles,
+                      key: 'learner' as const,
+                      label: 'Learner UI',
                   },
                   {
                       description:
@@ -391,6 +433,19 @@ export default function ColorPaletteSettings({
                 </div>
                 {section === 'presentation' && presentationDraft ? (
                     <PublicPresentationPalette
+                        availableColors={availableColors}
+                        canUpdate={canUpdate.presentation}
+                        mode={mode}
+                        onChange={setPresentationDraft}
+                        presentation={presentationDraft}
+                        storedPresentation={
+                            lastSavedPresentation ?? presentationDraft
+                        }
+                        workbenchTheme={workbenchTheme}
+                    />
+                ) : null}
+                {section === 'learner' && presentationDraft ? (
+                    <LearnerInterfacePalette
                         availableColors={availableColors}
                         canUpdate={canUpdate.presentation}
                         mode={mode}
@@ -552,6 +607,92 @@ function PublicPresentationPalette({
                                 ...presentation,
                                 publicPalette: {
                                     ...presentation.publicPalette,
+                                    [mode]: {
+                                        ...palette,
+                                        [opacityField]: value,
+                                    },
+                                },
+                            })
+                        }
+                        opacityValue={String(palette[opacityField] ?? 100)}
+                        resetColorValue={storedPalette[colorField]}
+                        resetOpacityValue={String(
+                            storedPalette[opacityField] ?? 100,
+                        )}
+                    />
+                );
+            }}
+        />
+    );
+}
+
+function LearnerInterfacePalette({
+    availableColors,
+    canUpdate,
+    mode,
+    onChange,
+    presentation,
+    storedPresentation,
+    workbenchTheme,
+}: {
+    availableColors: AvailableColorOption[];
+    canUpdate: boolean;
+    mode: ConfigThemeMode;
+    onChange: (settings: PublicPresentationSettings) => void;
+    presentation: PublicPresentationSettings;
+    storedPresentation: PublicPresentationSettings;
+    workbenchTheme?: PaletteWorkbenchTheme;
+}) {
+    const palette = getLearnerPalette(presentation, mode);
+    const storedPalette = getLearnerPalette(storedPresentation, mode);
+    const learnerPalette = {
+        dark: getLearnerPalette(presentation, 'dark'),
+        light: getLearnerPalette(presentation, 'light'),
+    };
+
+    return (
+        <PaletteWorkbench
+            disabled={!canUpdate}
+            fields={learnerFields}
+            intro="Learner UI colors control the shared navigation and page surfaces. Map visuals remain configured separately per map."
+            theme={workbenchTheme}
+            previewTabs={[
+                {
+                    content: (
+                        <LearnerPalettePreview mode={mode} palette={palette} />
+                    ),
+                    id: 'learner',
+                    label: 'Learner pages',
+                },
+            ]}
+            previewTitle="Learner interface"
+            renderField={(field) => {
+                const colorField = field.field as LearnerPaletteField;
+                const opacityField =
+                    `${colorField}Opacity` as keyof LearnerPaletteModeSettings;
+
+                return (
+                    <ColorOpacityField
+                        availableColors={availableColors}
+                        colorValue={palette[colorField]}
+                        label={field.label}
+                        onColorChange={(value) =>
+                            onChange({
+                                ...presentation,
+                                learnerPalette: {
+                                    ...learnerPalette,
+                                    [mode]: {
+                                        ...palette,
+                                        [colorField]: value,
+                                    },
+                                },
+                            })
+                        }
+                        onOpacityChange={(value) =>
+                            onChange({
+                                ...presentation,
+                                learnerPalette: {
+                                    ...learnerPalette,
                                     [mode]: {
                                         ...palette,
                                         [opacityField]: value,
@@ -903,6 +1044,101 @@ function MapPalette({
                 }}
             />
         </section>
+    );
+}
+
+function LearnerPalettePreview({
+    mode,
+    palette,
+}: {
+    mode: ConfigThemeMode;
+    palette: LearnerPaletteModeSettings;
+}) {
+    const colors = {
+        accent: learnerPaletteColor(palette, 'accent'),
+        actionAccent: learnerPaletteColor(palette, 'actionAccent'),
+        bodyText: learnerPaletteColor(palette, 'bodyText'),
+        borderColor: learnerPaletteColor(palette, 'borderColor'),
+        headingText: learnerPaletteColor(palette, 'headingText'),
+        mutedText: learnerPaletteColor(palette, 'mutedText'),
+        pageBackground: learnerPaletteColor(palette, 'pageBackground'),
+        panelBackground: learnerPaletteColor(palette, 'panelBackground'),
+        panelMutedBackground: learnerPaletteColor(
+            palette,
+            'panelMutedBackground',
+        ),
+    };
+
+    return (
+        <div
+            className="grid gap-4 rounded-xl border p-4"
+            style={{
+                background: colors.pageBackground,
+                borderColor: colors.borderColor,
+                color: colors.bodyText,
+            }}
+        >
+            <div
+                className="flex items-center justify-between gap-3 border-b px-3 py-3"
+                style={{
+                    background: colors.panelMutedBackground,
+                    borderColor: colors.borderColor,
+                }}
+            >
+                <span
+                    className="text-sm font-semibold"
+                    style={{ color: colors.headingText }}
+                >
+                    Learning Worlds
+                </span>
+                <span
+                    className="rounded-md border px-2 py-1 text-xs font-medium"
+                    style={{
+                        borderColor: colors.borderColor,
+                        color: colors.mutedText,
+                    }}
+                >
+                    {mode === 'dark' ? 'Dark mode' : 'Light mode'}
+                </span>
+            </div>
+            <div
+                className="grid gap-3 rounded-lg border p-4"
+                style={{
+                    background: colors.panelBackground,
+                    borderColor: colors.borderColor,
+                }}
+            >
+                <p
+                    className="text-xs font-semibold tracking-[0.16em] uppercase"
+                    style={{ color: colors.accent }}
+                >
+                    Learner interface
+                </p>
+                <h3
+                    className="text-xl font-semibold"
+                    style={{ color: colors.headingText }}
+                >
+                    A calm place to continue
+                </h3>
+                <p
+                    className="text-sm leading-6"
+                    style={{ color: colors.bodyText }}
+                >
+                    Shared page surfaces, navigation and controls use this
+                    palette. Map content can still carry its own visual theme.
+                </p>
+                <button
+                    className="w-max rounded-md border px-3 py-2 text-sm font-medium"
+                    style={{
+                        borderColor: colors.actionAccent,
+                        color: colors.actionAccent,
+                    }}
+                    type="button"
+                >
+                    Continue learning
+                </button>
+            </div>
+        </div>
     );
 }
 
@@ -1765,6 +2001,19 @@ function collectAvailableColors(
                 });
             }
 
+            const learnerPalette = getLearnerPalette(presentation, mode);
+
+            for (const field of learnerFields) {
+                const opacityField =
+                    `${field.field}Opacity` as keyof LearnerPaletteModeSettings;
+
+                colors.push({
+                    label: `Learner ${mode}: ${field.label}`,
+                    opacity: learnerPalette[opacityField] ?? undefined,
+                    value: learnerPalette[field.field],
+                });
+            }
+
             const settingsPalette = getSettingsPalette(presentation, mode);
 
             for (const field of settingsFields) {
@@ -1836,6 +2085,10 @@ function cloneSettingsValue<T>(value: T): T {
 }
 
 function sectionTitle(section: PaletteSection): string {
+    if (section === 'learner') {
+        return 'Learner UI colors';
+    }
+
     if (section === 'settings') {
         return 'Settings UI colors';
     }

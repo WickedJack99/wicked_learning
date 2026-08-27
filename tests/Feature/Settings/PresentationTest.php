@@ -18,6 +18,8 @@ test('public pages receive presentation defaults', function () {
             ->where('publicPresentation.cursors.grab.image', '/images/cursors/fantasy-grab-backhand.png')
             ->where('publicPresentation.cursors.grab.size', 40)
             ->where('publicPresentation.welcome.pages.0.title', 'Learning Worlds')
+            ->where('publicPresentation.learnerPalette.dark.pageBackground', '#08111b')
+            ->where('publicPresentation.learnerPalette.light.actionAccent', '#0e7490')
         );
 });
 
@@ -167,6 +169,40 @@ test('settings page shares platform color palette with normal users', function (
             ->where('publicPresentation.settingsPalette.dark.inputBorderColor', '#b46cff')
             ->where('publicPresentation.settingsPalette.dark.sidebarBackground', '#101820')
         );
+});
+
+test('admins can update learner interface palette settings', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.color-palette.update'), [
+            'publicPresentation' => [
+                'learnerPalette' => [
+                    'dark' => [
+                        'accent' => '#f0abfc',
+                        'pageBackground' => '#12101f',
+                    ],
+                    'light' => [
+                        'actionAccent' => '#155e75',
+                    ],
+                ],
+            ],
+        ])
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-presentation-localization',
+            'presentation' => 'palette',
+        ]));
+
+    $settings = PlatformPresentationSetting::current();
+
+    expect($settings['learnerPalette']['dark']['accent'])
+        ->toBe('#f0abfc')
+        ->and($settings['learnerPalette']['dark']['pageBackground'])
+        ->toBe('#12101f')
+        ->and($settings['learnerPalette']['light']['actionAccent'])
+        ->toBe('#155e75');
 });
 
 test('admins can upload public presentation background images', function () {
