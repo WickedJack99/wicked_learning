@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
@@ -24,5 +25,13 @@ class LearnerQuestionAnswer extends Model
             'is_correct' => 'boolean',
             'selected_option_ids' => 'array',
         ];
+    }
+
+    /**
+     * @return BelongsTo<LearningQuestion, $this>
+     */
+    public function question(): BelongsTo
+    {
+        return $this->belongsTo(LearningQuestion::class, 'learning_question_id');
     }
 }

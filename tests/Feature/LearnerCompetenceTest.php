@@ -270,6 +270,13 @@ test('question answers complete the active route and record retrieval evidence',
         ->assertOk()
         ->assertJsonPath('answer.isCorrect', true);
 
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where("progress.answers.{$question->id}.explanation", 'The first idea fits the evidence.')
+        );
+
     expect(LearnerEvidenceEvent::query()
         ->where('user_id', $learner->id)
         ->where('learning_activity_id', $activity->id)

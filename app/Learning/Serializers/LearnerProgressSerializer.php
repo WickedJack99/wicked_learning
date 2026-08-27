@@ -69,6 +69,7 @@ class LearnerProgressSerializer
     {
         return LearnerQuestionAnswer::query()
             ->where('user_id', $userId)
+            ->with('question')
             ->latest()
             ->get()
             ->unique('learning_question_id')
@@ -77,6 +78,7 @@ class LearnerProgressSerializer
                     'optionId' => $answer->learning_question_option_id,
                     'isCorrect' => $answer->is_correct,
                     'feedback' => $answer->feedback,
+                    'explanation' => $answer->question?->explanation,
                 ],
             ])
             ->all();

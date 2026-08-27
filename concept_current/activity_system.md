@@ -57,6 +57,7 @@ NPC dialogue activities now use the same graph idea at a nested level:
 - Answer nodes route onward through their own outgoing graph edges. That means several answers can converge on one follow-up bubble, branch to different bubbles, or loop back to an earlier question.
 - Feedback is authored as normal follow-up monologue/question nodes instead of appearing as a special feedback card. This keeps the conversation fluid and lets admins decide how correction, hints or confirmation should feel.
 - Question interactions block normal forward/back controls until an answer is selected. After the answer is confirmed, correctness is stored privately and the graph continues through the selected answer node.
+- The latest answer feedback and explanation remain available when a learner revisits the activity, so returning to a question does not remove the useful response context.
 - Keyboard playback controls are part of runtime: left arrow moves back where allowed, right arrow or space continues, and enter confirms a question answer.
 
 Planned deeper dialogue layers:
