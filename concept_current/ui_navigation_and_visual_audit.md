@@ -202,6 +202,11 @@ not hidden inside the public-page or map sections.
 defaults preserve the established dark/light visual language, with readable
 body and muted text values and separate orientation/action accents.
 
+The Color palettes menu now starts with a dedicated Readability section. The
+learner color editor contains only editable learner tokens, while the
+readability section owns the advisory text and focus-pair checks for the
+selected appearance mode beside the same representative learner preview.
+
 ### Completed — Review light-theme normal-text contrast in context
 
 Using the current configured colors, representative contrast ratios are:
@@ -221,13 +226,13 @@ defaults have strong readability in both themes. Frequent saturated
 cyan/violet eyebrows, thin borders and small uppercase labels can still make
 dense pages feel visually harsh even when their contrast is technically high.
 
-The Learner UI palette editor now shows representative text/background pairs
-for the selected appearance mode, including the effect of configured opacity.
-It checks normal text at 4.5:1 and focus indicators at 3:1 across the page,
-panel and header pairings used by shared navigation. Decorative boundaries are
-shown as informational because the design intentionally keeps separators soft.
-Disabled controls remain intentionally subdued and are not treated as a place
-for essential content.
+The Readability section shows representative text/background pairs for the
+selected appearance mode, including the effect of configured opacity. It checks
+normal text at 4.5:1 and focus indicators at 3:1 across the page, panel and
+header pairings used by shared navigation. Decorative boundaries are shown as
+informational because the design intentionally keeps separators soft. Disabled
+controls remain intentionally subdued and are not treated as a place for
+essential content.
 The check is advisory rather than a hard save block: custom visual identities
 remain possible, while weak combinations are made visible at the point where
 they are configured.

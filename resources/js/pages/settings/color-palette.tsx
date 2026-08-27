@@ -1,6 +1,13 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, router } from '@inertiajs/react';
-import { BookOpen, Map, Save, SlidersHorizontal, Sparkles } from 'lucide-react';
+import {
+    BookOpen,
+    Eye,
+    Map,
+    Save,
+    SlidersHorizontal,
+    Sparkles,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
@@ -70,6 +77,7 @@ type ColorPaletteSettingsProps = ColorPaletteProps & {
 };
 
 type PaletteSection =
+    | 'readability'
     | 'presentation'
     | 'learner'
     | 'settings'
@@ -313,6 +321,16 @@ export default function ColorPaletteSettings({
         <SettingsSidebar>
             {presentationDraft ? (
                 <SettingsSectionButton
+                    active={section === 'readability'}
+                    description="Review learner text and focus contrast in each appearance mode."
+                    icon={Eye}
+                    id="readability"
+                    label="Readability"
+                    onSelect={setSection}
+                />
+            ) : null}
+            {presentationDraft ? (
+                <SettingsSectionButton
                     active={section === 'learner'}
                     description="Learner pages, navigation and shared platform surfaces."
                     icon={Sparkles}
@@ -366,6 +384,13 @@ export default function ColorPaletteSettings({
     const navigationItems = [
         ...(presentationDraft
             ? [
+                  {
+                      description:
+                          'Review learner text and focus contrast in each appearance mode.',
+                      icon: Eye,
+                      key: 'readability' as const,
+                      label: 'Readability',
+                  },
                   {
                       description:
                           'Welcome, auth and public information text and overlay colors.',
@@ -442,6 +467,13 @@ export default function ColorPaletteSettings({
                         storedPresentation={
                             lastSavedPresentation ?? presentationDraft
                         }
+                        workbenchTheme={workbenchTheme}
+                    />
+                ) : null}
+                {section === 'readability' && presentationDraft ? (
+                    <LearnerReadabilityPalette
+                        mode={mode}
+                        presentation={presentationDraft}
                         workbenchTheme={workbenchTheme}
                     />
                 ) : null}
@@ -840,16 +872,9 @@ function LearnerInterfacePalette({
         dark: getLearnerPalette(presentation, 'dark'),
         light: getLearnerPalette(presentation, 'light'),
     };
-    const readabilityChecks = learnerReadabilityChecks(palette, mode);
 
     return (
         <PaletteWorkbench
-            beforeFields={
-                <LearnerReadabilitySummary
-                    checks={readabilityChecks}
-                    mode={mode}
-                />
-            }
             disabled={!canUpdate}
             fields={learnerFields}
             intro="Learner UI colors control the shared navigation and page surfaces. Map visuals remain configured separately per map."
@@ -906,6 +931,44 @@ function LearnerInterfacePalette({
                     />
                 );
             }}
+        />
+    );
+}
+
+function LearnerReadabilityPalette({
+    mode,
+    presentation,
+    workbenchTheme,
+}: {
+    mode: ConfigThemeMode;
+    presentation: PublicPresentationSettings;
+    workbenchTheme?: PaletteWorkbenchTheme;
+}) {
+    const palette = getLearnerPalette(presentation, mode);
+
+    return (
+        <PaletteWorkbench
+            beforeFields={
+                <LearnerReadabilitySummary
+                    checks={learnerReadabilityChecks(palette, mode)}
+                    mode={mode}
+                />
+            }
+            disabled={false}
+            fields={[]}
+            intro="Review the learner interface's text and focus contrast for the selected appearance mode."
+            previewTabs={[
+                {
+                    content: (
+                        <LearnerPalettePreview mode={mode} palette={palette} />
+                    ),
+                    id: 'learner',
+                    label: 'Learner pages',
+                },
+            ]}
+            previewTitle="Learner interface readability"
+            renderField={() => null}
+            theme={workbenchTheme}
         />
     );
 }
@@ -2283,6 +2346,10 @@ function cloneSettingsValue<T>(value: T): T {
 }
 
 function sectionTitle(section: PaletteSection): string {
+    if (section === 'readability') {
+        return 'Readability checks';
+    }
+
     if (section === 'learner') {
         return 'Learner UI colors';
     }

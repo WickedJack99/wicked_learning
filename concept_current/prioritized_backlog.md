@@ -7,8 +7,7 @@ This backlog contains current direction. Historical ideas in `concept/` and
 
 - Complete the remaining UI audit follow-up in
   `concept_current/ui_navigation_and_visual_audit.md`: add automated
-  responsive/collection coverage and review light-theme contrast after custom
-  learner palettes are introduced.
+  responsive/collection coverage for configured palettes and long collections.
   The community navigation contract is now shared by organization pages, and
   the earlier focused-map overflow signal is not reproducible in the current
   browser pass.
