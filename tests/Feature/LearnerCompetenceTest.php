@@ -2,10 +2,12 @@
 
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearnerQuestionAnswer;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -296,6 +298,62 @@ test('question answers complete the active route and record retrieval evidence',
             ->where('learning_node_id', $node->id)
             ->firstOrFail()->status)
         ->toBe('completed');
+});
+
+test('returning to a question keeps its route continuation', function () {
+    $learner = User::factory()->create();
+    [$node, , $start] = competenceRoute([]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'branched-question',
+        'type' => 'question',
+        'title' => 'Branched question',
+        'config' => [],
+        'sort_order' => 20,
+    ]);
+    $nextActivity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'next-activity',
+        'type' => 'markdown',
+        'title' => 'Next activity',
+        'config' => [],
+        'sort_order' => 30,
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'Which idea fits?',
+    ]);
+    $option = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'The first idea.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+    ActivityTransition::query()->create([
+        'from_activity_id' => $activity->id,
+        'to_activity_id' => $nextActivity->id,
+        'from_connector' => 'correct',
+        'to_connector' => 'in',
+        'trigger' => 'correct',
+        'label' => 'Continue',
+    ]);
+    $start->update(['learning_activity_id' => $activity->id]);
+    LearnerQuestionAnswer::query()->create([
+        'user_id' => $learner->id,
+        'learning_question_id' => $question->id,
+        'learning_question_option_id' => $option->id,
+        'is_correct' => true,
+        'selected_option_ids' => [$option->id],
+        'feedback' => 'That is the useful clue.',
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where("progress.answers.{$question->id}.nextActivityId", $nextActivity->id)
+        );
 });
 
 test('admins can configure competence topics on any activity', function () {

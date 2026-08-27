@@ -2,14 +2,16 @@
 
 namespace App\Learning\Services;
 
-use App\Models\ActivityTransition;
 use App\Models\LearnerQuestionAnswer;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 
 class QuestionAnswerService
 {
-    public function __construct(private readonly LearnerProgressService $progressService) {}
+    public function __construct(
+        private readonly LearnerProgressService $progressService,
+        private readonly QuestionTransitionResolver $transitionResolver,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -40,7 +42,7 @@ class QuestionAnswerService
             playRunId: $playRunId,
             outcome: $option->is_correct ? 'correct' : 'incorrect',
         );
-        $transition = $this->findQuestionTransition($question, $option);
+        $transition = $this->transitionResolver->for($question, $option);
 
         return [
             'questionId' => $question->id,
@@ -63,16 +65,5 @@ class QuestionAnswerService
     {
         return $option->feedback
             ?: ($option->is_correct ? $question->feedback_correct : $question->feedback_incorrect);
-    }
-
-    private function findQuestionTransition(
-        LearningQuestion $question,
-        LearningQuestionOption $option,
-    ): ?ActivityTransition {
-        $trigger = $option->is_correct ? 'correct' : 'incorrect';
-
-        return $question->activity->transitions
-            ->first(fn ($transition) => $transition->trigger === 'outcome' && $transition->trigger_value === $option->outcome_key)
-            ?: $question->activity->transitions->first(fn ($transition) => $transition->trigger === $trigger);
     }
 }

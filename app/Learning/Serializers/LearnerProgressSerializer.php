@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\QuestionTransitionResolver;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerQuestionAnswer;
 use DateTimeInterface;
@@ -9,6 +10,8 @@ use Illuminate\Support\Carbon;
 
 class LearnerProgressSerializer
 {
+    public function __construct(private readonly QuestionTransitionResolver $transitionResolver) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -69,7 +72,7 @@ class LearnerProgressSerializer
     {
         return LearnerQuestionAnswer::query()
             ->where('user_id', $userId)
-            ->with('question')
+            ->with(['question.activity.transitions', 'selectedOption'])
             ->latest()
             ->get()
             ->unique('learning_question_id')
@@ -79,9 +82,19 @@ class LearnerProgressSerializer
                     'isCorrect' => $answer->is_correct,
                     'feedback' => $answer->feedback,
                     'explanation' => $answer->question?->explanation,
+                    'nextActivityId' => $this->nextActivityId($answer),
                 ],
             ])
             ->all();
+    }
+
+    private function nextActivityId(LearnerQuestionAnswer $answer): ?int
+    {
+        if (! $answer->question || ! $answer->selectedOption) {
+            return null;
+        }
+
+        return $this->transitionResolver->for($answer->question, $answer->selectedOption)?->to_activity_id;
     }
 
     private function dateTimeString(mixed $value): ?string

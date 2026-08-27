@@ -34,4 +34,12 @@ class LearnerQuestionAnswer extends Model
     {
         return $this->belongsTo(LearningQuestion::class, 'learning_question_id');
     }
+
+    /**
+     * @return BelongsTo<LearningQuestionOption, $this>
+     */
+    public function selectedOption(): BelongsTo
+    {
+        return $this->belongsTo(LearningQuestionOption::class, 'learning_question_option_id');
+    }
 }
