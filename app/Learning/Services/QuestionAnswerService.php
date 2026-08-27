@@ -34,10 +34,11 @@ class QuestionAnswerService
         ]);
 
         $this->progressService->mark(
-            $userId,
-            $question->activity,
-            'completed',
-            $playRunId,
+            userId: $userId,
+            activity: $question->activity,
+            status: 'completed',
+            playRunId: $playRunId,
+            outcome: $option->is_correct ? 'correct' : 'incorrect',
         );
         $transition = $this->findQuestionTransition($question, $option);
 

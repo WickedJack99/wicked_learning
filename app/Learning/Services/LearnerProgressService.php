@@ -22,6 +22,7 @@ class LearnerProgressService
         string $status,
         ?string $playRunId = null,
         ?bool $endsRoute = null,
+        ?string $outcome = null,
     ): LearnerActivityProgress {
         $now = Carbon::now();
         $progress = LearnerActivityProgress::query()->firstOrCreate([
@@ -54,7 +55,12 @@ class LearnerProgressService
 
                 if ($status === 'completed') {
                     if ($this->routeProgress->progressForRun($routeUser, $activity, $playRunId)) {
-                        $this->competence->awardActivityCompletion($routeUser, $activity, $playRunId);
+                        $this->competence->awardActivityCompletion(
+                            $routeUser,
+                            $activity,
+                            $playRunId,
+                            $outcome,
+                        );
                     }
 
                     $this->routeProgress->exitActivity($routeUser, $activity, $playRunId);
