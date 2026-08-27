@@ -264,6 +264,12 @@ assistive technology can now identify the current learning surface on the desk,
 Topics, Paths, competence map and map/bookmark navigation without relying on
 visual styling.
 
+The primary learner route contract is also covered by feature tests for the
+desk, Paths, Topics, competence, bookmarks and a published topic detail. These
+tests do not replace browser verification of layout or interaction, but they
+prevent a page from silently losing its authenticated route or Inertia
+component while the learner navigation is being extended.
+
 ### Completed — Make interactive map assets reachable
 
 Interactive MapAssets now receive pointer input as well as keyboard input;
