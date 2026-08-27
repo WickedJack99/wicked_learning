@@ -119,6 +119,10 @@ learner chooses whether to send a short request to authorized Learning Support;
 support requests stay out of peer walls and remain available in this same
 moderation surface.
 
+Peer message walls may also invite one optional response per learner and
+message. Responses are anonymous to learners, subject to the same moderation
+filtering, and managed by Learning Support alongside the original messages.
+
 ### Journal, Competence And Collaboration
 
 The learner journal is a private Markdown workspace with custom pages,

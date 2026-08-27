@@ -2,6 +2,7 @@
 
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Models\LearnerMessage;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
@@ -53,6 +54,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
     $topic = LearningMessageTopic::query()->sole();
     $wallConfig = $configuration->fromData($this->node, [
         'message_topic_id' => $topic->id,
+        'message_allow_responses' => true,
         'message_accent_color_light' => '#123abc',
     ]);
 
@@ -62,6 +64,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
         ->and($promptConfig['messageAudience'])->toBe('support')
         ->and($promptConfig['messageUi']['cardColorLight'])->toBe('#fefefe')
         ->and($wallConfig['messageUi']['accentColorLight'])->toBe('#123abc')
+        ->and($wallConfig['messageAllowResponses'])->toBeTrue()
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
 });
 
@@ -100,6 +103,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
             'title' => 'Show helpful thoughts',
             'type' => 'message_wall',
             'message_topic_id' => $topic->id,
+            'message_allow_responses' => true,
         ])
         ->assertRedirect();
 
@@ -110,6 +114,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
         ->and($prompt->config['messageAudience'])->toBe('support')
         ->and($prompt->config['messageUi']['surfaceColorDark'])->toBe('#102030')
         ->and($wall->config['messageTopicId'])->toBe($topic->id)
+        ->and($wall->config['messageAllowResponses'])->toBeTrue()
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
 });
 
@@ -221,6 +226,78 @@ test('support requests stay out of peer walls and remain visible to learning sup
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('learningSupportSettings.learnerMessages.0.messages.0.audience', 'support')
         );
+});
+
+test('learners can respond once to an opted-in peer message and support can moderate it', function () {
+    $learner = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'peer-conversation',
+        'title' => 'Peer conversation',
+    ]);
+    $wall = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'peer-conversation-wall',
+        'type' => 'message_wall',
+        'title' => 'Peer conversation',
+        'config' => [
+            'messageTopicId' => $topic->id,
+            'messageAllowResponses' => true,
+        ],
+    ]);
+    $message = LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $otherLearner->id,
+        'body' => 'The quiet detail helped me notice the pattern.',
+        'audience' => 'peers',
+    ]);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $wall))
+        ->assertOk()
+        ->assertJsonPath('messages.0.canRespond', true)
+        ->assertJsonPath('messages.0.hasResponded', false)
+        ->assertJsonCount(0, 'messages.0.responses');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
+            'body' => 'I noticed that too after slowing down.',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('messages.0.hasResponded', true)
+        ->assertJsonPath('messages.0.responses.0.body', 'I noticed that too after slowing down.');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
+            'body' => 'A second response is not needed.',
+        ])
+        ->assertOk()
+        ->assertJsonCount(1, 'messages.0.responses');
+
+    $response = LearnerMessageResponse::query()->sole();
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-learning-support',
+            'support' => 'learner-messages',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.body', 'I noticed that too after slowing down.')
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('settings.learning-support.message-responses.visibility.update', $response), [
+            'hidden' => true,
+        ])
+        ->assertRedirect();
+
+    expect($response->refresh()->hidden_at)->not->toBeNull();
 });
 
 test('admins can hide restore and delete learner messages', function () {

@@ -51,7 +51,10 @@ route-completion modal:
 - A `message_prompt` can be authored for the peer wall or for Learning Support.
   A support request is kept out of peer walls, appears in the existing support
   moderation view, and remains an optional learner choice with a clear way to
-  continue without sending it. Reciprocal peer response is a later slice.
+  continue without sending it.
+- A peer `message_wall` can optionally invite one response per learner and
+  visible message. Responses are shown without author identity to learners and
+  use the same moderation controls as the original messages.
 
 NPC dialogue activities now use the same graph idea at a nested level:
 

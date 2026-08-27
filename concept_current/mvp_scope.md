@@ -20,6 +20,8 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
 - A message prompt collects at most one short contribution from each learner
   for a reusable MapAsset topic. A message wall displays the topic's visible
   contributions as cards and closes through its normal Activity transition.
+  Authors can optionally invite one response per learner and visible message;
+  responses are moderated with the original contributions.
 - Open practice activities let authors write the invitation for a learner-owned
   next step instead of exposing an empty generic pause.
 - Learners can keep private journals, request scoped feedback and view a
@@ -46,7 +48,8 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
 - Public presentation, information pages, translations, journal appearance,
   competence topics and learner-support views are configurable.
 - Learning Support can review learner messages grouped by MapAsset and topic,
-  see their authors, temporarily hide them or permanently delete them.
+  see their authors, temporarily hide them or permanently delete them, including
+  optional peer responses.
 - AI provider credentials and reusable agent templates can be configured and
   tested with model-aware controls and structured provider errors.
 - Enabled content-authoring templates can generate a contract-validated draft

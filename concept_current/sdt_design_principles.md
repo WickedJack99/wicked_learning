@@ -37,8 +37,9 @@ deadline or compulsory queue. Topic trails can now place earlier and later
 private reflections side by side when both exist, while keeping the complete
 record in the Journal. Future work should add meaningful alternative routes. The
 message-prompt activity can now optionally invite a consent-based support request
-to authorized Learning Support; peer walls exclude those requests. Peer response
-and reciprocal help remain future work. Activity authors
+to authorized Learning Support; peer walls exclude those requests. Peer message
+walls can also invite one bounded, learner-chosen response per visible message,
+with moderation and a clear exit. Activity authors
 can now optionally describe why the three completion directions may help after
 a particular activity. The directions stay bounded and optional, while the
 author context makes the choice purposeful instead of decorative. Authors can

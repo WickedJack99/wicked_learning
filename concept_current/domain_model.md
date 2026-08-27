@@ -67,6 +67,9 @@ Learner messages use the same Activity graph instead of a route-completion
 special case. A `message_prompt` Activity asks for one contribution per user
 and topic. A `message_wall` Activity presents visible contributions as
 dismissible cards. Both Activities link the same MapAsset-scoped message topic.
+Peer walls may opt into a separate, one-response-per-learner interaction; those
+responses keep the same moderation boundary without exposing author identity to
+learners.
 
 Users are accounts, roles are permission bundles, and registration tokens are
 invitations. None of these should become learning rewards.

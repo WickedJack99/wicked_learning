@@ -66,6 +66,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         message_card_color_dark: '#13262d',
         message_card_color_light: '#ffffff',
         message_audience: 'peers',
+        message_allow_responses: false,
         message_input_label: 'Your message',
         message_prompt_text:
             'Leave a helpful note or an encouraging thought for the next learner.',
@@ -311,6 +312,10 @@ export function activityFormFromActivity(
         message_audience: stringConfig(
             activity.config.messageAudience,
             'peers',
+        ),
+        message_allow_responses: booleanConfig(
+            activity.config.messageAllowResponses,
+            false,
         ),
         message_input_label: stringConfig(
             activity.config.messageInputLabel,

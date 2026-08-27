@@ -80,11 +80,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'can:learner_messages.ru'])->group(function () {
     Route::patch('settings/learning-support/messages/{message}/visibility', [LearnerMessageModerationController::class, 'updateVisibility'])
         ->name('settings.learning-support.messages.visibility.update');
+    Route::patch('settings/learning-support/message-responses/{response}/visibility', [LearnerMessageModerationController::class, 'updateResponseVisibility'])
+        ->name('settings.learning-support.message-responses.visibility.update');
 });
 
 Route::middleware(['auth', 'verified', 'can:learner_messages.rud'])->group(function () {
     Route::delete('settings/learning-support/messages/{message}', [LearnerMessageModerationController::class, 'destroy'])
         ->name('settings.learning-support.messages.destroy');
+    Route::delete('settings/learning-support/message-responses/{response}', [LearnerMessageModerationController::class, 'destroyResponse'])
+        ->name('settings.learning-support.message-responses.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () {

@@ -105,6 +105,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.messages.index');
     Route::post('learning/activities/{activity}/messages', [LearnerMessageController::class, 'store'])
         ->name('learning.activities.messages.store');
+    Route::post('learning/activities/{activity}/messages/{message}/responses', [LearnerMessageController::class, 'respond'])
+        ->name('learning.activities.messages.responses.store');
     Route::get('learning/journal', [LearnerJournalController::class, 'index'])
         ->name('learning.journal.index');
     Route::get('learning/journal/export', [LearnerJournalController::class, 'export'])

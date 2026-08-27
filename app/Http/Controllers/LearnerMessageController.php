@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Learning\Actions\CreateLearnerMessage;
+use App\Learning\Actions\CreateLearnerMessageResponse;
 use App\Learning\Queries\LoadLearnerMessages;
 use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningNodeStateResolver;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\MessageTopicForActivity;
+use App\Models\LearnerMessage;
 use App\Models\LearningActivity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ class LearnerMessageController extends Controller
         private readonly MessageTopicForActivity $topicForActivity,
         private readonly LoadLearnerMessages $messages,
         private readonly CreateLearnerMessage $createMessage,
+        private readonly CreateLearnerMessageResponse $createResponse,
         private readonly MessageActivityConfiguration $messageConfiguration,
         private readonly LearningMapAccessService $mapAccess,
         private readonly LearningNodeStateResolver $nodeState,
@@ -28,9 +31,10 @@ class LearnerMessageController extends Controller
         $this->authorizeActivity($request, $activity);
 
         $audience = $this->messageConfiguration->audienceFor($activity);
+        $allowResponses = $this->messageConfiguration->allowsResponsesFor($activity);
 
         return response()->json(
-            $this->messages->handle($this->topicForActivity->resolve($activity), $request->user(), $audience),
+            $this->messages->handle($this->topicForActivity->resolve($activity), $request->user(), $audience, $allowResponses),
         );
     }
 
@@ -53,6 +57,30 @@ class LearnerMessageController extends Controller
                 'body' => $message->body,
             ],
         ], $message->wasRecentlyCreated ? 201 : 200);
+    }
+
+    public function respond(Request $request, LearningActivity $activity, LearnerMessage $message): JsonResponse
+    {
+        $this->authorizeActivity($request, $activity);
+        abort_unless($this->messageConfiguration->allowsResponsesFor($activity), 404);
+
+        $topic = $this->topicForActivity->resolve($activity);
+        abort_unless($message->learning_message_topic_id === $topic->id, 404);
+        abort_unless($message->audience === 'peers' && $message->hidden_at === null, 404);
+        abort_unless($message->user_id !== $request->user()->id, 422);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'min:2', 'max:280'],
+        ]);
+        $response = $this->createResponse->handle($request->user(), $message, $data['body']);
+
+        return response()->json([
+            ...$this->messages->handle($topic, $request->user(), 'peers', true),
+            'response' => [
+                'body' => $response->body,
+                'id' => $response->id,
+            ],
+        ], $response->wasRecentlyCreated ? 201 : 200);
     }
 
     private function authorizeActivity(Request $request, LearningActivity $activity): void

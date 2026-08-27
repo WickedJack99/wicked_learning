@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -103,6 +104,41 @@ export function MessageActivityFlowFields({
                         )}
                     </p>
                     <InputError message={errors.message_topic_title} />
+                </div>
+            ) : null}
+
+            {!isPrompt ? (
+                <div className="grid gap-2">
+                    <label
+                        className="flex items-start gap-3"
+                        htmlFor="message-allow-responses"
+                    >
+                        <Checkbox
+                            checked={form.message_allow_responses}
+                            id="message-allow-responses"
+                            onCheckedChange={(checked) =>
+                                onChange((current) => ({
+                                    ...current,
+                                    message_allow_responses: checked === true,
+                                }))
+                            }
+                        />
+                        <span>
+                            <span className="block text-sm font-medium">
+                                {t(
+                                    'settings.activities.messages.allow_responses',
+                                    'Invite optional peer responses',
+                                )}
+                            </span>
+                            <span className="mt-1 block text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                {t(
+                                    'settings.activities.messages.allow_responses_description',
+                                    'Learners can choose to respond once to a visible message. Responses remain moderated.',
+                                )}
+                            </span>
+                        </span>
+                    </label>
+                    <InputError message={errors.message_allow_responses} />
                 </div>
             ) : null}
 

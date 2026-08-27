@@ -23,6 +23,7 @@ class MessageActivityConfiguration
             ...$existing,
             'messageTopicId' => $this->topic($node, $data, $existing)->id,
             'messageAudience' => $this->audience($data, $existing),
+            'messageAllowResponses' => $this->allowResponses($data, $existing),
             'messagePrompt' => $this->string($data, 'message_prompt_text', $existing, 'messagePrompt', 'Leave a helpful note or an encouraging thought for the next learner.'),
             'messageInputLabel' => $this->string($data, 'message_input_label', $existing, 'messageInputLabel', 'Your message'),
             'messageUi' => [
@@ -47,6 +48,7 @@ class MessageActivityConfiguration
             'message_topic_id',
             'message_topic_title',
             'message_audience',
+            'message_allow_responses',
             'message_prompt_text',
             'message_input_label',
             'message_surface_color_dark',
@@ -70,6 +72,14 @@ class MessageActivityConfiguration
             && ($config['messageAudience'] ?? null) === 'support'
             ? 'support'
             : 'peers';
+    }
+
+    public function allowsResponsesFor(LearningActivity $activity): bool
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return $activity->type === 'message_wall'
+            && ($config['messageAllowResponses'] ?? false) === true;
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */
@@ -131,6 +141,18 @@ class MessageActivityConfiguration
             : (string) ($existing['messageAudience'] ?? 'peers');
 
         return in_array($value, self::AUDIENCES, true) ? $value : 'peers';
+    }
+
+    /** @param array<string, mixed> $data @param array<string, mixed> $existing */
+    private function allowResponses(array $data, array $existing): bool
+    {
+        if (($data['type'] ?? null) === 'message_prompt') {
+            return false;
+        }
+
+        return array_key_exists('message_allow_responses', $data)
+            ? filter_var($data['message_allow_responses'], FILTER_VALIDATE_BOOLEAN)
+            : (bool) ($existing['messageAllowResponses'] ?? false);
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */

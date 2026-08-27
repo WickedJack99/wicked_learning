@@ -10,8 +10,16 @@ import { getJson, postJson } from './api';
 
 type MessageResponse = {
     hasContributed: boolean;
-    messages: Array<{ body: string; id: number }>;
+    messages: Array<MessageItem>;
     topic: { id: number; title: string };
+};
+
+type MessageItem = {
+    body: string;
+    canRespond: boolean;
+    hasResponded: boolean;
+    id: number;
+    responses: Array<{ body: string; id: number }>;
 };
 
 type ActivityFlowProps = {
@@ -265,9 +273,14 @@ export function MessageWallActivity({
 }: ActivityFlowProps) {
     const t = usePlatformTranslation();
     const theme = useMessageTheme(activity);
+    const allowResponses = activity.config.messageAllowResponses === true;
     const [state, setState] = useState<MessageResponse | null>(null);
     const [closing, setClosing] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
+    const [responseBody, setResponseBody] = useState('');
+    const [responseError, setResponseError] = useState('');
+    const [responding, setResponding] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -286,6 +299,49 @@ export function MessageWallActivity({
         setClosing(true);
         await onComplete(activity);
         onMoveToActivity(transition?.toActivityId ?? null);
+    };
+
+    const submitResponse = async (messageId: number) => {
+        if (responseBody.trim().length < 2) {
+            setResponseError(
+                t(
+                    'activities.messages.response_too_short',
+                    'Write at least two characters.',
+                ),
+            );
+
+            return;
+        }
+
+        setResponding(true);
+        setResponseError('');
+
+        try {
+            const response = await postJson<MessageResponse>(
+                `/learning/activities/${activity.id}/messages/${messageId}/responses`,
+                { body: responseBody.trim() },
+            );
+            setState(response);
+            setActiveMessageId(null);
+            setResponseBody('');
+        } catch {
+            setResponseError(
+                t(
+                    'activities.messages.response_save_error',
+                    'Your response could not be saved yet.',
+                ),
+            );
+        } finally {
+            setResponding(false);
+        }
+    };
+
+    const toggleResponse = (messageId: number) => {
+        setActiveMessageId((current) =>
+            current === messageId ? null : messageId,
+        );
+        setResponseBody('');
+        setResponseError('');
     };
     const messages = state?.messages ?? [];
 
@@ -354,8 +410,18 @@ export function MessageWallActivity({
                     <div className="grid gap-3 px-4 pt-24 pb-5 sm:hidden">
                         {messages.slice(0, 6).map((message) => (
                             <MessageCard
+                                allowResponses={allowResponses}
+                                activeMessageId={activeMessageId}
                                 key={message.id}
                                 message={message}
+                                onSubmitResponse={(messageId) =>
+                                    void submitResponse(messageId)
+                                }
+                                onToggleResponse={toggleResponse}
+                                responseBody={responseBody}
+                                responseError={responseError}
+                                responding={responding}
+                                setResponseBody={setResponseBody}
                                 theme={theme}
                             />
                         ))}
@@ -367,7 +433,20 @@ export function MessageWallActivity({
                                 key={message.id}
                                 style={cardPosition(index)}
                             >
-                                <MessageCard message={message} theme={theme} />
+                                <MessageCard
+                                    allowResponses={allowResponses}
+                                    activeMessageId={activeMessageId}
+                                    message={message}
+                                    onSubmitResponse={(messageId) =>
+                                        void submitResponse(messageId)
+                                    }
+                                    onToggleResponse={toggleResponse}
+                                    responseBody={responseBody}
+                                    responseError={responseError}
+                                    responding={responding}
+                                    setResponseBody={setResponseBody}
+                                    theme={theme}
+                                />
                             </div>
                         ))}
                     </div>
@@ -378,12 +457,31 @@ export function MessageWallActivity({
 }
 
 function MessageCard({
+    allowResponses,
+    activeMessageId,
     message,
+    onSubmitResponse,
+    onToggleResponse,
+    responseBody,
+    responseError,
+    responding,
+    setResponseBody,
     theme,
 }: {
-    message: { body: string; id: number };
+    allowResponses: boolean;
+    activeMessageId: number | null;
+    message: MessageItem;
+    onSubmitResponse: (messageId: number) => void;
+    onToggleResponse: (messageId: number) => void;
+    responseBody: string;
+    responseError: string;
+    responding: boolean;
+    setResponseBody: (value: string) => void;
     theme: MessageTheme;
 }) {
+    const t = usePlatformTranslation();
+    const isResponding = activeMessageId === message.id;
+
     return (
         <article
             className="rounded-xl border p-4 text-sm leading-6 shadow-xl"
@@ -394,6 +492,105 @@ function MessageCard({
             }}
         >
             {message.body}
+            {message.responses.length > 0 ? (
+                <div
+                    className="mt-4 grid gap-2 border-t pt-3 text-sm opacity-85"
+                    style={{ borderColor: theme.border }}
+                >
+                    {message.responses.map((response) => (
+                        <p key={response.id}>{response.body}</p>
+                    ))}
+                </div>
+            ) : null}
+            {allowResponses && message.canRespond ? (
+                <div
+                    className="mt-4 border-t pt-3"
+                    style={{ borderColor: theme.border }}
+                >
+                    {message.hasResponded ? (
+                        <p className="text-xs opacity-75">
+                            {t(
+                                'activities.messages.response_added',
+                                'You responded to this message.',
+                            )}
+                        </p>
+                    ) : (
+                        <>
+                            <Button
+                                onClick={() => onToggleResponse(message.id)}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                {isResponding
+                                    ? t(
+                                          'activities.messages.close_response',
+                                          'Close response',
+                                      )
+                                    : t(
+                                          'activities.messages.respond',
+                                          'Respond',
+                                      )}
+                            </Button>
+                            {isResponding ? (
+                                <div className="mt-3 grid gap-2">
+                                    <textarea
+                                        aria-label={t(
+                                            'activities.messages.response_label',
+                                            'Your response',
+                                        )}
+                                        className="min-h-20 w-full rounded-lg border bg-transparent p-2 text-sm outline-none focus:ring-2"
+                                        maxLength={280}
+                                        onChange={(event) =>
+                                            setResponseBody(event.target.value)
+                                        }
+                                        placeholder={t(
+                                            'activities.messages.response_placeholder',
+                                            'Add a thoughtful response...',
+                                        )}
+                                        style={{ borderColor: theme.border }}
+                                        value={responseBody}
+                                    />
+                                    {responseError ? (
+                                        <p className="text-xs text-red-300">
+                                            {responseError}
+                                        </p>
+                                    ) : null}
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            disabled={responding}
+                                            onClick={() =>
+                                                onSubmitResponse(message.id)
+                                            }
+                                            size="sm"
+                                            type="button"
+                                        >
+                                            {t(
+                                                'activities.messages.send_response',
+                                                'Send response',
+                                            )}
+                                        </Button>
+                                        <Button
+                                            disabled={responding}
+                                            onClick={() =>
+                                                onToggleResponse(message.id)
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            {t(
+                                                'activities.messages.not_now',
+                                                'Not now',
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </>
+                    )}
+                </div>
+            ) : null}
         </article>
     );
 }

@@ -15,6 +15,8 @@ class LoadLearnerMessageModeration
                 'mapAsset.node:id,title',
                 'messages.author:id,name,email',
                 'messages.hiddenBy:id,name,email',
+                'messages.responses.author:id,name,email',
+                'messages.responses.hiddenBy:id,name,email',
             ])
             ->whereHas('messages')
             ->orderBy('title')
@@ -44,6 +46,21 @@ class LoadLearnerMessageModeration
                         'id' => $message->hiddenBy->id,
                         'name' => $message->hiddenBy->name,
                     ] : null,
+                    'responses' => $message->responses->map(fn ($response): array => [
+                        'id' => $response->id,
+                        'body' => $response->body,
+                        'createdAt' => $response->created_at?->toIso8601String(),
+                        'hiddenAt' => $response->hidden_at?->toIso8601String(),
+                        'author' => [
+                            'id' => $response->author->id,
+                            'name' => $response->author->name,
+                            'email' => $response->author->email,
+                        ],
+                        'hiddenBy' => $response->hiddenBy ? [
+                            'id' => $response->hiddenBy->id,
+                            'name' => $response->hiddenBy->name,
+                        ] : null,
+                    ])->values()->all(),
                 ])->values()->all(),
             ])
             ->values()

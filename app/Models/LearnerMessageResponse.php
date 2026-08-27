@@ -5,27 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'learning_message_topic_id',
+    'learner_message_id',
     'user_id',
     'body',
-    'audience',
     'hidden_at',
     'hidden_by_user_id',
 ])]
-class LearnerMessage extends Model
+class LearnerMessageResponse extends Model
 {
     protected function casts(): array
     {
         return ['hidden_at' => 'datetime'];
     }
 
-    /** @return BelongsTo<LearningMessageTopic, $this> */
-    public function topic(): BelongsTo
+    /** @return BelongsTo<LearnerMessage, $this> */
+    public function message(): BelongsTo
     {
-        return $this->belongsTo(LearningMessageTopic::class, 'learning_message_topic_id');
+        return $this->belongsTo(LearnerMessage::class, 'learner_message_id');
     }
 
     /** @return BelongsTo<User, $this> */
@@ -38,11 +36,5 @@ class LearnerMessage extends Model
     public function hiddenBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'hidden_by_user_id');
-    }
-
-    /** @return HasMany<LearnerMessageResponse, $this> */
-    public function responses(): HasMany
-    {
-        return $this->hasMany(LearnerMessageResponse::class)->latest();
     }
 }
