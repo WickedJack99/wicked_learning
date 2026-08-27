@@ -272,6 +272,10 @@ check-in uses the same tokens for its prompt, connected-area links, note field
 and feeling choices. Activity-specific scene treatments remain local to their
 activity type, while the shared frame owns the learner-facing structure.
 
+The centered activity header now also names the active authored route when a
+route is in progress, keeping topic, map, route and node context together
+without adding another navigation bar.
+
 ### Completed — Label icon-only activity controls
 
 Previous/next controls in markdown pages, NPC dialogue and dialogue stages

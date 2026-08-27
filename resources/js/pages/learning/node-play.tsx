@@ -389,6 +389,9 @@ export default function NodePlay({
     );
 
     const mapHref = `/world?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`;
+    const activeRouteLabel = playRouteId
+        ? node.startRoutes.find((route) => route.id === playRouteId)?.label
+        : null;
     const navigationItems: LearnerNavigationItem[] = [
         {
             active: false,
@@ -434,6 +437,11 @@ export default function NodePlay({
                             <p className="truncate text-sm text-[var(--learner-muted-text)]">
                                 {node.mapTitle}
                             </p>
+                            {activeRouteLabel ? (
+                                <p className="truncate text-xs font-medium text-[var(--learner-action-accent)]">
+                                    {activeRouteLabel}
+                                </p>
+                            ) : null}
                             <h1 className="truncate text-base font-semibold">
                                 {node.title}
                             </h1>
