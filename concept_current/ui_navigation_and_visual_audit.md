@@ -355,6 +355,11 @@ accent treatments on Learning desk, topic detail and settings previews.
 section eyebrows do not compete with headings, and long helper copy is placed
 near the control it explains instead of adding another visual layer.
 
+The shared activity surface now keeps its alternate no-activity state and route
+progress metadata inside the same three-size hierarchy as the normal player.
+The live seeded activity already rendered at three sizes; this also prevents a
+different data state from introducing a fourth heading size.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published

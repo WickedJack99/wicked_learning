@@ -312,7 +312,7 @@ function RouteProgressActions({
     }
 
     return (
-        <div className="flex items-center justify-between gap-2 px-1 text-[0.7rem] text-slate-500 dark:text-slate-400">
+        <div className="flex items-center justify-between gap-2 px-1 text-xs text-slate-500 dark:text-slate-400">
             <span className="min-w-0 truncate">{progressText}</span>
             <button
                 className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 font-semibold text-cyan-700 transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:text-teal-200 dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"

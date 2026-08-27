@@ -511,7 +511,7 @@ export default function NodePlay({
                     ) : (
                         <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/15 dark:bg-white/6">
                             <div>
-                                <p className="text-lg font-semibold">
+                                <p className="text-base font-semibold">
                                     No activity path configured
                                 </p>
                                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
