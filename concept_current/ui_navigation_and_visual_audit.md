@@ -295,6 +295,18 @@ These are test gaps, not claims that the feature is broken:
   controls, account controls, React Flow actions, image selectors and modal
   close buttons.
 
+### Journal presentation
+
+The Journal opens as a focused overlay from the learning desk. Its content,
+sidebar, inputs, selected page, and action controls use the configurable
+journal theme for both appearance modes. Hover surfaces now use the same
+configured surfaces as the rest of the overlay, so a custom light or dark
+journal presentation does not fall back to fixed slate/white colors.
+
+The journal remains a private reflection workspace: the visual pass does not
+change who can read pages, how feedback requests work, or how learning
+observations are represented.
+
 ## Documentation maintenance rule
 
 When a feature slice changes a learner concept or navigation surface, first

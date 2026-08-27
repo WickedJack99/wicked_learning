@@ -323,7 +323,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         >
             <section
                 aria-label="Journal"
-                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border shadow-2xl shadow-slate-950/30 sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
+                className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border shadow-2xl sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
                 onMouseDown={(event) => event.stopPropagation()}
                 style={{
                     backgroundColor: 'var(--journal-panel-background)',
@@ -444,7 +444,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                         'w-full rounded-lg border p-3 text-left transition-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)] focus-visible:outline-none',
                                         selectedId === page.id
                                             ? ''
-                                            : 'border-transparent hover:bg-slate-100/70 dark:hover:bg-white/6',
+                                            : 'border-transparent hover:bg-[var(--journal-content-background)]',
                                     )}
                                     key={page.id}
                                     onClick={() => {
@@ -588,7 +588,7 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
             <div className="mt-2 space-y-1">
                 {checkIns.slice(0, 4).map((checkIn) => (
                     <div
-                        className="rounded-md px-2 py-2 transition-colors hover:bg-slate-100/70 dark:hover:bg-white/6"
+                        className="rounded-md px-2 py-2 transition-colors hover:bg-[var(--journal-content-background)]"
                         key={`${checkIn.activityId}:${checkIn.recordedAt}`}
                     >
                         <a className="block" href={checkIn.activityHref}>
@@ -625,7 +625,7 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                                 </span>
                                 {checkIn.topics.map((topic) => (
                                     <a
-                                        className="rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+                                        className="rounded-full border px-2 py-0.5 text-xs transition-colors hover:bg-[var(--journal-selected-background)]"
                                         href={competenceTopicHref(
                                             topic.slug,
                                             checkIn.originTopicSlug,
