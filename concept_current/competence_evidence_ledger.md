@@ -126,6 +126,12 @@ area links to its focused star-map reading and names the learning purposes
 present in that topic. This describes the opportunities a topic offers without
 turning the topic page into a curriculum checklist.
 
+When a connected area also has learner evidence, its focused topic-page link may
+include the same qualitative evidence vocabulary used by the star map. Keep this
+inside the existing area surface so one area is not repeated as a second ledger
+or checklist. If the area maps to a separate formal topic, retain that topic as
+a small related-topic doorway rather than repeating the evidence narrative.
+
 The Paths directory uses the same area labels on route cards. This keeps a
 prepared route connected to the competence reading without implying that
 following the route is the only way to develop an area.

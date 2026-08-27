@@ -131,6 +131,10 @@ Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused
 competence-map reading. Those links retain the originating topic as a return
 path even when the competence area is not itself a formal topic.
+When connected competence areas have evidence, the topic page keeps their
+description and evidence vocabulary in that same compact link rather than
+repeating a second list of the same areas. Separate links remain available when
+a competence area also relates to another published topic.
 
 The demo learning world uses the same two competence topics across its dialogue,
 question, review, obstacle and field-note activities. This keeps the example

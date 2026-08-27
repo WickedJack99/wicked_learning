@@ -393,6 +393,9 @@ function TopicCompetenceCard({
     const distinctSubtopicCompetence = subtopicCompetence.filter(
         (area) => !learningAreaSlugs.includes(area.slug),
     );
+    const relatedSubtopicTopics = distinctSubtopicCompetence.filter(
+        (area) => area.topic,
+    );
     const firstTrail = competence ?? subtopicCompetence[0] ?? null;
     const focusedSlug = competence ? topicSlug : firstTrail?.slug;
     const competenceHref = focusedSlug
@@ -510,6 +513,15 @@ function TopicCompetenceCard({
                                     <span className="mt-1 block text-xs leading-5 text-[var(--learner-muted-text)]">
                                         {area.visual.description}
                                     </span>
+                                    {area.evidenceTypes.length > 0 ? (
+                                        <span className="mt-2 block text-xs text-[var(--learner-action-accent)]">
+                                            {area.evidenceTypes
+                                                .map((type) =>
+                                                    evidenceTypeLabel(type, t),
+                                                )
+                                                .join(' · ')}
+                                        </span>
+                                    ) : null}
                                 </span>
                                 <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
                             </Link>
@@ -616,88 +628,6 @@ function TopicCompetenceCard({
                 </>
             ) : null}
 
-            {distinctSubtopicCompetence.length > 0 ? (
-                <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
-                        {t(
-                            'topics.detail.competence.subtopics',
-                            'Connected learning areas',
-                        )}
-                    </p>
-                    <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
-                        {distinctSubtopicCompetence.map((trail) => (
-                            <div
-                                className="flex items-start justify-between gap-4 py-3"
-                                key={trail.topic?.href ?? trail.name}
-                            >
-                                <div className="min-w-0">
-                                    {trail.topic ? (
-                                        <Link
-                                            className="text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
-                                            href={trail.topic.href}
-                                        >
-                                            {trail.topic.title}
-                                        </Link>
-                                    ) : (
-                                        <p className="text-sm font-medium">
-                                            {trail.name}
-                                        </p>
-                                    )}
-                                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
-                                        {trail.visual.description}
-                                    </p>
-                                    {trail.evidenceTypes.length > 0 ? (
-                                        <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
-                                            {trail.evidenceTypes
-                                                .map((type) =>
-                                                    evidenceTypeLabel(type, t),
-                                                )
-                                                .join(' · ')}
-                                        </p>
-                                    ) : null}
-                                    {trail.evidenceLedger.length > 0 ? (
-                                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
-                                            <span>Recent:</span>
-                                            {trail.evidenceLedger
-                                                .slice(0, 2)
-                                                .map((entry) =>
-                                                    entry.activityHref ? (
-                                                        <Link
-                                                            className="text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_30%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
-                                                            href={
-                                                                entry.activityHref
-                                                            }
-                                                            key={entry.id}
-                                                        >
-                                                            {entry.activityTitle ??
-                                                                'Learning moment'}
-                                                        </Link>
-                                                    ) : (
-                                                        <span key={entry.id}>
-                                                            {entry.activityTitle ??
-                                                                'Learning moment'}
-                                                        </span>
-                                                    ),
-                                                )}
-                                        </div>
-                                    ) : null}
-                                </div>
-                                {trail.revisit &&
-                                trail.evidenceLedger.length === 0 ? (
-                                    <Link
-                                        aria-label={`${t('topics.detail.competence.revisit', 'Return to')} ${trail.revisit.activityTitle}`}
-                                        className="mt-0.5 shrink-0 text-[var(--learner-accent)] transition hover:text-[var(--learner-heading-text)]"
-                                        href={trail.revisit.activityHref}
-                                    >
-                                        <ArrowRight className="size-4" />
-                                    </Link>
-                                ) : null}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : null}
-
             {competence?.revisit ? (
                 <Link
                     className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] transition hover:text-[var(--learner-heading-text)]"
@@ -707,6 +637,29 @@ function TopicCompetenceCard({
                     {competence.revisit.activityTitle}
                     <ArrowRight className="size-4" />
                 </Link>
+            ) : null}
+
+            {relatedSubtopicTopics.length > 0 ? (
+                <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
+                        {t(
+                            'topics.detail.competence.related_topics',
+                            'Related topics',
+                        )}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+                        {relatedSubtopicTopics.map((area) => (
+                            <Link
+                                className="inline-flex items-center gap-1 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                                href={area.topic!.href}
+                                key={area.topic!.href}
+                            >
+                                {area.topic!.title}
+                                <ArrowRight className="size-3.5" />
+                            </Link>
+                        ))}
+                    </div>
+                </div>
             ) : null}
         </section>
     );
