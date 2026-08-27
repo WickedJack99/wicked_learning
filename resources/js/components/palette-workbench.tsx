@@ -89,7 +89,7 @@ export function PaletteWorkbench({
                     <LearnerPaginatedItems
                         className="divide-y divide-[var(--palette-workbench-border)]"
                         items={fields}
-                        pageSize={4}
+                        pageSize={3}
                         paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--palette-workbench-accent)] transition hover:text-white disabled:pointer-events-none disabled:opacity-40"
                         paginationClassName="flex items-center justify-between border-t border-[var(--palette-workbench-border)] px-5 py-3"
                         paginationTextClassName="text-xs text-[var(--palette-workbench-muted)]"

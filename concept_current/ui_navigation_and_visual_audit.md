@@ -374,9 +374,9 @@ cards per page while preserving every server-provided route for navigation.
 The Paths feature test now protects that contract with seven accessible routes,
 including the final route that must remain available to the client pager.
 
-The Color palettes workbench now paginates four color fields at a time in its
+The Color palettes workbench now paginates three color fields at a time in its
 left editor and leaves only the preview surface independently scrollable. This
-keeps the editor controls and pager in the visible workbench area without
+keeps the editor controls and pager within the visible workbench area without
 changing the preview's continuous inspection behavior.
 
 The reusable media library applies the same distinction: its searchable visual
