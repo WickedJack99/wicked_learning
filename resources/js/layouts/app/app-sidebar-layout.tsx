@@ -1,8 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import type { CSSProperties } from 'react';
-import { AppBottomNav } from '@/components/app-bottom-nav';
 import { AppSideActionBar } from '@/components/app-side-action-bar';
+import { LearnerSurfaceNavigation } from '@/components/learner-surface-navigation';
 import {
     EquippedToolCursorOverlay,
     equippedToolCursorStyle,
@@ -11,10 +11,10 @@ import {
     selectLearningTool,
     useSelectedLearningTool,
 } from '@/features/tools/tool-selection';
+import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import { useAppearancePageSync } from '@/hooks/use-appearance';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformCursorStyle } from '@/hooks/use-platform-cursors';
-import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import type { AppLayoutProps } from '@/types';
 
 type PlatformCursorStyle = CSSProperties & {
@@ -103,7 +103,7 @@ export default function AppSidebarLayout({
                 tool={selectedTool}
             />
             <AppSideActionBar />
-            <AppBottomNav />
+            <LearnerSurfaceNavigation />
         </div>
     );
 }
