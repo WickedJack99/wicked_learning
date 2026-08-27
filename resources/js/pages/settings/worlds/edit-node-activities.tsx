@@ -581,7 +581,7 @@ export default function EditNodeActivities({
                                     <Sparkles className="size-3.5" />
                                     Review next activity
                                 </Button>
-                            ) : (
+                            ) : activityGraph.canManageAiReview ? (
                                 <Button
                                     asChild
                                     className="h-8 shrink-0 border-amber-300/70 bg-white/70 px-3 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
@@ -592,6 +592,10 @@ export default function EditNodeActivities({
                                         <ArrowRight className="size-3.5" />
                                     </Link>
                                 </Button>
+                            ) : (
+                                <span className="text-xs text-amber-900/70 dark:text-amber-100/70">
+                                    No review helper is available.
+                                </span>
                             )}
                         </div>
                     ) : null}

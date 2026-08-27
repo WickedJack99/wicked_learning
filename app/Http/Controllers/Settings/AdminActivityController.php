@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\PermissionCatalog;
 use App\Ai\Actions\ReviewLearningActivity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ReviewLearningActivityRequest;
@@ -91,6 +93,11 @@ class AdminActivityController extends Controller
         ReviewLearningActivity $review,
     ): JsonResponse {
         $this->authorizeActivityEdit($request, $activity);
+        abort_unless(
+            $request->user()?->hasAccess(PermissionCatalog::AI, AccessLevel::UPDATE) ?? false,
+            403,
+        );
+
         $template = AiAgentTemplate::query()->findOrFail($request->integer('template_id'));
         abort_unless($template->enabled && $template->purpose === 'activity_review', 422);
 

@@ -118,6 +118,7 @@ export type ActivityTransitionSummary = {
 export type ActivityGraphPayload = {
     activities: ActivitySummary[];
     activityTypes: ActivityTypeDefinition[];
+    canManageAiReview: boolean;
     aiReviewTemplates: ActivityReviewTemplate[];
     competenceTopicOptions: string[];
     map: {

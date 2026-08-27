@@ -494,6 +494,7 @@ class LoadSettingsIndex
                 ...$this->activityGraphSerializer->serialize(
                     $this->loadEditableActivityGraph->handle($node),
                 ),
+                'canManageAiReview' => $capabilities[PermissionCatalog::AI]['update'] ?? false,
                 'aiReviewTemplates' => $this->loadActivityReviewTemplates->handle(
                     $capabilities[PermissionCatalog::AI]['update'] ?? false,
                 ),

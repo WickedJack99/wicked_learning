@@ -1,6 +1,10 @@
 <?php
 
+use App\Access\AccessLevel;
+use App\Access\AccessScope;
+use App\Access\PermissionCatalog;
 use App\Models\ActivityTransition;
+use App\Models\AccessRole;
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
 use App\Models\CompetenceTopicDefinition;
@@ -80,12 +84,68 @@ test('activity review rejects templates from another AI purpose', function () {
     expect($activity->refresh()->ai_review_status)->toBe('needs_review');
 });
 
+test('activity review requires AI update permission', function () {
+    $editor = activityReviewEditorWithoutAi();
+    [$activity, $template] = activityReviewContext($editor);
+
+    $this->actingAs($editor)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $activity->node->map->id,
+            'node' => $activity->node->id,
+            'worldView' => 'nodes',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedWorldNode.activityGraph.canManageAiReview', false)
+            ->where('selectedWorldNode.activityGraph.aiReviewTemplates', [])
+        );
+
+    $this->actingAs($editor)
+        ->postJson(route('settings.worlds.activities.ai-review', $activity), [
+            'template_id' => $template->id,
+        ])
+        ->assertForbidden();
+});
+
 function activityReviewAdmin(): User
 {
     return User::factory()->create([
         'role' => User::ROLE_ADMIN,
         'roles' => [User::ROLE_ADMIN],
     ]);
+}
+
+function activityReviewEditorWithoutAi(): User
+{
+    $role = AccessRole::query()->create([
+        'slug' => 'activity-review-editor',
+        'name' => 'Activity review editor',
+        'description' => null,
+        'level' => 50,
+        'is_system' => false,
+    ]);
+
+    foreach (PermissionCatalog::resourceKeys() as $resource) {
+        $role->permissions()->create([
+            'resource' => $resource,
+            'level' => $resource === PermissionCatalog::WORLD_ACTIVITIES
+                ? AccessLevel::UPDATE
+                : AccessLevel::NONE,
+            'scope' => $resource === PermissionCatalog::WORLD_ACTIVITIES
+                ? AccessScope::ALL
+                : AccessScope::NONE,
+        ]);
+    }
+
+    $editor = User::factory()->create([
+        'role' => $role->slug,
+        'roles' => [$role->slug],
+    ]);
+    $editor->setAssignedRoles([$role->slug]);
+    $editor->save();
+
+    return $editor->refresh();
 }
 
 /** @return array{LearningActivity, AiAgentTemplate} */

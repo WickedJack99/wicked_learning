@@ -228,6 +228,8 @@ suggestions and optional metadata suggestions can be considered in the same
 scoped authoring flow.
 If no activity-review helper is configured, the queue links to the template
 editor with the activity-review purpose preselected.
+The queue only offers that setup link to accounts with AI update permission;
+activity-edit access alone cannot invoke a review request.
 
 Selecting a MapAsset opens its editor directly. Admins do not create or link a
 separate LearningNode; the backend creates the internal compatibility record as

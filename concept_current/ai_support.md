@@ -84,6 +84,11 @@ tutor remains responsible for deciding whether any suggestion is useful.
 When no activity-review template exists, the queue links directly to a new
 template form with the correct review purpose selected.
 
+The review endpoint checks the AI update permission independently of the
+World Builder activity permission. Editors who can change activities but are
+not allowed to manage AI helpers can still see that review work is pending,
+but they are not offered a setup link and cannot invoke a review request.
+
 At the World Builder graph, each map card also shows its current activity
 review state. A map with waiting reviews links directly to the first affected
 node, making the scoped queue discoverable before an author opens individual
