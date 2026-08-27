@@ -30,7 +30,11 @@ does not create a deadline, reminder, streak, score or required route, and it
 can be skipped together with the feeling phrase and note.
 
 Future work should extend this loop with learner-controlled retrieval and
-spacing invitations, opportunities to compare earlier and later reasoning,
+spacing invitations. The Journal now offers a quiet "Revisit when ready"
+surface after a short spacing window when the learner chose to return. The
+learner can open, postpone or hide each invitation; it is not a notification,
+deadline or compulsory queue. Future work should add opportunities to compare
+earlier and later reasoning,
 meaningful alternative routes, consent-based help seeking and feedback that
 describes evidence plus a next action. Each addition should preserve choice,
 avoid overload and keep competence evidence qualitative and inspectable.

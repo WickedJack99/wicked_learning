@@ -99,6 +99,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.progress');
     Route::post('learning/activities/{activity}/check-in', [LearningWorldController::class, 'recordActivityCheckIn'])
         ->name('learning.activities.check-in');
+    Route::post('learning/activities/{activity}/revisit-invitation', [LearningWorldController::class, 'updateActivityRevisitInvitation'])
+        ->name('learning.activities.revisit-invitation');
     Route::get('learning/activities/{activity}/messages', [LearnerMessageController::class, 'index'])
         ->name('learning.activities.messages.index');
     Route::post('learning/activities/{activity}/messages', [LearnerMessageController::class, 'store'])

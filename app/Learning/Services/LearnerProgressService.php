@@ -115,6 +115,7 @@ class LearnerProgressService
         if ($nextDirection !== null && $nextDirection !== '') {
             $checkIn['nextDirection'] = $nextDirection;
         }
+        unset($metadata['revisitInvitation']);
         $history = is_array($metadata['learningCheckIns'] ?? null)
             ? $metadata['learningCheckIns']
             : [];
@@ -123,6 +124,36 @@ class LearnerProgressService
         $metadata['learningCheckIns'] = array_values(array_slice($history, -30));
         $metadata['learningCheckIn'] = $checkIn;
 
+        $progress->forceFill(['metadata' => $metadata])->save();
+
+        return $progress;
+    }
+
+    public function updateRevisitInvitation(
+        int $userId,
+        LearningActivity $activity,
+        string $action,
+    ): LearnerActivityProgress {
+        $progress = LearnerActivityProgress::query()
+            ->where('user_id', $userId)
+            ->where('learning_activity_id', $activity->id)
+            ->first();
+
+        if (! $progress || $progress->status !== 'completed') {
+            throw (new ModelNotFoundException)->setModel(LearnerActivityProgress::class);
+        }
+
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $invitation = [
+            'status' => $action === 'dismiss' ? 'dismissed' : 'snoozed',
+            'updatedAt' => Carbon::now()->toIso8601String(),
+        ];
+
+        if ($action === 'snooze') {
+            $invitation['until'] = Carbon::now()->addDays(7)->toIso8601String();
+        }
+
+        $metadata['revisitInvitation'] = $invitation;
         $progress->forceFill(['metadata' => $metadata])->save();
 
         return $progress;

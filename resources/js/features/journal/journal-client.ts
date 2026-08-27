@@ -54,6 +54,16 @@ export type JournalLearningCheckIn = {
     topics: { slug: string; name: string }[];
 };
 
+export type JournalRevisitInvitation = {
+    activityHref: string;
+    activityId: number;
+    activityTitle: string;
+    availableSince: string;
+    mapTitle: string;
+    nodeHref: string;
+    nodeTitle: string;
+};
+
 export async function requestJournalFeedback(
     pageId: number,
     domainKey: string,
@@ -89,6 +99,7 @@ export type JournalPayload = {
     checkIns: JournalLearningCheckIn[];
     feedbackDomains: JournalFeedbackDomain[];
     pages: JournalPage[];
+    revisitInvitations: JournalRevisitInvitation[];
     theme: JournalThemeSettings;
 };
 
@@ -124,6 +135,15 @@ export async function loadJournalPayload({
     );
 
     return pendingPayload;
+}
+
+export async function updateRevisitInvitation(
+    activityId: number,
+    action: 'dismiss' | 'snooze',
+): Promise<void> {
+    await postJson(`/learning/activities/${activityId}/revisit-invitation`, {
+        action,
+    });
 }
 
 export function getCachedJournalPayload(): JournalPayload | null {

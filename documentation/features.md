@@ -125,6 +125,11 @@ direction: return to that place, look for something related, or let it settle.
 The direction is saved with the check-in and shown later in the Journal and
 competence pulse as orientation, without deadlines or a progress score.
 
+When the learner chose `Return to this place`, the Journal can surface the
+activity again after a short spacing window. The learner can open it, choose
+`Later` to defer it, or choose `Hide` to remove the invitation. This is a quiet
+return surface rather than a notification or required task queue.
+
 Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and
 its map place.

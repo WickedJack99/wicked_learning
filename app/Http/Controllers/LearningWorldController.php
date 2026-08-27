@@ -265,6 +265,26 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function updateActivityRevisitInvitation(Request $request, LearningActivity $activity): JsonResponse
+    {
+        $actionValue = $request->input('action');
+        abort_unless(
+            is_string($actionValue) && in_array(trim($actionValue), ['dismiss', 'snooze'], true),
+            422,
+            'Choose a valid revisit action.',
+        );
+
+        $progress = $this->progressService->updateRevisitInvitation(
+            $request->user()->id,
+            $activity,
+            trim($actionValue),
+        );
+
+        return response()->json([
+            'progress' => $this->progressSerializer->activityProgress($progress),
+        ]);
+    }
+
     public function answerQuestion(Request $request, LearningQuestion $question): JsonResponse
     {
         $data = $request->validate([

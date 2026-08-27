@@ -158,4 +158,6 @@ collects them, without making a feeling check or reflection require an answer.
 The completion pause now also stores an optional learner-chosen next direction
 (`revisit`, `related` or `settle`) beside the private observation. This is
 orientation for later, not evidence of immediate growth. Future revisit support
-should use learner-controlled spacing and remain dismissible.
+uses a small learner-controlled spacing window in the Journal. Learners can
+postpone or hide an invitation; it creates no notification or required queue.
+Retrieval-specific prompts remain a later refinement.

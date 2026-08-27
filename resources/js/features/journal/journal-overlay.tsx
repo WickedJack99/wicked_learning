@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { competenceTopicHref } from '@/features/competence/competence-links';
@@ -21,6 +22,7 @@ import {
     getCachedJournalPayload,
     loadJournalPayload,
     requestJournalFeedback,
+    updateRevisitInvitation,
     updateJournalPage,
 } from '@/features/journal/journal-client';
 import type {
@@ -28,6 +30,7 @@ import type {
     JournalLearningCheckIn,
     JournalPage,
     JournalPayload,
+    JournalRevisitInvitation,
 } from '@/features/journal/journal-client';
 import {
     DEFAULT_JOURNAL_THEME,
@@ -67,6 +70,9 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
     const [requestingFeedbackForId, setRequestingFeedbackForId] = useState<
         number | null
     >(null);
+    const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
+        null,
+    );
     const [saveError, setSaveError] = useState('');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -261,6 +267,34 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
         }
     }
 
+    async function updateRevisit(
+        activityId: number,
+        action: 'dismiss' | 'snooze',
+    ) {
+        if (updatingRevisitId !== null) {
+            return;
+        }
+
+        setUpdatingRevisitId(activityId);
+
+        try {
+            await updateRevisitInvitation(activityId, action);
+            setPayload((current) =>
+                current
+                    ? {
+                          ...current,
+                          revisitInvitations: current.revisitInvitations.filter(
+                              (invitation) =>
+                                  invitation.activityId !== activityId,
+                          ),
+                      }
+                    : current,
+            );
+        } finally {
+            setUpdatingRevisitId(null);
+        }
+    }
+
     async function deletePage(page: JournalPage) {
         if (
             deletingPageId !== null ||
@@ -437,6 +471,13 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                         </div>
                         {payload && payload.checkIns.length > 0 ? (
                             <LearningTrail checkIns={payload.checkIns} />
+                        ) : null}
+                        {payload?.revisitInvitations?.length ? (
+                            <RevisitInvitations
+                                invitations={payload.revisitInvitations}
+                                onUpdate={updateRevisit}
+                                updatingActivityId={updatingRevisitId}
+                            />
                         ) : null}
                         <div className="learner-scroll-region mt-3 min-h-0 flex-1 pr-1">
                             {isLoading ? <JournalPageListSkeleton /> : null}
@@ -658,6 +699,103 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                     </div>
                 ))}
             </div>
+        </section>
+    );
+}
+
+function RevisitInvitations({
+    invitations,
+    onUpdate,
+    updatingActivityId,
+}: {
+    invitations: JournalRevisitInvitation[];
+    onUpdate: (
+        activityId: number,
+        action: 'dismiss' | 'snooze',
+    ) => Promise<void>;
+    updatingActivityId: number | null;
+}) {
+    return (
+        <section
+            aria-label="Revisit invitations"
+            className="mt-3 rounded-lg border p-3"
+            style={{
+                background: 'var(--journal-content-background)',
+                borderColor: 'var(--journal-button-border)',
+            }}
+        >
+            <p
+                className="text-xs font-semibold tracking-[0.12em] uppercase"
+                style={{ color: 'var(--journal-accent)' }}
+            >
+                Revisit when ready
+            </p>
+            <p
+                className="mt-1 text-xs leading-5"
+                style={{ color: 'var(--journal-muted-text)' }}
+            >
+                A few places you chose to return to after some time away.
+            </p>
+            <LearnerPaginatedItems
+                className="mt-2 grid gap-2"
+                items={invitations}
+                pageSize={1}
+                paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-button-border)] pt-3"
+                renderItem={(invitation) => (
+                    <article
+                        className="rounded-md border px-2 py-2"
+                        key={invitation.activityId}
+                        style={{ borderColor: 'var(--journal-button-border)' }}
+                    >
+                        <a className="block" href={invitation.activityHref}>
+                            <p className="text-xs font-semibold">
+                                {invitation.activityTitle}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {invitation.nodeTitle} · {invitation.mapTitle}
+                            </p>
+                        </a>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            <a
+                                className="text-xs font-semibold underline-offset-2 hover:underline"
+                                href={invitation.activityHref}
+                                style={{ color: 'var(--journal-accent)' }}
+                            >
+                                Open activity
+                            </a>
+                            <button
+                                className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
+                                disabled={updatingActivityId !== null}
+                                onClick={() =>
+                                    void onUpdate(
+                                        invitation.activityId,
+                                        'snooze',
+                                    )
+                                }
+                                type="button"
+                            >
+                                Later
+                            </button>
+                            <button
+                                className="text-xs underline-offset-2 hover:underline disabled:opacity-50"
+                                disabled={updatingActivityId !== null}
+                                onClick={() =>
+                                    void onUpdate(
+                                        invitation.activityId,
+                                        'dismiss',
+                                    )
+                                }
+                                type="button"
+                            >
+                                Hide
+                            </button>
+                        </div>
+                    </article>
+                )}
+            />
         </section>
     );
 }

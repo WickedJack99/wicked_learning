@@ -164,6 +164,114 @@ test('a check-in only accepts supported next directions', function () {
         ->assertStatus(422);
 });
 
+test('a learner can revisit a chosen activity after a spacing window and defer it', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    $recordedAt = now()->subDays(4)->toIso8601String();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'metadata' => [
+            'learningCheckIns' => [[
+                'feeling' => 'forming',
+                'nextDirection' => 'revisit',
+                'recordedAt' => $recordedAt,
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertOk()
+        ->assertJsonPath('revisitInvitations.0.activityTitle', 'Check-in Activity')
+        ->assertJsonPath('revisitInvitations.0.availableSince', $recordedAt);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.revisit-invitation', $activity), [
+            'action' => 'snooze',
+        ])
+        ->assertOk()
+        ->assertJsonPath('progress.metadata.revisitInvitation.status', 'snoozed');
+
+    expect(LearnerActivityProgress::query()->firstOrFail()->metadata['revisitInvitation']['until'])
+        ->toBe(now()->addDays(7)->toIso8601String());
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertJsonCount(0, 'revisitInvitations');
+});
+
+test('a learner can hide a revisit invitation and unsupported actions are rejected', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'metadata' => [
+            'learningCheckIn' => [
+                'nextDirection' => 'revisit',
+                'recordedAt' => now()->subDays(4)->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.revisit-invitation', $activity), [
+            'action' => 'dismiss',
+        ])
+        ->assertOk();
+
+    expect(LearnerActivityProgress::query()->firstOrFail()->metadata['revisitInvitation']['status'])
+        ->toBe('dismissed');
+
+    $invalidActionResponse = $this->actingAs($learner)
+        ->postJson(route('learning.activities.revisit-invitation', $activity), [
+            'action' => 'repeat-every-day',
+        ]);
+
+    expect($invalidActionResponse->status())->toBe(422);
+});
+
+test('a newer check-in direction replaces an older revisit invitation', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'metadata' => [
+            'learningCheckIns' => [
+                [
+                    'nextDirection' => 'revisit',
+                    'recordedAt' => now()->subDays(5)->toIso8601String(),
+                ],
+                [
+                    'nextDirection' => 'settle',
+                    'recordedAt' => now()->subDays(4)->toIso8601String(),
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertJsonCount(0, 'revisitInvitations');
+});
+
 test('a learner cannot write a check-in onto another learners progress', function () {
     [$learner, $activity] = checkInActivityContext();
     $otherLearner = User::factory()->create();
