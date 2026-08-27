@@ -138,6 +138,10 @@ horizontal spill, and contains vertical overscroll. Map and settings panes
 remain explicitly nested because their controls and actions have different
 fixed-layout ownership.
 
+The topic-detail feature contract also now verifies that maps, routes and
+subtopics are delivered as complete collections for the client-side pagination
+controls, rather than being truncated to the first visible page.
+
 Variable-length learner-owned lists now also use a `.learner-scroll-region`
 contract for nested panels. Bookmarked places, Journal pages and organization
 messages keep their own vertical scroll region, reserve scrollbar space and

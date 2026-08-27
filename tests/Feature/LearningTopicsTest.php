@@ -256,6 +256,74 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         );
 });
 
+test('a topic detail exposes complete collections for client pagination', function () {
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'many-paths',
+        'title' => 'Many paths',
+        'is_published' => true,
+    ]);
+    $subtopics = collect(range(1, 5))->map(fn (int $number): LearningTopic =>
+        LearningTopic::query()->create([
+            'learning_topic_area_id' => $area->id,
+            'parent_id' => $topic->id,
+            'slug' => 'subtopic-'.$number,
+            'title' => 'Subtopic '.$number,
+            'is_published' => true,
+        ]));
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+
+    foreach (range(1, 5) as $number) {
+        $map = LearningMap::query()->create([
+            'learning_world_id' => $world->id,
+            'learning_topic_id' => $topic->id,
+            'slug' => 'many-paths-map-'.$number,
+            'title' => 'Many Paths Map '.$number,
+            'access_roles' => [User::ROLE_USER],
+        ]);
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => 'many-paths-node-'.$number,
+            'title' => 'Many Paths Node '.$number,
+            'position_q' => $number,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => 'many-paths-activity-'.$number,
+            'title' => 'Many Paths Activity '.$number,
+            'type' => 'markdown',
+            'config' => ['learningIntent' => 'review'],
+            'sort_order' => 10,
+        ]);
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'label' => 'Begin path '.$number,
+            'sort_order' => 10,
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.maps', 5)
+            ->has('topic.paths', 5)
+            ->has('topic.subtopics', 5)
+            ->where('topic.subtopics.4.title', $subtopics->last()->title)
+        );
+});
+
 test('the learner journey keeps topic, competence, map and activity context connected', function () {
     $this->seed(DemoLearningWorldSeeder::class);
 
