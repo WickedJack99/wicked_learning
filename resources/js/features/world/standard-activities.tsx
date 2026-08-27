@@ -16,6 +16,7 @@ import type {
     LearningActivity,
     LearningNode,
     LearningPortalLink,
+    QuestionConfidence,
     QuestionAnswerProgress,
 } from '@/types';
 import {
@@ -458,6 +459,9 @@ export function QuestionActivity({
 }) {
     const question = activity.question;
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [confidence, setConfidence] = useState<QuestionConfidence | null>(
+        null,
+    );
 
     if (!question) {
         return null;
@@ -471,6 +475,7 @@ export function QuestionActivity({
                 `/learning/questions/${question.id}/answer`,
                 {
                     option_id: optionId,
+                    confidence,
                     play_run_id: playRunId,
                 },
             );
@@ -487,6 +492,39 @@ export function QuestionActivity({
             <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-white/6 dark:text-slate-100">
                 {question.prompt}
             </p>
+
+            {!answer ? (
+                <div>
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        Optional starting sense
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Choose a phrase for how settled your answer feels before
+                        you check it.
+                    </p>
+                    <div
+                        aria-label="How settled your answer feels"
+                        className="mt-2 flex flex-wrap gap-2"
+                        role="group"
+                    >
+                        {questionConfidenceOptions.map((option) => (
+                            <button
+                                aria-pressed={confidence === option.value}
+                                className={cn(
+                                    'rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200',
+                                    confidence === option.value &&
+                                        'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100',
+                                )}
+                                key={option.value}
+                                onClick={() => setConfidence(option.value)}
+                                type="button"
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
 
             <div className="grid gap-3">
                 {question.options.map((option) => (
@@ -533,6 +571,12 @@ export function QuestionActivity({
                             {answer.explanation}
                         </p>
                     ) : null}
+                    {answer.confidence ? (
+                        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                            Starting sense:{' '}
+                            {questionConfidenceLabel(answer.confidence)}
+                        </p>
+                    ) : null}
                     {answer ? (
                         <Button
                             className="mt-4"
@@ -547,6 +591,22 @@ export function QuestionActivity({
                 </div>
             ) : null}
         </div>
+    );
+}
+
+const questionConfidenceOptions: Array<{
+    label: string;
+    value: QuestionConfidence;
+}> = [
+    { label: 'Exploring', value: 'exploring' },
+    { label: 'I have a hunch', value: 'leaning' },
+    { label: 'Settled', value: 'settled' },
+];
+
+function questionConfidenceLabel(value: QuestionConfidence): string {
+    return (
+        questionConfidenceOptions.find((option) => option.value === value)
+            ?.label ?? value
     );
 }
 

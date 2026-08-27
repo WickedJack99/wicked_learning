@@ -21,6 +21,7 @@ class QuestionAnswerService
         LearningQuestion $question,
         int $optionId,
         ?string $playRunId = null,
+        ?string $confidence = null,
     ): array {
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
@@ -31,6 +32,7 @@ class QuestionAnswerService
             'learning_question_id' => $question->id,
             'learning_question_option_id' => $option->id,
             'is_correct' => $option->is_correct,
+            'confidence' => $confidence,
             'selected_option_ids' => [$option->id],
             'feedback' => $feedback,
         ]);
@@ -48,6 +50,7 @@ class QuestionAnswerService
             'questionId' => $question->id,
             'optionId' => $option->id,
             'isCorrect' => $option->is_correct,
+            'confidence' => $confidence,
             'feedback' => $feedback,
             'explanation' => $question->explanation,
             'nextActivityId' => $transition?->to_activity_id,

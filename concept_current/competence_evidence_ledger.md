@@ -147,6 +147,9 @@ without adding another progression view.
 
 ## Next evolution
 
-Next, add confidence and feedback outcomes where the activity actually collects
-them, without making a feeling check or reflection require an answer from the
-learner.
+Question activities may optionally collect a plain-language starting-confidence
+observation (`exploring`, `leaning`, or `settled`) alongside the private answer
+and feedback. It remains an observation for later reflection and calibration;
+it is not a score, a star-map input, or a requirement for answering. Continue
+adding confidence or feedback outcomes only where an activity actually collects
+them, without making a feeling check or reflection require an answer.

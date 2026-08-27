@@ -80,6 +80,7 @@ class LearnerProgressSerializer
                 $answer->learning_question_id => [
                     'optionId' => $answer->learning_question_option_id,
                     'isCorrect' => $answer->is_correct,
+                    'confidence' => $answer->confidence,
                     'feedback' => $answer->feedback,
                     'explanation' => $answer->question?->explanation,
                     'nextActivityId' => $this->nextActivityId($answer),

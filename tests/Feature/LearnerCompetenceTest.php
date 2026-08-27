@@ -266,16 +266,19 @@ test('question answers complete the active route and record retrieval evidence',
 
     $this->actingAs($learner)
         ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'settled',
             'option_id' => $option->id,
             'play_run_id' => $runId,
         ])
         ->assertOk()
-        ->assertJsonPath('answer.isCorrect', true);
+        ->assertJsonPath('answer.isCorrect', true)
+        ->assertJsonPath('answer.confidence', 'settled');
 
     $this->actingAs($learner)
         ->get(route('learning.nodes.play', $node))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where("progress.answers.{$question->id}.confidence", 'settled')
             ->where("progress.answers.{$question->id}.explanation", 'The first idea fits the evidence.')
         );
 

@@ -256,6 +256,7 @@ class LearningWorldController extends Controller
     public function answerQuestion(Request $request, LearningQuestion $question): JsonResponse
     {
         $data = $request->validate([
+            'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
             'option_id' => ['required', 'integer'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
@@ -266,6 +267,7 @@ class LearningWorldController extends Controller
                 $question,
                 (int) $data['option_id'],
                 is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
+                is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
             ),
         ]);
     }

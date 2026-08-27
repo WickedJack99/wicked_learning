@@ -407,7 +407,10 @@ export type LearningCheckInFeeling =
 export type QuestionAnswerProgress = {
     optionId: number | null;
     isCorrect: boolean;
+    confidence?: QuestionConfidence | null;
     feedback: string | null;
     explanation?: string | null;
     nextActivityId?: number | null;
 };
+
+export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';
