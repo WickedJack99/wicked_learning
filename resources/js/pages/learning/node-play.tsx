@@ -428,6 +428,8 @@ export default function NodePlay({
         <>
             <Head title={`${node.title} activities`} />
             <main
+                id="learner-main-content"
+                tabIndex={-1}
                 className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]"
                 data-world-appearance={resolvedAppearance}
             >

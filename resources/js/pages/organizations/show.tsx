@@ -224,7 +224,11 @@ export default function OrganizationShow({
             <Head title={organization.name} />
             <div className="flex h-full min-h-0 flex-col bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
                 <LearningDeskHeader />
-                <main className="min-h-0 flex-1 overflow-hidden px-4 pt-5 pb-5">
+                <main
+                    id="learner-main-content"
+                    tabIndex={-1}
+                    className="min-h-0 flex-1 overflow-hidden px-4 pt-5 pb-5 focus:outline-none"
+                >
                     <div className="mx-auto flex h-full min-h-0 w-full max-w-[92rem] flex-col overflow-hidden">
                         <div className="shrink-0 pb-5">
                             <Button asChild className="w-max" variant="ghost">

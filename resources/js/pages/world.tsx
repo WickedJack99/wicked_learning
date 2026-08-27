@@ -399,7 +399,11 @@ export default function World({
         return (
             <>
                 <Head title="World" />
-                <main className="flex min-h-[70vh] flex-col justify-center gap-3 p-6">
+                <main
+                    id="learner-main-content"
+                    tabIndex={-1}
+                    className="flex min-h-[70vh] flex-col justify-center gap-3 p-6 focus:outline-none"
+                >
                     <p className="text-sm text-muted-foreground">
                         No learning world has been seeded yet.
                     </p>
@@ -415,6 +419,8 @@ export default function World({
         <>
             <Head title={world.title} />
             <main
+                id="learner-main-content"
+                tabIndex={-1}
                 className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
                 style={mapShellStyle}

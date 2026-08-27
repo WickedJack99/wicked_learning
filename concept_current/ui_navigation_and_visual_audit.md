@@ -468,6 +468,16 @@ These are test gaps, not claims that the feature is broken:
   controls, account controls, React Flow actions, image selectors and modal
   close buttons.
 
+### Completed — Give keyboard users a direct route into learner workspaces
+
+The shared learner header now exposes a visually hidden skip link that appears
+when it receives keyboard focus. It moves focus to the page's main learner
+workspace, so the header navigation does not have to be traversed on every
+visit. Document pages, maps, bookmarks, competence, activities and the
+organization workspace all provide the same target. Complex controls still
+need their own keyboard pass; this change establishes the shared-shell entry
+point without changing pointer navigation.
+
 ### Journal presentation
 
 The Journal opens as a focused overlay from the learning desk. Its content,
@@ -493,6 +503,6 @@ bottom-navigation or map-entry-only model.
 
 1. Add long-collection containment checks and the end-to-end browser smoke
    flow.
-2. Add keyboard/accessibility checks for the shared learner shell and complex
-   authoring controls.
+2. Extend keyboard/accessibility checks to complex authoring controls after
+   the shared learner-shell entry point is in place.
 3. Reduce typography and accent competition on dense pages.

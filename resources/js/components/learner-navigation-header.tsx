@@ -44,6 +44,15 @@ export function LearnerNavigationHeader({
                 borderColor: 'var(--learner-border-color)',
             }}
         >
+            <a
+                className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-[var(--learner-panel-background)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--learner-heading-text)] focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
+                href="#learner-main-content"
+            >
+                {t(
+                    'home.learning_desk.navigation.skip_to_content',
+                    'Skip to content',
+                )}
+            </a>
             <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
                 <LearnerBrand />
 

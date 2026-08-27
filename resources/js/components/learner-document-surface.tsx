@@ -20,11 +20,13 @@ export function LearnerDocumentSurface({
 }: LearnerDocumentSurfaceProps) {
     return (
         <main
+            id="learner-main-content"
+            tabIndex={-1}
             className={cn(
                 scrollable
                     ? 'learner-scroll-pane'
                     : 'flex min-h-0 flex-1 flex-col overflow-hidden',
-                'bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]',
+                'bg-[var(--learner-page-background)] text-[var(--learner-heading-text)] focus:outline-none',
                 className,
             )}
         >

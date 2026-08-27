@@ -43,6 +43,8 @@ export default function Bookmarks({ bookmarkMap }: BookmarksProps) {
         <>
             <Head title="Bookmarked Places" />
             <main
+                id="learner-main-content"
+                tabIndex={-1}
                 className="relative min-h-svh overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100"
                 data-world-appearance={resolvedAppearance}
                 style={{

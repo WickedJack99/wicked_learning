@@ -47,6 +47,8 @@ participation.
 - Complete the remaining UI audit follow-up in
   `concept_current/ui_navigation_and_visual_audit.md`: add automated
   responsive/collection coverage for configured palettes and long collections.
+  The shared learner shell now also offers a keyboard skip-to-content entry;
+  complex authoring controls still need focused keyboard coverage.
   The community navigation contract is now shared by organization pages, and
   the earlier focused-map overflow signal is not reproducible in the current
   browser pass.

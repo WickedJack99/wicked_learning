@@ -66,7 +66,11 @@ export default function CompetenceStarMap({
     return (
         <>
             <Head title="Competence Star Map" />
-            <main className="flex min-h-svh flex-col overflow-y-auto bg-black text-white xl:h-svh xl:min-h-0 xl:overflow-hidden">
+            <main
+                id="learner-main-content"
+                tabIndex={-1}
+                className="flex min-h-svh flex-col overflow-y-auto bg-black text-white focus:outline-none xl:h-svh xl:min-h-0 xl:overflow-hidden"
+            >
                 <LearningDeskHeader />
                 <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-14">
                     <AccentHeading
