@@ -15,9 +15,11 @@ import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import {
     isActiveSettingsItem,
     settingsItemLabel,
-    type SettingsListItem,
-    type SettingsNavigationSection,
-    type SettingsPanelKey,
+} from '@/features/settings/settings-navigation';
+import type {
+    SettingsListItem,
+    SettingsNavigationSection,
+    SettingsPanelKey,
 } from '@/features/settings/settings-navigation';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -43,7 +45,7 @@ export type SettingsWorldBreadcrumb = {
     node: {
         title: string;
     } | null;
-    section: 'graph' | 'structural';
+    section: 'graph' | 'review' | 'structural';
     view: 'configure' | 'nodes' | null;
 };
 

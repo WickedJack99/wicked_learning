@@ -1,22 +1,29 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
+    ArrowLeft,
+    ArrowRight,
     GitBranch,
     Map as MapIcon,
     Network,
+    Sparkles,
     SlidersHorizontal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
     SettingsNestedWorkspace,
     SettingsSectionButton,
     SettingsSectionNavigation,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
+import { Button } from '@/components/ui/button';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
-import { WorldBuilderPanel, type WorldGraph } from '@/pages/settings/worlds';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { WorldBuilderPanel } from '@/pages/settings/worlds';
+import type { WorldGraph } from '@/pages/settings/worlds';
 
-export type WorldBuilderSection = 'graph' | 'structural';
+export type WorldBuilderSection = 'graph' | 'review' | 'structural';
 export type WorldBuilderMapView = 'configure' | 'nodes';
 
 type Props = {
@@ -43,6 +50,12 @@ const sections = [
         icon: GitBranch,
         key: 'graph',
         label: 'Graph',
+    },
+    {
+        description: 'Open activities waiting for an authoring review.',
+        icon: Sparkles,
+        key: 'review',
+        label: 'Review queue',
     },
     {
         description: 'Choose maps and open map or MapAsset configuration.',
@@ -88,6 +101,7 @@ export function WorldBuilderSettingsPanel({
     )
         ? activeSection
         : visibleSections[0]?.key;
+
     if (!resolvedSection) {
         return <UnavailableWorldBuilder />;
     }
@@ -120,6 +134,14 @@ export function WorldBuilderSettingsPanel({
                     </WorldBuilderSectionWorkspace>
                 ) : null}
 
+                {(!selectedMapDetail || resolvedSection !== 'graph') &&
+                resolvedSection === 'review' &&
+                worldGraph ? (
+                    <WorldBuilderSectionWorkspace>
+                        <WorldBuilderReviewQueue worldGraph={worldGraph} />
+                    </WorldBuilderSectionWorkspace>
+                ) : null}
+
                 {resolvedSection === 'structural' && worldGraph ? (
                     <WorldBuilderSectionWorkspace>
                         <WorldMapManagementPanel
@@ -135,6 +157,150 @@ export function WorldBuilderSettingsPanel({
                 ) : null}
             </div>
         </SettingsNestedWorkspace>
+    );
+}
+
+function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
+    const t = usePlatformTranslation();
+    const reviewItems = worldGraph.maps.flatMap((map) =>
+        map.nodes
+            .filter((node) => node.activityReviewCount > 0)
+            .map((node) => ({ map, node })),
+    );
+    const [page, setPage] = useState(0);
+    const pageSize = 6;
+    const pageCount = Math.max(1, Math.ceil(reviewItems.length / pageSize));
+    const currentPage = Math.min(page, pageCount - 1);
+    const visibleItems = reviewItems.slice(
+        currentPage * pageSize,
+        (currentPage + 1) * pageSize,
+    );
+
+    return (
+        <section className="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-6">
+            <header className="shrink-0 border-b border-[var(--settings-border-color)] pb-4">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    {t(
+                        'settings.world_builder.review_queue.eyebrow',
+                        'Authoring',
+                    )}
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">
+                    {t(
+                        'settings.world_builder.review_queue.title',
+                        'Review queue',
+                    )}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {reviewItems.length > 0
+                        ? t(
+                              reviewItems.length === 1
+                                  ? 'settings.world_builder.review_queue.waiting_one'
+                                  : 'settings.world_builder.review_queue.waiting_many',
+                              reviewItems.length === 1
+                                  ? '1 MapAsset has activities waiting for review.'
+                                  : ':count MapAssets have activities waiting for review.',
+                              { count: reviewItems.length },
+                          )
+                        : t(
+                              'settings.world_builder.review_queue.empty',
+                              'Everything in this world is up to date.',
+                          )}
+                </p>
+            </header>
+
+            {reviewItems.length === 0 ? (
+                <div className="grid min-h-0 flex-1 place-items-center p-6 text-center">
+                    <p className="max-w-md text-sm leading-6 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.world_builder.review_queue.empty_detail',
+                            'New or changed activities will appear here after an author saves them.',
+                        )}
+                    </p>
+                </div>
+            ) : (
+                <>
+                    <div className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto py-4 pr-2">
+                        <div className="grid gap-3">
+                            {visibleItems.map(({ map, node }) => (
+                                <Link
+                                    className="group rounded-lg border border-slate-200 p-4 transition hover:border-[var(--settings-accent)] dark:border-white/10"
+                                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes`}
+                                    key={`${map.id}-${node.id}`}
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                                                {map.title}
+                                            </p>
+                                            <h3 className="mt-1 truncate font-semibold">
+                                                {node.title}
+                                            </h3>
+                                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                                {node.activityReviewCount}{' '}
+                                                {node.activityReviewCount === 1
+                                                    ? 'activity'
+                                                    : 'activities'}{' '}
+                                                {t(
+                                                    'settings.world_builder.review_queue.waiting_suffix',
+                                                    'waiting for review',
+                                                )}
+                                            </p>
+                                        </div>
+                                        <span className="shrink-0 text-sm font-semibold text-[var(--settings-accent)] group-hover:underline">
+                                            {t(
+                                                'settings.world_builder.review_queue.open',
+                                                'Open',
+                                            )}{' '}
+                                            <span aria-hidden="true">→</span>
+                                        </span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+
+                    <footer className="flex shrink-0 items-center justify-between border-t border-[var(--settings-border-color)] pt-3">
+                        <Button
+                            disabled={currentPage === 0}
+                            onClick={() => setPage((value) => value - 1)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            <ArrowLeft className="size-4" />
+                            {t(
+                                'settings.world_builder.review_queue.previous',
+                                'Previous',
+                            )}
+                        </Button>
+                        <span className="text-xs text-[var(--settings-muted-text)]">
+                            {t(
+                                'settings.world_builder.review_queue.page',
+                                'Page :current of :total',
+                                {
+                                    current: currentPage + 1,
+                                    total: pageCount,
+                                },
+                            )}
+                        </span>
+                        <Button
+                            disabled={currentPage >= pageCount - 1}
+                            onClick={() => setPage((value) => value + 1)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                        >
+                            {t(
+                                'settings.world_builder.review_queue.next',
+                                'Next',
+                            )}
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    </footer>
+                </>
+            )}
+        </section>
     );
 }
 

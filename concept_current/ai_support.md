@@ -101,6 +101,12 @@ review state. A map with waiting reviews links directly to the first affected
 node, making the scoped queue discoverable before an author opens individual
 maps.
 
+World Builder also provides a world-level Review queue section. It gathers
+waiting MapAssets across the current world, paginates the list as it grows and
+opens each entry at its exact node editor. The review operation remains scoped
+to one activity at a time; the world-level view is an entry point, not a batch
+approval mechanism.
+
 The content-authoring contract supports Markdown, Reflection, Message
 prompt, Shared task and Open practice activities. An Open practice activity
 receives a concrete invitation for a learner-owned next step. A Message prompt

@@ -410,10 +410,11 @@ function readWorldBuilderRootViewFromUrl(): WorldBuilderRootView {
         return 'graph';
     }
 
-    return new URL(window.location.href).searchParams.get('worldSection') ===
-        'structural'
-        ? 'structural'
-        : 'graph';
+    const section = new URL(window.location.href).searchParams.get(
+        'worldSection',
+    );
+
+    return section === 'review' || section === 'structural' ? section : 'graph';
 }
 
 function writeWorldBuilderRootViewToUrl(section: WorldBuilderRootView): void {
@@ -1991,7 +1992,9 @@ function UserDetailsDialog({
                                         </span>
                                         <time
                                             className="text-xs text-[var(--settings-muted-text)]"
-                                            dateTime={event.created_at ?? undefined}
+                                            dateTime={
+                                                event.created_at ?? undefined
+                                            }
                                         >
                                             {formatDate(event.created_at, t)}
                                         </time>
