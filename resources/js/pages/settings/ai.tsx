@@ -828,6 +828,9 @@ function AgentTemplatesPanel({
     const preferredTemplate = agentTemplates.find(
         (template) => template.purpose === preferredPurpose,
     );
+    const blankForm = blankTemplateForm(
+        preferredPurpose ?? purposeOptions[0]?.value,
+    );
     const [selectedId, setSelectedId] = useState<number | 'new'>(
         preferredTemplate?.id ??
             (preferredPurpose ? 'new' : agentTemplates[0]?.id ?? 'new'),
@@ -838,13 +841,13 @@ function AgentTemplatesPanel({
     const [form, setForm] = useState<TemplateForm>(
         selectedTemplate
             ? templateFormFromTemplate(selectedTemplate)
-            : blankTemplateForm(preferredPurpose ?? purposeOptions[0]?.value),
+            : blankForm,
     );
     const hasChanges = useDirtyState(
         form,
         selectedTemplate
             ? templateFormFromTemplate(selectedTemplate)
-            : blankTemplateForm(purposeOptions[0]?.value),
+            : blankForm,
     );
     const instructionInputRef = useRef<HTMLInputElement>(null);
     const selectedPurpose = useMemo(
@@ -866,7 +869,7 @@ function AgentTemplatesPanel({
         setForm(
             template
                 ? templateFormFromTemplate(template)
-                : blankTemplateForm(preferredPurpose ?? purposeOptions[0]?.value),
+                : blankForm,
         );
     };
 
