@@ -258,6 +258,59 @@ test('authenticated users can create and remove node bookmarks', function () {
         ->exists())->toBeFalse();
 });
 
+test('a bookmark lifecycle preserves its map asset and topic context', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $user = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($user)
+        ->postJson(route('learning.nodes.bookmark.store', $node))
+        ->assertOk()
+        ->assertJsonPath('bookmarked', true);
+
+    $this->actingAs($user)
+        ->get(route('bookmarks'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('bookmarks')
+            ->where('bookmarkMap.nodes.0.slug', $node->slug)
+            ->where('bookmarkMap.nodes.0.mapSlug', $node->map->slug)
+            ->where('bookmarkMap.nodes.0.topic.href', '/topics/pattern-investigation')
+            ->where('bookmarkMap.mapAssets.0.nodeId', $node->id)
+        );
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', ['node' => $node]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('isBookmarked', true)
+        );
+
+    $this->actingAs($user)
+        ->deleteJson(route('learning.nodes.bookmark.destroy', $node))
+        ->assertOk()
+        ->assertJsonPath('bookmarked', false);
+
+    $this->actingAs($user)
+        ->get(route('bookmarks'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('bookmarks')
+            ->has('bookmarkMap.nodes', 0)
+            ->has('bookmarkMap.mapAssets', 0)
+        );
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', ['node' => $node]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('isBookmarked', false)
+        );
+});
+
 test('authenticated users can search visible maps and nodes', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();

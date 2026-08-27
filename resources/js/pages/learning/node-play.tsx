@@ -1,4 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Bookmark } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
 import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
@@ -13,7 +14,7 @@ import {
     ActivityPlayer,
     learningAreaNames,
 } from '@/features/world/activity-panel';
-import { getJson, postJson } from '@/features/world/api';
+import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { LearningCheckIn } from '@/features/world/learning-check-in';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -27,6 +28,7 @@ import type {
 } from '@/types';
 
 type NodePlayProps = {
+    isBookmarked: boolean;
     node: LearningNode;
     playActivityId: number | null;
     playRouteId: number | null;
@@ -52,6 +54,7 @@ type PendingLearningCheckIn = {
 };
 
 export default function NodePlay({
+    isBookmarked: initialIsBookmarked,
     node,
     playActivityId,
     playRouteId,
@@ -76,6 +79,8 @@ export default function NodePlay({
     );
     const [activityPlayState, setActivityPlayState] =
         useState(initialPlayState);
+    const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
+    const [isBookmarking, setIsBookmarking] = useState(false);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
     const pendingLearningCheckInRef = useRef<PendingLearningCheckIn | null>(
@@ -146,6 +151,29 @@ export default function NodePlay({
             `/world?map=${encodeURIComponent(node.mapSlug)}&focused=${encodeURIComponent(node.slug)}`,
         );
     }, [node.mapSlug, node.slug]);
+
+    const toggleBookmark = useCallback(async () => {
+        if (!isAuthenticated || isBookmarking) {
+            return;
+        }
+
+        setIsBookmarking(true);
+
+        try {
+            const response = isBookmarked
+                ? await deleteJson<{ bookmarked: boolean }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                  )
+                : await postJson<{ bookmarked: boolean }>(
+                      `/learning/nodes/${node.id}/bookmark`,
+                      {},
+                  );
+
+            setIsBookmarked(response.bookmarked);
+        } finally {
+            setIsBookmarking(false);
+        }
+    }, [isAuthenticated, isBookmarked, isBookmarking, node.id]);
     const originTopicSlug = node.topic?.slug ?? null;
 
     const markCompleted = useCallback(
@@ -415,6 +443,29 @@ export default function NodePlay({
                 />
 
                 <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6">
+                    {isAuthenticated ? (
+                        <div className="flex justify-end pb-2">
+                            <Button
+                                aria-pressed={isBookmarked}
+                                disabled={isBookmarking}
+                                onClick={() => void toggleBookmark()}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                <Bookmark
+                                    className={
+                                        isBookmarked
+                                            ? 'fill-current'
+                                            : undefined
+                                    }
+                                />
+                                {isBookmarked
+                                    ? 'Remove place bookmark'
+                                    : 'Bookmark this place'}
+                            </Button>
+                        </div>
+                    ) : null}
                     {travelBlockedMessage ? (
                         <p
                             aria-live="polite"

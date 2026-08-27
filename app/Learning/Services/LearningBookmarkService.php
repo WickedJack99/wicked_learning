@@ -39,6 +39,14 @@ class LearningBookmarkService
             ->all();
     }
 
+    public function isBookmarked(int $userId, LearningNode $node): bool
+    {
+        return LearningNodeBookmark::query()
+            ->where('user_id', $userId)
+            ->where('learning_node_id', $node->id)
+            ->exists();
+    }
+
     public function isVisibleNode(LearningNode $node): bool
     {
         if ($node->state === 'hidden') {

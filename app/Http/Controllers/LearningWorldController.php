@@ -137,6 +137,9 @@ class LearningWorldController extends Controller
         }
 
         return Inertia::render('learning/node-play', [
+            'isBookmarked' => $user
+                ? $this->bookmarkService->isBookmarked($user->id, $node)
+                : false,
             'node' => $this->nodeSerializer->serialize($playableNode, $user, true),
             'playActivityId' => $requestedActivity?->id ?? $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,

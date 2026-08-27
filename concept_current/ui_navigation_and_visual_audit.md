@@ -292,6 +292,10 @@ map context needed for its return navigation. This protects server-side
 destinations from drifting apart; the browser still needs a separate smoke
 check for actual clicks, rendering and completion behavior.
 
+The shared activity shell also exposes the current place bookmark action for
+authenticated learners. The action uses the same bookmark endpoints as the
+map, reports its pressed state and remains available across activity types.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:
@@ -301,8 +305,10 @@ These are test gaps, not claims that the feature is broken:
 - Topic → competence, topic → map, map → asset and asset → activity link
   contracts are covered by `LearningTopicsTest`; activity completion still
   needs one uninterrupted browser flow.
-- Bookmark add, remove and reopen should be covered from both map and activity
-  contexts.
+- Bookmark add, remove and reopen is now covered through the map endpoint,
+  activity shell and bookmark surface, including retained map-asset and topic
+  context. A browser check still covers the same lifecycle from an
+  activity-originated entry.
 - Journal check-in creation, update, deletion, export, and the optional
   feedback request should be covered with both enabled and disabled feedback
   settings.
