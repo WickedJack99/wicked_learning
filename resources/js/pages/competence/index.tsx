@@ -685,8 +685,8 @@ function CompetencePath({
                 y2={to.y}
             />
             <title>
-                {transition.fromTopicName} to {transition.toTopicName}:{' '}
-                {transition.count}
+                {transition.fromTopicName} and {transition.toTopicName} are
+                connected by learning encounters.
             </title>
         </g>
     );

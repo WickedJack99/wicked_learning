@@ -46,6 +46,8 @@ ledger of these moments so learners can recognize what shaped a trail.
   pressure mechanic.
 - Ambient map motion follows the learner's reduced-motion preference; stillness
   must not remove the map's labels, relationships or explanations.
+- Connection tooltips name the related areas without exposing the internal
+  event count used to calibrate line strength.
 - Future evidence categories should enrich the visual profile rather than turn
   the learner map into a dashboard of LMS metrics.
 
