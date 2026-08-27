@@ -86,6 +86,24 @@ export function AppSideActionBar() {
         };
     }, [overlay]);
 
+    useEffect(() => {
+        if (!overlay) {
+            return;
+        }
+
+        const closeOverlayOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setOverlay(null);
+            }
+        };
+
+        document.addEventListener('keydown', closeOverlayOnEscape);
+
+        return () => {
+            document.removeEventListener('keydown', closeOverlayOnEscape);
+        };
+    }, [overlay]);
+
     if (!shouldShow) {
         return null;
     }
@@ -99,6 +117,7 @@ export function AppSideActionBar() {
             {overlay === 'inventory' ? (
                 <SideOverlay
                     eyebrow="Inventory"
+                    id="learning-inventory-panel"
                     onClose={() => setOverlay(null)}
                     title="Items"
                 >
@@ -108,6 +127,7 @@ export function AppSideActionBar() {
             {overlay === 'tools' ? (
                 <SideOverlay
                     eyebrow="Tools"
+                    id="learning-tools-panel"
                     onClose={() => setOverlay(null)}
                     title="Select a tool"
                 >
@@ -142,6 +162,8 @@ export function AppSideActionBar() {
                     <Building2 className="size-5" />
                 </ActionButton>
                 <ActionButton
+                    ariaControls="learning-inventory-panel"
+                    ariaExpanded={overlay === 'inventory'}
                     isActive={overlay === 'inventory'}
                     label="Open inventory"
                     onClick={() =>
@@ -153,6 +175,8 @@ export function AppSideActionBar() {
                     <Backpack className="size-5" />
                 </ActionButton>
                 <ActionButton
+                    ariaControls="learning-tools-panel"
+                    ariaExpanded={overlay === 'tools'}
                     isActive={overlay === 'tools' || Boolean(selectedTool)}
                     label="Open tools"
                     onClick={() => {
@@ -179,6 +203,8 @@ export function AppSideActionBar() {
                     )}
                 </ActionButton>
                 <ActionButton
+                    ariaControls="learning-journal-panel"
+                    ariaExpanded={overlay === 'journal'}
                     isActive={overlay === 'journal'}
                     label="Open journal"
                     onClick={() =>
@@ -243,7 +269,7 @@ function ItemGrid({
     }
 
     return (
-        <div className="max-h-80 overflow-y-auto pr-1">
+        <div className="learner-scroll-region max-h-80 pr-1">
             <div className="grid grid-cols-3 gap-2">
                 {items.map((item) => (
                     <ItemTile item={item} key={item.id} mode={mode} />
@@ -311,12 +337,16 @@ function ItemTile({
 }
 
 function ActionButton({
+    ariaControls,
+    ariaExpanded,
     children,
     disabled = false,
     isActive = false,
     label,
     onClick,
 }: {
+    ariaControls?: string;
+    ariaExpanded?: boolean;
     children: ReactNode;
     disabled?: boolean;
     isActive?: boolean;
@@ -326,6 +356,8 @@ function ActionButton({
     return (
         <button
             aria-label={label}
+            aria-controls={ariaControls}
+            aria-expanded={ariaExpanded}
             className={cn(
                 'grid size-11 place-items-center rounded-xl transition hover:bg-[var(--map-side-control-hover-background)] hover:text-[var(--map-side-control-active-icon-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none',
                 disabled &&
@@ -355,17 +387,22 @@ function ActionButton({
 function SideOverlay({
     children,
     eyebrow,
+    id,
     onClose,
     title,
 }: {
     children: ReactNode;
     eyebrow: string;
+    id: string;
     onClose: () => void;
     title: string;
 }) {
     return (
         <div
-            className="flex max-h-[calc(100svh-10rem)] w-[min(18rem,calc(100vw-1.5rem))] flex-col overflow-y-auto overscroll-contain rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md sm:max-h-[calc(100svh-8rem)] dark:shadow-black/35"
+            aria-labelledby={`${id}-title`}
+            className="learner-scroll-region flex max-h-[calc(100svh-10rem)] w-[min(18rem,calc(100vw-1.5rem))] flex-col overscroll-contain rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md sm:max-h-[calc(100svh-8rem)] dark:shadow-black/35"
+            id={id}
+            role="dialog"
             style={{
                 background: 'var(--map-side-control-panel-background)',
                 borderColor: 'var(--map-side-control-panel-border-color)',
@@ -381,6 +418,7 @@ function SideOverlay({
                         {eyebrow}
                     </p>
                     <h2
+                        id={`${id}-title`}
                         className="text-sm font-semibold"
                         style={{ color: 'var(--map-side-control-text-color)' }}
                     >

@@ -324,6 +324,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
             <section
                 aria-label="Journal"
                 className="relative flex h-[calc(100svh-1.5rem)] w-full max-w-[112rem] flex-col overflow-hidden rounded-xl border shadow-2xl sm:h-[calc(100svh-2.5rem)] md:h-[calc(100svh-4rem)]"
+                id="learning-journal-panel"
                 onMouseDown={(event) => event.stopPropagation()}
                 style={{
                     backgroundColor: 'var(--journal-panel-background)',

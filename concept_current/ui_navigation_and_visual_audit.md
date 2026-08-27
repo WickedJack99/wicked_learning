@@ -254,6 +254,14 @@ while remaining keyboard-reachable for its hover treatment, and reusable image
 choices expose which image is selected. Existing settings panes continue to
 own scrolling so these controls remain reachable in long editors.
 
+### Completed — Describe transient learner panels
+
+The map action rail now exposes the expanded state and controlled panel for
+inventory, tools and Journal. Escape closes an open transient panel, and the
+inventory list uses the shared learner scroll-region contract so a growing
+collection does not push its controls out of reach. A broader keyboard pass
+for settings authoring and complex graph controls remains separate.
+
 ### Completed — Review light-theme normal-text contrast in context
 
 The learner palette editor now checks normal text at 4.5:1 and focus
