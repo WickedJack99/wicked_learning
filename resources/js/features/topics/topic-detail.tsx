@@ -450,6 +450,45 @@ function TopicCompetenceCard({
                 </Link>
             </div>
 
+            {subtopicCompetence.length > 0 ? (
+                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                        {t(
+                            'topics.detail.competence.connected_areas',
+                            'Connected learning areas',
+                        )}
+                    </p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {subtopicCompetence.map((area) => (
+                            <Link
+                                className="group flex items-start gap-3 border border-slate-200 bg-white/45 p-3 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                                href={competenceTopicHref(area.slug, topicSlug)}
+                                key={area.slug}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className="mt-1 shrink-0 rounded-full bg-cyan-300/20"
+                                    style={{
+                                        boxShadow: `0 0 ${8 + Math.round(area.visual.auraRatio * 10)}px ${4 + Math.round(area.visual.auraRatio * 5)}px rgba(103, 232, 249, ${0.2 + area.visual.brightnessRatio * 0.45})`,
+                                        height: 16 + Math.round(area.visual.sizeRatio * 8),
+                                        width: 16 + Math.round(area.visual.sizeRatio * 8),
+                                    }}
+                                />
+                                <span className="min-w-0">
+                                    <span className="block text-sm font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                                        {area.name}
+                                    </span>
+                                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {area.visual.description}
+                                    </span>
+                                </span>
+                                <ArrowRight className="mt-0.5 size-4 shrink-0 text-cyan-600 transition-transform group-hover:translate-x-1 dark:text-cyan-400" />
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+
             {competence ? (
                 <>
                     <div className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-white/10">
