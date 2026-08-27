@@ -360,6 +360,10 @@ progress metadata inside the same three-size hierarchy as the normal player.
 The live seeded activity already rendered at three sizes; this also prevents a
 different data state from introducing a fourth heading size.
 
+The map/player action rail is a labelled control group rather than a navigation
+landmark. Its buttons remain individually named and the learner link navigation
+keeps the only navigation landmark for that header.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published

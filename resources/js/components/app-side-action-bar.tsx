@@ -143,7 +143,7 @@ export function AppSideActionBar() {
                 <JournalOverlay onClose={() => setOverlay(null)} />
             ) : null}
 
-            <nav
+            <div
                 className="grid grid-flow-col gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:grid-flow-row dark:shadow-black/35"
                 style={{
                     background: 'var(--map-side-control-background)',
@@ -224,7 +224,7 @@ export function AppSideActionBar() {
                 >
                     <Sparkles className="size-5" />
                 </ActionButton>
-            </nav>
+            </div>
         </aside>
     );
 }
