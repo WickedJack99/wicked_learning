@@ -1043,6 +1043,15 @@ function AgentTemplatesPanel({
                                         {selectedPurpose.description}
                                     </p>
                                 ) : null}
+                                {form.purpose === 'activity_review' ? (
+                                    <p className="rounded-lg border border-cyan-200/60 bg-cyan-50 px-3 py-2 text-xs leading-5 text-cyan-950 dark:border-cyan-200/20 dark:bg-cyan-300/10 dark:text-cyan-100">
+                                        Enabled templates appear in the World
+                                        Builder activity-review queue. Each
+                                        review receives only the selected
+                                        activity and its immediate route
+                                        connections.
+                                    </p>
+                                ) : null}
                             </Field>
                             <Field
                                 label={t(
@@ -1364,8 +1373,12 @@ function AgentTemplatesPanel({
                                     }
                                 />
                                 {t(
-                                    'settings.ai.templates.enabled_label',
-                                    'Template may be used by future runtime jobs',
+                                    form.purpose === 'activity_review'
+                                        ? 'settings.ai.templates.activity_review_enabled_label'
+                                        : 'settings.ai.templates.enabled_label',
+                                    form.purpose === 'activity_review'
+                                        ? 'Available in the activity-review queue'
+                                        : 'Template may be used by future runtime jobs',
                                 )}
                             </label>
                             <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm dark:border-white/10">

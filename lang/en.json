@@ -156,6 +156,7 @@
     "settings.ai.templates.instructions.upload": "Upload instructions",
     "settings.ai.templates.alerts.instructions_parse_failed": "The selected instruction file could not be read. Use Markdown with \"## System prompt\" and \"## Task prompt\" sections, or a JSON file with systemPrompt and taskPrompt fields.",
     "settings.ai.templates.enabled_label": "Template may be used by future runtime jobs",
+    "settings.ai.templates.activity_review_enabled_label": "Available in the activity-review queue",
     "settings.ai.templates.guarded_context_label": "Requires explicit guarded learner context",
     "settings.ai.templates.new_button": "New template",
     "settings.ai.templates.empty": "No templates yet",
