@@ -629,7 +629,9 @@ function PublicPresentationPalette({
 
 type LearnerReadabilityCheck = {
     label: string;
+    minimumRatio: number;
     ratio: number | null;
+    requiredForStatus?: boolean;
 };
 
 function learnerReadabilityChecks(
@@ -643,6 +645,7 @@ function learnerReadabilityChecks(
     return [
         {
             label: 'Heading text on page',
+            minimumRatio: 4.5,
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'headingText'),
                 pageBackground,
@@ -651,6 +654,7 @@ function learnerReadabilityChecks(
         },
         {
             label: 'Body text on page',
+            minimumRatio: 4.5,
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'bodyText'),
                 pageBackground,
@@ -659,6 +663,7 @@ function learnerReadabilityChecks(
         },
         {
             label: 'Muted text on page',
+            minimumRatio: 4.5,
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'mutedText'),
                 pageBackground,
@@ -667,6 +672,7 @@ function learnerReadabilityChecks(
         },
         {
             label: 'Action accent on page',
+            minimumRatio: 4.5,
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'actionAccent'),
                 pageBackground,
@@ -674,12 +680,41 @@ function learnerReadabilityChecks(
             ),
         },
         {
+            label: 'Heading text on header',
+            minimumRatio: 4.5,
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'headingText'),
+                learnerPaletteColor(palette, 'headerBackground'),
+                backdrop,
+            ),
+        },
+        {
             label: 'Body text on panel',
+            minimumRatio: 4.5,
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'bodyText'),
                 panelBackground,
                 backdrop,
             ),
+        },
+        {
+            label: 'Focus ring on page',
+            minimumRatio: 3,
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'actionAccent'),
+                pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Boundary on page',
+            minimumRatio: 3,
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'borderColor'),
+                pageBackground,
+                backdrop,
+            ),
+            requiredForStatus: false,
         },
     ];
 }
@@ -692,7 +727,9 @@ function LearnerReadabilitySummary({
     mode: ConfigThemeMode;
 }) {
     const needsReview = checks.filter(
-        (check) => check.ratio === null || check.ratio < 4.5,
+        (check) =>
+            check.requiredForStatus !== false &&
+            (check.ratio === null || check.ratio < check.minimumRatio),
     ).length;
 
     return (
@@ -701,8 +738,9 @@ function LearnerReadabilitySummary({
                 <div>
                     <p className="font-medium text-white">Readability check</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--palette-workbench-muted)]">
-                        Normal text target: 4.5:1 in {mode} mode. These checks
-                        guide review and do not block saving.
+                        Text target: 4.5:1; focus and boundary target: 3:1 in{' '}
+                        {mode} mode. These checks guide review and do not block
+                        saving.
                     </p>
                 </div>
                 <span
@@ -720,7 +758,10 @@ function LearnerReadabilitySummary({
             </div>
             <div className="mt-3 grid gap-2">
                 {checks.map((check) => {
-                    const passes = check.ratio !== null && check.ratio >= 4.5;
+                    const passes =
+                        check.ratio !== null &&
+                        check.ratio >= check.minimumRatio;
+                    const isInformational = check.requiredForStatus === false;
 
                     return (
                         <div
@@ -733,9 +774,11 @@ function LearnerReadabilitySummary({
                             <span
                                 className={cn(
                                     'shrink-0 font-medium',
-                                    passes
-                                        ? 'text-emerald-200'
-                                        : 'text-amber-200',
+                                    isInformational
+                                        ? 'text-[var(--palette-workbench-muted)]'
+                                        : passes
+                                          ? 'text-emerald-200'
+                                          : 'text-amber-200',
                                 )}
                             >
                                 {check.ratio === null
@@ -746,6 +789,10 @@ function LearnerReadabilitySummary({
                     );
                 })}
             </div>
+            <p className="mt-3 text-xs leading-5 text-[var(--palette-workbench-muted)]">
+                Disabled controls are intentionally subdued and should not carry
+                essential information.
+            </p>
         </div>
     );
 }
