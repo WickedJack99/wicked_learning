@@ -215,17 +215,34 @@ class LearningWorldController extends Controller
 
     public function recordActivityCheckIn(Request $request, LearningActivity $activity): JsonResponse
     {
-        $feeling = $request->string('feeling')->trim()->toString();
+        $feelingValue = $request->input('feeling');
+        $noteValue = $request->input('note');
+
         abort_unless(
-            in_array($feeling, ['clearer', 'forming', 'stretched', 'stuck'], true),
+            $feelingValue === null
+                || (is_string($feelingValue)
+                    && in_array(trim($feelingValue), ['clearer', 'forming', 'stretched', 'stuck'], true)),
             422,
             'Choose one of the available learning check-in phrases.',
+        );
+        abort_unless($noteValue === null || is_string($noteValue), 422, 'Add a short note.');
+
+        $feeling = is_string($feelingValue) ? trim($feelingValue) : null;
+        $note = is_string($noteValue) ? trim($noteValue) : null;
+
+        abort_unless($note === null || mb_strlen($note) <= 500, 422, 'Keep the note to 500 characters or fewer.');
+
+        abort_unless(
+            ($feeling !== null && $feeling !== '') || ($note !== null && $note !== ''),
+            422,
+            'Add a phrase or note before saving.',
         );
 
         $progress = $this->progressService->recordCheckIn(
             $request->user()->id,
             $activity,
             $feeling,
+            $note !== '' ? $note : null,
         );
 
         return response()->json([

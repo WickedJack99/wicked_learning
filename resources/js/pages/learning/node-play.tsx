@@ -307,20 +307,21 @@ export default function NodePlay({
     }, []);
 
     const continueAfterCheckIn = useCallback(
-        async (feeling: LearningCheckInFeeling | null) => {
+        async (feeling: LearningCheckInFeeling | null, note: string) => {
             const checkIn = pendingLearningCheckInRef.current;
 
             if (!checkIn) {
                 return;
             }
 
-            if (feeling) {
+            if (feeling || note.trim()) {
                 const response = await postJson<{
                     progress: LearningProgress['activities'][number] & {
                         activityId: number;
                     };
                 }>(`/learning/activities/${checkIn.activityId}/check-in`, {
                     feeling,
+                    note: note.trim() || null,
                 });
 
                 setActivityProgress((current) => ({

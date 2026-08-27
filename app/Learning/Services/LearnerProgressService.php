@@ -90,7 +90,8 @@ class LearnerProgressService
     public function recordCheckIn(
         int $userId,
         LearningActivity $activity,
-        string $feeling,
+        ?string $feeling,
+        ?string $note = null,
     ): LearnerActivityProgress {
         $progress = LearnerActivityProgress::query()
             ->where('user_id', $userId)
@@ -106,6 +107,10 @@ class LearnerProgressService
             'feeling' => $feeling,
             'recordedAt' => Carbon::now()->toIso8601String(),
         ];
+
+        if ($note !== null && $note !== '') {
+            $checkIn['note'] = $note;
+        }
         $history = is_array($metadata['learningCheckIns'] ?? null)
             ? $metadata['learningCheckIns']
             : [];

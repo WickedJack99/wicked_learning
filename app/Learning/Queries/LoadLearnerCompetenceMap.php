@@ -22,7 +22,7 @@ class LoadLearnerCompetenceMap
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {

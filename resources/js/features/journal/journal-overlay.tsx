@@ -612,6 +612,11 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                             >
                                 {checkIn.activityTitle} · {checkIn.nodeTitle}
                             </p>
+                            {checkIn.note ? (
+                                <p className="mt-2 text-xs leading-5">
+                                    {checkIn.note}
+                                </p>
+                            ) : null}
                         </a>
                         {checkIn.topics.length > 0 ? (
                             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -644,14 +649,14 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
     );
 }
 
-function checkInFeelingLabel(value: string): string {
+function checkInFeelingLabel(value: string | null): string {
     return (
         {
             clearer: 'Felt clearer',
             forming: 'Still forming',
             stretched: 'Felt stretched',
             stuck: 'Felt stuck',
-        }[value] ?? value
+        }[value ?? ''] ?? 'A reflection'
     );
 }
 

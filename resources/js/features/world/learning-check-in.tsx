@@ -41,10 +41,14 @@ export function LearningCheckIn({
     activityTitle: string;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug?: string | null;
-    onContinue: (feeling: LearningCheckInFeeling | null) => Promise<void>;
+    onContinue: (
+        feeling: LearningCheckInFeeling | null,
+        note: string,
+    ) => Promise<void>;
 }) {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [note, setNote] = useState('');
 
     const continueWith = async (feeling: LearningCheckInFeeling | null) => {
         if (isSaving) {
@@ -55,7 +59,7 @@ export function LearningCheckIn({
         setError(null);
 
         try {
-            await onContinue(feeling);
+            await onContinue(feeling, note.trim());
         } catch (requestError) {
             setError(
                 requestError instanceof Error
@@ -120,6 +124,23 @@ export function LearningCheckIn({
                 </div>
             ) : null}
 
+            <div className="mt-4">
+                <label
+                    className="block text-xs font-medium text-cyan-900 dark:text-teal-100"
+                    htmlFor="learning-check-in-note"
+                >
+                    Add a note (optional)
+                </label>
+                <textarea
+                    className="mt-1 min-h-20 w-full resize-y rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm leading-5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 dark:border-white/10 dark:bg-slate-950/30 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200"
+                    id="learning-check-in-note"
+                    maxLength={500}
+                    onChange={(event) => setNote(event.target.value)}
+                    placeholder="What would be useful to remember later?"
+                    value={note}
+                />
+            </div>
+
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {feelings.map((feeling) => (
                     <button
@@ -152,7 +173,9 @@ export function LearningCheckIn({
                 type="button"
                 variant="ghost"
             >
-                Continue without answering
+                {note.trim()
+                    ? 'Save note and continue'
+                    : 'Continue without answering'}
                 <ArrowRight className="ml-2 size-4" />
             </Button>
         </section>

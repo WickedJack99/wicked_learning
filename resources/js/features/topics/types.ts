@@ -75,7 +75,8 @@ export type TopicLearningPulse = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
-    feeling: string;
+    feeling: string | null;
+    note: string | null;
     nodeHref: string;
     nodeTitle: string;
     recordedAt: string;

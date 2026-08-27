@@ -337,6 +337,11 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                                 {learningPulseLabel(entry.feeling)} ·{' '}
                                 {entry.nodeTitle}
                             </span>
+                            {entry.note ? (
+                                <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                    {entry.note}
+                                </span>
+                            ) : null}
                         </span>
                         <time
                             className="shrink-0 text-xs text-slate-500 dark:text-slate-400"
@@ -351,14 +356,14 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
     );
 }
 
-function learningPulseLabel(feeling: string): string {
+function learningPulseLabel(feeling: string | null): string {
     return (
         {
             clearer: 'Something clicked',
             forming: 'Still taking shape',
             stretched: 'It stretched me',
             stuck: 'I got stuck',
-        }[feeling] ?? feeling
+        }[feeling ?? ''] ?? 'A reflection'
     );
 }
 

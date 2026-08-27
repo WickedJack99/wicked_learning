@@ -13,7 +13,7 @@ class LoadLearnerActivityCheckIns
     public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
 
     /**
-     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string, nodeTitle: string, nodeHref: string, originTopicSlug: string|null, recordedAt: string, topics: list<array{slug: string, name: string}>}>
+     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, originTopicSlug: string|null, recordedAt: string, topics: list<array{slug: string, name: string}>}>
      */
     public function handle(User $user): array
     {
@@ -40,11 +40,18 @@ class LoadLearnerActivityCheckIns
                 }
 
                 foreach ($history as $checkIn) {
-                    if (
-                        ! is_array($checkIn)
-                        || ! is_string($checkIn['feeling'] ?? null)
-                        || ! is_string($checkIn['recordedAt'] ?? null)
-                    ) {
+                    if (! is_array($checkIn) || ! is_string($checkIn['recordedAt'] ?? null)) {
+                        continue;
+                    }
+
+                    $feeling = is_string($checkIn['feeling'] ?? null)
+                        ? trim($checkIn['feeling'])
+                        : null;
+                    $note = is_string($checkIn['note'] ?? null)
+                        ? trim($checkIn['note'])
+                        : null;
+
+                    if (($feeling === null || $feeling === '') && ($note === null || $note === '')) {
                         continue;
                     }
 
@@ -55,7 +62,8 @@ class LoadLearnerActivityCheckIns
                             'activity_id' => $activity->id,
                             'node' => $activity->node,
                         ]),
-                        'feeling' => $checkIn['feeling'],
+                        'feeling' => $feeling !== '' ? $feeling : null,
+                        'note' => $note !== '' ? $note : null,
                         'nodeTitle' => $activity->node->title,
                         'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),
                         'originTopicSlug' => $activity->node->map->topic?->is_published

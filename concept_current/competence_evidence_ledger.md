@@ -62,7 +62,8 @@ unless a specific interaction could otherwise be misunderstood.
 
 After an authenticated activity completion, the learner may choose a short
 phrase describing the experience: something clicked, still taking shape, it
-stretched me, or I got stuck. They can also continue without answering.
+stretched me, or I got stuck. They may also add a brief private note in their
+own words, or continue without answering.
 
 This is a learner-owned observation, not an evidence event, competence score,
 diagnosis, or answer for an AI system. The prototype keeps a bounded history in
@@ -77,7 +78,8 @@ behind.
 When a learner selects a light, the map can show up to three recent pulse
 observations connected to that topic. They remain the learner's own words and
 simple feeling labels: they are not converted into evidence, interpreted by
-AI, or used to adjust the visual signal.
+AI, or used to adjust the visual signal. Notes are bounded to 500 characters
+and kept in the same private activity-progress history as the feeling phrase.
 
 The related topic page can show up to four of the learner's recent pulse
 observations when their connected learning areas belong to that topic. This

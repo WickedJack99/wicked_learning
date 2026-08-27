@@ -75,6 +75,35 @@ test('a learner cannot record a check-in before completing an activity', functio
     expect(LearnerActivityProgress::query()->firstOrFail()->metadata)->toBe([]);
 });
 
+test('a learner can save a private note without choosing a feeling phrase', function () {
+    Carbon::setTestNow('2026-08-26 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'note' => 'The quiet example made the pattern easier to hold onto.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('progress.metadata.learningCheckIn.feeling', null)
+        ->assertJsonPath('progress.metadata.learningCheckIn.note', 'The quiet example made the pattern easier to hold onto.');
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.checkIns.0.feeling', null)
+            ->where('competenceMap.checkIns.0.note', 'The quiet example made the pattern easier to hold onto.'));
+});
+
 test('a learner cannot write a check-in onto another learners progress', function () {
     [$learner, $activity] = checkInActivityContext();
     $otherLearner = User::factory()->create();

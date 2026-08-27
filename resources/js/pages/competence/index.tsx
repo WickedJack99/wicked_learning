@@ -585,6 +585,11 @@ function LearningPulseTimeline({
                             <p className="mt-1 text-xs leading-5 text-slate-400">
                                 {checkIn.activityTitle} · {checkIn.nodeTitle}
                             </p>
+                            {checkIn.note ? (
+                                <p className="mt-2 text-sm leading-5 text-slate-300">
+                                    {checkIn.note}
+                                </p>
+                            ) : null}
                             <Link
                                 className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
                                 href={checkIn.activityHref}
@@ -626,14 +631,14 @@ function LearningPulseTimeline({
     );
 }
 
-function checkInFeelingLabel(feeling: string): string {
+function checkInFeelingLabel(feeling: string | null): string {
     return (
         {
             clearer: 'Something clicked',
             forming: 'Still taking shape',
             stretched: 'It stretched me',
             stuck: 'I got stuck',
-        }[feeling] ?? feeling
+        }[feeling ?? ''] ?? 'A reflection'
     );
 }
 
@@ -802,6 +807,11 @@ function CompetenceReading({
                                     {checkIn.activityTitle} ·{' '}
                                     {formatCheckInDate(checkIn.recordedAt)}
                                 </p>
+                                {checkIn.note ? (
+                                    <p className="mt-2 text-xs leading-5 text-slate-300">
+                                        {checkIn.note}
+                                    </p>
+                                ) : null}
                             </div>
                         ))}
                     </div>

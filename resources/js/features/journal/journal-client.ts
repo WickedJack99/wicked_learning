@@ -44,7 +44,8 @@ export type JournalLearningCheckIn = {
     activityId: number;
     activityHref: string;
     activityTitle: string;
-    feeling: string;
+    feeling: string | null;
+    note: string | null;
     nodeTitle: string;
     nodeHref: string;
     originTopicSlug: string | null;
