@@ -72,7 +72,9 @@ A focusable MapAsset can expose several route starts. Activities play on a
 dedicated page and are connected through a graph rather than a fixed linear
 course sequence. Backend route progress preserves the current run and activity
 across refreshes; learners can restart or reset routes according to the authored
-rules.
+rules. The activity page keeps the global header focused on navigation and shows
+the current topic, map, route and place in a compact context panel beside the
+player.
 
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. The route remains a suggested way in,

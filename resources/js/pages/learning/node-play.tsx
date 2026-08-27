@@ -432,37 +432,64 @@ export default function NodePlay({
                 data-world-appearance={resolvedAppearance}
             >
                 <LearnerNavigationHeader
-                    centerContent={
-                        <div className="min-w-0 text-center">
-                            {node.topic ? (
-                                <Link
-                                    className="block truncate text-xs text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
-                                    href={node.topic.href}
-                                >
-                                    {node.topic.title}
-                                </Link>
-                            ) : null}
-                            <p className="truncate text-sm text-[var(--learner-muted-text)]">
-                                {node.mapTitle}
-                            </p>
-                            {activeRouteLabel ? (
-                                <p className="truncate text-xs font-medium text-[var(--learner-action-accent)]">
-                                    {activeRouteLabel}
-                                </p>
-                            ) : null}
-                            <h1 className="truncate text-base font-semibold">
-                                {node.title}
-                            </h1>
-                        </div>
-                    }
                     items={navigationItems}
                 />
 
-                <section className="mx-auto flex min-h-0 w-full flex-1 flex-col px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:w-[75vw] md:px-6 md:pt-6">
-                    {isAuthenticated ? (
-                        <div className="flex justify-end pb-2">
+                <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1 md:px-6 md:pt-6">
+                    <aside
+                        aria-label="Learning context"
+                        className="flex min-h-0 flex-col rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4"
+                    >
+                        <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
+                            Learning context
+                        </p>
+                        <h1 className="mt-2 text-base font-semibold text-[var(--learner-heading-text)]">
+                            {node.title}
+                        </h1>
+                        <dl className="mt-5 space-y-4 border-t border-[var(--learner-border-color)] pt-4">
+                            {node.topic ? (
+                                <div>
+                                    <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                                        Topic
+                                    </dt>
+                                    <dd className="mt-1 text-sm">
+                                        <Link
+                                            className="text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                                            href={node.topic.href}
+                                        >
+                                            {node.topic.title}
+                                        </Link>
+                                    </dd>
+                                </div>
+                            ) : null}
+                            <div>
+                                <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                                    Map
+                                </dt>
+                                <dd className="mt-1 text-sm text-[var(--learner-body-text)]">
+                                    <Link
+                                        className="transition hover:text-[var(--learner-heading-text)]"
+                                        href={mapHref}
+                                    >
+                                        {node.mapTitle}
+                                    </Link>
+                                </dd>
+                            </div>
+                            {activeRouteLabel ? (
+                                <div>
+                                    <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
+                                        Route
+                                    </dt>
+                                    <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
+                                        {activeRouteLabel}
+                                    </dd>
+                                </div>
+                            ) : null}
+                        </dl>
+                        {isAuthenticated ? (
                             <Button
                                 aria-pressed={isBookmarked}
+                                className="mt-auto w-full"
                                 disabled={isBookmarking}
                                 onClick={() => void toggleBookmark()}
                                 size="sm"
@@ -480,63 +507,72 @@ export default function NodePlay({
                                     ? 'Remove place bookmark'
                                     : 'Bookmark this place'}
                             </Button>
-                        </div>
-                    ) : null}
-                    {travelBlockedMessage ? (
-                        <p
-                            aria-live="polite"
-                            className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
-                        >
-                            {travelBlockedMessage}
-                        </p>
-                    ) : null}
+                        ) : null}
+                    </aside>
 
-                    {pendingLearningCheckIn ? (
-                        <LearningCheckIn
-                            activityTitle={pendingLearningCheckIn.activityTitle}
-                            choicePrompt={pendingLearningCheckIn.choicePrompt}
-                            learningAreas={pendingLearningCheckIn.learningAreas}
-                            originTopicSlug={
-                                pendingLearningCheckIn.originTopicSlug
-                            }
-                            onContinue={continueAfterCheckIn}
-                        />
-                    ) : null}
+                    <div className="flex min-h-0 min-w-0 flex-col">
+                        {travelBlockedMessage ? (
+                            <p
+                                aria-live="polite"
+                                className="mb-3 rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100"
+                            >
+                                {travelBlockedMessage}
+                            </p>
+                        ) : null}
 
-                    {displayedActivity ? (
-                        <ActivityPlayer
-                            activity={displayedActivity}
-                            activityProgress={activityProgress}
-                            answerProgress={answerProgress}
-                            node={node}
-                            onAnswer={updateAnswer}
-                            onComplete={markCompleted}
-                            onMoveToActivity={moveToActivity}
-                            onRestart={() => void restartFromBeginning()}
-                            playState={activityPlayState}
-                            playRunId={playRunId}
-                            onTravel={travel}
-                        />
-                    ) : (
-                        <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/15 dark:bg-white/6">
-                            <div>
-                                <p className="text-base font-semibold">
-                                    No activity path configured
-                                </p>
-                                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                    This node exists, but an admin has not added
-                                    a playable activity yet.
-                                </p>
-                                <Button
-                                    className="mt-5"
-                                    onClick={returnToMap}
-                                    type="button"
-                                >
-                                    Back to map
-                                </Button>
+                        {pendingLearningCheckIn ? (
+                            <LearningCheckIn
+                                activityTitle={
+                                    pendingLearningCheckIn.activityTitle
+                                }
+                                choicePrompt={
+                                    pendingLearningCheckIn.choicePrompt
+                                }
+                                learningAreas={
+                                    pendingLearningCheckIn.learningAreas
+                                }
+                                originTopicSlug={
+                                    pendingLearningCheckIn.originTopicSlug
+                                }
+                                onContinue={continueAfterCheckIn}
+                            />
+                        ) : null}
+
+                        {displayedActivity ? (
+                            <ActivityPlayer
+                                activity={displayedActivity}
+                                activityProgress={activityProgress}
+                                answerProgress={answerProgress}
+                                node={node}
+                                onAnswer={updateAnswer}
+                                onComplete={markCompleted}
+                                onMoveToActivity={moveToActivity}
+                                onRestart={() => void restartFromBeginning()}
+                                playState={activityPlayState}
+                                playRunId={playRunId}
+                                onTravel={travel}
+                            />
+                        ) : (
+                            <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/15 dark:bg-white/6">
+                                <div>
+                                    <p className="text-base font-semibold">
+                                        No activity path configured
+                                    </p>
+                                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                                        This node exists, but an admin has not
+                                        added a playable activity yet.
+                                    </p>
+                                    <Button
+                                        className="mt-5"
+                                        onClick={returnToMap}
+                                        type="button"
+                                    >
+                                        Back to map
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </section>
             </main>
         </>
