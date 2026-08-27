@@ -414,8 +414,8 @@ export default function ColorPaletteSettings({
     ] satisfies SettingsNavigationItem<PaletteSection>[];
     const content = (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
-                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden py-4 pr-1">
+                <div className="mb-5 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         <h2 className="text-xl font-semibold">
                             {sectionTitle(section)}
@@ -507,6 +507,7 @@ export default function ColorPaletteSettings({
     if (embedded) {
         return (
             <SettingsNestedWorkspace
+                contentClassName="overflow-hidden"
                 sidebar={
                     <SettingsSectionNavigation
                         activeSection={section}

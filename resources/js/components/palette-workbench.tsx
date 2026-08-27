@@ -54,7 +54,7 @@ export function PaletteWorkbench({
 
     return (
         <section
-            className="grid h-full min-h-0 overflow-hidden border border-[var(--palette-workbench-border)] xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]"
+            className="grid min-h-0 flex-1 overflow-hidden border border-[var(--palette-workbench-border)] xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]"
             style={
                 {
                     '--palette-workbench-accent': theme.accent,
