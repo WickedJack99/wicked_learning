@@ -30,7 +30,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <Link
-                    className="inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-violet-700 dark:text-slate-400 dark:hover:text-violet-300"
+                    className="inline-flex items-center gap-2 text-sm text-[var(--learner-muted-text)] transition hover:text-[var(--learner-accent)]"
                     href={topic.parent?.href ?? '/topics'}
                 >
                     <ArrowLeft className="size-4" />
@@ -38,7 +38,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 </Link>
 
                 <header className="mt-8 max-w-3xl border-b border-slate-200 pb-8 dark:border-white/10">
-                    <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
+                    <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                         {topic.area.title}
                     </p>
                     <h1 className="mt-3 text-3xl font-medium tracking-tight">
@@ -70,9 +70,9 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
                     >
                         <div className="flex items-start gap-3">
-                            <Route className="mt-0.5 size-5 shrink-0 text-violet-600 dark:text-violet-400" />
+                            <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
                             <div>
-                                <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
+                                <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                                     {t(
                                         'topics.detail.paths.eyebrow',
                                         'Optional ways in',
@@ -108,7 +108,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         aria-labelledby="topic-maps-heading"
                         className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
                     >
-                        <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                             {t(
                                 'topics.detail.maps.eyebrow',
                                 'Explore this topic',
@@ -129,13 +129,13 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         <div className="mt-5 grid gap-3 sm:grid-cols-2">
                             {topic.maps.map((map) => (
                                 <Link
-                                    className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                                    className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
                                     href={map.href}
                                     key={map.id}
                                 >
-                                    <MapIcon className="mt-0.5 size-5 shrink-0 text-cyan-700 dark:text-cyan-400" />
+                                    <MapIcon className="mt-0.5 size-5 shrink-0 text-[var(--learner-action-accent)]" />
                                     <span className="min-w-0 flex-1">
-                                        <span className="block font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                                        <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
                                             {map.title}
                                         </span>
                                         {map.description ? (
@@ -155,7 +155,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                                       { count: map.nodeCount },
                                                   )}
                                         </span>
-                                        <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:text-cyan-400">
+                                        <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-[var(--learner-action-accent)] uppercase">
                                             {t(
                                                 'topics.detail.maps.open',
                                                 'Open map',
@@ -178,7 +178,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             />
                         ) : (
                             <div className="border-y border-slate-200 py-7 dark:border-white/10">
-                                <BookOpenText className="size-5 text-cyan-600 dark:text-cyan-400" />
+                                <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
                                 <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                                     {t(
                                         'topics.detail.no_content',
@@ -202,11 +202,11 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                         key={subtopic.id}
                                     >
                                         <span>
-                                            <span className="font-medium group-hover:text-violet-700 dark:group-hover:text-violet-300">
+                                            <span className="font-medium group-hover:text-[var(--learner-accent)]">
                                                 {subtopic.title}
                                             </span>
                                             {subtopic.mapCount ? (
-                                                <span className="mt-1 block text-xs text-cyan-700 dark:text-cyan-300">
+                                                <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                     {subtopic.mapCount === 1
                                                         ? t(
                                                               'topics.detail.subtopics.map_count.one',
@@ -227,7 +227,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                                 </span>
                                             ) : null}
                                         </span>
-                                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)]" />
                                     </Link>
                                 ))}
                             </div>
@@ -264,7 +264,7 @@ function TopicLearningAreas({
             aria-labelledby="topic-learning-areas-heading"
             className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
         >
-            <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+            <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                 {t('topics.detail.learning_areas.eyebrow', 'Learning areas')}
             </p>
             <h2
@@ -279,12 +279,12 @@ function TopicLearningAreas({
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {areas.map((area) => (
                     <Link
-                        className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                        className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
                         href={competenceTopicHref(area.slug, topicSlug)}
                         key={area.slug}
                     >
                         <span className="min-w-0">
-                            <span className="block font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                            <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
                                 {area.name}
                             </span>
                             <span className="mt-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -295,7 +295,7 @@ function TopicLearningAreas({
                                     .join(' · ')}
                             </span>
                         </span>
-                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-cyan-600 transition-transform group-hover:translate-x-1 dark:text-cyan-400" />
+                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
                     </Link>
                 ))}
             </div>
@@ -315,7 +315,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
             aria-labelledby="topic-learning-pulse-heading"
             className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
         >
-            <p className="text-xs font-semibold tracking-[0.2em] text-violet-700 uppercase dark:text-violet-300">
+            <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                 {t(
                     'topics.detail.learning_pulse.eyebrow',
                     'Recent reflections',
@@ -333,7 +333,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
             <div className="mt-4 divide-y divide-slate-200 dark:divide-white/10">
                 {entries.map((entry) => (
                     <Link
-                        className="group flex items-start justify-between gap-4 py-3 transition hover:text-violet-800 dark:hover:text-violet-200"
+                        className="group flex items-start justify-between gap-4 py-3 transition hover:text-[var(--learner-accent)]"
                         href={entry.activityHref}
                         key={`${entry.activityId}:${entry.recordedAt}`}
                     >
@@ -409,7 +409,7 @@ function TopicCompetenceCard({
                 <div className="flex items-start gap-4">
                     <span
                         aria-hidden="true"
-                        className="mt-1 shrink-0 rounded-full bg-cyan-300/10"
+                        className="mt-1 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)]"
                         style={{
                             boxShadow: `0 0 ${glowSize}px ${glowSize / 2}px rgba(103, 232, 249, ${glowOpacity})`,
                             height: starSize,
@@ -417,7 +417,7 @@ function TopicCompetenceCard({
                         }}
                     />
                     <div>
-                        <p className="text-xs font-semibold tracking-[0.2em] text-cyan-700 uppercase dark:text-cyan-400">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                             {t(
                                 'topics.detail.competence.eyebrow',
                                 'Learning trail',
@@ -448,7 +448,7 @@ function TopicCompetenceCard({
                     </div>
                 </div>
                 <Link
-                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-cyan-700 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
                     href={competenceHref}
                 >
                     {t(
@@ -474,13 +474,13 @@ function TopicCompetenceCard({
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         {subtopicCompetence.map((area) => (
                             <Link
-                                className="group flex items-start gap-3 border border-slate-200 bg-white/45 p-3 transition hover:border-cyan-400/60 hover:bg-cyan-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-cyan-400/40 dark:hover:bg-cyan-400/[0.06]"
+                                className="group flex items-start gap-3 border border-slate-200 bg-white/45 p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
                                 href={competenceTopicHref(area.slug, topicSlug)}
                                 key={area.slug}
                             >
                                 <span
                                     aria-hidden="true"
-                                    className="mt-1 shrink-0 rounded-full bg-cyan-300/20"
+                                    className="mt-1 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)]"
                                     style={{
                                         boxShadow: `0 0 ${8 + Math.round(area.visual.auraRatio * 10)}px ${4 + Math.round(area.visual.auraRatio * 5)}px rgba(103, 232, 249, ${0.2 + area.visual.brightnessRatio * 0.45})`,
                                         height:
@@ -496,14 +496,14 @@ function TopicCompetenceCard({
                                     }}
                                 />
                                 <span className="min-w-0">
-                                    <span className="block text-sm font-medium group-hover:text-cyan-800 dark:group-hover:text-cyan-200">
+                                    <span className="block text-sm font-medium group-hover:text-[var(--learner-heading-text)]">
                                         {area.name}
                                     </span>
                                     <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
                                         {area.visual.description}
                                     </span>
                                 </span>
-                                <ArrowRight className="mt-0.5 size-4 shrink-0 text-cyan-600 transition-transform group-hover:translate-x-1 dark:text-cyan-400" />
+                                <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
                             </Link>
                         ))}
                     </div>
@@ -523,7 +523,7 @@ function TopicCompetenceCard({
                             <div className="mt-3 flex flex-wrap gap-2">
                                 {competence.evidenceTypes.map((type) => (
                                     <span
-                                        className="border border-cyan-700/20 px-2.5 py-1 text-xs text-cyan-800 dark:border-cyan-300/20 dark:text-cyan-200"
+                                        className="border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)] px-2.5 py-1 text-xs text-[var(--learner-action-accent)]"
                                         key={type}
                                     >
                                         {evidenceTypeLabel(type, t)}
@@ -590,7 +590,7 @@ function TopicCompetenceCard({
 
                                     return entry.activityHref ? (
                                         <Link
-                                            className="block py-3 transition hover:text-cyan-800 dark:hover:text-cyan-200"
+                                            className="block py-3 transition hover:text-[var(--learner-action-accent)]"
                                             href={entry.activityHref}
                                             key={entry.id}
                                         >
@@ -625,7 +625,7 @@ function TopicCompetenceCard({
                                 <div className="min-w-0">
                                     {trail.topic ? (
                                         <Link
-                                            className="text-sm font-medium text-cyan-800 transition hover:text-cyan-950 dark:text-cyan-200 dark:hover:text-white"
+                                            className="text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
                                             href={trail.topic.href}
                                         >
                                             {trail.topic.title}
@@ -655,7 +655,7 @@ function TopicCompetenceCard({
                                                 .map((entry) =>
                                                     entry.activityHref ? (
                                                         <Link
-                                                            className="text-violet-700 underline decoration-violet-700/30 underline-offset-2 hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                                                            className="text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_30%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
                                                             href={
                                                                 entry.activityHref
                                                             }
@@ -678,7 +678,7 @@ function TopicCompetenceCard({
                                 trail.evidenceLedger.length === 0 ? (
                                     <Link
                                         aria-label={`${t('topics.detail.competence.revisit', 'Return to')} ${trail.revisit.activityTitle}`}
-                                        className="mt-0.5 shrink-0 text-violet-700 transition hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                                        className="mt-0.5 shrink-0 text-[var(--learner-accent)] transition hover:text-[var(--learner-heading-text)]"
                                         href={trail.revisit.activityHref}
                                     >
                                         <ArrowRight className="size-4" />
@@ -692,7 +692,7 @@ function TopicCompetenceCard({
 
             {competence?.revisit ? (
                 <Link
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-700 transition hover:text-violet-950 dark:text-violet-300 dark:hover:text-violet-100"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] transition hover:text-[var(--learner-heading-text)]"
                     href={competence.revisit.activityHref}
                 >
                     {t('topics.detail.competence.revisit', 'Return to')}{' '}
@@ -730,8 +730,8 @@ function TopicPathCard({ path }: { path: TopicPath }) {
     const isInProgress = path.progress?.status === 'in_progress';
 
     return (
-        <article className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-violet-400/60 hover:bg-violet-50/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-violet-400/40 dark:hover:bg-violet-400/[0.06]">
-            <span className="grid size-10 shrink-0 place-items-center border border-violet-200 text-violet-700 dark:border-violet-300/20 dark:text-violet-300">
+        <article className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-accent)_6%,transparent)]">
+            <span className="grid size-10 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--learner-accent)_25%,transparent)] text-[var(--learner-accent)]">
                 {path.imageUrl ? (
                     <img
                         alt=""
@@ -745,27 +745,27 @@ function TopicPathCard({ path }: { path: TopicPath }) {
             <span className="min-w-0 flex-1">
                 <span className="block font-medium">{path.label}</span>
                 {path.learningIntent ? (
-                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                    <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
                         {learningIntentLabel(path.learningIntent, t)}
                     </span>
                 ) : null}
                 <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
                     <Link
-                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
                         href={path.nodeHref}
                     >
                         {path.nodeTitle}
                     </Link>{' '}
                     ·{' '}
                     <Link
-                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
                         href={path.mapHref}
                     >
                         {path.mapTitle}
                     </Link>
                 </span>
                 <Link
-                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:text-violet-300"
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-[var(--learner-accent)] uppercase"
                     href={path.href}
                 >
                     {isInProgress

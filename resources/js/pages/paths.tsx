@@ -35,7 +35,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
             <Head title={t('paths.title', 'Paths')} />
             <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
-                <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
+                <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                     {t('paths.eyebrow', 'Ways into the world')}
                 </p>
                 <h1 className="mt-3 text-3xl font-medium tracking-tight">
@@ -51,7 +51,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                 {paths.length > 0 ? (
                     <section className="mt-12" aria-labelledby="paths-heading">
                         <div className="flex items-center gap-4 border-b border-slate-200 pb-3 dark:border-white/10">
-                            <Route className="size-5 text-cyan-600 dark:text-cyan-400" />
+                            <Route className="size-5 text-[var(--learner-action-accent)]" />
                             <h2
                                 className="text-xs font-semibold tracking-[0.2em] text-slate-500 uppercase dark:text-slate-400"
                                 id="paths-heading"
@@ -67,7 +67,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                     </section>
                 ) : (
                     <section className="mt-12 border-y border-slate-200 py-10 dark:border-white/10">
-                        <Compass className="size-7 text-cyan-600 dark:text-cyan-400" />
+                        <Compass className="size-7 text-[var(--learner-action-accent)]" />
                         <h2 className="mt-5 text-sm font-semibold">
                             {t(
                                 'paths.empty.title',
@@ -82,14 +82,14 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                         </p>
                         <div className="mt-5 flex flex-wrap gap-4 text-sm font-medium">
                             <Link
-                                className="inline-flex items-center gap-2 text-violet-700 dark:text-violet-300"
+                                className="inline-flex items-center gap-2 text-[var(--learner-accent)]"
                                 href="/topics"
                             >
                                 {t('paths.empty.topics', 'Browse topics')}
                                 <ArrowRight className="size-4" />
                             </Link>
                             <Link
-                                className="inline-flex items-center gap-2 text-cyan-700 dark:text-cyan-400"
+                                className="inline-flex items-center gap-2 text-[var(--learner-action-accent)]"
                                 href="/world"
                             >
                                 {t('paths.empty.world', 'Open the map')}
@@ -109,9 +109,9 @@ function PathCard({ path }: { path: LearningPath }) {
     const wasExplored = path.progress?.status === 'completed';
 
     return (
-        <article className="group flex min-h-56 flex-col border border-slate-200 bg-white/60 p-5 transition hover:border-violet-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-violet-400/50 dark:hover:bg-white/[0.05]">
+        <article className="group flex min-h-56 flex-col border border-slate-200 bg-white/60 p-5 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,transparent)] hover:bg-white dark:border-white/10 dark:bg-white/[0.03] dark:hover:bg-white/[0.05]">
             <div className="flex items-start gap-4">
-                <div className="grid size-12 shrink-0 place-items-center border border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-300/20 dark:bg-cyan-300/10 dark:text-cyan-300">
+                <div className="grid size-12 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
                     {path.imageUrl ? (
                         <img
                             alt=""
@@ -125,7 +125,7 @@ function PathCard({ path }: { path: LearningPath }) {
                 <div className="min-w-0">
                     {path.topic ? (
                         <Link
-                            className="text-xs font-semibold tracking-[0.16em] text-violet-600 uppercase hover:text-violet-500 dark:text-violet-300"
+                            className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-accent)] uppercase hover:text-[var(--learner-heading-text)]"
                             href={path.topic.href}
                         >
                             {path.topic.title}
@@ -135,7 +135,7 @@ function PathCard({ path }: { path: LearningPath }) {
                         {path.label}
                     </h3>
                     {path.learningIntent ? (
-                        <p className="mt-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                        <p className="mt-1 text-xs font-medium text-[var(--learner-action-accent)]">
                             {learningIntentLabel(path.learningIntent, t)}
                         </p>
                     ) : null}
@@ -144,7 +144,7 @@ function PathCard({ path }: { path: LearningPath }) {
                             <span>Learning areas:</span>
                             {path.learningAreas.map((area) => (
                                 <Link
-                                    className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                                    className="text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
                                     href={competenceTopicHref(
                                         area.slug,
                                         path.topic?.slug,
@@ -159,14 +159,14 @@ function PathCard({ path }: { path: LearningPath }) {
                     ) : null}
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         <Link
-                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
                             href={path.nodeHref}
                         >
                             {path.nodeTitle}
                         </Link>{' '}
                         ·{' '}
                         <Link
-                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-cyan-700 dark:decoration-slate-500 dark:hover:text-cyan-300"
+                            className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
                             href={path.mapHref}
                         >
                             {path.mapTitle}
@@ -182,7 +182,7 @@ function PathCard({ path }: { path: LearningPath }) {
             <div className="mt-auto flex items-end justify-between gap-4 pt-6">
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                     {isInProgress ? (
-                        <span className="font-medium text-cyan-700 dark:text-cyan-300">
+                        <span className="font-medium text-[var(--learner-action-accent)]">
                             {t('paths.status.in_progress', 'In progress')}
                         </span>
                     ) : wasExplored ? (
@@ -202,7 +202,7 @@ function PathCard({ path }: { path: LearningPath }) {
                     ) : null}
                 </div>
                 <Link
-                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300"
+                    className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
                     href={path.href}
                 >
                     {isInProgress

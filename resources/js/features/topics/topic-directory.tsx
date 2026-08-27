@@ -19,7 +19,7 @@ export function TopicDirectory({
             <div className="px-5 py-10 sm:px-8 lg:px-14 lg:py-14">
                 <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-slate-200 pb-7 dark:border-white/10">
                     <div>
-                        <p className="text-xs font-semibold tracking-[0.2em] text-violet-600 uppercase dark:text-violet-400">
+                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                             {t('topics.eyebrow', 'Knowledge directory')}
                         </p>
                         <h1 className="mt-3 text-3xl font-medium tracking-tight">
@@ -34,7 +34,7 @@ export function TopicDirectory({
                     </div>
                     {canManageTopics ? (
                         <Link
-                            className="hidden shrink-0 items-center gap-2 rounded-lg border border-violet-400/40 px-4 py-2.5 text-sm font-medium text-violet-700 transition hover:bg-violet-500/8 sm:inline-flex dark:text-violet-300"
+                            className="hidden shrink-0 items-center gap-2 rounded-lg border border-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] px-4 py-2.5 text-sm font-medium text-[var(--learner-accent)] transition hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,transparent)] sm:inline-flex"
                             href="/admin/topics"
                         >
                             <Settings2 className="size-4" />
@@ -63,14 +63,14 @@ export function TopicDirectory({
                                 <div className="divide-y divide-slate-200/70 dark:divide-white/6">
                                     {area.topics.map((topic) => (
                                         <Link
-                                            className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-slate-600 transition hover:text-violet-700 dark:text-slate-300 dark:hover:text-violet-300"
+                                            className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"
                                             href={topic.href}
                                             key={topic.id}
                                         >
                                             <span>
                                                 <span>{topic.title}</span>
                                                 {topic.mapCount ? (
-                                                    <span className="mt-1 block text-xs text-cyan-700 dark:text-cyan-300">
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                         {topic.mapCount === 1
                                                             ? t(
                                                                   'topics.directory.map_count.one',
@@ -96,7 +96,7 @@ export function TopicDirectory({
                 ) : (
                     <div className="mx-auto grid min-h-[50svh] max-w-lg place-items-center text-center">
                         <div>
-                            <FolderTree className="mx-auto size-8 text-cyan-600 dark:text-cyan-400" />
+                            <FolderTree className="mx-auto size-8 text-[var(--learner-action-accent)]" />
                             <h2 className="mt-5 text-sm font-semibold">
                                 {t(
                                     'topics.empty.title',
@@ -111,7 +111,7 @@ export function TopicDirectory({
                             </p>
                             {canManageTopics ? (
                                 <Link
-                                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300"
+                                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
                                     href="/admin/topics"
                                 >
                                     {t(

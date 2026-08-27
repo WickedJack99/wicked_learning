@@ -93,7 +93,7 @@ export function LearningDeskSearch() {
                     <Search className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-slate-400" />
                     <input
                         autoComplete="off"
-                        className="h-14 w-full rounded-xl border border-slate-300 bg-white pr-12 pl-13 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 focus:ring-3 focus:ring-cyan-500/15 dark:border-white/12 dark:bg-[#0d1825] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-cyan-400"
+                        className="h-14 w-full rounded-xl border border-slate-300 bg-white pr-12 pl-13 text-sm text-slate-950 transition outline-none placeholder:text-slate-400 focus:border-[var(--learner-action-accent)] focus:ring-3 focus:ring-[color-mix(in_srgb,var(--learner-action-accent)_15%,transparent)] dark:border-white/12 dark:bg-[#0d1825] dark:text-white dark:placeholder:text-slate-500 dark:focus:border-[var(--learner-action-accent)]"
                         onChange={(event) => {
                             const value = event.target.value;
 
@@ -114,11 +114,11 @@ export function LearningDeskSearch() {
                         value={query}
                     />
                     {loading ? (
-                        <LoaderCircle className="absolute top-1/2 right-4 size-4 -translate-y-1/2 animate-spin text-cyan-500" />
+                        <LoaderCircle className="absolute top-1/2 right-4 size-4 -translate-y-1/2 animate-spin text-[var(--learner-action-accent)]" />
                     ) : null}
                 </label>
                 <button
-                    className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-500/70 px-6 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-500/10 focus-visible:ring-3 focus-visible:ring-cyan-500/20 focus-visible:outline-none dark:text-cyan-300"
+                    className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--learner-action-accent)_70%,transparent)] px-6 text-sm font-semibold text-[var(--learner-action-accent)] transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] focus-visible:ring-3 focus-visible:ring-[color-mix(in_srgb,var(--learner-action-accent)_20%,transparent)] focus-visible:outline-none"
                     type="submit"
                 >
                     {t('home.learning_desk.search.action', 'Search')}
@@ -133,11 +133,11 @@ export function LearningDeskSearch() {
                             {results.map((result) => (
                                 <li key={result.id}>
                                     <button
-                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-slate-100 dark:hover:bg-white/6"
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)]"
                                         onClick={() => visit(result)}
                                         type="button"
                                     >
-                                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-cyan-500/10 text-cyan-700 dark:text-cyan-300">
+                                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
                                             {result.kind === 'topic' ? (
                                                 <BookOpenText className="size-4" />
                                             ) : (

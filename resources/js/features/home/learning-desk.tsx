@@ -31,7 +31,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                 <div className="min-w-0 px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
                     <div className="mx-auto max-w-4xl">
                         <section>
-                            <p className="text-sm font-medium tracking-[0.16em] text-violet-600 uppercase dark:text-violet-400">
+                            <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
                                 {t(
                                     'home.learning_desk.eyebrow',
                                     'Your learning desk',
@@ -70,10 +70,10 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                     key={connection.id}
                                                 >
                                                     {index > 0 ? (
-                                                        <ArrowRight className="size-4 text-cyan-600 dark:text-cyan-400" />
+                                                        <ArrowRight className="size-4 text-[var(--learner-action-accent)]" />
                                                     ) : null}
                                                     <Link
-                                                        className="underline decoration-transparent underline-offset-4 transition hover:text-violet-600 hover:decoration-violet-400 dark:hover:text-violet-300"
+                                                        className="underline decoration-transparent underline-offset-4 transition hover:text-[var(--learner-accent)] hover:decoration-[var(--learner-accent)]"
                                                         href={connection.href}
                                                     >
                                                         {connection.title}
@@ -195,7 +195,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                 <FeaturedBookmark bookmark={featured} />
             ) : (
                 <div className="mt-7 border-y border-slate-200 py-6 dark:border-white/10">
-                    <Pin className="size-5 text-cyan-600 dark:text-cyan-400" />
+                    <Pin className="size-5 text-[var(--learner-action-accent)]" />
                     <p className="mt-4 font-medium">
                         {t(
                             'home.learning_desk.rail.empty_title',
@@ -212,7 +212,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
             )}
 
             <div className="mt-8">
-                <p className="text-xs font-semibold tracking-[0.18em] text-cyan-700 uppercase dark:text-cyan-400">
+                <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-action-accent)] uppercase">
                     {t('home.learning_desk.bookmarks.title', 'Saved places')}
                 </p>
                 <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
@@ -223,16 +223,16 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                                 href={bookmark.href}
                                 key={bookmark.id}
                             >
-                                <Bookmark className="mt-0.5 size-4 shrink-0 text-cyan-600 transition group-hover:fill-current dark:text-cyan-400" />
+                                <Bookmark className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition group-hover:fill-current" />
                                 <span>
-                                    <span className="block font-medium text-slate-800 group-hover:text-violet-700 dark:text-slate-200 dark:group-hover:text-violet-300">
+                                    <span className="block font-medium text-slate-800 group-hover:text-[var(--learner-accent)] dark:text-slate-200">
                                         {bookmark.title}
                                     </span>
                                     <span className="mt-1 block text-xs text-slate-500 dark:text-slate-500">
                                         {bookmark.mapTitle}
                                     </span>
                                     {bookmark.topic ? (
-                                        <span className="mt-1 block text-xs text-violet-700 dark:text-violet-300">
+                                        <span className="mt-1 block text-xs text-[var(--learner-accent)]">
                                             {bookmark.topic.title}
                                         </span>
                                     ) : null}
@@ -249,7 +249,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                     )}
                 </div>
                 <Link
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-cyan-700 hover:text-cyan-600 dark:text-cyan-400 dark:hover:text-cyan-300"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]"
                     href="/bookmarks"
                 >
                     {t(
@@ -277,7 +277,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                     />
                 </div>
             ) : null}
-            <p className="text-xs font-medium tracking-[0.16em] text-violet-600 uppercase dark:text-violet-400">
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
                 {t('home.learning_desk.rail.featured', 'Pinned place')}
             </p>
             <h2 className="mt-3 text-sm font-semibold">{bookmark.title}</h2>
@@ -286,7 +286,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
             </p>
             {bookmark.topic ? (
                 <Link
-                    className="mt-1 inline-flex text-xs text-violet-700 underline decoration-violet-300 underline-offset-4 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                    className="mt-1 inline-flex text-xs text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_60%,transparent)] underline-offset-4 hover:text-[var(--learner-heading-text)]"
                     href={bookmark.topic.href}
                 >
                     {bookmark.topic.title}
@@ -298,7 +298,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                 </p>
             ) : null}
             <Link
-                className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-violet-700 hover:text-violet-600 dark:text-violet-300 dark:hover:text-violet-200"
+                className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)] hover:text-[var(--learner-heading-text)]"
                 href={bookmark.href}
             >
                 {t('home.learning_desk.rail.open', 'Open place')}
@@ -322,11 +322,11 @@ function RouteRow({
     return (
         <div className="group relative grid gap-4 py-6 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
             {emphasized ? (
-                <span className="absolute top-3 bottom-3 -left-4 w-0.5 bg-violet-500 sm:-left-6" />
+                <span className="absolute top-3 bottom-3 -left-4 w-0.5 bg-[var(--learner-accent)] sm:-left-6" />
             ) : null}
             <Link
                 aria-label={route.routeLabel ?? route.nodeTitle}
-                className="grid size-12 place-items-center border border-slate-200 text-violet-600 transition hover:border-violet-300 dark:border-white/10 dark:text-violet-300 dark:hover:border-violet-400/60"
+                className="grid size-12 place-items-center border border-slate-200 text-[var(--learner-accent)] transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,transparent)] dark:border-white/10"
                 href={route.href}
             >
                 {route.imageUrl ? (
@@ -341,26 +341,26 @@ function RouteRow({
             </Link>
             <span className="min-w-0">
                 <Link
-                    className="block truncate text-sm font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    className="block truncate text-sm font-medium hover:text-[var(--learner-accent)]"
                     href={route.href}
                 >
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
                 {route.learningIntent ? (
-                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                    <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
                         {learningIntentLabel(route.learningIntent, t)}
                     </span>
                 ) : null}
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
                     <Link
-                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.nodeHref}
                     >
                         {route.nodeTitle}
                     </Link>{' '}
                     ·{' '}
                     <Link
-                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.mapHref}
                     >
                         {route.mapTitle}
@@ -368,7 +368,7 @@ function RouteRow({
                 </span>
                 {route.topic ? (
                     <Link
-                        className="mt-2 inline-block truncate text-xs font-medium text-violet-700 hover:underline dark:text-violet-300"
+                        className="mt-2 inline-block truncate text-xs font-medium text-[var(--learner-accent)] hover:underline"
                         href={route.topic.href}
                     >
                         {route.topic.title}
@@ -376,7 +376,7 @@ function RouteRow({
                 ) : null}
                 <RouteLearningAreas route={route} />
                 {route.currentActivityTitle ? (
-                    <span className="mt-2 block truncate text-xs font-medium text-cyan-700 dark:text-cyan-400">
+                    <span className="mt-2 block truncate text-xs font-medium text-[var(--learner-action-accent)]">
                         {t('home.learning_desk.continue.next', 'Current step')}:{' '}
                         {route.currentActivityTitle}
                     </span>
@@ -390,7 +390,7 @@ function RouteRow({
                     </span>
                 ) : null}
                 <Link
-                    className="inline-flex items-center gap-2 text-sm font-medium text-violet-700 dark:text-violet-300"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
                     href={route.href}
                 >
                     {t('common.continue', 'Continue')}
@@ -414,7 +414,7 @@ function RecentRouteRow({
         <div className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
             <Link
                 aria-label={route.routeLabel ?? route.nodeTitle}
-                className="grid size-12 place-items-center border border-slate-200 text-cyan-600 hover:border-cyan-300 dark:border-white/10 dark:text-cyan-300 dark:hover:border-cyan-300/60"
+                className="grid size-12 place-items-center border border-slate-200 text-[var(--learner-action-accent)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_55%,transparent)] dark:border-white/10"
                 href={route.href}
             >
                 {route.imageUrl ? (
@@ -429,26 +429,26 @@ function RecentRouteRow({
             </Link>
             <span className="min-w-0">
                 <Link
-                    className="block truncate text-sm font-medium hover:text-violet-700 dark:hover:text-violet-300"
+                    className="block truncate text-sm font-medium hover:text-[var(--learner-accent)]"
                     href={route.href}
                 >
                     {route.routeLabel ?? route.nodeTitle}
                 </Link>
                 {route.learningIntent ? (
-                    <span className="mt-1 block text-xs font-medium text-cyan-700 dark:text-cyan-300">
+                    <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
                         {learningIntentLabel(route.learningIntent, t)}
                     </span>
                 ) : null}
                 <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
                     <Link
-                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.nodeHref}
                     >
                         {route.nodeTitle}
                     </Link>{' '}
                     ·{' '}
                     <Link
-                        className="hover:text-cyan-700 hover:underline dark:hover:text-cyan-300"
+                        className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.mapHref}
                     >
                         {route.mapTitle}
@@ -456,7 +456,7 @@ function RecentRouteRow({
                 </span>
                 {route.topic ? (
                     <Link
-                        className="mt-2 inline-block truncate text-xs font-medium text-violet-700 hover:underline dark:text-violet-300"
+                        className="mt-2 inline-block truncate text-xs font-medium text-[var(--learner-accent)] hover:underline"
                         href={route.topic.href}
                     >
                         {route.topic.title}
@@ -471,7 +471,7 @@ function RecentRouteRow({
                     </span>
                 ) : null}
                 <Link
-                    className="inline-flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-cyan-300"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)]"
                     href={route.href}
                 >
                     {t('home.learning_desk.recent.action', 'Revisit')}
@@ -492,7 +492,7 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
             <span>Learning areas:</span>
             {route.learningAreas.map((area) => (
                 <Link
-                    className="text-cyan-700 underline decoration-cyan-700/30 underline-offset-2 transition hover:text-cyan-950 dark:text-cyan-300 dark:hover:text-cyan-100"
+                    className="text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
                     href={competenceTopicHref(area.slug, route.topic?.slug)}
                     key={area.slug}
                 >
@@ -531,14 +531,14 @@ function EmptyState({
     return (
         <div className="border-b border-slate-200 py-7 dark:border-white/10">
             <div className="flex items-start gap-4">
-                <Compass className="mt-1 size-5 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                <Compass className="mt-1 size-5 shrink-0 text-[var(--learner-action-accent)]" />
                 <div>
                     <p className="font-medium">{title}</p>
                     <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
                         {body}
                     </p>
                     <Link
-                        className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-cyan-400"
+                        className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)]"
                         href={href}
                     >
                         {link}

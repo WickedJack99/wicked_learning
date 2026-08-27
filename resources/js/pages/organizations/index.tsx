@@ -55,11 +55,10 @@ const governanceOptions: {
     },
 ];
 
-const organizationAccentClass = 'text-[var(--map-floating-accent-color)]';
-const organizationAccentBorderClass =
-    'border-[var(--map-floating-accent-color)]';
+const organizationAccentClass = 'text-[var(--learner-action-accent)]';
+const organizationAccentBorderClass = 'border-[var(--learner-action-accent)]';
 const organizationAccentBackgroundClass =
-    'bg-[color-mix(in_srgb,var(--map-floating-accent-color)_12%,transparent)]';
+    'bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)]';
 
 export default function OrganizationsIndex({
     organizations,
@@ -181,7 +180,7 @@ export default function OrganizationsIndex({
                                                     'grid cursor-pointer gap-2 rounded-lg border p-3 text-sm transition',
                                                     selected
                                                         ? `${organizationAccentBorderClass} ${organizationAccentBackgroundClass}`
-                                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--map-floating-accent-color)_42%,transparent)] dark:border-white/10 dark:bg-white/5',
+                                                        : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--learner-action-accent)_42%,transparent)] dark:border-white/10 dark:bg-white/5',
                                                 ].join(' ')}
                                                 key={option.value}
                                             >

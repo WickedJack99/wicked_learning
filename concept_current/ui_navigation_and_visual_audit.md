@@ -187,6 +187,15 @@ The check is advisory rather than a hard save block: custom visual identities
 remain possible, while weak combinations are made visible at the point where
 they are configured.
 
+### Completed — Apply learner interaction tokens across document pages
+
+Learning desk, topic directory/detail, paths and organizations now use the
+semantic learner palette for their action links, hover states, focus states
+and selected presentation. This keeps learner navigation and document
+surfaces coherent when a palette is changed in settings. Map-owned imagery
+and competence-star effects remain separate because they describe the world
+and learning trail, not the document shell.
+
 ### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;
