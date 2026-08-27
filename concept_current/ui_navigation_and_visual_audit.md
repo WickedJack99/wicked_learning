@@ -196,6 +196,14 @@ surfaces coherent when a palette is changed in settings. Map-owned imagery
 and competence-star effects remain separate because they describe the world
 and learning trail, not the document shell.
 
+### Completed — Apply learner palette tokens across the learning desk
+
+The shared Learning desk now uses configured learner border, panel, heading,
+body and muted-text tokens for its document surfaces. Its custom learner
+palette therefore affects the desk consistently instead of leaving secondary
+copy and separators on fixed slate values. The desk content hierarchy and
+three-font-size constraint remain unchanged.
+
 ### Completed — Keep the playable activity shell coherent
 
 The shared activity frame now uses the learner palette for its panel, activity

@@ -40,7 +40,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             <h1 className="mt-3 text-3xl font-medium tracking-tight">
                                 {greeting(t)}, {firstName}.
                             </h1>
-                            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                            <p className="mt-2 text-sm text-[var(--learner-muted-text)]">
                                 {t(
                                     'home.learning_desk.prompt',
                                     'What would you like to think about next?',
@@ -61,7 +61,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 )}
                             />
                             {desk.connections.length > 0 ? (
-                                <div className="border-b border-slate-200 py-6 dark:border-white/10">
+                                <div className="border-b border-[var(--learner-border-color)] py-6">
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
                                         {desk.connections.map(
                                             (connection, index) => (
@@ -82,7 +82,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             ),
                                         )}
                                     </div>
-                                    <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                    <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                                         {t(
                                             'home.learning_desk.connections.saved_reason',
                                             'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
@@ -120,7 +120,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         'Recent traces',
                                     )}
                                 />
-                                <div className="divide-y divide-slate-200 border-b border-slate-200 dark:divide-white/10 dark:border-white/10">
+                                <div className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]">
                                     {desk.recentRoutes.map((route) => (
                                         <RecentRouteRow
                                             key={route.id}
@@ -144,7 +144,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 )}
                             />
                             {desk.currentRoutes.length > 0 ? (
-                                <div className="divide-y divide-slate-200 border-b border-slate-200 dark:divide-white/10 dark:border-white/10">
+                                <div className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]">
                                     {desk.currentRoutes.map((route, index) => (
                                         <RouteRow
                                             key={route.id}
@@ -187,14 +187,14 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
 
     return (
         <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:sticky lg:top-16 lg:h-[calc(100svh-4rem)] lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7">
-            <p className="text-xs font-semibold tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400">
+            <p className="text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase">
                 {t('home.learning_desk.rail.title', 'Pinned for later')}
             </p>
 
             {featured ? (
                 <FeaturedBookmark bookmark={featured} />
             ) : (
-                <div className="mt-7 border-y border-slate-200 py-6 dark:border-white/10">
+                <div className="mt-7 border-y border-[var(--learner-border-color)] py-6">
                     <Pin className="size-5 text-[var(--learner-action-accent)]" />
                     <p className="mt-4 font-medium">
                         {t(
@@ -202,7 +202,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                             'Pin a place to your desk',
                         )}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
                         {t(
                             'home.learning_desk.rail.empty_body',
                             'Your most recently visited bookmarked place will appear here.',
@@ -215,7 +215,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                 <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-action-accent)] uppercase">
                     {t('home.learning_desk.bookmarks.title', 'Saved places')}
                 </p>
-                <div className="mt-4 divide-y divide-slate-200 border-y border-slate-200 dark:divide-white/10 dark:border-white/10">
+                <div className="mt-4 divide-y divide-[var(--learner-border-color)] border-y border-[var(--learner-border-color)]">
                     {desk.bookmarks.length > 0 ? (
                         desk.bookmarks.slice(0, 5).map((bookmark) => (
                             <Link
@@ -225,10 +225,10 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                             >
                                 <Bookmark className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition group-hover:fill-current" />
                                 <span>
-                                    <span className="block font-medium text-slate-800 group-hover:text-[var(--learner-accent)] dark:text-slate-200">
+                                    <span className="block font-medium text-[var(--learner-heading-text)] group-hover:text-[var(--learner-accent)]">
                                         {bookmark.title}
                                     </span>
-                                    <span className="mt-1 block text-xs text-slate-500 dark:text-slate-500">
+                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                         {bookmark.mapTitle}
                                     </span>
                                     {bookmark.topic ? (
@@ -240,7 +240,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
                             </Link>
                         ))
                     ) : (
-                        <p className="py-5 text-sm text-slate-500 dark:text-slate-400">
+                        <p className="py-5 text-sm text-[var(--learner-muted-text)]">
                             {t(
                                 'home.learning_desk.bookmarks.empty',
                                 'No saved places yet.',
@@ -267,9 +267,9 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
     const t = usePlatformTranslation();
 
     return (
-        <article className="mt-7 border-b border-slate-200 pb-8 dark:border-white/10">
+        <article className="mt-7 border-b border-[var(--learner-border-color)] pb-8">
             {bookmark.imageUrl ? (
-                <div className="mb-5 flex h-28 items-center justify-center overflow-hidden bg-slate-200/60 dark:bg-black/15">
+                <div className="mb-5 flex h-28 items-center justify-center overflow-hidden bg-[var(--learner-panel-background)]">
                     <img
                         alt=""
                         className="h-full w-full object-contain"
@@ -281,7 +281,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                 {t('home.learning_desk.rail.featured', 'Pinned place')}
             </p>
             <h2 className="mt-3 text-sm font-semibold">{bookmark.title}</h2>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
+            <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
                 {bookmark.mapTitle}
             </p>
             {bookmark.topic ? (
@@ -293,7 +293,7 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
                 </Link>
             ) : null}
             {bookmark.description ? (
-                <p className="mt-4 line-clamp-5 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                <p className="mt-4 line-clamp-5 text-sm leading-6 text-[var(--learner-body-text)]">
                     {bookmark.description}
                 </p>
             ) : null}
@@ -326,7 +326,7 @@ function RouteRow({
             ) : null}
             <Link
                 aria-label={route.routeLabel ?? route.nodeTitle}
-                className="grid size-12 place-items-center border border-slate-200 text-[var(--learner-accent)] transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,transparent)] dark:border-white/10"
+                className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-accent)] transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,var(--learner-border-color))]"
                 href={route.href}
             >
                 {route.imageUrl ? (
@@ -351,7 +351,7 @@ function RouteRow({
                         {learningIntentLabel(route.learningIntent, t)}
                     </span>
                 ) : null}
-                <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
+                <span className="mt-1 block truncate text-sm text-[var(--learner-muted-text)]">
                     <Link
                         className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.nodeHref}
@@ -384,7 +384,7 @@ function RouteRow({
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastEnteredAt ? (
-                    <span className="hidden items-center gap-1.5 text-xs text-slate-400 xl:flex">
+                    <span className="hidden items-center gap-1.5 text-xs text-[var(--learner-muted-text)] xl:flex">
                         <Clock3 className="size-3.5" />
                         {formatDate(route.lastEnteredAt, locale)}
                     </span>
@@ -414,7 +414,7 @@ function RecentRouteRow({
         <div className="group grid gap-4 py-5 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
             <Link
                 aria-label={route.routeLabel ?? route.nodeTitle}
-                className="grid size-12 place-items-center border border-slate-200 text-[var(--learner-action-accent)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_55%,transparent)] dark:border-white/10"
+                className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-action-accent)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_55%,var(--learner-border-color))]"
                 href={route.href}
             >
                 {route.imageUrl ? (
@@ -439,7 +439,7 @@ function RecentRouteRow({
                         {learningIntentLabel(route.learningIntent, t)}
                     </span>
                 ) : null}
-                <span className="mt-1 block truncate text-sm text-slate-500 dark:text-slate-400">
+                <span className="mt-1 block truncate text-sm text-[var(--learner-muted-text)]">
                     <Link
                         className="hover:text-[var(--learner-action-accent)] hover:underline"
                         href={route.nodeHref}
@@ -466,7 +466,7 @@ function RecentRouteRow({
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastCompletedAt ? (
-                    <span className="hidden text-xs text-slate-400 xl:inline">
+                    <span className="hidden text-xs text-[var(--learner-muted-text)] xl:inline">
                         {formatDate(route.lastCompletedAt, locale)}
                     </span>
                 ) : null}
@@ -488,7 +488,7 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
     }
 
     return (
-        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
             <span>Learning areas:</span>
             {route.learningAreas.map((area) => (
                 <Link
@@ -505,14 +505,14 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
 
 function SectionHeading({ id, label }: { id: string; label: string }) {
     return (
-        <div className="flex items-center gap-5 border-b border-slate-200 pb-3 dark:border-white/10">
+        <div className="flex items-center gap-5 border-b border-[var(--learner-border-color)] pb-3">
             <h2
-                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-slate-500 uppercase dark:text-slate-400"
+                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase"
                 id={id}
             >
                 {label}
             </h2>
-            <span className="h-px flex-1 bg-slate-200 dark:bg-white/8" />
+            <span className="h-px flex-1 bg-[var(--learner-border-color)]" />
         </div>
     );
 }
@@ -529,12 +529,12 @@ function EmptyState({
     title: string;
 }) {
     return (
-        <div className="border-b border-slate-200 py-7 dark:border-white/10">
+        <div className="border-b border-[var(--learner-border-color)] py-7">
             <div className="flex items-start gap-4">
                 <Compass className="mt-1 size-5 shrink-0 text-[var(--learner-action-accent)]" />
                 <div>
                     <p className="font-medium">{title}</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
                         {body}
                     </p>
                     <Link
