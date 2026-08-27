@@ -31,6 +31,7 @@ class LoadLearnerMessageModeration
                 ],
                 'messages' => $topic->messages->map(fn ($message): array => [
                     'id' => $message->id,
+                    'audience' => $message->audience,
                     'body' => $message->body,
                     'createdAt' => $message->created_at?->toIso8601String(),
                     'hiddenAt' => $message->hidden_at?->toIso8601String(),

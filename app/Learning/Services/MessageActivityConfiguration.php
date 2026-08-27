@@ -2,6 +2,7 @@
 
 namespace App\Learning\Services;
 
+use App\Models\LearningActivity;
 use App\Models\LearningMapAsset;
 use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
@@ -13,12 +14,15 @@ class MessageActivityConfiguration
 {
     public const TYPES = ['message_prompt', 'message_wall'];
 
+    public const AUDIENCES = ['peers', 'support'];
+
     /** @param array<string, mixed> $data @param array<string, mixed> $existing @return array<string, mixed> */
     public function fromData(LearningNode $node, array $data, array $existing = []): array
     {
         return [
             ...$existing,
             'messageTopicId' => $this->topic($node, $data, $existing)->id,
+            'messageAudience' => $this->audience($data, $existing),
             'messagePrompt' => $this->string($data, 'message_prompt_text', $existing, 'messagePrompt', 'Leave a helpful note or an encouraging thought for the next learner.'),
             'messageInputLabel' => $this->string($data, 'message_input_label', $existing, 'messageInputLabel', 'Your message'),
             'messageUi' => [
@@ -42,6 +46,7 @@ class MessageActivityConfiguration
         return array_key_exists('type', $updates) || array_intersect_key($data, array_flip([
             'message_topic_id',
             'message_topic_title',
+            'message_audience',
             'message_prompt_text',
             'message_input_label',
             'message_surface_color_dark',
@@ -55,6 +60,16 @@ class MessageActivityConfiguration
             'message_accent_color_dark',
             'message_accent_color_light',
         ])) !== [];
+    }
+
+    public function audienceFor(LearningActivity $activity): string
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return $activity->type === 'message_prompt'
+            && ($config['messageAudience'] ?? null) === 'support'
+            ? 'support'
+            : 'peers';
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */
@@ -102,6 +117,20 @@ class MessageActivityConfiguration
         return array_key_exists($field, $data)
             ? trim((string) $data[$field])
             : (string) ($existing[$key] ?? $fallback);
+    }
+
+    /** @param array<string, mixed> $data @param array<string, mixed> $existing */
+    private function audience(array $data, array $existing): string
+    {
+        if (($data['type'] ?? null) === 'message_wall') {
+            return 'peers';
+        }
+
+        $value = array_key_exists('message_audience', $data)
+            ? (string) $data['message_audience']
+            : (string) ($existing['messageAudience'] ?? 'peers');
+
+        return in_array($value, self::AUDIENCES, true) ? $value : 'peers';
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */

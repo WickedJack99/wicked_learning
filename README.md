@@ -45,7 +45,7 @@ This repository is no longer only a concept archive. It contains a working verti
 - learner tool and item side controls for selecting acquired tools and viewing consumable inventory
 - learner journal pages with Markdown editing, search, autosaved drafts and export
 - optional learner requests for journal feedback from permitted review domains
-- learner-message prompt and message-wall activities with moderation tools
+- learner-message prompts, optional support requests and message walls with moderation tools
 - learner-facing competence history and non-competitive support signals for authorised staff
 - organizations, learning groups and shared-task activity prototypes
 - configurable AI providers and reusable agent templates with structured provider errors

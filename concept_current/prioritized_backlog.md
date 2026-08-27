@@ -23,8 +23,11 @@ promise that every interaction produces an immediate measurable gain.
   directions. The base choices remain bounded and distinct; future work can
   add activity-specific alternatives only when they lead to genuinely
   different learning actions.
-- Add optional help-seeking and peer-response moments with consent,
-  moderation and a clear learner-controlled exit.
+- [x] Add optional help-seeking moments with an explicit audience choice,
+  moderation and a clear learner-controlled exit. Support requests stay out of
+  peer walls; reciprocal peer response remains a later slice.
+- Add optional peer-response moments with consent, moderation and a clear
+  learner-controlled exit.
 - [x] Give activity authors a competence-supportive feedback contract: state
   the task purpose, describe observable evidence in the response or action,
   and offer one useful next action without trait judgments. The same guidance

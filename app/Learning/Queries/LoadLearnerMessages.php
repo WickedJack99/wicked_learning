@@ -8,17 +8,19 @@ use App\Models\User;
 class LoadLearnerMessages
 {
     /** @return array<string, mixed> */
-    public function handle(LearningMessageTopic $topic, User $user): array
+    public function handle(LearningMessageTopic $topic, User $user, string $audience = 'peers'): array
     {
+        $messages = $topic->messages()->where('audience', $audience);
+
         return [
             'topic' => [
                 'id' => $topic->id,
                 'title' => $topic->title,
             ],
-            'hasContributed' => $topic->messages()
+            'hasContributed' => (clone $messages)
                 ->where('user_id', $user->id)
                 ->exists(),
-            'messages' => $topic->messages()
+            'messages' => $messages
                 ->whereNull('hidden_at')
                 ->latest()
                 ->limit(12)

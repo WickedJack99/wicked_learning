@@ -65,6 +65,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         message_card_border_color_light: '#0f766e',
         message_card_color_dark: '#13262d',
         message_card_color_light: '#ffffff',
+        message_audience: 'peers',
         message_input_label: 'Your message',
         message_prompt_text:
             'Leave a helpful note or an encouraging thought for the next learner.',
@@ -180,10 +181,21 @@ export function activityFormFromActivity(
         ),
         activity_sound_id: ambientSoundId(activity.config.ambientSound),
         competence_topics: competenceTopics(activity.config.competenceTopics),
-        completion_choice_prompt: stringConfig(activity.config.completionChoicePrompt),
-        feedback_evidence: feedbackGuidanceField(activity.config.feedbackGuidance, 'evidence'),
-        feedback_next_action: feedbackGuidanceField(activity.config.feedbackGuidance, 'nextAction'),
-        feedback_purpose: feedbackGuidanceField(activity.config.feedbackGuidance, 'purpose'),
+        completion_choice_prompt: stringConfig(
+            activity.config.completionChoicePrompt,
+        ),
+        feedback_evidence: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'evidence',
+        ),
+        feedback_next_action: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'nextAction',
+        ),
+        feedback_purpose: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'purpose',
+        ),
         introduction: activity.introduction ?? '',
         learning_intent: stringConfig(activity.config.learningIntent),
         item_grant_background_dark: stringConfig(
@@ -295,6 +307,10 @@ export function activityFormFromActivity(
         message_card_color_light: stringConfig(
             messageUi.cardColorLight,
             '#ffffff',
+        ),
+        message_audience: stringConfig(
+            activity.config.messageAudience,
+            'peers',
         ),
         message_input_label: stringConfig(
             activity.config.messageInputLabel,

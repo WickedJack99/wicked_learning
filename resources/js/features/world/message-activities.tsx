@@ -29,6 +29,7 @@ export function MessagePromptActivity({
 }: ActivityFlowProps) {
     const t = usePlatformTranslation();
     const theme = useMessageTheme(activity);
+    const isSupportRequest = activity.config.messageAudience === 'support';
     const [state, setState] = useState<MessageResponse | null>(null);
     const [body, setBody] = useState('');
     const [loading, setLoading] = useState(true);
@@ -147,6 +148,17 @@ export function MessagePromptActivity({
                                 ),
                             )}
                         </p>
+                        <p className="mt-2 text-sm leading-6 opacity-75">
+                            {isSupportRequest
+                                ? t(
+                                      'activities.messages.support_visibility',
+                                      'This request is shared with learning support, not the peer message wall.',
+                                  )
+                                : t(
+                                      'activities.messages.peer_visibility',
+                                      'You can share this with the peer message wall, or continue without posting.',
+                                  )}
+                        </p>
                     </div>
                 </div>
 
@@ -221,8 +233,12 @@ export function MessagePromptActivity({
                             >
                                 <Send className="size-4" />
                                 {t(
-                                    'activities.messages.share',
-                                    'Share and continue',
+                                    isSupportRequest
+                                        ? 'activities.messages.ask_support'
+                                        : 'activities.messages.share',
+                                    isSupportRequest
+                                        ? 'Ask support and continue'
+                                        : 'Share and continue',
                                 )}
                             </Button>
                             <Button

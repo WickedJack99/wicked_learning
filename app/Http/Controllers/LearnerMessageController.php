@@ -6,6 +6,7 @@ use App\Learning\Actions\CreateLearnerMessage;
 use App\Learning\Queries\LoadLearnerMessages;
 use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningNodeStateResolver;
+use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\MessageTopicForActivity;
 use App\Models\LearningActivity;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class LearnerMessageController extends Controller
         private readonly MessageTopicForActivity $topicForActivity,
         private readonly LoadLearnerMessages $messages,
         private readonly CreateLearnerMessage $createMessage,
+        private readonly MessageActivityConfiguration $messageConfiguration,
         private readonly LearningMapAccessService $mapAccess,
         private readonly LearningNodeStateResolver $nodeState,
     ) {}
@@ -25,8 +27,10 @@ class LearnerMessageController extends Controller
     {
         $this->authorizeActivity($request, $activity);
 
+        $audience = $this->messageConfiguration->audienceFor($activity);
+
         return response()->json(
-            $this->messages->handle($this->topicForActivity->resolve($activity), $request->user()),
+            $this->messages->handle($this->topicForActivity->resolve($activity), $request->user(), $audience),
         );
     }
 
@@ -39,10 +43,11 @@ class LearnerMessageController extends Controller
             'body' => ['required', 'string', 'min:2', 'max:280'],
         ]);
         $topic = $this->topicForActivity->resolve($activity);
-        $message = $this->createMessage->handle($request->user(), $topic, $data['body']);
+        $audience = $this->messageConfiguration->audienceFor($activity);
+        $message = $this->createMessage->handle($request->user(), $topic, $data['body'], $audience);
 
         return response()->json([
-            ...$this->messages->handle($topic, $request->user()),
+            ...$this->messages->handle($topic, $request->user(), $audience),
             'message' => [
                 'id' => $message->id,
                 'body' => $message->body,

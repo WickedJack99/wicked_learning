@@ -91,6 +91,7 @@ const markdownFields: Array<keyof ActivityForm> = [
 const messageFields: Array<keyof ActivityForm> = [
     'message_topic_id',
     'message_topic_title',
+    'message_audience',
     'message_prompt_text',
     'message_input_label',
     'message_surface_color_dark',

@@ -114,6 +114,11 @@ Authorized staff can review messages grouped by MapAsset and topic, see author
 attribution, hide inappropriate entries and permanently delete them when their
 permission level allows it.
 
+A message prompt may instead be configured as an optional support request. The
+learner chooses whether to send a short request to authorized Learning Support;
+support requests stay out of peer walls and remain available in this same
+moderation surface.
+
 ### Journal, Competence And Collaboration
 
 The learner journal is a private Markdown workspace with custom pages,

@@ -20,6 +20,7 @@ export type LearnerMessageModerationTopic = {
         title: string;
     };
     messages: Array<{
+        audience: 'peers' | 'support' | string;
         author: { email: string; id: number; name: string };
         body: string;
         createdAt: string | null;
@@ -142,6 +143,14 @@ export function LearnerMessageModerationPanel({
                                                     : ''}
                                             </p>
                                         </div>
+                                        {message.audience === 'support' ? (
+                                            <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
+                                                {t(
+                                                    'settings.learner_messages.support_request',
+                                                    'Support request',
+                                                )}
+                                            </span>
+                                        ) : null}
                                         <div className="flex gap-2">
                                             <Button
                                                 onClick={() =>

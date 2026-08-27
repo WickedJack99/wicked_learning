@@ -45,6 +45,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
     $promptConfig = $configuration->fromData($this->node, [
         'message_topic_title' => 'Helpful thoughts',
         'message_prompt_text' => 'What helped you here?',
+        'message_audience' => 'support',
         'message_surface_color_dark' => '#102030',
         'message_card_color_light' => '#fefefe',
     ]);
@@ -58,6 +59,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
     expect($promptConfig['messageTopicId'])->toBe($topic->id)
         ->and($wallConfig['messageTopicId'])->toBe($topic->id)
         ->and($promptConfig['messageUi']['surfaceColorDark'])->toBe('#102030')
+        ->and($promptConfig['messageAudience'])->toBe('support')
         ->and($promptConfig['messageUi']['cardColorLight'])->toBe('#fefefe')
         ->and($wallConfig['messageUi']['accentColorLight'])->toBe('#123abc')
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
@@ -75,6 +77,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
             'type' => 'message_prompt',
             'message_topic_title' => 'Helpful thoughts',
             'message_prompt_text' => 'What would you tell the next learner?',
+            'message_audience' => 'support',
             'message_input_label' => 'Your short note',
             'message_surface_color_dark' => '#102030',
             'message_surface_color_light' => '#eafaf6',
@@ -104,6 +107,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
 
     expect($prompt->config['messageTopicId'])->toBe($topic->id)
         ->and($prompt->config['messagePrompt'])->toBe('What would you tell the next learner?')
+        ->and($prompt->config['messageAudience'])->toBe('support')
         ->and($prompt->config['messageUi']['surfaceColorDark'])->toBe('#102030')
         ->and($wall->config['messageTopicId'])->toBe($topic->id)
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
@@ -165,6 +169,58 @@ test('a learner contributes once and a message wall only returns visible message
 
     expect($response['messages'][0])->not->toHaveKey('author')
         ->and($topic->messages()->where('user_id', $learner->id)->count())->toBe(1);
+});
+
+test('support requests stay out of peer walls and remain visible to learning support', function () {
+    $learner = User::factory()->create();
+    $supportPrompt = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'ask-for-help',
+        'type' => 'message_prompt',
+        'title' => 'Ask for help',
+        'config' => [
+            'messageTopicId' => $topic = LearningMessageTopic::query()->create([
+                'learning_map_asset_id' => $this->mapAsset->id,
+                'slug' => 'learning-support',
+                'title' => 'Learning support',
+            ])->id,
+            'messageAudience' => 'support',
+        ],
+    ]);
+    $peerWall = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'peer-wall',
+        'type' => 'message_wall',
+        'title' => 'Peer wall',
+        'config' => ['messageTopicId' => $topic],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.messages.store', $supportPrompt), [
+            'body' => 'I would like a hint about this step.',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('hasContributed', true)
+        ->assertJsonCount(1, 'messages')
+        ->assertJsonPath('messages.0.body', 'I would like a hint about this step.');
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $peerWall))
+        ->assertOk()
+        ->assertJsonCount(0, 'messages');
+
+    $this->actingAs(User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]))
+        ->get(route('settings.index', [
+            'panel' => 'admin-learning-support',
+            'support' => 'learner-messages',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('learningSupportSettings.learnerMessages.0.messages.0.audience', 'support')
+        );
 });
 
 test('admins can hide restore and delete learner messages', function () {

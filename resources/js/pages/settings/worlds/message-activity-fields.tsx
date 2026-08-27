@@ -109,6 +109,59 @@ export function MessageActivityFlowFields({
             {isPrompt ? (
                 <>
                     <div className="grid gap-2">
+                        <Label htmlFor="message-audience">
+                            {t(
+                                'settings.activities.messages.audience',
+                                'Who should receive this?',
+                            )}
+                        </Label>
+                        <Select
+                            onValueChange={(value) =>
+                                onChange((current) => ({
+                                    ...current,
+                                    message_audience:
+                                        value === 'support'
+                                            ? 'support'
+                                            : 'peers',
+                                }))
+                            }
+                            value={form.message_audience || 'peers'}
+                        >
+                            <SelectTrigger
+                                className="w-full"
+                                id="message-audience"
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="peers">
+                                    {t(
+                                        'settings.activities.messages.audience_peers',
+                                        'Share with peers',
+                                    )}
+                                </SelectItem>
+                                <SelectItem value="support">
+                                    {t(
+                                        'settings.activities.messages.audience_support',
+                                        'Ask learning support',
+                                    )}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            {form.message_audience === 'support'
+                                ? t(
+                                      'settings.activities.messages.audience_support_description',
+                                      'The learner can choose to send a short request to authorized learning support. It will not appear on a peer message wall.',
+                                  )
+                                : t(
+                                      'settings.activities.messages.audience_peers_description',
+                                      'The learner can choose to share one short message with the linked peer message wall.',
+                                  )}
+                        </p>
+                        <InputError message={errors.message_audience} />
+                    </div>
+                    <div className="grid gap-2">
                         <Label htmlFor="message-prompt-text">
                             {t('settings.activities.messages.prompt', 'Prompt')}
                         </Label>

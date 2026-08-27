@@ -184,6 +184,7 @@ class AdminActivityRules
             'message_topic_id' => [$modifier, 'nullable', 'integer', Rule::exists('learning_message_topics', 'id')
                 ->where('learning_map_asset_id', $assetId)],
             'message_topic_title' => [$modifier, Rule::requiredIf($needsNewTopic), 'nullable', 'string', 'max:120'],
+            'message_audience' => [$modifier, 'nullable', Rule::in(MessageActivityConfiguration::AUDIENCES)],
             'message_prompt_text' => [$modifier, 'nullable', 'string', 'max:1000'],
             'message_input_label' => [$modifier, 'nullable', 'string', 'max:120'],
             'message_surface_color_dark' => $this->optional($modifier, $color),
