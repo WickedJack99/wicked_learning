@@ -226,6 +226,8 @@ by one.
 Review results can open the affected Activity editor directly, so content
 suggestions and optional metadata suggestions can be considered in the same
 scoped authoring flow.
+If no activity-review helper is configured, the queue links to the template
+editor with the activity-review purpose preselected.
 
 Selecting a MapAsset opens its editor directly. Admins do not create or link a
 separate LearningNode; the backend creates the internal compatibility record as

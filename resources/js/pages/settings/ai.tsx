@@ -121,6 +121,7 @@ export type AiSettingsProps = {
     providerCredentials: ProviderCredential[];
     providerOptions: Option[];
     purposeOptions: Option[];
+    preferredPurpose?: string;
 };
 
 type AgentTemplateTestResult = {
@@ -362,11 +363,19 @@ export default function AiSettings({
     onSelectSection,
     providerCredentials,
     providerOptions,
+    preferredPurpose: requestedPurposeProp,
     purposeOptions,
 }: AiSettingsProps) {
     const t = usePlatformTranslation();
     const [localSection, setLocalSection] = useState<AiSection>('providers');
     const activeSection = controlledSection ?? localSection;
+    const requestedPurpose =
+        requestedPurposeProp ?? requestedPurposeFromUrl();
+    const preferredPurpose = purposeOptions.some(
+        (option) => option.value === requestedPurpose,
+    )
+        ? requestedPurpose
+        : undefined;
     const selectSection = (section: AiSection) => {
         setLocalSection(section);
         onSelectSection?.(section);
@@ -433,6 +442,7 @@ export default function AiSettings({
                     agentTemplates={agentTemplates}
                     modelControlRules={modelControlRules}
                     providerCredentials={providerCredentials}
+                    preferredPurpose={preferredPurpose}
                     purposeOptions={purposeOptions}
                 />
             ) : null}
@@ -482,6 +492,16 @@ export default function AiSettings({
                 {content}
             </SettingsConfigurationShell>
         </>
+    );
+}
+
+function requestedPurposeFromUrl(): string | undefined {
+    if (typeof window === 'undefined') {
+        return undefined;
+    }
+
+    return (
+        new URL(window.location.href).searchParams.get('purpose') ?? undefined
     );
 }
 
@@ -794,17 +814,23 @@ function ProviderCredentialsPanel({
 function AgentTemplatesPanel({
     agentTemplates,
     modelControlRules,
+    preferredPurpose,
     providerCredentials,
     purposeOptions,
 }: {
     agentTemplates: AgentTemplate[];
     modelControlRules: ModelControlRule[];
+    preferredPurpose?: string;
     providerCredentials: ProviderCredential[];
     purposeOptions: Option[];
 }) {
     const t = usePlatformTranslation();
+    const preferredTemplate = agentTemplates.find(
+        (template) => template.purpose === preferredPurpose,
+    );
     const [selectedId, setSelectedId] = useState<number | 'new'>(
-        agentTemplates[0]?.id ?? 'new',
+        preferredTemplate?.id ??
+            (preferredPurpose ? 'new' : agentTemplates[0]?.id ?? 'new'),
     );
     const selectedTemplate = agentTemplates.find(
         (template) => template.id === selectedId,
@@ -812,7 +838,7 @@ function AgentTemplatesPanel({
     const [form, setForm] = useState<TemplateForm>(
         selectedTemplate
             ? templateFormFromTemplate(selectedTemplate)
-            : blankTemplateForm(purposeOptions[0]?.value),
+            : blankTemplateForm(preferredPurpose ?? purposeOptions[0]?.value),
     );
     const hasChanges = useDirtyState(
         form,
@@ -840,7 +866,7 @@ function AgentTemplatesPanel({
         setForm(
             template
                 ? templateFormFromTemplate(template)
-                : blankTemplateForm(purposeOptions[0]?.value),
+                : blankTemplateForm(preferredPurpose ?? purposeOptions[0]?.value),
         );
     };
 

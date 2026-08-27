@@ -587,7 +587,7 @@ export default function EditNodeActivities({
                                     className="h-8 shrink-0 border-amber-300/70 bg-white/70 px-3 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
                                     variant="outline"
                                 >
-                                    <Link href="/settings?panel=admin-ai-integrations&ai=templates">
+                                    <Link href="/settings?panel=admin-ai-integrations&ai=templates&purpose=activity_review">
                                         Set up review helper
                                         <ArrowRight className="size-3.5" />
                                     </Link>

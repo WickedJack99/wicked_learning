@@ -81,6 +81,8 @@ create pedagogical review noise.
 The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the
 tutor remains responsible for deciding whether any suggestion is useful.
+When no activity-review template exists, the queue links directly to a new
+template form with the correct review purpose selected.
 
 At the World Builder graph, each map card also shows its current activity
 review state. A map with waiting reviews links directly to the first affected
