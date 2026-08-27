@@ -241,6 +241,7 @@ function GroupChatCard({
                     placeholder="Message the group"
                 />
                 <Button
+                    aria-label="Send message"
                     disabled={isSending || body.trim() === ''}
                     onClick={() => void sendMessage()}
                     size="icon"

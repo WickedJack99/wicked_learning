@@ -403,6 +403,7 @@ export function DialogueActivity({
 
             <div className="mt-auto flex items-center justify-between gap-3">
                 <Button
+                    aria-label="Previous dialogue stage"
                     disabled={!canGoBack}
                     onClick={() =>
                         setStageIndex((current) => Math.max(0, current - 1))
@@ -419,6 +420,7 @@ export function DialogueActivity({
 
                 {canGoForward ? (
                     <Button
+                        aria-label="Next dialogue stage"
                         onClick={() =>
                             setStageIndex((current) =>
                                 Math.min(stages.length - 1, current + 1),

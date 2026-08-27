@@ -204,6 +204,20 @@ check-in uses the same tokens for its prompt, connected-area links, note field
 and feeling choices. Activity-specific scene treatments remain local to their
 activity type, while the shared frame owns the learner-facing structure.
 
+### Completed — Label icon-only activity controls
+
+Previous/next controls in markdown pages, NPC dialogue and dialogue stages
+now expose explicit accessible names. The group-message send control follows
+the same rule. Remaining keyboard review is limited to map controls, settings
+authoring widgets and other complex surfaces listed below.
+
+### Completed — Label icon-only activity controls
+
+Previous/next controls in markdown pages, NPC dialogue and dialogue stages
+now expose explicit accessible names. The group-message send control follows
+the same rule. Remaining keyboard review is limited to map controls, settings
+authoring widgets and other complex surfaces listed below.
+
 ### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;

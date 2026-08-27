@@ -529,6 +529,7 @@ function NpcDialogueScene({
                 </div>
                 <div className="flex items-center justify-between gap-3">
                     <Button
+                        aria-label="Previous dialogue"
                         disabled={!canGoBack}
                         onClick={onBack}
                         size="icon"
@@ -545,6 +546,7 @@ function NpcDialogueScene({
                               : 'Use Space or arrows to move.'}
                     </p>
                     <Button
+                        aria-label="Next dialogue"
                         disabled={isQuestion || isReflection}
                         onClick={onContinue}
                         size="icon"

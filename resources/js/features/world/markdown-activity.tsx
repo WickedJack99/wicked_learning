@@ -152,6 +152,7 @@ export function MarkdownActivity({
 
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
                 <Button
+                    aria-label="Previous page"
                     disabled={history.length === 0}
                     onClick={goBack}
                     size="icon"
