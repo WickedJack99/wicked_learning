@@ -6,8 +6,8 @@ import {
     NotebookPen,
     Sparkles,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
 import { JournalOverlay } from '@/features/journal/journal-overlay';
 import {
@@ -39,6 +39,7 @@ export function AppSideActionBar() {
     const { resolvedAppearance } = useAppearance();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
     const sideActionRef = useRef<HTMLElement | null>(null);
+    const overlayTriggerRef = useRef<HTMLButtonElement | null>(null);
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
@@ -54,6 +55,24 @@ export function AppSideActionBar() {
                 url.startsWith('/learning/')),
         [props.auth.user, url],
     );
+    const closeOverlay = useCallback(() => {
+        setOverlay(null);
+        window.setTimeout(() => overlayTriggerRef.current?.focus(), 0);
+    }, []);
+
+    const toggleOverlay = (
+        next: Exclude<OverlayMode, null>,
+        trigger: HTMLButtonElement,
+    ) => {
+        if (overlay === next) {
+            closeOverlay();
+
+            return;
+        }
+
+        overlayTriggerRef.current = trigger;
+        setOverlay(next);
+    };
 
     useEffect(() => {
         if (overlay !== 'inventory' && overlay !== 'tools') {
@@ -70,7 +89,7 @@ export function AppSideActionBar() {
                 return;
             }
 
-            setOverlay(null);
+            closeOverlay();
         };
 
         document.addEventListener(
@@ -84,7 +103,7 @@ export function AppSideActionBar() {
                 closeOverlayOnOutsidePointerDown,
             );
         };
-    }, [overlay]);
+    }, [closeOverlay, overlay]);
 
     useEffect(() => {
         if (!overlay) {
@@ -93,7 +112,7 @@ export function AppSideActionBar() {
 
         const closeOverlayOnEscape = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                setOverlay(null);
+                closeOverlay();
             }
         };
 
@@ -102,7 +121,7 @@ export function AppSideActionBar() {
         return () => {
             document.removeEventListener('keydown', closeOverlayOnEscape);
         };
-    }, [overlay]);
+    }, [closeOverlay, overlay]);
 
     if (!shouldShow) {
         return null;
@@ -118,7 +137,7 @@ export function AppSideActionBar() {
                 <SideOverlay
                     eyebrow="Inventory"
                     id="learning-inventory-panel"
-                    onClose={() => setOverlay(null)}
+                    onClose={closeOverlay}
                     title="Items"
                 >
                     <ItemGrid items={items} mode={resolvedAppearance} />
@@ -128,19 +147,19 @@ export function AppSideActionBar() {
                 <SideOverlay
                     eyebrow="Tools"
                     id="learning-tools-panel"
-                    onClose={() => setOverlay(null)}
+                    onClose={closeOverlay}
                     title="Select a tool"
                 >
                     <ToolGrid
                         mode={resolvedAppearance}
-                        onClose={() => setOverlay(null)}
+                        onClose={closeOverlay}
                         selectedTool={selectedTool}
                         tools={tools}
                     />
                 </SideOverlay>
             ) : null}
             {overlay === 'journal' ? (
-                <JournalOverlay onClose={() => setOverlay(null)} />
+                <JournalOverlay onClose={closeOverlay} />
             ) : null}
 
             <div
@@ -155,7 +174,7 @@ export function AppSideActionBar() {
                 <ActionButton
                     label="Open organizations"
                     onClick={() => {
-                        setOverlay(null);
+                        closeOverlay();
                         router.visit('/organizations');
                     }}
                 >
@@ -166,10 +185,8 @@ export function AppSideActionBar() {
                     ariaExpanded={overlay === 'inventory'}
                     isActive={overlay === 'inventory'}
                     label="Open inventory"
-                    onClick={() =>
-                        setOverlay((current) =>
-                            current === 'inventory' ? null : 'inventory',
-                        )
+                    onClick={(event) =>
+                        toggleOverlay('inventory', event.currentTarget)
                     }
                 >
                     <Backpack className="size-5" />
@@ -179,17 +196,15 @@ export function AppSideActionBar() {
                     ariaExpanded={overlay === 'tools'}
                     isActive={overlay === 'tools' || Boolean(selectedTool)}
                     label="Open tools"
-                    onClick={() => {
+                    onClick={(event) => {
                         if (selectedTool) {
                             selectLearningTool(null);
-                            setOverlay(null);
+                            closeOverlay();
 
                             return;
                         }
 
-                        setOverlay((current) =>
-                            current === 'tools' ? null : 'tools',
-                        );
+                        toggleOverlay('tools', event.currentTarget);
                     }}
                 >
                     {selectedTool ? (
@@ -207,10 +222,8 @@ export function AppSideActionBar() {
                     ariaExpanded={overlay === 'journal'}
                     isActive={overlay === 'journal'}
                     label="Open journal"
-                    onClick={() =>
-                        setOverlay((current) =>
-                            current === 'journal' ? null : 'journal',
-                        )
+                    onClick={(event) =>
+                        toggleOverlay('journal', event.currentTarget)
                     }
                 >
                     <NotebookPen className="size-5" />
@@ -218,7 +231,7 @@ export function AppSideActionBar() {
                 <ActionButton
                     label="Open competence star map"
                     onClick={() => {
-                        setOverlay(null);
+                        closeOverlay();
                         router.visit(competenceHref);
                     }}
                 >
@@ -351,7 +364,7 @@ function ActionButton({
     disabled?: boolean;
     isActive?: boolean;
     label: string;
-    onClick: () => void;
+    onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
     return (
         <button
@@ -397,9 +410,16 @@ function SideOverlay({
     onClose: () => void;
     title: string;
 }) {
+    const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+    useEffect(() => {
+        closeButtonRef.current?.focus();
+    }, []);
+
     return (
         <div
             aria-labelledby={`${id}-title`}
+            aria-modal="true"
             className="learner-scroll-region flex max-h-[calc(100svh-10rem)] w-[min(18rem,calc(100vw-1.5rem))] flex-col overscroll-contain rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md sm:max-h-[calc(100svh-8rem)] dark:shadow-black/35"
             id={id}
             role="dialog"
@@ -428,6 +448,7 @@ function SideOverlay({
                 <button
                     className="rounded-lg px-2 py-1 text-xs font-semibold transition hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
                     onClick={onClose}
+                    ref={closeButtonRef}
                     style={{
                         color: 'var(--map-side-control-text-color)',
                         cursor: 'var(--platform-action-cursor)',

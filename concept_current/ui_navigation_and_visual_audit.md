@@ -179,6 +179,15 @@ ledger entries, evidence kinds and learning periods are read from the visual
 description object that supplies them. Activating a star therefore opens the
 reading panel without unmounting the page.
 
+### Completed — Keep player overlays keyboard reachable
+
+The inventory and tools panels are modal surfaces rather than visually
+detached popovers: they expose their dialog relationship to assistive
+technology, focus their close action when opened, and return focus to the
+activating action-bar control when closed. Escape and outside-click dismissal
+use the same return path. The journal overlay already follows this contract by
+focusing its search field on open and restoring the previous control on close.
+
 **Result:** `/topics` has one continuous learner surface, topic detail can
 reach all variable-length sections, and activating a competence star keeps the
 map and its reading panel visible.
