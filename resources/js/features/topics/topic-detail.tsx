@@ -53,6 +53,9 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
                 <TopicCompetenceCard
                     competence={topic.competence}
+                    learningAreaSlugs={topic.learningAreas.map(
+                        (area) => area.slug,
+                    )}
                     subtopicCompetence={topic.subtopicCompetence}
                     topicSlug={topic.slug}
                 />
@@ -377,14 +380,19 @@ function learningPulseLabel(feeling: string | null): string {
 
 function TopicCompetenceCard({
     competence,
+    learningAreaSlugs,
     subtopicCompetence,
     topicSlug,
 }: {
     competence: TopicCompetence | null;
+    learningAreaSlugs: string[];
     subtopicCompetence: TopicCompetence[];
     topicSlug: string;
 }) {
     const t = usePlatformTranslation();
+    const distinctSubtopicCompetence = subtopicCompetence.filter(
+        (area) => !learningAreaSlugs.includes(area.slug),
+    );
     const firstTrail = competence ?? subtopicCompetence[0] ?? null;
     const focusedSlug = competence ? topicSlug : firstTrail?.slug;
     const competenceHref = focusedSlug
@@ -463,7 +471,7 @@ function TopicCompetenceCard({
                 </Link>
             </div>
 
-            {subtopicCompetence.length > 0 ? (
+            {distinctSubtopicCompetence.length > 0 ? (
                 <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                         {t(
@@ -472,7 +480,7 @@ function TopicCompetenceCard({
                         )}
                     </p>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        {subtopicCompetence.map((area) => (
+                        {distinctSubtopicCompetence.map((area) => (
                             <Link
                                 className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
                                 href={competenceTopicHref(area.slug, topicSlug)}
@@ -608,7 +616,7 @@ function TopicCompetenceCard({
                 </>
             ) : null}
 
-            {subtopicCompetence.length > 0 ? (
+            {distinctSubtopicCompetence.length > 0 ? (
                 <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
                     <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                         {t(
@@ -617,7 +625,7 @@ function TopicCompetenceCard({
                         )}
                     </p>
                     <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
-                        {subtopicCompetence.map((trail) => (
+                        {distinctSubtopicCompetence.map((trail) => (
                             <div
                                 className="flex items-start justify-between gap-4 py-3"
                                 key={trail.topic?.href ?? trail.name}

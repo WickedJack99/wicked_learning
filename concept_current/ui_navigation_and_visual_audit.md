@@ -302,6 +302,15 @@ while map and place results retain their map focus behavior. Matching is
 case-insensitive across PostgreSQL and the test database, and the empty and
 no-result states use the current topic-aware wording.
 
+### Completed — Keep topic competence context concise
+
+Topic pages now avoid listing the same competence area twice when it is both an
+observed learning trail and an authored practice opportunity. The competence
+summary still links to the focused reading, while the practice section remains
+the single place to choose an area to explore. The competence-map reading guide
+is an explicit button with an expandable, scroll-contained explanation instead
+of relying on native disclosure styling.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:

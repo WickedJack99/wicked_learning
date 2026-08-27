@@ -1,5 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Heart, Sparkles } from 'lucide-react';
+import {
+    ArrowLeft,
+    ArrowRight,
+    ChevronDown,
+    Heart,
+    Sparkles,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
@@ -481,13 +487,28 @@ function CompetenceMapGuide({
     recentWindowDays: number;
 }) {
     const translate = usePlatformTranslation();
+    const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <details className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-cyan-200/20 bg-slate-950/85 text-slate-100 shadow-xl backdrop-blur">
-            <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70">
+        <div className="absolute top-4 right-4 z-10 max-w-[calc(100%-2rem)] text-slate-100">
+            <Button
+                aria-controls="competence-map-guide"
+                aria-expanded={isOpen}
+                className="border-cyan-200/20 bg-slate-950/85 text-xs font-semibold tracking-[0.14em] text-cyan-100 uppercase shadow-xl backdrop-blur hover:bg-slate-900"
+                onClick={() => setIsOpen((open) => !open)}
+                type="button"
+                variant="outline"
+            >
                 How to read this map
-            </summary>
-            <div className="grid gap-3 border-t border-cyan-200/15 px-3 py-3 text-xs leading-5 text-slate-300">
+                <ChevronDown
+                    className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </Button>
+            <div
+                className="mt-2 grid max-h-[calc(100%-4.5rem)] gap-3 overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/95 px-3 py-3 text-xs leading-5 text-slate-300 shadow-xl backdrop-blur"
+                hidden={!isOpen}
+                id="competence-map-guide"
+            >
                 <p>
                     Each light represents a competence area you have explored.
                     The map keeps long-term development distinct from recent
@@ -530,7 +551,7 @@ function CompetenceMapGuide({
                     )}
                 </p>
             </div>
-        </details>
+        </div>
     );
 }
 
