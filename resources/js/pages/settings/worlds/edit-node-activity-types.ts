@@ -259,6 +259,9 @@ export type CreateActivityForm = {
     activity_sound_enabled: boolean;
     activity_sound_id: string;
     competence_topics: CompetenceTopicForm[];
+    feedback_evidence: string;
+    feedback_next_action: string;
+    feedback_purpose: string;
     introduction: string;
     learning_intent: string;
     item_grant_background_dark: string;

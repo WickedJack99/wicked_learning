@@ -75,3 +75,43 @@ test('clearing ambience removes it without replacing other activity configuratio
         ['slug' => 'notes', 'topic' => 'Notes'],
     ]);
 });
+
+test('admins can add optional feedback guidance to any activity', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'feedback_purpose' => 'Connect an observation to a reason.',
+            'feedback_evidence' => 'Look for a reason grounded in the observation.',
+            'feedback_next_action' => 'Try the same idea with a new example.',
+            'title' => 'Explain the observation',
+            'type' => 'open_practice',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'explain-the-observation')
+        ->firstOrFail();
+
+    expect($activity->config['feedbackGuidance'])->toBe([
+        'purpose' => 'Connect an observation to a reason.',
+        'evidence' => 'Look for a reason grounded in the observation.',
+        'nextAction' => 'Try the same idea with a new example.',
+    ]);
+
+    $payload = app(LearningActivitySerializer::class)->serialize($activity);
+
+    expect($payload['feedbackGuidance'])->toBe($activity->config['feedbackGuidance']);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'feedback_evidence' => '',
+            'feedback_next_action' => '',
+            'feedback_purpose' => '',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($activity->refresh()->config)->not->toHaveKey('feedbackGuidance');
+});

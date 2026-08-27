@@ -270,6 +270,7 @@ export type LearningActivity = {
     configuredItems: LearningItem[];
     configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
+    feedbackGuidance: LearningFeedbackGuidance | null;
     dialogueStages: DialogueStage[];
     npcDialogueNodes: NpcDialogueNode[];
     npcDialogueTransitions: NpcDialogueTransition[];
@@ -282,6 +283,12 @@ export type LearningActivity = {
     }> | null;
     sharedTaskState: SharedTaskState | null;
     transitions: ActivityTransition[];
+};
+
+export type LearningFeedbackGuidance = {
+    evidence: string | null;
+    nextAction: string | null;
+    purpose: string | null;
 };
 
 export type SharedTaskState = {

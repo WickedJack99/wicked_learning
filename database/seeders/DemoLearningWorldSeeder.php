@@ -439,6 +439,11 @@ class DemoLearningWorldSeeder extends Seeder
                     ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
                 ],
                 'learningIntent' => 'explain',
+                'feedbackGuidance' => [
+                    'purpose' => 'Use the observation to explain what changes your next step.',
+                    'evidence' => 'Look for a reason that uses both the focus point and the spread of attempts.',
+                    'nextAction' => 'Try the clue again with a changed example.',
+                ],
             ],
         ]);
 

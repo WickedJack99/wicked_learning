@@ -601,6 +601,11 @@ export function ActivityFormFields({
                                     form={form}
                                     onChange={onChange}
                                 />
+                                <FeedbackGuidanceFields
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
                                 <CompetenceTopicFields
                                     competenceTopicOptions={
                                         competenceTopicOptions
@@ -981,6 +986,78 @@ function LearningIntentField({
                 </p>
             ) : null}
             <InputError message={errors.learning_intent} />
+        </div>
+    );
+}
+
+function FeedbackGuidanceFields({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    const fields = [
+        {
+            description:
+                'Name the capability or understanding this activity invites.',
+            id: 'activity-feedback-purpose',
+            label: 'Purpose',
+            name: 'feedback_purpose' as const,
+            placeholder: 'e.g. Notice how the pattern changes when…',
+        },
+        {
+            description:
+                'Point to something observable in the learner’s response or action.',
+            id: 'activity-feedback-evidence',
+            label: 'What to notice',
+            name: 'feedback_evidence' as const,
+            placeholder: 'e.g. Look for a reason that connects…',
+        },
+        {
+            description:
+                'Offer one small direction the learner could try next.',
+            id: 'activity-feedback-next-action',
+            label: 'Next action',
+            name: 'feedback_next_action' as const,
+            placeholder: 'e.g. Try the same idea with…',
+        },
+    ];
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div>
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Feedback guidance
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                    Optional guidance keeps feedback anchored in the task and
+                    the learner’s work.
+                </p>
+            </div>
+            {fields.map((field) => (
+                <div className="grid gap-2" key={field.name}>
+                    <Label htmlFor={field.id}>{field.label}</Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                        id={field.id}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                [field.name]: event.target.value,
+                            }))
+                        }
+                        placeholder={field.placeholder}
+                        value={form[field.name]}
+                    />
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {field.description}
+                    </p>
+                    <InputError message={errors[field.name]} />
+                </div>
+            ))}
         </div>
     );
 }

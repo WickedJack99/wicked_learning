@@ -10,6 +10,11 @@ export type ActivityReview = {
             suggestedLearningIntent: string | null;
             topics: ActivityReviewAlignment;
         };
+        feedbackGuidance?: {
+            evidence: ActivityReviewDimension;
+            nextAction: ActivityReviewDimension;
+            purpose: ActivityReviewDimension;
+        };
         sdt: {
             autonomy: ActivityReviewDimension;
             competence: ActivityReviewDimension;

@@ -22,9 +22,10 @@ promise that every interaction produces an immediate measurable gain.
   provide genuinely different routes, and avoid choice overload.
 - Add optional help-seeking and peer-response moments with consent,
   moderation and a clear learner-controlled exit.
-- Give activity authors a competence-supportive feedback contract: state the
-  task purpose, describe the evidence in the response, and offer one useful
-  next action without trait judgments.
+- [x] Give activity authors a competence-supportive feedback contract: state
+  the task purpose, describe observable evidence in the response or action,
+  and offer one useful next action without trait judgments. The same guidance
+  is visible during playback and inspected by the scoped activity review.
 - Continue strengthening explicit Review / revisit activities with retrieval,
   feedback and spacing semantics while keeping reflection skippable.
 

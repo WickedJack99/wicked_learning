@@ -35,9 +35,11 @@ surface after a short spacing window when the learner chose to return. The
 learner can open, postpone or hide each invitation; it is not a notification,
 deadline or compulsory queue. Future work should add opportunities to compare
 earlier and later reasoning,
-meaningful alternative routes, consent-based help seeking and feedback that
-describes evidence plus a next action. Each addition should preserve choice,
-avoid overload and keep competence evidence qualitative and inspectable.
+meaningful alternative routes and consent-based help seeking. Activity authors
+can now optionally describe the task purpose, observable evidence to notice and
+one useful next action. This guidance is shown with the activity and checked by
+the scoped AI review. Each addition should preserve choice, avoid overload and
+keep competence evidence qualitative and inspectable.
 
 ## MVP Interpretation
 

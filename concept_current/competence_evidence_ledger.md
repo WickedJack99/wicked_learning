@@ -151,6 +151,17 @@ The learning desk uses the same compact links on current and recent route rows.
 This keeps the learner's return surface connected to the same authored context
 without adding another progression view.
 
+## Feedback guidance
+
+Every activity can optionally carry a small feedback guidance contract with
+three author fields: the purpose of the task, something observable to notice in
+the learner's response or action, and one useful next action. The contract is
+not a learner result and does not create a score. Playback shows the guidance
+beside the activity so the learner has a clear frame for the work; the scoped AI
+review checks whether each part is concrete enough to support informational
+feedback. Empty guidance remains valid for activities where it would add
+clutter.
+
 ## Next evolution
 
 Continue adding confidence or feedback outcomes only where an activity actually

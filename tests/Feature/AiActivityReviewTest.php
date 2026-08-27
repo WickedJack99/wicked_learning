@@ -50,6 +50,7 @@ test('an administrator can request a scoped activity review', function () {
             && str_contains($input, 'Next reflection')
             && str_contains($input, 'availableCompetenceTopics')
             && str_contains($input, 'Systems Thinking')
+            && str_contains($input, 'Try the same idea with a changed example.')
             && ! str_contains($input, 'Unrelated private draft');
     });
 
@@ -57,6 +58,7 @@ test('an administrator can request a scoped activity review', function () {
         ->and($activity->ai_reviewed_at)->not->toBeNull()
         ->and($activity->ai_review['review']['sdt']['autonomy']['signal'])->toBe('supported')
         ->and($activity->ai_review['review']['learningDesign']['purpose']['signal'])->toBe('aligned')
+        ->and($activity->ai_review['review']['feedbackGuidance']['nextAction']['signal'])->toBe('supported')
         ->and($activity->ai_review['review']['learningDesign']['suggestedCompetenceTopics'])->toBe(['Systems Thinking']);
 
     $this->actingAs($admin)
@@ -215,6 +217,11 @@ function activityReviewContext(User $admin): array
             'competenceTopics' => [
                 ['topic' => 'Systems Thinking', 'slug' => 'systems-thinking', 'weight' => 1],
             ],
+            'feedbackGuidance' => [
+                'purpose' => 'Connect the observation to your own reasoning.',
+                'evidence' => 'Look for a reason that connects the observation to the explanation.',
+                'nextAction' => 'Try the same idea with a changed example.',
+            ],
         ],
         'sort_order' => 20,
     ]);
@@ -284,6 +291,11 @@ function activityReviewPayload(): array
             'topics' => ['signal' => 'unclear', 'note' => 'The activity needs a more visible connection to the declared systems-thinking topic.'],
             'suggestedLearningIntent' => null,
             'suggestedCompetenceTopics' => ['Systems Thinking'],
+        ],
+        'feedbackGuidance' => [
+            'purpose' => ['signal' => 'supported', 'note' => 'The intended purpose is clear from the prompt and introduction.'],
+            'evidence' => ['signal' => 'supported', 'note' => 'The learner can point to a reason in their response.'],
+            'nextAction' => ['signal' => 'supported', 'note' => 'The suggested next step is concrete and small.'],
         ],
     ];
 }

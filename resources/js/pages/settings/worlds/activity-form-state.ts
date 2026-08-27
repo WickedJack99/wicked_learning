@@ -11,6 +11,9 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         activity_sound_enabled: false,
         activity_sound_id: '',
         competence_topics: [{ topic: '', weight: '1' }],
+        feedback_evidence: '',
+        feedback_next_action: '',
+        feedback_purpose: '',
         introduction: '',
         learning_intent: '',
         item_grant_background_dark: '',
@@ -176,6 +179,9 @@ export function activityFormFromActivity(
         ),
         activity_sound_id: ambientSoundId(activity.config.ambientSound),
         competence_topics: competenceTopics(activity.config.competenceTopics),
+        feedback_evidence: feedbackGuidanceField(activity.config.feedbackGuidance, 'evidence'),
+        feedback_next_action: feedbackGuidanceField(activity.config.feedbackGuidance, 'nextAction'),
+        feedback_purpose: feedbackGuidanceField(activity.config.feedbackGuidance, 'purpose'),
         introduction: activity.introduction ?? '',
         learning_intent: stringConfig(activity.config.learningIntent),
         item_grant_background_dark: stringConfig(
@@ -577,6 +583,13 @@ function competenceTopics(value: unknown): ActivityForm['competence_topics'] {
         .filter((topic) => topic.topic.trim().length > 0);
 
     return topics.length > 0 ? topics : [{ topic: '', weight: '1' }];
+}
+
+function feedbackGuidanceField(
+    value: unknown,
+    field: 'purpose' | 'evidence' | 'nextAction',
+): string {
+    return isRecord(value) ? stringConfig(value[field]) : '';
 }
 
 function ambientSoundEnabled(value: unknown): boolean {

@@ -660,6 +660,8 @@ function ActivityFrame({
                 </div>
             </div>
 
+            <FeedbackGuidance guidance={activity.feedbackGuidance} />
+
             {children}
 
             <div className="mt-auto flex justify-end border-t border-[var(--learner-border-color)] pt-3">
@@ -673,6 +675,41 @@ function ActivityFrame({
                 </Button>
             </div>
         </section>
+    );
+}
+
+function FeedbackGuidance({
+    guidance,
+}: {
+    guidance: LearningActivity['feedbackGuidance'];
+}) {
+    if (!guidance) {
+        return null;
+    }
+
+    const entries = [
+        ['Purpose', guidance.purpose],
+        ['What to notice', guidance.evidence],
+        ['Next action', guidance.nextAction],
+    ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+
+    if (entries.length === 0) {
+        return null;
+    }
+
+    return (
+        <div className="grid gap-3 rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_22%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)] p-3 md:grid-cols-3">
+            {entries.map(([label, value]) => (
+                <div key={label}>
+                    <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                        {label}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {value}
+                    </p>
+                </div>
+            ))}
+        </div>
     );
 }
 

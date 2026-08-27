@@ -63,6 +63,16 @@ class ReviewLearningActivity
             'learningDesign.suggestedLearningIntent' => ['present', 'nullable', 'string', Rule::in(ActivityCompetenceConfiguration::LEARNING_INTENTS)],
             'learningDesign.suggestedCompetenceTopics' => ['required', 'array', 'max:3'],
             'learningDesign.suggestedCompetenceTopics.*' => ['required', 'string', 'max:120'],
+            'feedbackGuidance' => ['required', 'array'],
+            'feedbackGuidance.purpose' => ['required', 'array'],
+            'feedbackGuidance.purpose.signal' => ['required', 'in:supported,unclear,risk'],
+            'feedbackGuidance.purpose.note' => ['required', 'string', 'max:600'],
+            'feedbackGuidance.evidence' => ['required', 'array'],
+            'feedbackGuidance.evidence.signal' => ['required', 'in:supported,unclear,risk'],
+            'feedbackGuidance.evidence.note' => ['required', 'string', 'max:600'],
+            'feedbackGuidance.nextAction' => ['required', 'array'],
+            'feedbackGuidance.nextAction.signal' => ['required', 'in:supported,unclear,risk'],
+            'feedbackGuidance.nextAction.note' => ['required', 'string', 'max:600'],
         ])->validate();
 
         $activity->forceFill([
@@ -88,6 +98,7 @@ class ReviewLearningActivity
             'Review exactly one Wicked Learning activity for learning usefulness and a supportive learning environment.',
             'This is an authoring aid, not a learner grade and not a claim about learner performance.',
             'Compare the declared learning purpose and competence topics with the actual activity content. Flag alignment as unclear or mismatch when the metadata asks for something the activity does not visibly provide. Also inspect autonomy, competence and relatedness support.',
+            'Inspect the optional feedback guidance. Assess whether its purpose is concrete, whether the evidence can be noticed in the learner response or action, and whether the next action is a single useful step. If guidance is absent or too vague, mark that dimension unclear and suggest a concrete authoring improvement. Do not invent learner evidence.',
             'Mention strengths before suggestions. Suggestions must be concrete, optional adjustments for the tutor. If either learning-design alignment signal is unclear or mismatch, provide a concise replacement learning intent and/or topic list; otherwise use null and an empty list. Reuse an available competence topic label exactly when one fits; only suggest a new concise label when none fits. Do not output weights or thresholds. Do not rewrite or apply the activity.',
             'Use only the scoped activity context below. Do not infer learner data or invent missing content.',
             'Activity review context:\n'.json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

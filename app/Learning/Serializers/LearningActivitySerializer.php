@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
 use App\Models\LearnerReflection;
@@ -20,6 +21,7 @@ class LearningActivitySerializer
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearningItemSerializer $itemSerializer,
         private readonly SharedTaskStateSerializer $sharedTaskState,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
     ) {}
 
     /**
@@ -35,6 +37,7 @@ class LearningActivitySerializer
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $this->learnerConfig($activity),
+            'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
             'configuredTool' => $this->configuredTool($activity),

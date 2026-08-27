@@ -156,6 +156,9 @@ class AdminActivityRules
             'competence_topics.*.topic' => $this->optional($modifier, ['string', 'max:120']),
             'competence_topics.*.weight' => $this->optional($modifier, ['numeric', 'min:0', 'max:1000']),
             'learning_intent' => [$modifier, 'nullable', Rule::in(ActivityCompetenceConfiguration::LEARNING_INTENTS)],
+            'feedback_purpose' => $this->optional($modifier, ['string', 'max:600']),
+            'feedback_evidence' => $this->optional($modifier, ['string', 'max:1000']),
+            'feedback_next_action' => $this->optional($modifier, ['string', 'max:600']),
         ];
     }
 

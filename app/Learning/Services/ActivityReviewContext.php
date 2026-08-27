@@ -11,6 +11,7 @@ class ActivityReviewContext
     public function __construct(
         private readonly ActivityCompetenceConfiguration $competence,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
     ) {}
 
     /** @return array<string, mixed> */
@@ -36,6 +37,7 @@ class ActivityReviewContext
                 'introduction' => $activity->introduction,
                 'learningIntent' => $this->competence->learningIntentForActivity($activity),
                 'competenceTopics' => $this->competence->topicsForActivity($activity),
+                'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
                 'content' => $this->content($activity),
             ],
             'availableCompetenceTopics' => $this->competenceTopics->names(),

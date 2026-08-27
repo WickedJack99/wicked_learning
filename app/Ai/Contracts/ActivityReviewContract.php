@@ -6,7 +6,7 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 
 class ActivityReviewContract
 {
-    public const VERSION = '1.1';
+    public const VERSION = '1.2';
 
     /** @return array<string, mixed> */
     public function responseFormat(): array
@@ -51,7 +51,7 @@ class ActivityReviewContract
         return [
             'type' => 'object',
             'additionalProperties' => false,
-            'required' => ['summary', 'strengths', 'suggestions', 'sdt', 'learningDesign'],
+            'required' => ['summary', 'strengths', 'suggestions', 'sdt', 'learningDesign', 'feedbackGuidance'],
             'properties' => [
                 'summary' => ['type' => 'string', 'maxLength' => 1200],
                 'strengths' => [
@@ -92,6 +92,16 @@ class ActivityReviewContract
                             'maxItems' => 3,
                             'items' => ['type' => 'string', 'maxLength' => 120],
                         ],
+                    ],
+                ],
+                'feedbackGuidance' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['purpose', 'evidence', 'nextAction'],
+                    'properties' => [
+                        'purpose' => $dimension,
+                        'evidence' => $dimension,
+                        'nextAction' => $dimension,
                     ],
                 ],
             ],

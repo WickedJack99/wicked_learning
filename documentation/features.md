@@ -92,6 +92,12 @@ Implemented activity types are:
 - open practice pauses for learner-directed next steps, with an author-written
   invitation shown before the learner continues
 
+Activity authors can optionally add feedback guidance for any activity: its
+purpose, what to notice in a learner response or action, and one possible next
+action. Playback presents this as a compact orientation aid, and the scoped AI
+activity review inspects the guidance for clarity. It is not a score or a
+learner assessment.
+
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.
 

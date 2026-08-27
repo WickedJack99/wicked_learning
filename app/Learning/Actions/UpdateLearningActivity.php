@@ -4,6 +4,7 @@ namespace App\Learning\Actions;
 
 use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\LearningActivityReviewState;
@@ -27,6 +28,7 @@ class UpdateLearningActivity
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
         private readonly LearningActivityReviewState $reviewState,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
@@ -90,6 +92,7 @@ class UpdateLearningActivity
             || $this->sharedTaskConfig->shouldUpdate($data, $updates)
             || $this->ambientSoundConfig->shouldUpdate($data)
             || $this->competenceConfig->shouldUpdate($data)
+            || $this->feedbackGuidanceConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($activity->node, $type, $data, $config);
@@ -120,7 +123,10 @@ class UpdateLearningActivity
         };
 
         return $this->competenceConfig->mergeInto(
-            $this->ambientSoundConfig->mergeInto($config, $data),
+            $this->feedbackGuidanceConfig->mergeInto(
+                $this->ambientSoundConfig->mergeInto($config, $data),
+                $data,
+            ),
             $data,
         );
     }

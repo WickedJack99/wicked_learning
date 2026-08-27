@@ -24,6 +24,7 @@ import { reviewActivity } from './activity-review-client';
 import type {
     ActivityReviewAlignment,
     ActivityReview,
+    ActivityReviewDimension,
     ActivityReviewMetadataSuggestions,
     ActivityReviewResult,
 } from './activity-review-client';
@@ -328,6 +329,25 @@ function ActivityReviewResultView({
                     </div>
                 </div>
             ) : null}
+            {review.review.feedbackGuidance ? (
+                <div className="grid gap-3">
+                    <p className="text-sm font-semibold">Feedback guidance</p>
+                    <div className="grid gap-3">
+                        <ReviewDimensionView
+                            dimension={review.review.feedbackGuidance.purpose}
+                            label="Purpose"
+                        />
+                        <ReviewDimensionView
+                            dimension={review.review.feedbackGuidance.evidence}
+                            label="What to notice"
+                        />
+                        <ReviewDimensionView
+                            dimension={review.review.feedbackGuidance.nextAction}
+                            label="Next action"
+                        />
+                    </div>
+                </div>
+            ) : null}
             <div className="grid gap-3">
                 <p className="text-sm font-semibold">SDT support signals</p>
                 <div className="grid gap-3">
@@ -353,6 +373,28 @@ function ActivityReviewResultView({
                 <CheckCircle2 className="size-3.5" />
                 This is a suggestion for the tutor. No activity changes were
                 applied.
+            </p>
+        </div>
+    );
+}
+
+function ReviewDimensionView({
+    dimension,
+    label,
+}: {
+    dimension: ActivityReviewDimension;
+    label: string;
+}) {
+    return (
+        <div className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+            <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{label}</p>
+                <span className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                    {dimension.signal}
+                </span>
+            </div>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {dimension.note}
             </p>
         </div>
     );
