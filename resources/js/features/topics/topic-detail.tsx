@@ -37,7 +37,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     {topic.parent?.title ?? t('topics.title', 'Topics')}
                 </Link>
 
-                <header className="mt-8 max-w-3xl border-b border-slate-200 pb-8 dark:border-white/10">
+                <header className="mt-8 max-w-3xl border-b border-[var(--learner-border-color)] pb-8">
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                         {topic.area.title}
                     </p>
@@ -45,7 +45,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         {topic.title}
                     </h1>
                     {topic.description ? (
-                        <p className="mt-5 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        <p className="mt-5 text-sm leading-6 text-[var(--learner-body-text)]">
                             {topic.description}
                         </p>
                     ) : null}
@@ -67,7 +67,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 {topic.paths.length > 0 ? (
                     <section
                         aria-labelledby="topic-paths-heading"
-                        className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
+                        className="mt-10 border-y border-[var(--learner-border-color)] py-7"
                     >
                         <div className="flex items-start gap-3">
                             <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
@@ -87,7 +87,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                         'Start with a route',
                                     )}
                                 </h2>
-                                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
                                         'topics.detail.paths.description',
                                         'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
@@ -106,7 +106,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                 {topic.maps.length > 0 ? (
                     <section
                         aria-labelledby="topic-maps-heading"
-                        className="mt-10 border-y border-slate-200 py-7 dark:border-white/10"
+                        className="mt-10 border-y border-[var(--learner-border-color)] py-7"
                     >
                         <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                             {t(
@@ -120,7 +120,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         >
                             {t('topics.detail.maps.title', 'Map surfaces')}
                         </h2>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                             {t(
                                 'topics.detail.maps.description',
                                 'Open a map to explore this topic through places, activities and connected paths.',
@@ -129,7 +129,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                         <div className="mt-5 grid gap-3 sm:grid-cols-2">
                             {topic.maps.map((map) => (
                                 <Link
-                                    className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
+                                    className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
                                     href={map.href}
                                     key={map.id}
                                 >
@@ -139,11 +139,11 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                             {map.title}
                                         </span>
                                         {map.description ? (
-                                            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-slate-500 dark:text-slate-400">
+                                            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-[var(--learner-muted-text)]">
                                                 {map.description}
                                             </span>
                                         ) : null}
-                                        <span className="mt-2 block text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
                                             {map.nodeCount === 1
                                                 ? t(
                                                       'topics.detail.maps.place_count.one',
@@ -177,9 +177,9 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                 markdown={topic.content}
                             />
                         ) : (
-                            <div className="border-y border-slate-200 py-7 dark:border-white/10">
+                            <div className="border-y border-[var(--learner-border-color)] py-7">
                                 <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
-                                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                <p className="mt-3 text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
                                         'topics.detail.no_content',
                                         'This topic currently serves as an overview. Continue with one of its subtopics.',
@@ -190,11 +190,11 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     </article>
 
                     <aside>
-                        <h2 className="border-b border-slate-300 pb-3 text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase dark:border-white/20 dark:text-slate-400">
+                        <h2 className="border-b border-[var(--learner-border-color)] pb-3 text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
                             {t('topics.detail.subtopics', 'Subtopics')}
                         </h2>
                         {topic.subtopics.length > 0 ? (
-                            <div className="divide-y divide-slate-200 dark:divide-white/8">
+                            <div className="divide-y divide-[var(--learner-border-color)]">
                                 {topic.subtopics.map((subtopic) => (
                                     <Link
                                         className="group flex items-start justify-between gap-4 py-4 text-sm"
@@ -222,7 +222,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                                 </span>
                                             ) : null}
                                             {subtopic.description ? (
-                                                <span className="mt-1 line-clamp-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                <span className="mt-1 line-clamp-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
                                                     {subtopic.description}
                                                 </span>
                                             ) : null}
@@ -232,7 +232,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                 ))}
                             </div>
                         ) : (
-                            <p className="py-4 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            <p className="py-4 text-sm leading-6 text-[var(--learner-muted-text)]">
                                 {t(
                                     'topics.detail.no_subtopics',
                                     'No subtopics have been published here yet.',
@@ -262,7 +262,7 @@ function TopicLearningAreas({
     return (
         <section
             aria-labelledby="topic-learning-areas-heading"
-            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
         >
             <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                 {t('topics.detail.learning_areas.eyebrow', 'Learning areas')}
@@ -279,7 +279,7 @@ function TopicLearningAreas({
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {areas.map((area) => (
                     <Link
-                        className="group flex items-start justify-between gap-4 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
+                        className="group flex items-start justify-between gap-4 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
                         href={competenceTopicHref(area.slug, topicSlug)}
                         key={area.slug}
                     >
@@ -287,7 +287,7 @@ function TopicLearningAreas({
                             <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
                                 {area.name}
                             </span>
-                            <span className="mt-2 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            <span className="mt-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
                                 {area.learningIntents
                                     .map((intent) =>
                                         learningIntentLabel(intent, t),
@@ -313,7 +313,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
     return (
         <section
             aria-labelledby="topic-learning-pulse-heading"
-            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
         >
             <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                 {t(
@@ -330,7 +330,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                     'Moments you chose to keep',
                 )}
             </h2>
-            <div className="mt-4 divide-y divide-slate-200 dark:divide-white/10">
+            <div className="mt-4 divide-y divide-[var(--learner-border-color)]">
                 {entries.map((entry) => (
                     <Link
                         className="group flex items-start justify-between gap-4 py-3 transition hover:text-[var(--learner-accent)]"
@@ -341,18 +341,18 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                             <span className="block truncate text-sm font-medium">
                                 {entry.activityTitle}
                             </span>
-                            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                 {learningPulseLabel(entry.feeling)} ·{' '}
                                 {entry.nodeTitle}
                             </span>
                             {entry.note ? (
-                                <span className="mt-1 block text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                <span className="mt-1 block text-xs leading-5 text-[var(--learner-body-text)]">
                                     {entry.note}
                                 </span>
                             ) : null}
                         </span>
                         <time
-                            className="shrink-0 text-xs text-slate-500 dark:text-slate-400"
+                            className="shrink-0 text-xs text-[var(--learner-muted-text)]"
                             dateTime={entry.recordedAt}
                         >
                             {formatTopicDate(entry.recordedAt)}
@@ -403,7 +403,7 @@ function TopicCompetenceCard({
     return (
         <section
             aria-labelledby="topic-learning-trail-heading"
-            className="mt-8 border-y border-slate-200 py-7 dark:border-white/10"
+            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
         >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-start gap-4">
@@ -432,7 +432,7 @@ function TopicCompetenceCard({
                                 'Your trail in this topic',
                             )}
                         </h2>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                             {competence
                                 ? competence.visual.description
                                 : subtopicCompetence.length > 0
@@ -464,8 +464,8 @@ function TopicCompetenceCard({
             </div>
 
             {subtopicCompetence.length > 0 ? (
-                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                         {t(
                             'topics.detail.competence.connected_areas',
                             'Connected learning areas',
@@ -474,7 +474,7 @@ function TopicCompetenceCard({
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         {subtopicCompetence.map((area) => (
                             <Link
-                                className="group flex items-start gap-3 border border-slate-200 bg-white/45 p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_6%,transparent)]"
+                                className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_45%,transparent)] p-3 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
                                 href={competenceTopicHref(area.slug, topicSlug)}
                                 key={area.slug}
                             >
@@ -499,7 +499,7 @@ function TopicCompetenceCard({
                                     <span className="block text-sm font-medium group-hover:text-[var(--learner-heading-text)]">
                                         {area.name}
                                     </span>
-                                    <span className="mt-1 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    <span className="mt-1 block text-xs leading-5 text-[var(--learner-muted-text)]">
                                         {area.visual.description}
                                     </span>
                                 </span>
@@ -512,9 +512,9 @@ function TopicCompetenceCard({
 
             {competence ? (
                 <>
-                    <div className="mt-6 grid gap-5 border-t border-slate-200 pt-5 sm:grid-cols-2 dark:border-white/10">
+                    <div className="mt-6 grid gap-5 border-t border-[var(--learner-border-color)] pt-5 sm:grid-cols-2">
                         <div>
-                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                                 {t(
                                     'topics.detail.competence.ways',
                                     'Ways you have been learning',
@@ -532,31 +532,31 @@ function TopicCompetenceCard({
                             </div>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                                 {t(
                                     'topics.detail.competence.recent',
                                     'Recently',
                                 )}
                             </p>
-                            <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                            <p className="mt-3 text-sm leading-6 text-[var(--learner-body-text)]">
                                 {competence.recentDescription}
                             </p>
                             {competence.learningPeriods.length > 0 ? (
-                                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
                                     {competence.learningPeriods.join(' · ')}
                                 </p>
                             ) : null}
                         </div>
                     </div>
                     {competence.evidenceLedger.length > 0 ? (
-                        <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
-                            <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                        <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
+                            <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                                 {t(
                                     'topics.detail.competence.moments',
                                     'Recent moments',
                                 )}
                             </p>
-                            <div className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
+                            <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                                 {competence.evidenceLedger.map((entry) => {
                                     const content = (
                                         <span className="flex min-w-0 items-start justify-between gap-4">
@@ -565,7 +565,7 @@ function TopicCompetenceCard({
                                                     {entry.activityTitle ??
                                                         'Learning moment'}
                                                 </span>
-                                                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                     {evidenceTypeLabel(
                                                         entry.evidenceType,
                                                         t,
@@ -577,7 +577,7 @@ function TopicCompetenceCard({
                                             </span>
                                             {entry.recordedAt ? (
                                                 <time
-                                                    className="shrink-0 text-xs text-slate-500 dark:text-slate-400"
+                                                    className="shrink-0 text-xs text-[var(--learner-muted-text)]"
                                                     dateTime={entry.recordedAt}
                                                 >
                                                     {formatTopicDate(
@@ -609,14 +609,14 @@ function TopicCompetenceCard({
             ) : null}
 
             {subtopicCompetence.length > 0 ? (
-                <div className="mt-6 border-t border-slate-200 pt-5 dark:border-white/10">
-                    <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+                <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
                         {t(
                             'topics.detail.competence.subtopics',
                             'Connected learning areas',
                         )}
                     </p>
-                    <div className="mt-3 divide-y divide-slate-200 dark:divide-white/10">
+                    <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
                         {subtopicCompetence.map((trail) => (
                             <div
                                 className="flex items-start justify-between gap-4 py-3"
@@ -635,11 +635,11 @@ function TopicCompetenceCard({
                                             {trail.name}
                                         </p>
                                     )}
-                                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
                                         {trail.visual.description}
                                     </p>
                                     {trail.evidenceTypes.length > 0 ? (
-                                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                        <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
                                             {trail.evidenceTypes
                                                 .map((type) =>
                                                     evidenceTypeLabel(type, t),
@@ -648,7 +648,7 @@ function TopicCompetenceCard({
                                         </p>
                                     ) : null}
                                     {trail.evidenceLedger.length > 0 ? (
-                                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--learner-muted-text)]">
                                             <span>Recent:</span>
                                             {trail.evidenceLedger
                                                 .slice(0, 2)
@@ -730,7 +730,7 @@ function TopicPathCard({ path }: { path: TopicPath }) {
     const isInProgress = path.progress?.status === 'in_progress';
 
     return (
-        <article className="group flex items-start gap-3 border border-slate-200 bg-white/55 p-4 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_60%,transparent)] hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--learner-accent)_6%,transparent)]">
+        <article className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-accent)_8%,var(--learner-panel-background))]">
             <span className="grid size-10 shrink-0 place-items-center border border-[color-mix(in_srgb,var(--learner-accent)_25%,transparent)] text-[var(--learner-accent)]">
                 {path.imageUrl ? (
                     <img
@@ -749,16 +749,16 @@ function TopicPathCard({ path }: { path: TopicPath }) {
                         {learningIntentLabel(path.learningIntent, t)}
                     </span>
                 ) : null}
-                <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                <span className="mt-1 block truncate text-xs text-[var(--learner-muted-text)]">
                     <Link
-                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
+                        className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
                         href={path.nodeHref}
                     >
                         {path.nodeTitle}
                     </Link>{' '}
                     ·{' '}
                     <Link
-                        className="underline decoration-slate-400/60 underline-offset-2 transition hover:text-[var(--learner-action-accent)] dark:decoration-slate-500"
+                        className="underline decoration-[color-mix(in_srgb,var(--learner-muted-text)_60%,transparent)] underline-offset-2 transition hover:text-[var(--learner-action-accent)]"
                         href={path.mapHref}
                     >
                         {path.mapTitle}

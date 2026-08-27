@@ -204,6 +204,14 @@ palette therefore affects the desk consistently instead of leaving secondary
 copy and separators on fixed slate values. The desk content hierarchy and
 three-font-size constraint remain unchanged.
 
+### Completed — Apply learner palette tokens across topic surfaces
+
+The Topics directory and topic detail now use the configured learner tokens
+for secondary text, body text, borders, dividers, panels and hover surfaces.
+This keeps the route from the learning desk into learning areas, maps and
+competence context visually coherent when a deployment changes its learner
+palette.
+
 ### Completed — Keep the playable activity shell coherent
 
 The shared activity frame now uses the learner palette for its panel, activity

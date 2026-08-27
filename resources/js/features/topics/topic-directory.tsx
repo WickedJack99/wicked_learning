@@ -17,7 +17,7 @@ export function TopicDirectory({
         <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
             <div className="px-5 py-10 sm:px-8 lg:px-14 lg:py-14">
-                <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-slate-200 pb-7 dark:border-white/10">
+                <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-[var(--learner-border-color)] pb-7">
                     <div>
                         <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                             {t('topics.eyebrow', 'Knowledge directory')}
@@ -25,7 +25,7 @@ export function TopicDirectory({
                         <h1 className="mt-3 text-3xl font-medium tracking-tight">
                             {t('topics.title', 'Topics')}
                         </h1>
-                        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
                             {t(
                                 'topics.description',
                                 'Browse broad areas and open a topic to continue into its subtopics and learning material.',
@@ -50,17 +50,17 @@ export function TopicDirectory({
                                 className="mb-10 break-inside-avoid"
                                 key={area.id}
                             >
-                                <div className="border-b border-slate-300 pb-3 dark:border-white/28">
+                                <div className="border-b border-[var(--learner-border-color)] pb-3">
                                     <h2 className="text-sm font-semibold">
                                         {area.title}
                                     </h2>
                                     {area.description ? (
-                                        <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
                                             {area.description}
                                         </p>
                                     ) : null}
                                 </div>
-                                <div className="divide-y divide-slate-200/70 dark:divide-white/6">
+                                <div className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]">
                                     {area.topics.map((topic) => (
                                         <Link
                                             className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"
@@ -103,7 +103,7 @@ export function TopicDirectory({
                                     'No topics have been published yet',
                                 )}
                             </h2>
-                            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                            <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
                                 {t(
                                     'topics.empty.description',
                                     'Topic areas will appear here as soon as an administrator adds their first published topic.',
