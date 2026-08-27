@@ -431,11 +431,9 @@ export default function NodePlay({
                 className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]"
                 data-world-appearance={resolvedAppearance}
             >
-                <LearnerNavigationHeader
-                    items={navigationItems}
-                />
+                <LearnerNavigationHeader items={navigationItems} />
 
-                <section className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1 md:px-6 md:pt-6">
+                <section className="mx-auto grid min-h-0 w-full flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:w-[85vw] md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1 md:px-6 md:pt-6">
                     <aside
                         aria-label="Learning context"
                         className="flex min-h-0 flex-col rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4"
