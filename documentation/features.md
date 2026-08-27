@@ -110,9 +110,11 @@ permission level allows it.
 
 The learner journal is a private Markdown workspace with custom pages,
 reflection-created pages, search, writing/rendered modes, autosaved drafts and
-export. Learners can explicitly request feedback for one page from an eligible
-journal, group or organization domain; journals are not a general staff-reading
-surface.
+export. The shared Journal action opens it as a focused overlay; `/journal` is a
+deep link that redirects to the learning desk with the overlay open, while
+`/learning/journal` is its lazy-loading JSON endpoint. Learners can explicitly
+request feedback for one page from an eligible journal, group or organization
+domain; journals are not a general staff-reading surface.
 
 Recent journal check-ins retain their related learning areas. Each area can
 open its focused competence-map reading, while the activity itself remains a

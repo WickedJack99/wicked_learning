@@ -46,6 +46,7 @@ Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::cl
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('home', LearningHomeController::class)->name('home');
+    Route::redirect('journal', '/home?journal=1')->name('journal');
     Route::get('paths', LearningPathController::class)->name('paths.index');
     Route::get('topics', [LearningTopicController::class, 'index'])->name('topics.index');
     Route::get('topics/{topic:slug}', [LearningTopicController::class, 'show'])->name('topics.show');

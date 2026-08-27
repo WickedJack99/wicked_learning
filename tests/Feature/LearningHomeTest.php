@@ -21,6 +21,14 @@ test('guests are sent to the public welcome page instead of the learning desk', 
         ->assertRedirect(route('welcome'));
 });
 
+test('the journal deep link opens the journal from the learning desk', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get('/journal')
+        ->assertRedirect(route('home', ['journal' => '1']));
+});
+
 test('authenticated learners can open an empty learning desk', function () {
     $user = User::factory()->create();
 
