@@ -92,6 +92,7 @@ class LearnerProgressService
         LearningActivity $activity,
         ?string $feeling,
         ?string $note = null,
+        ?string $nextDirection = null,
     ): LearnerActivityProgress {
         $progress = LearnerActivityProgress::query()
             ->where('user_id', $userId)
@@ -110,6 +111,9 @@ class LearnerProgressService
 
         if ($note !== null && $note !== '') {
             $checkIn['note'] = $note;
+        }
+        if ($nextDirection !== null && $nextDirection !== '') {
+            $checkIn['nextDirection'] = $nextDirection;
         }
         $history = is_array($metadata['learningCheckIns'] ?? null)
             ? $metadata['learningCheckIns']

@@ -46,6 +46,7 @@ export type JournalLearningCheckIn = {
     activityTitle: string;
     feeling: string | null;
     note: string | null;
+    nextDirection: 'revisit' | 'related' | 'settle' | null;
     nodeTitle: string;
     nodeHref: string;
     originTopicSlug: string | null;

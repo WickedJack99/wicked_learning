@@ -32,6 +32,7 @@ export type LearningDeskCheckIn = {
     activityTitle: string;
     feeling: string | null;
     note: string | null;
+    nextDirection: 'revisit' | 'related' | 'settle' | null;
     nodeHref: string;
     nodeTitle: string;
     recordedAt: string;

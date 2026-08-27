@@ -46,6 +46,7 @@ export type CompetenceCheckIn = {
     activityTitle: string;
     feeling: string | null;
     note: string | null;
+    nextDirection: 'revisit' | 'related' | 'settle' | null;
     nodeTitle: string;
     nodeHref: string;
     recordedAt: string;

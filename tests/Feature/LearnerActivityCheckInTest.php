@@ -104,6 +104,66 @@ test('a learner can save a private note without choosing a feeling phrase', func
             ->where('competenceMap.checkIns.0.note', 'The quiet example made the pattern easier to hold onto.'));
 });
 
+test('a learner can save an optional next direction with a check-in', function () {
+    Carbon::setTestNow('2026-08-26 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'next_direction' => 'related',
+        ])
+        ->assertOk()
+        ->assertJsonPath('progress.metadata.learningCheckIn.feeling', null)
+        ->assertJsonPath('progress.metadata.learningCheckIn.nextDirection', 'related');
+
+    expect(LearnerActivityProgress::query()->firstOrFail()->metadata['learningCheckIn'])
+        ->toMatchArray([
+            'feeling' => null,
+            'nextDirection' => 'related',
+            'recordedAt' => now()->toIso8601String(),
+        ]);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.checkIns.0.nextDirection', 'related'));
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.journal.index'))
+        ->assertOk()
+        ->assertJsonPath('checkIns.0.nextDirection', 'related');
+});
+
+test('a check-in only accepts supported next directions', function () {
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now(),
+        'completed_at' => now(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'next_direction' => 'notify-me-later',
+        ])
+        ->assertStatus(422);
+});
+
 test('a learner cannot write a check-in onto another learners progress', function () {
     [$learner, $activity] = checkInActivityContext();
     $otherLearner = User::factory()->create();

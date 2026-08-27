@@ -21,6 +21,20 @@
 - Unlocks that represent understanding rather than reward extraction.
 - Cooperative features without popularity contests.
 
+## Science-to-feature commitments
+
+After completing an activity, learners can optionally choose a private next
+direction: return to this place, look for something related, or let the idea
+settle. The choice is a small orientation aid for self-regulated learning. It
+does not create a deadline, reminder, streak, score or required route, and it
+can be skipped together with the feeling phrase and note.
+
+Future work should extend this loop with learner-controlled retrieval and
+spacing invitations, opportunities to compare earlier and later reasoning,
+meaningful alternative routes, consent-based help seeking and feedback that
+describes evidence plus a next action. Each addition should preserve choice,
+avoid overload and keep competence evidence qualitative and inspectable.
+
 ## MVP Interpretation
 
 The current world shows completed activity state only as personal orientation. The question feedback explains the reasoning and offers a review loop when the selected answer misses the key clue.

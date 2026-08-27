@@ -13,7 +13,7 @@ class LoadLearnerActivityCheckIns
     public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
 
     /**
-     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, originTopicSlug: string|null, recordedAt: string, topics: list<array{slug: string, name: string}>}>
+     * @return list<array{activityId: int, activityTitle: string, activityHref: string, feeling: string|null, note: string|null, nextDirection: string|null, nodeTitle: string, nodeHref: string, originTopicSlug: string|null, recordedAt: string, topics: list<array{slug: string, name: string}>}>
      */
     public function handle(User $user): array
     {
@@ -50,8 +50,16 @@ class LoadLearnerActivityCheckIns
                     $note = is_string($checkIn['note'] ?? null)
                         ? trim($checkIn['note'])
                         : null;
+                    $nextDirection = is_string($checkIn['nextDirection'] ?? null)
+                        ? trim($checkIn['nextDirection'])
+                        : null;
+                    if (! in_array($nextDirection, ['revisit', 'related', 'settle'], true)) {
+                        $nextDirection = null;
+                    }
 
-                    if (($feeling === null || $feeling === '') && ($note === null || $note === '')) {
+                    if (($feeling === null || $feeling === '')
+                        && ($note === null || $note === '')
+                        && ($nextDirection === null || $nextDirection === '')) {
                         continue;
                     }
 
@@ -64,6 +72,7 @@ class LoadLearnerActivityCheckIns
                         ]),
                         'feeling' => $feeling !== '' ? $feeling : null,
                         'note' => $note !== '' ? $note : null,
+                        'nextDirection' => $nextDirection !== '' ? $nextDirection : null,
                         'nodeTitle' => $activity->node->title,
                         'nodeHref' => route('learning.nodes.play', ['node' => $activity->node]),
                         'originTopicSlug' => $activity->node->map->topic?->is_published

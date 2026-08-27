@@ -38,6 +38,7 @@ import {
 } from '@/features/journal/theme';
 import type { JournalBackgroundAsset } from '@/features/journal/theme';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
+import { learningCheckInDirectionLabel } from '@/features/world/activity-utils';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -616,6 +617,17 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                             {checkIn.note ? (
                                 <p className="mt-2 text-xs leading-5">
                                     {checkIn.note}
+                                </p>
+                            ) : null}
+                            {checkIn.nextDirection ? (
+                                <p
+                                    className="mt-2 text-xs"
+                                    style={{ color: 'var(--journal-accent)' }}
+                                >
+                                    Next direction:{' '}
+                                    {learningCheckInDirectionLabel(
+                                        checkIn.nextDirection,
+                                    )}
                                 </p>
                             ) : null}
                         </a>

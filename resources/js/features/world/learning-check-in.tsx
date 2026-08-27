@@ -3,7 +3,10 @@ import { ArrowRight, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
-import type { LearningCheckInFeeling } from '@/types';
+import type {
+    LearningCheckInFeeling,
+    LearningCheckInNextDirection,
+} from '@/types';
 
 const feelings: Array<{
     description: string;
@@ -32,6 +35,28 @@ const feelings: Array<{
     },
 ];
 
+const nextDirections: Array<{
+    description: string;
+    label: string;
+    value: LearningCheckInNextDirection;
+}> = [
+    {
+        description: 'Try this place again when it feels useful.',
+        label: 'Return to this place',
+        value: 'revisit',
+    },
+    {
+        description: 'Follow a nearby learning area.',
+        label: 'Look for something related',
+        value: 'related',
+    },
+    {
+        description: 'Leave the idea here and come back later.',
+        label: 'Let it settle',
+        value: 'settle',
+    },
+];
+
 export function LearningCheckIn({
     activityTitle,
     learningAreas,
@@ -44,11 +69,14 @@ export function LearningCheckIn({
     onContinue: (
         feeling: LearningCheckInFeeling | null,
         note: string,
+        nextDirection: LearningCheckInNextDirection | null,
     ) => Promise<void>;
 }) {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [note, setNote] = useState('');
+    const [nextDirection, setNextDirection] =
+        useState<LearningCheckInNextDirection | null>(null);
 
     const continueWith = async (feeling: LearningCheckInFeeling | null) => {
         if (isSaving) {
@@ -59,7 +87,7 @@ export function LearningCheckIn({
         setError(null);
 
         try {
-            await onContinue(feeling, note.trim());
+            await onContinue(feeling, note.trim(), nextDirection);
         } catch (requestError) {
             setError(
                 requestError instanceof Error
@@ -141,6 +169,45 @@ export function LearningCheckIn({
                 />
             </div>
 
+            <div className="mt-4">
+                <p className="text-xs font-medium text-[var(--learner-action-accent)]">
+                    Choose a direction for later (optional)
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    {nextDirections.map((direction) => {
+                        const isSelected = nextDirection === direction.value;
+
+                        return (
+                            <button
+                                aria-pressed={isSelected}
+                                className={`rounded-md border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none ${
+                                    isSelected
+                                        ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)]'
+                                        : 'border-[var(--learner-border-color)] bg-[var(--learner-page-background)] hover:border-[color-mix(in_srgb,var(--learner-action-accent)_70%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)]'
+                                }`}
+                                disabled={isSaving}
+                                key={direction.value}
+                                onClick={() =>
+                                    setNextDirection((current) =>
+                                        current === direction.value
+                                            ? null
+                                            : direction.value,
+                                    )
+                                }
+                                type="button"
+                            >
+                                <span className="block text-sm font-medium text-[var(--learner-heading-text)]">
+                                    {direction.label}
+                                </span>
+                                <span className="mt-0.5 block text-xs leading-5 text-[var(--learner-muted-text)]">
+                                    {direction.description}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {feelings.map((feeling) => (
                     <button
@@ -175,7 +242,9 @@ export function LearningCheckIn({
             >
                 {note.trim()
                     ? 'Save note and continue'
-                    : 'Continue without answering'}
+                    : nextDirection
+                      ? 'Save direction and continue'
+                      : 'Continue without answering'}
                 <ArrowRight className="ml-2 size-4" />
             </Button>
         </section>

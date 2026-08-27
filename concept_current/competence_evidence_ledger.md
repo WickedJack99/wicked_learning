@@ -155,3 +155,7 @@ without adding another progression view.
 
 Continue adding confidence or feedback outcomes only where an activity actually
 collects them, without making a feeling check or reflection require an answer.
+The completion pause now also stores an optional learner-chosen next direction
+(`revisit`, `related` or `settle`) beside the private observation. This is
+orientation for later, not evidence of immediate growth. Future revisit support
+should use learner-controlled spacing and remain dismissible.

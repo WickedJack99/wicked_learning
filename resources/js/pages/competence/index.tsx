@@ -11,6 +11,7 @@ import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import { Button } from '@/components/ui/button';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
+import { learningCheckInDirectionLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
     backgroundStars,
@@ -615,6 +616,14 @@ function LearningPulseTimeline({
                                     {checkIn.note}
                                 </p>
                             ) : null}
+                            {checkIn.nextDirection ? (
+                                <p className="mt-2 text-xs text-cyan-200/80">
+                                    Next direction:{' '}
+                                    {learningCheckInDirectionLabel(
+                                        checkIn.nextDirection,
+                                    )}
+                                </p>
+                            ) : null}
                             <Link
                                 className="mt-2 inline-flex text-xs font-medium text-cyan-200 transition hover:text-white"
                                 href={checkIn.activityHref}
@@ -835,6 +844,14 @@ function CompetenceReading({
                                 {checkIn.note ? (
                                     <p className="mt-2 text-xs leading-5 text-slate-300">
                                         {checkIn.note}
+                                    </p>
+                                ) : null}
+                                {checkIn.nextDirection ? (
+                                    <p className="mt-2 text-xs text-cyan-200/80">
+                                        Next direction:{' '}
+                                        {learningCheckInDirectionLabel(
+                                            checkIn.nextDirection,
+                                        )}
                                     </p>
                                 ) : null}
                             </div>

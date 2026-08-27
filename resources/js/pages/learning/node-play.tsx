@@ -21,6 +21,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     LearningActivity,
     LearningCheckInFeeling,
+    LearningCheckInNextDirection,
     LearningNode,
     LearningPortalLink,
     LearningProgress,
@@ -335,14 +336,18 @@ export default function NodePlay({
     }, []);
 
     const continueAfterCheckIn = useCallback(
-        async (feeling: LearningCheckInFeeling | null, note: string) => {
+        async (
+            feeling: LearningCheckInFeeling | null,
+            note: string,
+            nextDirection: LearningCheckInNextDirection | null,
+        ) => {
             const checkIn = pendingLearningCheckInRef.current;
 
             if (!checkIn) {
                 return;
             }
 
-            if (feeling || note.trim()) {
+            if (feeling || note.trim() || nextDirection) {
                 const response = await postJson<{
                     progress: LearningProgress['activities'][number] & {
                         activityId: number;
@@ -350,6 +355,7 @@ export default function NodePlay({
                 }>(`/learning/activities/${checkIn.activityId}/check-in`, {
                     feeling,
                     note: note.trim() || null,
+                    next_direction: nextDirection,
                 });
 
                 setActivityProgress((current) => ({

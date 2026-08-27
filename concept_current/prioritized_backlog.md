@@ -3,6 +3,36 @@
 This backlog contains current direction. Historical ideas in `concept/` and
 `concrete_concept_i1/` remain references until explicitly promoted here.
 
+## Science-to-feature roadmap
+
+These items translate established learning-science and SDT principles into
+small, testable platform behaviors. They are design commitments, not a
+promise that every interaction produces an immediate measurable gain.
+
+- [x] Offer an optional learner-chosen direction after completion: return to
+  the place, look for something related, or let it settle. Keep it private,
+  retrievable and free of deadlines, reminders or performance language.
+- Add learner-controlled retrieval and revisit invitations using spacing
+  windows. Let learners dismiss or postpone them; do not turn them into a
+  compulsory queue or an auto-graded score.
+- Expand competence evidence into longitudinal, inspectable narratives where
+  learners can compare earlier and later reasoning without reducing growth to a
+  single number.
+- Add authoring fields for meaningful choice: explain why a choice exists,
+  provide genuinely different routes, and avoid choice overload.
+- Add optional help-seeking and peer-response moments with consent,
+  moderation and a clear learner-controlled exit.
+- Give activity authors a competence-supportive feedback contract: state the
+  task purpose, describe the evidence in the response, and offer one useful
+  next action without trait judgments.
+- Continue strengthening explicit Review / revisit activities with retrieval,
+  feedback and spacing semantics while keeping reflection skippable.
+
+The evidence base is strongest for autonomy-supportive teaching, retrieval and
+spacing, while relatedness effects are more context-dependent. Relatedness
+features should therefore invite connection rather than require social
+participation.
+
 ## Priority 1 - Strengthen Existing Learning Loops
 
 - Complete the remaining UI audit follow-up in

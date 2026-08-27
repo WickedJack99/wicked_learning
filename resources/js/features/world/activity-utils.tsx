@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { LearningActivity } from '@/types';
+import type { LearningActivity, LearningCheckInNextDirection } from '@/types';
 
 type PlatformTranslate = (key: string, fallback?: string) => string;
 
@@ -96,6 +96,18 @@ export function learningIntentLabel(
     }
 
     return null;
+}
+
+export function learningCheckInDirectionLabel(
+    direction: LearningCheckInNextDirection | string | null,
+): string | null {
+    return (
+        {
+            related: 'Look for something related',
+            revisit: 'Return to this place',
+            settle: 'Let it settle',
+        }[direction ?? ''] ?? null
+    );
 }
 
 function activityTypeLabel(type: string): string {

@@ -120,6 +120,11 @@ Recent journal check-ins retain their related learning areas. Each area can
 open its focused competence-map reading, while the activity itself remains a
 separate route back to the learning place.
 
+After completing an activity, a learner may optionally choose a private next
+direction: return to that place, look for something related, or let it settle.
+The direction is saved with the check-in and shown later in the Journal and
+competence pulse as orientation, without deadlines or a progress score.
+
 Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and
 its map place.

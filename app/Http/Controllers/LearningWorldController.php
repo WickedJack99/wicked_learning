@@ -220,6 +220,7 @@ class LearningWorldController extends Controller
     {
         $feelingValue = $request->input('feeling');
         $noteValue = $request->input('note');
+        $nextDirectionValue = $request->input('next_direction');
 
         abort_unless(
             $feelingValue === null
@@ -229,16 +230,26 @@ class LearningWorldController extends Controller
             'Choose one of the available learning check-in phrases.',
         );
         abort_unless($noteValue === null || is_string($noteValue), 422, 'Add a short note.');
+        abort_unless(
+            $nextDirectionValue === null
+                || (is_string($nextDirectionValue)
+                    && in_array(trim($nextDirectionValue), ['revisit', 'related', 'settle'], true)),
+            422,
+            'Choose one of the available directions.',
+        );
 
         $feeling = is_string($feelingValue) ? trim($feelingValue) : null;
         $note = is_string($noteValue) ? trim($noteValue) : null;
+        $nextDirection = is_string($nextDirectionValue) ? trim($nextDirectionValue) : null;
 
         abort_unless($note === null || mb_strlen($note) <= 500, 422, 'Keep the note to 500 characters or fewer.');
 
         abort_unless(
-            ($feeling !== null && $feeling !== '') || ($note !== null && $note !== ''),
+            ($feeling !== null && $feeling !== '')
+                || ($note !== null && $note !== '')
+                || ($nextDirection !== null && $nextDirection !== ''),
             422,
-            'Add a phrase or note before saving.',
+            'Choose a phrase, direction or note before saving.',
         );
 
         $progress = $this->progressService->recordCheckIn(
@@ -246,6 +257,7 @@ class LearningWorldController extends Controller
             $activity,
             $feeling,
             $note !== '' ? $note : null,
+            $nextDirection !== '' ? $nextDirection : null,
         );
 
         return response()->json([

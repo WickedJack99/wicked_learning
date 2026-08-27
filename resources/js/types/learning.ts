@@ -404,6 +404,8 @@ export type LearningCheckInFeeling =
     | 'stretched'
     | 'stuck';
 
+export type LearningCheckInNextDirection = 'revisit' | 'related' | 'settle';
+
 export type QuestionAnswerProgress = {
     optionId: number | null;
     isCorrect: boolean;
