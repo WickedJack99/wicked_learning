@@ -373,7 +373,8 @@ observed learning trail and an authored practice opportunity. The competence
 summary still links to the focused reading, while the practice section remains
 the single place to choose an area to explore. The competence-map reading guide
 is an explicit button with an expandable, scroll-contained explanation instead
-of relying on native disclosure styling.
+of relying on native disclosure styling. The topic trail summary also avoids a
+standalone decorative glow, keeping the content aligned with the bounded card.
 
 ### Completed — Make topic sections keyboard navigable
 

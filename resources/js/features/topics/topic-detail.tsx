@@ -532,15 +532,6 @@ function TopicCompetenceCard({
     const competenceHref = focusedSlug
         ? competenceTopicHref(focusedSlug, topicSlug)
         : competenceContextHref(topicSlug);
-    const starSize = firstTrail
-        ? 30 + Math.round(firstTrail.visual.sizeRatio * 18)
-        : 30;
-    const glowSize = firstTrail
-        ? 14 + Math.round(firstTrail.visual.auraRatio * 18)
-        : 12;
-    const glowOpacity = firstTrail
-        ? 0.35 + firstTrail.visual.brightnessRatio * 0.55
-        : 0.28;
 
     return (
         <section
@@ -548,46 +539,35 @@ function TopicCompetenceCard({
             className="mt-8 border-y border-[var(--learner-border-color)] py-7"
         >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-4">
-                    <span
-                        aria-hidden="true"
-                        className="mt-1 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)]"
-                        style={{
-                            boxShadow: `0 0 ${glowSize}px ${glowSize / 2}px rgba(103, 232, 249, ${glowOpacity})`,
-                            height: starSize,
-                            width: starSize,
-                        }}
-                    />
-                    <div>
-                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                            {t(
-                                'topics.detail.competence.eyebrow',
-                                'Learning trail',
-                            )}
-                        </p>
-                        <h2
-                            className="mt-2 text-sm font-semibold"
-                            id="topic-learning-trail-heading"
-                        >
-                            {t(
-                                'topics.detail.competence.title',
-                                'Your trail in this topic',
-                            )}
-                        </h2>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                            {competence
-                                ? competence.visual.description
-                                : subtopicCompetence.length > 0
-                                  ? t(
-                                        'topics.detail.competence.subtopic_summary',
-                                        'Learning is unfolding across connected areas.',
-                                    )
-                                  : t(
-                                        'topics.detail.competence.empty',
-                                        'A first light will appear here as you work with this topic.',
-                                    )}
-                        </p>
-                    </div>
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
+                        {t(
+                            'topics.detail.competence.eyebrow',
+                            'Learning trail',
+                        )}
+                    </p>
+                    <h2
+                        className="mt-2 text-sm font-semibold"
+                        id="topic-learning-trail-heading"
+                    >
+                        {t(
+                            'topics.detail.competence.title',
+                            'Your trail in this topic',
+                        )}
+                    </h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                        {competence
+                            ? competence.visual.description
+                            : subtopicCompetence.length > 0
+                              ? t(
+                                    'topics.detail.competence.subtopic_summary',
+                                    'Learning is unfolding across connected areas.',
+                                )
+                              : t(
+                                    'topics.detail.competence.empty',
+                                    'A first light will appear here as you work with this topic.',
+                                )}
+                    </p>
                 </div>
                 <Link
                     className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
