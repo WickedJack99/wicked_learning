@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, FolderTree, Settings2 } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { TopicArea } from './types';
 
@@ -43,12 +44,12 @@ export function TopicDirectory({
                 </header>
 
                 {areas.length > 0 ? (
-                    <div className="mx-auto mt-9 max-w-7xl columns-1 gap-x-20 lg:columns-2">
-                        {areas.map((area) => (
-                            <section
-                                className="mb-10 break-inside-avoid"
-                                key={area.id}
-                            >
+                    <LearnerPaginatedItems
+                        className="mx-auto mt-9 grid max-w-7xl grid-cols-1 gap-x-20 lg:grid-cols-2"
+                        items={areas}
+                        pageSize={4}
+                        renderItem={(area) => (
+                            <section className="mb-10 min-w-0" key={area.id}>
                                 <div className="border-b border-[var(--learner-border-color)] pb-3">
                                     <h2 className="text-sm font-semibold">
                                         {area.title}
@@ -59,8 +60,11 @@ export function TopicDirectory({
                                         </p>
                                     ) : null}
                                 </div>
-                                <div className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]">
-                                    {area.topics.map((topic) => (
+                                <LearnerPaginatedItems
+                                    className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]"
+                                    items={area.topics}
+                                    pageSize={6}
+                                    renderItem={(topic) => (
                                         <Link
                                             className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"
                                             href={topic.href}
@@ -87,11 +91,11 @@ export function TopicDirectory({
                                             </span>
                                             <ArrowRight className="size-4 shrink-0 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
                                         </Link>
-                                    ))}
-                                </div>
+                                    )}
+                                />
                             </section>
-                        ))}
-                    </div>
+                        )}
+                    />
                 ) : (
                     <div className="mx-auto grid min-h-[50svh] max-w-lg place-items-center text-center">
                         <div>

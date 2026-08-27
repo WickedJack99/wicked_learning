@@ -364,6 +364,11 @@ The map/player action rail is a labelled control group rather than a navigation
 landmark. Its buttons remain individually named and the learner link navigation
 keeps the only navigation landmark for that header.
 
+The shared learner pagination control now bounds both topic-directory areas and
+the topics inside each area. Topic detail uses the same control, so growing
+collections have an explicit next/previous path instead of pushing the page
+past the intended surface height.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published
