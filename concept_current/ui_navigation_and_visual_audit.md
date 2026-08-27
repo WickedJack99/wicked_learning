@@ -225,6 +225,14 @@ decorative assets remain non-interactive. Toggle assets also expose their
 current pressed state to assistive technology, and interactive assets retain a
 visible map-specific focus ring.
 
+### Completed — Make World Builder visual controls semantic
+
+World Builder section switchers now expose their selected state when they are
+used as tabs. The map-asset visual preview is announced as an image preview
+while remaining keyboard-reachable for its hover treatment, and reusable image
+choices expose which image is selected. Existing settings panes continue to
+own scrolling so these controls remain reachable in long editors.
+
 ### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;

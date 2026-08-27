@@ -27,6 +27,7 @@ type SettingsSectionButtonProps<T extends string> = {
     id: T;
     label: string;
     onSelect: (id: T) => void;
+    role?: 'tab';
 };
 
 export type SettingsNavigationItem<T extends string> = {
@@ -197,9 +198,11 @@ export function SettingsSectionButton<T extends string>({
     id,
     label,
     onSelect,
+    role,
 }: SettingsSectionButtonProps<T>) {
     return (
         <button
+            aria-selected={role === 'tab' ? active : undefined}
             className={cn(
                 'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                 active &&
@@ -212,6 +215,7 @@ export function SettingsSectionButton<T extends string>({
                         : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'),
             )}
             onClick={() => onSelect(id)}
+            role={role}
             type="button"
         >
             <span
@@ -582,6 +586,7 @@ export function SettingsSectionNavigation<T extends string>({
                     key={item.key}
                     label={item.label}
                     onSelect={onChange}
+                    role="tab"
                 />
             ))}
         </div>

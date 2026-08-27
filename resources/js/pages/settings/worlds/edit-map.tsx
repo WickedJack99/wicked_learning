@@ -2805,6 +2805,7 @@ function NodeSettingsSwitcher({
                                     key={item.key}
                                     label={item.label}
                                     onSelect={onChange}
+                                    role="tab"
                                 />
                             ))}
                         </section>
@@ -3469,6 +3470,7 @@ function NodeVisualPreview({
                     onFocus={() => setIsHovered(true)}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
+                    role="img"
                     tabIndex={0}
                 >
                     <MapAssetVisual

@@ -179,6 +179,10 @@ export function ReusableImagePicker({
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {assets.map((asset) => (
                                 <button
+                                    aria-pressed={
+                                        normalizeMediaUrl(currentValue) ===
+                                        normalizeMediaUrl(asset.url)
+                                    }
                                     className={[
                                         'group grid min-w-0 gap-3 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                         normalizeMediaUrl(currentValue) ===
