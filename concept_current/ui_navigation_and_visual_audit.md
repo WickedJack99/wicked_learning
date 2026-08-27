@@ -375,6 +375,14 @@ the single place to choose an area to explore. The competence-map reading guide
 is an explicit button with an expandable, scroll-contained explanation instead
 of relying on native disclosure styling.
 
+### Completed — Make topic sections keyboard navigable
+
+The bounded topic workspace exposes Trail, Routes, Maps and Overview as a
+single keyboard tablist. The active tab is the only tab stop, and Arrow keys,
+Home and End move focus while switching the visible section. This keeps local
+navigation efficient without requiring a learner to tab through every section
+before reaching its content.
+
 ### Completed — Keep activity review reachable from editing
 
 When an activity-review helper is configured, the activity editor now offers a

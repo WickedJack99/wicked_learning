@@ -72,7 +72,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     className="mt-5 flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--learner-border-color)] pb-px"
                     role="tablist"
                 >
-                    {sections.map((section) => (
+                    {sections.map((section, index) => (
                         <button
                             aria-controls={`topic-panel-${section.id}`}
                             aria-selected={activeSection === section.id}
@@ -80,7 +80,46 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             id={`topic-${section.id}-tab`}
                             key={section.id}
                             onClick={() => setActiveSection(section.id)}
+                            onKeyDown={(event) => {
+                                let nextIndex: number | null = null;
+
+                                if (
+                                    event.key === 'ArrowRight' ||
+                                    event.key === 'ArrowDown'
+                                ) {
+                                    nextIndex = (index + 1) % sections.length;
+                                } else if (
+                                    event.key === 'ArrowLeft' ||
+                                    event.key === 'ArrowUp'
+                                ) {
+                                    nextIndex =
+                                        (index - 1 + sections.length) %
+                                        sections.length;
+                                } else if (event.key === 'Home') {
+                                    nextIndex = 0;
+                                } else if (event.key === 'End') {
+                                    nextIndex = sections.length - 1;
+                                }
+
+                                if (nextIndex === null) {
+                                    return;
+                                }
+
+                                event.preventDefault();
+                                const nextSection = sections[nextIndex];
+                                setActiveSection(nextSection.id);
+                                window.setTimeout(
+                                    () =>
+                                        document
+                                            .getElementById(
+                                                `topic-${nextSection.id}-tab`,
+                                            )
+                                            ?.focus(),
+                                    0,
+                                );
+                            }}
                             role="tab"
+                            tabIndex={activeSection === section.id ? 0 : -1}
                             type="button"
                         >
                             {section.label}
