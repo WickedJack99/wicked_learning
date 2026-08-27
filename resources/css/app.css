@@ -529,6 +529,17 @@
         scrollbar-gutter: stable;
     }
 
+    /* Keep long learner-owned lists inside their surface without shifting the layout when a thumb appears. */
+    .learner-scroll-region {
+        min-height: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+    }
+
     .route-options-scroll::-webkit-scrollbar {
         width: 0.45rem;
     }

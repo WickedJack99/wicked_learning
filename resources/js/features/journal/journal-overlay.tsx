@@ -436,7 +436,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                         {payload && payload.checkIns.length > 0 ? (
                             <LearningTrail checkIns={payload.checkIns} />
                         ) : null}
-                        <div className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1">
+                        <div className="learner-scroll-region mt-3 min-h-0 flex-1 pr-1">
                             {isLoading ? <JournalPageListSkeleton /> : null}
                             {visiblePages.map((page) => (
                                 <button
@@ -993,7 +993,7 @@ function JournalPageEditor({
                         value={page.markdown}
                     />
                 ) : (
-                    <div className="size-full overflow-y-auto p-5">
+                    <div className="learner-scroll-region size-full p-5">
                         <MarkdownRenderer
                             headingColor="var(--journal-heading-text)"
                             inheritColor

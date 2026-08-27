@@ -773,7 +773,7 @@ function ChatPanel({
             </h2>
             <div
                 aria-label="Organization chat messages"
-                className="grid min-h-0 content-start gap-2 overflow-y-auto overscroll-contain rounded-lg border border-slate-200 p-3 dark:border-white/10"
+                className="learner-scroll-region grid min-h-0 content-start gap-2 rounded-lg border border-slate-200 p-3 dark:border-white/10"
             >
                 {messages.length === 0 ? (
                     <p className="text-sm text-slate-500 dark:text-slate-400">

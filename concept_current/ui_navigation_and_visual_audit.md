@@ -134,6 +134,11 @@ horizontal spill, and contains vertical overscroll. Map and settings panes
 remain explicitly nested because their controls and actions have different
 fixed-layout ownership.
 
+Variable-length learner-owned lists now also use a `.learner-scroll-region`
+contract for nested panels. Bookmarked places, Journal pages and organization
+messages keep their own vertical scroll region, reserve scrollbar space and
+clip horizontal spill without moving neighboring controls when the list grows.
+
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
 scrollbar remains arrow-free and retains a visible thumb in both themes.

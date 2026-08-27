@@ -143,7 +143,7 @@ function BookmarkPanel({
             : undefined;
 
     return (
-        <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
+        <div className="learner-scroll-region flex h-full min-h-[44vh] flex-col gap-5 p-5 md:p-7">
             <div className="flex items-start gap-4">
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium tracking-[0.18em] text-cyan-700 uppercase dark:text-teal-200/78">
