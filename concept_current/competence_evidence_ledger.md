@@ -54,6 +54,10 @@ surface: size represents how established a pattern is over time, glow represents
 activity in the trailing 30-day window, and paths represent topics encountered together.
 These are interpretive signals, not a hidden score scale presented in disguise.
 
+Learner-facing copy should describe what a person can notice, choose or revisit
+in positive terms. Avoid defensive explanations about what the map is not
+unless a specific interaction could otherwise be misunderstood.
+
 ## Learning pulse check-in
 
 After an authenticated activity completion, the learner may choose a short

@@ -847,7 +847,8 @@ function CompetenceReading({
                     ))
                 ) : (
                     <span className="text-sm text-slate-400">
-                        No evidence pattern yet.
+                        Learning moments will appear here as you work with this
+                        area.
                     </span>
                 )}
             </div>

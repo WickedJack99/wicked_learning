@@ -580,7 +580,7 @@ export function ReflectionActivity({
             {isReview ? (
                 <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
                     Return to the idea and notice what feels clearer, more
-                    connected, or still open. This is not a test.
+                    connected, or still open.
                 </p>
             ) : null}
             {isReview && activity.reviewContext?.length ? (
