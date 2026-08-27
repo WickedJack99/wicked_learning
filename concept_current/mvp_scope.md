@@ -29,6 +29,10 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
 - Groups, group chat and shared-task contributions provide an initial
   cooperation slice.
 - Learners control appearance, language and optional sound preferences.
+- Learner document pages reserve the viewport for the global header and use
+  local sections with pagination for repeated choices where that keeps the
+  learner oriented; internal scrolling remains available for continuous reading
+  or complex workspaces.
 
 ## Administration
 

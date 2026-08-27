@@ -31,7 +31,7 @@ instead of being presented as working.
 | Learning desk       | Search, recent traces, continue learning, possible connections, bookmarks aside                                                                                 | Working; possible connections is present below the initial content on the current desktop layout                     |
 | Paths               | Route cards and entry links                                                                                                                                     | Working                                                                                                              |
 | Topics              | Topic directory, areas, topic links and admin link where available                                                                                              | Working                                                                                                              |
-| Topic detail        | Competence link, learning areas, routes, maps and subtopics                                                                                                     | Working; the page is a vertically scrollable document, so lower cards are not a clipping defect                      |
+| Topic detail        | Competence link, learning areas, routes, maps and subtopics                                                                                                     | Working; bounded Trail, Routes, Maps and Overview sections keep repeated choices paginated and reachable             |
 | Bookmarks           | Shared surface header, selected place and bookmark links                                                                                                        | Working                                                                                                              |
 | Competence          | Star-map empty state, topic return, learning pulse and star reading panel                                                                                       | Working; star activation is covered after correcting the payload-shape regression found in the 2026-08-27 pass       |
 | Map                 | Map selection, asset focus panel, activity links, surface navigation                                                                                            | Working at the checked desktop state                                                                                 |
@@ -127,11 +127,10 @@ region scrolls on its own axis without moving controls off-screen.
 
 ### P2 — Add variable-length collection coverage
 
-The current topic detail page scrolls correctly, and settings asset/palette
-surfaces use intentional nested scrolling. The same containment contract still
-needs explicit coverage for long lists and graphs: topic cards, bookmarks,
-journal pages, AI review queues, graph nodes, map assets, reusable media, and
-organization members/messages.
+Settings asset/palette surfaces use intentional nested scrolling. The same
+containment contract still needs explicit coverage for long lists and graphs:
+topic cards, bookmarks, journal pages, AI review queues, graph nodes, map
+assets, reusable media, and organization members/messages.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -147,6 +146,21 @@ clip horizontal spill without moving neighboring controls when the list grows.
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
 scrollbar remains arrow-free and retains a visible thumb in both themes.
+
+### Current constraint — Prefer bounded topic workspaces and pagination
+
+Learner pages should use the available viewport deliberately: reserve space for
+the global header, keep the page frame bounded, and avoid making the entire
+surface a scroll pane merely because a collection can grow. Topic details now
+use a compact section bar for Trail, Routes, Maps and Overview. Long repeated
+collections on those sections use previous/next pagination; the active section
+may still scroll internally when authored prose or a single complex panel is
+longer than the available space.
+
+Use pagination when the learner is comparing or choosing a bounded set of
+repeated items. Use an internal scroll region when continuity matters, such as
+reading authored content, viewing a journal, or inspecting a graph. Every new
+surface should make that choice explicit and retain keyboard-reachable controls.
 
 ### Completed — Keep learner document pages inside the app frame
 
@@ -377,8 +391,8 @@ These are test gaps, not claims that the feature is broken:
   covered by the current browser smoke pass; backend result filtering remains
   covered by `DashboardTest`.
 - Topic → competence, topic → map, map → asset and asset → activity link
-  contracts are covered by `LearningTopicsTest`; activity completion still
-  needs one uninterrupted browser flow.
+  contracts are covered by `LearningTopicsTest`; the bounded topic sections
+  still need one uninterrupted browser flow through activity completion.
 - Bookmark add, remove and reopen is now covered through the map endpoint,
   activity shell and bookmark surface, including retained map-asset and topic
   context. A browser check still covers the same lifecycle from an

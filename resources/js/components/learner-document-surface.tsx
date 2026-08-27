@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 type LearnerDocumentSurfaceProps = {
     children: ReactNode;
     className?: string;
+    scrollable?: boolean;
 };
 
 /**
@@ -15,11 +16,15 @@ type LearnerDocumentSurfaceProps = {
 export function LearnerDocumentSurface({
     children,
     className,
+    scrollable = true,
 }: LearnerDocumentSurfaceProps) {
     return (
         <main
             className={cn(
-                'learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]',
+                scrollable
+                    ? 'learner-scroll-pane'
+                    : 'flex min-h-0 flex-1 flex-col overflow-hidden',
+                'bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]',
                 className,
             )}
         >

@@ -15,6 +15,9 @@ The product supports:
 - **Relatedness:** cooperation, learner messages and shared reflection support
   connection without comparison.
 - **Wellbeing:** learning loops should feel inviting, active and humane.
+- **Orientation:** learner surfaces use bounded layouts, clear local sections
+  and pagination for repeated choices so the interface does not become an
+  undifferentiated scroll wall.
 
 MapAssets are the learner-facing places on a map. Their shape and imagery are
 domain-specific; a MapAsset may be an organ, location, instrument, concept or

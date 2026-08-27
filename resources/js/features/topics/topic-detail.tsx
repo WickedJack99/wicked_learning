@@ -3,9 +3,13 @@ import {
     ArrowLeft,
     ArrowRight,
     BookOpenText,
+    ChevronLeft,
+    ChevronRight,
     Map as MapIcon,
     Route,
 } from 'lucide-react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import {
     competenceContextHref,
@@ -24,10 +28,20 @@ import type {
 
 export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
+    const [activeSection, setActiveSection] = useState<TopicSection>('trail');
+    const sections: { id: TopicSection; label: string }[] = [
+        { id: 'trail', label: t('topics.detail.navigation.trail', 'Trail') },
+        { id: 'routes', label: t('topics.detail.navigation.routes', 'Routes') },
+        { id: 'maps', label: t('topics.detail.navigation.maps', 'Maps') },
+        {
+            id: 'overview',
+            label: t('topics.detail.navigation.overview', 'Overview'),
+        },
+    ];
 
     return (
-        <LearnerDocumentSurface>
-            <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+        <LearnerDocumentSurface scrollable={false}>
+            <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
                 <Link
                     className="inline-flex items-center gap-2 text-sm text-[var(--learner-muted-text)] transition hover:text-[var(--learner-accent)]"
                     href={topic.parent?.href ?? '/topics'}
@@ -36,7 +50,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     {topic.parent?.title ?? t('topics.title', 'Topics')}
                 </Link>
 
-                <header className="mt-8 max-w-3xl border-b border-[var(--learner-border-color)] pb-8">
+                <header className="mt-6 max-w-3xl shrink-0 border-b border-[var(--learner-border-color)] pb-6">
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                         {topic.area.title}
                     </p>
@@ -50,201 +64,271 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     ) : null}
                 </header>
 
-                <TopicCompetenceCard
-                    competence={topic.competence}
-                    learningAreaSlugs={topic.learningAreas.map(
-                        (area) => area.slug,
+                <nav
+                    aria-label={t(
+                        'topics.detail.navigation.label',
+                        'Topic sections',
                     )}
-                    subtopicCompetence={topic.subtopicCompetence}
-                    topicSlug={topic.slug}
-                />
-
-                <TopicLearningAreas
-                    areas={topic.learningAreas}
-                    topicSlug={topic.slug}
-                />
-
-                <TopicLearningPulse entries={topic.learningPulse} />
-
-                {topic.paths.length > 0 ? (
-                    <section
-                        aria-labelledby="topic-paths-heading"
-                        className="mt-10 border-y border-[var(--learner-border-color)] py-7"
-                    >
-                        <div className="flex items-start gap-3">
-                            <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
-                            <div>
-                                <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
-                                    {t(
-                                        'topics.detail.paths.eyebrow',
-                                        'Optional ways in',
-                                    )}
-                                </p>
-                                <h2
-                                    className="mt-2 text-sm font-semibold"
-                                    id="topic-paths-heading"
-                                >
-                                    {t(
-                                        'topics.detail.paths.title',
-                                        'Start with a route',
-                                    )}
-                                </h2>
-                                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                                    {t(
-                                        'topics.detail.paths.description',
-                                        'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            {topic.paths.map((path) => (
-                                <TopicPathCard key={path.id} path={path} />
-                            ))}
-                        </div>
-                    </section>
-                ) : null}
-
-                {topic.maps.length > 0 ? (
-                    <section
-                        aria-labelledby="topic-maps-heading"
-                        className="mt-10 border-y border-[var(--learner-border-color)] py-7"
-                    >
-                        <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
-                            {t(
-                                'topics.detail.maps.eyebrow',
-                                'Explore this topic',
-                            )}
-                        </p>
-                        <h2
-                            className="mt-2 text-sm font-semibold"
-                            id="topic-maps-heading"
+                    className="mt-5 flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--learner-border-color)] pb-px"
+                    role="tablist"
+                >
+                    {sections.map((section) => (
+                        <button
+                            aria-controls={`topic-panel-${section.id}`}
+                            aria-selected={activeSection === section.id}
+                            className="shrink-0 border-b-2 border-transparent px-3 py-3 text-sm font-medium text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] aria-selected:border-[var(--learner-accent)] aria-selected:text-[var(--learner-heading-text)]"
+                            id={`topic-${section.id}-tab`}
+                            key={section.id}
+                            onClick={() => setActiveSection(section.id)}
+                            role="tab"
+                            type="button"
                         >
-                            {t('topics.detail.maps.title', 'Map surfaces')}
-                        </h2>
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                            {t(
-                                'topics.detail.maps.description',
-                                'Open a map to explore this topic through places, activities and connected paths.',
-                            )}
-                        </p>
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                            {topic.maps.map((map) => (
-                                <Link
-                                    className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
-                                    href={map.href}
-                                    key={map.id}
-                                >
-                                    <MapIcon className="mt-0.5 size-5 shrink-0 text-[var(--learner-action-accent)]" />
-                                    <span className="min-w-0 flex-1">
-                                        <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
-                                            {map.title}
-                                        </span>
-                                        {map.description ? (
-                                            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-[var(--learner-muted-text)]">
-                                                {map.description}
-                                            </span>
-                                        ) : null}
-                                        <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
-                                            {map.nodeCount === 1
-                                                ? t(
-                                                      'topics.detail.maps.place_count.one',
-                                                      '1 place to explore',
-                                                  )
-                                                : t(
-                                                      'topics.detail.maps.place_count.many',
-                                                      ':count places to explore',
-                                                      { count: map.nodeCount },
-                                                  )}
-                                        </span>
-                                        <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-[var(--learner-action-accent)] uppercase">
-                                            {t(
-                                                'topics.detail.maps.open',
-                                                'Open map',
-                                            )}
-                                            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
-                                        </span>
-                                    </span>
-                                </Link>
-                            ))}
-                        </div>
-                    </section>
-                ) : null}
+                            {section.label}
+                        </button>
+                    ))}
+                </nav>
 
-                <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <article className="min-w-0">
-                        {topic.content ? (
-                            <MarkdownRenderer
-                                className="max-w-3xl"
-                                markdown={topic.content}
+                <div className="min-h-0 flex-1 overflow-hidden pt-5">
+                    {activeSection === 'trail' ? (
+                        <TopicPanel id="trail">
+                            <TopicCompetenceCard
+                                competence={topic.competence}
+                                learningAreaSlugs={topic.learningAreas.map(
+                                    (area) => area.slug,
+                                )}
+                                subtopicCompetence={topic.subtopicCompetence}
+                                topicSlug={topic.slug}
                             />
-                        ) : (
-                            <div className="border-y border-[var(--learner-border-color)] py-7">
-                                <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
-                                <p className="mt-3 text-sm leading-6 text-[var(--learner-muted-text)]">
+
+                            <TopicLearningAreas
+                                areas={topic.learningAreas}
+                                topicSlug={topic.slug}
+                            />
+
+                            <TopicLearningPulse entries={topic.learningPulse} />
+                        </TopicPanel>
+                    ) : null}
+
+                    {activeSection === 'routes' ? (
+                        <TopicPanel id="routes">
+                            {topic.paths.length > 0 ? (
+                                <section
+                                    aria-labelledby="topic-paths-heading"
+                                    className="mt-10 border-y border-[var(--learner-border-color)] py-7"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
+                                        <div>
+                                            <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
+                                                {t(
+                                                    'topics.detail.paths.eyebrow',
+                                                    'Optional ways in',
+                                                )}
+                                            </p>
+                                            <h2
+                                                className="mt-2 text-sm font-semibold"
+                                                id="topic-paths-heading"
+                                            >
+                                                {t(
+                                                    'topics.detail.paths.title',
+                                                    'Start with a route',
+                                                )}
+                                            </h2>
+                                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'topics.detail.paths.description',
+                                                    'A route is a suggested beginning. You can follow it, pause, or explore the map in your own direction.',
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="mt-5">
+                                        <PaginatedItems
+                                            items={topic.paths}
+                                            pageSize={4}
+                                            renderItem={(path) => (
+                                                <TopicPathCard
+                                                    key={path.id}
+                                                    path={path}
+                                                />
+                                            )}
+                                        />
+                                    </div>
+                                </section>
+                            ) : null}
+                            {topic.paths.length === 0 ? (
+                                <p className="mt-8 border-y border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
-                                        'topics.detail.no_content',
-                                        'This topic currently serves as an overview. Continue with one of its subtopics.',
+                                        'topics.detail.paths.empty',
+                                        'No routes are available yet.',
                                     )}
                                 </p>
-                            </div>
-                        )}
-                    </article>
+                            ) : null}
+                        </TopicPanel>
+                    ) : null}
 
-                    <aside>
-                        <h2 className="border-b border-[var(--learner-border-color)] pb-3 text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
-                            {t('topics.detail.subtopics', 'Subtopics')}
-                        </h2>
-                        {topic.subtopics.length > 0 ? (
-                            <div className="divide-y divide-[var(--learner-border-color)]">
-                                {topic.subtopics.map((subtopic) => (
-                                    <Link
-                                        className="group flex items-start justify-between gap-4 py-4 text-sm"
-                                        href={subtopic.href}
-                                        key={subtopic.id}
+                    {activeSection === 'maps' ? (
+                        <TopicPanel id="maps">
+                            {topic.maps.length > 0 ? (
+                                <section
+                                    aria-labelledby="topic-maps-heading"
+                                    className="mt-10 border-y border-[var(--learner-border-color)] py-7"
+                                >
+                                    <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
+                                        {t(
+                                            'topics.detail.maps.eyebrow',
+                                            'Explore this topic',
+                                        )}
+                                    </p>
+                                    <h2
+                                        className="mt-2 text-sm font-semibold"
+                                        id="topic-maps-heading"
                                     >
-                                        <span>
-                                            <span className="font-medium group-hover:text-[var(--learner-accent)]">
-                                                {subtopic.title}
-                                            </span>
-                                            {subtopic.mapCount ? (
-                                                <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
-                                                    {subtopic.mapCount === 1
-                                                        ? t(
-                                                              'topics.detail.subtopics.map_count.one',
-                                                              '1 map available',
-                                                          )
-                                                        : t(
-                                                              'topics.detail.subtopics.map_count.many',
-                                                              ':count maps available',
-                                                              {
-                                                                  count: subtopic.mapCount,
-                                                              },
-                                                          )}
-                                                </span>
-                                            ) : null}
-                                            {subtopic.description ? (
-                                                <span className="mt-1 line-clamp-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
-                                                    {subtopic.description}
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)]" />
-                                    </Link>
-                                ))}
+                                        {t(
+                                            'topics.detail.maps.title',
+                                            'Map surfaces',
+                                        )}
+                                    </h2>
+                                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                        {t(
+                                            'topics.detail.maps.description',
+                                            'Open a map to explore this topic through places, activities and connected paths.',
+                                        )}
+                                    </p>
+                                    <div className="mt-5">
+                                        <PaginatedItems
+                                            items={topic.maps}
+                                            pageSize={4}
+                                            renderItem={(map) => (
+                                                <TopicMapCard
+                                                    key={map.id}
+                                                    map={map}
+                                                />
+                                            )}
+                                        />
+                                    </div>
+                                </section>
+                            ) : null}
+                            {topic.maps.length === 0 ? (
+                                <p className="mt-8 border-y border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'topics.detail.maps.empty',
+                                        'No maps are available yet.',
+                                    )}
+                                </p>
+                            ) : null}
+                        </TopicPanel>
+                    ) : null}
+
+                    {activeSection === 'overview' ? (
+                        <TopicPanel id="overview">
+                            <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                                <article className="min-w-0">
+                                    {topic.content ? (
+                                        <MarkdownRenderer
+                                            className="max-w-3xl"
+                                            markdown={topic.content}
+                                        />
+                                    ) : (
+                                        <div className="border-y border-[var(--learner-border-color)] py-7">
+                                            <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
+                                            <p className="mt-3 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'topics.detail.no_content',
+                                                    'This topic currently serves as an overview. Continue with one of its subtopics.',
+                                                )}
+                                            </p>
+                                        </div>
+                                    )}
+                                </article>
+
+                                <aside>
+                                    <h2 className="border-b border-[var(--learner-border-color)] pb-3 text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
+                                        {t(
+                                            'topics.detail.subtopics',
+                                            'Subtopics',
+                                        )}
+                                    </h2>
+                                    {topic.subtopics.length > 0 ? (
+                                        <PaginatedItems
+                                            className="divide-y divide-[var(--learner-border-color)]"
+                                            items={topic.subtopics}
+                                            pageSize={4}
+                                            renderItem={(subtopic) => (
+                                                <Link
+                                                    className="group flex items-start justify-between gap-4 py-4 text-sm"
+                                                    href={subtopic.href}
+                                                    key={subtopic.id}
+                                                >
+                                                    <span>
+                                                        <span className="font-medium group-hover:text-[var(--learner-accent)]">
+                                                            {subtopic.title}
+                                                        </span>
+                                                        {subtopic.mapCount ? (
+                                                            <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
+                                                                {subtopic.mapCount ===
+                                                                1
+                                                                    ? t(
+                                                                          'topics.detail.subtopics.map_count.one',
+                                                                          '1 map available',
+                                                                      )
+                                                                    : t(
+                                                                          'topics.detail.subtopics.map_count.many',
+                                                                          ':count maps available',
+                                                                          {
+                                                                              count: subtopic.mapCount,
+                                                                          },
+                                                                      )}
+                                                            </span>
+                                                        ) : null}
+                                                        {subtopic.description ? (
+                                                            <span className="mt-1 line-clamp-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
+                                                                {
+                                                                    subtopic.description
+                                                                }
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                    <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)]" />
+                                                </Link>
+                                            )}
+                                        />
+                                    ) : (
+                                        <p className="py-4 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                            {t(
+                                                'topics.detail.no_subtopics',
+                                                'No subtopics have been published here yet.',
+                                            )}
+                                        </p>
+                                    )}
+                                </aside>
                             </div>
-                        ) : (
-                            <p className="py-4 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                {t(
-                                    'topics.detail.no_subtopics',
-                                    'No subtopics have been published here yet.',
-                                )}
-                            </p>
-                        )}
-                    </aside>
+                        </TopicPanel>
+                    ) : null}
                 </div>
             </div>
         </LearnerDocumentSurface>
+    );
+}
+
+type TopicSection = 'maps' | 'overview' | 'routes' | 'trail';
+
+function TopicPanel({
+    children,
+    id,
+}: {
+    children: ReactNode;
+    id: TopicSection;
+}) {
+    return (
+        <section
+            aria-labelledby={`topic-${id}-tab`}
+            className="h-full min-h-0 overflow-y-auto pr-1"
+            id={`topic-panel-${id}`}
+            role="tabpanel"
+        >
+            {children}
+        </section>
     );
 }
 
@@ -278,28 +362,32 @@ function TopicLearningAreas({
                     'What you can practice here',
                 )}
             </h2>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {areas.map((area) => (
-                    <Link
-                        className="group flex items-start justify-between gap-4 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
-                        href={competenceTopicHref(area.slug, topicSlug)}
-                        key={area.slug}
-                    >
-                        <span className="min-w-0">
-                            <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
-                                {area.name}
+            <div className="mt-5">
+                <PaginatedItems
+                    items={areas}
+                    pageSize={4}
+                    renderItem={(area) => (
+                        <Link
+                            className="group flex items-start justify-between gap-4 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
+                            href={competenceTopicHref(area.slug, topicSlug)}
+                            key={area.slug}
+                        >
+                            <span className="min-w-0">
+                                <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
+                                    {area.name}
+                                </span>
+                                <span className="mt-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
+                                    {area.learningIntents
+                                        .map((intent) =>
+                                            learningIntentLabel(intent, t),
+                                        )
+                                        .join(' · ')}
+                                </span>
                             </span>
-                            <span className="mt-2 block text-xs leading-5 text-[var(--learner-muted-text)]">
-                                {area.learningIntents
-                                    .map((intent) =>
-                                        learningIntentLabel(intent, t),
-                                    )
-                                    .join(' · ')}
-                            </span>
-                        </span>
-                        <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
-                    </Link>
-                ))}
+                            <ArrowRight className="mt-0.5 size-4 shrink-0 text-[var(--learner-action-accent)] transition-transform group-hover:translate-x-1" />
+                        </Link>
+                    )}
+                />
             </div>
         </section>
     );
@@ -332,35 +420,40 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                     'Moments you chose to keep',
                 )}
             </h2>
-            <div className="mt-4 divide-y divide-[var(--learner-border-color)]">
-                {entries.map((entry) => (
-                    <Link
-                        className="group flex items-start justify-between gap-4 py-3 transition hover:text-[var(--learner-accent)]"
-                        href={entry.activityHref}
-                        key={`${entry.activityId}:${entry.recordedAt}`}
-                    >
-                        <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium">
-                                {entry.activityTitle}
-                            </span>
-                            <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                                {learningPulseLabel(entry.feeling)} ·{' '}
-                                {entry.nodeTitle}
-                            </span>
-                            {entry.note ? (
-                                <span className="mt-1 block text-xs leading-5 text-[var(--learner-body-text)]">
-                                    {entry.note}
-                                </span>
-                            ) : null}
-                        </span>
-                        <time
-                            className="shrink-0 text-xs text-[var(--learner-muted-text)]"
-                            dateTime={entry.recordedAt}
+            <div className="mt-4">
+                <PaginatedItems
+                    className="divide-y divide-[var(--learner-border-color)]"
+                    items={entries}
+                    pageSize={4}
+                    renderItem={(entry) => (
+                        <Link
+                            className="group flex items-start justify-between gap-4 py-3 transition hover:text-[var(--learner-accent)]"
+                            href={entry.activityHref}
+                            key={`${entry.activityId}:${entry.recordedAt}`}
                         >
-                            {formatTopicDate(entry.recordedAt)}
-                        </time>
-                    </Link>
-                ))}
+                            <span className="min-w-0">
+                                <span className="block truncate text-sm font-medium">
+                                    {entry.activityTitle}
+                                </span>
+                                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                    {learningPulseLabel(entry.feeling)} ·{' '}
+                                    {entry.nodeTitle}
+                                </span>
+                                {entry.note ? (
+                                    <span className="mt-1 block text-xs leading-5 text-[var(--learner-body-text)]">
+                                        {entry.note}
+                                    </span>
+                                ) : null}
+                            </span>
+                            <time
+                                className="shrink-0 text-xs text-[var(--learner-muted-text)]"
+                                dateTime={entry.recordedAt}
+                            >
+                                {formatTopicDate(entry.recordedAt)}
+                            </time>
+                        </Link>
+                    )}
+                />
             </div>
         </section>
     );
@@ -683,6 +776,128 @@ function formatTopicDate(value: string): string {
               month: 'short',
               year: 'numeric',
           });
+}
+
+function PaginatedItems<T>({
+    className = 'grid gap-3 sm:grid-cols-2',
+    items,
+    pageSize,
+    renderItem,
+}: {
+    className?: string;
+    items: T[];
+    pageSize: number;
+    renderItem: (item: T) => ReactNode;
+}) {
+    const t = usePlatformTranslation();
+    const [page, setPage] = useState(0);
+    const pageCount = Math.ceil(items.length / pageSize);
+    const currentPage = Math.min(page, Math.max(0, pageCount - 1));
+
+    if (items.length === 0) {
+        return null;
+    }
+
+    return (
+        <>
+            <div className={className}>
+                {items
+                    .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+                    .map(renderItem)}
+            </div>
+            {pageCount > 1 ? (
+                <div className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3">
+                    <button
+                        aria-label={t(
+                            'topics.detail.pagination.previous',
+                            'Previous items',
+                        )}
+                        className="inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                        disabled={currentPage === 0}
+                        onClick={() =>
+                            setPage((value) => Math.max(0, value - 1))
+                        }
+                        type="button"
+                    >
+                        <ChevronLeft className="size-4" />
+                        {t(
+                            'topics.detail.pagination.previous_short',
+                            'Previous',
+                        )}
+                    </button>
+                    <span
+                        aria-live="polite"
+                        className="text-xs text-[var(--learner-muted-text)]"
+                    >
+                        {t(
+                            'topics.detail.pagination.page',
+                            'Page :current of :total',
+                            {
+                                current: currentPage + 1,
+                                total: pageCount,
+                            },
+                        )}
+                    </span>
+                    <button
+                        aria-label={t(
+                            'topics.detail.pagination.next',
+                            'Next items',
+                        )}
+                        className="inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                        disabled={currentPage === pageCount - 1}
+                        onClick={() =>
+                            setPage((value) =>
+                                Math.min(pageCount - 1, value + 1),
+                            )
+                        }
+                        type="button"
+                    >
+                        {t('topics.detail.pagination.next_short', 'Next')}
+                        <ChevronRight className="size-4" />
+                    </button>
+                </div>
+            ) : null}
+        </>
+    );
+}
+
+function TopicMapCard({ map }: { map: TopicDetailData['maps'][number] }) {
+    const t = usePlatformTranslation();
+
+    return (
+        <Link
+            className="group flex items-start gap-3 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
+            href={map.href}
+        >
+            <MapIcon className="mt-0.5 size-5 shrink-0 text-[var(--learner-action-accent)]" />
+            <span className="min-w-0 flex-1">
+                <span className="block font-medium group-hover:text-[var(--learner-heading-text)]">
+                    {map.title}
+                </span>
+                {map.description ? (
+                    <span className="mt-1 line-clamp-2 block text-sm leading-5 text-[var(--learner-muted-text)]">
+                        {map.description}
+                    </span>
+                ) : null}
+                <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
+                    {map.nodeCount === 1
+                        ? t(
+                              'topics.detail.maps.place_count.one',
+                              '1 place to explore',
+                          )
+                        : t(
+                              'topics.detail.maps.place_count.many',
+                              ':count places to explore',
+                              { count: map.nodeCount },
+                          )}
+                </span>
+                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold tracking-wide text-[var(--learner-action-accent)] uppercase">
+                    {t('topics.detail.maps.open', 'Open map')}
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
+                </span>
+            </span>
+        </Link>
+    );
 }
 
 function TopicPathCard({ path }: { path: TopicPath }) {
