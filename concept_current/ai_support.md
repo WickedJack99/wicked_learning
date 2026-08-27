@@ -85,6 +85,9 @@ same review action is also available from the activity editor when a review
 helper is configured. It is disabled while the editor contains unsaved changes
 so the tutor cannot accidentally review an older saved version while believing
 the draft is being inspected.
+After a result is available, the dialog can open the next pending activity in
+the same scoped queue, so reviewing several activities does not require
+re-finding each one in the graph.
 When no activity-review template exists, the queue links directly to a new
 template form with the correct review purpose selected.
 

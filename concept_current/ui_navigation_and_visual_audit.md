@@ -319,6 +319,13 @@ editor before opening the scoped review dialog and is disabled while the draft
 has unsaved changes, preserving the distinction between the saved activity and
 the tutor's current draft.
 
+### Completed — Keep the scoped review queue continuous
+
+After a review result is available, the dialog offers the next pending activity
+from the selected node. This keeps the review work inside the existing scoped
+authoring flow instead of requiring the tutor to close the dialog and search the
+graph again.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:
@@ -336,8 +343,9 @@ These are test gaps, not claims that the feature is broken:
 - Journal check-in creation, update, deletion, export, and the optional
   feedback request should be covered with both enabled and disabled feedback
   settings.
-- World Builder should cover adding/editing/deleting an activity, opening the
-  scoped AI review helper, changing an asset image, and saving a map visual.
+- World Builder should cover adding/editing/deleting an activity, opening and
+  moving through the scoped AI review queue, changing an asset image, and
+  saving a map visual.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should be checked for icon-only map

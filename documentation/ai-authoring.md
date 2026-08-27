@@ -71,7 +71,8 @@ does not leave a partially created route.
 Activity review results are available from the same World Builder graph. A
 tutor can open the Activity editor directly from a result, then decide whether
 to save any content or metadata changes. Saving a change places the Activity
-back in the review queue.
+back in the review queue. After a result is available, the dialog can also move
+to the next pending Activity in that node's scoped queue.
 
 ## Current Boundaries
 

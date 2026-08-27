@@ -1,10 +1,4 @@
-import {
-    ArrowRight,
-    Bot,
-    CheckCircle2,
-    Pencil,
-    Sparkles,
-} from 'lucide-react';
+import { ArrowRight, Bot, CheckCircle2, Pencil, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { Button } from '@/components/ui/button';
@@ -22,7 +16,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { ActivityReviewTemplate } from '@/pages/settings/worlds/edit-node-activity-types';
+import type {
+    ActivityReviewTemplate,
+    ActivitySummary,
+} from '@/pages/settings/worlds/edit-node-activity-types';
 import { reviewActivity } from './activity-review-client';
 import type {
     ActivityReviewAlignment,
@@ -31,27 +28,21 @@ import type {
     ActivityReviewResult,
 } from './activity-review-client';
 
-type ReviewableActivity = {
-    aiReview: ActivityReview | null;
-    aiReviewStatus: string;
-    aiReviewedAt: string | null;
-    id: number;
-    title: string;
-    type: string;
-    updatedAt: string | null;
-};
-
 export function ActivityReviewDialog({
     activity,
+    nextActivity,
     onClose,
     onEdit,
+    onReviewNext,
     onReviewed,
     onUseMetadata,
     templates,
 }: {
-    activity: ReviewableActivity | null;
+    activity: ActivitySummary | null;
+    nextActivity: ActivitySummary | null;
     onClose: () => void;
     onEdit: (activityId: number) => void;
+    onReviewNext: (activity: ActivitySummary) => void;
     onReviewed: (result: ActivityReviewResult) => void;
     onUseMetadata: (
         activityId: number,
@@ -68,7 +59,7 @@ export function ActivityReviewDialog({
     const latestResult =
         activity && lastResult?.activityId === activity.id ? lastResult : null;
     const result = activity
-        ? latestResult?.aiReview ?? activity.aiReview
+        ? (latestResult?.aiReview ?? activity.aiReview)
         : null;
     const templateId = selectedTemplateId || templates[0]?.id.toString() || '';
 
@@ -151,7 +142,7 @@ export function ActivityReviewDialog({
                                     : 'Edit time unavailable'}{' '}
                                 ·{' '}
                                 {(latestResult?.aiReviewedAt ??
-                                    activity.aiReviewedAt)
+                                activity.aiReviewedAt)
                                     ? `AI reviewed ${formatReviewDate(latestResult?.aiReviewedAt ?? activity.aiReviewedAt ?? '')}`
                                     : 'AI review not run yet'}
                             </p>
@@ -227,6 +218,17 @@ export function ActivityReviewDialog({
                     >
                         Close
                     </Button>
+                    {activity && result && nextActivity ? (
+                        <Button
+                            disabled={processing}
+                            onClick={() => onReviewNext(nextActivity)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Review next
+                            <ArrowRight className="size-4" />
+                        </Button>
+                    ) : null}
                     {activity ? (
                         <Button
                             disabled={processing || templateId === ''}

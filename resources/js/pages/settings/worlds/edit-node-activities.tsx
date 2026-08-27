@@ -264,6 +264,11 @@ export default function EditNodeActivities({
     const nextActivityNeedingReview = activityGraph.activities.find(
         (activity) => activity.aiReviewStatus !== 'reviewed',
     );
+    const nextReviewActivity = activityGraph.activities.find(
+        (activity) =>
+            activity.aiReviewStatus !== 'reviewed' &&
+            activity.id !== reviewingActivity?.id,
+    );
     const hasEditActivityChanges = useDirtyState(
         editForm,
         editingActivity
@@ -660,6 +665,7 @@ export default function EditNodeActivities({
 
             <ActivityReviewDialog
                 activity={reviewingActivity}
+                nextActivity={nextReviewActivity ?? null}
                 onClose={() => setReviewingActivity(null)}
                 onEdit={(activityId) => {
                     const activity =
@@ -676,6 +682,7 @@ export default function EditNodeActivities({
                         only: ['selectedWorldNode'],
                     });
                 }}
+                onReviewNext={(activity) => setReviewingActivity(activity)}
                 onUseMetadata={editWithReviewSuggestions}
                 templates={activityGraph.aiReviewTemplates}
             />
