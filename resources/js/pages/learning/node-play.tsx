@@ -49,6 +49,7 @@ type CheckInDestination =
 type PendingLearningCheckIn = {
     activityId: number;
     activityTitle: string;
+    choicePrompt: string | null;
     destination: CheckInDestination | null;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug: string | null;
@@ -232,6 +233,7 @@ export default function NodePlay({
             const checkIn: PendingLearningCheckIn = {
                 activityId: activity.id,
                 activityTitle: activity.title,
+                choicePrompt: activity.completionChoicePrompt,
                 destination: null,
                 learningAreas: learningAreaNames(activity),
                 originTopicSlug,
@@ -492,6 +494,7 @@ export default function NodePlay({
                     {pendingLearningCheckIn ? (
                         <LearningCheckIn
                             activityTitle={pendingLearningCheckIn.activityTitle}
+                            choicePrompt={pendingLearningCheckIn.choicePrompt}
                             learningAreas={pendingLearningCheckIn.learningAreas}
                             originTopicSlug={
                                 pendingLearningCheckIn.originTopicSlug

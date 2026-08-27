@@ -59,11 +59,13 @@ const nextDirections: Array<{
 
 export function LearningCheckIn({
     activityTitle,
+    choicePrompt,
     learningAreas,
     originTopicSlug,
     onContinue,
 }: {
     activityTitle: string;
+    choicePrompt: string | null;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug?: string | null;
     onContinue: (
@@ -173,6 +175,11 @@ export function LearningCheckIn({
                 <p className="text-xs font-medium text-[var(--learner-action-accent)]">
                     Choose a direction for later (optional)
                 </p>
+                {choicePrompt ? (
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {choicePrompt}
+                    </p>
+                ) : null}
                 <div className="mt-2 grid gap-2 sm:grid-cols-3">
                     {nextDirections.map((direction) => {
                         const isSelected = nextDirection === direction.value;

@@ -159,6 +159,7 @@ class AdminActivityRules
             'feedback_purpose' => $this->optional($modifier, ['string', 'max:600']),
             'feedback_evidence' => $this->optional($modifier, ['string', 'max:1000']),
             'feedback_next_action' => $this->optional($modifier, ['string', 'max:600']),
+            'completion_choice_prompt' => $this->optional($modifier, ['string', 'max:600']),
         ];
     }
 

@@ -444,6 +444,7 @@ class DemoLearningWorldSeeder extends Seeder
                     'evidence' => 'Look for a reason that uses both the focus point and the spread of attempts.',
                     'nextAction' => 'Try the clue again with a changed example.',
                 ],
+                'completionChoicePrompt' => 'Choose the kind of continuation that would support your next step.',
             ],
         ]);
 

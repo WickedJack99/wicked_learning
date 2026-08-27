@@ -4,6 +4,7 @@ type ActivityFormPayload = Partial<ActivityForm>;
 
 const coreFields: Array<keyof ActivityForm> = [
     'competence_topics',
+    'completion_choice_prompt',
     'feedback_evidence',
     'feedback_next_action',
     'feedback_purpose',

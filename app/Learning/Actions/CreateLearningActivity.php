@@ -4,6 +4,7 @@ namespace App\Learning\Actions;
 
 use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
@@ -27,6 +28,7 @@ class CreateLearningActivity
         private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly PortalActivityConfiguration $portalConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly ActivityCompletionChoiceConfiguration $completionChoiceConfig,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
@@ -91,8 +93,11 @@ class CreateLearningActivity
         };
 
         return $this->competenceConfig->mergeInto(
-            $this->feedbackGuidanceConfig->mergeInto(
-                $this->ambientSoundConfig->mergeInto($config, $data),
+            $this->completionChoiceConfig->mergeInto(
+                $this->feedbackGuidanceConfig->mergeInto(
+                    $this->ambientSoundConfig->mergeInto($config, $data),
+                    $data,
+                ),
                 $data,
             ),
             $data,

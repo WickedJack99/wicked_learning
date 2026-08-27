@@ -12,6 +12,7 @@ class ActivityReviewContext
         private readonly ActivityCompetenceConfiguration $competence,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+        private readonly ActivityCompletionChoiceConfiguration $completionChoice,
     ) {}
 
     /** @return array<string, mixed> */
@@ -38,6 +39,7 @@ class ActivityReviewContext
                 'learningIntent' => $this->competence->learningIntentForActivity($activity),
                 'competenceTopics' => $this->competence->topicsForActivity($activity),
                 'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
+                'completionChoicePrompt' => $this->completionChoice->forActivity($activity),
                 'content' => $this->content($activity),
             ],
             'availableCompetenceTopics' => $this->competenceTopics->names(),

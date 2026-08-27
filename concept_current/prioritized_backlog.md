@@ -18,8 +18,10 @@ promise that every interaction produces an immediate measurable gain.
 - Expand competence evidence into longitudinal, inspectable narratives where
   learners can compare earlier and later reasoning without reducing growth to a
   single number.
-- Add authoring fields for meaningful choice: explain why a choice exists,
-  provide genuinely different routes, and avoid choice overload.
+- [x] Add an optional author-written context sentence for the three completion
+  directions. The base choices remain bounded and distinct; future work can
+  add activity-specific alternatives only when they lead to genuinely
+  different learning actions.
 - Add optional help-seeking and peer-response moments with consent,
   moderation and a clear learner-controlled exit.
 - [x] Give activity authors a competence-supportive feedback contract: state

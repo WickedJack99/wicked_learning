@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\DialogueStage;
@@ -22,6 +23,7 @@ class LearningActivitySerializer
         private readonly LearningItemSerializer $itemSerializer,
         private readonly SharedTaskStateSerializer $sharedTaskState,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+        private readonly ActivityCompletionChoiceConfiguration $completionChoice,
     ) {}
 
     /**
@@ -38,6 +40,7 @@ class LearningActivitySerializer
             'introduction' => $activity->introduction,
             'config' => $this->learnerConfig($activity),
             'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
+            'completionChoicePrompt' => $this->completionChoice->forActivity($activity),
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
             'configuredTool' => $this->configuredTool($activity),

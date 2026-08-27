@@ -270,6 +270,7 @@ export type LearningActivity = {
     configuredItems: LearningItem[];
     configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
+    completionChoicePrompt: string | null;
     feedbackGuidance: LearningFeedbackGuidance | null;
     dialogueStages: DialogueStage[];
     npcDialogueNodes: NpcDialogueNode[];

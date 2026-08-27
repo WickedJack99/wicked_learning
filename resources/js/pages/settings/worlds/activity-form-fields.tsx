@@ -606,6 +606,11 @@ export function ActivityFormFields({
                                     form={form}
                                     onChange={onChange}
                                 />
+                                <CompletionChoiceField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
                                 <CompetenceTopicFields
                                     competenceTopicOptions={
                                         competenceTopicOptions
@@ -1058,6 +1063,41 @@ function FeedbackGuidanceFields({
                     <InputError message={errors[field.name]} />
                 </div>
             ))}
+        </div>
+    );
+}
+
+function CompletionChoiceField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    return (
+        <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <Label htmlFor="activity-completion-choice-prompt">
+                Choice context
+            </Label>
+            <textarea
+                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id="activity-completion-choice-prompt"
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        completion_choice_prompt: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Choose the kind of continuation that would support your next step."
+                value={form.completion_choice_prompt}
+            />
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Optional: explain why a learner might choose a direction after
+                this activity. The three directions remain short and optional.
+            </p>
+            <InputError message={errors.completion_choice_prompt} />
         </div>
     );
 }

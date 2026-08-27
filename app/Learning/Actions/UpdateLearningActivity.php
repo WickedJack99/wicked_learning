@@ -4,6 +4,7 @@ namespace App\Learning\Actions;
 
 use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
@@ -28,6 +29,7 @@ class UpdateLearningActivity
         private readonly NpcDialogueConfiguration $npcDialogueConfig,
         private readonly ActivityAmbientSoundConfiguration $ambientSoundConfig,
         private readonly ActivityCompetenceConfiguration $competenceConfig,
+        private readonly ActivityCompletionChoiceConfiguration $completionChoiceConfig,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
         private readonly LearningActivityReviewState $reviewState,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
@@ -93,6 +95,7 @@ class UpdateLearningActivity
             || $this->ambientSoundConfig->shouldUpdate($data)
             || $this->competenceConfig->shouldUpdate($data)
             || $this->feedbackGuidanceConfig->shouldUpdate($data)
+            || $this->completionChoiceConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($activity->node, $type, $data, $config);
@@ -123,8 +126,11 @@ class UpdateLearningActivity
         };
 
         return $this->competenceConfig->mergeInto(
-            $this->feedbackGuidanceConfig->mergeInto(
-                $this->ambientSoundConfig->mergeInto($config, $data),
+            $this->completionChoiceConfig->mergeInto(
+                $this->feedbackGuidanceConfig->mergeInto(
+                    $this->ambientSoundConfig->mergeInto($config, $data),
+                    $data,
+                ),
                 $data,
             ),
             $data,

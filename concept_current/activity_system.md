@@ -87,6 +87,10 @@ Current UI behavior:
   the same learner navigation model as the map and bookmark surfaces.
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
+- After completion, the learner may choose one of three bounded directions for
+  later: return, look for something related or let it settle. Authors may add
+  one short context sentence for why these directions are relevant to the
+  activity; the choices remain optional and are not a route requirement.
 - Admins edit activity graphs by selecting a MapAsset and opening its `Activities` section.
 - The route restart action is kept in the shared activity frame at the lower
   edge of the activity surface, instead of competing with primary navigation.

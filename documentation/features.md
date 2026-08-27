@@ -130,6 +130,9 @@ After completing an activity, a learner may optionally choose a private next
 direction: return to that place, look for something related, or let it settle.
 The direction is saved with the check-in and shown later in the Journal and
 competence pulse as orientation, without deadlines or a progress score.
+Authors can optionally add a short context sentence explaining why one of these
+directions may be useful after a particular activity. The choice set remains
+bounded and optional.
 
 When the learner chose `Return to this place`, the Journal can surface the
 activity again after a short spacing window. The learner can open it, choose

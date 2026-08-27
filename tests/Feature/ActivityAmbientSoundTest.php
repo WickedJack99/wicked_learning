@@ -115,3 +115,27 @@ test('admins can add optional feedback guidance to any activity', function () {
 
     expect($activity->refresh()->config)->not->toHaveKey('feedbackGuidance');
 });
+
+test('admins can explain the purpose of completion choices', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'completion_choice_prompt' => 'Choose the kind of continuation that supports your next step.',
+            'title' => 'Choose your next direction',
+            'type' => 'open_practice',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'choose-your-next-direction')
+        ->firstOrFail();
+
+    expect($activity->config['completionChoicePrompt'])
+        ->toBe('Choose the kind of continuation that supports your next step.');
+
+    expect(app(LearningActivitySerializer::class)->serialize($activity)['completionChoicePrompt'])
+        ->toBe('Choose the kind of continuation that supports your next step.');
+});

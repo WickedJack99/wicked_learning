@@ -172,3 +172,10 @@ orientation for later, not evidence of immediate growth. Future revisit support
 uses a small learner-controlled spacing window in the Journal. Learners can
 postpone or hide an invitation; it creates no notification or required queue.
 Retrieval-specific prompts remain a later refinement.
+
+An activity may also carry a short author-written context sentence explaining
+why a learner might choose one of the three directions after that activity.
+The sentence is shown above the choices and does not change their meaning or
+make a choice required. Keeping this context separate from the private
+check-in preserves the learner's own reflection while giving the author a way
+to make the choice relevant to the task.
