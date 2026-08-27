@@ -24,9 +24,9 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
 
     return (
-        <LearnerDocumentSurface>
-            <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
-                <div className="min-w-0 px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
+        <LearnerDocumentSurface scrollable={false}>
+            <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
+                <div className="min-h-0 min-w-0 overflow-y-auto px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
                     <div className="mx-auto max-w-4xl">
                         <section>
                             <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
@@ -184,7 +184,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
     const featured = desk.featuredBookmark;
 
     return (
-        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:sticky lg:top-16 lg:h-[calc(100svh-4rem)] lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7">
+        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:h-full lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7">
             <p className="text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase">
                 {t('home.learning_desk.rail.title', 'Pinned for later')}
             </p>
