@@ -97,6 +97,7 @@ function LearnerNavigationItem({ item }: { item: LearnerNavigationItem }) {
     return (
         <Link
             aria-label={item.label}
+            aria-current={item.active ? 'page' : undefined}
             className={className}
             href={item.href}
             style={{ cursor: 'var(--platform-action-cursor)' }}

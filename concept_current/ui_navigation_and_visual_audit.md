@@ -256,6 +256,14 @@ now expose explicit accessible names. The group-message send control follows
 the same rule. Remaining keyboard review is limited to map controls, settings
 authoring widgets and other complex surfaces listed below.
 
+### Completed — Announce the active learner destination
+
+The shared learner header now exposes `aria-current="page"` on the active
+destination links. The selected underline and color remain the visual cue, but
+assistive technology can now identify the current learning surface on the desk,
+Topics, Paths, competence map and map/bookmark navigation without relying on
+visual styling.
+
 ### Completed — Make interactive map assets reachable
 
 Interactive MapAssets now receive pointer input as well as keyboard input;
