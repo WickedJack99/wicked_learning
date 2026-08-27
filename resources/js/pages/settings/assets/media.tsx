@@ -10,6 +10,7 @@ import {
     Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
@@ -184,9 +185,16 @@ export default function AdminMediaAssets({
                                     </div>
                                 </div>
 
-                                <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                                    <div className="grid gap-2">
-                                        {filteredAssets.map((asset) => (
+                                <div className="min-h-0 flex-1 p-3">
+                                    <LearnerPaginatedItems
+                                        className="grid gap-2"
+                                        items={filteredAssets}
+                                        key={search}
+                                        pageSize={4}
+                                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                                        paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                                        paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                                        renderItem={(asset) => (
                                             <AssetListItem
                                                 asset={asset}
                                                 isSelected={
@@ -198,8 +206,8 @@ export default function AdminMediaAssets({
                                                     setSelectedUrl(asset.url)
                                                 }
                                             />
-                                        ))}
-                                    </div>
+                                        )}
+                                    />
                                 </div>
 
                                 <div className="shrink-0 border-t border-[var(--settings-border-color)] p-3">

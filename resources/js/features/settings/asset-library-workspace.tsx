@@ -7,8 +7,8 @@ type AssetLibraryWorkspaceProps = {
 
 /**
  * The reusable asset editors all need the same relationship: an editing area
- * beside a searchable, independently scrollable library. Keep the separation
- * structural instead of rendering two card-like panes inside every editor.
+ * beside a searchable library. Keep the separation structural instead of
+ * rendering two card-like panes inside every editor.
  */
 export function AssetLibraryWorkspace({
     children,

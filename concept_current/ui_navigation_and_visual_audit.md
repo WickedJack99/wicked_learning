@@ -379,6 +379,11 @@ left editor and leaves only the preview surface independently scrollable. This
 keeps the editor controls and pager in the visible workbench area without
 changing the preview's continuous inspection behavior.
 
+The reusable media library applies the same distinction: its searchable visual
+chooser shows four assets per page, while the selected asset's detail surface
+remains continuous. Searching resets the chooser to its first page so a filter
+cannot leave the editor on an empty later page.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published
