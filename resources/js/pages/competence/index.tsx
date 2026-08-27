@@ -422,6 +422,10 @@ export default function CompetenceStarMap({
                                                                 : topic.slug,
                                                     )
                                                 }
+                                                selected={
+                                                    selectedTopicSlug ===
+                                                    topic.slug
+                                                }
                                                 topic={topic}
                                             />
                                         ))}
@@ -1040,11 +1044,13 @@ function CompetenceStar({
     active,
     onActiveChange,
     onSelect,
+    selected,
     topic,
 }: {
     active: boolean;
     onActiveChange: (slug: string | null) => void;
     onSelect: () => void;
+    selected: boolean;
     topic: PositionedTopic;
 }) {
     const flareLength = topic.size * (2.8 + topic.brightness * 2.4);
@@ -1056,7 +1062,7 @@ function CompetenceStar({
     return (
         <g
             aria-label={`${topic.name}: ${topic.visual.description}`}
-            aria-pressed={active}
+            aria-pressed={selected}
             className="cursor-pointer outline-none"
             onClick={onSelect}
             onKeyDown={(event) => {

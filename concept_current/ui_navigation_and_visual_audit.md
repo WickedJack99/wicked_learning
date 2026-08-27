@@ -270,6 +270,13 @@ tests do not replace browser verification of layout or interaction, but they
 prevent a page from silently losing its authenticated route or Inertia
 component while the learner navigation is being extended.
 
+### Completed — Separate highlighted and selected competence stars
+
+Competence stars keep their hover and focus highlight for visual orientation,
+but `aria-pressed` now reflects only an intentional selection. Assistive
+technology therefore does not hear a transient pointer hover as if the learner
+had selected and opened that competence reading.
+
 ### Completed — Make interactive map assets reachable
 
 Interactive MapAssets now receive pointer input as well as keyboard input;
