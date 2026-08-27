@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, FolderTree, Settings2 } from 'lucide-react';
-import { LearningDeskHeader } from '@/features/home/learning-desk-header';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { TopicArea } from './types';
 
@@ -14,8 +14,7 @@ export function TopicDirectory({
     const t = usePlatformTranslation();
 
     return (
-        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
-            <LearningDeskHeader />
+        <LearnerDocumentSurface>
             <div className="px-5 py-10 sm:px-8 lg:px-14 lg:py-14">
                 <header className="mx-auto flex max-w-7xl items-end justify-between gap-6 border-b border-[var(--learner-border-color)] pb-7">
                     <div>
@@ -125,6 +124,6 @@ export function TopicDirectory({
                     </div>
                 )}
             </div>
-        </main>
+        </LearnerDocumentSurface>
     );
 }

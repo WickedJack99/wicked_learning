@@ -2,7 +2,7 @@ import { Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowLeft, ArrowUp, GripVertical } from 'lucide-react';
 import { useState } from 'react';
 import type { DragEvent, ReactNode } from 'react';
-import { LearningDeskHeader } from '@/features/home/learning-desk-header';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { CreateTopicAreaForm, TopicAreaEditor } from './topic-area-forms';
 import { CreateTopicForm, TopicList } from './topic-forms';
@@ -45,8 +45,7 @@ export function TopicAdministration({ areas }: { areas: AdminTopicArea[] }) {
     };
 
     return (
-        <main className="learner-scroll-pane bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
-            <LearningDeskHeader />
+        <LearnerDocumentSurface className="bg-slate-50 text-slate-950 dark:bg-[#08111b] dark:text-slate-100">
             <div className="mx-auto max-w-7xl px-5 py-9 sm:px-8 lg:px-12 lg:py-12">
                 <Link
                     className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-violet-700 dark:text-slate-400 dark:hover:text-violet-300"
@@ -145,7 +144,7 @@ export function TopicAdministration({ areas }: { areas: AdminTopicArea[] }) {
                     ))}
                 </div>
             </div>
-        </main>
+        </LearnerDocumentSurface>
     );
 }
 

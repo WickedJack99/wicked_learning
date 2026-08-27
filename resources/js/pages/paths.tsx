@@ -1,7 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { competenceTopicHref } from '@/features/competence/competence-links';
-import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
@@ -31,9 +31,8 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
     const t = usePlatformTranslation();
 
     return (
-        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
+        <LearnerDocumentSurface>
             <Head title={t('paths.title', 'Paths')} />
-            <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                     {t('paths.eyebrow', 'Ways into the world')}
@@ -99,7 +98,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                     </section>
                 )}
             </div>
-        </main>
+        </LearnerDocumentSurface>
     );
 }
 

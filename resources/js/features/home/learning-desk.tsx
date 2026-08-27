@@ -7,10 +7,10 @@ import {
     Compass,
     Pin,
 } from 'lucide-react';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import { LearningDeskHeader } from './learning-desk-header';
 import { LearningDeskSearch } from './learning-desk-search';
 import type {
     LearningDeskBookmark,
@@ -24,9 +24,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
 
     return (
-        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
-            <LearningDeskHeader />
-
+        <LearnerDocumentSurface>
             <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
                 <div className="min-w-0 px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
                     <div className="mx-auto max-w-4xl">
@@ -177,7 +175,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
 
                 <LearningDeskRail desk={desk} />
             </div>
-        </main>
+        </LearnerDocumentSurface>
     );
 }
 

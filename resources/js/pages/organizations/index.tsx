@@ -12,10 +12,10 @@ import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import type {
     OrganizationGovernanceType,
@@ -88,8 +88,7 @@ export default function OrganizationsIndex({
     return (
         <>
             <Head title="Organizations" />
-            <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
-                <LearningDeskHeader />
+            <LearnerDocumentSurface>
                 <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 pb-24">
                     <AccentHeading
                         action={
@@ -273,7 +272,7 @@ export default function OrganizationsIndex({
                         ))}
                     </section>
                 </div>
-            </main>
+            </LearnerDocumentSurface>
         </>
     );
 }

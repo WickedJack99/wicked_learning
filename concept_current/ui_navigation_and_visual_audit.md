@@ -79,19 +79,24 @@ The active translation catalog now names these shared destinations as
 `navigation.activity.*`. The former `navigation.bottom.*` names are retained
 only in historical migration and audit context, not in active learner code.
 
-### P1 — Define one surface-frame ownership rule
+### P1 — Complete the surface-frame ownership contract
 
 The learner shell now has a shared header, maps add map controls and a focus
 panel, activities add player controls, and Journal opens as a dialog from the
 header while also having a route. These choices can work, but their ownership
-is not yet expressed as one rule. The result is a higher risk of future nested
-headers, duplicate return actions, or controls being hidden behind another
-surface.
+must stay explicit to avoid future nested headers, duplicate return actions, or
+controls being hidden behind another surface.
+
+The desk, Topics, Paths, topic administration and organizations directory now
+use `LearnerDocumentSurface`. That shared component owns the global learner
+header and the fixed-frame document scrolling contract. Maps, activities,
+settings and the organization workspace remain specialized because their
+controls need different fixed-space ownership.
 
 **Acceptance criteria:** each learner page documents which layer owns global
 navigation, which layer owns context return, and which layer owns the current
-task action. A browser smoke test covers learning desk → topic → map → asset →
-activity → return without relying on browser back.
+task action. The remaining gap is a browser smoke test covering learning desk →
+topic → map → asset → activity → return without relying on browser back.
 
 ### P2 — Decide whether admin topic management belongs in the learner shell
 

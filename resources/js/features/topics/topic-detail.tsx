@@ -6,11 +6,11 @@ import {
     Map as MapIcon,
     Route,
 } from 'lucide-react';
+import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import {
     competenceContextHref,
     competenceTopicHref,
 } from '@/features/competence/competence-links';
-import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -26,8 +26,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
 
     return (
-        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
-            <LearningDeskHeader />
+        <LearnerDocumentSurface>
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <Link
                     className="inline-flex items-center gap-2 text-sm text-[var(--learner-muted-text)] transition hover:text-[var(--learner-accent)]"
@@ -245,7 +244,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     </aside>
                 </div>
             </div>
-        </main>
+        </LearnerDocumentSurface>
     );
 }
 
