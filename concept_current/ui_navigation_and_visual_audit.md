@@ -311,6 +311,14 @@ the single place to choose an area to explore. The competence-map reading guide
 is an explicit button with an expandable, scroll-contained explanation instead
 of relying on native disclosure styling.
 
+### Completed — Keep activity review reachable from editing
+
+When an activity-review helper is configured, the activity editor now offers a
+direct “Review with AI” action beside its save controls. The action closes the
+editor before opening the scoped review dialog and is disabled while the draft
+has unsaved changes, preserving the distinction between the saved activity and
+the tutor's current draft.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:

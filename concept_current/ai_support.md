@@ -80,7 +80,11 @@ create pedagogical review noise.
 
 The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the
-tutor remains responsible for deciding whether any suggestion is useful.
+tutor remains responsible for deciding whether any suggestion is useful. The
+same review action is also available from the activity editor when a review
+helper is configured. It is disabled while the editor contains unsaved changes
+so the tutor cannot accidentally review an older saved version while believing
+the draft is being inspected.
 When no activity-review template exists, the queue links directly to a new
 template form with the correct review purpose selected.
 

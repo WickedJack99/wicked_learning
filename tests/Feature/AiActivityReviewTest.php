@@ -3,8 +3,8 @@
 use App\Access\AccessLevel;
 use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
-use App\Models\ActivityTransition;
 use App\Models\AccessRole;
+use App\Models\ActivityTransition;
 use App\Models\AiAgentTemplate;
 use App\Models\AiProviderCredential;
 use App\Models\CompetenceTopicDefinition;
@@ -82,6 +82,25 @@ test('activity review rejects templates from another AI purpose', function () {
         ->assertUnprocessable();
 
     expect($activity->refresh()->ai_review_status)->toBe('needs_review');
+});
+
+test('configured activity review helpers are exposed in the activity editor', function () {
+    $admin = activityReviewAdmin();
+    [$activity, $template] = activityReviewContext($admin);
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $activity->node->map->id,
+            'node' => $activity->node->id,
+            'worldView' => 'nodes',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedWorldNode.activityGraph.canManageAiReview', true)
+            ->where('selectedWorldNode.activityGraph.aiReviewTemplates.0.id', $template->id)
+            ->where('selectedWorldNode.activityGraph.activities.1.aiReviewStatus', 'needs_review')
+        );
 });
 
 test('activity review requires AI update permission', function () {

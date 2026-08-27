@@ -773,6 +773,27 @@ export default function EditNodeActivities({
                     </div>
 
                     <DialogFooter className="shrink-0">
+                        {editingActivity &&
+                        activityGraph.aiReviewTemplates.length > 0 ? (
+                            <Button
+                                className="sm:mr-auto"
+                                disabled={updating || hasEditActivityChanges}
+                                onClick={() => {
+                                    setEditOpen(false);
+                                    setReviewingActivity(editingActivity);
+                                }}
+                                title={
+                                    hasEditActivityChanges
+                                        ? 'Save your changes before requesting an AI review.'
+                                        : undefined
+                                }
+                                type="button"
+                                variant="outline"
+                            >
+                                <Sparkles className="size-4" />
+                                Review with AI
+                            </Button>
+                        ) : null}
                         <Button
                             disabled={updating}
                             onClick={() => setEditOpen(false)}
