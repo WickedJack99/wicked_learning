@@ -577,6 +577,44 @@ export function QuestionActivity({
                             {questionConfidenceLabel(answer.confidence)}
                         </p>
                     ) : null}
+                    {answer.earlierAttempts?.length ? (
+                        <details className="mt-4 rounded-md border border-slate-200 px-3 py-2 dark:border-white/10">
+                            <summary className="cursor-pointer text-xs font-medium text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-slate-300 dark:focus-visible:ring-teal-200">
+                                Earlier tries ({answer.earlierAttempts.length})
+                            </summary>
+                            <div className="mt-2 grid gap-2">
+                                {answer.earlierAttempts.map(
+                                    (attempt, index) => (
+                                        <div
+                                            className="rounded-md bg-slate-50 px-2.5 py-2 dark:bg-white/5"
+                                            key={`${attempt.answeredAt ?? 'earlier'}-${index}`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2 text-xs">
+                                                <span className="font-medium text-slate-700 dark:text-slate-200">
+                                                    {attempt.optionLabel
+                                                        ? `Chose ${attempt.optionLabel}`
+                                                        : 'Earlier answer'}
+                                                </span>
+                                                <span className="shrink-0 text-slate-500 dark:text-slate-400">
+                                                    {formatReviewDate(
+                                                        attempt.answeredAt,
+                                                    )}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                {attempt.isCorrect
+                                                    ? 'Useful clue found'
+                                                    : 'Adjust the hypothesis'}
+                                                {attempt.confidence
+                                                    ? ` · Starting sense: ${questionConfidenceLabel(attempt.confidence)}`
+                                                    : ''}
+                                            </p>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        </details>
+                    ) : null}
                     {answer ? (
                         <Button
                             className="mt-4"

@@ -57,6 +57,7 @@ ledger of these moments so learners can recognize what shaped a trail.
 
 ## Next evolution
 
-Add confidence and feedback outcomes only where an activity actually collects
-them. Keep the ledger useful as a trace of learning encounters without turning
-it into a checklist, grade or dashboard of raw metrics.
+Question activities may collect a plain-language starting sense and, on revisit,
+offer a compact history of earlier tries. Keep these observations private and
+useful for reflection while keeping the competence map a trace of learning
+encounters, not a checklist, grade or dashboard of raw metrics.

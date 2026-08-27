@@ -132,6 +132,12 @@ inside the existing area surface so one area is not repeated as a second ledger
 or checklist. If the area maps to a separate formal topic, retain that topic as
 a small related-topic doorway rather than repeating the evidence narrative.
 
+When a learner revisits a question they have answered before, the activity may
+offer a compact, collapsible view of up to three earlier tries. It can show the
+chosen option, starting sense and feedback outcome so a learner can notice a
+change in their own reasoning. This is a reflection aid, not an attempt counter,
+grade or public performance signal.
+
 The Paths directory uses the same area labels on route cards. This keeps a
 prepared route connected to the competence reading without implying that
 following the route is the only way to develop an area.
@@ -147,9 +153,5 @@ without adding another progression view.
 
 ## Next evolution
 
-Question activities may optionally collect a plain-language starting-confidence
-observation (`exploring`, `leaning`, or `settled`) alongside the private answer
-and feedback. It remains an observation for later reflection and calibration;
-it is not a score, a star-map input, or a requirement for answering. Continue
-adding confidence or feedback outcomes only where an activity actually collects
-them, without making a feeling check or reflection require an answer.
+Continue adding confidence or feedback outcomes only where an activity actually
+collects them, without making a feeling check or reflection require an answer.

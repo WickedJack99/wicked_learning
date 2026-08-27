@@ -408,9 +408,17 @@ export type QuestionAnswerProgress = {
     optionId: number | null;
     isCorrect: boolean;
     confidence?: QuestionConfidence | null;
+    earlierAttempts?: QuestionAnswerAttempt[];
     feedback: string | null;
     explanation?: string | null;
     nextActivityId?: number | null;
+};
+
+export type QuestionAnswerAttempt = {
+    answeredAt: string | null;
+    confidence: QuestionConfidence | null;
+    isCorrect: boolean;
+    optionLabel: string | null;
 };
 
 export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';

@@ -73,20 +73,44 @@ class LearnerProgressSerializer
         return LearnerQuestionAnswer::query()
             ->where('user_id', $userId)
             ->with(['question.activity.transitions', 'selectedOption'])
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get()
-            ->unique('learning_question_id')
-            ->mapWithKeys(fn (LearnerQuestionAnswer $answer) => [
-                $answer->learning_question_id => [
+            ->groupBy('learning_question_id')
+            ->mapWithKeys(function ($attempts): array {
+                /** @var LearnerQuestionAnswer $answer */
+                $answer = $attempts->first();
+
+                return [$answer->learning_question_id => [
                     'optionId' => $answer->learning_question_option_id,
                     'isCorrect' => $answer->is_correct,
                     'confidence' => $answer->confidence,
                     'feedback' => $answer->feedback,
                     'explanation' => $answer->question?->explanation,
                     'nextActivityId' => $this->nextActivityId($answer),
-                ],
-            ])
+                    'earlierAttempts' => $attempts
+                        ->slice(1, 3)
+                        ->values()
+                        ->map(fn (LearnerQuestionAnswer $attempt): array => $this->attempt($attempt))
+                        ->all(),
+                ]];
+            })
             ->all();
+    }
+
+    /**
+     * @return array{answeredAt: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
+     */
+    private function attempt(LearnerQuestionAnswer $answer): array
+    {
+        return [
+            'answeredAt' => $answer->created_at instanceof DateTimeInterface
+                ? $answer->created_at->format(DateTimeInterface::ATOM)
+                : null,
+            'confidence' => $answer->confidence,
+            'isCorrect' => (bool) $answer->is_correct,
+            'optionLabel' => $answer->selectedOption?->label,
+        ];
     }
 
     private function nextActivityId(LearnerQuestionAnswer $answer): ?int
