@@ -196,6 +196,14 @@ surfaces coherent when a palette is changed in settings. Map-owned imagery
 and competence-star effects remain separate because they describe the world
 and learning trail, not the document shell.
 
+### Completed — Keep the playable activity shell coherent
+
+The shared activity frame now uses the learner palette for its panel, activity
+context, related learning-area links and restart control. The post-activity
+check-in uses the same tokens for its prompt, connected-area links, note field
+and feeling choices. Activity-specific scene treatments remain local to their
+activity type, while the shared frame owns the learner-facing structure.
+
 ### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;

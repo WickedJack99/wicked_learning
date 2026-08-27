@@ -397,13 +397,13 @@ export default function NodePlay({
                         <div className="min-w-0 text-center">
                             {node.topic ? (
                                 <Link
-                                    className="block truncate text-xs text-violet-700 underline decoration-violet-300 underline-offset-2 hover:text-violet-600 dark:text-violet-300 dark:decoration-violet-500/60 dark:hover:text-violet-200"
+                                    className="block truncate text-xs text-[var(--learner-accent)] underline decoration-[color-mix(in_srgb,var(--learner-accent)_40%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
                                     href={node.topic.href}
                                 >
                                     {node.topic.title}
                                 </Link>
                             ) : null}
-                            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                            <p className="truncate text-sm text-[var(--learner-muted-text)]">
                                 {node.mapTitle}
                             </p>
                             <h1 className="truncate text-base font-semibold">

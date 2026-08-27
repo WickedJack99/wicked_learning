@@ -617,32 +617,32 @@ function ActivityFrame({
     const translate = usePlatformTranslation();
 
     return (
-        <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/28">
+        <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
             <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/14 dark:text-teal-200">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_12%,transparent)] text-[var(--learner-action-accent)]">
                     <PlayCircle className="size-4" />
                 </span>
                 <div className="min-w-0">
-                    <p className="text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200/70">
+                    <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
                         {learningFocusLabel(activity, translate)}
                     </p>
-                    <h3 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
+                    <h3 className="mt-1 text-base font-semibold text-[var(--learner-heading-text)]">
                         {activity.title}
                     </h3>
                     {activity.introduction ? (
-                        <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-2 text-sm leading-6 text-[var(--learner-muted-text)]">
                             {activity.introduction}
                         </p>
                     ) : null}
                     {relatedLearningAreas.length > 0 ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-cyan-700 dark:text-teal-200/80">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
                             <span className="font-medium">
                                 Related learning areas:
                             </span>
                             {relatedLearningAreas.map((area) =>
                                 area.slug ? (
                                     <Link
-                                        className="rounded-sm underline decoration-cyan-500/40 underline-offset-2 transition hover:text-cyan-950 dark:decoration-teal-200/40 dark:hover:text-white"
+                                        className="rounded-sm underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
                                         href={competenceTopicHref(
                                             area.slug,
                                             originTopicSlug,
@@ -662,7 +662,7 @@ function ActivityFrame({
 
             {children}
 
-            <div className="mt-auto flex justify-end border-t border-slate-200 pt-3 dark:border-white/10">
+            <div className="mt-auto flex justify-end border-t border-[var(--learner-border-color)] pt-3">
                 <Button
                     className="text-sm"
                     onClick={onRestart}

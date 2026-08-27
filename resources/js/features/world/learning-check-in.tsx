@@ -74,35 +74,35 @@ export function LearningCheckIn({
     return (
         <section
             aria-labelledby="learning-check-in-title"
-            className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 p-4 dark:border-teal-200/20 dark:bg-teal-200/8"
+            className="mb-3 rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))] p-4"
         >
             <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-white/80 text-cyan-700 dark:bg-white/10 dark:text-teal-200">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-action-accent)]">
                     <Heart className="size-4" />
                 </span>
                 <div className="min-w-0">
                     <h2
-                        className="text-sm font-semibold text-slate-950 dark:text-white"
+                        className="text-sm font-semibold text-[var(--learner-heading-text)]"
                         id="learning-check-in-title"
                     >
                         A small pause after {activityTitle}
                     </h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
                         How did this feel? Choose a phrase if one fits, or
                         continue without answering.
                     </p>
                 </div>
             </div>
             {learningAreas.length > 0 ? (
-                <div className="mt-4 rounded-md border border-cyan-200/70 bg-white/50 px-3 py-2 dark:border-teal-100/15 dark:bg-black/10">
-                    <p className="text-xs font-medium text-cyan-900 dark:text-teal-100">
+                <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_25%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-panel-background)_70%,transparent)] px-3 py-2">
+                    <p className="text-xs font-medium text-[var(--learner-action-accent)]">
                         Connected learning areas
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                         {learningAreas.map((area) =>
                             area.slug ? (
                                 <Link
-                                    className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 underline decoration-cyan-700/40 underline-offset-2 transition hover:border-cyan-500 hover:bg-cyan-100 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100 dark:decoration-teal-100/40 dark:hover:border-teal-100/50 dark:hover:bg-teal-100/15"
+                                    className="rounded-full border border-[color-mix(in_srgb,var(--learner-action-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] px-2 py-0.5 text-xs text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 transition hover:border-[var(--learner-action-accent)] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_16%,transparent)]"
                                     href={competenceTopicHref(
                                         area.slug,
                                         originTopicSlug,
@@ -113,7 +113,7 @@ export function LearningCheckIn({
                                 </Link>
                             ) : (
                                 <span
-                                    className="rounded-full border border-cyan-300/70 bg-cyan-100/60 px-2 py-0.5 text-xs text-cyan-900 dark:border-teal-100/20 dark:bg-teal-100/8 dark:text-teal-100"
+                                    className="rounded-full border border-[color-mix(in_srgb,var(--learner-action-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] px-2 py-0.5 text-xs text-[var(--learner-action-accent)]"
                                     key={area.name}
                                 >
                                     {area.name}
@@ -126,13 +126,13 @@ export function LearningCheckIn({
 
             <div className="mt-4">
                 <label
-                    className="block text-xs font-medium text-cyan-900 dark:text-teal-100"
+                    className="block text-xs font-medium text-[var(--learner-action-accent)]"
                     htmlFor="learning-check-in-note"
                 >
                     Add a note (optional)
                 </label>
                 <textarea
-                    className="mt-1 min-h-20 w-full resize-y rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-sm leading-5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 dark:border-white/10 dark:bg-slate-950/30 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200"
+                    className="mt-1 min-h-20 w-full resize-y rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2 text-sm leading-5 text-[var(--learner-body-text)] transition outline-none placeholder:text-[var(--learner-muted-text)] focus:border-[var(--learner-action-accent)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--learner-action-accent)_30%,transparent)]"
                     id="learning-check-in-note"
                     maxLength={500}
                     onChange={(event) => setNote(event.target.value)}
@@ -144,16 +144,16 @@ export function LearningCheckIn({
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {feelings.map((feeling) => (
                     <button
-                        className="rounded-md border border-cyan-200 bg-white/80 px-3 py-2 text-left transition hover:border-cyan-400 hover:bg-white focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none disabled:cursor-wait disabled:opacity-60 dark:border-white/10 dark:bg-slate-950/25 dark:hover:border-teal-200/60 dark:hover:bg-white/10 dark:focus-visible:ring-teal-200"
+                        className="rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2 text-left transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_70%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
                         disabled={isSaving}
                         key={feeling.value}
                         onClick={() => void continueWith(feeling.value)}
                         type="button"
                     >
-                        <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+                        <span className="block text-sm font-medium text-[var(--learner-heading-text)]">
                             {feeling.label}
                         </span>
-                        <span className="mt-0.5 block text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        <span className="mt-0.5 block text-xs leading-5 text-[var(--learner-muted-text)]">
                             {feeling.description}
                         </span>
                     </button>
