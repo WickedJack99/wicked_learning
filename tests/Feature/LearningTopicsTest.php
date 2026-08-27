@@ -10,6 +10,7 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
@@ -252,6 +253,88 @@ test('a topic page exposes playable routes from its assigned maps', function () 
             ->where('topic.paths.0.nodeHref', '/world?map=night-sky&focused=constellations')
             ->where('topic.maps.0.nodeCount', 1)
             ->where('topic.paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
+        );
+});
+
+test('the learner journey keeps topic, competence, map and activity context connected', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $topic = LearningTopic::query()
+        ->where('slug', 'pattern-investigation')
+        ->firstOrFail();
+    $map = LearningMap::query()
+        ->where('slug', 'first-sector')
+        ->firstOrFail();
+    $node = LearningNode::query()
+        ->where('slug', 'signal-gate')
+        ->firstOrFail();
+    $activity = LearningActivity::query()
+        ->where('slug', 'meet-mira')
+        ->firstOrFail();
+    $start = LearningActivityStart::query()
+        ->where('learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('topic.maps.0.href', '/world?map=first-sector')
+            ->where('topic.paths.0.mapHref', '/world?map=first-sector')
+            ->where('topic.paths.0.nodeHref', '/world?map=first-sector&focused=signal-gate')
+            ->where('topic.paths.0.href', route('learning.nodes.play', [
+                'node' => $node,
+                'route' => $start->id,
+            ], false))
+        );
+
+    $this->actingAs($learner)
+        ->get(route('competence.index', [
+            'topic' => 'pattern-recognition',
+            'from' => $topic->slug,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('competence/index')
+            ->where('selectedTopic.title', $topic->title)
+            ->where('selectedTopic.href', '/topics/'.$topic->slug)
+            ->where('selectedTopicSlug', 'pattern-recognition')
+        );
+
+    $this->actingAs($learner)
+        ->get(route('world', [
+            'map' => $map->slug,
+            'focused' => $node->slug,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps.0.slug', $map->slug)
+            ->where('world.maps.0.topic.href', '/topics/'.$topic->slug)
+            ->where('world.maps.0.nodes', fn ($nodes): bool => $nodes
+                ->contains(fn (array $entry): bool => ($entry['slug'] ?? null) === $node->slug
+                    && ($entry['topic']['href'] ?? null) === '/topics/'.$topic->slug))
+        );
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'node' => $node,
+            'route' => $start->id,
+        ]))
+        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', ['node' => $node]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('learning/node-play')
+            ->where('playActivityId', $activity->id)
+            ->where('playRouteId', $start->id)
+            ->where('node.topic.href', '/topics/'.$topic->slug)
+            ->where('node.mapSlug', $map->slug)
+            ->where('node.slug', $node->slug)
+            ->where('node.activities.0.id', $activity->id)
         );
 });
 

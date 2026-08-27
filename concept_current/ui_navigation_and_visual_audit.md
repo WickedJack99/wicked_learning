@@ -283,14 +283,24 @@ accent treatments on Learning desk, topic detail and settings previews.
 section eyebrows do not compete with headings, and long helper copy is placed
 near the control it explains instead of adding another visual layer.
 
+### Completed — Protect the learner journey link contract
+
+The feature suite now covers the connected route contract from a published
+topic through its competence context, assigned map, focused MapAsset and
+playable activity. It also verifies that the activity retains the topic and
+map context needed for its return navigation. This protects server-side
+destinations from drifting apart; the browser still needs a separate smoke
+check for actual clicks, rendering and completion behavior.
+
 ## Functional coverage still needed
 
 These are test gaps, not claims that the feature is broken:
 
 - Search should be tested with empty, exact and no-result input, including the
   return path from a result.
-- Topic → competence, topic → map, map → asset, asset → activity and activity
-  completion should be covered as one uninterrupted flow.
+- Topic → competence, topic → map, map → asset and asset → activity link
+  contracts are covered by `LearningTopicsTest`; activity completion still
+  needs one uninterrupted browser flow.
 - Bookmark add, remove and reopen should be covered from both map and activity
   contexts.
 - Journal check-in creation, update, deletion, export, and the optional
