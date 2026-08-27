@@ -639,6 +639,7 @@ function learnerReadabilityChecks(
     mode: ConfigThemeMode,
 ): LearnerReadabilityCheck[] {
     const pageBackground = learnerPaletteColor(palette, 'pageBackground');
+    const headerBackground = learnerPaletteColor(palette, 'headerBackground');
     const panelBackground = learnerPaletteColor(palette, 'panelBackground');
     const backdrop = mode === 'dark' ? '#000000' : '#ffffff';
 
@@ -676,6 +677,24 @@ function learnerReadabilityChecks(
             ratio: contrastRatio(
                 learnerPaletteColor(palette, 'actionAccent'),
                 pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Action accent on panel',
+            minimumRatio: 4.5,
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'actionAccent'),
+                panelBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Action accent on header',
+            minimumRatio: 4.5,
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'actionAccent'),
+                headerBackground,
                 backdrop,
             ),
         },

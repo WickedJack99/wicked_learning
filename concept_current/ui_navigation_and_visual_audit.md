@@ -157,29 +157,29 @@ not hidden inside the public-page or map sections.
 defaults preserve the established dark/light visual language, with readable
 body and muted text values and separate orientation/action accents.
 
-### Updated — Surface learner palette contrast guidance
+### Completed — Review light-theme normal-text contrast in context
 
 Using the current configured colors, representative contrast ratios are:
 
 | Pair                                |   Ratio | Reading                         |
 | ----------------------------------- | ------: | ------------------------------- |
-| Dark heading `#f8fafc` on `#0b1117` | 18.13:1 | Strong                          |
-| Dark muted `#94a3b8` on `#0b1117`   |  7.40:1 | Strong                          |
-| Dark accent `#2dd4bf` on `#0b1117`  | 10.19:1 | Strong                          |
-| Light muted `#64748b` on `#f1f5f9`  |  4.34:1 | Below 4.5:1 for normal text     |
-| Light cyan `#0891b2` on `#f1f5f9`   |  3.36:1 | Too weak for normal-size text   |
-| Light accent `#0f766e` on `#f1f5f9` |  5.00:1 | Passes normal-text AA threshold |
+| Dark heading `#f8fafc` on `#08111b` | 18.14:1 | Strong                          |
+| Dark muted `#94a3b8` on `#08111b`   |  7.40:1 | Strong                          |
+| Dark action `#5eead4` on `#111820`  | 12.08:1 | Strong                          |
+| Light muted `#475569` on `#f8fafc`  |  7.24:1 | Passes normal-text AA threshold |
+| Light action `#0e7490` on `#ffffff` |  5.36:1 | Passes normal-text AA threshold |
+| Light action `#0e7490` on `#f8fafc` |  5.12:1 | Passes normal-text AA threshold |
 
 These are representative token checks, not a substitute for checking every
-foreground/background pair after opacity and overlays are applied. The dark
-theme has strong readability, but frequent saturated cyan/violet eyebrows,
-thin borders and small uppercase labels can make dense pages feel visually
-harsh even when their contrast is technically high.
+foreground/background pair after opacity and overlays are applied. The current
+defaults have strong readability in both themes. Frequent saturated
+cyan/violet eyebrows, thin borders and small uppercase labels can still make
+dense pages feel visually harsh even when their contrast is technically high.
 
 The Learner UI palette editor now shows representative text/background pairs
 for the selected appearance mode, including the effect of configured opacity.
-It checks normal text at 4.5:1 and focus indicators at 3:1, including the
-active-header pairing used by shared navigation. Decorative boundaries are
+It checks normal text at 4.5:1 and focus indicators at 3:1 across the page,
+panel and header pairings used by shared navigation. Decorative boundaries are
 shown as informational because the design intentionally keeps separators soft.
 Disabled controls remain intentionally subdued and are not treated as a place
 for essential content.
@@ -234,13 +234,6 @@ now expose explicit accessible names. The group-message send control follows
 the same rule. Remaining keyboard review is limited to map controls, settings
 authoring widgets and other complex surfaces listed below.
 
-### Completed — Label icon-only activity controls
-
-Previous/next controls in markdown pages, NPC dialogue and dialogue stages
-now expose explicit accessible names. The group-message send control follows
-the same rule. Remaining keyboard review is limited to map controls, settings
-authoring widgets and other complex surfaces listed below.
-
 ### Completed — Make interactive map assets reachable
 
 Interactive MapAssets now receive pointer input as well as keyboard input;
@@ -256,12 +249,15 @@ while remaining keyboard-reachable for its hover treatment, and reusable image
 choices expose which image is selected. Existing settings panes continue to
 own scrolling so these controls remain reachable in long editors.
 
-### P1 — Review light-theme normal-text contrast in context
+### Completed — Review light-theme normal-text contrast in context
 
-**Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;
-muted text is not used for essential instructions; focus, hover, selected and
-disabled states are checked separately; visual review confirms that accent
-color is reserved for orientation and action rather than every label.
+The learner palette editor now checks normal text at 4.5:1 and focus
+indicators at 3:1 across page, panel and header pairings. Action accents are
+checked on each surface where shared navigation and learner actions use them.
+The default light palette passes those normal-text checks; custom palettes keep
+an advisory warning when a pairing needs review. Accent competition and
+decorative boundaries remain visual design considerations rather than save
+blocking rules.
 
 ### P2 — Reduce typography and accent competition on dense pages
 
@@ -320,7 +316,6 @@ bottom-navigation or map-entry-only model.
 
 1. Add long-collection containment checks and the end-to-end browser smoke
    flow.
-2. Review custom learner palette values for light-theme contrast and accent
-   competition.
-3. Add keyboard/accessibility checks for the shared learner shell and complex
+2. Add keyboard/accessibility checks for the shared learner shell and complex
    authoring controls.
+3. Reduce typography and accent competition on dense pages.
