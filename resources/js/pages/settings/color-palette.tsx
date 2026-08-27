@@ -19,6 +19,7 @@ import {
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import { useDirtyState } from '@/hooks/use-dirty-state';
+import { contrastRatio } from '@/lib/color-contrast';
 import { cssColorFromPicker, parseCssColor } from '@/lib/css-color';
 import { cn } from '@/lib/utils';
 import type {
@@ -626,6 +627,129 @@ function PublicPresentationPalette({
     );
 }
 
+type LearnerReadabilityCheck = {
+    label: string;
+    ratio: number | null;
+};
+
+function learnerReadabilityChecks(
+    palette: LearnerPaletteModeSettings,
+    mode: ConfigThemeMode,
+): LearnerReadabilityCheck[] {
+    const pageBackground = learnerPaletteColor(palette, 'pageBackground');
+    const panelBackground = learnerPaletteColor(palette, 'panelBackground');
+    const backdrop = mode === 'dark' ? '#000000' : '#ffffff';
+
+    return [
+        {
+            label: 'Heading text on page',
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'headingText'),
+                pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Body text on page',
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'bodyText'),
+                pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Muted text on page',
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'mutedText'),
+                pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Action accent on page',
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'actionAccent'),
+                pageBackground,
+                backdrop,
+            ),
+        },
+        {
+            label: 'Body text on panel',
+            ratio: contrastRatio(
+                learnerPaletteColor(palette, 'bodyText'),
+                panelBackground,
+                backdrop,
+            ),
+        },
+    ];
+}
+
+function LearnerReadabilitySummary({
+    checks,
+    mode,
+}: {
+    checks: LearnerReadabilityCheck[];
+    mode: ConfigThemeMode;
+}) {
+    const needsReview = checks.filter(
+        (check) => check.ratio === null || check.ratio < 4.5,
+    ).length;
+
+    return (
+        <div className="border-b border-[var(--palette-workbench-border)] px-5 py-4 text-sm">
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="font-medium text-white">Readability check</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--palette-workbench-muted)]">
+                        Normal text target: 4.5:1 in {mode} mode. These checks
+                        guide review and do not block saving.
+                    </p>
+                </div>
+                <span
+                    className={cn(
+                        'shrink-0 rounded-full border px-2 py-1 text-xs font-medium',
+                        needsReview > 0
+                            ? 'border-amber-300/40 text-amber-200'
+                            : 'border-emerald-300/40 text-emerald-200',
+                    )}
+                >
+                    {needsReview > 0
+                        ? `${needsReview} to review`
+                        : 'Looks clear'}
+                </span>
+            </div>
+            <div className="mt-3 grid gap-2">
+                {checks.map((check) => {
+                    const passes = check.ratio !== null && check.ratio >= 4.5;
+
+                    return (
+                        <div
+                            className="flex items-center justify-between gap-3 text-xs"
+                            key={check.label}
+                        >
+                            <span className="min-w-0 truncate text-[var(--palette-workbench-muted)]">
+                                {check.label}
+                            </span>
+                            <span
+                                className={cn(
+                                    'shrink-0 font-medium',
+                                    passes
+                                        ? 'text-emerald-200'
+                                        : 'text-amber-200',
+                                )}
+                            >
+                                {check.ratio === null
+                                    ? 'Unable to check'
+                                    : `${check.ratio.toFixed(2)}:1`}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function LearnerInterfacePalette({
     availableColors,
     canUpdate,
@@ -649,9 +773,16 @@ function LearnerInterfacePalette({
         dark: getLearnerPalette(presentation, 'dark'),
         light: getLearnerPalette(presentation, 'light'),
     };
+    const readabilityChecks = learnerReadabilityChecks(palette, mode);
 
     return (
         <PaletteWorkbench
+            beforeFields={
+                <LearnerReadabilitySummary
+                    checks={readabilityChecks}
+                    mode={mode}
+                />
+            }
             disabled={!canUpdate}
             fields={learnerFields}
             intro="Learner UI colors control the shared navigation and page surfaces. Map visuals remain configured separately per map."

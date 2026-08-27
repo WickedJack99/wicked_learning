@@ -157,7 +157,7 @@ not hidden inside the public-page or map sections.
 defaults preserve the established dark/light visual language, with readable
 body and muted text values and separate orientation/action accents.
 
-### P1 — Review light-theme normal-text contrast
+### Updated — Surface learner palette contrast guidance
 
 Using the current configured colors, representative contrast ratios are:
 
@@ -175,6 +175,14 @@ foreground/background pair after opacity and overlays are applied. The dark
 theme has strong readability, but frequent saturated cyan/violet eyebrows,
 thin borders and small uppercase labels can make dense pages feel visually
 harsh even when their contrast is technically high.
+
+The Learner UI palette editor now shows these representative text/background
+pairs for the selected appearance mode, including the effect of configured
+opacity. The check is intentionally advisory rather than a hard save block:
+custom visual identities remain possible, while weak combinations are made
+visible at the point where they are configured.
+
+### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;
 muted text is not used for essential instructions; focus, hover, selected and

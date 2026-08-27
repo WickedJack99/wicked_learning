@@ -1,5 +1,5 @@
-import { useState   } from 'react';
-import type {CSSProperties, ReactNode} from 'react';
+import { useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export type PaletteWorkbenchField = {
@@ -25,6 +25,7 @@ export type PaletteWorkbenchTheme = {
 };
 
 type PaletteWorkbenchProps = {
+    beforeFields?: ReactNode;
     disabled: boolean;
     fields: PaletteWorkbenchField[];
     intro: string;
@@ -35,6 +36,7 @@ type PaletteWorkbenchProps = {
 };
 
 export function PaletteWorkbench({
+    beforeFields,
     disabled,
     fields,
     intro,
@@ -82,6 +84,7 @@ export function PaletteWorkbench({
                         disabled && 'pointer-events-none opacity-70',
                     )}
                 >
+                    {beforeFields}
                     {fields.map((field) => (
                         <div className="px-5 py-4" key={field.field}>
                             {renderField(field)}
