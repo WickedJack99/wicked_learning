@@ -363,21 +363,24 @@ export default function NodePlay({
     const navigationItems: LearnerNavigationItem[] = [
         {
             active: false,
-            href: mapHref,
-            label: translate('navigation.bottom.map', 'Map'),
-        },
-        {
-            active: false,
             href: '/home',
             label: translate(
-                'navigation.bottom.learning_desk',
+                'home.learning_desk.navigation.desk',
                 'Learning desk',
             ),
         },
         {
             active: false,
+            href: mapHref,
+            label: translate('navigation.bottom.map', 'Map'),
+        },
+        {
+            active: false,
             href: '/bookmarks',
-            label: translate('navigation.bottom.bookmarks', 'Bookmarks'),
+            label: translate(
+                'home.learning_desk.navigation.bookmarks',
+                'Bookmarks',
+            ),
         },
     ];
 
