@@ -89,7 +89,7 @@ export default function OrganizationsIndex({
     return (
         <>
             <Head title="Organizations" />
-            <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
+            <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
                 <LearningDeskHeader />
                 <div className="mx-auto grid max-w-6xl gap-5 px-4 py-6 pb-24">
                     <AccentHeading

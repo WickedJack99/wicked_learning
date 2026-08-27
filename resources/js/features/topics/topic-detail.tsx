@@ -26,7 +26,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
 
     return (
-        <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
+        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
             <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
                 <Link

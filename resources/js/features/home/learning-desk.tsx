@@ -24,7 +24,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
 
     return (
-        <main className="h-full overflow-y-auto bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
+        <main className="learner-scroll-pane bg-[var(--learner-page-background)] text-[var(--learner-heading-text)]">
             <LearningDeskHeader />
 
             <div className="grid min-h-[calc(100svh-4rem)] lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">

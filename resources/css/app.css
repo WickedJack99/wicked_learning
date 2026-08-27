@@ -518,6 +518,17 @@
         scrollbar-width: thin;
     }
 
+    /* Learner document pages live inside a fixed app frame and may contain any number of items. */
+    .learner-scroll-pane {
+        min-height: 0;
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-gutter: stable;
+    }
+
     .route-options-scroll::-webkit-scrollbar {
         width: 0.45rem;
     }

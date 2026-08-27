@@ -128,6 +128,12 @@ needs explicit coverage for long lists and graphs: topic cards, bookmarks,
 journal pages, AI review queues, graph nodes, map assets, reusable media, and
 organization members/messages.
 
+Learner document pages now share a `.learner-scroll-pane` contract that keeps
+the page inside the fixed app frame, reserves scrollbar space, prevents
+horizontal spill, and contains vertical overscroll. Map and settings panes
+remain explicitly nested because their controls and actions have different
+fixed-layout ownership.
+
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
 scrollbar remains arrow-free and retains a visible thumb in both themes.
