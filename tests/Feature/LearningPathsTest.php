@@ -97,6 +97,65 @@ test('learners can discover accessible authored routes with topic context', func
         );
 });
 
+test('learning paths preserve long route collections for client pagination', function () {
+    $user = User::factory()->create();
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'long-route-area',
+        'title' => 'Long route area',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'long-route-topic',
+        'title' => 'Long route topic',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'long-route-map',
+        'title' => 'Long route map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    foreach (range(1, 7) as $index) {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => 'long-route-node-'.$index,
+            'title' => 'Long route node '.$index,
+            'position_q' => $index,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => 'long-route-activity-'.$index,
+            'title' => 'Long route activity '.$index,
+            'introduction' => 'A route activity for collection coverage.',
+            'type' => 'markdown',
+        ]);
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'label' => 'Long route '.$index,
+            'sort_order' => $index,
+        ]);
+    }
+
+    $this->actingAs($user)
+        ->get(route('paths.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 7)
+            ->where('paths.0.label', 'Long route 1')
+            ->where('paths.6.label', 'Long route 7')
+        );
+});
+
 test('learning paths exclude inaccessible maps and unavailable nodes', function () {
     $user = User::factory()->create(['role' => User::ROLE_USER]);
     $world = LearningWorld::query()->create([

@@ -371,6 +371,8 @@ past the intended surface height.
 
 The standalone Paths directory now follows the same rule, showing six route
 cards per page while preserving every server-provided route for navigation.
+The Paths feature test now protects that contract with seven accessible routes,
+including the final route that must remain available to the client pager.
 
 ### Completed — Protect the learner journey link contract
 
