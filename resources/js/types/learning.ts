@@ -27,14 +27,6 @@ export type LearningMap = {
     backgroundConfig: ThemeVariant<{
         accentColor?: string;
         assets?: MapVisualAsset[];
-        bottomNavActiveBackground?: string;
-        bottomNavActiveIconColor?: string;
-        bottomNavActiveTextColor?: string;
-        bottomNavBackground?: string;
-        bottomNavBorderColor?: string;
-        bottomNavExitIconColor?: string;
-        bottomNavIconColor?: string;
-        bottomNavTextColor?: string;
         cardBackground?: string;
         cardBorderColor?: string;
         cardTextColor?: string;

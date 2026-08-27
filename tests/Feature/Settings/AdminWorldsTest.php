@@ -1677,14 +1677,6 @@ test('admin users can edit map visual theme variants', function () {
                     'sidePanelBorderColor' => 'rgba(255, 255, 255, 0.1)',
                     'sidePanelTextColor' => '#f8fafc',
                     'sidePanelMutedTextColor' => 'rgba(226, 232, 240, 0.72)',
-                    'bottomNavBackground' => 'rgba(8, 17, 26, 0.78)',
-                    'bottomNavBorderColor' => 'rgba(226, 232, 240, 0.12)',
-                    'bottomNavIconColor' => '#cbd5e1',
-                    'bottomNavTextColor' => '#e2e8f0',
-                    'bottomNavActiveBackground' => '#5eead4',
-                    'bottomNavActiveIconColor' => '#020617',
-                    'bottomNavActiveTextColor' => '#020617',
-                    'bottomNavExitIconColor' => '#ef4444',
                     'sideControlBackground' => 'rgba(8, 17, 26, 0.78)',
                     'sideControlBorderColor' => 'rgba(226, 232, 240, 0.12)',
                     'sideControlIconColor' => '#cbd5e1',
@@ -1719,10 +1711,6 @@ test('admin users can edit map visual theme variants', function () {
     expect($map->background_config)->not->toHaveKey('imageUrl')
         ->and($map->background_config['dark']['imageUrl'])->toBe('/storage/learning/maps/dark.webp')
         ->and($map->background_config['dark']['panelBorderColor'])->toBe('rgba(226, 232, 240, 0.12)')
-        ->and($map->background_config['dark']['bottomNavBackground'])->toBe('rgba(8, 17, 26, 0.78)')
-        ->and($map->background_config['dark']['bottomNavIconColor'])->toBe('#cbd5e1')
-        ->and($map->background_config['dark']['bottomNavActiveIconColor'])->toBe('#020617')
-        ->and($map->background_config['dark']['bottomNavExitIconColor'])->toBe('#ef4444')
         ->and($map->background_config['dark']['sideControlBackground'])->toBe('rgba(8, 17, 26, 0.78)')
         ->and($map->background_config['dark']['sideControlIconColor'])->toBe('#cbd5e1')
         ->and($map->background_config['dark']['sideControlActiveIconColor'])->toBe('#020617')

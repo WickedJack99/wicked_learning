@@ -3,7 +3,6 @@ import {
     Image,
     LayoutPanelTop,
     Map as MapIcon,
-    Navigation,
     Palette,
     PanelRight,
     Plus,
@@ -90,7 +89,6 @@ type VisualSection =
     | 'general'
     | 'titlePanel'
     | 'sidePanel'
-    | 'bottomNav'
     | 'rightControl'
     | 'backgroundImage'
     | 'assets';
@@ -98,14 +96,6 @@ type VisualSection =
 type MapVisualThemeFields = {
     accentColor: string;
     assets: MapVisualAssetForm[];
-    bottomNavActiveBackground: string;
-    bottomNavActiveIconColor: string;
-    bottomNavActiveTextColor: string;
-    bottomNavBackground: string;
-    bottomNavBorderColor: string;
-    bottomNavExitIconColor: string;
-    bottomNavIconColor: string;
-    bottomNavTextColor: string;
     imageUrl: string;
     overlay: string;
     pageBackground: string;
@@ -190,12 +180,6 @@ const visualSections: {
         label: 'MapAsset side panel',
     },
     {
-        description: 'The floating primary navigation at the bottom.',
-        icon: Navigation,
-        id: 'bottomNav',
-        label: 'Bottom nav',
-    },
-    {
         description: 'Inventory, tools and future player controls.',
         icon: SlidersHorizontal,
         id: 'rightControl',
@@ -236,16 +220,6 @@ const visualFieldGroups: Record<
         { key: 'sidePanelHeadingColor', label: 'Heading accent' },
         { key: 'sidePanelTextColor', label: 'Text' },
         { key: 'sidePanelMutedTextColor', label: 'Muted text' },
-    ],
-    bottomNav: [
-        { key: 'bottomNavBackground', label: 'Background' },
-        { key: 'bottomNavBorderColor', label: 'Border' },
-        { key: 'bottomNavIconColor', label: 'Icon' },
-        { key: 'bottomNavTextColor', label: 'Text' },
-        { key: 'bottomNavActiveBackground', label: 'Active background' },
-        { key: 'bottomNavActiveIconColor', label: 'Active icon' },
-        { key: 'bottomNavActiveTextColor', label: 'Active text' },
-        { key: 'bottomNavExitIconColor', label: 'Exit icon' },
     ],
     rightControl: [
         { key: 'sideControlBackground', label: 'Background' },
@@ -1293,10 +1267,6 @@ function SectionPreview({
         return <SidePanelPreview theme={theme} />;
     }
 
-    if (section === 'bottomNav') {
-        return <BottomNavPreview theme={theme} />;
-    }
-
     if (section === 'rightControl') {
         return <RightControlPreview theme={theme} />;
     }
@@ -1477,30 +1447,6 @@ function SidePanelPreview({ theme }: { theme: MapVisualThemeFields }) {
     );
 }
 
-function BottomNavPreview({ theme }: { theme: MapVisualThemeFields }) {
-    return (
-        <PreviewFrame title="Preview">
-            <div
-                className="flex w-max items-center gap-1.5 rounded-2xl border p-1.5"
-                style={{
-                    background:
-                        theme.bottomNavBackground ||
-                        theme.panelBackground ||
-                        'rgba(5, 15, 22, 0.82)',
-                    borderColor:
-                        theme.bottomNavBorderColor || 'rgba(255,255,255,0.12)',
-                    color: theme.bottomNavIconColor || theme.bottomNavTextColor,
-                }}
-            >
-                <PreviewIconButton active theme={theme} type="bottom" />
-                <PreviewIconButton theme={theme} type="bottom" />
-                <PreviewIconButton theme={theme} type="bottom" />
-                <PreviewIconButton danger theme={theme} type="bottom" />
-            </div>
-        </PreviewFrame>
-    );
-}
-
 function RightControlPreview({ theme }: { theme: MapVisualThemeFields }) {
     return (
         <PreviewFrame title="Preview">
@@ -1519,9 +1465,9 @@ function RightControlPreview({ theme }: { theme: MapVisualThemeFields }) {
                         theme.sideControlTextColor,
                 }}
             >
-                <PreviewIconButton active theme={theme} type="side" />
-                <PreviewIconButton theme={theme} type="side" />
-                <PreviewIconButton theme={theme} type="side" />
+                <PreviewIconButton active theme={theme} />
+                <PreviewIconButton theme={theme} />
+                <PreviewIconButton theme={theme} />
             </div>
         </PreviewFrame>
     );
@@ -1529,37 +1475,19 @@ function RightControlPreview({ theme }: { theme: MapVisualThemeFields }) {
 
 function PreviewIconButton({
     active = false,
-    danger = false,
     theme,
-    type,
 }: {
     active?: boolean;
-    danger?: boolean;
     theme: MapVisualThemeFields;
-    type: 'bottom' | 'side';
 }) {
-    const activeBackground =
-        type === 'bottom'
-            ? theme.bottomNavActiveBackground
-            : theme.sideControlActiveBackground;
-    const iconColor =
-        type === 'bottom'
-            ? active
-                ? theme.bottomNavActiveIconColor ||
-                  theme.bottomNavActiveTextColor ||
-                  '#0f172a'
-                : danger
-                  ? theme.bottomNavExitIconColor || '#ef4444'
-                  : theme.bottomNavIconColor ||
-                    theme.bottomNavTextColor ||
-                    '#e2e8f0'
-            : active
-              ? theme.sideControlActiveIconColor ||
-                theme.sideControlActiveTextColor ||
-                '#0f172a'
-              : theme.sideControlIconColor ||
-                theme.sideControlTextColor ||
-                '#e2e8f0';
+    const activeBackground = theme.sideControlActiveBackground;
+    const iconColor = active
+        ? theme.sideControlActiveIconColor ||
+          theme.sideControlActiveTextColor ||
+          '#0f172a'
+        : theme.sideControlIconColor ||
+          theme.sideControlTextColor ||
+          '#e2e8f0';
 
     return (
         <div
@@ -1864,20 +1792,6 @@ function mapVisualThemeFieldsFromConfig(
     return {
         accentColor: stringConfig(config?.accentColor),
         assets: mapAssetsFromConfig(config?.assets),
-        bottomNavActiveBackground: stringConfig(
-            config?.bottomNavActiveBackground,
-        ),
-        bottomNavActiveIconColor: stringConfig(
-            config?.bottomNavActiveIconColor,
-        ),
-        bottomNavActiveTextColor: stringConfig(
-            config?.bottomNavActiveTextColor,
-        ),
-        bottomNavBackground: stringConfig(config?.bottomNavBackground),
-        bottomNavBorderColor: stringConfig(config?.bottomNavBorderColor),
-        bottomNavExitIconColor: stringConfig(config?.bottomNavExitIconColor),
-        bottomNavIconColor: stringConfig(config?.bottomNavIconColor),
-        bottomNavTextColor: stringConfig(config?.bottomNavTextColor),
         imageUrl: stringConfig(config?.imageUrl),
         overlay: stringConfig(config?.overlay),
         pageBackground: stringConfig(config?.pageBackground),

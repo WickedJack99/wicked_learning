@@ -102,14 +102,6 @@ class AdminWorldRules
         $rules = [];
         $colorFields = [
             'accentColor',
-            'bottomNavActiveBackground',
-            'bottomNavActiveIconColor',
-            'bottomNavActiveTextColor',
-            'bottomNavBackground',
-            'bottomNavBorderColor',
-            'bottomNavExitIconColor',
-            'bottomNavIconColor',
-            'bottomNavTextColor',
             'overlay',
             'pageBackground',
             'panelBackground',

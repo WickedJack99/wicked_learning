@@ -31,13 +31,8 @@ export function mapControlCssVariables(
     const sharedMutedText =
         configuredCssValue(mapTheme?.panelMutedTextColor) ?? sharedText;
     const sharedAccent =
-        configuredCssValue(mapTheme?.accentColor) ??
-        configuredCssValue(mapTheme?.bottomNavActiveBackground) ??
-        '#2dd4bf';
-    const sharedAccentForeground =
-        configuredCssValue(mapTheme?.bottomNavActiveTextColor) ??
-        configuredCssValue(mapTheme?.bottomNavActiveIconColor) ??
-        '#020617';
+        configuredCssValue(mapTheme?.accentColor) ?? '#2dd4bf';
+    const sharedAccentForeground = '#020617';
 
     return {
         '--map-floating-accent-color': sharedAccent,
@@ -45,35 +40,6 @@ export function mapControlCssVariables(
         '--map-floating-border-color': sharedBorder,
         '--map-floating-muted-text-color': sharedMutedText,
         '--map-floating-text-color': sharedText,
-        '--map-bottom-nav-active-background':
-            configuredCssValue(mapTheme?.bottomNavActiveBackground) ??
-            sharedAccent,
-        '--map-bottom-nav-active-icon-color':
-            configuredCssValue(mapTheme?.bottomNavActiveIconColor) ??
-            configuredCssValue(mapTheme?.bottomNavActiveTextColor) ??
-            sharedAccentForeground,
-        '--map-bottom-nav-active-text-color':
-            configuredCssValue(mapTheme?.bottomNavActiveTextColor) ??
-            sharedAccentForeground,
-        '--map-bottom-nav-background':
-            configuredCssValue(mapTheme?.bottomNavBackground) ??
-            sharedBackground ??
-            'rgba(2, 6, 23, 0.82)',
-        '--map-bottom-nav-border-color':
-            configuredCssValue(mapTheme?.bottomNavBorderColor) ??
-            sharedBorder ??
-            'rgba(255, 255, 255, 0.12)',
-        '--map-bottom-nav-exit-icon-color':
-            configuredCssValue(mapTheme?.bottomNavExitIconColor) ?? '#ef4444',
-        '--map-bottom-nav-icon-color':
-            configuredCssValue(mapTheme?.bottomNavIconColor) ??
-            configuredCssValue(mapTheme?.bottomNavTextColor) ??
-            sharedText ??
-            'rgb(226 232 240)',
-        '--map-bottom-nav-text-color':
-            configuredCssValue(mapTheme?.bottomNavTextColor) ??
-            sharedText ??
-            'rgb(226 232 240)',
         '--map-side-control-active-background':
             configuredCssValue(mapTheme?.sideControlActiveBackground) ??
             sharedAccent,

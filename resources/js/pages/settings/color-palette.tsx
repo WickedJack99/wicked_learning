@@ -174,20 +174,6 @@ const mapFieldGroups: Array<{
         ],
     },
     {
-        id: 'bottomNav',
-        label: 'Bottom nav',
-        fields: [
-            { field: 'bottomNavBackground', label: 'Background' },
-            { field: 'bottomNavBorderColor', label: 'Border' },
-            { field: 'bottomNavIconColor', label: 'Icon' },
-            { field: 'bottomNavTextColor', label: 'Text' },
-            { field: 'bottomNavActiveBackground', label: 'Active background' },
-            { field: 'bottomNavActiveIconColor', label: 'Active icon' },
-            { field: 'bottomNavActiveTextColor', label: 'Active text' },
-            { field: 'bottomNavExitIconColor', label: 'Exit icon' },
-        ],
-    },
-    {
         id: 'rightControl',
         label: 'Right control',
         fields: [
@@ -1563,40 +1549,6 @@ function MapControlsPalettePreview({
             <div
                 className="flex w-fit gap-2 rounded-xl border p-2"
                 style={{
-                    background: colors.bottomNavBackground,
-                    borderColor: colors.bottomNavBorderColor,
-                    color: colors.bottomNavIconColor,
-                }}
-            >
-                {['Map', 'Saved', 'Settings'].map((item, index) => (
-                    <div
-                        className="rounded-lg px-3 py-2 text-xs font-semibold"
-                        key={item}
-                        style={
-                            index === 2
-                                ? {
-                                      background:
-                                          colors.bottomNavActiveBackground,
-                                      color: colors.bottomNavActiveTextColor,
-                                  }
-                                : {
-                                      color: colors.bottomNavTextColor,
-                                  }
-                        }
-                    >
-                        {item}
-                    </div>
-                ))}
-                <div
-                    className="rounded-lg px-3 py-2 text-xs font-semibold"
-                    style={{ color: colors.bottomNavExitIconColor }}
-                >
-                    Exit
-                </div>
-            </div>
-            <div
-                className="flex w-fit gap-2 rounded-xl border p-2"
-                style={{
                     background: colors.sideControlBackground,
                     borderColor: colors.sideControlBorderColor,
                 }}
@@ -1712,14 +1664,6 @@ function journalPreviewColors(
 function mapPreviewColors(modeConfig: MapVisualMode): Record<string, string> {
     const fallback: Record<string, string> = {
         accentColor: '#2dd4bf',
-        bottomNavActiveBackground: '#2dd4bf',
-        bottomNavActiveIconColor: '#042f2e',
-        bottomNavActiveTextColor: '#042f2e',
-        bottomNavBackground: 'rgba(8, 17, 26, 0.78)',
-        bottomNavBorderColor: 'rgba(255, 255, 255, 0.12)',
-        bottomNavExitIconColor: '#ef4444',
-        bottomNavIconColor: '#cbd5e1',
-        bottomNavTextColor: '#cbd5e1',
         overlay: 'rgba(2, 6, 23, 0.48)',
         pageBackground: '#020617',
         panelBackground: 'rgba(8, 17, 26, 0.82)',

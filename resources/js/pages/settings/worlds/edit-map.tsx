@@ -197,11 +197,6 @@ type UnlockRule =
 
 type MapVisualThemeFields = {
     accentColor: string;
-    bottomNavActiveBackground: string;
-    bottomNavActiveTextColor: string;
-    bottomNavBackground: string;
-    bottomNavBorderColor: string;
-    bottomNavTextColor: string;
     completedDimOpacity: string;
     imageUrl: string;
     overlay: string;
@@ -337,8 +332,7 @@ export default function EditWorldMap({
     );
     const nodeDialogThemeStyle = {
         '--settings-accent': previewMapTheme.accentColor || '#2dd4bf',
-        '--settings-accent-foreground':
-            previewMapTheme.bottomNavActiveTextColor || '#020617',
+        '--settings-accent-foreground': '#020617',
     } as CSSProperties;
     const nodeDialogStyle = {
         ...(embedded ? settingsPresentationStyle : {}),
@@ -3353,14 +3347,6 @@ const mapVisualFields: {
     { key: 'sidePanelHeadingColor', label: 'Node side panel heading' },
     { key: 'sidePanelTextColor', label: 'Node side panel text' },
     { key: 'sidePanelMutedTextColor', label: 'Node side panel muted text' },
-    { key: 'bottomNavBackground', label: 'Bottom nav background' },
-    { key: 'bottomNavBorderColor', label: 'Bottom nav border' },
-    { key: 'bottomNavTextColor', label: 'Bottom nav icon/text' },
-    {
-        key: 'bottomNavActiveBackground',
-        label: 'Bottom nav active background',
-    },
-    { key: 'bottomNavActiveTextColor', label: 'Bottom nav active icon/text' },
     { key: 'sideControlBackground', label: 'Right control background' },
     { key: 'sideControlBorderColor', label: 'Right control border' },
     { key: 'sideControlTextColor', label: 'Right control icon/text' },
@@ -4083,11 +4069,6 @@ function emptyNodeSoundTrigger(): NodeSoundTriggerConfig {
 function emptyMapVisualThemeFields(): MapVisualThemeFields {
     return {
         accentColor: '',
-        bottomNavActiveBackground: '',
-        bottomNavActiveTextColor: '',
-        bottomNavBackground: '',
-        bottomNavBorderColor: '',
-        bottomNavTextColor: '',
         completedDimOpacity: '',
         imageUrl: '',
         overlay: '',
@@ -4467,26 +4448,6 @@ function mapVisualThemeFieldsFromConfig(
     return {
         ...fallback,
         accentColor: stringConfig(config?.accentColor, fallback.accentColor),
-        bottomNavActiveBackground: stringConfig(
-            config?.bottomNavActiveBackground,
-            fallback.bottomNavActiveBackground,
-        ),
-        bottomNavActiveTextColor: stringConfig(
-            config?.bottomNavActiveTextColor,
-            fallback.bottomNavActiveTextColor,
-        ),
-        bottomNavBackground: stringConfig(
-            config?.bottomNavBackground,
-            fallback.bottomNavBackground,
-        ),
-        bottomNavBorderColor: stringConfig(
-            config?.bottomNavBorderColor,
-            fallback.bottomNavBorderColor,
-        ),
-        bottomNavTextColor: stringConfig(
-            config?.bottomNavTextColor,
-            fallback.bottomNavTextColor,
-        ),
         completedDimOpacity: inputStringConfig(
             config?.completedDimOpacity,
             fallback.completedDimOpacity,

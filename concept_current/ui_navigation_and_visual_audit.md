@@ -69,26 +69,17 @@ offers an obvious return to the learner context; the same account controls and
 responsive header rules apply; direct links remain usable without first
 entering a map.
 
-### P1 — Replace the stale map bottom-navigation authoring concept
+### Completed — Removed the stale map bottom-navigation authoring concept
 
-The current map and bookmark surfaces use the shared top navigation. However,
-map configuration still exposes **Bottom nav** with the description “The
-floating primary navigation at the bottom,” plus bottom-nav preview controls,
-validation fields, map theme fields and CSS variables. This is a live authoring
-surface for a navigation model learners no longer see.
+The current map and bookmark surfaces use the shared top navigation. The stale
+**Bottom nav** authoring section, preview controls, validation fields, map theme
+fields and CSS variables have now been removed. The cleanup migration also
+removes those keys from existing `learning_maps.background_config` values.
 
-Because the project is still demo-only, compatibility with those obsolete
-stored fields is not a reason to preserve them.
-
-**Decision to make:** remove the obsolete fields and preview end-to-end, or
-replace them with configuration for the actual shared top surface. Do not
-rename the preview while keeping controls that do not affect the learner UI.
-
-**Acceptance criteria:** every navigation color control shown to an author
-styles a currently rendered surface; no “bottom nav” terminology remains in
-current code, validation, or current concept documentation; portal travel
-remains an optional exploration connection and is not treated as the only way
-to reach a map.
+The remaining map visual controls now describe rendered surfaces such as the
+map title panel, MapAsset side panel and right control. Portal travel remains
+an optional exploration connection and is not treated as the only way to reach
+a map.
 
 ### P1 — Define one surface-frame ownership rule
 
@@ -227,9 +218,8 @@ bottom-navigation or map-entry-only model.
 
 ## Priority order for the next slices
 
-1. Retire or replace bottom-navigation configuration and dead map theme tokens.
-2. Fix focused-map narrow overflow and add long-collection containment checks.
-3. Give community pages a deliberate shared navigation contract.
-4. Decide and implement the learner palette source of truth, including light
+1. Fix focused-map narrow overflow and add long-collection containment checks.
+2. Give community pages a deliberate shared navigation contract.
+3. Decide and implement the learner palette source of truth, including light
    contrast corrections.
-5. Add the end-to-end browser smoke flow and keyboard/accessibility checks.
+4. Add the end-to-end browser smoke flow and keyboard/accessibility checks.
