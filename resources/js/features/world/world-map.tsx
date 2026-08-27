@@ -561,8 +561,13 @@ function MapAssetLayers({
                     <button
                         aria-label={label ?? node?.title ?? 'MapAsset'}
                         className={cn(
-                            'pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:outline-none',
+                            'pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 text-center focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none',
                         )}
+                        aria-pressed={
+                            interactionMode === 'toggle'
+                                ? toggledAssetIds.includes(asset.id)
+                                : undefined
+                        }
                         data-map-asset-id={asset.id}
                         data-map-asset-mode={interactionMode}
                         data-map-asset-state={

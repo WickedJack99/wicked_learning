@@ -218,6 +218,13 @@ now expose explicit accessible names. The group-message send control follows
 the same rule. Remaining keyboard review is limited to map controls, settings
 authoring widgets and other complex surfaces listed below.
 
+### Completed — Make interactive map assets reachable
+
+Interactive MapAssets now receive pointer input as well as keyboard input;
+decorative assets remain non-interactive. Toggle assets also expose their
+current pressed state to assistive technology, and interactive assets retain a
+visible map-specific focus ring.
+
 ### P1 — Review light-theme normal-text contrast in context
 
 **Acceptance criteria:** normal-size light-theme text meets WCAG AA contrast;
