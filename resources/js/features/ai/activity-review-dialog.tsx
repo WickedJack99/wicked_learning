@@ -65,10 +65,10 @@ export function ActivityReviewDialog({
     const [lastResult, setLastResult] = useState<ActivityReviewResult | null>(
         null,
     );
+    const latestResult =
+        activity && lastResult?.activityId === activity.id ? lastResult : null;
     const result = activity
-        ? lastResult?.activityId === activity.id
-            ? lastResult.aiReview
-            : activity.aiReview
+        ? latestResult?.aiReview ?? activity.aiReview
         : null;
     const templateId = selectedTemplateId || templates[0]?.id.toString() || '';
 
@@ -129,12 +129,17 @@ export function ActivityReviewDialog({
                                 </p>
                                 <span
                                     className={
-                                        activity.aiReviewStatus === 'reviewed'
+                                        (latestResult?.aiReviewStatus ??
+                                            activity.aiReviewStatus) ===
+                                        'reviewed'
                                             ? 'text-xs font-medium text-emerald-700 dark:text-emerald-300'
                                             : 'text-xs font-medium text-amber-700 dark:text-amber-300'
                                     }
                                 >
-                                    {reviewStatusLabel(activity.aiReviewStatus)}
+                                    {reviewStatusLabel(
+                                        latestResult?.aiReviewStatus ??
+                                            activity.aiReviewStatus,
+                                    )}
                                 </span>
                             </div>
                             <p className="mt-1 text-sm font-semibold">
@@ -145,8 +150,9 @@ export function ActivityReviewDialog({
                                     ? `Edited ${formatReviewDate(activity.updatedAt)}`
                                     : 'Edit time unavailable'}{' '}
                                 ·{' '}
-                                {activity.aiReviewedAt
-                                    ? `AI reviewed ${formatReviewDate(activity.aiReviewedAt)}`
+                                {(latestResult?.aiReviewedAt ??
+                                    activity.aiReviewedAt)
+                                    ? `AI reviewed ${formatReviewDate(latestResult?.aiReviewedAt ?? activity.aiReviewedAt ?? '')}`
                                     : 'AI review not run yet'}
                             </p>
                         </div>
