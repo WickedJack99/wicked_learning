@@ -669,7 +669,9 @@ export function ReflectionActivity({
             : 'What feels clearer now?';
     const note =
         typeof activity.config.note === 'string' ? activity.config.note : null;
-    const isReview = activity.config.learningIntent === 'review';
+    const isReview =
+        activity.type === 'review' ||
+        activity.config.learningIntent === 'review';
 
     return (
         <div className="flex flex-1 flex-col gap-4">

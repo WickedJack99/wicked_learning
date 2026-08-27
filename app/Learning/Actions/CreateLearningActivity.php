@@ -86,7 +86,7 @@ class CreateLearningActivity
             'obstacle' => $this->obstacleConfig->fromData($data),
             'open_practice' => $this->openPracticeConfig->fromData($data),
             'portal' => $this->portalConfig->fromData($data),
-            'reflection' => $this->reflectionConfig->fromData($data),
+            'reflection', 'review' => $this->reflectionConfig->fromData($data),
             'shared_task' => $this->sharedTaskConfig->fromData($data),
             'tool_grant' => $this->toolGrantConfig->fromData($data),
             default => [],

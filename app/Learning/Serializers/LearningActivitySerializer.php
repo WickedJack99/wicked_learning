@@ -297,7 +297,8 @@ class LearningActivitySerializer
     {
         $config = is_array($activity->config) ? $activity->config : [];
 
-        if ($activity->type !== 'reflection' || ($config['learningIntent'] ?? null) !== 'review') {
+        if (! in_array($activity->type, ['reflection', 'review'], true)
+            || ($activity->type !== 'review' && ($config['learningIntent'] ?? null) !== 'review')) {
             return null;
         }
 

@@ -100,6 +100,45 @@ test('a review activity offers earlier private reflections from the same journal
         );
 });
 
+test('an explicit review activity reuses private comparison context', function () {
+    [$learner, $activity] = activeReflectionActivity();
+    $activity->forceFill([
+        'type' => 'review',
+        'config' => [
+            'prompt' => 'What do you notice now?',
+            'topic' => 'Systems Thinking',
+        ],
+    ])->save();
+
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Systems Thinking',
+        'topic' => 'Systems Thinking',
+        'subtopic' => '',
+        'markdown' => 'Earlier note',
+        'preferred_mode' => 'view',
+    ]);
+    LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $page->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Earlier note',
+        'question' => 'What did you notice before?',
+        'reflection' => 'I noticed the parts were connected.',
+        'feedback_status' => 'not_requested',
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', $activity->learning_node_id))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('node.activities.0.type', 'review')
+            ->has('node.activities.0.reviewContext', 1)
+            ->where('node.activities.0.reviewContext.0.question', 'What did you notice before?')
+        );
+});
+
 test('the journal includes the learners private check-in trail with a path back to its node', function () {
     [$learner, $activity] = activeReflectionActivity();
     LearnerActivityProgress::query()->create([

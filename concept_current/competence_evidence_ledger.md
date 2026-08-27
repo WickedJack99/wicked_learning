@@ -91,8 +91,9 @@ Selecting a light can also offer an optional return to the latest learning
 place that contributed to that topic. The link is a doorway back into the
 world, not a required next step or a corrective assignment.
 
-When a reflection is authored with the `review` learning purpose, the learner
-sees it as `Review / revisit` with language that invites comparison over time.
+When a reflection is authored with the `review` learning purpose, or when an
+explicit `review` activity is used, the learner sees `Review / revisit` with
+language that invites comparison over time.
 If earlier private reflections exist in the same journal category, the
 activity can offer up to three of them as optional, collapsible context before
 the learner writes. The learner can skip the comparison; the notes are never

@@ -28,8 +28,9 @@ promise that every interaction produces an immediate measurable gain.
   the task purpose, describe observable evidence in the response or action,
   and offer one useful next action without trait judgments. The same guidance
   is visible during playback and inspected by the scoped activity review.
-- Continue strengthening explicit Review / revisit activities with retrieval,
-  feedback and spacing semantics while keeping reflection skippable.
+- [x] Add an explicit Review / revisit activity type that reuses the reflection
+  renderer and private journal comparison behavior. Keep retrieval, feedback
+  and spacing refinements incremental, and keep reflection skippable.
 
 The evidence base is strongest for autonomy-supportive teaching, retrieval and
 spacing, while relatedness effects are more context-dependent. Relatedness

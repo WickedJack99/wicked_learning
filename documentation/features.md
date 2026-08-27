@@ -82,7 +82,7 @@ Implemented activity types are:
 
 - dialogue and graph-based NPC dialogue
 - questions with correctness and outcome branches
-- reflection
+- reflection and explicit Review / revisit pauses
 - Markdown page graphs
 - shared tasks
 - learner message prompts and message walls

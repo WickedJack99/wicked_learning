@@ -119,7 +119,7 @@ class UpdateLearningActivity
             'obstacle' => $this->obstacleConfig->fromData($data, $existing),
             'open_practice' => $this->openPracticeConfig->fromData($data, $existing),
             'portal' => $this->portalConfig->fromData($data, $existing),
-            'reflection' => $this->reflectionConfig->fromData($data, $existing),
+            'reflection', 'review' => $this->reflectionConfig->fromData($data, $existing),
             'shared_task' => $this->sharedTaskConfig->fromData($data, $existing),
             'tool_grant' => $this->toolGrantConfig->fromData($data, $existing),
             default => [],

@@ -256,7 +256,7 @@ export type LearningPortalLink = {
 export type LearningActivity = {
     id: number;
     slug: string;
-    type: 'dialogue' | 'question' | 'reflection' | string;
+    type: 'dialogue' | 'question' | 'reflection' | 'review' | string;
     title: string;
     introduction: string | null;
     config: Record<

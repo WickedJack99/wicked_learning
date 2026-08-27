@@ -439,7 +439,7 @@ export function ActivityPlayer({
                 />
             ) : null}
 
-            {activity.type === 'reflection' ? (
+            {activity.type === 'reflection' || activity.type === 'review' ? (
                 <ReflectionActivity
                     activity={activity}
                     onComplete={completeActivity}

@@ -87,6 +87,13 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('completed', 'Completed')],
             ],
             [
+                'key' => 'review',
+                'label' => 'Review / revisit',
+                'description' => 'A learner-owned return to earlier ideas with optional private comparison.',
+                'inputs' => [$this->connector('in', 'In')],
+                'outputs' => [$this->connector('completed', 'Completed')],
+            ],
+            [
                 'key' => 'shared_task',
                 'label' => 'Shared task',
                 'description' => 'A learner contribution task with activity-wide progress shared across users.',

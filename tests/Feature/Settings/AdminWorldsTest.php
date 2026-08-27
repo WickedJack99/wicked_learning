@@ -1010,6 +1010,32 @@ test('admin users can create and connect activity graph nodes', function () {
     expect($activity->transitions()->exists())->toBeFalse();
 });
 
+test('admin users can create an explicit review activity', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'title' => 'Revisit the field note',
+            'type' => 'review',
+            'reflection_prompt' => 'What do you notice now that you missed before?',
+            'reflection_topic' => 'Field studies',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'revisit-the-field-note')
+        ->firstOrFail();
+
+    expect($activity->type)->toBe('review')
+        ->and($activity->config['prompt'])
+        ->toBe('What do you notice now that you missed before?')
+        ->and($activity->config['topic'])->toBe('Field studies');
+});
+
 test('admin users can author npc dialogue activity graphs', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

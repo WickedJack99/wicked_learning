@@ -209,7 +209,7 @@ function fieldsForActivityType(type: string): Array<keyof ActivityForm> {
         return toolGrantFields;
     }
 
-    if (type === 'reflection') {
+    if (type === 'reflection' || type === 'review') {
         return reflectionFields;
     }
 

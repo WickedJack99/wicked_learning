@@ -46,6 +46,7 @@ class ActivityCompetenceConfiguration
         return match ($activity->type) {
             'question' => 'retrieve',
             'reflection' => 'reflect',
+            'review' => 'review',
             'shared_task', 'message_prompt', 'message_wall' => 'explain',
             'obstacle', 'item_obstacle', 'tool_obstacle' => 'apply',
             default => 'participate',

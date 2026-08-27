@@ -124,6 +124,7 @@ export function ActivityFormFields({
         form.type === 'tool_grant' ||
         form.type === 'shared_task' ||
         form.type === 'reflection' ||
+        form.type === 'review' ||
         form.type === 'message_prompt' ||
         form.type === 'message_wall' ||
         form.type === 'open_practice';
@@ -351,14 +352,17 @@ export function ActivityFormFields({
                                 </SettingsConfigurationSection>
                             ) : null}
 
-                            {form.type === 'reflection' ? (
+                            {form.type === 'reflection' ||
+                            form.type === 'review' ? (
                                 <SettingsConfigurationSection
                                     description={
+                                        form.type === 'review' ||
                                         form.learning_intent === 'review'
                                             ? 'Invite a learner to revisit earlier material and notice what feels clearer, more connected, or still open.'
                                             : 'Ask a learner-owned question and optionally file its journal entry under a topic.'
                                     }
                                     title={
+                                        form.type === 'review' ||
                                         form.learning_intent === 'review'
                                             ? 'Review / revisit prompt'
                                             : 'Reflection prompt'

@@ -74,8 +74,8 @@ class LearningNodeSerializer
         $reviewActivities = $node->activities->filter(function (LearningActivity $activity): bool {
             $config = is_array($activity->config) ? $activity->config : [];
 
-            return $activity->type === 'reflection'
-                && ($config['learningIntent'] ?? null) === 'review';
+            return in_array($activity->type, ['reflection', 'review'], true)
+                && ($activity->type === 'review' || ($config['learningIntent'] ?? null) === 'review');
         });
 
         if ($reviewActivities->isEmpty()) {

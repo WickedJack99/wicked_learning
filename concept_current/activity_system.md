@@ -21,7 +21,16 @@ The admin activity editor now uses a graph view for a single map node. It has a 
 
 The synthetic Start node can connect to multiple first activities. Each Start-to-activity connection becomes a learner-facing route option in the focused MapAsset panel. A route option can have dark/light preview images and dark/light overlay button colors. If no image is configured, it still appears as a compact button. If enough route options exist, the route list scrolls inside the panel.
 
-The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections and portals without replacing the graph itself.
+The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections, review pauses and portals without replacing the graph itself.
+
+`review` is an explicit review/revisit activity type that uses the same
+learner-owned reflection renderer and journal storage as `reflection`. The
+separate type makes the author's intention visible in the activity list and
+editor while keeping one implementation for the shared interaction. It
+defaults to the `review` learning purpose and can show earlier private notes
+from the same journal category when they are available. A normal `reflection`
+can still be given the `review` learning purpose when keeping the generic type
+is more appropriate.
 
 Learner-message activities use that same graph instead of being a hardcoded
 route-completion modal:
