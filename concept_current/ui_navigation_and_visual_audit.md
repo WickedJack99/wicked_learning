@@ -369,6 +369,9 @@ the topics inside each area. Topic detail uses the same control, so growing
 collections have an explicit next/previous path instead of pushing the page
 past the intended surface height.
 
+The standalone Paths directory now follows the same rule, showing six route
+cards per page while preserving every server-provided route for navigation.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published

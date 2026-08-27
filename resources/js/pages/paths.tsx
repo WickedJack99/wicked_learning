@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -58,11 +59,14 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                                 {t('paths.available.title', 'Available routes')}
                             </h2>
                         </div>
-                        <div className="mt-6 grid gap-4 md:grid-cols-2">
-                            {paths.map((path) => (
+                        <LearnerPaginatedItems
+                            className="mt-6 grid gap-4 md:grid-cols-2"
+                            items={paths}
+                            pageSize={6}
+                            renderItem={(path) => (
                                 <PathCard key={path.id} path={path} />
-                            ))}
-                        </div>
+                            )}
+                        />
                     </section>
                 ) : (
                     <section className="mt-12 border-y border-[var(--learner-border-color)] py-10">
