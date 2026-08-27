@@ -2,6 +2,8 @@
 
 use App\Learning\CurrentWorldResolver;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearnerJournalPage;
+use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -268,14 +270,13 @@ test('a topic detail exposes complete collections for client pagination', functi
         'title' => 'Many paths',
         'is_published' => true,
     ]);
-    $subtopics = collect(range(1, 5))->map(fn (int $number): LearningTopic =>
-        LearningTopic::query()->create([
-            'learning_topic_area_id' => $area->id,
-            'parent_id' => $topic->id,
-            'slug' => 'subtopic-'.$number,
-            'title' => 'Subtopic '.$number,
-            'is_published' => true,
-        ]));
+    $subtopics = collect(range(1, 5))->map(fn (int $number): LearningTopic => LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'parent_id' => $topic->id,
+        'slug' => 'subtopic-'.$number,
+        'title' => 'Subtopic '.$number,
+        'is_published' => true,
+    ]));
     $world = LearningWorld::query()->create([
         'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
         'title' => 'Learning World',
@@ -498,6 +499,42 @@ test('a topic page exposes its scoped learning trail', function () {
         'evidence_type' => 'explain',
         'contribution' => 6,
     ]);
+    $journalPage = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Astronomy reflections',
+        'topic' => 'Astronomy',
+        'subtopic' => '',
+        'markdown' => 'Private reflections',
+        'preferred_mode' => 'view',
+    ]);
+    $earlierReflection = LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $journalPage->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Earlier reflection',
+        'question' => 'What did you notice at first?',
+        'reflection' => 'At first I noticed the separate parts.',
+        'feedback_status' => 'not_requested',
+    ]);
+    $earlierReflection->forceFill([
+        'created_at' => now()->subDays(12),
+        'updated_at' => now()->subDays(12),
+    ])->save();
+    $laterReflection = LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $journalPage->id,
+        'learning_node_id' => $subtopicNode->id,
+        'learning_activity_id' => $subtopicActivity->id,
+        'title' => 'Later reflection',
+        'question' => 'What do you notice now?',
+        'reflection' => 'Now I can describe how the parts influence one another.',
+        'feedback_status' => 'not_requested',
+    ]);
+    $laterReflection->forceFill([
+        'created_at' => now()->subDay(),
+        'updated_at' => now()->subDay(),
+    ])->save();
 
     $this->actingAs($learner)
         ->get(route('topics.show', $topic))
@@ -509,6 +546,11 @@ test('a topic page exposes its scoped learning trail', function () {
             ->where('topic.competence.evidenceLedger.0.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $node]))
             ->where('topic.competence.learningPeriods', ['Aug 2026'])
             ->where('topic.competence.revisit.activityTitle', 'Notice patterns')
+            ->where('topic.reflectionNarrative.earlier.question', 'What did you notice at first?')
+            ->where('topic.reflectionNarrative.earlier.reflection', 'At first I noticed the separate parts.')
+            ->where('topic.reflectionNarrative.later.question', 'What do you notice now?')
+            ->where('topic.reflectionNarrative.later.reflection', 'Now I can describe how the parts influence one another.')
+            ->where('topic.reflectionNarrative.later.journalHref', '/journal')
             ->where('topic.subtopicCompetence.0.name', 'Deep Space')
             ->where('topic.subtopicCompetence.0.topic.title', 'Deep Space')
         );

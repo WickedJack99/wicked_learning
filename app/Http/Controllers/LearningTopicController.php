@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadLearnerCompetenceMap;
+use App\Learning\Queries\LoadLearnerTopicReflectionNarrative;
 use App\Learning\Queries\LoadLearningPaths;
 use App\Learning\Queries\LoadLearningTopics;
 use App\Learning\Serializers\LearningPathSerializer;
@@ -21,6 +22,7 @@ class LearningTopicController extends Controller
         private readonly LoadLearningTopics $topics,
         private readonly LoadLearningPaths $paths,
         private readonly LoadLearnerCompetenceMap $competenceMap,
+        private readonly LoadLearnerTopicReflectionNarrative $reflectionNarrative,
         private readonly LearningPathSerializer $pathSerializer,
         private readonly LearningTopicSerializer $serializer,
         private readonly ActivityCompetenceConfiguration $competenceConfiguration,
@@ -60,6 +62,10 @@ class LearningTopicController extends Controller
             $competenceMap['checkIns'] ?? [],
             $learningAreas,
         );
+        $reflectionNarrative = $this->reflectionNarrative->handle(
+            $request->user(),
+            $topicSlugs->all(),
+        );
 
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
@@ -73,6 +79,7 @@ class LearningTopicController extends Controller
                     ->all(),
                 $learningAreas,
                 $learningPulse,
+                $reflectionNarrative,
             ),
         ]);
     }

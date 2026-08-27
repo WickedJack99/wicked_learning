@@ -15,9 +15,10 @@ promise that every interaction produces an immediate measurable gain.
 - [x] Add learner-controlled revisit invitations using a small spacing window.
   Learners can open, postpone or hide them; there is no notification or
   compulsory queue. Retrieval-specific invitations remain a later refinement.
-- Expand competence evidence into longitudinal, inspectable narratives where
+- [x] Expand competence evidence into longitudinal, inspectable narratives where
   learners can compare earlier and later reasoning without reducing growth to a
-  single number.
+  single number. Topic trails now show a bounded private before-and-after view
+  when two connected reflections exist.
 - [x] Add an optional author-written context sentence for the three completion
   directions. The base choices remain bounded and distinct; future work can
   add activity-specific alternatives only when they lead to genuinely

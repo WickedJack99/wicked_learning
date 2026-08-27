@@ -33,9 +33,10 @@ Future work should extend this loop with learner-controlled retrieval and
 spacing invitations. The Journal now offers a quiet "Revisit when ready"
 surface after a short spacing window when the learner chose to return. The
 learner can open, postpone or hide each invitation; it is not a notification,
-deadline or compulsory queue. Future work should add opportunities to compare
-earlier and later reasoning,
-meaningful alternative routes and consent-based help seeking. Activity authors
+deadline or compulsory queue. Topic trails can now place earlier and later
+private reflections side by side when both exist, while keeping the complete
+record in the Journal. Future work should add meaningful alternative routes and
+consent-based help seeking. Activity authors
 can now optionally describe why the three completion directions may help after
 a particular activity. The directions stay bounded and optional, while the
 author context makes the choice purposeful instead of decorative. Authors can

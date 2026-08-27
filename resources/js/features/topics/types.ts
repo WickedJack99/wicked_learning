@@ -25,6 +25,7 @@ export type TopicDetail = TopicSummary & {
     competence: TopicCompetence | null;
     learningAreas: TopicLearningArea[];
     learningPulse: TopicLearningPulse[];
+    reflectionNarrative: TopicReflectionNarrative | null;
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
     paths: TopicPath[];
@@ -81,6 +82,19 @@ export type TopicLearningPulse = {
     nodeTitle: string;
     recordedAt: string;
     topics: { name: string; slug: string }[];
+};
+
+export type TopicReflectionNarrative = {
+    earlier: TopicReflectionSnapshot;
+    later: TopicReflectionSnapshot;
+};
+
+export type TopicReflectionSnapshot = {
+    activityTitle: string | null;
+    createdAt: string | null;
+    journalHref: string;
+    question: string;
+    reflection: string;
 };
 
 export type TopicPath = {

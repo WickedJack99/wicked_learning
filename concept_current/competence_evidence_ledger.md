@@ -139,6 +139,13 @@ chosen option, starting sense and feedback outcome so a learner can notice a
 change in their own reasoning. This is a reflection aid, not an attempt counter,
 grade or public performance signal.
 
+When a topic has at least two private reflections connected to its published
+map, the topic trail can place the earliest and latest reflection side by side.
+This bounded before-and-after view keeps the learner's own words central and
+links back to the Journal for the complete record. It is available as an
+optional look back, not a verdict about improvement; a single reflection stays
+in the Journal and does not create an empty comparison panel.
+
 The Paths directory uses the same area labels on route cards. This keeps a
 prepared route connected to the competence reading without implying that
 following the route is the only way to develop an area.

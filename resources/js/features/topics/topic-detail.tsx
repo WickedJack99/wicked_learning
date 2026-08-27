@@ -23,6 +23,7 @@ import type {
     TopicLearningArea,
     TopicLearningPulse,
     TopicPath,
+    TopicReflectionNarrative,
 } from './types';
 
 export function TopicDetail({ topic }: { topic: TopicDetailData }) {
@@ -144,6 +145,9 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             />
 
                             <TopicLearningPulse entries={topic.learningPulse} />
+                            <TopicReflectionComparison
+                                narrative={topic.reflectionNarrative}
+                            />
                         </TopicPanel>
                     ) : null}
 
@@ -494,6 +498,107 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                 />
             </div>
         </section>
+    );
+}
+
+function TopicReflectionComparison({
+    narrative,
+}: {
+    narrative: TopicReflectionNarrative | null;
+}) {
+    const t = usePlatformTranslation();
+
+    if (narrative === null) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="topic-reflection-comparison-heading"
+            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
+                        {t(
+                            'topics.detail.reflection_comparison.eyebrow',
+                            'Your reflections over time',
+                        )}
+                    </p>
+                    <h2
+                        className="mt-2 text-sm font-semibold"
+                        id="topic-reflection-comparison-heading"
+                    >
+                        {t(
+                            'topics.detail.reflection_comparison.title',
+                            'Earlier and later',
+                        )}
+                    </h2>
+                </div>
+                <Link
+                    className="shrink-0 text-sm font-medium text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                    href={narrative.later.journalHref}
+                >
+                    {t(
+                        'topics.detail.reflection_comparison.open_journal',
+                        'Open journal',
+                    )}
+                </Link>
+            </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <ReflectionSnapshot
+                    label={t(
+                        'topics.detail.reflection_comparison.earlier',
+                        'Earlier',
+                    )}
+                    snapshot={narrative.earlier}
+                />
+                <ReflectionSnapshot
+                    label={t(
+                        'topics.detail.reflection_comparison.later',
+                        'Later',
+                    )}
+                    snapshot={narrative.later}
+                />
+            </div>
+        </section>
+    );
+}
+
+function ReflectionSnapshot({
+    label,
+    snapshot,
+}: {
+    label: string;
+    snapshot: TopicReflectionNarrative['earlier'];
+}) {
+    return (
+        <article className="border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4">
+            <div className="flex items-start justify-between gap-3">
+                <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
+                    {label}
+                </p>
+                {snapshot.createdAt ? (
+                    <time
+                        className="shrink-0 text-xs text-[var(--learner-muted-text)]"
+                        dateTime={snapshot.createdAt}
+                    >
+                        {formatTopicDate(snapshot.createdAt)}
+                    </time>
+                ) : null}
+            </div>
+            {snapshot.activityTitle ? (
+                <p className="mt-3 text-xs text-[var(--learner-muted-text)]">
+                    {snapshot.activityTitle}
+                </p>
+            ) : null}
+            <p className="mt-3 text-xs italic leading-5 text-[var(--learner-muted-text)]">
+                {snapshot.question}
+            </p>
+            <p className="mt-2 line-clamp-6 text-sm leading-6 text-[var(--learner-body-text)]">
+                {snapshot.reflection}
+            </p>
+        </article>
     );
 }
 
