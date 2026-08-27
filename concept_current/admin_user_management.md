@@ -9,8 +9,10 @@ Implemented now:
 - Admin users can open a Users panel from Settings.
 - Admin users can see registered users.
 - Admin users can inspect read-only registration details for a user.
+- Admin users can inspect the recent access-change history for a user.
 - Admin users can create one-use registration tokens.
 - Registration tokens store creator, creation date, optional expiration date, usage date and used-by user.
+- Registration tokens can carry an optional note for later reference.
 - Registration tokens can grant one or more roles.
 - Users can have multiple roles.
 - Roles are configurable and seeded with system roles for `admin` and `user`.
@@ -41,6 +43,4 @@ Design notes:
 
 Future direction:
 
-- Add clearer audit history for access changes.
-- Add optional token labels or notes so admins remember why a token was created.
 - Add safer deletion flows if real learner data becomes important.

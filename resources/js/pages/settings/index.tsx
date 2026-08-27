@@ -1972,6 +1972,52 @@ function UserDetailsDialog({
                         </p>
                     )}
                 </div>
+
+                <div className="rounded-lg border border-[var(--settings-border-color)] p-4">
+                    <div className="mb-3 flex items-center gap-2 font-medium">
+                        <Shield className="size-4 text-[var(--settings-accent)]" />
+                        Access history
+                    </div>
+                    {user.access_history.length > 0 ? (
+                        <div className="grid gap-3">
+                            {user.access_history.map((event) => (
+                                <div
+                                    className="rounded-md bg-[var(--settings-active-background)] p-3 text-sm"
+                                    key={event.id}
+                                >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <span className="font-medium">
+                                            Access updated
+                                        </span>
+                                        <time
+                                            className="text-xs text-[var(--settings-muted-text)]"
+                                            dateTime={event.created_at ?? undefined}
+                                        >
+                                            {formatDate(event.created_at, t)}
+                                        </time>
+                                    </div>
+                                    <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                        By {event.actor?.name ?? 'Former user'}
+                                    </p>
+                                    <div className="mt-2 grid gap-1 text-xs">
+                                        {event.changes.map((change) => (
+                                            <p key={change.label}>
+                                                <span className="font-medium">
+                                                    {change.label}:
+                                                </span>{' '}
+                                                {change.before} → {change.after}
+                                            </p>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-[var(--settings-muted-text)]">
+                            No access changes recorded yet.
+                        </p>
+                    )}
+                </div>
             </div>
         </>
     );

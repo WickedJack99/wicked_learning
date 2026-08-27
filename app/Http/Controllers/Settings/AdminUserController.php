@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Access\AccessLevel;
+use App\Access\Actions\RecordAccessChange;
 use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Models\RegistrationToken;
@@ -14,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class AdminUserController extends Controller
 {
+    public function __construct(private readonly RecordAccessChange $recordAccessChange) {}
+
     public function storeRegistrationToken(Request $request): RedirectResponse
     {
         $data = $request->validate([
@@ -45,6 +48,12 @@ class AdminUserController extends Controller
             'roles.*' => ['required', 'string', Rule::in($request->user()->assignableRoles())],
         ]);
 
+        $before = [
+            'banned_until' => $user->banned_until?->toIso8601String(),
+            'login_disabled' => $user->login_disabled_at !== null,
+            'roles' => $user->assignedRoles(),
+        ];
+
         $user->setAssignedRoles($data['roles']);
         $user->forceFill([
             'login_disabled_at' => $data['login_disabled']
@@ -52,6 +61,26 @@ class AdminUserController extends Controller
                 : null,
             'banned_until' => $data['banned_until'] ?? null,
         ])->save();
+
+        $after = [
+            'banned_until' => $user->fresh()->banned_until?->toIso8601String(),
+            'login_disabled' => $user->login_disabled_at !== null,
+            'roles' => $user->assignedRoles(),
+        ];
+        $changes = [];
+
+        foreach ($before as $field => $value) {
+            if ($value !== $after[$field]) {
+                $changes[$field] = [
+                    'before' => $value,
+                    'after' => $after[$field],
+                ];
+            }
+        }
+
+        if ($changes !== []) {
+            $this->recordAccessChange->handle($request->user(), $user, $changes);
+        }
 
         return $this->redirectToSettingsAccess($request);
     }

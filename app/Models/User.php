@@ -434,6 +434,16 @@ class User extends Authenticatable implements PasskeyUser
     }
 
     /**
+     * Recent access changes recorded for this user.
+     *
+     * @return HasMany<AccessChangeEvent, $this>
+     */
+    public function accessHistory(): HasMany
+    {
+        return $this->hasMany(AccessChangeEvent::class, 'target_user_id');
+    }
+
+    /**
      * Personal places this user wants to revisit.
      *
      * @return HasMany<LearningNodeBookmark, $this>

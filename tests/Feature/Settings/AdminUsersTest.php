@@ -2,6 +2,7 @@
 
 use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
+use App\Models\AccessChangeEvent;
 use App\Models\AccessRole;
 use App\Models\RegistrationToken;
 use App\Models\User;
@@ -138,6 +139,24 @@ test('admins can update another users access controls', function () {
         ->toBe($banDate)
         ->and($learner->assignedRoles())
         ->toBe([User::ROLE_USER, User::ROLE_ADMIN]);
+
+    expect(AccessChangeEvent::query()->where('target_user_id', $learner->id)->first())
+        ->changes->toMatchArray([
+            'login_disabled' => ['before' => false, 'after' => true],
+            'roles' => ['before' => [User::ROLE_USER], 'after' => [User::ROLE_USER, User::ROLE_ADMIN]],
+        ])
+        ->and(AccessChangeEvent::query()->where('target_user_id', $learner->id)->first()->actor_user_id)
+        ->toBe($admin->id);
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'users',
+        ]))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('adminUsers.1.id', $learner->id)
+            ->where('adminUsers.1.access_history.0.action', AccessChangeEvent::ACTION_ACCESS_UPDATED)
+            ->where('adminUsers.1.access_history.0.changes.0.label', 'Ban until'));
 });
 
 test('admins can not lock their own account from the panel', function () {
@@ -154,6 +173,26 @@ test('admins can not lock their own account from the panel', function () {
         ->assertSessionHasErrors('user');
 
     expect($admin->refresh()->login_disabled_at)->toBeNull();
+});
+
+test('unchanged access saves do not create an access history entry', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.admin.users.access.update', $learner), [
+            'login_disabled' => false,
+            'banned_until' => null,
+            'roles' => [User::ROLE_USER],
+        ])
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'users',
+        ]));
+
+    expect(AccessChangeEvent::query()->where('target_user_id', $learner->id)->count())->toBe(0);
 });
 
 test('admins can delete another user', function () {

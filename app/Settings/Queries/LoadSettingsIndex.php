@@ -30,6 +30,7 @@ use App\Learning\Serializers\LearningGroupSerializer;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Localization\Queries\LoadLanguageAdministration;
+use App\Models\AccessChangeEvent;
 use App\Models\AccessRole;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearningGroup;
@@ -340,6 +341,9 @@ class LoadSettingsIndex
             ->with([
                 'registrationToken.createdBy:id,name,email',
                 'registrationToken.usedBy:id,name,email',
+                'accessHistory' => fn ($query) => $query
+                    ->with('actor:id,name,email')
+                    ->latest(),
             ])
             ->latest()
             ->get()
@@ -357,6 +361,17 @@ class LoadSettingsIndex
                 'registration_token' => $user->registrationToken
                     ? $this->tokenSummary($user->registrationToken)
                     : null,
+                'access_history' => $user->accessHistory
+                    ->take(20)
+                    ->map(fn (AccessChangeEvent $event): array => [
+                        'action' => $event->action,
+                        'actor' => $event->actor ? $this->userReference($event->actor) : null,
+                        'changes' => $this->accessChangeItems($event->changes),
+                        'created_at' => $this->dateForFrontend($event->created_at),
+                        'id' => $event->id,
+                    ])
+                    ->values()
+                    ->all(),
             ])
             ->all();
     }
@@ -551,6 +566,41 @@ class LoadSettingsIndex
             'name' => $user->name,
             'email' => $user->email,
         ];
+    }
+
+    /** @return list<array{label: string, before: string, after: string}> */
+    private function accessChangeItems(array $changes): array
+    {
+        $labels = [
+            'banned_until' => 'Ban until',
+            'login_disabled' => 'Login access',
+            'roles' => 'Roles',
+        ];
+
+        return collect($changes)
+            ->map(fn (mixed $change, string $field): ?array => is_array($change)
+                ? [
+                    'after' => $this->accessChangeValue($change['after'] ?? null),
+                    'before' => $this->accessChangeValue($change['before'] ?? null),
+                    'label' => $labels[$field] ?? str_replace('_', ' ', ucfirst($field)),
+                ]
+                : null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function accessChangeValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return $value === [] ? 'None' : implode(', ', $value);
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Disabled' : 'Enabled';
+        }
+
+        return is_string($value) && $value !== '' ? $value : 'None';
     }
 
     private function dateForFrontend(DateTimeInterface|string|null $value): ?string

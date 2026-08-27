@@ -43,6 +43,7 @@ export type RegistrationTokenSummary = {
 };
 
 export type AdminUser = {
+    access_history: AccessChangeEvent[];
     banned_until: string | null;
     created_at: string | null;
     email: string;
@@ -54,6 +55,20 @@ export type AdminUser = {
     registration_token: RegistrationTokenSummary | null;
     role: UserRole;
     roles: UserRole[];
+};
+
+export type AccessChangeEvent = {
+    action: string;
+    actor: UserReference | null;
+    changes: AccessChangeItem[];
+    created_at: string | null;
+    id: number;
+};
+
+export type AccessChangeItem = {
+    after: string;
+    before: string;
+    label: string;
 };
 
 export type AccessFormState = {
