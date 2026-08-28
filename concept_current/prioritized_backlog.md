@@ -131,6 +131,8 @@ participation.
 - [x] Show a non-blocking authoring diagnostic when a locked prerequisite has no
   authored learner-opening path. Keep manual Learning Support openings as an
   explicit human fallback.
+- [x] Make authored unlock diagnostics follow AND/OR branches so optional
+  unreachable prerequisites do not create false warnings.
 - Continue authored unlock conflict evaluation beyond prerequisite cycles,
   including combinations that are structurally valid but still unreachable.
 

@@ -1904,6 +1904,43 @@ test('admin unlock diagnostics report locked prerequisites without an authored o
     expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
 });
 
+test('admin unlock diagnostics ignore an unreachable prerequisite in an optional OR branch', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $unreachablePrerequisite = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $reachablePrerequisite = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'optional-path-check',
+        'title' => 'Optional path check',
+        'description' => 'A locked node with an optional diagnostic branch.',
+        'position_q' => 11,
+        'position_r' => 11,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'group',
+                    'operator' => 'or',
+                    'rules' => [
+                        [
+                            'type' => 'node_completed',
+                            'nodeId' => $unreachablePrerequisite->id,
+                        ],
+                        [
+                            'type' => 'node_completed',
+                            'nodeId' => $reachablePrerequisite->id,
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
+});
+
 test('admin users can save a valid authored item unlock tree', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

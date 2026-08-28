@@ -28,14 +28,18 @@ class NodeUnlockReachability
             return [];
         }
 
+        $unlock = $this->unlock($node);
         $prerequisiteIds = $this->prerequisiteIds($node);
+        $unreachableIds = is_array($unlock['rules'] ?? null) && $unlock['rules'] !== []
+            ? $this->unreachableNodeIdsInRule(
+                $unlock['rules'],
+                [],
+                [...$unlock, 'scheduleUnlockAt' => $this->scheduleUnlockAt($node)],
+            )
+            : $this->legacyUnreachableNodeIds($prerequisiteIds);
         $unreachable = [];
 
-        foreach ($prerequisiteIds as $prerequisiteId) {
-            if ($this->hasIndependentOpeningPath($prerequisiteId, [])) {
-                continue;
-            }
-
+        foreach ($unreachableIds as $prerequisiteId) {
             $prerequisite = $this->nodes()[$prerequisiteId] ?? null;
 
             if ($prerequisite) {
@@ -47,6 +51,82 @@ class NodeUnlockReachability
         }
 
         return $unreachable;
+    }
+
+    /**
+     * Keep the legacy requiredNodeIds diagnostic behavior for nodes that do
+     * not yet use an authored rule tree.
+     *
+     * @param  list<int>  $prerequisiteIds
+     * @return list<int>
+     */
+    private function legacyUnreachableNodeIds(array $prerequisiteIds): array
+    {
+        return array_values(array_filter(
+            $prerequisiteIds,
+            fn (int $prerequisiteId): bool => ! $this->hasIndependentOpeningPath($prerequisiteId, []),
+        ));
+    }
+
+    /**
+     * Return only node prerequisites that block every possible branch of an
+     * authored rule tree. An unreachable OR branch is harmless when another
+     * branch can open independently.
+     *
+     * @param  array<string, mixed>  $rule
+     * @param  array<int, true>  $visiting
+     * @param  array<string, mixed>  $unlock
+     * @return list<int>
+     */
+    private function unreachableNodeIdsInRule(array $rule, array $visiting, array $unlock): array
+    {
+        if (($rule['type'] ?? null) === 'node_completed') {
+            $nodeId = (int) ($rule['nodeId'] ?? 0);
+
+            return $nodeId > 0 && ! $this->hasIndependentOpeningPath($nodeId, $visiting)
+                ? [$nodeId]
+                : [];
+        }
+
+        if (($rule['type'] ?? null) !== 'group') {
+            return [];
+        }
+
+        $children = collect(is_array($rule['rules'] ?? null) ? $rule['rules'] : [])
+            ->filter(fn (mixed $child): bool => is_array($child))
+            ->values();
+
+        if ($children->isEmpty()) {
+            return [];
+        }
+
+        if (($rule['operator'] ?? 'and') === 'or') {
+            $unreachable = [];
+
+            foreach ($children as $child) {
+                if ($this->ruleCanOpen($child, $visiting, $unlock)) {
+                    return [];
+                }
+
+                $unreachable = [
+                    ...$unreachable,
+                    ...$this->unreachableNodeIdsInRule($child, $visiting, $unlock),
+                ];
+            }
+
+            return array_values(array_unique($unreachable));
+        }
+
+        $unreachable = [];
+
+        foreach ($children as $child) {
+            $unreachable = [
+                ...$unreachable,
+                ...$this->unreachableNodeIdsInRule($child, $visiting, $unlock),
+            ];
+        }
+
+        return array_values(array_unique($unreachable));
     }
 
     /** @return array<int, LearningNode> */
