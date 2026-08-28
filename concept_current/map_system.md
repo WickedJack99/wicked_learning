@@ -103,6 +103,9 @@ Topic connection:
   attached to a selectable Answer node. Events stored on speech or question
   nodes are not executable learner actions and therefore remain visible in
   the authoring diagnostic.
+- Schedule-based opening paths use the same timestamp parser as learner map
+  availability. A malformed opening timestamp therefore cannot make a locked
+  prerequisite appear reachable in World Builder diagnostics.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

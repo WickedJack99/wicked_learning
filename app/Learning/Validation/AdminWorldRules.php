@@ -114,6 +114,7 @@ class AdminWorldRules
         $roleSlug = trim((string) ($unlock['roleSlug'] ?? ''));
         $schedule = data_get($data, 'visual_config.schedule', []);
         $schedule = is_array($schedule) ? $schedule : [];
+        $scheduleTimes = [];
 
         if ($node && in_array($node->id, array_map('intval', $requiredNodeIds), true)) {
             $errors['visual_config.unlock.requiredNodeIds.0'] = 'A node cannot require itself to be completed.';
@@ -153,9 +154,21 @@ class AdminWorldRules
             $errors,
         );
 
-        if (($schedule['unlockAt'] ?? null) && ($schedule['lockAt'] ?? null)) {
-            $unlockAt = Carbon::parse($schedule['unlockAt']);
-            $lockAt = Carbon::parse($schedule['lockAt']);
+        foreach (['unlockAt', 'lockAt'] as $scheduleKey) {
+            if (! ($schedule[$scheduleKey] ?? null)) {
+                continue;
+            }
+
+            try {
+                $scheduleTimes[$scheduleKey] = Carbon::parse($schedule[$scheduleKey]);
+            } catch (\Throwable) {
+                $errors["visual_config.schedule.{$scheduleKey}"] = 'Choose a valid date and time.';
+            }
+        }
+
+        if (isset($scheduleTimes['unlockAt'], $scheduleTimes['lockAt'])) {
+            $unlockAt = $scheduleTimes['unlockAt'];
+            $lockAt = $scheduleTimes['lockAt'];
 
             if ($unlockAt->greaterThanOrEqualTo($lockAt)) {
                 $errors['visual_config.schedule.lockAt'] = 'The lock time must be after the unlock time.';

@@ -139,7 +139,8 @@ participation.
 - [x] Continue authored unlock conflict evaluation beyond prerequisite cycles,
   including combinations that are structurally valid but still unreachable.
   Opening events now count only when authored on selectable Answer nodes, so
-  events on speech or question nodes cannot hide a deadlocked prerequisite.
+  events on speech or question nodes cannot hide a deadlocked prerequisite;
+  malformed schedule timestamps are checked against the learner scheduler.
 
 ## Priority 3 - Deeper Cooperation
 

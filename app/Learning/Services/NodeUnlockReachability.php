@@ -21,6 +21,7 @@ class NodeUnlockReachability
 
     public function __construct(
         private readonly NodeRevealService $nodeRevealService,
+        private readonly NodeAvailabilitySchedule $availabilitySchedule,
     ) {}
 
     /**
@@ -360,11 +361,7 @@ class NodeUnlockReachability
 
     private function scheduleUnlockAt(LearningNode $node): ?string
     {
-        $config = is_array($node->visual_config) ? $node->visual_config : [];
-        $schedule = is_array($config['schedule'] ?? null) ? $config['schedule'] : [];
-        $unlockAt = $schedule['unlockAt'] ?? null;
-
-        return is_string($unlockAt) && trim($unlockAt) !== '' ? $unlockAt : null;
+        return $this->availabilitySchedule->unlockAt($node)?->toIso8601String();
     }
 
     /** @return array<int, true> */

@@ -2,6 +2,7 @@
 
 use App\Learning\ActivityTypeRegistry;
 use App\Learning\Services\NodeUnlockReachability;
+use App\Learning\Validation\AdminWorldRules;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -22,6 +23,7 @@ use App\Models\UserPreference;
 use Database\Seeders\DemoLearningWorldSeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
 
 test('admin users can see the world graph with portal links', function () {
@@ -1952,6 +1954,71 @@ test('admin unlock diagnostics only count answer events as an opening path', fun
     NpcDialogueNode::query()->latest('id')->firstOrFail()->update(['type' => 'answer']);
 
     expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
+});
+
+test('admin unlock diagnostics report an unparseable schedule opening path', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $prerequisite = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $prerequisite->forceFill([
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'time_after',
+                ],
+            ],
+            'schedule' => [
+                'unlockAt' => 'not-a-date',
+            ],
+        ],
+    ])->save();
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'invalid-schedule-path-check',
+        'title' => 'Invalid schedule path check',
+        'description' => 'A locked node for authoring diagnostics.',
+        'position_q' => 16,
+        'position_r' => 16,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $prerequisite->id,
+                ],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))
+        ->toBe([
+            [
+                'id' => $prerequisite->id,
+                'title' => $prerequisite->title,
+            ],
+        ]);
+});
+
+test('admin unlock validation rejects unparseable schedule timestamps', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $node = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+
+    expect(fn () => app(AdminWorldRules::class)->validateNodeUnlock([
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'time_after',
+                ],
+            ],
+            'schedule' => [
+                'unlockAt' => 'not-a-date',
+            ],
+        ],
+    ], $node))->toThrow(ValidationException::class);
 });
 
 test('admin unlock diagnostics ignore an unreachable prerequisite in an optional OR branch', function () {
