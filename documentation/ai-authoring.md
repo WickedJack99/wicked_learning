@@ -73,6 +73,10 @@ tutor can open the Activity editor directly from a result, then decide whether
 to save any content or metadata changes. Saving a change places the Activity
 back in the review queue. After a result is available, the dialog can also move
 to the next pending Activity in that node's scoped queue.
+Each completed review is also retained as a compact, immutable review run. The
+dialog shows the five most recent runs on request, while the activity keeps its
+latest result as the current review state. Review history is authoring data and
+is never included in learner playback.
 
 ## Current Boundaries
 

@@ -49,6 +49,7 @@ export type ActivitySummary = {
     id: number;
     aiReviewStatus: string;
     aiReviewedAt: string | null;
+    aiReviewHistory: ActivityReviewHistoryEntry[];
     introduction: string | null;
     portalLink: PortalActivityLink | null;
     position: {
@@ -59,6 +60,14 @@ export type ActivitySummary = {
     title: string;
     type: string;
     updatedAt: string | null;
+};
+
+export type ActivityReviewHistoryEntry = {
+    id: number;
+    model: string | null;
+    provider: string;
+    reviewedAt: string | null;
+    summary: string | null;
 };
 
 export type CompetenceTopicForm = {

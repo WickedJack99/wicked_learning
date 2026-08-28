@@ -77,6 +77,10 @@ thresholds and contribution weights are excluded. The review writes
 `ai_reviewed_at` and a structured result, while the tutor remains responsible
 for deciding whether any suggestion is useful. Layout-only changes should not
 create pedagogical review noise.
+Each completed run is also stored as immutable authoring history. The activity's
+latest result remains the current review state, while the World Builder can
+show the five most recent summaries on request. This history is not part of
+learner playback.
 
 The activity review dialog shows the edit time and review time together. This
 makes freshness visible before a tutor relies on a previous review, while the

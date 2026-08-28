@@ -185,6 +185,8 @@
     "settings.ai.authoring.generating": "Generating draft…",
     "settings.ai.authoring.generate": "Generate draft",
     "settings.ai.authoring.request_failed": "The request failed.",
+    "settings.ai.activity_review.previous_reviews": "Previous reviews (:count)",
+    "settings.ai.activity_review.review_date_unavailable": "Review date unavailable",
     "settings.ai.authoring.no_template_title": "Create a content-authoring template first",
     "settings.ai.authoring.no_template_description": "Enable an Agent template with the purpose Content authoring under AI & Integrations.",
     "settings.ai.authoring.goal": "Learning goal and context",

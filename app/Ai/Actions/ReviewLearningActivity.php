@@ -7,8 +7,10 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityReviewContext;
 use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
+use App\Models\LearningActivityReviewRun;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -75,20 +77,37 @@ class ReviewLearningActivity
             'feedbackGuidance.nextAction.note' => ['required', 'string', 'max:600'],
         ])->validate();
 
-        $activity->forceFill([
-            'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_REVIEWED,
-            'ai_reviewed_at' => now(),
-            'ai_review' => [
+        return DB::transaction(function () use ($activity, $review, $result, $template, $user): LearningActivity {
+            $reviewRecord = [
                 'contractVersion' => ActivityReviewContract::VERSION,
                 'review' => $review,
                 'provider' => $result['provider'],
                 'model' => $result['model'],
                 'reviewedByUserId' => $user->id,
                 'usage' => $result['usage'],
-            ],
-        ])->save();
+            ];
 
-        return $activity->refresh();
+            $activity->forceFill([
+                'ai_review_status' => LearningActivity::AI_REVIEW_STATUS_REVIEWED,
+                'ai_reviewed_at' => now(),
+                'ai_review' => $reviewRecord,
+            ])->save();
+
+            LearningActivityReviewRun::query()->create([
+                'learning_activity_id' => $activity->id,
+                'ai_agent_template_id' => $template->id,
+                'reviewed_by_user_id' => $user->id,
+                'contract_version' => ActivityReviewContract::VERSION,
+                'provider' => $result['provider'],
+                'model' => $result['model'],
+                'review' => $reviewRecord,
+                'input_tokens' => $result['usage']['inputTokens'] ?? null,
+                'output_tokens' => $result['usage']['outputTokens'] ?? null,
+                'total_tokens' => $result['usage']['totalTokens'] ?? null,
+            ]);
+
+            return $activity->refresh();
+        });
     }
 
     /** @param array<string, mixed> $context */

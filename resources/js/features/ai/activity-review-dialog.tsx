@@ -1,4 +1,11 @@
-import { ArrowRight, Bot, CheckCircle2, Pencil, Sparkles } from 'lucide-react';
+import {
+    ArrowRight,
+    Bot,
+    CheckCircle2,
+    ChevronDown,
+    Pencil,
+    Sparkles,
+} from 'lucide-react';
 import { useState } from 'react';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { Button } from '@/components/ui/button';
@@ -16,6 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityReviewTemplate,
     ActivitySummary,
@@ -51,12 +59,14 @@ export function ActivityReviewDialog({
     ) => void;
     templates: ActivityReviewTemplate[];
 }) {
+    const t = usePlatformTranslation();
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
     const [lastResult, setLastResult] = useState<ActivityReviewResult | null>(
         null,
     );
+    const [showHistory, setShowHistory] = useState(false);
     const latestResult =
         activity && lastResult?.activityId === activity.id ? lastResult : null;
     const result = activity
@@ -148,6 +158,73 @@ export function ActivityReviewDialog({
                                     : 'AI review not run yet'}
                             </p>
                         </div>
+
+                        {activity.aiReviewHistory.length > 0 ? (
+                            <div className="rounded-lg border border-slate-200 dark:border-white/10">
+                                <button
+                                    aria-controls="activity-review-history"
+                                    aria-expanded={showHistory}
+                                    className="flex w-full items-center justify-between gap-3 p-3 text-left text-sm font-medium"
+                                    onClick={() =>
+                                        setShowHistory((visible) => !visible)
+                                    }
+                                    type="button"
+                                >
+                                    <span>
+                                        {t(
+                                            'settings.ai.activity_review.previous_reviews',
+                                            'Previous reviews (:count)',
+                                            {
+                                                count: activity.aiReviewHistory
+                                                    .length,
+                                            },
+                                        )}
+                                    </span>
+                                    <ChevronDown
+                                        className={`size-4 transition-transform ${showHistory ? 'rotate-180' : ''}`}
+                                    />
+                                </button>
+                                {showHistory ? (
+                                    <div
+                                        className="grid gap-2 border-t border-slate-200 p-3 dark:border-white/10"
+                                        id="activity-review-history"
+                                    >
+                                        {activity.aiReviewHistory.map(
+                                            (entry) => (
+                                                <div
+                                                    className="rounded-md bg-slate-50 p-3 dark:bg-white/5"
+                                                    key={entry.id}
+                                                >
+                                                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                                        <span>
+                                                            {entry.reviewedAt
+                                                                ? formatReviewDate(
+                                                                      entry.reviewedAt,
+                                                                  )
+                                                                : t(
+                                                                      'settings.ai.activity_review.review_date_unavailable',
+                                                                      'Review date unavailable',
+                                                                  )}
+                                                        </span>
+                                                        <span>
+                                                            {entry.provider}
+                                                            {entry.model
+                                                                ? ` · ${entry.model}`
+                                                                : ''}
+                                                        </span>
+                                                    </div>
+                                                    {entry.summary ? (
+                                                        <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                                                            {entry.summary}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
+                                            ),
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
 
                         {result ? (
                             <ActivityReviewResultView
@@ -342,7 +419,9 @@ function ActivityReviewResultView({
                             label="What to notice"
                         />
                         <ReviewDimensionView
-                            dimension={review.review.feedbackGuidance.nextAction}
+                            dimension={
+                                review.review.feedbackGuidance.nextAction
+                            }
                             label="Next action"
                         />
                     </div>

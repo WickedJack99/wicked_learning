@@ -26,6 +26,8 @@ class AdminActivityGraphSerializer
      */
     public function serialize(LearningNode $node): array
     {
+        $node->loadMissing('activities.reviewRuns');
+
         return [
             'world' => $this->world($node),
             'map' => $this->map($node),
@@ -108,6 +110,17 @@ class AdminActivityGraphSerializer
             'aiReviewStatus' => $activity->ai_review_status,
             'aiReviewedAt' => $activity->ai_reviewed_at?->toIso8601String(),
             'aiReview' => $activity->ai_review,
+            'aiReviewHistory' => $activity->reviewRuns
+                ->take(5)
+                ->map(fn ($run): array => [
+                    'id' => $run->id,
+                    'reviewedAt' => $run->created_at?->toIso8601String(),
+                    'summary' => data_get($run->review, 'review.summary'),
+                    'provider' => $run->provider,
+                    'model' => $run->model,
+                ])
+                ->values()
+                ->all(),
             'portalLink' => $activity->type === 'portal' ? $this->portalLink($activity) : null,
             'position' => [
                 'x' => $activity->graph_position_x,

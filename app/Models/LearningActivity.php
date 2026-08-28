@@ -111,6 +111,15 @@ class LearningActivity extends Model
     }
 
     /**
+     * @return HasMany<LearningActivityReviewRun, $this>
+     */
+    public function reviewRuns(): HasMany
+    {
+        return $this->hasMany(LearningActivityReviewRun::class)
+            ->latest('id');
+    }
+
+    /**
      * @return HasMany<LearningSharedTaskSubmission, $this>
      */
     public function sharedTaskSubmissions(): HasMany

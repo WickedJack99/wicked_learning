@@ -56,10 +56,25 @@ test('an administrator can request a scoped activity review', function () {
 
     expect($activity->refresh()->ai_review_status)->toBe('reviewed')
         ->and($activity->ai_reviewed_at)->not->toBeNull()
+        ->and($activity->reviewRuns()->count())->toBe(1)
+        ->and($activity->reviewRuns()->first()->ai_agent_template_id)->toBe($template->id)
         ->and($activity->ai_review['review']['sdt']['autonomy']['signal'])->toBe('supported')
         ->and($activity->ai_review['review']['learningDesign']['purpose']['signal'])->toBe('aligned')
         ->and($activity->ai_review['review']['feedbackGuidance']['nextAction']['signal'])->toBe('supported')
         ->and($activity->ai_review['review']['learningDesign']['suggestedCompetenceTopics'])->toBe(['Systems Thinking']);
+
+    $this->actingAs($admin)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $activity->node->map->id,
+            'node' => $activity->node->id,
+            'worldView' => 'nodes',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedWorldNode.activityGraph.activities.1.aiReviewHistory.0.summary', 'The activity has a clear reflective purpose.')
+            ->where('selectedWorldNode.activityGraph.activities.1.aiReviewHistory.0.provider', 'openai')
+        );
 
     $this->actingAs($admin)
         ->patch(route('settings.worlds.activities.update', $activity), [
@@ -102,6 +117,7 @@ test('configured activity review helpers are exposed in the activity editor', fu
             ->where('selectedWorldNode.activityGraph.canManageAiReview', true)
             ->where('selectedWorldNode.activityGraph.aiReviewTemplates.0.id', $template->id)
             ->where('selectedWorldNode.activityGraph.activities.1.aiReviewStatus', 'needs_review')
+            ->where('selectedWorldNode.activityGraph.activities.1.aiReviewHistory', [])
         );
 });
 

@@ -82,6 +82,9 @@ participation.
   two-factor and passkey lifecycle changes. Events record only neutral
   lifecycle metadata, never a password, secret, credential identifier or
   other credential-derived value.
+- [x] Retain a bounded history of completed activity-review runs for tutors.
+  The current review remains the active state, while the latest five authoring
+  readings can be inspected without exposing AI review data to learners.
 
 ## Priority 2 - Authoring And Reuse
 
