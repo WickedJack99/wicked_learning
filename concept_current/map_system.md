@@ -20,6 +20,8 @@ Current learner behavior:
 - MapAssets use freely configurable percentage-based X/Y positions, Z depth,
   size and opacity.
 - Transparent PNG and WebP images can form irregular, overlapping map surfaces.
+- Authors can choose whether an image stays fully visible or fills its square
+  frame, and can anchor cropped framing to the center or an edge.
 - Normal, hover and focused visuals share one renderer between learner map and
   editor preview.
 - Hover and focus can use colors or a configured highlight image.
@@ -82,6 +84,8 @@ Topic connection:
 ## Future Editing Direction
 
 - Improve crop, anchor and position ergonomics for irregular transparent art.
+- Keep image framing options aligned with alpha-aware hit testing when adding
+  further crop controls.
 - Add version history and safe rollback for world edits.
 - Add collaborative edit locks when several authors work on the same map.
 - Add bulk import/export for maps and MapAssets.

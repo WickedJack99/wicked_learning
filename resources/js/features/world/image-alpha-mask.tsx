@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import type { SVGProps } from 'react';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
+import {
+    mapAssetImageFit,
+    mapAssetImagePosition,
+    mapAssetImagePreserveAspectRatio,
+} from './map-asset-image';
 
 const MASK_RESOLUTION = 128;
 const ALPHA_THRESHOLD = 20;
@@ -15,6 +20,12 @@ export type ImageAlphaMask = {
 const maskCache = new Map<string, ImageAlphaMask | null>();
 const pendingMasks = new Map<string, Promise<ImageAlphaMask | null>>();
 
+export type ImageAlphaMaskRequest = {
+    imageFit?: string;
+    imagePosition?: string;
+    imageUrl?: string | null;
+};
+
 /**
  * Adds a pointer target that follows the visible pixels of a transparent image.
  * The surrounding element can therefore ignore pointer events without losing
@@ -23,13 +34,17 @@ const pendingMasks = new Map<string, Promise<ImageAlphaMask | null>>();
 export function ImageAlphaHitArea({
     className,
     hitAreaProps,
+    imageFit,
     imageUrl,
+    imagePosition,
 }: {
     className?: string;
     hitAreaProps?: Omit<SVGProps<SVGPathElement>, 'd' | 'ref'>;
+    imageFit?: string;
     imageUrl?: string | null;
+    imagePosition?: string;
 }) {
-    const mask = useImageAlphaMask(imageUrl);
+    const mask = useImageAlphaMask(imageUrl, imageFit, imagePosition);
     const path = mask?.path;
     const resolution = mask?.resolution ?? 1;
 
@@ -40,7 +55,10 @@ export function ImageAlphaHitArea({
                 'absolute inset-0 z-30 size-full overflow-visible',
                 className,
             )}
-            preserveAspectRatio="xMidYMid meet"
+            preserveAspectRatio={mapAssetImagePreserveAspectRatio(
+                imageFit,
+                imagePosition,
+            )}
             viewBox={`0 0 ${resolution} ${resolution}`}
         >
             {path !== undefined ? (
@@ -65,18 +83,20 @@ export function ImageAlphaHitArea({
 
 export function useImageAlphaMask(
     imageUrl?: string | null,
+    imageFit?: string,
+    imagePosition?: string,
 ): ImageAlphaMask | null | undefined {
-    const source = normalizedImageSource(imageUrl);
+    const request = normalizedImageSource(imageUrl, imageFit, imagePosition);
     const [, setRevision] = useState(0);
 
     useEffect(() => {
-        if (!source || maskCache.has(source)) {
+        if (!request || maskCache.has(request.key)) {
             return;
         }
 
         let active = true;
 
-        void ensureImageAlphaMask(source).then(() => {
+        void ensureImageAlphaMask(request).then(() => {
             if (active) {
                 setRevision((revision) => revision + 1);
             }
@@ -85,18 +105,35 @@ export function useImageAlphaMask(
         return () => {
             active = false;
         };
-    }, [source]);
+        // The normalized key is stable for the image and its framing settings.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [request?.key]);
 
-    return source ? maskCache.get(source) : null;
+    return request ? maskCache.get(request.key) : null;
 }
 
 export function useImageAlphaMasks(
-    imageUrls: Array<string | null | undefined>,
+    requests: ImageAlphaMaskRequest[],
 ): ReadonlyMap<string, ImageAlphaMask | null> {
-    const sourceKey = imageUrls
-        .map((imageUrl) => normalizedImageSource(imageUrl))
-        .filter((source): source is string => Boolean(source))
-        .filter((source, index, sources) => sources.indexOf(source) === index)
+    const normalizedRequests = requests
+        .map((request) =>
+            normalizedImageSource(
+                request.imageUrl,
+                request.imageFit,
+                request.imagePosition,
+            ),
+        )
+        .filter((request): request is NormalizedImageAlphaMaskRequest =>
+            Boolean(request),
+        )
+        .filter(
+            (request, index, allRequests) =>
+                allRequests.findIndex(
+                    (candidate) => candidate.key === request.key,
+                ) === index,
+        );
+    const sourceKey = normalizedRequests
+        .map((request) => request.key)
         .join('\u001f');
     const [, setRevision] = useState(0);
 
@@ -107,29 +144,35 @@ export function useImageAlphaMasks(
 
         let active = true;
 
-        void Promise.all(
-            sourceKey.split('\u001f').map(ensureImageAlphaMask),
-        ).then(() => {
-            if (active) {
-                setRevision((revision) => revision + 1);
-            }
-        });
+        void Promise.all(normalizedRequests.map(ensureImageAlphaMask)).then(
+            () => {
+                if (active) {
+                    setRevision((revision) => revision + 1);
+                }
+            },
+        );
 
         return () => {
             active = false;
         };
+        // The serialized request key is the stable dependency for this cache fill.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sourceKey]);
 
     return maskCache;
 }
 
 export function imageAlphaMaskFor(
-    imageUrl: string | null | undefined,
+    request: ImageAlphaMaskRequest,
     masks: ReadonlyMap<string, ImageAlphaMask | null>,
 ): ImageAlphaMask | null | undefined {
-    const source = normalizedImageSource(imageUrl);
+    const source = normalizedImageSource(
+        request.imageUrl,
+        request.imageFit,
+        request.imagePosition,
+    );
 
-    return source ? masks.get(source) : null;
+    return source ? masks.get(source.key) : null;
 }
 
 export function imageAlphaMaskContains(
@@ -158,49 +201,80 @@ export function imageAlphaMaskContains(
     return mask.opaquePixels[y * mask.resolution + x] === 1;
 }
 
-function normalizedImageSource(imageUrl?: string | null): string {
-    return imageUrl ? normalizeMediaUrl(imageUrl) : '';
-}
+type NormalizedImageAlphaMaskRequest = {
+    fit: 'contain' | 'cover';
+    key: string;
+    position: 'center' | 'top' | 'right' | 'bottom' | 'left';
+    source: string;
+};
 
-function ensureImageAlphaMask(source: string): Promise<ImageAlphaMask | null> {
-    if (maskCache.has(source)) {
-        return Promise.resolve(maskCache.get(source) ?? null);
+function normalizedImageSource(
+    imageUrl?: string | null,
+    imageFit?: string,
+    imagePosition?: string,
+): NormalizedImageAlphaMaskRequest | null {
+    if (!imageUrl) {
+        return null;
     }
 
-    const pending = pendingMasks.get(source);
+    const source = normalizeMediaUrl(imageUrl);
+    const fit = mapAssetImageFit(imageFit);
+    const position = mapAssetImagePosition(imagePosition);
+
+    return {
+        fit,
+        key: `${source}\u0000${fit}\u0000${position}`,
+        position,
+        source,
+    };
+}
+
+function ensureImageAlphaMask(
+    request: NormalizedImageAlphaMaskRequest,
+): Promise<ImageAlphaMask | null> {
+    if (maskCache.has(request.key)) {
+        return Promise.resolve(maskCache.get(request.key) ?? null);
+    }
+
+    const pending = pendingMasks.get(request.key);
 
     if (pending) {
         return pending;
     }
 
-    const request = loadImageAlphaMask(source).then((mask) => {
-        maskCache.set(source, mask);
-        pendingMasks.delete(source);
+    const imageRequest = loadImageAlphaMask(request).then((mask) => {
+        maskCache.set(request.key, mask);
+        pendingMasks.delete(request.key);
 
         return mask;
     });
 
-    pendingMasks.set(source, request);
+    pendingMasks.set(request.key, imageRequest);
 
-    return request;
+    return imageRequest;
 }
 
-function loadImageAlphaMask(source: string): Promise<ImageAlphaMask | null> {
+function loadImageAlphaMask(
+    request: NormalizedImageAlphaMaskRequest,
+): Promise<ImageAlphaMask | null> {
     return new Promise((resolve) => {
         const image = new Image();
 
-        if (isCrossOrigin(source)) {
+        if (isCrossOrigin(request.source)) {
             image.crossOrigin = 'anonymous';
         }
 
         image.decoding = 'async';
-        image.onload = () => resolve(readImageAlphaMask(image));
+        image.onload = () => resolve(readImageAlphaMask(image, request));
         image.onerror = () => resolve(null);
-        image.src = source;
+        image.src = request.source;
     });
 }
 
-function readImageAlphaMask(image: HTMLImageElement): ImageAlphaMask | null {
+function readImageAlphaMask(
+    image: HTMLImageElement,
+    request: NormalizedImageAlphaMaskRequest,
+): ImageAlphaMask | null {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d', { willReadFrequently: true });
 
@@ -211,14 +285,24 @@ function readImageAlphaMask(image: HTMLImageElement): ImageAlphaMask | null {
     canvas.height = MASK_RESOLUTION;
     canvas.width = MASK_RESOLUTION;
 
-    const scale = Math.min(
-        MASK_RESOLUTION / image.naturalWidth,
-        MASK_RESOLUTION / image.naturalHeight,
-    );
+    const scale =
+        request.fit === 'cover'
+            ? Math.max(
+                  MASK_RESOLUTION / image.naturalWidth,
+                  MASK_RESOLUTION / image.naturalHeight,
+              )
+            : Math.min(
+                  MASK_RESOLUTION / image.naturalWidth,
+                  MASK_RESOLUTION / image.naturalHeight,
+              );
     const width = image.naturalWidth * scale;
     const height = image.naturalHeight * scale;
-    const x = (MASK_RESOLUTION - width) / 2;
-    const y = (MASK_RESOLUTION - height) / 2;
+    const x = imagePositionOffset(MASK_RESOLUTION - width, request.position);
+    const y = imagePositionOffset(
+        MASK_RESOLUTION - height,
+        request.position,
+        true,
+    );
 
     context.clearRect(0, 0, MASK_RESOLUTION, MASK_RESOLUTION);
     context.drawImage(image, x, y, width, height);
@@ -247,6 +331,30 @@ function readImageAlphaMask(image: HTMLImageElement): ImageAlphaMask | null {
         // In that case callers retain the rectangular fallback hit area.
         return null;
     }
+}
+
+function imagePositionOffset(
+    overflow: number,
+    position: NormalizedImageAlphaMaskRequest['position'],
+    vertical = false,
+): number {
+    if (position === 'center') {
+        return overflow / 2;
+    }
+
+    if (vertical) {
+        return position === 'top'
+            ? 0
+            : position === 'bottom'
+              ? overflow
+              : overflow / 2;
+    }
+
+    return position === 'left'
+        ? 0
+        : position === 'right'
+          ? overflow
+          : overflow / 2;
 }
 
 function maskToPath(mask: Uint8Array, resolution: number): string {

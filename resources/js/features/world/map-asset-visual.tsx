@@ -1,5 +1,13 @@
 import type { CSSProperties } from 'react';
 import { normalizeMediaUrl } from '@/lib/media-url';
+import {
+    mapAssetImageFit,
+    mapAssetImageObjectPosition,
+} from './map-asset-image';
+import type {
+    MapAssetImageFit,
+    MapAssetImagePosition,
+} from './map-asset-image';
 
 export type MapAssetVisualProps = {
     backgroundColor?: string;
@@ -9,7 +17,9 @@ export type MapAssetVisualProps = {
     highlightImageEnabled?: boolean;
     highlightImageUrl?: string | null;
     highlightedLabelColor?: string;
+    imageFit?: MapAssetImageFit | string;
     imageUrl?: string | null;
+    imagePosition?: MapAssetImagePosition | string;
     label?: string | null;
     labelColor?: string;
 };
@@ -23,7 +33,9 @@ export function MapAssetVisual({
     highlightImageEnabled = false,
     highlightImageUrl,
     highlightedLabelColor,
+    imageFit,
     imageUrl,
+    imagePosition,
     label,
     labelColor,
 }: MapAssetVisualProps) {
@@ -34,16 +46,18 @@ export function MapAssetVisual({
     const showHighlightImage = Boolean(
         highlighted && highlightImageEnabled && highlightImageSource,
     );
+    const resolvedImageFit = mapAssetImageFit(imageFit);
+    const imageObjectPosition = mapAssetImageObjectPosition(imagePosition);
     const imageMaskStyle = imageSource
         ? ({
               WebkitMaskImage: `url("${imageSource}")`,
-              WebkitMaskPosition: 'center',
+              WebkitMaskPosition: imageObjectPosition,
               WebkitMaskRepeat: 'no-repeat',
-              WebkitMaskSize: 'contain',
+              WebkitMaskSize: resolvedImageFit,
               maskImage: `url("${imageSource}")`,
-              maskPosition: 'center',
+              maskPosition: imageObjectPosition,
               maskRepeat: 'no-repeat',
-              maskSize: 'contain',
+              maskSize: resolvedImageFit,
           } as CSSProperties)
         : undefined;
 
@@ -67,6 +81,8 @@ export function MapAssetVisual({
                         className="relative z-[1] mx-auto size-full object-contain"
                         src={imageSource}
                         style={{
+                            objectFit: resolvedImageFit,
+                            objectPosition: imageObjectPosition,
                             filter: highlighted
                                 ? 'drop-shadow(0 0 2px rgba(255,255,255,0.6))'
                                 : 'drop-shadow(0 0 1px rgba(255,255,255,0.35))',
@@ -110,6 +126,10 @@ export function MapAssetVisual({
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 z-10 size-full object-contain"
                     src={highlightImageSource ?? undefined}
+                    style={{
+                        objectFit: resolvedImageFit,
+                        objectPosition: imageObjectPosition,
+                    }}
                 />
             ) : null}
             {label ? (

@@ -28,8 +28,12 @@ Current map behavior includes:
 
 - percentage-based X/Y placement, Z depth, size and opacity
 - transparent PNG and WebP artwork with overlapping visual layers
+- image framing can show the full image or fill and crop its square frame, with
+  center, top, right, bottom or left anchoring
 - image-alpha-aware pointer hit areas that follow visible pixels instead of the
   surrounding image rectangle
+- image framing and alpha-aware hit testing use the same fit and anchor
+  settings
 - responsive hit testing shared by the learner map and World Builder preview
 - normal, hover and focused visuals with configurable borders, labels, colors
   and optional highlight images

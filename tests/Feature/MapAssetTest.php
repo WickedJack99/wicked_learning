@@ -121,6 +121,8 @@ class MapAssetTest extends TestCase
                     'highlightImageEnabled' => true,
                     'highlightImageUrl' => '/storage/learning/nodes/highlight.webp',
                 ],
+                'imageFit' => 'cover',
+                'imagePosition' => 'top',
             ],
         ]);
 
@@ -139,6 +141,40 @@ class MapAssetTest extends TestCase
         $this->assertSame(
             '/storage/learning/nodes/highlight.webp',
             LearningMapAsset::query()->findOrFail($asset->id)->visual_config['dark']['highlightImageUrl'],
+        );
+        $this->assertSame(
+            'cover',
+            LearningMapAsset::query()->findOrFail($asset->id)->visual_config['imageFit'],
+        );
+        $this->assertSame(
+            'top',
+            LearningMapAsset::query()->findOrFail($asset->id)->visual_config['imagePosition'],
+        );
+    }
+
+    public function test_image_framing_rules_reject_unknown_values(): void
+    {
+        [$map] = $this->mapAndNode();
+        $validator = Validator::make([
+            'position_x' => 50,
+            'position_y' => 50,
+            'position_z' => 0,
+            'width' => 14,
+            'opacity' => 1,
+            'visual_config' => [
+                'imageFit' => 'stretch',
+                'imagePosition' => 'upper-left',
+            ],
+        ], app(AdminWorldRules::class)->mapAsset($map));
+
+        $this->assertTrue($validator->fails());
+        $this->assertArrayHasKey(
+            'visual_config.imageFit',
+            $validator->errors()->toArray(),
+        );
+        $this->assertArrayHasKey(
+            'visual_config.imagePosition',
+            $validator->errors()->toArray(),
         );
     }
 

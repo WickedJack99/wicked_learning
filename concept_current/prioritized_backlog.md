@@ -85,7 +85,8 @@ participation.
   clearing the field restores the destination or connector default, and
   deletion is explicit.
 - Add media tags, categories and useful transparency/animation metadata.
-- Improve MapAsset crop, anchor and placement ergonomics.
+- [x] Improve MapAsset crop, anchor and placement ergonomics with shared image
+  framing controls and alpha-aware hit testing.
 - Add map/world version history, rollback and collaborative editing locks.
 - Add bulk import/export for maps and MapAssets.
 - Add global/world configuration profiles with visible inherited values and

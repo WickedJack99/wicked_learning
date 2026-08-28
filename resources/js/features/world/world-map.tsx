@@ -32,6 +32,8 @@ import {
     imageAlphaMaskFor,
     useImageAlphaMasks,
 } from './image-alpha-mask';
+import type { ImageAlphaMaskRequest } from './image-alpha-mask';
+import { mapAssetImageFit, mapAssetImagePosition } from './map-asset-image';
 import {
     mapAssetInteractionMode,
     mapAssetSurface,
@@ -363,9 +365,28 @@ function MapAssetLayers({
     const currentSurfaces = assets.map((asset) =>
         mapAssetSurface(asset, toggledAssetIds.includes(asset.id)),
     );
-    const alphaMasks = useImageAlphaMasks(
-        currentSurfaces.map((surface) => surface.imageUrl),
+    const assetVisualConfigs: Array<Record<string, unknown>> = assets.map(
+        (asset) => {
+            const node = asset.nodeId
+                ? map.nodes.find((candidate) => candidate.id === asset.nodeId)
+                : null;
+
+            return {
+                ...(node ? resolveThemeVariant(node.visualConfig, mode) : {}),
+                ...resolveAssetVisualConfig(asset.visualConfig, mode),
+            };
+        },
     );
+    const alphaMaskRequests: ImageAlphaMaskRequest[] = assets.map(
+        (asset, assetIndex) => ({
+            imageFit: mapAssetImageFit(assetVisualConfigs[assetIndex].imageFit),
+            imagePosition: mapAssetImagePosition(
+                assetVisualConfigs[assetIndex].imagePosition,
+            ),
+            imageUrl: currentSurfaces[assetIndex].imageUrl,
+        }),
+    );
+    const alphaMasks = useImageAlphaMasks(alphaMaskRequests);
     const hiddenByPointer = new Set(
         mapPointer && mapViewport
             ? assets
@@ -377,7 +398,7 @@ function MapAssetLayers({
                               mapPointer,
                               mapViewport,
                               imageAlphaMaskFor(
-                                  currentSurfaces[assetIndex].imageUrl,
+                                  alphaMaskRequests[assetIndex],
                                   alphaMasks,
                               ),
                           ),
@@ -399,11 +420,11 @@ function MapAssetLayers({
                               currentSurfaces[selectedAssetIndex],
                               mapViewport,
                               imageAlphaMaskFor(
-                                  currentSurfaces[assetIndex].imageUrl,
+                                  alphaMaskRequests[assetIndex],
                                   alphaMasks,
                               ),
                               imageAlphaMaskFor(
-                                  currentSurfaces[selectedAssetIndex].imageUrl,
+                                  alphaMaskRequests[selectedAssetIndex],
                                   alphaMasks,
                               ),
                           ),
@@ -428,7 +449,7 @@ function MapAssetLayers({
                           mapPointer,
                           mapViewport,
                           imageAlphaMaskFor(
-                              currentSurfaces[assetIndex].imageUrl,
+                              alphaMaskRequests[assetIndex],
                               alphaMasks,
                           ),
                       )
@@ -462,17 +483,7 @@ function MapAssetLayers({
                           (candidate) => candidate.id === asset.nodeId,
                       )
                     : null;
-                const nodeVisualConfig = node
-                    ? resolveThemeVariant(node.visualConfig, mode)
-                    : {};
-                const assetVisualConfig = resolveAssetVisualConfig(
-                    asset.visualConfig,
-                    mode,
-                );
-                const visualConfig = {
-                    ...nodeVisualConfig,
-                    ...assetVisualConfig,
-                };
+                const visualConfig = assetVisualConfigs[assetIndex];
                 const label =
                     (typeof visualConfig.label === 'string' &&
                         visualConfig.label) ||
@@ -490,30 +501,35 @@ function MapAssetLayers({
                     (hiddenByPointer.has(asset.id) ||
                         hiddenForFocus.has(asset.id));
                 const borderColor = withOpacity(
-                    visualConfig.borderColor ??
-                        visualConfig.tileColor ??
+                    stringVisualConfig(
+                        visualConfig.borderColor ?? visualConfig.tileColor,
                         '#12343b',
+                    ),
                     visualConfig.borderOpacity ?? visualConfig.tileOpacity,
                 );
                 const highlightColor = withOpacity(
-                    visualConfig.highlightColor ?? '#7dd3fc',
+                    stringVisualConfig(visualConfig.highlightColor, '#7dd3fc'),
                     visualConfig.highlightOpacity,
                 );
                 const highlightBorderColor = withOpacity(
-                    visualConfig.highlightBorderColor ??
-                        visualConfig.highlightColor ??
+                    stringVisualConfig(
+                        visualConfig.highlightBorderColor ??
+                            visualConfig.highlightColor,
                         '#7dd3fc',
+                    ),
                     visualConfig.highlightBorderOpacity ??
                         visualConfig.highlightOpacity,
                 );
                 const labelColor = withOpacity(
-                    visualConfig.labelColor ?? '#ffffff',
+                    stringVisualConfig(visualConfig.labelColor, '#ffffff'),
                     visualConfig.labelOpacity,
                 );
                 const highlightedLabelColor = withOpacity(
-                    visualConfig.highlightedLabelColor ??
-                        visualConfig.labelColor ??
+                    stringVisualConfig(
+                        visualConfig.highlightedLabelColor ??
+                            visualConfig.labelColor,
                         '#ffffff',
+                    ),
                     visualConfig.highlightedLabelOpacity ??
                         visualConfig.labelOpacity,
                 );
@@ -552,6 +568,12 @@ function MapAssetLayers({
                                 labelColor={labelColor}
                                 highlightedLabelColor={highlightedLabelColor}
                                 label={label}
+                                imageFit={mapAssetImageFit(
+                                    visualConfig.imageFit,
+                                )}
+                                imagePosition={mapAssetImagePosition(
+                                    visualConfig.imagePosition,
+                                )}
                             />
                         </div>
                     );
@@ -639,6 +661,10 @@ function MapAssetLayers({
                             labelColor={labelColor}
                             highlightedLabelColor={highlightedLabelColor}
                             label={label}
+                            imageFit={mapAssetImageFit(visualConfig.imageFit)}
+                            imagePosition={mapAssetImagePosition(
+                                visualConfig.imagePosition,
+                            )}
                         />
                         <ImageAlphaHitArea
                             hitAreaProps={{
@@ -663,7 +689,11 @@ function MapAssetLayers({
                                 onPointerDown: (event) =>
                                     event.stopPropagation(),
                             }}
+                            imageFit={mapAssetImageFit(visualConfig.imageFit)}
                             imageUrl={surface.imageUrl}
+                            imagePosition={mapAssetImagePosition(
+                                visualConfig.imagePosition,
+                            )}
                         />
                     </button>
                 );
@@ -684,6 +714,10 @@ function resolveAssetVisualConfig(
             ? (variant as Record<string, unknown>)
             : {}),
     };
+}
+
+function stringVisualConfig(value: unknown, fallback: string): string {
+    return typeof value === 'string' && value !== '' ? value : fallback;
 }
 
 export const HexTile = memo(function HexTile({

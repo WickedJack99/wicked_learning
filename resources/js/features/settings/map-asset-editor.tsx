@@ -12,6 +12,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ImageAlphaHitArea } from '@/features/world/image-alpha-mask';
 import {
+    mapAssetImageFit,
+    mapAssetImagePosition,
+} from '@/features/world/map-asset-image';
+import {
     mapAssetInteractionMode,
     mapAssetSurface,
 } from '@/features/world/map-asset-interaction';
@@ -130,6 +134,11 @@ export function MapAssetEditor({
                             assetToRender,
                             previewAsset?.id === asset.id && previewSecondState,
                         );
+                        const visualConfig = mergeAssetVisualConfig(
+                            node?.visualConfig,
+                            assetToRender.visualConfig,
+                            appearance,
+                        );
 
                         return (
                             <button
@@ -176,14 +185,16 @@ export function MapAssetEditor({
                                         node?.title ??
                                         assetToRender.text
                                     }
-                                    visualConfig={mergeAssetVisualConfig(
-                                        node?.visualConfig,
-                                        assetToRender.visualConfig,
-                                        appearance,
-                                    )}
+                                    visualConfig={visualConfig}
                                 />
                                 <ImageAlphaHitArea
+                                    imageFit={mapAssetImageFit(
+                                        visualConfig.imageFit,
+                                    )}
                                     imageUrl={surface.imageUrl}
+                                    imagePosition={mapAssetImagePosition(
+                                        visualConfig.imagePosition,
+                                    )}
                                 />
                             </button>
                         );
@@ -271,6 +282,8 @@ function MapAssetPreview({
             )}
             highlightedLabelColor={highlightedLabelColor}
             imageUrl={asset.imageUrl}
+            imageFit={mapAssetImageFit(visualConfig?.imageFit)}
+            imagePosition={mapAssetImagePosition(visualConfig?.imagePosition)}
             label={label}
             labelColor={labelColor}
         />
@@ -393,6 +406,14 @@ export function MapAssetFields({
     const t = usePlatformTranslation();
     const update = (key: keyof AssetForm, value: string | boolean) =>
         onChange({ ...form, [key]: value });
+    const updateVisual = (key: 'imageFit' | 'imagePosition', value: string) =>
+        onChange({
+            ...form,
+            visual_config: {
+                ...form.visual_config,
+                [key]: value,
+            },
+        });
     const updateInteractionMode = (mode: MapAssetInteractionMode) =>
         onChange({
             ...form,
@@ -574,6 +595,66 @@ export function MapAssetFields({
                     ))}
                 </fieldset>
             ) : null}
+
+            <fieldset className="grid gap-3 border-t border-[var(--settings-border-color)] pt-4">
+                <legend className="sr-only">Image framing</legend>
+                <div>
+                    <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
+                        Image framing
+                    </h4>
+                    <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                        Choose whether the image stays fully visible or fills
+                        its square, and which edge anchors the framing.
+                    </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor={`map-asset-image-fit-${mapId}`}>
+                            Fit
+                        </Label>
+                        <select
+                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                            id={`map-asset-image-fit-${mapId}`}
+                            onChange={(event) =>
+                                updateVisual(
+                                    'imageFit',
+                                    event.currentTarget.value,
+                                )
+                            }
+                            value={mapAssetImageFit(
+                                form.visual_config.imageFit,
+                            )}
+                        >
+                            <option value="contain">Show full image</option>
+                            <option value="cover">Fill frame and crop</option>
+                        </select>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor={`map-asset-image-position-${mapId}`}>
+                            Anchor
+                        </Label>
+                        <select
+                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                            id={`map-asset-image-position-${mapId}`}
+                            onChange={(event) =>
+                                updateVisual(
+                                    'imagePosition',
+                                    event.currentTarget.value,
+                                )
+                            }
+                            value={mapAssetImagePosition(
+                                form.visual_config.imagePosition,
+                            )}
+                        >
+                            <option value="center">Center</option>
+                            <option value="top">Top</option>
+                            <option value="right">Right</option>
+                            <option value="bottom">Bottom</option>
+                            <option value="left">Left</option>
+                        </select>
+                    </div>
+                </div>
+            </fieldset>
 
             <fieldset className="grid gap-3 border-t border-[var(--settings-border-color)] pt-4">
                 <legend className="sr-only">

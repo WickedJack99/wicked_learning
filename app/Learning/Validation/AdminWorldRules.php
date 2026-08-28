@@ -171,6 +171,8 @@ class AdminWorldRules
             'interaction_config' => ['nullable', 'array'],
             'interaction_config.states' => ['required_if:interaction_mode,toggle', 'array'],
             'visual_config' => ['nullable', 'array'],
+            'visual_config.imageFit' => ['nullable', 'string', Rule::in(['contain', 'cover'])],
+            'visual_config.imagePosition' => ['nullable', 'string', Rule::in(['center', 'top', 'right', 'bottom', 'left'])],
             'sound_config' => ['nullable', 'array'],
             ...$this->mapAssetStateRules('first'),
             ...$this->mapAssetStateRules('second'),
