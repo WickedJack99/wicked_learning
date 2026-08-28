@@ -561,7 +561,69 @@ function TopicReflectionComparison({
                     snapshot={narrative.later}
                 />
             </div>
+            {narrative.entries.filter(
+                (entry) =>
+                    entry.id !== narrative.earlier.id &&
+                    entry.id !== narrative.later.id,
+            ).length > 0 ? (
+                <div className="mt-6 border-t border-[var(--learner-border-color)] pt-5">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--learner-muted-text)] uppercase">
+                        {t(
+                            'topics.detail.reflection_comparison.trail',
+                            'Reflections along the way',
+                        )}
+                    </p>
+                    <div className="mt-3">
+                        <LearnerPaginatedItems
+                            className="divide-y divide-[var(--learner-border-color)]"
+                            items={narrative.entries.filter(
+                                (entry) =>
+                                    entry.id !== narrative.earlier.id &&
+                                    entry.id !== narrative.later.id,
+                            )}
+                            pageSize={4}
+                            renderItem={(entry) => (
+                                <ReflectionTrailEntry
+                                    entry={entry}
+                                    key={entry.id}
+                                />
+                            )}
+                        />
+                    </div>
+                </div>
+            ) : null}
         </section>
+    );
+}
+
+function ReflectionTrailEntry({
+    entry,
+}: {
+    entry: TopicReflectionNarrative['entries'][number];
+}) {
+    return (
+        <article className="py-3">
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                    {entry.activityTitle ? (
+                        <p className="truncate text-sm font-medium text-[var(--learner-body-text)]">
+                            {entry.activityTitle}
+                        </p>
+                    ) : null}
+                    <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--learner-muted-text)]">
+                        {entry.reflection}
+                    </p>
+                </div>
+                {entry.createdAt ? (
+                    <time
+                        className="shrink-0 text-xs text-[var(--learner-muted-text)]"
+                        dateTime={entry.createdAt}
+                    >
+                        {formatTopicDate(entry.createdAt)}
+                    </time>
+                ) : null}
+            </div>
+        </article>
     );
 }
 
@@ -592,7 +654,7 @@ function ReflectionSnapshot({
                     {snapshot.activityTitle}
                 </p>
             ) : null}
-            <p className="mt-3 text-xs italic leading-5 text-[var(--learner-muted-text)]">
+            <p className="mt-3 text-xs leading-5 text-[var(--learner-muted-text)] italic">
                 {snapshot.question}
             </p>
             <p className="mt-2 line-clamp-6 text-sm leading-6 text-[var(--learner-body-text)]">

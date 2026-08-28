@@ -170,7 +170,8 @@ Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and
 its map place. When two or more private reflections are connected to the
 topic's published map, the trail also places the earliest and latest reflection
-side by side as an optional look back and links to the full Journal.
+side by side as an optional look back, keeps intermediate reflections in a
+small paginated chronological view, and links to the full Journal.
 
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments,

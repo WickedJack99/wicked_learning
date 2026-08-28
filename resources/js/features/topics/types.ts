@@ -86,12 +86,14 @@ export type TopicLearningPulse = {
 
 export type TopicReflectionNarrative = {
     earlier: TopicReflectionSnapshot;
+    entries: TopicReflectionSnapshot[];
     later: TopicReflectionSnapshot;
 };
 
 export type TopicReflectionSnapshot = {
     activityTitle: string | null;
     createdAt: string | null;
+    id: number;
     journalHref: string;
     question: string;
     reflection: string;

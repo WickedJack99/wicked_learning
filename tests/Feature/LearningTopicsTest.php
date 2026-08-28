@@ -586,6 +586,20 @@ test('a topic page exposes its scoped learning trail', function () {
         'created_at' => now()->subDay(),
         'updated_at' => now()->subDay(),
     ])->save();
+    $middleReflection = LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $journalPage->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Middle reflection',
+        'question' => 'What changed in your view?',
+        'reflection' => 'I started connecting the observations.',
+        'feedback_status' => 'not_requested',
+    ]);
+    $middleReflection->forceFill([
+        'created_at' => now()->subDays(6),
+        'updated_at' => now()->subDays(6),
+    ])->save();
 
     $this->actingAs($learner)
         ->get(route('topics.show', $topic))
@@ -602,6 +616,8 @@ test('a topic page exposes its scoped learning trail', function () {
             ->where('topic.reflectionNarrative.later.question', 'What do you notice now?')
             ->where('topic.reflectionNarrative.later.reflection', 'Now I can describe how the parts influence one another.')
             ->where('topic.reflectionNarrative.later.journalHref', '/journal')
+            ->has('topic.reflectionNarrative.entries', 3)
+            ->where('topic.reflectionNarrative.entries.1.reflection', 'I started connecting the observations.')
             ->where('topic.subtopicCompetence.0.name', 'Deep Space')
             ->where('topic.subtopicCompetence.0.topic.title', 'Deep Space')
         );

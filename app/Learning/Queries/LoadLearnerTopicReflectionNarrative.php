@@ -10,7 +10,7 @@ class LoadLearnerTopicReflectionNarrative
 {
     /**
      * @param  list<string>  $topicSlugs
-     * @return array{earlier: array<string, mixed>, later: array<string, mixed>}|null
+     * @return array{earlier: array<string, mixed>, entries: list<array<string, mixed>>, later: array<string, mixed>}|null
      */
     public function handle(User $user, array $topicSlugs): ?array
     {
@@ -39,6 +39,13 @@ class LoadLearnerTopicReflectionNarrative
 
         return [
             'earlier' => $this->serialize($reflections->first()),
+            'entries' => $reflections
+                ->reverse()
+                ->take(12)
+                ->sortBy('created_at')
+                ->values()
+                ->map(fn (LearnerReflection $reflection): array => $this->serialize($reflection))
+                ->all(),
             'later' => $this->serialize($reflections->last()),
         ];
     }
@@ -47,6 +54,7 @@ class LoadLearnerTopicReflectionNarrative
     private function serialize(LearnerReflection $reflection): array
     {
         return [
+            'id' => $reflection->id,
             'activityTitle' => $reflection->learningActivity?->title,
             'createdAt' => $reflection->created_at?->toIso8601String(),
             'journalHref' => '/journal',

@@ -74,7 +74,9 @@ participation.
   learning desk, Topics, Paths, Journal, competence and maps. Keep direct map
   access and authored portal travel complementary, and preserve optional rather
   than forced topic nesting.
-- Improve private learning analytics and reflection support without rankings.
+- [x] Improve private learning analytics and reflection support without rankings.
+  Topic trails now keep the earlier/later look-back and expose a small
+  chronological, paginated set of intermediate reflections for the learner.
 - Extend access history to additional security-sensitive account events as the
   access model grows.
 
