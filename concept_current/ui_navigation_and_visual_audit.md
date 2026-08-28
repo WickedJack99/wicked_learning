@@ -554,8 +554,10 @@ These are test gaps, not claims that the feature is broken:
   graph nodes and connections now have focused coverage in the implementation,
   and the shared image picker has dialog semantics, Escape dismissal and focus
   restoration. Competence stars now expose a visible cyan focus halo while
-  retaining their existing keyboard activation; a full browser pass still
-  remains for the complete authoring workspace.
+  retaining their existing keyboard activation. Player inventory and tool
+  overlays now keep Tab focus within the open dialog and restore focus on
+  dismissal; a full browser pass still remains for the complete authoring
+  workspace.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 

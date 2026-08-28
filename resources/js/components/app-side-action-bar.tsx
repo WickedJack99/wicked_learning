@@ -328,10 +328,53 @@ function SideOverlay({
     onClose: () => void;
     title: string;
 }) {
+    const panelRef = useRef<HTMLDivElement | null>(null);
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
         closeButtonRef.current?.focus();
+    }, []);
+
+    useEffect(() => {
+        const panel = panelRef.current;
+
+        if (!panel) {
+            return;
+        }
+
+        const handleTab = (event: KeyboardEvent) => {
+            if (event.key !== 'Tab') {
+                return;
+            }
+
+            const focusable = Array.from(
+                panel.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                ),
+            );
+
+            if (focusable.length === 0) {
+                event.preventDefault();
+                panel.focus();
+
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        panel.addEventListener('keydown', handleTab);
+
+        return () => panel.removeEventListener('keydown', handleTab);
     }, []);
 
     return (
@@ -340,7 +383,9 @@ function SideOverlay({
             aria-modal="true"
             className="learner-scroll-region flex max-h-[calc(100svh-10rem)] w-[min(18rem,calc(100vw-1.5rem))] flex-col overscroll-contain rounded-xl border p-3 shadow-2xl shadow-slate-950/15 backdrop-blur-md sm:max-h-[calc(100svh-8rem)] dark:shadow-black/35"
             id={id}
+            ref={panelRef}
             role="dialog"
+            tabIndex={-1}
             style={{
                 background: 'var(--map-side-control-panel-background)',
                 borderColor: 'var(--map-side-control-panel-border-color)',
