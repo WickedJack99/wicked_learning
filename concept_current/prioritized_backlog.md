@@ -86,8 +86,9 @@ because they determine whether activity engagement becomes durable learning.
   link them to activities, concepts and AI-generated drafts so factual content
   and feedback can show where it came from.
 - Add learner-controlled regulation support: optional intent and time-box
-  setting, transparent recommendation reasons with alternatives, and an
-  optional focus workspace that reduces unrelated navigation during a task.
+  setting, transparent recommendation reasons with alternatives, an optional
+  focus workspace that reduces unrelated navigation during a task, and
+  authoring checks for meaningful segmentation and accessible alternatives.
 - Build a separate effort-preserving learner AI workflow only after evidence
   and source contracts exist. Define AI-off, questions-only, hints and
   post-attempt support levels, grounded responses with uncertainty, and
@@ -142,6 +143,9 @@ because they determine whether activity engagement becomes durable learning.
 - [x] Make the world-level AI review queue activity-specific and directly
   actionable. Each pending activity is paginated as its own entry and opens
   its scoped review dialog from the queue.
+- Add structured peer explanation, help and counterexample workflows plus
+  mentor digests. Measure the quality and resolution of intellectual support,
+  not message volume or popularity, and keep participation optional.
 
 ## Priority 2 - Authoring And Reuse
 
