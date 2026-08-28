@@ -504,6 +504,8 @@ These are test gaps, not claims that the feature is broken:
   tool references before a dependent locked node can appear reachable.
 - Organization members and pending join requests now use bounded pagination,
   so large collections keep their actions inside the fixed workspace.
+- World Builder map details now paginate nodes with pending review, keeping the
+  review entry action and map configuration actions visible as maps grow.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map

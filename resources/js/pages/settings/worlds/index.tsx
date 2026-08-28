@@ -29,6 +29,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import InputError from '@/components/input-error';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -619,28 +620,36 @@ function MapDetails({ map }: { map: MapSummary }) {
                                 <span aria-hidden="true">→</span>
                             </Link>
                         </Button>
-                        {nodesNeedingReview.map((node) => (
-                            <Button
-                                asChild
-                                className="h-auto justify-between gap-3 px-3 py-2 text-left"
-                                key={node.id}
-                                variant="outline"
-                            >
-                                <Link
-                                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes`}
+                        <LearnerPaginatedItems
+                            className="grid gap-2"
+                            items={nodesNeedingReview}
+                            pageSize={5}
+                            paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-slate-950 dark:hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                            paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                            paginationTextClassName="text-xs text-slate-500 dark:text-slate-400"
+                            renderItem={(node) => (
+                                <Button
+                                    asChild
+                                    className="h-auto justify-between gap-3 px-3 py-2 text-left"
+                                    key={node.id}
+                                    variant="outline"
                                 >
-                                    <span className="min-w-0 truncate text-xs">
-                                        {node.title}
-                                    </span>
-                                    <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
-                                        {node.activityReviewCount}{' '}
-                                        {node.activityReviewCount === 1
-                                            ? 'activity'
-                                            : 'activities'}
-                                    </span>
-                                </Link>
-                            </Button>
-                        ))}
+                                    <Link
+                                        href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes`}
+                                    >
+                                        <span className="min-w-0 truncate text-xs">
+                                            {node.title}
+                                        </span>
+                                        <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                                            {node.activityReviewCount}{' '}
+                                            {node.activityReviewCount === 1
+                                                ? 'activity'
+                                                : 'activities'}
+                                        </span>
+                                    </Link>
+                                </Button>
+                            )}
+                        />
                     </div>
                 ) : null}
             </section>
