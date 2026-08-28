@@ -85,6 +85,9 @@ export default function NodePlay({
     const [isBookmarking, setIsBookmarking] = useState(false);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
+    const [hiddenCheckInActivityId, setHiddenCheckInActivityId] = useState<
+        number | null
+    >(null);
     const pendingLearningCheckInRef = useRef<PendingLearningCheckIn | null>(
         null,
     );
@@ -239,6 +242,7 @@ export default function NodePlay({
                 originTopicSlug,
             } satisfies PendingLearningCheckIn;
             pendingLearningCheckInRef.current = checkIn;
+            setHiddenCheckInActivityId(null);
             setPendingLearningCheckIn(checkIn);
         },
         [isAuthenticated, originTopicSlug, playRunId],
@@ -510,7 +514,7 @@ export default function NodePlay({
                         ) : null}
                     </aside>
 
-                    <div className="flex min-h-0 min-w-0 flex-col">
+                    <div className="relative flex min-h-0 min-w-0 flex-col">
                         {travelBlockedMessage ? (
                             <p
                                 aria-live="polite"
@@ -520,22 +524,45 @@ export default function NodePlay({
                             </p>
                         ) : null}
 
-                        {pendingLearningCheckIn ? (
-                            <LearningCheckIn
-                                activityTitle={
-                                    pendingLearningCheckIn.activityTitle
-                                }
-                                choicePrompt={
-                                    pendingLearningCheckIn.choicePrompt
-                                }
-                                learningAreas={
-                                    pendingLearningCheckIn.learningAreas
-                                }
-                                originTopicSlug={
-                                    pendingLearningCheckIn.originTopicSlug
-                                }
-                                onContinue={continueAfterCheckIn}
-                            />
+                        {pendingLearningCheckIn &&
+                        hiddenCheckInActivityId !==
+                            pendingLearningCheckIn.activityId ? (
+                            <div className="absolute inset-x-0 top-0 z-30 max-h-[calc(100%_-_0.75rem)] overflow-y-auto rounded-lg shadow-2xl">
+                                <LearningCheckIn
+                                    activityTitle={
+                                        pendingLearningCheckIn.activityTitle
+                                    }
+                                    choicePrompt={
+                                        pendingLearningCheckIn.choicePrompt
+                                    }
+                                    learningAreas={
+                                        pendingLearningCheckIn.learningAreas
+                                    }
+                                    originTopicSlug={
+                                        pendingLearningCheckIn.originTopicSlug
+                                    }
+                                    onContinue={continueAfterCheckIn}
+                                    onHide={() =>
+                                        setHiddenCheckInActivityId(
+                                            pendingLearningCheckIn.activityId,
+                                        )
+                                    }
+                                />
+                            </div>
+                        ) : null}
+
+                        {pendingLearningCheckIn &&
+                        hiddenCheckInActivityId ===
+                            pendingLearningCheckIn.activityId ? (
+                            <Button
+                                className="absolute top-3 right-3 z-30 shadow-lg"
+                                onClick={() => setHiddenCheckInActivityId(null)}
+                                size="sm"
+                                type="button"
+                                variant="outline"
+                            >
+                                Show conclusion
+                            </Button>
                         ) : null}
 
                         {displayedActivity ? (

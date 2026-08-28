@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Morning learning garden</title>
+  <desc id="desc">A calm light blue scene with a path, clouds and a warm lantern.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dff7ff"/>
+      <stop offset="1" stop-color="#b7e3ee"/>
+    </linearGradient>
+    <radialGradient id="sun">
+      <stop stop-color="#fef3c7" stop-opacity=".95"/>
+      <stop offset="1" stop-color="#fef3c7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1240" cy="180" r="220" fill="url(#sun)"/>
+  <g fill="#ffffff" opacity=".7">
+    <path d="M180 220c30-48 95-42 115 3 54-26 113 8 111 58H90c-2-34 27-61 90-61Z"/>
+    <path d="M1190 330c26-42 82-38 100 3 47-22 96 8 95 49h-270c-2-28 22-52 75-52Z"/>
+  </g>
+  <path d="M0 620 Q320 510 640 620 T1280 590 T1600 620 V900 H0Z" fill="#74a88e"/>
+  <path d="M0 730 Q350 650 720 740 T1600 700 V900 H0Z" fill="#4f8d78"/>
+  <path d="M680 900 C710 770 790 690 860 600 C930 690 1010 770 1040 900Z" fill="#b9a77a" opacity=".9"/>
+  <path d="M0 840 Q320 760 640 830 T1280 810 T1600 840" fill="none" stroke="#d3f0d5" stroke-width="8" opacity=".8"/>
+  <g fill="#0f766e" opacity=".65">
+    <circle cx="260" cy="700" r="8"/><circle cx="290" cy="670" r="5"/><circle cx="1340" cy="700" r="7"/>
+  </g>
+</svg>

@@ -149,6 +149,9 @@ After completing an activity, a learner may optionally choose a private next
 direction: return to that place, look for something related, or let it settle.
 The direction is saved with the check-in and shown later in the Journal and
 competence pulse as orientation, without deadlines or a progress score.
+The check-in opens as a bounded overlay above the activity rather than pushing
+the activity below the viewport. Learners can hide it and reopen it with the
+Show conclusion control.
 Authors can optionally add a short context sentence explaining why one of these
 directions may be useful after a particular activity. The choice set remains
 bounded and optional.

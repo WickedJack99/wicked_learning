@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Night learning garden</title>
+  <desc id="desc">A calm dark blue scene with a path, stars and a warm lantern.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#071326"/>
+      <stop offset="1" stop-color="#10253b"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#67e8f9" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#67e8f9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1230" cy="190" r="190" fill="url(#glow)" opacity=".3"/>
+  <g fill="#dbeafe" opacity=".7">
+    <circle cx="180" cy="150" r="3"/><circle cx="330" cy="270" r="2"/><circle cx="520" cy="130" r="3"/>
+    <circle cx="780" cy="210" r="2"/><circle cx="1010" cy="110" r="3"/><circle cx="1390" cy="290" r="2"/>
+  </g>
+  <path d="M0 620 Q320 510 640 620 T1280 590 T1600 620 V900 H0Z" fill="#0a1b2c"/>
+  <path d="M0 730 Q350 650 720 740 T1600 700 V900 H0Z" fill="#081522"/>
+  <path d="M680 900 C710 770 790 690 860 600 C930 690 1010 770 1040 900Z" fill="#183d56" opacity=".85"/>
+  <path d="M0 840 Q320 760 640 830 T1280 810 T1600 840" fill="none" stroke="#1e6177" stroke-width="8" opacity=".6"/>
+  <g fill="#2dd4bf" opacity=".6">
+    <circle cx="260" cy="700" r="8"/><circle cx="290" cy="670" r="5"/><circle cx="1340" cy="700" r="7"/>
+  </g>
+</svg>

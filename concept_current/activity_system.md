@@ -113,6 +113,9 @@ Current UI behavior:
   later: return, look for something related or let it settle. Authors may add
   one short context sentence for why these directions are relevant to the
   activity; the choices remain optional and are not a route requirement.
+- The completion check-in is an overlay in the activity column, so it does not
+  reduce the activity scene to make every option fit in the initial viewport.
+  Learners can hide it to return to the activity and show it again when ready.
 - Admins edit activity graphs by selecting a MapAsset and opening its `Activities` section.
 - The route restart action is kept in the shared activity frame at the lower
   edge of the activity surface, instead of competing with primary navigation.

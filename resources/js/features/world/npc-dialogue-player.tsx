@@ -444,11 +444,14 @@ function NpcDialogueScene({
     const npcY = numericConfig(currentNode.config.npcY, 50);
 
     return (
-        <div className="relative isolate flex min-h-[32rem] flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/6">
+        <div className="relative isolate flex min-h-[32rem] flex-1 overflow-hidden rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] outline-none focus:outline-none">
             {backgroundImage ? (
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                    }}
                     src={backgroundImage}
                     style={{
                         transform: backgroundMirrored

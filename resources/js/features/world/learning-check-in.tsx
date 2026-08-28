@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ArrowRight, Heart } from 'lucide-react';
+import { ArrowRight, EyeOff, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
@@ -63,6 +63,7 @@ export function LearningCheckIn({
     learningAreas,
     originTopicSlug,
     onContinue,
+    onHide,
 }: {
     activityTitle: string;
     choicePrompt: string | null;
@@ -73,6 +74,7 @@ export function LearningCheckIn({
         note: string,
         nextDirection: LearningCheckInNextDirection | null,
     ) => Promise<void>;
+    onHide: () => void;
 }) {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -104,24 +106,37 @@ export function LearningCheckIn({
     return (
         <section
             aria-labelledby="learning-check-in-title"
-            className="mb-3 rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))] p-4"
+            className="rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))] p-4"
         >
-            <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-action-accent)]">
-                    <Heart className="size-4" />
-                </span>
-                <div className="min-w-0">
-                    <h2
-                        className="text-sm font-semibold text-[var(--learner-heading-text)]"
-                        id="learning-check-in-title"
-                    >
-                        A small pause after {activityTitle}
-                    </h2>
-                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
-                        How did this feel? Choose a phrase if one fits, or
-                        continue without answering.
-                    </p>
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                    <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-action-accent)]">
+                        <Heart className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                        <h2
+                            className="text-sm font-semibold text-[var(--learner-heading-text)]"
+                            id="learning-check-in-title"
+                        >
+                            A small pause after {activityTitle}
+                        </h2>
+                        <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                            How did this feel? Choose a phrase if one fits, or
+                            continue without answering.
+                        </p>
+                    </div>
                 </div>
+                <Button
+                    aria-label="Hide conclusion"
+                    className="shrink-0"
+                    onClick={onHide}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                >
+                    <EyeOff className="size-4" />
+                    Hide
+                </Button>
             </div>
             {learningAreas.length > 0 ? (
                 <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_25%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-panel-background)_70%,transparent)] px-3 py-2">
