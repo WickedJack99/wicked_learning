@@ -21,6 +21,8 @@ use App\Models\LearningTool;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminAssetController extends Controller
 {
@@ -185,6 +187,15 @@ class AdminAssetController extends Controller
         return response()->json([
             'assets' => $this->loadReusableImageAssets->handle($data['q'] ?? null, $request->user()),
         ]);
+    }
+
+    public function downloadMedia(Request $request): BinaryFileResponse|StreamedResponse
+    {
+        $data = $request->validate([
+            'url' => ['required', 'string', 'max:2048'],
+        ]);
+
+        return $this->mediaAssetManager->download($data['url']);
     }
 
     public function reusableSounds(Request $request): JsonResponse

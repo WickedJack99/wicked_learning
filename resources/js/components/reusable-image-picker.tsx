@@ -1,7 +1,13 @@
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { readJsonResponse } from '@/lib/json-response';
@@ -117,27 +123,33 @@ export function ReusableImagePicker({
         };
     }, [loadError, search]);
 
-    const content = (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
-            <div
+    return (
+        <Dialog
+            onOpenChange={(open) => {
+                if (!open) {
+                    closePicker();
+                }
+            }}
+            open
+        >
+            <DialogContent
                 aria-describedby={descriptionId}
                 aria-labelledby={headingId}
-                aria-modal="true"
-                className="flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]"
-                role="dialog"
+                className="flex max-h-[min(42rem,calc(100svh-2rem))] w-full max-w-4xl flex-col overflow-hidden border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-[#111820]"
+                overlayClassName="bg-slate-950/55 backdrop-blur-sm"
             >
-                <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-white/10">
+                <DialogHeader className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 text-left dark:border-white/10">
                     <div>
-                        <h2
-                            className="text-lg font-semibold text-slate-950 dark:text-white"
+                        <DialogTitle
+                            className="text-lg text-slate-950 dark:text-white"
                             id={headingId}
                         >
                             {t(
                                 'settings.assets.images.select_existing_title',
                                 'Select existing image',
                             )}
-                        </h2>
-                        <p
+                        </DialogTitle>
+                        <DialogDescription
                             className="mt-1 text-sm text-slate-500 dark:text-slate-400"
                             id={descriptionId}
                         >
@@ -145,21 +157,9 @@ export function ReusableImagePicker({
                                 'settings.assets.images.select_existing_description',
                                 'Reuse uploaded or bundled assets instead of adding duplicates.',
                             )}
-                        </p>
+                        </DialogDescription>
                     </div>
-                    <Button
-                        aria-label={t(
-                            'settings.assets.images.close_picker',
-                            'Close image picker',
-                        )}
-                        onClick={closePicker}
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                    >
-                        <X className="size-4" />
-                    </Button>
-                </header>
+                </DialogHeader>
 
                 <div className="grid shrink-0 gap-3 border-b border-slate-200 p-4 md:grid-cols-[1fr_auto] dark:border-white/10">
                     <div className="relative">
@@ -270,11 +270,7 @@ export function ReusableImagePicker({
                         </div>
                     ) : null}
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
-
-    return typeof document === 'undefined'
-        ? content
-        : createPortal(content, document.body);
 }

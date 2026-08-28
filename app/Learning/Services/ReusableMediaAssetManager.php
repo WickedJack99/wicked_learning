@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReusableMediaAssetManager
 {
@@ -47,6 +49,33 @@ class ReusableMediaAssetManager
     public function deleteUploadedAsset(string $url): int
     {
         return $this->deleteAsset($url);
+    }
+
+    public function download(string $url): BinaryFileResponse|StreamedResponse
+    {
+        $storagePath = $this->storagePathFromUrl($url);
+
+        if ($storagePath) {
+            $disk = Storage::disk('public');
+
+            abort_unless($disk->exists($storagePath), 404);
+
+            return $disk->download($storagePath, basename($storagePath), [
+                'Content-Type' => $disk->mimeType($storagePath) ?: 'application/octet-stream',
+            ]);
+        }
+
+        $assetPath = $this->publicImagePathFromUrl($url);
+
+        if ($assetPath) {
+            return response()->download($assetPath, basename($assetPath), [
+                'Content-Type' => File::mimeType($assetPath) ?: 'application/octet-stream',
+            ]);
+        }
+
+        throw ValidationException::withMessages([
+            'url' => 'Only reusable image assets can be downloaded.',
+        ]);
     }
 
     /**

@@ -248,6 +248,9 @@ Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {
     Route::get('settings/assets/reusable-images', [AdminAssetController::class, 'reusableImages'])
         ->name('settings.assets.reusable-images');
 
+    Route::get('settings/assets/media/download', [AdminAssetController::class, 'downloadMedia'])
+        ->name('settings.assets.media.download');
+
     Route::post('settings/assets/tools', [AdminAssetController::class, 'storeTool'])
         ->name('settings.assets.tools.store');
 

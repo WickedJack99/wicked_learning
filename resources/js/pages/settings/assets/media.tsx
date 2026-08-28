@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
 import { cn } from '@/lib/utils';
+import mediaAssetRoutes from '@/routes/settings/assets/media';
 
 export type ReusableMediaAsset = {
     canDelete: boolean;
@@ -366,7 +367,13 @@ function AssetDetails({
                             Replace and keep links
                         </Button>
                         <Button asChild type="button" variant="ghost">
-                            <a download href={asset.url} rel="noreferrer">
+                            <a
+                                download
+                                href={mediaAssetRoutes.download.url({
+                                    query: { url: asset.url },
+                                })}
+                                rel="noreferrer"
+                            >
                                 <Download className="size-4" />
                                 Download
                             </a>

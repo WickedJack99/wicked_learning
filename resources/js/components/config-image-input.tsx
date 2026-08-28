@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
+import mediaAssetRoutes from '@/routes/settings/assets/media';
 import type { Auth } from '@/types';
 
 type ConfigImageInputProps = {
@@ -42,6 +43,13 @@ export function ConfigImageInput({
     const uploadId = `${id}-upload`;
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const previewUrl = normalizeMediaUrl(value);
+    const downloadUrl = previewUrl.startsWith('/protected-media/')
+        ? previewUrl
+        : previewUrl
+          ? mediaAssetRoutes.download.url({
+                query: { url: previewUrl },
+            })
+          : '#';
 
     return (
         <div className={cn('grid min-w-0 gap-2 overflow-hidden', className)}>
@@ -131,7 +139,7 @@ export function ConfigImageInput({
                     size="sm"
                     variant="ghost"
                 >
-                    <a download href={previewUrl || '#'} rel="noreferrer">
+                    <a download href={downloadUrl} rel="noreferrer">
                         <Download className="size-4" />
                         {t('common.download', 'Download')}
                     </a>

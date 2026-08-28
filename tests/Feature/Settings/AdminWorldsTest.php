@@ -2509,6 +2509,36 @@ test('node image upload validation returns a json error', function () {
         ->assertJsonValidationErrors(['image']);
 });
 
+test('admin users can download reusable uploaded images as attachments', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put('learning/media/example.png', 'fake image contents');
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('settings.assets.media.download', [
+            'url' => '/storage/learning/media/example.png',
+        ]))
+        ->assertOk()
+        ->assertHeader('Content-Disposition', 'attachment; filename=example.png')
+        ->assertHeader('Content-Type', 'image/png');
+});
+
+test('admin users can download bundled images as attachments', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('settings.assets.media.download', [
+            'url' => '/images/nodes/fantasy-hex-forest.png',
+        ]))
+        ->assertOk()
+        ->assertHeader('Content-Disposition', 'attachment; filename=fantasy-hex-forest.png')
+        ->assertHeader('Content-Type', 'image/png');
+});
+
 test('map node images are served through map access', function () {
     Storage::fake('local');
     $this->seed(DemoLearningWorldSeeder::class);
