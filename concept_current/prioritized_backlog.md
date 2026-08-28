@@ -68,7 +68,9 @@ participation.
   The shared learner shell now also offers a keyboard skip-to-content entry;
   player overlays now restore focus after dismissal; activity-graph nodes and
   connections now expose keyboard-actionable editing. The broader authoring
-  workspace still needs a focused browser pass.
+  workspace still needs a focused browser pass. The learning desk now
+  paginates recent and in-progress route collections so additional routes do
+  not expand the primary workspace indefinitely.
   The community navigation contract is now shared by organization pages, and
   the earlier focused-map overflow signal is not reproducible in the current
   browser pass.

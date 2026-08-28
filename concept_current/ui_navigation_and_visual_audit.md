@@ -513,6 +513,9 @@ These are test gaps, not claims that the feature is broken:
 - Search empty, lowercase exact, no-result and topic-result return behavior is
   covered by the current browser smoke pass; backend result filtering remains
   covered by `DashboardTest`.
+- Learning desk recent and in-progress route collections use the shared
+  paginator, keeping the initial workspace bounded while preserving access to
+  the server-provided route set.
 - Topic → competence, topic → map, map → asset and asset → activity link
   contracts are covered by `LearningTopicsTest`; the bounded topic sections
   still need one uninterrupted browser flow through activity completion.

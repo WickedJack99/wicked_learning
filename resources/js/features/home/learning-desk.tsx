@@ -8,6 +8,7 @@ import {
     Pin,
 } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -118,15 +119,18 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         'Recent traces',
                                     )}
                                 />
-                                <div className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]">
-                                    {desk.recentRoutes.map((route) => (
+                                <LearnerPaginatedItems
+                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                    items={desk.recentRoutes}
+                                    pageSize={2}
+                                    renderItem={(route) => (
                                         <RecentRouteRow
                                             key={route.id}
                                             locale={localization.locale}
                                             route={route}
                                         />
-                                    ))}
-                                </div>
+                                    )}
+                                />
                             </section>
                         ) : null}
 
@@ -142,16 +146,22 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 )}
                             />
                             {desk.currentRoutes.length > 0 ? (
-                                <div className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]">
-                                    {desk.currentRoutes.map((route, index) => (
+                                <LearnerPaginatedItems
+                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                    items={desk.currentRoutes}
+                                    pageSize={2}
+                                    renderItem={(route) => (
                                         <RouteRow
                                             key={route.id}
                                             locale={localization.locale}
                                             route={route}
-                                            emphasized={index === 0}
+                                            emphasized={
+                                                route.id ===
+                                                desk.currentRoutes[0]?.id
+                                            }
                                         />
-                                    ))}
-                                </div>
+                                    )}
+                                />
                             ) : (
                                 <EmptyState
                                     body={t(
