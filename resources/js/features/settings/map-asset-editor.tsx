@@ -139,9 +139,23 @@ export function MapAssetEditor({
                             assetToRender.visualConfig,
                             appearance,
                         );
+                        const assetLabel =
+                            node?.label ??
+                            node?.title ??
+                            assetToRender.text ??
+                            `MapAsset ${asset.id}`;
+                        const visualLabel =
+                            node?.label ?? node?.title ?? assetToRender.text;
+                        const isSelected = previewAsset?.id === asset.id;
 
                         return (
                             <button
+                                aria-current={isSelected ? 'true' : undefined}
+                                aria-label={t(
+                                    'settings.world_builder.map_asset.select_aria_label',
+                                    'Select :label to edit',
+                                    { label: assetLabel },
+                                )}
                                 className={cn(
                                     'absolute -translate-x-1/2 -translate-y-1/2 text-center transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]',
                                 )}
@@ -180,11 +194,7 @@ export function MapAssetEditor({
                                         hoveredAssetId === asset.id ||
                                         previewAsset?.id === asset.id
                                     }
-                                    label={
-                                        node?.label ??
-                                        node?.title ??
-                                        assetToRender.text
-                                    }
+                                    label={visualLabel}
                                     visualConfig={visualConfig}
                                 />
                                 <ImageAlphaHitArea

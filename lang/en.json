@@ -527,6 +527,7 @@
     "settings.navigation.learning_support.admin_panel": "Feedback",
     "settings.world_builder.map_asset.add": "Add Asset",
     "settings.world_builder.map_asset.add_error": "The MapAsset could not be added.",
+    "settings.world_builder.map_asset.select_aria_label": "Select :label to edit",
     "settings.world_builder.map_asset.highlight_image.description": "Use a complete image overlay for the hovered and focused state instead of the configured highlight colors.",
     "settings.world_builder.map_asset.highlight_image.input_description": "Upload an overlay or select one from the reusable image library.",
     "settings.world_builder.map_asset.highlight_image.input_label": ":mode highlight image",
