@@ -794,6 +794,7 @@ export default function EditNodeActivities({
 
             <ActivityReviewDialog
                 activity={reviewingActivity}
+                canManageAiReview={activityGraph.canManageAiReview}
                 nextActivity={nextReviewActivity ?? null}
                 onClose={() => setReviewingActivity(null)}
                 onEdit={(activityId) => {

@@ -92,8 +92,11 @@ the draft is being inspected.
 After a result is available, the dialog can open the next pending activity in
 the same scoped queue, so reviewing several activities does not require
 re-finding each one in the graph.
-When no activity-review template exists, the queue links directly to a new
-template form with the correct review purpose selected.
+When no activity-review template exists, the queue and its opened activity
+dialog make the missing setup actionable. Authors with AI-management access
+can follow a direct link to a new template form with the correct review
+purpose selected; other editors see that an administrator must configure the
+helper.
 
 The review endpoint checks the AI update permission independently of the
 World Builder activity permission. Editors who can change activities but are

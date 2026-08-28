@@ -1,3 +1,4 @@
+import { Link } from '@inertiajs/react';
 import {
     ArrowRight,
     Bot,
@@ -39,6 +40,7 @@ import type {
 
 export function ActivityReviewDialog({
     activity,
+    canManageAiReview,
     nextActivity,
     onClose,
     onEdit,
@@ -48,6 +50,7 @@ export function ActivityReviewDialog({
     templates,
 }: {
     activity: ActivitySummary | null;
+    canManageAiReview: boolean;
     nextActivity: ActivitySummary | null;
     onClose: () => void;
     onEdit: (activityId: number) => void;
@@ -238,6 +241,32 @@ export function ActivityReviewDialog({
                             />
                         ) : (
                             <div className="grid gap-4">
+                                {templates.length === 0 ? (
+                                    <div className="grid gap-3 rounded-lg border border-amber-200/70 bg-amber-50 p-3 text-amber-950 dark:border-amber-200/20 dark:bg-amber-300/10 dark:text-amber-100">
+                                        <p className="text-sm leading-6">
+                                            No activity-review helper is
+                                            configured yet, so this activity
+                                            cannot be reviewed.
+                                        </p>
+                                        {canManageAiReview ? (
+                                            <Button
+                                                asChild
+                                                className="w-fit border-amber-300/70 bg-white/70 text-xs text-amber-950 hover:bg-white dark:border-amber-200/30 dark:bg-slate-950/30 dark:text-amber-100 dark:hover:bg-slate-950/60"
+                                                variant="outline"
+                                            >
+                                                <Link href="/settings?panel=admin-ai-integrations&ai=templates&purpose=activity_review">
+                                                    Set up review helper
+                                                    <ArrowRight className="size-3.5" />
+                                                </Link>
+                                            </Button>
+                                        ) : (
+                                            <p className="text-xs leading-5 text-amber-900/70 dark:text-amber-100/70">
+                                                Ask an administrator to set up a
+                                                review helper.
+                                            </p>
+                                        )}
+                                    </div>
+                                ) : null}
                                 {templates.length > 1 ? (
                                     <div className="grid gap-2">
                                         <label
