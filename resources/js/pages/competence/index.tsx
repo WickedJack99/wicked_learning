@@ -1091,7 +1091,7 @@ function CompetenceStar({
         <g
             aria-label={`${topic.name}: ${topic.visual.description}`}
             aria-pressed={selected}
-            className="cursor-pointer outline-none"
+            className="group cursor-pointer outline-none"
             onClick={onSelect}
             onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') {
@@ -1110,6 +1110,11 @@ function CompetenceStar({
             <title>
                 {topic.name}: {topic.visual.description}
             </title>
+            <circle
+                aria-hidden="true"
+                className="fill-transparent stroke-transparent stroke-2 transition group-focus-visible:stroke-cyan-100"
+                r={Math.max(topic.auraRadius + 8, topic.size + 12)}
+            />
             <circle
                 fill={topic.color}
                 opacity={topic.aura}
