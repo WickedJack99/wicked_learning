@@ -61,7 +61,9 @@ export type TopicEvidenceLedgerEntry = {
     activityHref: string | null;
     activityTitle: string | null;
     evidenceType: string;
+    confidence: string | null;
     id: number;
+    attemptNumber: number;
     nodeTitle: string | null;
     recordedAt: string | null;
 };

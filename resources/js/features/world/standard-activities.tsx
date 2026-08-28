@@ -478,6 +478,9 @@ export function QuestionActivity({
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                             Starting sense:{' '}
                             {questionConfidenceLabel(answer.confidence)}
+                            {answer.attemptNumber && answer.attemptNumber > 1
+                                ? ` · Attempt ${answer.attemptNumber}`
+                                : ''}
                         </p>
                     ) : null}
                     {answer.earlierAttempts?.length ? (

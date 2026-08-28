@@ -27,6 +27,10 @@ class QuestionAnswerService
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
         $feedback = $this->feedbackFor($question, $option);
+        $attemptNumber = LearnerQuestionAnswer::query()
+            ->where('user_id', $userId)
+            ->where('learning_question_id', $question->id)
+            ->count() + 1;
 
         $answer = LearnerQuestionAnswer::query()->create([
             'user_id' => $userId,
@@ -44,6 +48,9 @@ class QuestionAnswerService
             status: 'completed',
             playRunId: $playRunId,
             outcome: $option->is_correct ? 'correct' : 'incorrect',
+            confidence: $confidence,
+            attemptNumber: $attemptNumber,
+            assistanceLevel: 'independent',
         );
         $transition = $this->transitionResolver->for($question, $option);
 
@@ -52,6 +59,7 @@ class QuestionAnswerService
             'optionId' => $option->id,
             'isCorrect' => $option->is_correct,
             'confidence' => $confidence,
+            'attemptNumber' => $attemptNumber,
             'feedback' => $feedback,
             'explanation' => $question->explanation,
             'nextActivityId' => $transition?->to_activity_id,

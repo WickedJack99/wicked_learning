@@ -147,6 +147,8 @@ test('a topic shows competence evidence encountered through its map', function (
         'topic_name' => 'Pattern recognition',
         'evidence_type' => 'explain',
         'contribution' => 1,
+        'confidence' => 'leaning',
+        'attempt_number' => 2,
     ]);
 
     $this->actingAs($learner)
@@ -158,6 +160,8 @@ test('a topic shows competence evidence encountered through its map', function (
             ->where('topic.subtopicCompetence.0.slug', 'pattern-recognition')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.activityTitle', $activity->title)
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.confidence', 'leaning')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.attemptNumber', 2)
         );
 });
 
@@ -273,6 +277,7 @@ test('question answers complete the active route and record retrieval evidence',
         ->assertOk()
         ->assertJsonPath('answer.isCorrect', true)
         ->assertJsonPath('answer.confidence', 'settled')
+        ->assertJsonPath('answer.attemptNumber', 1)
         ->assertJsonPath('answer.earlierAttempts', []);
 
     $this->actingAs($learner)
@@ -283,6 +288,7 @@ test('question answers complete the active route and record retrieval evidence',
         ])
         ->assertOk()
         ->assertJsonPath('answer.confidence', 'leaning')
+        ->assertJsonPath('answer.attemptNumber', 2)
         ->assertJsonPath('answer.earlierAttempts.0.confidence', 'settled');
 
     $this->actingAs($learner)
@@ -294,20 +300,20 @@ test('question answers complete the active route and record retrieval evidence',
             ->where("progress.answers.{$question->id}.explanation", 'The first idea fits the evidence.')
         );
 
-    expect(LearnerEvidenceEvent::query()
+    $evidence = LearnerEvidenceEvent::query()
         ->where('user_id', $learner->id)
         ->where('learning_activity_id', $activity->id)
         ->where('play_run_id', $runId)
-        ->value('evidence_type'))->toBe('retrieve')
-        ->and(LearnerEvidenceEvent::query()
-            ->where('user_id', $learner->id)
-            ->where('learning_activity_id', $activity->id)
-            ->where('play_run_id', $runId)
-            ->value('outcome'))->toBe('correct')
-        ->and((float) LearnerEvidenceEvent::query()
-            ->where('user_id', $learner->id)
-            ->where('learning_activity_id', $activity->id)
-            ->value('contribution'))->toBe(2.0)
+        ->orderBy('attempt_number')
+        ->get();
+
+    expect($evidence)->toHaveCount(2)
+        ->and($evidence->pluck('evidence_type')->all())->toBe(['retrieve', 'retrieve'])
+        ->and($evidence->pluck('outcome')->all())->toBe(['correct', 'correct'])
+        ->and($evidence->pluck('confidence')->all())->toBe(['settled', 'leaning'])
+        ->and($evidence->pluck('attempt_number')->all())->toBe([1, 2])
+        ->and($evidence->pluck('assistance_level')->all())->toBe(['independent', 'independent'])
+        ->and($evidence->pluck('contribution')->map(fn (mixed $value): float => (float) $value)->all())->toBe([2.0, 2.0])
         ->and(LearnerRouteProgress::query()
             ->where('user_id', $learner->id)
             ->where('learning_node_id', $node->id)
@@ -546,6 +552,8 @@ test('competence star map shows studied topics and transitions', function () {
         'topic_name' => 'Algebra',
         'evidence_type' => 'retrieve',
         'contribution' => 3,
+        'confidence' => 'settled',
+        'attempt_number' => 2,
     ]);
     $olderEvent->forceFill([
         'created_at' => Carbon::parse('2026-06-20 10:00:00'),
@@ -609,6 +617,8 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $activity->node]))
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeTitle', $activity->node->title)
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
+            ->where('competenceMap.topics.0.visual.evidenceLedger.1.confidence', 'settled')
+            ->where('competenceMap.topics.0.visual.evidenceLedger.1.attemptNumber', 2)
             ->where('competenceMap.topics.0.revisit.activityTitle', $activity->title)
             ->where('competenceMap.topics.0.revisit.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $activity->node]))
             ->where('competenceMap.topics.0.revisit.nodeTitle', $activity->node->title)

@@ -938,6 +938,17 @@ function CompetenceReading({
                                                 ? ` · ${evidence.nodeTitle}`
                                                 : ''}
                                         </span>
+                                        {evidence.confidence ? (
+                                            <span className="mt-1 block text-xs text-slate-500">
+                                                Before answering:{' '}
+                                                {confidenceLabel(
+                                                    evidence.confidence,
+                                                )}
+                                                {evidence.attemptNumber > 1
+                                                    ? ` · attempt ${evidence.attemptNumber}`
+                                                    : ''}
+                                            </span>
+                                        ) : null}
                                     </span>
                                     {evidence.recordedAt ? (
                                         <span className="shrink-0 text-xs text-slate-500">
@@ -1066,6 +1077,16 @@ function evidenceTypeDescription(type: string): string {
             review: 'returning to earlier material and noticing what changed',
             transfer: 'using an idea in a new context',
         }[type] ?? 'engaging with this learning area'
+    );
+}
+
+function confidenceLabel(confidence: string): string {
+    return (
+        {
+            exploring: 'exploring',
+            leaning: 'I have a hunch',
+            settled: 'settled',
+        }[confidence] ?? confidence
     );
 }
 

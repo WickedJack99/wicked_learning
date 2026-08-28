@@ -19,7 +19,9 @@ export type CompetenceTopic = {
             activityTitle: string | null;
             activityHref: string | null;
             evidenceType: string;
+            confidence: string | null;
             id: number;
+            attemptNumber: number;
             nodeHref: string | null;
             nodeTitle: string | null;
             recordedAt: string | null;

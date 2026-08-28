@@ -190,6 +190,10 @@ The evidence ledger keeps up to twelve recent events reachable through small
 paginated groups in the topic trail and selected-star reading, while authorized
 support staff receive scoped signals for orientation and support conversations
 rather than ranking.
+Question activities also retain the learner's pre-answer confidence, the
+correctness outcome, attempt order and independent-assistance context. The
+learner can see the confidence and attempt context in the competence reading;
+this supports calibration and noticing change without presenting a grade.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

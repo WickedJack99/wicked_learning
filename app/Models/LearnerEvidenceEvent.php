@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'evidence_type',
     'contribution',
     'outcome',
+    'confidence',
+    'attempt_number',
     'assistance_level',
 ])]
 class LearnerEvidenceEvent extends Model
@@ -23,6 +25,7 @@ class LearnerEvidenceEvent extends Model
     {
         return [
             'contribution' => 'float',
+            'attempt_number' => 'integer',
         ];
     }
 

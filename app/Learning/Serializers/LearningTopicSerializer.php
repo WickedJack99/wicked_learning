@@ -150,6 +150,10 @@ class LearningTopicSerializer
                         'recordedAt' => is_string($entry['recordedAt'] ?? null)
                             ? $entry['recordedAt']
                             : null,
+                        'confidence' => is_string($entry['confidence'] ?? null)
+                            ? $entry['confidence']
+                            : null,
+                        'attemptNumber' => (int) ($entry['attemptNumber'] ?? 1),
                     ],
                     array_filter(
                         $visual['evidenceLedger'],

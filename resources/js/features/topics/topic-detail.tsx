@@ -919,6 +919,17 @@ function TopicCompetenceCard({
                                                         ? ` · ${entry.nodeTitle}`
                                                         : ''}
                                                 </span>
+                                                {entry.confidence ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                        Before answering:{' '}
+                                                        {confidenceLabel(
+                                                            entry.confidence,
+                                                        )}
+                                                        {entry.attemptNumber > 1
+                                                            ? ` · attempt ${entry.attemptNumber}`
+                                                            : ''}
+                                                    </span>
+                                                ) : null}
                                             </span>
                                             {entry.recordedAt ? (
                                                 <time
@@ -997,6 +1008,16 @@ function evidenceTypeLabel(
     const label = learningIntentLabel(type, translate);
 
     return label ?? type;
+}
+
+function confidenceLabel(confidence: string): string {
+    return (
+        {
+            exploring: 'exploring',
+            leaning: 'I have a hunch',
+            settled: 'settled',
+        }[confidence] ?? confidence
+    );
 }
 
 function formatTopicDate(value: string): string {

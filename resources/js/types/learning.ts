@@ -428,6 +428,7 @@ export type LearningCheckInNextDirection = 'revisit' | 'related' | 'settle';
 export type QuestionAnswerProgress = {
     optionId: number | null;
     isCorrect: boolean;
+    attemptNumber?: number;
     confidence?: QuestionConfidence | null;
     earlierAttempts?: QuestionAnswerAttempt[];
     feedback: string | null;

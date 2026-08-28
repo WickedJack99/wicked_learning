@@ -23,6 +23,9 @@ class LearnerProgressService
         ?string $playRunId = null,
         ?bool $endsRoute = null,
         ?string $outcome = null,
+        ?string $confidence = null,
+        int $attemptNumber = 1,
+        string $assistanceLevel = 'untracked',
     ): LearnerActivityProgress {
         $now = Carbon::now();
         $progress = LearnerActivityProgress::query()->firstOrCreate([
@@ -60,6 +63,9 @@ class LearnerProgressService
                             $activity,
                             $playRunId,
                             $outcome,
+                            $confidence,
+                            $attemptNumber,
+                            $assistanceLevel,
                         );
                     }
 

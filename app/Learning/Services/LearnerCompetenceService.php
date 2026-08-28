@@ -16,8 +16,10 @@ class LearnerCompetenceService
         LearningActivity $activity,
         string $playRunId,
         ?string $outcome = null,
-    ): void
-    {
+        ?string $confidence = null,
+        int $attemptNumber = 1,
+        string $assistanceLevel = 'untracked',
+    ): void {
         $topics = $this->activityCompetence->topicsForActivity($activity);
 
         if ($topics === []) {
@@ -26,7 +28,7 @@ class LearnerCompetenceService
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
 
-        DB::transaction(function () use ($activity, $evidenceType, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $outcome, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -37,7 +39,9 @@ class LearnerCompetenceService
                     'evidence_type' => $evidenceType,
                     'contribution' => $topic['weight'],
                     'outcome' => $outcome ?? 'completed',
-                    'assistance_level' => 'untracked',
+                    'confidence' => $confidence,
+                    'attempt_number' => max(1, $attemptNumber),
+                    'assistance_level' => $assistanceLevel,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

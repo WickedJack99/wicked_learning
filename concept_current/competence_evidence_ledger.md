@@ -184,6 +184,14 @@ uses a small learner-controlled spacing window in the Journal. Learners can
 postpone or hide an invitation; it creates no notification or required queue.
 Retrieval-specific prompts remain a later refinement.
 
+Question retrieval is the first activity-specific calibration slice. Each
+attempt keeps its correctness outcome, the confidence chosen before feedback,
+its attempt order and whether the attempt was answered independently. The
+competence reading surfaces that context beside the learning moment so a
+learner can notice changes in certainty without turning the trail into a
+grade. Other activity types remain on the broader evidence-contract roadmap
+until they collect equally meaningful signals.
+
 An activity may also carry a short author-written context sentence explaining
 why a learner might choose one of the three directions after that activity.
 The sentence is shown above the choices and does not change their meaning or

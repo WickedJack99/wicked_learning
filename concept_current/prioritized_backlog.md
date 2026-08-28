@@ -69,6 +69,9 @@ because they determine whether activity engagement becomes durable learning.
   then derive learner-facing competence narratives from multiple evidence
   types instead of authored completion contribution alone. Preserve the
   qualitative language and never expose a score-shaped substitute.
+  - [x] Question retrieval now records correctness, pre-answer confidence,
+    attempt order and independent-assistance context, and the learner ledger
+    surfaces that context.
 - Add a transparent retrieval engine: RecallItem, ReviewSchedule and
   ReviewAttempt records plus a deterministic rule-based scheduler and a finite
   learner-controlled due queue. Support why-it-is-due explanations, snooze and
