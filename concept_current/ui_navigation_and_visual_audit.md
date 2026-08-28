@@ -150,9 +150,13 @@ subtopics are delivered as complete collections for the client-side pagination
 controls, rather than being truncated to the first visible page.
 
 Variable-length learner-owned lists now also use a `.learner-scroll-region`
-contract for nested panels. Bookmarked places, Journal pages and organization
-messages keep their own vertical scroll region, reserve scrollbar space and
-clip horizontal spill without moving neighboring controls when the list grows.
+contract for nested panels. Bookmarked places and organization messages keep
+their own vertical scroll region, reserve scrollbar space and clip horizontal
+spill without moving neighboring controls when the list grows.
+
+The Journal page chooser uses bounded four-page pagination instead of a list
+scrollbar. Search resets the chooser to its first page, while the selected
+page's editor remains a continuous writing surface.
 
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
@@ -512,6 +516,8 @@ These are test gaps, not claims that the feature is broken:
   review entry action and map configuration actions visible as maps grow.
 - Tools and items libraries now paginate their chooser lists, so growing
   reusable inventories do not require a nested scrollbar to reach an entry.
+- The Journal page chooser now paginates four pages at a time and resets after
+  search, keeping the writing editor separate from page navigation.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map

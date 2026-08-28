@@ -479,65 +479,75 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 updatingActivityId={updatingRevisitId}
                             />
                         ) : null}
-                        <div className="learner-scroll-region mt-3 min-h-0 flex-1 pr-1">
+                        <div className="mt-3 min-h-0 flex-1 pr-1">
                             {isLoading ? <JournalPageListSkeleton /> : null}
-                            {visiblePages.map((page) => (
-                                <button
-                                    className={cn(
-                                        'w-full rounded-lg border p-3 text-left transition-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)] focus-visible:outline-none',
-                                        selectedId === page.id
-                                            ? ''
-                                            : 'border-transparent hover:bg-[var(--journal-content-background)]',
-                                    )}
-                                    key={page.id}
-                                    onClick={() => {
-                                        setSelectedId(page.id);
-                                    }}
-                                    style={
-                                        selectedId === page.id
-                                            ? {
-                                                  background:
-                                                      'var(--journal-selected-background)',
-                                                  borderColor:
-                                                      'var(--journal-selected-border)',
-                                                  color: 'var(--journal-selected-text)',
-                                              }
-                                            : {
-                                                  color: 'var(--journal-body-text)',
-                                              }
-                                    }
-                                    type="button"
-                                >
-                                    <p className="truncate text-sm font-semibold">
-                                        {page.title}
-                                    </p>
-                                    <p
-                                        className="mt-1 truncate text-xs"
-                                        style={{
-                                            color:
-                                                selectedId === page.id
-                                                    ? 'var(--journal-selected-text)'
-                                                    : 'var(--journal-muted-text)',
+                            <LearnerPaginatedItems
+                                className="grid gap-2"
+                                emptyState={null}
+                                items={visiblePages}
+                                key={search}
+                                pageSize={4}
+                                paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--journal-accent)] transition hover:text-[var(--journal-heading-text)] disabled:pointer-events-none disabled:opacity-40"
+                                paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-panel-border)] pt-3"
+                                paginationTextClassName="text-xs text-[var(--journal-muted-text)]"
+                                renderItem={(page) => (
+                                    <button
+                                        className={cn(
+                                            'w-full rounded-lg border p-3 text-left transition-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)] focus-visible:outline-none',
+                                            selectedId === page.id
+                                                ? ''
+                                                : 'border-transparent hover:bg-[var(--journal-content-background)]',
+                                        )}
+                                        key={page.id}
+                                        onClick={() => {
+                                            setSelectedId(page.id);
                                         }}
+                                        style={
+                                            selectedId === page.id
+                                                ? {
+                                                      background:
+                                                          'var(--journal-selected-background)',
+                                                      borderColor:
+                                                          'var(--journal-selected-border)',
+                                                      color: 'var(--journal-selected-text)',
+                                                  }
+                                                : {
+                                                      color: 'var(--journal-body-text)',
+                                                  }
+                                        }
+                                        type="button"
                                     >
-                                        {page.topic}
-                                        {page.subtopic
-                                            ? ` / ${page.subtopic}`
-                                            : ''}
-                                    </p>
-                                    <p
-                                        className="mt-2 text-xs"
-                                        style={{
-                                            color:
-                                                selectedId === page.id
-                                                    ? 'var(--journal-selected-text)'
-                                                    : 'var(--journal-muted-text)',
-                                        }}
-                                    >
-                                        {page.reflectionCount} reflections
-                                    </p>
-                                </button>
-                            ))}
+                                        <p className="truncate text-sm font-semibold">
+                                            {page.title}
+                                        </p>
+                                        <p
+                                            className="mt-1 truncate text-xs"
+                                            style={{
+                                                color:
+                                                    selectedId === page.id
+                                                        ? 'var(--journal-selected-text)'
+                                                        : 'var(--journal-muted-text)',
+                                            }}
+                                        >
+                                            {page.topic}
+                                            {page.subtopic
+                                                ? ` / ${page.subtopic}`
+                                                : ''}
+                                        </p>
+                                        <p
+                                            className="mt-2 text-xs"
+                                            style={{
+                                                color:
+                                                    selectedId === page.id
+                                                        ? 'var(--journal-selected-text)'
+                                                        : 'var(--journal-muted-text)',
+                                            }}
+                                        >
+                                            {page.reflectionCount} reflections
+                                        </p>
+                                    </button>
+                                )}
+                            />
                             {payload && payload.pages.length === 0 ? (
                                 <p
                                     className="p-3 text-sm leading-6"
