@@ -79,10 +79,14 @@ composer run dev
 You can also run the processes separately:
 
 ```bash
-php artisan serve
+php -d upload_max_filesize=64M -d post_max_size=70M artisan serve
 php artisan queue:listen
 npm run dev
 ```
+
+The upload endpoint accepts files up to 50 MB. The explicit PHP limits above
+are required because PHP's default `upload_max_filesize` is commonly 2 MB;
+without them, larger uploads fail before Laravel can validate or store them.
 
 ## Useful checks
 

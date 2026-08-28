@@ -37,6 +37,11 @@ The Compose volumes retain database data and uploads. Reset only this disposable
 docker compose down -v
 ```
 
+The image configures PHP for the application's upload contract: individual
+uploads may be up to 64 MB at the PHP boundary, while Laravel validates them
+at 50 MB. The slightly higher `post_max_size` also covers multipart form
+fields. Rebuild the container after changing these limits.
+
 ## Coolify application
 
 Create a **Dockerfile** application from this repository. Set the Dockerfile location to `/Dockerfile`, the application port to `80`, and the health-check path to `/up`.

@@ -31,7 +31,7 @@ Start the local development stack with:
 composer run dev
 ```
 
-You can also start the pieces separately with `php artisan serve`,
+You can also start the pieces separately with `php -d upload_max_filesize=64M -d post_max_size=70M artisan serve`,
 `php artisan queue:listen` and `npm run dev`.
 
 ## Architecture Expectations

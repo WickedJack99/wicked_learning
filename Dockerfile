@@ -15,6 +15,8 @@ RUN install-php-extensions \
     pdo_pgsql \
     zip
 
+COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 WORKDIR /app
 
 FROM base AS build
