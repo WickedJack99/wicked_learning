@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { readJsonResponse } from '@/lib/json-response';
 import { normalizeMediaUrl } from '@/lib/media-url';
 
 type ReusableImageAsset = {
@@ -82,14 +83,13 @@ export function ReusableImagePicker({
                 signal: controller.signal,
             })
                 .then(async (response) => {
-                    const payload = (await response.json()) as {
+                    const payload = (await readJsonResponse(
+                        response,
+                        loadError,
+                    )) as {
                         assets?: ReusableImageAsset[];
                         message?: string;
                     };
-
-                    if (!response.ok) {
-                        throw new Error(payload.message ?? loadError);
-                    }
 
                     setAssets(payload.assets ?? []);
                 })

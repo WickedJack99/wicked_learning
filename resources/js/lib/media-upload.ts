@@ -1,3 +1,5 @@
+import { readJsonResponse } from '@/lib/json-response';
+
 type MediaUploadOptions = {
     endpoint: string;
     errorMessage?: string;
@@ -39,7 +41,7 @@ export async function uploadMediaFile({
         },
         method: 'POST',
     });
-    const payload = (await response.json()) as {
+    const payload = (await readJsonResponse(response, errorMessage)) as {
         durationSeconds?: number | null;
         errors?: Record<string, string[]>;
         message?: string;

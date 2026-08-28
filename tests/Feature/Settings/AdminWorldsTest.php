@@ -2498,6 +2498,17 @@ test('admin users can upload a node image', function () {
     Storage::disk('public')->assertExists(str_replace('/storage/', '', $url));
 });
 
+test('node image upload validation returns a json error', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.node-images.store'))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['image']);
+});
+
 test('map node images are served through map access', function () {
     Storage::fake('local');
     $this->seed(DemoLearningWorldSeeder::class);
