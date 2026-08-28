@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -25,6 +26,8 @@ export function ReusableImagePicker({
     onSelect: (url: string) => void;
 }) {
     const t = usePlatformTranslation();
+    const headingId = useId();
+    const descriptionId = useId();
     const [assets, setAssets] = useState<ReusableImageAsset[]>([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +36,23 @@ export function ReusableImagePicker({
         'settings.assets.images.load_error',
         'Images could not be loaded.',
     );
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            onClose();
+        };
+
+        window.addEventListener('keydown', handleKeyDown, true);
+
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
+    }, [onClose]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -87,18 +107,30 @@ export function ReusableImagePicker({
         };
     }, [loadError, search]);
 
-    return (
+    const content = (
         <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm">
-            <div className="flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+            <div
+                aria-describedby={descriptionId}
+                aria-labelledby={headingId}
+                aria-modal="true"
+                className="flex max-h-[min(42rem,calc(100vh-2rem))] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]"
+                role="dialog"
+            >
                 <header className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-white/10">
                     <div>
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                        <h2
+                            className="text-lg font-semibold text-slate-950 dark:text-white"
+                            id={headingId}
+                        >
                             {t(
                                 'settings.assets.images.select_existing_title',
                                 'Select existing image',
                             )}
                         </h2>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        <p
+                            className="mt-1 text-sm text-slate-500 dark:text-slate-400"
+                            id={descriptionId}
+                        >
                             {t(
                                 'settings.assets.images.select_existing_description',
                                 'Reuse uploaded or bundled assets instead of adding duplicates.',
@@ -230,4 +262,8 @@ export function ReusableImagePicker({
             </div>
         </div>
     );
+
+    return typeof document === 'undefined'
+        ? content
+        : createPortal(content, document.body);
 }

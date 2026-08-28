@@ -352,6 +352,13 @@ name (“select this asset to edit”) and announce the currently selected asset
 This keeps the visual map editor usable without relying on preview text or
 pointer hover.
 
+### Completed — Make the reusable image picker a real modal
+
+The shared image chooser now exposes its title and description through dialog
+semantics, marks itself modal, and closes with Escape. Image selection remains
+inside the same chooser, so keyboard users can leave the picker without
+repeating the authoring workflow.
+
 ### Completed — Make activity-graph connections keyboard actionable
 
 Activity-graph nodes and connections now expose meaningful accessible names.
@@ -495,10 +502,11 @@ These are test gaps, not claims that the feature is broken:
   saving a map visual.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
-- Keyboard focus and accessible names should be checked for icon-only map
-  controls, account controls, image selectors and modal close buttons. Activity
-  graph nodes and connections now have focused coverage in the implementation;
-  a full browser pass still remains for the complete authoring workspace.
+- Keyboard focus and accessible names should still be checked for icon-only map
+  controls, account controls and the remaining modal close paths. Activity
+  graph nodes and connections now have focused coverage in the implementation,
+  and the shared image picker has dialog semantics plus Escape dismissal; a
+  full browser pass still remains for the complete authoring workspace.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 
