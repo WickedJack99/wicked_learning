@@ -103,6 +103,19 @@ There is also a combined Composer check:
 composer run ci:check
 ```
 
+## AI-assisted development context
+
+Laravel Boost is installed as a development dependency. Its committed
+guidelines and skills give Codex and other compatible agents context for the
+Laravel, Inertia React, Tailwind, Wayfinder, testing and AI conventions used by
+this project. The Codex MCP configuration lives in `.codex/config.toml`.
+
+After updating Boost, refresh its generated guidance with:
+
+```bash
+php artisan boost:update --no-discover --no-interaction
+```
+
 ## Common development notes
 
 - Run `php artisan migrate` after pulling schema changes. Run `db:seed` only
