@@ -48,10 +48,12 @@ instead of being presented as working.
 ### Completed — Give standalone community pages the same navigation contract
 
 `/organizations` and the organization detail page now use the shared learner
-header. The detail page keeps its local “Organizations” return link and
-settings-like two-pane controls, while the global header owns the return to the
-main learning surfaces and account actions. This keeps community pages useful
-as a separate workspace without creating a third navigation shell.
+header. Organizations is a primary learner destination after Bookmarks, while
+the map/player action rail is reserved for inventory and tools. The detail page
+keeps its local “Organizations” return link and settings-like two-pane controls,
+while the global header owns the return to the main learning surfaces and account
+actions. This keeps community pages useful as a separate workspace without
+creating a third navigation shell.
 
 The `/learning/groups` page could not be runtime-verified in this browser
 because the browser blocked that URL with `ERR_BLOCKED_BY_CLIENT`; this is an

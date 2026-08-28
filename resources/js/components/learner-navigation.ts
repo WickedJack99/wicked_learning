@@ -33,6 +33,12 @@ export const learnerPrimaryNavigation = [
         key: 'home.learning_desk.navigation.bookmarks',
         fallback: 'Bookmarks',
     },
+    {
+        href: '/organizations',
+        id: 'organizations',
+        key: 'navigation.primary.organizations',
+        fallback: 'Organizations',
+    },
 ] as const;
 
 export function createLearnerPrimaryNavigation(

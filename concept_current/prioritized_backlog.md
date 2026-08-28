@@ -39,12 +39,13 @@ promise that every interaction produces an immediate measurable gain.
 - [x] Make tool-resolved obstacles discoverable in the demo: restore seeded
   scene assets, keep a resilient visible target fallback and explain the
   hammer -> tool -> target interaction in playback.
-- [x] Use one learner navigation order across the desk, map, bookmarks and
-  activity surfaces. Contextual links extend the shared primary set rather
-  than creating a second map-only or activity-only header, and the map link is
-  named Current map on learner surfaces. Journal is an icon-only utility
-  action beside notifications, not a primary navigation item or side-rail
-  action.
+- [x] Use one learner navigation order across the desk, map, bookmarks,
+  organizations and activity surfaces. Contextual links extend the shared
+  primary set rather than creating a second map-only or activity-only header,
+  and the map link is named Current map on learner surfaces. Journal is an
+  icon-only utility action beside notifications, not a primary navigation item
+  or side-rail action. The player side rail is reserved for inventory and
+  tools; Organizations and the competence map are reached from the header.
 - [x] Make configured locked places inspectable before they open. Learners can
   see actionable completion, tool or time conditions and their current state;
   hidden places remain concealed and authored rule data stays server-side.

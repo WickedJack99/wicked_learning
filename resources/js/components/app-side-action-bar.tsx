@@ -1,5 +1,5 @@
-import { router, usePage } from '@inertiajs/react';
-import { Backpack, Building2, Hammer, Sparkles } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import { Backpack, Hammer } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
@@ -12,23 +12,13 @@ import { toolImageUrl } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
-import type {
-    LearningItem,
-    LearningTool,
-    LearningWorld,
-    LearningNode,
-} from '@/types';
+import type { LearningItem, LearningTool } from '@/types';
 
 type OverlayMode = 'inventory' | 'tools' | null;
 type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
 
 export function AppSideActionBar() {
     const { props, url } = usePage();
-    const pageProps = props as typeof props & {
-        node?: LearningNode;
-        world?: LearningWorld | null;
-    };
-    const { node, world } = pageProps;
     const { resolvedAppearance } = useAppearance();
     const [overlay, setOverlay] = useState<OverlayMode>(null);
     const sideActionRef = useRef<HTMLElement | null>(null);
@@ -36,10 +26,6 @@ export function AppSideActionBar() {
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
-    const competenceHref = useMemo(
-        () => competenceMapHref({ node, world }, url),
-        [node, url, world],
-    );
     const shouldShow = useMemo(
         () =>
             Boolean(props.auth.user) &&
@@ -161,15 +147,6 @@ export function AppSideActionBar() {
                 }}
             >
                 <ActionButton
-                    label="Open organizations"
-                    onClick={() => {
-                        closeOverlay();
-                        router.visit('/organizations');
-                    }}
-                >
-                    <Building2 className="size-5" />
-                </ActionButton>
-                <ActionButton
                     ariaControls="learning-inventory-panel"
                     ariaExpanded={overlay === 'inventory'}
                     isActive={overlay === 'inventory'}
@@ -206,46 +183,9 @@ export function AppSideActionBar() {
                         <Hammer className="size-5" />
                     )}
                 </ActionButton>
-                <ActionButton
-                    label="Open competence star map"
-                    onClick={() => {
-                        closeOverlay();
-                        router.visit(competenceHref);
-                    }}
-                >
-                    <Sparkles className="size-5" />
-                </ActionButton>
             </div>
         </aside>
     );
-}
-
-function competenceMapHref(
-    props: {
-        node?: LearningNode;
-        world?: LearningWorld | null;
-    },
-    url: string,
-): string {
-    const nodeTopic = props.node?.topic;
-
-    if (url.startsWith('/learning/') && nodeTopic) {
-        return nodeTopic.competenceHref;
-    }
-
-    if (!url.startsWith('/world') || !props.world) {
-        return '/competence';
-    }
-
-    const mapSlug = new URL(url, 'http://learning.local').searchParams.get(
-        'map',
-    );
-    const map = props.world.maps.find(
-        (candidate) =>
-            candidate.slug === mapSlug || candidate.id.toString() === mapSlug,
-    );
-
-    return map?.topic?.competenceHref ?? '/competence';
 }
 
 function ItemGrid({
