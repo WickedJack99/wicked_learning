@@ -79,7 +79,8 @@ Topic connection:
   rules, visuals, sounds and deletion controls.
 - Enabled unlock rules reject deadlocked combinations such as no condition,
   missing tool selection, self-prerequisites or an unlock time after its lock
-  time before the node is saved.
+  time before the node is saved. Authored nested rule trees are also checked
+  for supported condition types, valid references and non-empty groups.
 - Authors can optionally require one assigned learner role. The learner sees
   the evaluated role requirement without receiving authored rule configuration.
 - Authors can optionally require an item in the learner's inventory. Entering a

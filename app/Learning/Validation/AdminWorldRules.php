@@ -4,8 +4,10 @@ namespace App\Learning\Validation;
 
 use App\Learning\MapAssetInteractionMode;
 use App\Models\AccessRole;
+use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningTool;
 use App\Models\LearningWorld;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -129,6 +131,20 @@ class AdminWorldRules
             $errors['visual_config.unlock.roleSlug'] = 'Choose an existing role for this unlock condition.';
         }
 
+        if ($rules !== []) {
+            $this->validateUnlockRule(
+                $rules,
+                'visual_config.unlock.rules',
+                $errors,
+                $node,
+                $toolEnabled,
+                $toolId,
+                $itemEnabled,
+                $itemId,
+                $schedule,
+            );
+        }
+
         if (($schedule['unlockAt'] ?? null) && ($schedule['lockAt'] ?? null)) {
             $unlockAt = Carbon::parse($schedule['unlockAt']);
             $lockAt = Carbon::parse($schedule['lockAt']);
@@ -144,6 +160,113 @@ class AdminWorldRules
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * Validate the authored tree as well as the convenient top-level fields.
+     * A malformed tree would otherwise evaluate to false for every learner.
+     *
+     * @param  array<string, mixed>  $rule
+     * @param  array<string, string>  $errors
+     * @param  array<string, mixed>  $schedule
+     */
+    private function validateUnlockRule(
+        array $rule,
+        string $path,
+        array &$errors,
+        ?LearningNode $node,
+        bool $toolEnabled,
+        int $toolId,
+        bool $itemEnabled,
+        int $itemId,
+        array $schedule,
+    ): void {
+        $type = $rule['type'] ?? null;
+        $allowedTypes = ['group', 'item_owned', 'node_completed', 'role_has', 'time_after', 'tool_used'];
+
+        if (! is_string($type) || ! in_array($type, $allowedTypes, true)) {
+            $errors["{$path}.type"] = 'Choose a supported unlock condition.';
+
+            return;
+        }
+
+        if ($type === 'group') {
+            if (! in_array($rule['operator'] ?? null, ['and', 'or'], true)) {
+                $errors["{$path}.operator"] = 'Choose how this condition group combines its rules.';
+            }
+
+            $children = $rule['rules'] ?? null;
+
+            if (! is_array($children) || $children === []) {
+                $errors["{$path}.rules"] = 'Add at least one rule to this condition group.';
+
+                return;
+            }
+
+            foreach ($children as $index => $child) {
+                if (! is_array($child)) {
+                    $errors["{$path}.rules.{$index}.type"] = 'Choose a supported unlock condition.';
+
+                    continue;
+                }
+
+                $this->validateUnlockRule(
+                    $child,
+                    "{$path}.rules.{$index}",
+                    $errors,
+                    $node,
+                    $toolEnabled,
+                    $toolId,
+                    $itemEnabled,
+                    $itemId,
+                    $schedule,
+                );
+            }
+
+            return;
+        }
+
+        if ($type === 'node_completed') {
+            $nodeId = (int) ($rule['nodeId'] ?? 0);
+
+            if ($nodeId <= 0 || ! LearningNode::query()->whereKey($nodeId)->exists()) {
+                $errors["{$path}.nodeId"] = 'Choose an existing prerequisite node.';
+            } elseif ($node && $nodeId === $node->id) {
+                $errors["{$path}.nodeId"] = 'A node cannot require itself to be completed.';
+            }
+
+            return;
+        }
+
+        if ($type === 'tool_used') {
+            if (! $toolEnabled || $toolId <= 0 || ! LearningTool::query()->whereKey($toolId)->exists()) {
+                $errors['visual_config.unlock.tool.toolId'] = 'Choose an existing tool for this unlock condition.';
+            }
+
+            return;
+        }
+
+        if ($type === 'item_owned') {
+            if (! $itemEnabled || $itemId <= 0 || ! LearningItem::query()->whereKey($itemId)->exists()) {
+                $errors['visual_config.unlock.item.itemId'] = 'Choose an existing item for this unlock condition.';
+            }
+
+            return;
+        }
+
+        if ($type === 'role_has') {
+            $roleSlug = trim((string) ($rule['roleSlug'] ?? ''));
+
+            if ($roleSlug === '' || ! AccessRole::query()->where('slug', $roleSlug)->exists()) {
+                $errors["{$path}.roleSlug"] = 'Choose an existing role for this unlock condition.';
+            }
+
+            return;
+        }
+
+        if (! ($schedule['unlockAt'] ?? null)) {
+            $errors['visual_config.schedule.unlockAt'] = 'Choose an unlock time for this condition.';
         }
     }
 

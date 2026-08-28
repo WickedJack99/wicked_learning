@@ -114,8 +114,11 @@ participation.
 - [x] Add a non-consuming item-possession unlock condition. Authors select an
   item from the shared inventory catalogue, and learners see whether they have
   it without exposing internal rule configuration.
-- Expand unlock rules with group and manual conditions plus conflict evaluation
-  beyond the current completion, tool, role, item and time conditions.
+- [x] Validate authored nested unlock trees so unsupported branches, invalid
+  references and empty groups cannot silently deadlock a node.
+- Expand unlock rules with manual conditions plus conflict evaluation of
+  combinations beyond the current completion, tool, role, item and time
+  conditions.
 
 ## Priority 3 - Deeper Cooperation
 

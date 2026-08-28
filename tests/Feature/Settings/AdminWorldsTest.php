@@ -7,6 +7,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
@@ -1688,6 +1689,91 @@ test('admin unlock diagnostics reject an unknown learner role', function () {
         ->assertSessionHasErrors('visual_config.unlock.roleSlug');
 
     expect($node->refresh()->state)->not->toBe('locked');
+});
+
+test('admin unlock diagnostics reject malformed authored rule trees', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'rules' => [
+                        'type' => 'group',
+                        'operator' => 'and',
+                        'rules' => [
+                            [
+                                'type' => 'node_completed',
+                                'nodeId' => $node->id,
+                            ],
+                            [
+                                'type' => 'unsupported',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors([
+            'visual_config.unlock.rules.rules.0.nodeId',
+            'visual_config.unlock.rules.rules.1.type',
+        ]);
+
+    expect($node->refresh()->state)->not->toBe('locked');
+});
+
+test('admin users can save a valid authored item unlock tree', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $item = LearningItem::query()->create([
+        'slug' => 'archive-lens',
+        'title' => 'Archive lens',
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'item' => [
+                        'enabled' => true,
+                        'itemId' => $item->id,
+                    ],
+                    'rules' => [
+                        'type' => 'group',
+                        'operator' => 'and',
+                        'rules' => [[
+                            'type' => 'item_owned',
+                            'itemId' => $item->id,
+                        ]],
+                    ],
+                ],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $node->map));
+
+    expect($node->refresh()->state)->toBe('locked')
+        ->and($node->visual_config['unlock']['rules']['rules'][0]['type'])->toBe('item_owned');
 });
 
 test('admin users can configure a tile to be revealed by a tool', function () {
