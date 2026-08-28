@@ -512,6 +512,8 @@ test('learners unlock locked nodes only after configured rules pass', function (
             ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', false)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.operator', 'and')
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.nodeTitle', $requiredNode->title)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.nodeSlug', $requiredNode->slug)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.mapSlug', $requiredNode->map->slug)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.satisfied', false)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.1.toolTitle', $tool->title)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.1.satisfied', true)

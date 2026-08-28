@@ -141,9 +141,20 @@ class NodeUnlockService
         }
 
         $nodeIds = $this->nodeIdsInRule($rule);
-        $nodeTitles = $nodeIds === []
+        $nodeDetails = $nodeIds === []
             ? []
-            : LearningNode::query()->whereIn('id', $nodeIds)->pluck('title', 'id')->all();
+            : LearningNode::query()
+                ->with('map:id,slug')
+                ->whereIn('id', $nodeIds)
+                ->get(['id', 'learning_map_id', 'slug', 'title'])
+                ->mapWithKeys(fn (LearningNode $requiredNode): array => [
+                    $requiredNode->id => [
+                        'mapSlug' => $requiredNode->map?->slug,
+                        'nodeSlug' => $requiredNode->slug,
+                        'title' => $requiredNode->title,
+                    ],
+                ])
+                ->all();
         $configuredToolId = $this->configuredToolId($node);
         $toolTitle = $configuredToolId === null
             ? null
@@ -155,7 +166,7 @@ class NodeUnlockService
             $completedNodeIds,
             $toolUsed,
             $timeUnlocked,
-            $nodeTitles,
+            $nodeDetails,
             is_string($toolTitle) ? $toolTitle : null,
             $unlockAt,
         );
@@ -164,7 +175,7 @@ class NodeUnlockService
     /**
      * @param  array<string, mixed>  $rule
      * @param  array<int, true>  $completedNodeIds
-     * @param  array<int|string, mixed>  $nodeTitles
+     * @param  array<int|string, mixed>  $nodeDetails
      * @return array<string, mixed>
      */
     private function transformRequirement(
@@ -172,7 +183,7 @@ class NodeUnlockService
         array $completedNodeIds,
         bool $toolUsed,
         bool $timeUnlocked,
-        array $nodeTitles,
+        array $nodeDetails,
         ?string $toolTitle,
         ?string $unlockAt,
     ): array {
@@ -182,8 +193,10 @@ class NodeUnlockService
             $nodeId = (int) ($rule['nodeId'] ?? 0);
 
             return [
+                'mapSlug' => $nodeDetails[$nodeId]['mapSlug'] ?? null,
+                'nodeSlug' => $nodeDetails[$nodeId]['nodeSlug'] ?? null,
                 'type' => 'node_completed',
-                'nodeTitle' => $nodeTitles[$nodeId] ?? null,
+                'nodeTitle' => $nodeDetails[$nodeId]['title'] ?? null,
                 'satisfied' => $nodeId > 0 && isset($completedNodeIds[$nodeId]),
             ];
         }
@@ -211,7 +224,7 @@ class NodeUnlockService
                 $completedNodeIds,
                 $toolUsed,
                 $timeUnlocked,
-                $nodeTitles,
+                $nodeDetails,
                 $toolTitle,
                 $unlockAt,
             ))

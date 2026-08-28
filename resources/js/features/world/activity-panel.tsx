@@ -656,6 +656,13 @@ function UnlockRequirementTree({
                           ),
                 });
 
+    const prerequisiteHref =
+        requirement.type === 'node_completed' &&
+        requirement.mapSlug &&
+        requirement.nodeSlug
+            ? `/world?map=${encodeURIComponent(requirement.mapSlug)}&focused=${encodeURIComponent(requirement.nodeSlug)}`
+            : null;
+
     return (
         <p className="flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             <span
@@ -667,7 +674,18 @@ function UnlockRequirementTree({
                         : 'bg-slate-400 dark:bg-slate-500',
                 )}
             />
-            <span>{label}</span>
+            <span>
+                {prerequisiteHref ? (
+                    <Link
+                        className="text-[var(--learner-action-accent)] underline-offset-2 hover:underline"
+                        href={prerequisiteHref}
+                    >
+                        {label}
+                    </Link>
+                ) : (
+                    label
+                )}
+            </span>
         </p>
     );
 }

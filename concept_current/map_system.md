@@ -41,7 +41,8 @@ Current learner behavior:
   and nested AND/OR rule groups.
 - Visible locked MapAssets with configured rules or tool conditions can be
   opened for orientation. Their learner panel shows actionable condition
-  labels and the learner's current state without exposing authored rule data.
+  labels and the learner's current state without exposing authored rule data;
+  prerequisite place labels link back to the relevant map location.
 - Hidden MapAssets can be revealed by configured tools.
 - MapAssets can be bookmarked and found through server-side map search.
 - Activity playback runs on a dedicated page and returns to the related map.

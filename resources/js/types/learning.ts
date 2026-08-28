@@ -220,6 +220,8 @@ export type LearningUnlockRequirement = {
     type: 'group' | 'node_completed' | 'time_after' | 'tool_used';
     operator?: 'and' | 'or';
     requirements?: LearningUnlockRequirement[];
+    mapSlug?: string | null;
+    nodeSlug?: string | null;
     nodeTitle?: string | null;
     toolTitle?: string | null;
     availableAt?: string | null;
