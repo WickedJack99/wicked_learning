@@ -180,9 +180,12 @@ class AdminWorldController extends Controller
     {
         $this->authorizeMapNodeEdit($request, $map);
 
+        $data = $request->validate($this->rules->node($request, $map));
+        $this->rules->validateNodeUnlock($data);
+
         $this->createLearningNode->handle(
             $map,
-            $request->validate($this->rules->node($request, $map)),
+            $data,
         );
 
         return $this->redirectToMap($map);
@@ -250,9 +253,12 @@ class AdminWorldController extends Controller
         $node->loadMissing('map');
         $this->authorizeMapEdit($request, $node->map);
 
+        $data = $request->validate($this->rules->nodeInsert($node->map));
+        $this->rules->validateNodeUnlock($data);
+
         $this->insertLearningNode->handle(
             $node,
-            $request->validate($this->rules->nodeInsert($node->map)),
+            $data,
         );
 
         return $this->redirectToMap($node->map);
@@ -263,9 +269,12 @@ class AdminWorldController extends Controller
         $node->loadMissing('map');
         $this->authorizeMapEdit($request, $node->map);
 
+        $data = $request->validate($this->rules->node($request, $node->map, $node));
+        $this->rules->validateNodeUnlock($data, $node);
+
         $this->updateLearningNode->handle(
             $node,
-            $request->validate($this->rules->node($request, $node->map, $node)),
+            $data,
         );
 
         return $this->redirectToMap($node->map);

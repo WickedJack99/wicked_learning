@@ -8,7 +8,9 @@ use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AdminWorldRules
 {
@@ -81,6 +83,56 @@ class AdminWorldRules
             ...$this->nodeContent($map),
             ...$this->direction(),
         ];
+    }
+
+    /**
+     * Reject unlock configurations that are enabled but cannot ever pass.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function validateNodeUnlock(array $data, ?LearningNode $node = null): void
+    {
+        $unlock = data_get($data, 'visual_config.unlock', []);
+
+        if (! is_array($unlock) || ! filter_var($unlock['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return;
+        }
+
+        $errors = [];
+        $requiredNodeIds = is_array($unlock['requiredNodeIds'] ?? null)
+            ? $unlock['requiredNodeIds']
+            : [];
+        $rules = is_array($unlock['rules'] ?? null) ? $unlock['rules'] : [];
+        $tool = is_array($unlock['tool'] ?? null) ? $unlock['tool'] : [];
+        $toolEnabled = filter_var($tool['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $toolId = (int) ($tool['toolId'] ?? 0);
+        $schedule = data_get($data, 'visual_config.schedule', []);
+        $schedule = is_array($schedule) ? $schedule : [];
+
+        if ($node && in_array($node->id, array_map('intval', $requiredNodeIds), true)) {
+            $errors['visual_config.unlock.requiredNodeIds.0'] = 'A node cannot require itself to be completed.';
+        }
+
+        if ($toolEnabled && $toolId <= 0) {
+            $errors['visual_config.unlock.tool.toolId'] = 'Choose a tool for this unlock condition.';
+        }
+
+        if (($schedule['unlockAt'] ?? null) && ($schedule['lockAt'] ?? null)) {
+            $unlockAt = Carbon::parse($schedule['unlockAt']);
+            $lockAt = Carbon::parse($schedule['lockAt']);
+
+            if ($unlockAt->greaterThanOrEqualTo($lockAt)) {
+                $errors['visual_config.schedule.lockAt'] = 'The lock time must be after the unlock time.';
+            }
+        }
+
+        if ($requiredNodeIds === [] && $rules === [] && ! $toolEnabled && ! ($schedule['unlockAt'] ?? null)) {
+            $errors['visual_config.unlock.enabled'] = 'Add at least one unlock condition or turn unlock rules off.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**

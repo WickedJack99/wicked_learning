@@ -107,8 +107,10 @@ participation.
 - Add bulk import/export for maps and MapAssets.
 - Add global/world configuration profiles with visible inherited values and
   local overrides.
+- [x] Diagnose conflicting unlock setups before saving, including empty
+  enabled rules, missing tools, self-prerequisites and impossible time windows.
 - Expand unlock rules with item, group, role and manual conditions plus conflict
-  diagnostics.
+  evaluation beyond the current completion, tool and time conditions.
 
 ## Priority 3 - Deeper Cooperation
 

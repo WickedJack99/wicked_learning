@@ -76,6 +76,9 @@ Topic connection:
 - Selecting a MapAsset opens the full MapAsset editor.
 - The editor contains surface and placement, text, learner panel, activities,
   rules, visuals, sounds and deletion controls.
+- Enabled unlock rules reject deadlocked combinations such as no condition,
+  missing tool selection, self-prerequisites or an unlock time after its lock
+  time before the node is saved.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

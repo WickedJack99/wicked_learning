@@ -1788,6 +1788,13 @@ export default function EditWorldMap({
                                                         )
                                                     }
                                                 />
+                                                <InputError
+                                                    message={
+                                                        errors[
+                                                            'visual_config.unlock.enabled'
+                                                        ]
+                                                    }
+                                                />
                                                 <div className="grid gap-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
                                                     <div className="grid gap-1">
                                                         <Label htmlFor="unlock-top-operator">
@@ -1967,6 +1974,13 @@ export default function EditWorldMap({
                                                                 },
                                                             )}
                                                         </div>
+                                                        <InputError
+                                                            message={
+                                                                errors[
+                                                                    'visual_config.unlock.requiredNodeIds.0'
+                                                                ]
+                                                            }
+                                                        />
                                                     </div>
 
                                                     <CheckboxField

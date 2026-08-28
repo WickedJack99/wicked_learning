@@ -1569,6 +1569,70 @@ test('admin users can edit an existing tile', function () {
         ->and($node->visual_config['light']['tileColor'])->toBe('#e0f2fe');
 });
 
+test('admin unlock diagnostics reject an impossible tile configuration', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'requiredNodeIds' => [$node->id],
+                    'tool' => [
+                        'enabled' => true,
+                    ],
+                ],
+                'schedule' => [
+                    'unlockAt' => '2026-08-28 12:00:00',
+                    'lockAt' => '2026-08-28 11:00:00',
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors([
+            'visual_config.unlock.requiredNodeIds.0',
+            'visual_config.unlock.tool.toolId',
+            'visual_config.schedule.lockAt',
+        ]);
+
+    expect($node->refresh()->state)->not->toBe('locked');
+});
+
+test('admin unlock diagnostics reject enabled rules without a condition', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('visual_config.unlock.enabled');
+
+    expect($node->refresh()->state)->not->toBe('locked');
+});
+
 test('admin users can configure a tile to be revealed by a tool', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
