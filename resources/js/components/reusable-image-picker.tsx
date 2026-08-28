@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,10 +32,20 @@ export function ReusableImagePicker({
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const restoreFocusRef = useRef<HTMLElement | null>(
+        typeof document !== 'undefined' &&
+            document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null,
+    );
     const loadError = t(
         'settings.assets.images.load_error',
         'Images could not be loaded.',
     );
+    const closePicker = useCallback(() => {
+        onClose();
+        window.requestAnimationFrame(() => restoreFocusRef.current?.focus());
+    }, [onClose]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -46,13 +56,13 @@ export function ReusableImagePicker({
             event.preventDefault();
             event.stopPropagation();
             event.stopImmediatePropagation();
-            onClose();
+            closePicker();
         };
 
         window.addEventListener('keydown', handleKeyDown, true);
 
         return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [onClose]);
+    }, [closePicker]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -142,7 +152,7 @@ export function ReusableImagePicker({
                             'settings.assets.images.close_picker',
                             'Close image picker',
                         )}
-                        onClick={onClose}
+                        onClick={closePicker}
                         size="icon"
                         type="button"
                         variant="ghost"
@@ -171,7 +181,7 @@ export function ReusableImagePicker({
                         disabled={!currentValue}
                         onClick={() => {
                             onClear?.();
-                            onClose();
+                            closePicker();
                         }}
                         type="button"
                         variant="secondary"
@@ -223,9 +233,10 @@ export function ReusableImagePicker({
                                             : 'border-slate-200 bg-slate-50 hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)] dark:border-white/10 dark:bg-white/5',
                                     ].join(' ')}
                                     key={asset.url}
-                                    onClick={() =>
-                                        onSelect(normalizeMediaUrl(asset.url))
-                                    }
+                                    onClick={() => {
+                                        onSelect(normalizeMediaUrl(asset.url));
+                                        closePicker();
+                                    }}
                                     type="button"
                                 >
                                     <span className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">

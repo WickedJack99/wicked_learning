@@ -355,9 +355,9 @@ pointer hover.
 ### Completed — Make the reusable image picker a real modal
 
 The shared image chooser now exposes its title and description through dialog
-semantics, marks itself modal, and closes with Escape. Image selection remains
-inside the same chooser, so keyboard users can leave the picker without
-repeating the authoring workflow.
+semantics, marks itself modal, closes with Escape, and restores focus to the
+control that opened it. Image selection remains inside the same chooser, so
+keyboard users can leave the picker without repeating the authoring workflow.
 
 ### Completed — Make activity-graph connections keyboard actionable
 
@@ -505,8 +505,9 @@ These are test gaps, not claims that the feature is broken:
 - Keyboard focus and accessible names should still be checked for icon-only map
   controls, account controls and the remaining modal close paths. Activity
   graph nodes and connections now have focused coverage in the implementation,
-  and the shared image picker has dialog semantics plus Escape dismissal; a
-  full browser pass still remains for the complete authoring workspace.
+  and the shared image picker has dialog semantics, Escape dismissal and focus
+  restoration; a full browser pass still remains for the complete authoring
+  workspace.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 
