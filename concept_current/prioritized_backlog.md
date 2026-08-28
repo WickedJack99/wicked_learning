@@ -77,10 +77,10 @@ participation.
 - [x] Improve private learning analytics and reflection support without rankings.
   Topic trails now keep the earlier/later look-back and expose a small
   chronological, paginated set of intermediate reflections for the learner.
-- [x] Extend access history to include successful self-service password
-  changes. The event records only that the credential changed, never a
-  password or credential-derived value; additional authentication-factor
-  events remain a later extension.
+- [x] Extend access history to include successful self-service password,
+  two-factor and passkey lifecycle changes. Events record only neutral
+  lifecycle metadata, never a password, secret, credential identifier or
+  other credential-derived value.
 
 ## Priority 2 - Authoring And Reuse
 

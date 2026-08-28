@@ -16,8 +16,9 @@ light and dark presentation values.
 Registration requires a valid registration token. Authenticated users can edit
 their profile and language, choose appearance and sound preferences, manage
 passwords, passkeys and two-factor authentication, and review notifications.
-Successful password changes also appear in the administrator's per-user access
-history without storing the password or any derived credential value.
+Successful password changes and two-factor or passkey lifecycle changes also
+appear in the administrator's per-user access history without storing a
+password, secret, credential identifier or any other derived credential value.
 
 ### Freeform World Maps
 

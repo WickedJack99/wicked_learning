@@ -3,15 +3,21 @@
 namespace App\Providers;
 
 use App\Access\AccessLevel;
+use App\Access\Listeners\RecordSecurityAccessEvent;
 use App\Access\PermissionCatalog;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
+use Laravel\Fortify\Events\TwoFactorAuthenticationEnabled;
+use Laravel\Passkeys\Events\PasskeyDeleted;
+use Laravel\Passkeys\Events\PasskeyRegistered;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,7 +34,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureSecurityAuditListeners();
         $this->configureDefaults();
+    }
+
+    private function configureSecurityAuditListeners(): void
+    {
+        Event::listen(
+            TwoFactorAuthenticationEnabled::class,
+            [RecordSecurityAccessEvent::class, 'twoFactorEnabled'],
+        );
+        Event::listen(
+            TwoFactorAuthenticationDisabled::class,
+            [RecordSecurityAccessEvent::class, 'twoFactorDisabled'],
+        );
+        Event::listen(
+            PasskeyRegistered::class,
+            [RecordSecurityAccessEvent::class, 'passkeyRegistered'],
+        );
+        Event::listen(
+            PasskeyDeleted::class,
+            [RecordSecurityAccessEvent::class, 'passkeyDeleted'],
+        );
     }
 
     /**

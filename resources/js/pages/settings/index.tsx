@@ -1988,9 +1988,7 @@ function UserDetailsDialog({
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span className="font-medium">
-                                            {event.action === 'password_updated'
-                                                ? 'Password updated'
-                                                : 'Access updated'}
+                                            {accessHistoryLabel(event.action)}
                                         </span>
                                         <time
                                             className="text-xs text-[var(--settings-muted-text)]"
@@ -2523,6 +2521,18 @@ function DetailRow({ label, value }: { label: string; value: string }) {
                 {value}
             </dd>
         </div>
+    );
+}
+
+function accessHistoryLabel(action: string): string {
+    return (
+        {
+            password_updated: 'Password updated',
+            two_factor_enabled: 'Two-factor enabled',
+            two_factor_disabled: 'Two-factor disabled',
+            passkey_registered: 'Passkey added',
+            passkey_deleted: 'Passkey removed',
+        }[action] ?? 'Access updated'
     );
 }
 

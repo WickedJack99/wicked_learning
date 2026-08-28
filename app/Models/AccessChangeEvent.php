@@ -13,6 +13,14 @@ class AccessChangeEvent extends Model
 
     public const ACTION_PASSWORD_UPDATED = 'password_updated';
 
+    public const ACTION_TWO_FACTOR_ENABLED = 'two_factor_enabled';
+
+    public const ACTION_TWO_FACTOR_DISABLED = 'two_factor_disabled';
+
+    public const ACTION_PASSKEY_REGISTERED = 'passkey_registered';
+
+    public const ACTION_PASSKEY_DELETED = 'passkey_deleted';
+
     protected function casts(): array
     {
         return [

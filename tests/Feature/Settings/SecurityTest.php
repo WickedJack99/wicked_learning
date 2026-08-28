@@ -4,7 +4,12 @@ use App\Models\AccessChangeEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
+use Laravel\Fortify\Events\TwoFactorAuthenticationDisabled;
+use Laravel\Fortify\Events\TwoFactorAuthenticationEnabled;
 use Laravel\Fortify\Features;
+use Laravel\Passkeys\Events\PasskeyDeleted;
+use Laravel\Passkeys\Events\PasskeyRegistered;
+use Laravel\Passkeys\Passkey;
 
 test('security page is displayed', function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
@@ -112,4 +117,52 @@ test('correct password must be provided to update password', function () {
     $response
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
+
+    expect(AccessChangeEvent::query()
+        ->where('target_user_id', $user->id)
+        ->where('action', AccessChangeEvent::ACTION_PASSWORD_UPDATED)
+        ->exists())->toBeFalse();
+});
+
+test('security factor changes are added to access history without secret material', function () {
+    $user = User::factory()->create();
+    $passkey = new Passkey([
+        'name' => 'Personal laptop',
+        'credential_id' => 'credential-id',
+        'credential' => ['secret' => 'must-not-be-recorded'],
+    ]);
+
+    TwoFactorAuthenticationEnabled::dispatch($user);
+    TwoFactorAuthenticationDisabled::dispatch($user);
+    PasskeyRegistered::dispatch($user, $passkey);
+    PasskeyDeleted::dispatch($user, $passkey);
+
+    expect(AccessChangeEvent::query()
+        ->where('target_user_id', $user->id)
+        ->orderBy('id')
+        ->pluck('action')
+        ->all())
+        ->toBe([
+            AccessChangeEvent::ACTION_TWO_FACTOR_ENABLED,
+            AccessChangeEvent::ACTION_TWO_FACTOR_DISABLED,
+            AccessChangeEvent::ACTION_PASSKEY_REGISTERED,
+            AccessChangeEvent::ACTION_PASSKEY_DELETED,
+        ]);
+
+    $events = AccessChangeEvent::query()
+        ->where('target_user_id', $user->id)
+        ->orderBy('id')
+        ->get();
+
+    expect($events[2]->changes)
+        ->toBe([
+            'security_factor' => [
+                'before' => 'No passkey registered',
+                'after' => 'Passkey registered',
+            ],
+        ])
+        ->and(json_encode($events->toArray()))
+        ->not->toContain('credential-id')
+        ->not->toContain('must-not-be-recorded')
+        ->not->toContain('Personal laptop');
 });
