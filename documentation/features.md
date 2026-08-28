@@ -49,6 +49,8 @@ Current map behavior includes:
   possession, time and nested AND/OR groups
 - authored locked-node prerequisite cycles are rejected when every successful
   path would depend on the cycle; independent OR alternatives remain valid
+- World Builder flags locked prerequisites without an authored learner-opening
+  path while leaving the human support-opening fallback available
 - authorised Learning Support staff with map-node edit access can open a locked
   MapAsset for one visible learner; the opening is reversible and does not alter
   the authored prerequisites

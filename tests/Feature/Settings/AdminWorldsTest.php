@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\ActivityTypeRegistry;
+use App\Learning\Services\NodeUnlockReachability;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -1846,6 +1847,55 @@ test('admin unlock diagnostics allow a cycle when an OR branch can open independ
 
     expect($firstNode->refresh()->visual_config['unlock']['rules']['operator'] ?? null)
         ->toBe('or');
+});
+
+test('admin unlock diagnostics report locked prerequisites without an authored opening path', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $prerequisite = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'unreachable-path-check',
+        'title' => 'Unreachable path check',
+        'description' => 'A locked node for authoring diagnostics.',
+        'position_q' => 10,
+        'position_r' => 10,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $prerequisite->id,
+                ],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))
+        ->toBe([
+            [
+                'id' => $prerequisite->id,
+                'title' => $prerequisite->title,
+            ],
+        ]);
+
+    $tool = LearningTool::query()->create([
+        'slug' => 'path-check-tool',
+        'title' => 'Path check tool',
+    ]);
+    $prerequisite->forceFill([
+        'visual_config' => [
+            'unlock' => [
+                'tool' => [
+                    'enabled' => true,
+                    'toolId' => $tool->id,
+                ],
+            ],
+        ],
+    ])->save();
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
 });
 
 test('admin users can save a valid authored item unlock tree', function () {

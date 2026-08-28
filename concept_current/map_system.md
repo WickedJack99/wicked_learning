@@ -96,6 +96,9 @@ Topic connection:
 - Learning Support can review and close manual openings for a selected learner;
   resetting tool-based discoveries does not silently remove this separate
   support decision.
+- World Builder reports locked prerequisites that have no authored learner
+  opening path. This is an advisory authoring diagnostic rather than a new
+  learner state; a support opening can still be used intentionally.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

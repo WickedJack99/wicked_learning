@@ -98,6 +98,10 @@ type EditableNode = {
     slug: string;
     state: string;
     title: string;
+    unlockDiagnostics?: {
+        id: number;
+        title: string;
+    }[];
     visualConfig: VisualConfig;
 };
 
@@ -2349,6 +2353,46 @@ export default function EditWorldMap({
                                                         ]
                                                     }
                                                 />
+                                                {selectedNode?.unlockDiagnostics
+                                                    ?.length ? (
+                                                    <div className="grid gap-1 rounded-md border border-amber-300/30 bg-amber-300/10 px-3 py-2 text-xs text-amber-100">
+                                                        <p className="font-semibold">
+                                                            {t(
+                                                                'settings.world_builder.unlock.diagnostics.title',
+                                                                'Check this opening path',
+                                                            )}
+                                                        </p>
+                                                        <p>
+                                                            {t(
+                                                                'settings.world_builder.unlock.diagnostics.detail',
+                                                                'This node depends on locked places without an authored opening condition:',
+                                                            )}
+                                                        </p>
+                                                        <ul className="list-disc pl-4">
+                                                            {selectedNode.unlockDiagnostics.map(
+                                                                (
+                                                                    diagnostic,
+                                                                ) => (
+                                                                    <li
+                                                                        key={
+                                                                            diagnostic.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            diagnostic.title
+                                                                        }
+                                                                    </li>
+                                                                ),
+                                                            )}
+                                                        </ul>
+                                                        <p className="text-amber-100/75">
+                                                            {t(
+                                                                'settings.world_builder.unlock.diagnostics.support',
+                                                                'A Learning Support opening can still make a place available when needed.',
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                ) : null}
                                             </div>
                                             <NodeVisualPreview
                                                 form={form}

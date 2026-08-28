@@ -3,13 +3,17 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\LearningMapAccessService;
+use App\Learning\Services\NodeUnlockReachability;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 
 class AdminWorldSummarySerializer
 {
-    public function __construct(private readonly LearningMapAccessService $mapAccess) {}
+    public function __construct(
+        private readonly LearningMapAccessService $mapAccess,
+        private readonly NodeUnlockReachability $unlockReachability,
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -61,6 +65,7 @@ class AdminWorldSummarySerializer
                 'r' => $node->position_r,
             ],
             'state' => $node->state,
+            'unlockDiagnostics' => $this->unlockReachability->unreachablePrerequisites($node),
             'visualConfig' => $node->visual_config ?? [],
         ];
     }
