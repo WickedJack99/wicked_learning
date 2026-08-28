@@ -10,7 +10,7 @@ import {
     Trash2,
     Upload,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,9 @@ export default function AdminMediaAssets({
     const [busyUrl, setBusyUrl] = useState<string | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const addInputRef = useRef<HTMLInputElement | null>(null);
+    const visualsLibraryRef = useRef<HTMLDivElement | null>(null);
     const replaceInputRef = useRef<HTMLInputElement | null>(null);
+    const [visualsPageSize, setVisualsPageSize] = useState(13);
     const selectedAsset =
         assets.find((asset) => asset.url === selectedUrl) ?? assets[0] ?? null;
     const filteredAssets = useMemo(() => {
@@ -68,6 +70,44 @@ export default function AdminMediaAssets({
                 .includes(needle),
         );
     }, [assets, search]);
+
+    useEffect(() => {
+        const library = visualsLibraryRef.current;
+
+        if (!library || typeof ResizeObserver === 'undefined') {
+            return;
+        }
+
+        const updatePageSize = () => {
+            const item = library.querySelector<HTMLElement>(
+                '[data-visual-library-item]',
+            );
+            const itemHeight = item?.getBoundingClientRect().height ?? 76;
+            const itemGap = 8;
+            const paginationHeight = 48;
+            const availableHeight = library.clientHeight;
+            const nextPageSize = Math.max(
+                1,
+                Math.min(
+                    13,
+                    Math.floor(
+                        (availableHeight - paginationHeight + itemGap) /
+                            (itemHeight + itemGap),
+                    ),
+                ),
+            );
+
+            setVisualsPageSize((current) =>
+                current === nextPageSize ? current : nextPageSize,
+            );
+        };
+
+        const observer = new ResizeObserver(updatePageSize);
+        observer.observe(library);
+        updatePageSize();
+
+        return () => observer.disconnect();
+    }, [filteredAssets.length]);
 
     const uploadNewAsset = (file: File | null | undefined) => {
         if (!file) {
@@ -191,7 +231,10 @@ export default function AdminMediaAssets({
                                     </div>
                                 </div>
 
-                                <div className="min-h-0 flex-1 p-3">
+                                <div
+                                    className="min-h-0 flex-1 overflow-hidden p-3"
+                                    ref={visualsLibraryRef}
+                                >
                                     <LearnerPaginatedItems
                                         className="grid gap-2"
                                         emptyState={
@@ -201,7 +244,7 @@ export default function AdminMediaAssets({
                                         }
                                         items={filteredAssets}
                                         key={search}
-                                        pageSize={4}
+                                        pageSize={visualsPageSize}
                                         paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
                                         paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
                                         paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
@@ -495,6 +538,7 @@ function AssetListItem({
 }) {
     return (
         <button
+            data-visual-library-item
             className={cn(
                 'grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 rounded-lg border p-2 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                 isSelected
