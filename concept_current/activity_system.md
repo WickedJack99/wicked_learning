@@ -105,10 +105,11 @@ Current UI behavior:
 - The focused MapAsset panel shows route choices, not the activity player itself.
 - Starting a route navigates to a separate node-play page so the map does not keep unnecessary listeners and rendering work active during activity playback.
 - Activity playback uses the shared learner header with the same primary links
-  as the learning desk, followed by Map and Continue activity. The order is
-  Learning desk, Paths, Topics, Competence map, Journal, Bookmarks, Map,
-  Continue activity. This keeps playback inside the same learner navigation
-  model as the map and bookmark surfaces.
+  as the learning desk, followed by Current map and Continue activity. The
+  order is Learning desk, Paths, Topics, Competence map, Journal, Bookmarks,
+  Current map, Continue activity. The same contextual links are also present
+  on the desk, Paths, Topics and competence surfaces when relevant, keeping
+  playback, map and bookmark surfaces in one learner navigation model.
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
 - After completion, the learner may choose one of three bounded directions for

@@ -1,7 +1,10 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Bookmark } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createLearnerPrimaryNavigation } from '@/components/learner-navigation';
+import {
+    appendLearnerContextNavigation,
+    createLearnerPrimaryNavigation,
+} from '@/components/learner-navigation';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
 import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
 import { Button } from '@/components/ui/button';
@@ -413,15 +416,11 @@ export default function NodePlay({
             onJournalOpen: () => setJournalOpen(true),
         });
 
-    navigationItems.push({
-        active: false,
-        href: mapHref,
-        label: translate('navigation.primary.map', 'Map'),
-    });
-    navigationItems.push({
-        active: true,
-        href: typeof window === 'undefined' ? mapHref : window.location.href,
-        label: translate('navigation.activity.continue', 'Continue activity'),
+    appendLearnerContextNavigation(translate, navigationItems, {
+        continueActive: true,
+        continueHref:
+            typeof window === 'undefined' ? mapHref : window.location.href,
+        currentMapHref: mapHref,
     });
 
     return (

@@ -71,6 +71,33 @@ export function createLearnerPrimaryNavigation(
     }));
 }
 
+export function appendLearnerContextNavigation(
+    t: LearnerNavigationTranslator,
+    items: LearnerNavigationItem[],
+    options: {
+        currentMapHref: string;
+        currentMapActive?: boolean;
+        continueHref?: string;
+        continueActive?: boolean;
+    },
+): LearnerNavigationItem[] {
+    items.push({
+        active: options.currentMapActive ?? false,
+        href: options.currentMapHref,
+        label: t('navigation.primary.current_map', 'Current map'),
+    });
+
+    if (options.continueHref) {
+        items.push({
+            active: options.continueActive ?? false,
+            href: options.continueHref,
+            label: t('navigation.activity.continue', 'Continue activity'),
+        });
+    }
+
+    return items;
+}
+
 export function isLearnerNavigationItemActive(
     url: string,
     href: string,

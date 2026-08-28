@@ -220,6 +220,7 @@
     "settings.ai.guardrails.implementation_notes": "Implementation notes",
     "navigation.primary.learning_desk": "Learning desk",
     "navigation.primary.map": "Map",
+    "navigation.primary.current_map": "Current map",
     "navigation.primary.bookmarks": "Bookmarks",
     "navigation.primary.settings": "Settings",
     "navigation.primary.log_out": "Log out",
