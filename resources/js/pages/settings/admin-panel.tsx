@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
@@ -765,27 +766,32 @@ function FeedbackRequestsSection({
                         )}
                     </h2>
                 </header>
-                <div className="min-h-0 flex-1 overflow-y-auto">
-                    {feedbackRequests.length === 0 ? (
-                        <p className="p-4 text-sm text-[var(--settings-muted-text)]">
-                            {t(
-                                'settings.admin_panel.no_feedback_requests',
-                                'No feedback requests yet.',
-                            )}
-                        </p>
-                    ) : (
-                        <div>
-                            {feedbackRequests.map((request) => (
-                                <FeedbackRequestButton
-                                    active={selectedRequest?.id === request.id}
-                                    key={request.id}
-                                    onSelect={() => setSelectedId(request.id)}
-                                    request={request}
-                                    t={t}
-                                />
-                            ))}
-                        </div>
-                    )}
+                <div className="min-h-0 flex-1 p-3">
+                    <LearnerPaginatedItems
+                        className="grid"
+                        emptyState={
+                            <p className="p-1 text-sm text-[var(--settings-muted-text)]">
+                                {t(
+                                    'settings.admin_panel.no_feedback_requests',
+                                    'No feedback requests yet.',
+                                )}
+                            </p>
+                        }
+                        items={feedbackRequests}
+                        pageSize={6}
+                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                        paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                        paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                        renderItem={(request) => (
+                            <FeedbackRequestButton
+                                active={selectedRequest?.id === request.id}
+                                key={request.id}
+                                onSelect={() => setSelectedId(request.id)}
+                                request={request}
+                                t={t}
+                            />
+                        )}
+                    />
                 </div>
             </aside>
 
@@ -1066,14 +1072,20 @@ function OrganizationModerationSection({
                 />
             </section>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="grid">
-                    {reports.length === 0 ? (
+            <div className="min-h-0 flex-1 p-4 sm:p-5">
+                <LearnerPaginatedItems
+                    className="grid"
+                    emptyState={
                         <p className="border-b border-dashed border-[var(--settings-border-color)] py-5 text-sm text-[var(--settings-muted-text)]">
                             No pending organization icon reports.
                         </p>
-                    ) : null}
-                    {reports.map((report) => (
+                    }
+                    items={reports}
+                    pageSize={4}
+                    paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                    paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                    paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                    renderItem={(report) => (
                         <article
                             className="grid gap-4 border-b border-[var(--settings-border-color)] py-4 md:grid-cols-[5rem_minmax(0,1fr)_max-content]"
                             key={report.id}
@@ -1122,8 +1134,8 @@ function OrganizationModerationSection({
                                 </Button>
                             </div>
                         </article>
-                    ))}
-                </div>
+                    )}
+                />
             </div>
             <footer className="flex shrink-0 justify-start border-t border-[var(--settings-border-color)] py-4">
                 <Button disabled={!hasLimitChanges} type="submit">

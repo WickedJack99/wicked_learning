@@ -138,7 +138,8 @@ Settings asset/palette surfaces use intentional nested scrolling. The same
 containment contract still needs explicit coverage for long lists and graphs:
 topic cards, bookmarks, journal pages, AI review queues, AI provider keys and
 agent templates, graph nodes, map assets, reusable media, tools, items,
-organization messages and join requests.
+organization messages, join requests, feedback requests and moderation
+reports.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -162,6 +163,11 @@ page's editor remains a continuous writing surface.
 The AI settings provider and agent-template choosers use bounded five-entry
 pagination. Their editor remains independent and continuously scrollable, so
 choosing a configured helper does not push the footer actions off-screen.
+
+Administration feedback requests and organization-icon moderation reports use
+bounded pagination as well. Their detail and action areas remain independent
+from the chooser, so a larger queue does not move response or moderation
+actions outside the workspace.
 
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
@@ -525,6 +531,8 @@ These are test gaps, not claims that the feature is broken:
   search, keeping the writing editor separate from page navigation.
 - AI provider and agent-template choosers now paginate five entries at a time,
   keeping the selected editor and add actions visible as configurations grow.
+- Administration feedback requests and organization-icon reports now paginate
+  their chooser lists, keeping response and moderation actions contained.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map
