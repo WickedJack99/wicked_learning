@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import { Download, FileUp, Languages, Plus, Save } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import {
     SettingsConfigurationShell,
     SettingsNestedWorkspace,
@@ -189,37 +190,55 @@ export default function LanguageAdministration({
                         </div>
                     ) : null}
 
-                    <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                        {languages.map((language) => (
-                            <button
-                                className="mb-2 w-full rounded-lg border p-3 text-left transition"
-                                key={language.code}
-                                onClick={() => setSelectedCode(language.code)}
-                                style={
-                                    selectedCode === language.code
-                                        ? {
-                                              background:
-                                                  'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
-                                              borderColor:
-                                                  'var(--settings-accent)',
-                                          }
-                                        : undefined
-                                }
-                                type="button"
-                            >
-                                <span className="block text-sm font-medium">
-                                    {language.name}
-                                </span>
-                                <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
-                                    {language.nativeName}
+                    <div className="min-h-0 flex-1 p-3">
+                        <LearnerPaginatedItems
+                            className="grid"
+                            emptyState={
+                                <p className="p-1 text-sm text-[var(--settings-muted-text)]">
                                     {t(
-                                        'settings.administration.languages.separator',
-                                        ' / ',
+                                        'settings.administration.languages.empty',
+                                        'No language catalogs yet.',
                                     )}
-                                    {language.code}
-                                </span>
-                            </button>
-                        ))}
+                                </p>
+                            }
+                            items={languages}
+                            pageSize={6}
+                            paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                            paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                            paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                            renderItem={(language) => (
+                                <button
+                                    className="mb-2 w-full rounded-lg border p-3 text-left transition"
+                                    key={language.code}
+                                    onClick={() =>
+                                        setSelectedCode(language.code)
+                                    }
+                                    style={
+                                        selectedCode === language.code
+                                            ? {
+                                                  background:
+                                                      'color-mix(in srgb, var(--settings-accent) 18%, transparent)',
+                                                  borderColor:
+                                                      'var(--settings-accent)',
+                                              }
+                                            : undefined
+                                    }
+                                    type="button"
+                                >
+                                    <span className="block text-sm font-medium">
+                                        {language.name}
+                                    </span>
+                                    <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                                        {language.nativeName}
+                                        {t(
+                                            'settings.administration.languages.separator',
+                                            ' / ',
+                                        )}
+                                        {language.code}
+                                    </span>
+                                </button>
+                            )}
+                        />
                     </div>
                 </aside>
 

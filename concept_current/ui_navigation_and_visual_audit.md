@@ -139,7 +139,7 @@ containment contract still needs explicit coverage for long lists and graphs:
 topic cards, bookmarks, journal pages, AI review queues, AI provider keys and
 agent templates, graph nodes, map assets, reusable media, tools, items,
 organization messages, join requests, feedback requests and moderation
-reports.
+reports and language catalogs.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -168,6 +168,9 @@ Administration feedback requests and organization-icon moderation reports use
 bounded pagination as well. Their detail and action areas remain independent
 from the chooser, so a larger queue does not move response or moderation
 actions outside the workspace.
+
+The language administration catalog uses the same bounded chooser pattern; its
+selected translation editor remains a continuous editing surface.
 
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
@@ -537,6 +540,8 @@ These are test gaps, not claims that the feature is broken:
   keeping the selected editor and add actions visible as configurations grow.
 - Administration feedback requests and organization-icon reports now paginate
   their chooser lists, keeping response and moderation actions contained.
+- Language administration now paginates catalog choices, keeping the selected
+  translation editor separate from a growing language list.
 - Shared pagination controls now expose a labelled navigation landmark, a live
   page status and a visible keyboard focus outline.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
