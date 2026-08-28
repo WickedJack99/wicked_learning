@@ -1,6 +1,6 @@
 # Current UI, Navigation And Visual Audit
 
-**Audit date:** 2026-08-27
+**Audit date:** 2026-08-28
 **Scope:** learner navigation, learning surfaces, maps and activities,
 community pages, settings and authoring surfaces, responsive containment, and
 the configured color system.
@@ -518,6 +518,24 @@ The journal remains a private reflection workspace: the visual pass does not
 change who can read pages, how feedback requests work, or how learning
 observations are represented.
 
+## Follow-up smoke flow — 2026-08-28
+
+The learner route handoff was exercised in one uninterrupted browser session:
+
+`/home` → `/topics/pattern-investigation` → `Maps` → `First Clearing` →
+`Pattern Gate` → `Clear the noisy gate` → activity playback.
+
+The topic section updated the URL to `?section=maps`, the map opened the focused
+asset panel, the asset opened the selected activity, and the player retained the
+shared learner navigation. At a 390×844 viewport the activity document stayed
+within the viewport (`scrollWidth` matched `innerWidth`); the desktop topic and
+map surfaces also stayed within their viewport bounds. This confirms the
+current handoff behavior manually, without relying on browser back.
+
+This remains a manual smoke result. The project does not currently install a
+real-browser test runner, so the automated browser acceptance item below stays
+open until that test dependency is deliberately adopted.
+
 ## Documentation maintenance rule
 
 When a feature slice changes a learner concept or navigation surface, first
@@ -529,8 +547,8 @@ bottom-navigation or map-entry-only model.
 
 ## Priority order for the next slices
 
-1. Add long-collection containment checks and the end-to-end browser smoke
-   flow.
+1. Add automated long-collection containment checks and preserve the now-tested
+   end-to-end browser smoke flow.
 2. Extend keyboard/accessibility checks to complex authoring controls after
    the shared learner-shell entry point is in place.
 3. Reduce typography and accent competition on dense pages.
