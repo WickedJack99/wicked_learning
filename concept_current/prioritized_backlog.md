@@ -116,9 +116,11 @@ participation.
   it without exposing internal rule configuration.
 - [x] Validate authored nested unlock trees so unsupported branches, invalid
   references and empty groups cannot silently deadlock a node.
-- Expand unlock rules with manual conditions plus conflict evaluation of
-  combinations beyond the current completion, tool, role, item and time
-  conditions.
+- [x] Add a reversible per-learner manual opening for locked nodes in Learning
+  Support. Keep it separate from authored prerequisites and show current
+  openings so support staff can close them again.
+- Expand authored unlock rules with conflict evaluation of combinations beyond
+  the current completion, tool, role, item and time conditions.
 
 ## Priority 3 - Deeper Cooperation
 

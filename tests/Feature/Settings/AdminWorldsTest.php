@@ -1890,6 +1890,10 @@ test('admin users can reset node tool unlocks for all learners', function () {
                 'toolId' => 42,
                 'unlockedAt' => now()->toIso8601String(),
             ],
+            'manualUnlock' => [
+                'grantedAt' => now()->toIso8601String(),
+                'grantedByUserId' => $admin->id,
+            ],
         ],
     ]);
 
@@ -1901,7 +1905,52 @@ test('admin users can reset node tool unlocks for all learners', function () {
 
     expect($discovery->metadata)->toBe([
         'source' => 'test',
+        'manualUnlock' => [
+            'grantedAt' => $discovery->metadata['manualUnlock']['grantedAt'],
+            'grantedByUserId' => $admin->id,
+        ],
     ]);
+});
+
+test('admin users can open and close a locked node for one learner', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $node->forceFill(['state' => 'locked'])->save();
+    $supportUrl = route('settings.index', [
+        'panel' => 'admin-learning-support',
+        'support' => 'support-signals',
+        'signals' => 'individual',
+    ]);
+
+    $this->actingAs($admin)
+        ->from($supportUrl)
+        ->post(route('settings.worlds.nodes.manual-unlock', $node), [
+            'enabled' => true,
+            'user_id' => $learner->id,
+        ])
+        ->assertRedirect($supportUrl);
+
+    $discovery = LearnerNodeDiscovery::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_node_id', $node->id)
+        ->firstOrFail();
+
+    expect($discovery->metadata['manualUnlock']['grantedByUserId'])->toBe($admin->id)
+        ->and($discovery->metadata['manualUnlock']['grantedAt'])->not->toBeEmpty();
+
+    $this->actingAs($admin)
+        ->from($supportUrl)
+        ->post(route('settings.worlds.nodes.manual-unlock', $node), [
+            'enabled' => false,
+            'user_id' => $learner->id,
+        ])
+        ->assertRedirect($supportUrl);
+
+    expect($discovery->refresh()->metadata)->toBeNull();
 });
 
 test('admin users can edit map details', function () {

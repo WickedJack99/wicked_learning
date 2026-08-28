@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import { HeartHandshake, Signal, Sparkles, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -15,12 +16,23 @@ export type SupportSignalsSettings = {
         evidenceEvents: number;
     }[];
     learners: SupportLearner[];
+    canGrantManualUnlocks: boolean;
+    manualUnlockTargets: ManualUnlockTarget[];
     monthKey: string;
     summary: {
         learners: number;
         learnersWithSignals: number;
         topicsWithMonthlyActivity: number;
     };
+};
+
+type ManualUnlockTarget = {
+    id: number;
+    title: string;
+    nodes: {
+        id: number;
+        title: string;
+    }[];
 };
 
 type SupportLearner = {
@@ -32,6 +44,12 @@ type SupportLearner = {
     }[];
     id: number;
     lastActivityAt: string | null;
+    manualUnlocks: {
+        grantedAt: string | null;
+        mapTitle: string | null;
+        nodeId: number;
+        nodeTitle: string | null;
+    }[];
     name: string;
     signals: {
         text: string;
@@ -201,6 +219,7 @@ function IndividualSupportView({
                     <LearnerDetails
                         learner={selectedLearner}
                         monthKey={monthKey}
+                        settings={settings}
                     />
                 </div>
             ) : (
@@ -556,9 +575,11 @@ function LearnerList({
 function LearnerDetails({
     learner,
     monthKey,
+    settings,
 }: {
     learner: SupportLearner | null;
     monthKey: string;
+    settings: SupportSignalsSettings;
 }) {
     if (!learner) {
         return <EmptySupportSignals />;
@@ -608,8 +629,147 @@ function LearnerDetails({
                 </header>
 
                 <SupportNotes signals={learner.signals} />
+                <ManualLearnerAccess
+                    canManage={settings.canGrantManualUnlocks}
+                    learner={learner}
+                    targets={settings.manualUnlockTargets}
+                />
                 <TopicSignals topics={learner.topics} />
             </div>
+        </section>
+    );
+}
+
+function ManualLearnerAccess({
+    canManage,
+    learner,
+    targets,
+}: {
+    canManage: boolean;
+    learner: SupportLearner;
+    targets: ManualUnlockTarget[];
+}) {
+    const options = targets.flatMap((map) =>
+        map.nodes.map((node) => ({
+            id: node.id,
+        })),
+    );
+    const [selectedNodeId, setSelectedNodeId] = useState('');
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const selectedValue = options.some(
+        (option) => String(option.id) === selectedNodeId,
+    )
+        ? selectedNodeId
+        : String(options[0]?.id ?? '');
+
+    if (!canManage) {
+        return null;
+    }
+
+    function setManualUnlock(nodeId: number, enabled: boolean): void {
+        const actionKey = `${nodeId}:${enabled ? 'open' : 'close'}`;
+        setPendingAction(actionKey);
+        router.post(
+            `/settings/worlds/nodes/${nodeId}/manual-unlock`,
+            { enabled, user_id: learner.id },
+            {
+                preserveScroll: true,
+                onFinish: () => setPendingAction(null),
+            },
+        );
+    }
+
+    return (
+        <section className="grid gap-3 border-b border-[var(--settings-border-color)] pb-5">
+            <div>
+                <h4 className="font-semibold text-[var(--settings-primary-text)]">
+                    Open a locked node
+                </h4>
+                <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
+                    Make one locked node available to this learner without
+                    changing its authored rules.
+                </p>
+            </div>
+
+            {options.length > 0 ? (
+                <div className="flex flex-wrap items-end gap-3">
+                    <label className="grid min-w-64 flex-1 gap-1.5 text-sm text-[var(--settings-muted-text)]">
+                        <span className="font-medium text-[var(--settings-primary-text)]">
+                            Node
+                        </span>
+                        <select
+                            className="h-10 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] px-3 text-[var(--settings-primary-text)] focus:border-[var(--settings-accent)] focus:outline-none"
+                            onChange={(event) =>
+                                setSelectedNodeId(event.target.value)
+                            }
+                            value={selectedValue}
+                        >
+                            {targets.map((map) => (
+                                <optgroup key={map.id} label={map.title}>
+                                    {map.nodes.map((node) => (
+                                        <option key={node.id} value={node.id}>
+                                            {node.title}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+                    </label>
+                    <button
+                        className="h-10 border border-[var(--settings-accent)] px-4 text-sm font-medium text-[var(--settings-accent)] transition hover:bg-[var(--settings-active-background)] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={
+                            selectedValue === '' || pendingAction !== null
+                        }
+                        onClick={() =>
+                            setManualUnlock(Number(selectedValue), true)
+                        }
+                        type="button"
+                    >
+                        {pendingAction === `${selectedValue}:open`
+                            ? 'Opening…'
+                            : 'Open for learner'}
+                    </button>
+                </div>
+            ) : (
+                <p className="text-sm text-[var(--settings-muted-text)]">
+                    There are no locked nodes on maps you can edit.
+                </p>
+            )}
+
+            {learner.manualUnlocks.length > 0 ? (
+                <div className="grid gap-2">
+                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                        Currently open for this learner
+                    </p>
+                    {learner.manualUnlocks.map((unlock) => (
+                        <div
+                            className="flex flex-wrap items-center justify-between gap-3 border border-[var(--settings-border-color)] px-3 py-2"
+                            key={unlock.nodeId}
+                        >
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-[var(--settings-primary-text)]">
+                                    {unlock.nodeTitle}
+                                </p>
+                                <p className="text-xs text-[var(--settings-muted-text)]">
+                                    {unlock.mapTitle}
+                                </p>
+                            </div>
+                            <button
+                                className="text-sm text-[var(--settings-muted-text)] underline decoration-[var(--settings-border-color)] underline-offset-4 transition hover:text-[var(--settings-primary-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                                disabled={pendingAction !== null}
+                                onClick={() =>
+                                    setManualUnlock(unlock.nodeId, false)
+                                }
+                                type="button"
+                            >
+                                {pendingAction === `${unlock.nodeId}:close`
+                                    ? 'Closing…'
+                                    : 'Close access'}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            ) : null}
         </section>
     );
 }

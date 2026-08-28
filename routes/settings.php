@@ -144,6 +144,9 @@ Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function ()
 
     Route::post('settings/worlds/nodes/{node}/reset-unlocks', [AdminWorldController::class, 'resetNodeUnlocks'])
         ->name('settings.worlds.nodes.unlocks.reset');
+
+    Route::post('settings/worlds/nodes/{node}/manual-unlock', [AdminWorldController::class, 'setLearnerNodeManualUnlock'])
+        ->name('settings.worlds.nodes.manual-unlock');
 });
 
 Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(function () {

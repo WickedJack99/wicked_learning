@@ -550,6 +550,53 @@ test('learners unlock locked nodes only after configured rules pass', function (
         );
 });
 
+test('a manual learner opening makes a locked node available without changing its rules', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $requiredNode = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $lockedNode = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $lockedNode->forceFill([
+        'state' => 'locked',
+        'visual_config' => [
+            ...($lockedNode->visual_config ?? []),
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'group',
+                    'operator' => 'and',
+                    'rules' => [[
+                        'type' => 'node_completed',
+                        'nodeId' => $requiredNode->id,
+                    ]],
+                ],
+            ],
+        ],
+    ])->save();
+
+    LearnerNodeDiscovery::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $lockedNode->id,
+        'discovered_at' => now(),
+        'metadata' => [
+            'manualUnlock' => [
+                'grantedAt' => now()->toIso8601String(),
+                'grantedByUserId' => $learner->id,
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('world.maps.0.nodes.2.slug', 'quiet-archive')
+            ->where('world.maps.0.nodes.2.state', 'available')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.isManuallyUnlocked', true)
+        );
+});
+
 test('learners unlock a locked node when they have its configured role', function () {
     $this->seed(DemoLearningWorldSeeder::class);
 

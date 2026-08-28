@@ -64,6 +64,10 @@ class NodeUnlockService
             return true;
         }
 
+        if ($userId !== null && $this->hasManualUnlock($node, $userId)) {
+            return true;
+        }
+
         $hasUnlockRules = $this->hasUnlockRules($node);
 
         if (! $hasUnlockRules) {
@@ -107,6 +111,7 @@ class NodeUnlockService
         return [
             'isUnlockable' => $isUnlockable,
             'isUnlocked' => $isUnlocked,
+            'isManuallyUnlocked' => $userId !== null && $this->hasManualUnlock($node, $userId),
             'isItemUnlockable' => $isItemUnlockable,
             'isToolUnlockable' => $this->isToolUnlockable($node),
             'itemOwned' => $userId !== null && $this->hasItemUnlock($node, $userId),
@@ -588,6 +593,21 @@ class NodeUnlockService
         $itemId = $this->configuredItemId($node);
 
         return $itemId !== null && in_array($itemId, $this->itemIds($userId), true);
+    }
+
+    private function hasManualUnlock(LearningNode $node, int $userId): bool
+    {
+        $node->loadMissing('discoveries');
+
+        return $node->discoveries->contains(function (LearnerNodeDiscovery $discovery) use ($userId): bool {
+            $metadata = is_array($discovery->metadata) ? $discovery->metadata : [];
+            $manualUnlock = is_array($metadata['manualUnlock'] ?? null)
+                ? $metadata['manualUnlock']
+                : [];
+
+            return (int) $discovery->user_id === $userId
+                && isset($manualUnlock['grantedAt']);
+        });
     }
 
     /** @return list<int> */

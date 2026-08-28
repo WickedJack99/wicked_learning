@@ -33,7 +33,7 @@ This repository is no longer only a concept archive. It contains a working verti
 - configurable MapAsset labels, borders, highlights and alternate highlight images
 - discoverable hidden MapAssets that can be revealed with tools
 - locked MapAssets with configurable completion, tool, role, item and time
-  unlock conditions
+  unlock conditions, plus reversible per-learner openings from Learning Support
 - editable public presentation content and auth page backgrounds
 - reusable visual and sound libraries for uploaded assets
 - configurable cursor images for normal, action, grab, text and denied states
@@ -47,7 +47,8 @@ This repository is no longer only a concept archive. It contains a working verti
 - learner journal pages with Markdown editing, search, autosaved drafts and export
 - optional learner requests for journal feedback from permitted review domains
 - learner-message prompts, optional support requests, peer responses and message walls with moderation tools
-- learner-facing competence history and non-competitive support signals for authorised staff
+- learner-facing competence history and non-competitive support signals for authorised staff,
+  including scoped per-learner access support
 - organizations, learning groups and shared-task activity prototypes
 - configurable AI providers and reusable agent templates with structured provider errors
 - reviewable AI content drafts that create a MapAsset and short activity route only after admin approval

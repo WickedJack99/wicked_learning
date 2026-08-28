@@ -6,6 +6,7 @@ use App\Access\AccessLevel;
 use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearnerNodeDiscovery;
 use App\Models\User;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,12 +36,14 @@ class LoadLearnerSupportSignals
             ->whereIn('user_id', $learnerIds)
             ->get()
             ->groupBy('user_id');
+        $manualUnlocksByUser = $this->manualUnlocksByUser($learnerIds);
         $supportLearners = $learners
             ->map(fn (User $learner): array => $this->learnerSignals(
                 $learner,
                 $eventsByUser->get($learner->id, collect()),
                 $monthKey,
                 $lastActivityByUser->get($learner->id),
+                $manualUnlocksByUser->get($learner->id, collect()),
             ))
             ->values()
             ->all();
@@ -61,6 +64,11 @@ class LoadLearnerSupportSignals
                     ->count(),
             ],
         ];
+    }
+
+    public function canViewLearner(User $viewer, int $learnerId): bool
+    {
+        return $this->visibleLearners($viewer)->whereKey($learnerId)->exists();
     }
 
     /**
@@ -104,8 +112,13 @@ class LoadLearnerSupportSignals
      * @param  Collection<int, LearnerEvidenceEvent>  $events
      * @return array<string, mixed>
      */
-    private function learnerSignals(User $learner, Collection $events, string $monthKey, mixed $lastActivityAt): array
-    {
+    private function learnerSignals(
+        User $learner,
+        Collection $events,
+        string $monthKey,
+        mixed $lastActivityAt,
+        Collection $manualUnlocks,
+    ): array {
         $topicSignals = $events
             ->groupBy('topic_slug')
             ->map(fn (Collection $topicEvents): array => $this->topicSignal($topicEvents, $monthKey))
@@ -130,7 +143,36 @@ class LoadLearnerSupportSignals
                 ->all(),
             'topics' => $topicSignalList,
             'signals' => $this->supportNotes($topicSignalList),
+            'manualUnlocks' => $manualUnlocks
+                ->map(fn (LearnerNodeDiscovery $discovery): array => [
+                    'nodeId' => (int) $discovery->learning_node_id,
+                    'mapTitle' => $discovery->node?->map?->title,
+                    'nodeTitle' => $discovery->node?->title,
+                    'grantedAt' => data_get($discovery->metadata, 'manualUnlock.grantedAt'),
+                ])
+                ->values()
+                ->all(),
         ];
+    }
+
+    /**
+     * @param  list<int>  $learnerIds
+     * @return Collection<int, Collection<int, LearnerNodeDiscovery>>
+     */
+    private function manualUnlocksByUser(array $learnerIds): Collection
+    {
+        if ($learnerIds === []) {
+            return collect();
+        }
+
+        return LearnerNodeDiscovery::query()
+            ->with(['node:id,learning_map_id,title', 'node.map:id,title'])
+            ->whereIn('user_id', $learnerIds)
+            ->get()
+            ->filter(fn (LearnerNodeDiscovery $discovery): bool => is_array($discovery->metadata)
+                && is_array($discovery->metadata['manualUnlock'] ?? null)
+                && isset($discovery->metadata['manualUnlock']['grantedAt']))
+            ->groupBy('user_id');
     }
 
     /**

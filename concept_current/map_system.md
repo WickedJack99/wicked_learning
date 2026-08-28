@@ -44,6 +44,10 @@ Current learner behavior:
   opened for orientation. Their learner panel shows actionable condition
   labels and the learner's current state without exposing authored rule data;
   prerequisite place labels link back to the relevant map location.
+- Authorised Learning Support staff can make a locked MapAsset available for one
+  visible learner when a human support decision calls for it. This manual
+  opening is reversible, recorded separately from authored prerequisites and
+  does not consume tools or items.
 - Hidden MapAssets can be revealed by configured tools.
 - MapAssets can be bookmarked and found through server-side map search.
 - Activity playback runs on a dedicated page and returns to the related map.
@@ -86,6 +90,9 @@ Topic connection:
 - Authors can optionally require an item in the learner's inventory. Entering a
   node checks possession without consuming the item; item-obstacle activities
   remain the explicit place for item consumption.
+- Learning Support can review and close manual openings for a selected learner;
+  resetting tool-based discoveries does not silently remove this separate
+  support decision.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

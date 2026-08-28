@@ -13,6 +13,7 @@ use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
+use App\Learning\Actions\SetLearnerNodeManualUnlock;
 use App\Learning\Actions\SwapLearningNode;
 use App\Learning\Actions\UpdateLearningMapAccess;
 use App\Learning\Actions\UpdateLearningMapAsset;
@@ -21,6 +22,7 @@ use App\Learning\Actions\UpdateLearningMapEditingGroups;
 use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableWorldGraph;
+use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
@@ -29,6 +31,7 @@ use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,9 +56,11 @@ class AdminWorldController extends Controller
         private readonly InsertLearningNodeIntoHexGrid $insertLearningNode,
         private readonly SwapLearningNode $swapLearningNode,
         private readonly ResetLearningNodeUnlocks $resetLearningNodeUnlocks,
+        private readonly SetLearnerNodeManualUnlock $setLearnerNodeManualUnlock,
         private readonly WorldPortalLinkService $worldPortalLinks,
         private readonly NodeImageUploadService $nodeImages,
         private readonly LearningMapEditAccessService $mapEditAccess,
+        private readonly LoadLearnerSupportSignals $learnerSupportSignals,
     ) {}
 
     public function index(Request $request): RedirectResponse
@@ -312,6 +317,37 @@ class AdminWorldController extends Controller
         $this->resetLearningNodeUnlocks->handle($node);
 
         return $this->redirectToMap($node->map);
+    }
+
+    public function setLearnerNodeManualUnlock(Request $request, LearningNode $node): RedirectResponse
+    {
+        $node->loadMissing('map');
+        $this->authorizeMapEdit($request, $node->map);
+        abort_unless(
+            $request->user()?->can(PermissionCatalog::ability(PermissionCatalog::LEARNER_SUPPORT_SIGNALS, AccessLevel::READ)),
+            403,
+        );
+
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+        $actor = $request->user();
+        abort_unless(
+            $actor instanceof User
+                && $this->learnerSupportSignals->canViewLearner($actor, (int) $data['user_id']),
+            403,
+        );
+
+        $learner = User::query()->findOrFail((int) $data['user_id']);
+        $this->setLearnerNodeManualUnlock->handle(
+            $learner,
+            $node,
+            $actor,
+            (bool) $data['enabled'],
+        );
+
+        return back();
     }
 
     private function redirectToMap(LearningMap $map): RedirectResponse

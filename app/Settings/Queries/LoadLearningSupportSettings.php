@@ -7,6 +7,7 @@ use App\Access\PermissionCatalog;
 use App\Learning\Queries\LoadAdminJournalFeedbackRequests;
 use App\Learning\Queries\LoadAdminPanelMetrics;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Queries\LoadLearnerManualUnlockTargets;
 use App\Learning\Queries\LoadLearnerMessageModeration;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
@@ -25,6 +26,7 @@ class LoadLearningSupportSettings
         private readonly LoadAdminPanelMetrics $metrics,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
         private readonly LoadLearnerSupportSignals $supportSignals,
+        private readonly LoadLearnerManualUnlockTargets $manualUnlockTargets,
         private readonly LoadLearnerMessageModeration $learnerMessages,
         private readonly LoadAdminJournalFeedbackRequests $feedbackRequests,
         private readonly AdminJournalFeedbackRequestSerializer $feedbackSerializer,
@@ -105,8 +107,19 @@ class LoadLearningSupportSettings
      */
     private function supportSignals(User $user): ?array
     {
-        return $user->can(PermissionCatalog::ability(PermissionCatalog::LEARNER_SUPPORT_SIGNALS, AccessLevel::READ))
-            ? $this->supportSignals->handle($user)
-            : null;
+        if (! $user->can(PermissionCatalog::ability(PermissionCatalog::LEARNER_SUPPORT_SIGNALS, AccessLevel::READ))) {
+            return null;
+        }
+
+        $settings = $this->supportSignals->handle($user);
+        $canGrantManualUnlocks = $user->can(PermissionCatalog::ability(PermissionCatalog::WORLD_NODES, AccessLevel::UPDATE));
+
+        return [
+            ...$settings,
+            'canGrantManualUnlocks' => $canGrantManualUnlocks,
+            'manualUnlockTargets' => $canGrantManualUnlocks
+                ? $this->manualUnlockTargets->handle($user)
+                : [],
+        ];
     }
 }

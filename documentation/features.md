@@ -47,6 +47,9 @@ Current map behavior includes:
 - locked, hidden, hinted, available, recommended and completed learner states
 - unlock rules based on completed MapAssets, tools, learner roles, item
   possession, time and nested AND/OR groups
+- authorised Learning Support staff with map-node edit access can open a locked
+  MapAsset for one visible learner; the opening is reversible and does not alter
+  the authored prerequisites
 - tool-driven discovery of hidden MapAssets
 
 MapAssets have four interaction modes:
