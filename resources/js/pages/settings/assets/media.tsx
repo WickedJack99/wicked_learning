@@ -371,14 +371,12 @@ function AssetDetails({
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="grid min-h-0 flex-1 place-items-center overflow-hidden bg-[var(--settings-content-background)] p-4 sm:p-6">
-                <div className="aspect-video h-[clamp(8rem,22vh,18rem)] w-auto max-w-full overflow-hidden rounded-lg bg-slate-950/40">
-                    <img
-                        alt=""
-                        className="h-full w-full object-contain"
-                        draggable={false}
-                        src={asset.url}
-                    />
-                </div>
+                <img
+                    alt=""
+                    className="h-full min-h-0 w-full min-w-0 rounded-lg object-contain"
+                    draggable={false}
+                    src={asset.url}
+                />
             </div>
 
             <div className="shrink-0 border-t border-slate-200 p-4 dark:border-white/10">
