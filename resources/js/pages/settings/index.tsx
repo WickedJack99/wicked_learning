@@ -1988,7 +1988,9 @@ function UserDetailsDialog({
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <span className="font-medium">
-                                            Access updated
+                                            {event.action === 'password_updated'
+                                                ? 'Password updated'
+                                                : 'Access updated'}
                                         </span>
                                         <time
                                             className="text-xs text-[var(--settings-muted-text)]"
@@ -2017,7 +2019,7 @@ function UserDetailsDialog({
                         </div>
                     ) : (
                         <p className="text-sm text-[var(--settings-muted-text)]">
-                            No access changes recorded yet.
+                            No access or security changes recorded yet.
                         </p>
                     )}
                 </div>

@@ -11,6 +11,8 @@ class AccessChangeEvent extends Model
 {
     public const ACTION_ACCESS_UPDATED = 'access_updated';
 
+    public const ACTION_PASSWORD_UPDATED = 'password_updated';
+
     protected function casts(): array
     {
         return [

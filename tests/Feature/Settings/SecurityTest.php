@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AccessChangeEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -84,6 +85,16 @@ test('password can be updated', function () {
         ->assertRedirect(route('security.edit'));
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
+    expect(AccessChangeEvent::query()
+        ->where('target_user_id', $user->id)
+        ->where('action', AccessChangeEvent::ACTION_PASSWORD_UPDATED)
+        ->value('changes'))
+        ->toBe([
+            'credential' => [
+                'before' => 'Password stored',
+                'after' => 'Password updated',
+            ],
+        ]);
 });
 
 test('correct password must be provided to update password', function () {
