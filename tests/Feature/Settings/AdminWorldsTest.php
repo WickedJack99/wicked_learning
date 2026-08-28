@@ -1733,6 +1733,121 @@ test('admin unlock diagnostics reject malformed authored rule trees', function (
     expect($node->refresh()->state)->not->toBe('locked');
 });
 
+test('admin unlock diagnostics reject a locked-node prerequisite cycle', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->firstOrFail();
+    $firstNode = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $secondNode = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'cycle-check-node',
+        'title' => 'Cycle check node',
+        'description' => 'A locked node for unlock diagnostics.',
+        'position_q' => 8,
+        'position_r' => 8,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $firstNode->id,
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $firstNode), [
+            'title' => $firstNode->title,
+            'slug' => $firstNode->slug,
+            'description' => $firstNode->description,
+            'position_q' => $firstNode->position_q,
+            'position_r' => $firstNode->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'rules' => [
+                        'type' => 'node_completed',
+                        'nodeId' => $secondNode->id,
+                    ],
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('visual_config.unlock.rules');
+
+    expect($firstNode->refresh()->visual_config['unlock']['rules'] ?? null)
+        ->not->toBe([
+            'type' => 'node_completed',
+            'nodeId' => $secondNode->id,
+        ]);
+});
+
+test('admin unlock diagnostics allow a cycle when an OR branch can open independently', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->firstOrFail();
+    $firstNode = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $secondNode = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'optional-cycle-node',
+        'title' => 'Optional cycle node',
+        'description' => 'A locked node for unlock diagnostics.',
+        'position_q' => 9,
+        'position_r' => 9,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $firstNode->id,
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $firstNode), [
+            'title' => $firstNode->title,
+            'slug' => $firstNode->slug,
+            'description' => $firstNode->description,
+            'position_q' => $firstNode->position_q,
+            'position_r' => $firstNode->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'rules' => [
+                        'type' => 'group',
+                        'operator' => 'or',
+                        'rules' => [
+                            [
+                                'type' => 'node_completed',
+                                'nodeId' => $secondNode->id,
+                            ],
+                            [
+                                'type' => 'time_after',
+                            ],
+                        ],
+                    ],
+                ],
+                'schedule' => [
+                    'unlockAt' => '2099-01-01 12:00:00',
+                ],
+            ],
+        ])
+        ->assertRedirect(route('settings.worlds.maps.edit', $firstNode->map));
+
+    expect($firstNode->refresh()->visual_config['unlock']['rules']['operator'] ?? null)
+        ->toBe('or');
+});
+
 test('admin users can save a valid authored item unlock tree', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

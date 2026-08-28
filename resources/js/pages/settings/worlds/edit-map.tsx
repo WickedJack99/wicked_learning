@@ -1815,6 +1815,9 @@ export default function EditWorldMap({
                                                     message={
                                                         errors[
                                                             'visual_config.unlock.enabled'
+                                                        ] ??
+                                                        errors[
+                                                            'visual_config.unlock.rules'
                                                         ]
                                                     }
                                                 />

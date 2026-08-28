@@ -119,8 +119,11 @@ participation.
 - [x] Add a reversible per-learner manual opening for locked nodes in Learning
   Support. Keep it separate from authored prerequisites and show current
   openings so support staff can close them again.
-- Expand authored unlock rules with conflict evaluation of combinations beyond
-  the current completion, tool, role, item and time conditions.
+- [x] Detect deadlocked cycles in authored locked-node prerequisites, including
+  nested AND/OR rules, while allowing optional OR branches with an independent
+  opening path.
+- Continue authored unlock conflict evaluation beyond prerequisite cycles,
+  including combinations that are structurally valid but still unreachable.
 
 ## Priority 3 - Deeper Cooperation
 

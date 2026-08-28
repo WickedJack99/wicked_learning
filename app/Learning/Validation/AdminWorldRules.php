@@ -145,6 +145,14 @@ class AdminWorldRules
             );
         }
 
+        $this->validateUnlockPrerequisiteCycles(
+            $data,
+            $node,
+            $rules,
+            $requiredNodeIds,
+            $errors,
+        );
+
         if (($schedule['unlockAt'] ?? null) && ($schedule['lockAt'] ?? null)) {
             $unlockAt = Carbon::parse($schedule['unlockAt']);
             $lockAt = Carbon::parse($schedule['lockAt']);
@@ -161,6 +169,171 @@ class AdminWorldRules
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
+    }
+
+    /**
+     * Reject locked-node prerequisites that can only be satisfied in a loop.
+     * Optional OR branches are considered carefully: a cycle is only a
+     * conflict when the referenced node is required on every successful path.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<int, mixed>  $rules
+     * @param  array<int, mixed>  $requiredNodeIds
+     * @param  array<string, string>  $errors
+     */
+    private function validateUnlockPrerequisiteCycles(
+        array $data,
+        ?LearningNode $node,
+        array $rules,
+        array $requiredNodeIds,
+        array &$errors,
+    ): void {
+        if (! $node || ($data['state'] ?? $node->state) !== 'locked') {
+            return;
+        }
+
+        $mandatoryNodeIds = $rules !== []
+            ? $this->mandatoryNodeIds([$rules])
+            : array_values(array_unique(array_map('intval', $requiredNodeIds)));
+
+        if ($mandatoryNodeIds === []) {
+            return;
+        }
+
+        $cachedDependencies = [];
+
+        foreach ($mandatoryNodeIds as $prerequisiteId) {
+            if ($this->nodeHasMandatoryPathTo(
+                $prerequisiteId,
+                $node->id,
+                $cachedDependencies,
+                [],
+            )) {
+                $errors[$rules !== []
+                    ? 'visual_config.unlock.rules'
+                    : 'visual_config.unlock.requiredNodeIds.0'] = 'These unlock conditions form a prerequisite cycle and cannot open.';
+
+                return;
+            }
+        }
+    }
+
+    /**
+     * Return node prerequisites that are present on every successful branch.
+     *
+     * @param  array<int, mixed>  $rules
+     * @return list<int>
+     */
+    private function mandatoryNodeIds(array $rules): array
+    {
+        $mandatory = [];
+
+        foreach ($rules as $rule) {
+            if (! is_array($rule)) {
+                continue;
+            }
+
+            $mandatory = [...$mandatory, ...$this->mandatoryNodeIdsForRule($rule)];
+        }
+
+        return array_values(array_unique(array_filter($mandatory, fn (int $id): bool => $id > 0)));
+    }
+
+    /**
+     * @param  array<string, mixed>  $rule
+     * @return list<int>
+     */
+    private function mandatoryNodeIdsForRule(array $rule): array
+    {
+        if (($rule['type'] ?? null) === 'node_completed') {
+            return [(int) ($rule['nodeId'] ?? 0)];
+        }
+
+        if (($rule['type'] ?? null) !== 'group') {
+            return [];
+        }
+
+        $children = is_array($rule['rules'] ?? null) ? $rule['rules'] : [];
+
+        if (($rule['operator'] ?? 'and') !== 'or') {
+            return $this->mandatoryNodeIds($children);
+        }
+
+        $branches = collect($children)
+            ->filter(fn (mixed $child): bool => is_array($child))
+            ->map(fn (array $child): array => $this->mandatoryNodeIdsForRule($child))
+            ->values()
+            ->all();
+
+        if ($branches === []) {
+            return [];
+        }
+
+        $mandatory = array_shift($branches);
+
+        foreach ($branches as $branch) {
+            $mandatory = array_values(array_intersect($mandatory, $branch));
+        }
+
+        return $mandatory;
+    }
+
+    /**
+     * @param  array<int, list<int>>  $cachedDependencies
+     * @param  array<int, true>  $visited
+     */
+    private function nodeHasMandatoryPathTo(
+        int $nodeId,
+        int $targetNodeId,
+        array &$cachedDependencies,
+        array $visited,
+    ): bool {
+        if ($nodeId === $targetNodeId) {
+            return true;
+        }
+
+        if ($nodeId <= 0 || isset($visited[$nodeId])) {
+            return false;
+        }
+
+        $visited[$nodeId] = true;
+
+        if (! array_key_exists($nodeId, $cachedDependencies)) {
+            $referencedNode = LearningNode::query()->find($nodeId);
+            $cachedDependencies[$nodeId] = $referencedNode?->state === 'locked'
+                ? $this->mandatoryNodeIdsForNode($referencedNode)
+                : [];
+        }
+
+        foreach ($cachedDependencies[$nodeId] as $dependencyId) {
+            if ($this->nodeHasMandatoryPathTo($dependencyId, $targetNodeId, $cachedDependencies, $visited)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function mandatoryNodeIdsForNode(LearningNode $node): array
+    {
+        $unlock = is_array($node->visual_config) && is_array($node->visual_config['unlock'] ?? null)
+            ? $node->visual_config['unlock']
+            : [];
+
+        if (! filter_var($unlock['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return [];
+        }
+
+        if (is_array($unlock['rules'] ?? null) && $unlock['rules'] !== []) {
+            return $this->mandatoryNodeIds([$unlock['rules']]);
+        }
+
+        return is_array($unlock['requiredNodeIds'] ?? null)
+            ? array_values(array_unique(array_map('intval', $unlock['requiredNodeIds'])))
+            : [];
     }
 
     /**
