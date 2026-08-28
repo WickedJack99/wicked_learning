@@ -853,8 +853,11 @@ function TopicCompetenceCard({
                                     'Recent moments',
                                 )}
                             </p>
-                            <div className="mt-3 divide-y divide-[var(--learner-border-color)]">
-                                {competence.evidenceLedger.map((entry) => {
+                            <LearnerPaginatedItems
+                                className="mt-3 divide-y divide-[var(--learner-border-color)]"
+                                items={competence.evidenceLedger}
+                                pageSize={4}
+                                renderItem={(entry) => {
                                     const content = (
                                         <span className="flex min-w-0 items-start justify-between gap-4">
                                             <span className="min-w-0">
@@ -898,8 +901,8 @@ function TopicCompetenceCard({
                                             {content}
                                         </div>
                                     );
-                                })}
-                            </div>
+                                }}
+                            />
                         </div>
                     ) : null}
                 </>

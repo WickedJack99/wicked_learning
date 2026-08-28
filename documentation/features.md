@@ -174,9 +174,11 @@ side by side as an optional look back, keeps intermediate reflections in a
 small paginated chronological view, and links to the full Journal.
 
 Activities can contribute weighted competence topics. Learners see a
-qualitative competence map, topic trails and bounded linked learning moments,
-while authorized support staff receive scoped signals for orientation and
-support conversations rather than ranking.
+qualitative competence map, topic trails and bounded linked learning moments.
+The evidence ledger keeps up to twelve recent events reachable through small
+paginated groups in the topic trail and selected-star reading, while authorized
+support staff receive scoped signals for orientation and support conversations
+rather than ranking.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

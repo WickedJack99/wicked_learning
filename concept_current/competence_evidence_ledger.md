@@ -2,8 +2,11 @@
 
 The evidence ledger is the learning substrate behind the star map. It records
 what kind of learning interaction happened without turning those interactions
-into a checklist or score. Learner topic pages and selected-light readings may
-show a bounded, linked set of recent moments from the ledger as orientation.
+into a checklist or score. Learner topic pages and selected-light readings show
+a bounded, linked set of recent moments from the ledger as orientation. The
+current window is twelve events, presented in small paginated groups so a
+longer history remains inspectable without expanding the reading panel
+indefinitely.
 
 ## Evidence types
 

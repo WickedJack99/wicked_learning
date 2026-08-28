@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import { learningCheckInDirectionLabel } from '@/features/world/activity-utils';
@@ -916,8 +917,11 @@ function CompetenceReading({
                     <p className="mt-2 text-xs leading-5 text-slate-400">
                         Recent learning moments informing this light.
                     </p>
-                    <div className="mt-3 grid gap-2">
-                        {topic.visual.evidenceLedger.map((evidence) => {
+                    <LearnerPaginatedItems
+                        className="mt-3 grid gap-2"
+                        items={topic.visual.evidenceLedger}
+                        pageSize={3}
+                        renderItem={(evidence) => {
                             const content = (
                                 <span className="flex items-start justify-between gap-3">
                                     <span className="min-w-0">
@@ -963,8 +967,11 @@ function CompetenceReading({
                                     {content}
                                 </div>
                             );
-                        })}
-                    </div>
+                        }}
+                        paginationClassName="mt-3 flex items-center justify-between border-t border-cyan-200/15 pt-3"
+                        paginationButtonClassName="inline-flex items-center gap-1 text-xs text-cyan-200 transition hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        paginationTextClassName="text-xs text-slate-500"
+                    />
                 </details>
             ) : null}
         </aside>

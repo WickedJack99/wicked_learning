@@ -147,7 +147,7 @@ class LoadLearnerCompetenceMap
     private function evidenceLedger(Collection $events): array
     {
         return array_values($events
-            ->take(6)
+            ->take(12)
             ->map(function (LearnerEvidenceEvent $event): array {
                 $activity = $event->activity;
                 $node = $activity?->node;

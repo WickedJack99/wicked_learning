@@ -618,6 +618,30 @@ test('competence star map shows studied topics and transitions', function () {
         );
 });
 
+test('competence evidence ledger keeps a bounded inspectable window', function () {
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([]);
+
+    foreach (range(1, 13) as $number) {
+        LearnerEvidenceEvent::query()->create([
+            'user_id' => $learner->id,
+            'learning_activity_id' => $activity->id,
+            'play_run_id' => (string) Str::uuid(),
+            'topic_slug' => 'algebra',
+            'topic_name' => 'Algebra',
+            'evidence_type' => 'retrieve',
+            'contribution' => $number,
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('competenceMap.topics.0.visual.evidenceLedger', 12)
+        );
+});
+
 test('competence star map keeps recent glow across month boundaries', function () {
     Carbon::setTestNow('2026-08-01 10:00:00');
 
