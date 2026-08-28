@@ -100,6 +100,8 @@ class NodeRevealService
         $reveal = is_array($config['reveal'] ?? null) ? $config['reveal'] : [];
         $toolId = (int) ($reveal['toolId'] ?? 0);
 
-        return $toolId > 0 ? $toolId : null;
+        return $toolId > 0 && LearningTool::query()->whereKey($toolId)->exists()
+            ? $toolId
+            : null;
     }
 }

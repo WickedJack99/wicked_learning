@@ -500,6 +500,8 @@ These are test gaps, not claims that the feature is broken:
 - World Builder should cover adding/editing/deleting an activity, opening and
   moving through the scoped AI review queue, changing an asset image, and
   saving a map visual.
+- World Builder unlock diagnostics now also reject stale hidden-node reveal
+  tool references before a dependent locked node can appear reachable.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map

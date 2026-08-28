@@ -1997,6 +1997,52 @@ test('admin unlock diagnostics report a hidden prerequisite without a reveal pat
     expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
 });
 
+test('admin unlock diagnostics report a hidden prerequisite with a missing reveal tool', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $hiddenPrerequisite = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'missing-reveal-tool-path',
+        'title' => 'Missing reveal tool path',
+        'description' => 'A hidden prerequisite with a stale reveal tool reference.',
+        'position_q' => 14,
+        'position_r' => 14,
+        'state' => 'hidden',
+        'visual_config' => [
+            'reveal' => [
+                'enabled' => true,
+                'toolId' => 999999,
+            ],
+        ],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'stale-reveal-prerequisite-check',
+        'title' => 'Stale reveal prerequisite check',
+        'description' => 'A locked node that depends on a hidden place with a stale reveal path.',
+        'position_q' => 15,
+        'position_r' => 15,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $hiddenPrerequisite->id,
+                ],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))
+        ->toBe([
+            [
+                'id' => $hiddenPrerequisite->id,
+                'title' => $hiddenPrerequisite->title,
+            ],
+        ]);
+});
+
 test('admin users can save a valid authored item unlock tree', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([
