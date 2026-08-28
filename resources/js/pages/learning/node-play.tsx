@@ -1,9 +1,11 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Bookmark } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createLearnerPrimaryNavigation } from '@/components/learner-navigation';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
 import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
 import { Button } from '@/components/ui/button';
+import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
 import {
@@ -83,6 +85,7 @@ export default function NodePlay({
         useState(initialPlayState);
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const [isBookmarking, setIsBookmarking] = useState(false);
+    const [journalOpen, setJournalOpen] = useState(false);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
     const [hiddenCheckInActivityId, setHiddenCheckInActivityId] = useState<
@@ -404,29 +407,22 @@ export default function NodePlay({
     const activeRouteLabel = playRouteId
         ? node.startRoutes.find((route) => route.id === playRouteId)?.label
         : null;
-    const navigationItems: LearnerNavigationItem[] = [
-        {
-            active: false,
-            href: '/home',
-            label: translate(
-                'home.learning_desk.navigation.desk',
-                'Learning desk',
-            ),
-        },
-        {
-            active: false,
-            href: mapHref,
-            label: translate('navigation.primary.map', 'Map'),
-        },
-        {
-            active: false,
-            href: '/bookmarks',
-            label: translate(
-                'home.learning_desk.navigation.bookmarks',
-                'Bookmarks',
-            ),
-        },
-    ];
+    const navigationItems: LearnerNavigationItem[] =
+        createLearnerPrimaryNavigation(translate, {
+            journalOpen,
+            onJournalOpen: () => setJournalOpen(true),
+        });
+
+    navigationItems.push({
+        active: false,
+        href: mapHref,
+        label: translate('navigation.primary.map', 'Map'),
+    });
+    navigationItems.push({
+        active: true,
+        href: typeof window === 'undefined' ? mapHref : window.location.href,
+        label: translate('navigation.activity.continue', 'Continue activity'),
+    });
 
     return (
         <>
@@ -602,6 +598,9 @@ export default function NodePlay({
                     </div>
                 </section>
             </main>
+            {journalOpen ? (
+                <JournalOverlay onClose={() => setJournalOpen(false)} />
+            ) : null}
         </>
     );
 }

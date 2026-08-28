@@ -39,6 +39,9 @@ promise that every interaction produces an immediate measurable gain.
 - [x] Make tool-resolved obstacles discoverable in the demo: restore seeded
   scene assets, keep a resilient visible target fallback and explain the
   hammer -> tool -> target interaction in playback.
+- [x] Use one learner navigation order across the desk, map, bookmarks and
+  activity surfaces. Contextual links extend the shared primary set rather
+  than creating a second map-only or activity-only header.
 
 The evidence base is strongest for autonomy-supportive teaching, retrieval and
 spacing, while relatedness effects are more context-dependent. Relatedness

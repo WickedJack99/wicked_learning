@@ -1,6 +1,8 @@
 import { usePage } from '@inertiajs/react';
 import { useCallback, useEffect, useState } from 'react';
+import { createLearnerPrimaryNavigation } from '@/components/learner-navigation';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
+import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { readPersistedActiveActivity } from '@/features/world/active-activity';
 import type { ActiveActivity } from '@/features/world/active-activity';
 import { worldHref } from '@/features/world/types';
@@ -18,6 +20,7 @@ export function LearnerSurfaceNavigation() {
     const { props, url } = usePage();
     const t = usePlatformTranslation();
     const isAuthenticated = Boolean(props.auth.user);
+    const [journalOpen, setJournalOpen] = useState(false);
     const [activeActivity, setActiveActivity] = useState<ActiveActivity | null>(
         () => readPersistedActiveActivity(),
     );
@@ -63,33 +66,22 @@ export function LearnerSurfaceNavigation() {
         return null;
     }
 
-    const items: LearnerSurfaceItem[] = [
-        {
-            active: false,
-            href: '/home',
-            id: 'learning-desk',
-            label: t('home.learning_desk.navigation.desk', 'Learning desk'),
-        },
-        {
-            active: isMapSurface,
-            href: worldHref,
-            id: 'map',
-            label: t('navigation.primary.map', 'Map'),
-        },
-        ...(isAuthenticated
-            ? [
-                  {
-                      active: isBookmarksSurface,
-                      href: '/bookmarks',
-                      id: 'bookmarks',
-                      label: t(
-                          'home.learning_desk.navigation.bookmarks',
-                          'Bookmarks',
-                      ),
-                  },
-              ]
-            : []),
-    ];
+    const items: LearnerSurfaceItem[] = createLearnerPrimaryNavigation(t, {
+        activeId: isBookmarksSurface ? 'bookmarks' : undefined,
+        journalOpen,
+        onJournalOpen: () => setJournalOpen(true),
+    });
+
+    if (!isAuthenticated) {
+        items.splice(1, 5);
+    }
+
+    items.push({
+        active: isMapSurface,
+        href: worldHref,
+        id: 'map',
+        label: t('navigation.primary.map', 'Map'),
+    });
 
     if (activeActivity) {
         items.push({
@@ -103,5 +95,12 @@ export function LearnerSurfaceNavigation() {
         });
     }
 
-    return <LearnerNavigationHeader items={items} mapThemed position="fixed" />;
+    return (
+        <>
+            <LearnerNavigationHeader items={items} mapThemed position="fixed" />
+            {journalOpen ? (
+                <JournalOverlay onClose={() => setJournalOpen(false)} />
+            ) : null}
+        </>
+    );
 }
