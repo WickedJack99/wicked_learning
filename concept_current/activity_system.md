@@ -106,10 +106,12 @@ Current UI behavior:
 - Starting a route navigates to a separate node-play page so the map does not keep unnecessary listeners and rendering work active during activity playback.
 - Activity playback uses the shared learner header with the same primary links
   as the learning desk, followed by Current map and Continue activity. The
-  order is Learning desk, Paths, Topics, Competence map, Journal, Bookmarks,
-  Current map, Continue activity. The same contextual links are also present
-  on the desk, Paths, Topics and competence surfaces when relevant, keeping
-  playback, map and bookmark surfaces in one learner navigation model.
+  order is Learning desk, Paths, Topics, Competence map, Bookmarks, Current
+  map, Continue activity. Journal is an icon-only utility control beside
+  notifications, rather than a primary route or side-rail action. The same
+  contextual links are also present on the desk, Paths, Topics and competence
+  surfaces when relevant, keeping playback, map and bookmark surfaces in one
+  learner navigation model.
 - Returning to an active activity should restore the map and focus the relevant node.
 - Activity progress is personal orientation, not a public score.
 - After completion, the learner may choose one of three bounded directions for

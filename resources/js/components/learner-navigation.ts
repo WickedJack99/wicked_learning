@@ -28,12 +28,6 @@ export const learnerPrimaryNavigation = [
         fallback: 'Competence map',
     },
     {
-        href: '/learning/journal',
-        id: 'journal',
-        key: 'home.learning_desk.navigation.journal',
-        fallback: 'Journal',
-    },
-    {
         href: '/bookmarks',
         id: 'bookmarks',
         key: 'home.learning_desk.navigation.bookmarks',
@@ -46,28 +40,17 @@ export function createLearnerPrimaryNavigation(
     options: {
         activeId?: string;
         activeUrl?: string;
-        journalOpen?: boolean;
-        onJournalOpen?: () => void;
     } = {},
 ): Array<LearnerNavigationItem & { id: string }> {
     return learnerPrimaryNavigation.map((item) => ({
         active:
-            item.id === 'journal'
-                ? (options.journalOpen ?? false)
-                : item.id === options.activeId ||
-                  (options.activeUrl
-                      ? isLearnerNavigationItemActive(
-                            options.activeUrl,
-                            item.href,
-                        )
-                      : false),
+            item.id === options.activeId ||
+            (options.activeUrl
+                ? isLearnerNavigationItemActive(options.activeUrl, item.href)
+                : false),
         href: item.href,
         id: item.id,
         label: t(item.key, item.fallback),
-        onClick:
-            item.id === 'journal' && options.onJournalOpen
-                ? options.onJournalOpen
-                : undefined,
     }));
 }
 

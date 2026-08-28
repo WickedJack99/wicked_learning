@@ -8,7 +8,6 @@ import {
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
 import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
 import { Button } from '@/components/ui/button';
-import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
 import {
@@ -88,7 +87,6 @@ export default function NodePlay({
         useState(initialPlayState);
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const [isBookmarking, setIsBookmarking] = useState(false);
-    const [journalOpen, setJournalOpen] = useState(false);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
         useState<PendingLearningCheckIn | null>(null);
     const [hiddenCheckInActivityId, setHiddenCheckInActivityId] = useState<
@@ -411,10 +409,7 @@ export default function NodePlay({
         ? node.startRoutes.find((route) => route.id === playRouteId)?.label
         : null;
     const navigationItems: LearnerNavigationItem[] =
-        createLearnerPrimaryNavigation(translate, {
-            journalOpen,
-            onJournalOpen: () => setJournalOpen(true),
-        });
+        createLearnerPrimaryNavigation(translate);
 
     appendLearnerContextNavigation(translate, navigationItems, {
         continueActive: true,
@@ -597,9 +592,6 @@ export default function NodePlay({
                     </div>
                 </section>
             </main>
-            {journalOpen ? (
-                <JournalOverlay onClose={() => setJournalOpen(false)} />
-            ) : null}
         </>
     );
 }

@@ -36,7 +36,7 @@ instead of being presented as working.
 | Competence          | Star-map empty state, topic return, learning pulse and star reading panel                                                                                       | Working; star activation is covered after correcting the payload-shape regression found in the 2026-08-27 pass       |
 | Map                 | Map selection, asset focus panel, activity links, surface navigation                                                                                            | Working at the checked desktop state                                                                                 |
 | Activity            | Shared header, map/bookmarks/learning-desk links, side context panel, activity player and “From beginning” action                                                | Working; topic, map, route and place context now sits beside the player instead of inside the global header             |
-| Journal             | Header action opens the journal dialog, page search/list/edit/save/delete controls and export link                                                              | Working; this is intentionally a dialog interaction from the learning desk, and `/journal` deep-links to that dialog |
+| Journal             | Top-right notes icon opens the journal dialog, page search/list/edit/save/delete controls and export link                                                        | Working; this is intentionally a utility interaction beside notifications, and `/journal` deep-links to that dialog |
 | AI review           | World Builder shows a world-level queue, exact node links and the scoped review-helper configuration                                                            | Working and discoverable                                                                                             |
 | Seeded media        | Pattern Lens has dark and light tool images and reusable-image selection controls                                                                               | Working                                                                                                              |
 | Scrollbars          | Scrollable areas do not render browser up/down arrow buttons                                                                                                    | Working; this is already implemented in the shared stylesheet                                                        |
@@ -83,9 +83,9 @@ only in historical migration and audit context, not in active learner code.
 
 The learner shell now has a shared header, maps add map controls and a focus
 panel, activities add player controls, and Journal opens as a dialog from the
-header while also having a route. These choices can work, but their ownership
-must stay explicit to avoid future nested headers, duplicate return actions, or
-controls being hidden behind another surface.
+top-right utility controls while also having a route. These choices can work,
+but their ownership must stay explicit to avoid future nested headers,
+duplicate return actions, or controls being hidden behind another surface.
 
 The desk, Topics, Paths, topic administration and organizations directory now
 use `LearnerDocumentSurface`. That shared component owns the global learner
@@ -343,10 +343,11 @@ own scrolling so these controls remain reachable in long editors.
 ### Completed — Describe transient learner panels
 
 The map action rail now exposes the expanded state and controlled panel for
-inventory, tools and Journal. Escape closes an open transient panel, and the
-inventory list uses the shared learner scroll-region contract so a growing
-collection does not push its controls out of reach. A broader keyboard pass
-for settings authoring and complex graph controls remains separate.
+inventory and tools. Journal is owned by the shared top-right utility controls,
+so it is not duplicated in the map rail. Escape closes an open transient panel,
+and the inventory list uses the shared learner scroll-region contract so a
+growing collection does not push its controls out of reach. A broader keyboard
+pass for settings authoring and complex graph controls remains separate.
 
 ### Completed — Review light-theme normal-text contrast in context
 
@@ -489,11 +490,12 @@ point without changing pointer navigation.
 
 ### Journal presentation
 
-The Journal opens as a focused overlay from the learning desk. Its content,
-sidebar, inputs, selected page, and action controls use the configurable
-journal theme for both appearance modes. Hover surfaces now use the same
-configured surfaces as the rest of the overlay, so a custom light or dark
-journal presentation does not fall back to fixed slate/white colors.
+The Journal opens as a focused overlay from the notes icon in the shared
+top-right learner controls. Its content, sidebar, inputs, selected page, and
+action controls use the configurable journal theme for both appearance modes.
+Hover surfaces now use the same configured surfaces as the rest of the
+overlay, so a custom light or dark journal presentation does not fall back to
+fixed slate/white colors.
 
 The journal remains a private reflection workspace: the visual pass does not
 change who can read pages, how feedback requests work, or how learning

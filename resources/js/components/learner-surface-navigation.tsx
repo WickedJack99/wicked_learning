@@ -1,11 +1,9 @@
 import { usePage } from '@inertiajs/react';
-import { useState } from 'react';
 import {
     appendLearnerContextNavigation,
     createLearnerPrimaryNavigation,
 } from '@/components/learner-navigation';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
-import { JournalOverlay } from '@/features/journal/journal-overlay';
 import { worldHref } from '@/features/world/types';
 import { usePersistedActiveActivity } from '@/features/world/use-persisted-active-activity';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -22,7 +20,6 @@ export function LearnerSurfaceNavigation() {
     const { props, url } = usePage();
     const t = usePlatformTranslation();
     const isAuthenticated = Boolean(props.auth.user);
-    const [journalOpen, setJournalOpen] = useState(false);
     const activeActivity = usePersistedActiveActivity(url);
 
     const isMapSurface = url.startsWith('/world');
@@ -34,8 +31,6 @@ export function LearnerSurfaceNavigation() {
 
     const items: LearnerSurfaceItem[] = createLearnerPrimaryNavigation(t, {
         activeId: isBookmarksSurface ? 'bookmarks' : undefined,
-        journalOpen,
-        onJournalOpen: () => setJournalOpen(true),
     });
 
     if (!isAuthenticated) {
@@ -50,12 +45,5 @@ export function LearnerSurfaceNavigation() {
             : (activeActivity?.worldHref ?? worldHref),
     });
 
-    return (
-        <>
-            <LearnerNavigationHeader items={items} mapThemed position="fixed" />
-            {journalOpen ? (
-                <JournalOverlay onClose={() => setJournalOpen(false)} />
-            ) : null}
-        </>
-    );
+    return <LearnerNavigationHeader items={items} mapThemed position="fixed" />;
 }

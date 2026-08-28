@@ -1,15 +1,8 @@
 import { router, usePage } from '@inertiajs/react';
-import {
-    Backpack,
-    Building2,
-    Hammer,
-    NotebookPen,
-    Sparkles,
-} from 'lucide-react';
+import { Backpack, Building2, Hammer, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { useAvailableLearningItems } from '@/features/items/item-inventory';
-import { JournalOverlay } from '@/features/journal/journal-overlay';
 import {
     selectLearningTool,
     useAvailableLearningTools,
@@ -26,7 +19,7 @@ import type {
     LearningNode,
 } from '@/types';
 
-type OverlayMode = 'inventory' | 'journal' | 'tools' | null;
+type OverlayMode = 'inventory' | 'tools' | null;
 type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
 
 export function AppSideActionBar() {
@@ -158,10 +151,6 @@ export function AppSideActionBar() {
                     />
                 </SideOverlay>
             ) : null}
-            {overlay === 'journal' ? (
-                <JournalOverlay onClose={closeOverlay} />
-            ) : null}
-
             <div
                 className="grid grid-flow-col gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:grid-flow-row dark:shadow-black/35"
                 style={{
@@ -216,17 +205,6 @@ export function AppSideActionBar() {
                     ) : (
                         <Hammer className="size-5" />
                     )}
-                </ActionButton>
-                <ActionButton
-                    ariaControls="learning-journal-panel"
-                    ariaExpanded={overlay === 'journal'}
-                    isActive={overlay === 'journal'}
-                    label="Open journal"
-                    onClick={(event) =>
-                        toggleOverlay('journal', event.currentTarget)
-                    }
-                >
-                    <NotebookPen className="size-5" />
                 </ActionButton>
                 <ActionButton
                     label="Open competence star map"

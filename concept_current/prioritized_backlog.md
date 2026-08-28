@@ -42,7 +42,9 @@ promise that every interaction produces an immediate measurable gain.
 - [x] Use one learner navigation order across the desk, map, bookmarks and
   activity surfaces. Contextual links extend the shared primary set rather
   than creating a second map-only or activity-only header, and the map link is
-  named Current map on learner surfaces.
+  named Current map on learner surfaces. Journal is an icon-only utility
+  action beside notifications, not a primary navigation item or side-rail
+  action.
 
 The evidence base is strongest for autonomy-supportive teaching, retrieval and
 spacing, while relatedness effects are more context-dependent. Relatedness
