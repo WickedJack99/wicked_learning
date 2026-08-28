@@ -6,7 +6,7 @@ import {
     Map as MapIcon,
     Route,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
@@ -28,7 +28,6 @@ import type {
 
 export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     const t = usePlatformTranslation();
-    const [activeSection, setActiveSection] = useState<TopicSection>('trail');
     const sections: { id: TopicSection; label: string }[] = [
         { id: 'trail', label: t('topics.detail.navigation.trail', 'Trail') },
         { id: 'routes', label: t('topics.detail.navigation.routes', 'Routes') },
@@ -38,6 +37,33 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             label: t('topics.detail.navigation.overview', 'Overview'),
         },
     ];
+    const [activeSection, setActiveSection] = useState<TopicSection>(() =>
+        topicSectionFromUrl(),
+    );
+
+    useEffect(() => {
+        const handlePopState = () => {
+            setActiveSection(topicSectionFromUrl());
+        };
+
+        window.addEventListener('popstate', handlePopState);
+
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    function selectSection(section: TopicSection) {
+        setActiveSection(section);
+
+        const url = new URL(window.location.href);
+
+        if (section === 'trail') {
+            url.searchParams.delete('section');
+        } else {
+            url.searchParams.set('section', section);
+        }
+
+        window.history.pushState(window.history.state, '', url);
+    }
 
     return (
         <LearnerDocumentSurface scrollable={false}>
@@ -79,7 +105,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             className="shrink-0 border-b-2 border-transparent px-3 py-3 text-sm font-medium text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] aria-selected:border-[var(--learner-accent)] aria-selected:text-[var(--learner-heading-text)]"
                             id={`topic-${section.id}-tab`}
                             key={section.id}
-                            onClick={() => setActiveSection(section.id)}
+                            onClick={() => selectSection(section.id)}
                             onKeyDown={(event) => {
                                 let nextIndex: number | null = null;
 
@@ -107,7 +133,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 
                                 event.preventDefault();
                                 const nextSection = sections[nextIndex];
-                                setActiveSection(nextSection.id);
+                                selectSection(nextSection.id);
                                 window.setTimeout(
                                     () =>
                                         document
@@ -354,6 +380,18 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
 }
 
 type TopicSection = 'maps' | 'overview' | 'routes' | 'trail';
+
+function topicSectionFromUrl(): TopicSection {
+    if (typeof window === 'undefined') {
+        return 'trail';
+    }
+
+    const section = new URLSearchParams(window.location.search).get('section');
+
+    return section === 'maps' || section === 'overview' || section === 'routes'
+        ? section
+        : 'trail';
+}
 
 function TopicPanel({
     children,

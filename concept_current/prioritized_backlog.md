@@ -80,7 +80,9 @@ participation.
 - Continue refining learner navigation and information architecture across the
   learning desk, Topics, Paths, Journal, competence and maps. Keep direct map
   access and authored portal travel complementary, and preserve optional rather
-  than forced topic nesting.
+  than forced topic nesting. Topic detail sections are now shareable and
+  browser-history aware (`?section=trail|routes|maps|overview`), so a learner
+  can return to the exact part of a topic without reopening a map.
 - [x] Improve private learning analytics and reflection support without rankings.
   Topic trails now keep the earlier/later look-back and expose a small
   chronological, paginated set of intermediate reflections for the learner.

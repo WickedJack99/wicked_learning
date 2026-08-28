@@ -6,7 +6,7 @@ export default function ShowTopic({ topic }: { topic: TopicDetailData }) {
     return (
         <>
             <Head title={topic.title} />
-            <TopicDetail topic={topic} />
+            <TopicDetail key={topic.slug} topic={topic} />
         </>
     );
 }
