@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { cn } from '@/lib/utils';
 
 export function LearnerPaginatedItems<T>({
     className = 'grid gap-3 sm:grid-cols-2',
@@ -39,13 +40,19 @@ export function LearnerPaginatedItems<T>({
                     .map(renderItem)}
             </div>
             {pageCount > 1 ? (
-                <div className={paginationClassName}>
+                <nav
+                    aria-label={t('common.pagination.navigation', 'Pagination')}
+                    className={paginationClassName}
+                >
                     <button
                         aria-label={t(
                             'common.pagination.previous',
                             'Previous items',
                         )}
-                        className={paginationButtonClassName}
+                        className={cn(
+                            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]',
+                            paginationButtonClassName,
+                        )}
                         disabled={currentPage === 0}
                         onClick={() =>
                             setPage((value) => Math.max(0, value - 1))
@@ -57,6 +64,7 @@ export function LearnerPaginatedItems<T>({
                     </button>
                     <span
                         aria-live="polite"
+                        role="status"
                         className={paginationTextClassName}
                     >
                         {t(
@@ -70,7 +78,10 @@ export function LearnerPaginatedItems<T>({
                     </span>
                     <button
                         aria-label={t('common.pagination.next', 'Next items')}
-                        className={paginationButtonClassName}
+                        className={cn(
+                            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]',
+                            paginationButtonClassName,
+                        )}
                         disabled={currentPage === pageCount - 1}
                         onClick={() =>
                             setPage((value) =>
@@ -82,7 +93,7 @@ export function LearnerPaginatedItems<T>({
                         {t('common.pagination.next_short', 'Next')}
                         <ChevronRight className="size-4" />
                     </button>
-                </div>
+                </nav>
             ) : null}
         </>
     );

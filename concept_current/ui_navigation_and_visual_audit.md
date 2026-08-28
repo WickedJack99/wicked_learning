@@ -427,6 +427,10 @@ the topics inside each area. Topic detail uses the same control, so growing
 collections have an explicit next/previous path instead of pushing the page
 past the intended surface height.
 
+Pagination controls now expose a navigation landmark, announce the active page
+as a status update and retain a visible keyboard focus outline across learner,
+settings and administration surfaces.
+
 The standalone Paths directory now follows the same rule, showing six route
 cards per page while preserving every server-provided route for navigation.
 The Paths feature test now protects that contract with seven accessible routes,
@@ -533,6 +537,8 @@ These are test gaps, not claims that the feature is broken:
   keeping the selected editor and add actions visible as configurations grow.
 - Administration feedback requests and organization-icon reports now paginate
   their chooser lists, keeping response and moderation actions contained.
+- Shared pagination controls now expose a labelled navigation landmark, a live
+  page status and a visible keyboard focus outline.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map
