@@ -136,8 +136,9 @@ region scrolls on its own axis without moving controls off-screen.
 
 Settings asset/palette surfaces use intentional nested scrolling. The same
 containment contract still needs explicit coverage for long lists and graphs:
-topic cards, bookmarks, journal pages, AI review queues, graph nodes, map
-assets, reusable media, tools, items, organization messages and join requests.
+topic cards, bookmarks, journal pages, AI review queues, AI provider keys and
+agent templates, graph nodes, map assets, reusable media, tools, items,
+organization messages and join requests.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -157,6 +158,10 @@ spill without moving neighboring controls when the list grows.
 The Journal page chooser uses bounded four-page pagination instead of a list
 scrollbar. Search resets the chooser to its first page, while the selected
 page's editor remains a continuous writing surface.
+
+The AI settings provider and agent-template choosers use bounded five-entry
+pagination. Their editor remains independent and continuously scrollable, so
+choosing a configured helper does not push the footer actions off-screen.
 
 **Acceptance criteria:** seeded long-data browser checks assert no clipped
 actions, no unreachable final item, and no page-wide horizontal overflow. The
@@ -518,6 +523,8 @@ These are test gaps, not claims that the feature is broken:
   reusable inventories do not require a nested scrollbar to reach an entry.
 - The Journal page chooser now paginates four pages at a time and resets after
   search, keeping the writing editor separate from page navigation.
+- AI provider and agent-template choosers now paginate five entries at a time,
+  keeping the selected editor and add actions visible as configurations grow.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map

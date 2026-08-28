@@ -12,8 +12,9 @@ import {
     Upload,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { Children, useMemo, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import {
     SettingsConfigurationShell,
     SettingsNestedWorkspace,
@@ -1684,6 +1685,7 @@ function ItemList({
     onAdd: () => void;
 }) {
     const t = usePlatformTranslation();
+    const items = Children.toArray(children);
 
     return (
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-[#0b1117]/80">
@@ -1700,13 +1702,21 @@ function ItemList({
                     <Plus className="size-4" />
                 </Button>
             </div>
-            <div className="grid gap-2 overflow-y-auto p-3">
-                {children}
-                {Array.isArray(children) && children.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                        {emptyLabel}
-                    </p>
-                ) : null}
+            <div className="min-h-0 flex-1 p-3">
+                <LearnerPaginatedItems
+                    className="grid gap-2"
+                    emptyState={
+                        <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                            {emptyLabel}
+                        </p>
+                    }
+                    items={items}
+                    pageSize={5}
+                    paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                    paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                    paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                    renderItem={(item) => item}
+                />
             </div>
             <div className="border-t border-slate-200 p-3 dark:border-white/10">
                 <Button className="w-full" type="button" onClick={onAdd}>
