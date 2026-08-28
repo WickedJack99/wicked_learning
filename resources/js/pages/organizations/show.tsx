@@ -19,6 +19,7 @@ import { useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { AccentHeading } from '@/components/accent-heading';
 import InputError from '@/components/input-error';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import {
     SettingsSectionNavigation,
     SettingsSidebar,
@@ -706,46 +707,51 @@ function JoinRequestPanel({
     return (
         <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#111820]">
             <h2 className="text-lg font-semibold">Join requests</h2>
-            {requests.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                    No pending requests.
-                </p>
-            ) : null}
-            {requests.map((request) => (
-                <article
-                    className="rounded-lg border border-slate-200 p-3 dark:border-white/10"
-                    key={request.id}
-                >
-                    <p className="font-medium">{request.requester.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {request.requester.email}
+            <LearnerPaginatedItems
+                className="grid gap-3"
+                emptyState={
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        No pending requests.
                     </p>
-                    {request.message ? (
-                        <p className="mt-2 text-sm leading-6">
-                            {request.message}
+                }
+                items={requests}
+                pageSize={4}
+                renderItem={(request) => (
+                    <article
+                        className="rounded-lg border border-slate-200 p-3 dark:border-white/10"
+                        key={request.id}
+                    >
+                        <p className="font-medium">{request.requester.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {request.requester.email}
                         </p>
-                    ) : null}
-                    <div className="mt-3 flex gap-2">
-                        <Button
-                            onClick={() => respond(request, true)}
-                            size="sm"
-                            type="button"
-                        >
-                            <Check className="size-4" />
-                            Approve
-                        </Button>
-                        <Button
-                            onClick={() => respond(request, false)}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            <X className="size-4" />
-                            Decline
-                        </Button>
-                    </div>
-                </article>
-            ))}
+                        {request.message ? (
+                            <p className="mt-2 text-sm leading-6">
+                                {request.message}
+                            </p>
+                        ) : null}
+                        <div className="mt-3 flex gap-2">
+                            <Button
+                                onClick={() => respond(request, true)}
+                                size="sm"
+                                type="button"
+                            >
+                                <Check className="size-4" />
+                                Approve
+                            </Button>
+                            <Button
+                                onClick={() => respond(request, false)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                <X className="size-4" />
+                                Decline
+                            </Button>
+                        </div>
+                    </article>
+                )}
+            />
         </section>
     );
 }
@@ -885,30 +891,40 @@ function MemberList({
     return (
         <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#111820]">
             <h2 className="text-sm font-semibold">Members</h2>
-            {members.map((member) => (
-                <div
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
-                    key={member.id}
-                >
-                    <div>
-                        <p className="font-medium">{member.user.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {member.role}
-                        </p>
+            <LearnerPaginatedItems
+                className="grid gap-3"
+                emptyState={
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                        No members yet.
+                    </p>
+                }
+                items={members}
+                pageSize={8}
+                renderItem={(member) => (
+                    <div
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
+                        key={member.id}
+                    >
+                        <div>
+                            <p className="font-medium">{member.user.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {member.role}
+                            </p>
+                        </div>
+                        {canPromote && member.role === 'member' ? (
+                            <Button
+                                onClick={() => onPromote(member.id)}
+                                size="sm"
+                                type="button"
+                                variant="secondary"
+                            >
+                                <UserPlus className="size-4" />
+                                Make leader
+                            </Button>
+                        ) : null}
                     </div>
-                    {canPromote && member.role === 'member' ? (
-                        <Button
-                            onClick={() => onPromote(member.id)}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            <UserPlus className="size-4" />
-                            Make leader
-                        </Button>
-                    ) : null}
-                </div>
-            ))}
+                )}
+            />
             <InputError message={errors.organization} />
         </section>
     );

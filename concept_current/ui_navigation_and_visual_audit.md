@@ -137,7 +137,7 @@ region scrolls on its own axis without moving controls off-screen.
 Settings asset/palette surfaces use intentional nested scrolling. The same
 containment contract still needs explicit coverage for long lists and graphs:
 topic cards, bookmarks, journal pages, AI review queues, graph nodes, map
-assets, reusable media, and organization members/messages.
+assets, reusable media, organization messages and join requests.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -502,6 +502,8 @@ These are test gaps, not claims that the feature is broken:
   saving a map visual.
 - World Builder unlock diagnostics now also reject stale hidden-node reveal
   tool references before a dependent locked node can appear reachable.
+- Organization members and pending join requests now use bounded pagination,
+  so large collections keep their actions inside the fixed workspace.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map
