@@ -377,6 +377,7 @@ class NodeUnlockReachability
         $this->answerEventTargets = [];
 
         NpcDialogueNode::query()
+            ->where('type', 'answer')
             ->get(['config'])
             ->each(function (NpcDialogueNode $dialogue): void {
                 $config = is_array($dialogue->config) ? $dialogue->config : [];

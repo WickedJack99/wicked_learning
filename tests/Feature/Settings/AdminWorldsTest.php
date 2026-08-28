@@ -1904,6 +1904,56 @@ test('admin unlock diagnostics report locked prerequisites without an authored o
     expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
 });
 
+test('admin unlock diagnostics only count answer events as an opening path', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $prerequisite = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'answer-event-scope-check',
+        'title' => 'Answer event scope check',
+        'description' => 'A locked node for authoring diagnostics.',
+        'position_q' => 15,
+        'position_r' => 15,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $prerequisite->id,
+                ],
+            ],
+        ],
+    ]);
+    $activity = LearningActivity::query()
+        ->where('learning_node_id', $map->nodes()->where('state', 'available')->value('id'))
+        ->firstOrFail();
+    NpcDialogueNode::query()->create([
+        'learning_activity_id' => $activity->id,
+        'type' => 'npc_monologue',
+        'title' => 'Not an answer',
+        'body' => 'This event cannot be chosen by a learner.',
+        'config' => [
+            'events' => [
+                'unlockNodeIds' => [$prerequisite->id],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))
+        ->toBe([
+            [
+                'id' => $prerequisite->id,
+                'title' => $prerequisite->title,
+            ],
+        ]);
+
+    NpcDialogueNode::query()->latest('id')->firstOrFail()->update(['type' => 'answer']);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
+});
+
 test('admin unlock diagnostics ignore an unreachable prerequisite in an optional OR branch', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $map = LearningMap::query()->firstOrFail();

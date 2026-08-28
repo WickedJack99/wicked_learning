@@ -99,6 +99,10 @@ Topic connection:
 - World Builder reports locked prerequisites that have no authored learner
   opening path. This is an advisory authoring diagnostic rather than a new
   learner state; a support opening can still be used intentionally.
+- Answer events can provide an independent opening path only when they are
+  attached to a selectable Answer node. Events stored on speech or question
+  nodes are not executable learner actions and therefore remain visible in
+  the authoring diagnostic.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

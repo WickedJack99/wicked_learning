@@ -136,8 +136,10 @@ participation.
 - [x] Diagnose hidden prerequisites that have no configured reveal path.
 - [x] Diagnose hidden prerequisites whose reveal tool reference no longer
   resolves to a shared tool.
-- Continue authored unlock conflict evaluation beyond prerequisite cycles,
+- [x] Continue authored unlock conflict evaluation beyond prerequisite cycles,
   including combinations that are structurally valid but still unreachable.
+  Opening events now count only when authored on selectable Answer nodes, so
+  events on speech or question nodes cannot hide a deadlocked prerequisite.
 
 ## Priority 3 - Deeper Cooperation
 
