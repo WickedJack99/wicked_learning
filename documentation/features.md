@@ -82,7 +82,8 @@ the selected route's reachable graph is repaired at the route start rather than
 silently opening another route's activity. New activity-to-activity graph
 connections use the destination activity title as their default label; terminal
 connections retain their connector outcome label, and authored labels remain
-unchanged.
+unchanged. Authors can select a graph connection to edit its learner-facing
+label or delete it explicitly; clearing the label restores the safe default.
 
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. The route remains a suggested way in,

@@ -204,6 +204,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::post('settings/worlds/nodes/{node}/activity-transitions', [AdminActivityController::class, 'storeTransition'])
         ->name('settings.worlds.nodes.activity-transitions.store');
 
+    Route::patch('settings/worlds/activity-transitions/{transition}', [AdminActivityController::class, 'updateTransition'])
+        ->name('settings.worlds.activity-transitions.update');
+
     Route::delete('settings/worlds/activity-transitions/{transition}', [AdminActivityController::class, 'destroyTransition'])
         ->name('settings.worlds.activity-transitions.destroy');
 });

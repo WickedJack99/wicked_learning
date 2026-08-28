@@ -1007,6 +1007,7 @@ test('admin users can create and connect activity graph nodes', function () {
             'to_activity_id' => $nextActivity->id,
             'from_connector' => 'completed',
             'to_connector' => 'in',
+            'label' => 'Choose another way',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
@@ -1014,7 +1015,23 @@ test('admin users can create and connect activity graph nodes', function () {
         ->where('to_activity_id', $nextActivity->id)
         ->firstOrFail();
 
-    expect($nextTransition->label)->toBe('Follow the note');
+    expect($nextTransition->label)->toBe('Choose another way');
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activity-transitions.update', $nextTransition), [
+            'label' => 'Take a closer look',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($nextTransition->refresh()->label)->toBe('Take a closer look');
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activity-transitions.update', $nextTransition), [
+            'label' => '',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($nextTransition->refresh()->label)->toBe('Follow the note');
 
     $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [

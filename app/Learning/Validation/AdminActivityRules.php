@@ -127,6 +127,17 @@ class AdminActivityRules
             'to_activity_id' => ['nullable', 'integer'],
             'from_connector' => ['required', 'string', 'max:80'],
             'to_connector' => ['required', 'string', 'max:80'],
+            'label' => ['nullable', 'string', 'max:120'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function transitionUpdate(): array
+    {
+        return [
+            'label' => ['nullable', 'string', 'max:120'],
         ];
     }
 

@@ -80,8 +80,10 @@ participation.
 
 ## Priority 2 - Authoring And Reuse
 
-- Let authors edit an optional learner-facing label for each activity-graph
-  connection, with the destination activity title remaining the safe default.
+- [x] Let authors edit an optional learner-facing label for each
+  activity-graph connection. Selecting a connection opens a small editor;
+  clearing the field restores the destination or connector default, and
+  deletion is explicit.
 - Add media tags, categories and useful transparency/animation metadata.
 - Improve MapAsset crop, anchor and placement ergonomics.
 - Add map/world version history, rollback and collaborative editing locks.

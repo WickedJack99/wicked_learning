@@ -17,7 +17,7 @@ The MVP uses this for:
 - Incorrect answer leading to an explicit review activity.
 - Review activity leading back to the question.
 
-The admin activity editor now uses a graph view for a single map node. It has a special Start node, a special End node, and activity nodes with Entry and Exit connectors. Dragging from one connector to another creates a connection. Clicking an existing normal connection removes it.
+The admin activity editor now uses a graph view for a single map node. It has a special Start node, a special End node, and activity nodes with Entry and Exit connectors. Dragging from one connector to another creates a connection. Selecting an existing normal connection opens its label editor; deletion is an explicit action in that editor.
 
 The synthetic Start node can connect to multiple first activities. Each Start-to-activity connection becomes a learner-facing route option in the focused MapAsset panel. A route option can have dark/light preview images and dark/light overlay button colors. If no image is configured, it still appears as a compact button. If enough route options exist, the route list scrolls inside the panel.
 
@@ -27,7 +27,8 @@ When an author connects one activity to another, the connection label defaults t
 the destination activity title so the learner and author can understand where
 the path goes. A connection to the synthetic End node keeps the source
 connector label, such as "Completed". Seeded or explicitly authored labels
-remain authoritative.
+remain authoritative. Authors can edit a label from the graph and clear a
+custom label to restore that default.
 
 `review` is an explicit review/revisit activity type that uses the same
 learner-owned reflection renderer and journal storage as `reflection`. The

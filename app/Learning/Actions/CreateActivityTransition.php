@@ -27,7 +27,12 @@ class CreateActivityTransition
 
         return ActivityTransition::query()->firstOrCreate(
             $this->transitionIdentity($fromActivity, $toActivity?->id, $data),
-            $this->transitionDefaults($fromActivity, $toActivity, (string) $data['from_connector']),
+            $this->transitionDefaults(
+                $fromActivity,
+                $toActivity,
+                (string) $data['from_connector'],
+                isset($data['label']) ? (string) $data['label'] : null,
+            ),
         );
     }
 
@@ -82,10 +87,15 @@ class CreateActivityTransition
         LearningActivity $fromActivity,
         ?LearningActivity $toActivity,
         string $fromConnector,
+        ?string $label = null,
     ): array {
+        $customLabel = trim((string) $label);
+
         return [
             'trigger' => $this->activityTypes->transitionTriggerForConnector($fromConnector),
-            'label' => $toActivity?->title ?? $this->activityTypes->labelForOutput($fromActivity, $fromConnector),
+            'label' => $customLabel !== ''
+                ? $customLabel
+                : ($toActivity?->title ?? $this->activityTypes->labelForOutput($fromActivity, $fromConnector)),
             'rules' => [],
         ];
     }

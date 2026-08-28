@@ -12,6 +12,7 @@ use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
+use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
@@ -41,6 +42,7 @@ class AdminActivityController extends Controller
         private readonly DeleteLearningActivity $deleteLearningActivity,
         private readonly ActivityStartRouteService $startRouteService,
         private readonly CreateActivityTransition $createActivityTransition,
+        private readonly UpdateActivityTransition $updateActivityTransition,
         private readonly DeleteActivityTransition $deleteActivityTransition,
         private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
@@ -228,6 +230,19 @@ class AdminActivityController extends Controller
         return $this->redirectToActivities(
             $this->deleteActivityTransition->handle($transition),
         );
+    }
+
+    public function updateTransition(Request $request, ActivityTransition $transition): RedirectResponse
+    {
+        $transition->loadMissing('fromActivity.node');
+        $this->authorizeNodeEdit($request, $transition->fromActivity->node);
+
+        $this->updateActivityTransition->handle(
+            $transition,
+            $request->validate($this->rules->transitionUpdate()),
+        );
+
+        return $this->redirectToActivities($transition->fromActivity->node);
     }
 
     private function redirectToActivities(LearningNode $node): RedirectResponse

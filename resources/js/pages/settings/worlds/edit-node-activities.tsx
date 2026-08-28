@@ -29,6 +29,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { ActivityReviewMetadataSuggestions } from '@/features/ai/activity-review-client';
 import { ActivityReviewDialog } from '@/features/ai/activity-review-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -55,6 +57,7 @@ import type {
     ActivityGraphPayload,
     ActivityNodeData,
     ActivityStartRoute,
+    ActivityTransitionSummary,
     ActivitySummary,
     EditableItem,
     EditableSound,
@@ -101,6 +104,14 @@ export default function EditNodeActivities({
     const [deleting, setDeleting] = useState(false);
     const [selectedActivity, setSelectedActivity] =
         useState<ActivitySummary | null>(null);
+    const [selectedTransition, setSelectedTransition] =
+        useState<ActivityTransitionSummary | null>(null);
+    const [transitionLabel, setTransitionLabel] = useState('');
+    const [transitionErrors, setTransitionErrors] = useState<
+        Record<string, string>
+    >({});
+    const [updatingTransition, setUpdatingTransition] = useState(false);
+    const [deletingTransition, setDeletingTransition] = useState(false);
     const [reviewingActivity, setReviewingActivity] =
         useState<ActivitySummary | null>(null);
     const [selectedStartRoute, setSelectedStartRoute] =
@@ -451,7 +462,7 @@ export default function EditNodeActivities({
         );
     };
 
-    const removeEdge = (edge: ActivityGraphEdge) => {
+    const handleEdgeClick = (edge: ActivityGraphEdge) => {
         if (edge.id.startsWith('start:')) {
             const activityId =
                 edge.data && 'start' in edge.data ? Number(edge.target) : null;
@@ -473,11 +484,56 @@ export default function EditNodeActivities({
             edge.data && 'id' in edge.data ? edge.data.id : null;
 
         if (transitionId) {
-            router.delete(
-                `/settings/worlds/activity-transitions/${transitionId}`,
-                { preserveScroll: true },
-            );
+            const transition =
+                activityGraph.transitions.find(
+                    (candidate) => candidate.id === transitionId,
+                ) ?? null;
+
+            if (transition) {
+                setSelectedTransition(transition);
+                setTransitionLabel(transition.label ?? '');
+                setTransitionErrors({});
+            }
         }
+    };
+
+    const updateTransition = () => {
+        if (!selectedTransition) {
+            return;
+        }
+
+        setUpdatingTransition(true);
+
+        router.patch(
+            `/settings/worlds/activity-transitions/${selectedTransition.id}`,
+            { label: transitionLabel },
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setTransitionErrors(nextErrors),
+                onSuccess: () => {
+                    setSelectedTransition(null);
+                    setTransitionErrors({});
+                },
+                onFinish: () => setUpdatingTransition(false),
+            },
+        );
+    };
+
+    const deleteTransition = () => {
+        if (!selectedTransition) {
+            return;
+        }
+
+        setDeletingTransition(true);
+
+        router.delete(
+            `/settings/worlds/activity-transitions/${selectedTransition.id}`,
+            {
+                preserveScroll: true,
+                onSuccess: () => setSelectedTransition(null),
+                onFinish: () => setDeletingTransition(false),
+            },
+        );
     };
 
     const savePosition = (node: ActivityGraphNode) => {
@@ -638,7 +694,7 @@ export default function EditNodeActivities({
                                     return;
                                 }
 
-                                removeEdge(graphEdge);
+                                handleEdgeClick(graphEdge);
                             }}
                             onEdgesChange={onEdgesChange}
                             onNodeDragStop={(_, node) =>
@@ -686,6 +742,77 @@ export default function EditNodeActivities({
                 onUseMetadata={editWithReviewSuggestions}
                 templates={activityGraph.aiReviewTemplates}
             />
+
+            <Dialog
+                open={Boolean(selectedTransition)}
+                onOpenChange={(open) => {
+                    if (!open && !updatingTransition && !deletingTransition) {
+                        setSelectedTransition(null);
+                        setTransitionErrors({});
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Edit connection</DialogTitle>
+                        <DialogDescription>
+                            Give this path a short label for the activity graph.
+                            Leaving it blank restores the default label.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <Label htmlFor="activity-transition-label">
+                            Connection label
+                        </Label>
+                        <Input
+                            id="activity-transition-label"
+                            maxLength={120}
+                            onChange={(event) =>
+                                setTransitionLabel(event.target.value)
+                            }
+                            value={transitionLabel}
+                        />
+                        {transitionErrors.label ? (
+                            <p className="text-sm text-red-600 dark:text-red-400">
+                                {transitionErrors.label}
+                            </p>
+                        ) : null}
+                    </div>
+                    <DialogFooter className="gap-2 sm:justify-between">
+                        <Button
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-400/10"
+                            disabled={updatingTransition || deletingTransition}
+                            onClick={deleteTransition}
+                            type="button"
+                            variant="ghost"
+                        >
+                            <Trash2 className="size-4" />
+                            Delete connection
+                        </Button>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                disabled={
+                                    updatingTransition || deletingTransition
+                                }
+                                onClick={() => setSelectedTransition(null)}
+                                type="button"
+                                variant="outline"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                disabled={
+                                    updatingTransition || deletingTransition
+                                }
+                                onClick={updateTransition}
+                                type="button"
+                            >
+                                Save
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <SettingsConfigurationDialog className="flex h-[calc(100svh-8rem)] flex-col overflow-hidden">
