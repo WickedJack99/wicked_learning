@@ -11,6 +11,7 @@ import type { Connection } from '@xyflow/react';
 import {
     ArrowLeft,
     ArrowRight,
+    AlertTriangle,
     GitBranch,
     Plus,
     Sparkles,
@@ -36,6 +37,7 @@ import type { ActivityReviewMetadataSuggestions } from '@/features/ai/activity-r
 import { ActivityReviewDialog } from '@/features/ai/activity-review-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import { ConfigImageInput } from './activity-config-fields';
 import { ActivityFormFields } from './activity-form-fields';
@@ -51,6 +53,7 @@ import {
     routeActivityTitle,
 } from './activity-graph-elements';
 import { themedPreviewAsset } from './activity-scene-preview';
+import { activityTemplateContext } from './activity-template-context';
 import type {
     ActivityForm,
     ActivityGraphEdge,
@@ -81,6 +84,7 @@ export default function EditNodeActivities({
     tools: EditableTool[];
 }) {
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const [createOpen, setCreateOpen] = useState(false);
     const [creating, setCreating] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -270,6 +274,9 @@ export default function EditNodeActivities({
     const selectedEditType = activityGraph.activityTypes.find(
         (type) => type.key === editForm.type,
     );
+    const copiedTemplateContext = duplicateSourceTitle
+        ? activityTemplateContext(form)
+        : null;
     const activitiesNeedingReview = activityGraph.activities.filter(
         (activity) => activity.aiReviewStatus !== 'reviewed',
     ).length;
@@ -861,6 +868,42 @@ export default function EditNodeActivities({
                                 : 'Create an activity in this MapAsset. Choose its type, then configure its content, visuals, sound and learning evidence.'}
                         </DialogDescription>
                     </DialogHeader>
+
+                    {copiedTemplateContext ? (
+                        <div className="grid gap-2 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
+                            <p className="flex items-start gap-2 font-medium">
+                                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                                {t(
+                                    'settings.worlds.activities.template.scope',
+                                    'This copy stays in the current MapAsset. It is a starting point, not a shared template.',
+                                )}
+                            </p>
+                            {copiedTemplateContext.references.length > 0 ? (
+                                <ul className="grid gap-1 pl-6 text-xs leading-5 text-amber-900/80 dark:text-amber-100/80">
+                                    {copiedTemplateContext.references.includes(
+                                        'message_topic',
+                                    ) ? (
+                                        <li>
+                                            {t(
+                                                'settings.worlds.activities.template.message_topic',
+                                                'Message topic copied from this MapAsset; choose a new topic if this copy belongs elsewhere.',
+                                            )}
+                                        </li>
+                                    ) : null}
+                                    {copiedTemplateContext.references.includes(
+                                        'portal_destination',
+                                    ) ? (
+                                        <li>
+                                            {t(
+                                                'settings.worlds.activities.template.portal_destination',
+                                                'Portal destination copied from the source activity; confirm it before saving.',
+                                            )}
+                                        </li>
+                                    ) : null}
+                                </ul>
+                            ) : null}
+                        </div>
+                    ) : null}
 
                     <form
                         className="flex min-h-0 flex-1 flex-col gap-4"

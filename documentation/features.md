@@ -281,7 +281,9 @@ The World Builder provides:
 The activity graph also provides a local template action for eligible
 activities. It opens an editable copy in the current MapAsset, generates a
 fresh slug when saved and places the new activity in the AI review queue. This
-is intentionally a local starting point; a shared cross-map template library
+is intentionally a local starting point. The copy dialog identifies the
+current MapAsset scope and calls out copied message topics or portal
+destinations that need a tutor's attention. A shared cross-map template library
 is not yet part of the prototype.
 
 The World Builder graph surfaces the same review state on each map card. Maps

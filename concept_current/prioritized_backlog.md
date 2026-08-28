@@ -71,6 +71,9 @@ participation.
 - Expand the existing local Activity-template flow into reusable cross-map
   templates only after its context-sensitive fields and asset references are
   defined safely.
+- [x] Make the local Activity-template scope and copied map-sensitive
+  references visible before saving. Cross-map reuse remains gated until those
+  references have explicit resolution controls.
 - Continue refining learner navigation and information architecture across the
   learning desk, Topics, Paths, Journal, competence and maps. Keep direct map
   access and authored portal travel complementary, and preserve optional rather

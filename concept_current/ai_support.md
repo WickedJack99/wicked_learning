@@ -100,6 +100,12 @@ World Builder activity permission. Editors who can change activities but are
 not allowed to manage AI helpers can still see that review work is pending,
 but they are not offered a setup link and cannot invoke a review request.
 
+The local activity-template action now makes its scope explicit before a copy
+is saved. Message topics and portal destinations are called out when they are
+copied because those references may need deliberate replacement in a future
+cross-map workflow. Cross-map reuse remains deferred until every
+context-sensitive reference has an explicit resolution path.
+
 At the World Builder graph, each map card also shows its current activity
 review state. A map with waiting reviews links directly to the first affected
 node, making the scoped queue discoverable before an author opens individual
