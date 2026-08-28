@@ -102,6 +102,7 @@ test('admin users can open world builder map configuration and node inside setti
             ->where('selectedWorldMap.canDeleteWorldMaps', true)
             ->where('selectedWorldMap.editableMap.map.slug', 'first-sector')
             ->has('selectedWorldMap.learningGroups')
+            ->where('selectedWorldMap.roleOptions.0.slug', User::ROLE_USER)
         );
 
     $this->actingAs($admin)
@@ -1629,6 +1630,33 @@ test('admin unlock diagnostics reject enabled rules without a condition', functi
             ],
         ])
         ->assertSessionHasErrors('visual_config.unlock.enabled');
+
+    expect($node->refresh()->state)->not->toBe('locked');
+});
+
+test('admin unlock diagnostics reject an unknown learner role', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'title' => $node->title,
+            'slug' => $node->slug,
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'state' => 'locked',
+            'visual_config' => [
+                'unlock' => [
+                    'enabled' => true,
+                    'roleSlug' => 'missing-role',
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('visual_config.unlock.roleSlug');
 
     expect($node->refresh()->state)->not->toBe('locked');
 });

@@ -115,6 +115,7 @@ import ConfigureMap from '@/pages/settings/worlds/configure-map';
 import EditWorldMap from '@/pages/settings/worlds/edit-map';
 import type {
     AccessGroup as WorldMapAccessGroup,
+    AccessRoleOption as WorldMapAccessRoleOption,
     EditableMapPayload,
 } from '@/pages/settings/worlds/edit-map';
 import EditNodeActivities from '@/pages/settings/worlds/edit-node-activities';
@@ -161,6 +162,7 @@ type SelectedWorldMap = {
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
     learningGroups: LearningGroupOption[];
+    roleOptions: WorldMapAccessRoleOption[];
     topicOptions: LearningTopicOption[];
     tools: LearningTool[];
 };
@@ -820,6 +822,7 @@ function SettingsDetail({
                                 editableMap={selectedWorldMap.editableMap}
                                 embedded
                                 tools={selectedWorldMap.tools}
+                                roleOptions={selectedWorldMap.roleOptions}
                             />
                         ),
                     mapId: selectedWorldMap.editableMap.map.id,

@@ -193,6 +193,10 @@ type UnlockRule =
       }
     | {
           type: 'tool_used';
+      }
+    | {
+          roleSlug: string;
+          type: 'role_has';
       };
 
 type MapVisualThemeFields = {
@@ -225,6 +229,11 @@ type MapVisualConfig = {
 export type EditableMapPayload = {
     map: EditableMap;
     world: EditableWorld;
+};
+
+export type AccessRoleOption = {
+    name: string;
+    slug: string;
 };
 
 export type AccessGroup = {
@@ -279,6 +288,7 @@ type NodeForm = {
                 toolId: string;
             };
             topOperator: 'and' | 'or';
+            roleSlug: string;
             rules?: UnlockRule;
         };
     };
@@ -310,12 +320,14 @@ export default function EditWorldMap({
     contentAuthoringTemplates,
     editableMap,
     embedded = false,
+    roleOptions,
     tools,
 }: {
     accessGroups: AccessGroup[];
     contentAuthoringTemplates?: ContentAuthoringTemplate[];
     embedded?: boolean;
     editableMap: EditableMapPayload;
+    roleOptions: AccessRoleOption[];
     tools: LearningTool[];
 }) {
     const { map, world } = editableMap;
@@ -1978,6 +1990,70 @@ export default function EditWorldMap({
                                                             message={
                                                                 errors[
                                                                     'visual_config.unlock.requiredNodeIds.0'
+                                                                ]
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-1">
+                                                        <Label htmlFor="unlock-role">
+                                                            Learner role
+                                                            condition
+                                                        </Label>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled
+                                                            }
+                                                            id="unlock-role"
+                                                            onChange={(event) =>
+                                                                setUnlockRole(
+                                                                    setForm,
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .roleSlug
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                No role
+                                                                condition
+                                                            </option>
+                                                            {roleOptions.map(
+                                                                (role) => (
+                                                                    <option
+                                                                        key={
+                                                                            role.slug
+                                                                        }
+                                                                        value={
+                                                                            role.slug
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            role.name
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                            Only learners with
+                                                            this assigned role
+                                                            can open the node.
+                                                        </p>
+                                                        <InputError
+                                                            message={
+                                                                errors[
+                                                                    'visual_config.unlock.roleSlug'
                                                                 ]
                                                             }
                                                         />
@@ -3929,6 +4005,22 @@ function setUnlockToolId(
     }));
 }
 
+function setUnlockRole(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    roleSlug: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                roleSlug,
+            },
+        },
+    }));
+}
+
 function setLockedState(
     setForm: Dispatch<SetStateAction<NodeForm>>,
     locked: boolean,
@@ -4320,6 +4412,7 @@ function emptyUnlockConfig(): NodeForm['visual_config']['unlock'] {
             toolId: '',
         },
         topOperator: 'and',
+        roleSlug: '',
     };
 }
 
@@ -4352,6 +4445,7 @@ function unlockConfigFromNode(
         },
         topOperator:
             stringConfig(unlock.topOperator, 'and') === 'or' ? 'or' : 'and',
+        roleSlug: inputStringConfig(unlock.roleSlug, ''),
     };
 }
 
@@ -4745,6 +4839,13 @@ function buildUnlockRules(
     if (unlock.tool.enabled && unlock.tool.toolId) {
         rules.push({
             type: 'tool_used',
+        });
+    }
+
+    if (unlock.roleSlug) {
+        rules.push({
+            roleSlug: unlock.roleSlug,
+            type: 'role_has',
         });
     }
 

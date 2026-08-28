@@ -217,12 +217,14 @@ export type LearningNode = {
 };
 
 export type LearningUnlockRequirement = {
-    type: 'group' | 'node_completed' | 'time_after' | 'tool_used';
+    type: 'group' | 'node_completed' | 'role_has' | 'time_after' | 'tool_used';
     operator?: 'and' | 'or';
     requirements?: LearningUnlockRequirement[];
     mapSlug?: string | null;
     nodeSlug?: string | null;
     nodeTitle?: string | null;
+    roleSlug?: string | null;
+    roleTitle?: string | null;
     toolTitle?: string | null;
     availableAt?: string | null;
     satisfied: boolean;

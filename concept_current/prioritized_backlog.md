@@ -109,8 +109,10 @@ participation.
   local overrides.
 - [x] Diagnose conflicting unlock setups before saving, including empty
   enabled rules, missing tools, self-prerequisites and impossible time windows.
-- Expand unlock rules with item, group, role and manual conditions plus conflict
-  evaluation beyond the current completion, tool and time conditions.
+- [x] Add one learner-role unlock condition and expose its evaluated state to
+  learners without leaking authored rule configuration.
+- Expand unlock rules with item, group and manual conditions plus conflict
+  evaluation beyond the current completion, tool, role and time conditions.
 
 ## Priority 3 - Deeper Cooperation
 

@@ -37,8 +37,8 @@ Current learner behavior:
   artwork does not behave like a rectangle or historical hex tile.
 - Locked, hidden, hinted, available, recommended and completed states are
   resolved per learner.
-- Unlock rules currently support completed MapAssets, tool use, time conditions
-  and nested AND/OR rule groups.
+- Unlock rules currently support completed MapAssets, tool use, learner roles,
+  time conditions and nested AND/OR rule groups.
 - Visible locked MapAssets with configured rules or tool conditions can be
   opened for orientation. Their learner panel shows actionable condition
   labels and the learner's current state without exposing authored rule data;
@@ -79,6 +79,8 @@ Topic connection:
 - Enabled unlock rules reject deadlocked combinations such as no condition,
   missing tool selection, self-prerequisites or an unlock time after its lock
   time before the node is saved.
+- Authors can optionally require one assigned learner role. The learner sees
+  the evaluated role requirement without receiving authored rule configuration.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

@@ -647,14 +647,21 @@ function UnlockRequirementTree({
                         requirement.toolTitle ??
                         t('world.locked.required_tool', 'the required tool'),
                 })
-              : t('world.locked.available_after', 'Available after :time', {
-                    time: requirement.availableAt
-                        ? new Date(requirement.availableAt).toLocaleString()
-                        : t(
-                              'world.locked.scheduled_time',
-                              'the scheduled time',
-                          ),
-                });
+              : requirement.type === 'role_has'
+                ? t('world.locked.have_role', 'Have the :title role', {
+                      title:
+                          requirement.roleTitle ??
+                          requirement.roleSlug ??
+                          'required',
+                  })
+                : t('world.locked.available_after', 'Available after :time', {
+                      time: requirement.availableAt
+                          ? new Date(requirement.availableAt).toLocaleString()
+                          : t(
+                                'world.locked.scheduled_time',
+                                'the scheduled time',
+                            ),
+                  });
 
     const prerequisiteHref =
         requirement.type === 'node_completed' &&

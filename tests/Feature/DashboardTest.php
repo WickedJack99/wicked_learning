@@ -2,6 +2,7 @@
 
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningNodeStateResolver;
+use App\Models\AccessRole;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
@@ -545,6 +546,48 @@ test('learners unlock locked nodes only after configured rules pass', function (
             ->where('world.maps.0.nodes.2.state', 'available')
             ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', true)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.satisfied', true)
+        );
+});
+
+test('learners unlock a locked node when they have its configured role', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $role = AccessRole::query()->create([
+        'slug' => 'pattern-guide',
+        'name' => 'Pattern guide',
+        'level' => 10,
+        'is_system' => false,
+    ]);
+    $learner = User::factory()->create();
+    $learner->accessRoles()->attach($role);
+    $lockedNode = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $lockedNode->forceFill([
+        'state' => 'locked',
+        'visual_config' => [
+            ...($lockedNode->visual_config ?? []),
+            'unlock' => [
+                'enabled' => true,
+                'roleSlug' => $role->slug,
+                'rules' => [
+                    'type' => 'role_has',
+                    'roleSlug' => $role->slug,
+                ],
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps.0.nodes.2.slug', 'quiet-archive')
+            ->where('world.maps.0.nodes.2.state', 'available')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.type', 'role_has')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.roleTitle', $role->name)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.satisfied', true)
+            ->missing('world.maps.0.nodes.2.visualConfig.unlock.rules')
         );
 });
 

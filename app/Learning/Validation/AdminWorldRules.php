@@ -106,6 +106,7 @@ class AdminWorldRules
         $tool = is_array($unlock['tool'] ?? null) ? $unlock['tool'] : [];
         $toolEnabled = filter_var($tool['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $toolId = (int) ($tool['toolId'] ?? 0);
+        $roleSlug = trim((string) ($unlock['roleSlug'] ?? ''));
         $schedule = data_get($data, 'visual_config.schedule', []);
         $schedule = is_array($schedule) ? $schedule : [];
 
@@ -117,6 +118,10 @@ class AdminWorldRules
             $errors['visual_config.unlock.tool.toolId'] = 'Choose a tool for this unlock condition.';
         }
 
+        if ($roleSlug !== '' && ! AccessRole::query()->where('slug', $roleSlug)->exists()) {
+            $errors['visual_config.unlock.roleSlug'] = 'Choose an existing role for this unlock condition.';
+        }
+
         if (($schedule['unlockAt'] ?? null) && ($schedule['lockAt'] ?? null)) {
             $unlockAt = Carbon::parse($schedule['unlockAt']);
             $lockAt = Carbon::parse($schedule['lockAt']);
@@ -126,7 +131,7 @@ class AdminWorldRules
             }
         }
 
-        if ($requiredNodeIds === [] && $rules === [] && ! $toolEnabled && ! ($schedule['unlockAt'] ?? null)) {
+        if ($requiredNodeIds === [] && $rules === [] && ! $toolEnabled && $roleSlug === '' && ! ($schedule['unlockAt'] ?? null)) {
             $errors['visual_config.unlock.enabled'] = 'Add at least one unlock condition or turn unlock rules off.';
         }
 
@@ -325,6 +330,7 @@ class AdminWorldRules
             'visual_config.unlock.requiredNodeIds.*' => ['integer', 'exists:learning_nodes,id'],
             'visual_config.unlock.tool.enabled' => ['nullable', 'boolean'],
             'visual_config.unlock.tool.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
+            'visual_config.unlock.roleSlug' => ['nullable', 'string', 'max:80', 'exists:access_roles,slug'],
             'visual_config.unlock.rules' => ['nullable', 'array'],
         ];
 
