@@ -14,6 +14,7 @@ import {
 import { useMemo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 import InputError from '@/components/input-error';
+import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -604,23 +605,29 @@ function ToolListPanel({
                 </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
-                {filteredTools.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
-                        No tools match this search.
-                    </p>
-                ) : (
-                    <div className="grid gap-2">
-                        {filteredTools.map((tool) => (
-                            <ToolListItem
-                                isSelected={selectedToolId === tool.id}
-                                key={tool.id}
-                                onSelect={() => onSelect(tool.id)}
-                                tool={tool}
-                            />
-                        ))}
-                    </div>
-                )}
+            <div className="min-h-0 flex-1 p-2">
+                <LearnerPaginatedItems
+                    className="grid gap-2"
+                    emptyState={
+                        <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                            No tools match this search.
+                        </p>
+                    }
+                    items={filteredTools}
+                    key={search}
+                    pageSize={4}
+                    paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                    paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
+                    paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
+                    renderItem={(tool) => (
+                        <ToolListItem
+                            isSelected={selectedToolId === tool.id}
+                            key={tool.id}
+                            onSelect={() => onSelect(tool.id)}
+                            tool={tool}
+                        />
+                    )}
+                />
             </div>
 
             <div className="shrink-0 border-t border-slate-200 p-3 dark:border-white/10">

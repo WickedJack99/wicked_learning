@@ -137,7 +137,7 @@ region scrolls on its own axis without moving controls off-screen.
 Settings asset/palette surfaces use intentional nested scrolling. The same
 containment contract still needs explicit coverage for long lists and graphs:
 topic cards, bookmarks, journal pages, AI review queues, graph nodes, map
-assets, reusable media, organization messages and join requests.
+assets, reusable media, tools, items, organization messages and join requests.
 
 Learner document pages now share a `.learner-scroll-pane` contract that keeps
 the page inside the fixed app frame, reserves scrollbar space, prevents
@@ -428,6 +428,10 @@ remains continuous. Searching resets the chooser to its first page so a filter
 cannot leave the editor on an empty later page; a search with no matches now
 states that directly in the chooser.
 
+The reusable tools and items libraries use the same four-entry pagination
+contract. Their editor remains fixed beside the bounded chooser, and searching
+also returns the chooser to its first page.
+
 ### Completed — Protect the learner journey link contract
 
 The feature suite now covers the connected route contract from a published
@@ -506,6 +510,8 @@ These are test gaps, not claims that the feature is broken:
   so large collections keep their actions inside the fixed workspace.
 - World Builder map details now paginate nodes with pending review, keeping the
   review entry action and map configuration actions visible as maps grow.
+- Tools and items libraries now paginate their chooser lists, so growing
+  reusable inventories do not require a nested scrollbar to reach an entry.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should still be checked for icon-only map
