@@ -106,6 +106,9 @@ class AdminWorldRules
         $tool = is_array($unlock['tool'] ?? null) ? $unlock['tool'] : [];
         $toolEnabled = filter_var($tool['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $toolId = (int) ($tool['toolId'] ?? 0);
+        $item = is_array($unlock['item'] ?? null) ? $unlock['item'] : [];
+        $itemEnabled = filter_var($item['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $itemId = (int) ($item['itemId'] ?? 0);
         $roleSlug = trim((string) ($unlock['roleSlug'] ?? ''));
         $schedule = data_get($data, 'visual_config.schedule', []);
         $schedule = is_array($schedule) ? $schedule : [];
@@ -116,6 +119,10 @@ class AdminWorldRules
 
         if ($toolEnabled && $toolId <= 0) {
             $errors['visual_config.unlock.tool.toolId'] = 'Choose a tool for this unlock condition.';
+        }
+
+        if ($itemEnabled && $itemId <= 0) {
+            $errors['visual_config.unlock.item.itemId'] = 'Choose an item for this unlock condition.';
         }
 
         if ($roleSlug !== '' && ! AccessRole::query()->where('slug', $roleSlug)->exists()) {
@@ -131,7 +138,7 @@ class AdminWorldRules
             }
         }
 
-        if ($requiredNodeIds === [] && $rules === [] && ! $toolEnabled && $roleSlug === '' && ! ($schedule['unlockAt'] ?? null)) {
+        if ($requiredNodeIds === [] && $rules === [] && ! $toolEnabled && ! $itemEnabled && $roleSlug === '' && ! ($schedule['unlockAt'] ?? null)) {
             $errors['visual_config.unlock.enabled'] = 'Add at least one unlock condition or turn unlock rules off.';
         }
 
@@ -330,6 +337,8 @@ class AdminWorldRules
             'visual_config.unlock.requiredNodeIds.*' => ['integer', 'exists:learning_nodes,id'],
             'visual_config.unlock.tool.enabled' => ['nullable', 'boolean'],
             'visual_config.unlock.tool.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
+            'visual_config.unlock.item.enabled' => ['nullable', 'boolean'],
+            'visual_config.unlock.item.itemId' => ['nullable', 'integer', 'exists:learning_items,id'],
             'visual_config.unlock.roleSlug' => ['nullable', 'string', 'max:80', 'exists:access_roles,slug'],
             'visual_config.unlock.rules' => ['nullable', 'array'],
         ];

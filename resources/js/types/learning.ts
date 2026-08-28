@@ -193,7 +193,9 @@ export type LearningNode = {
         };
         unlock?: {
             enabled?: boolean;
+            isItemUnlockable?: boolean;
             isToolUnlockable?: boolean;
+            itemOwned?: boolean;
             isUnlockable?: boolean;
             isUnlocked?: boolean;
             nodeOperator?: 'and' | 'or';
@@ -217,7 +219,13 @@ export type LearningNode = {
 };
 
 export type LearningUnlockRequirement = {
-    type: 'group' | 'node_completed' | 'role_has' | 'time_after' | 'tool_used';
+    type:
+        | 'group'
+        | 'item_owned'
+        | 'node_completed'
+        | 'role_has'
+        | 'time_after'
+        | 'tool_used';
     operator?: 'and' | 'or';
     requirements?: LearningUnlockRequirement[];
     mapSlug?: string | null;
@@ -225,6 +233,7 @@ export type LearningUnlockRequirement = {
     nodeTitle?: string | null;
     roleSlug?: string | null;
     roleTitle?: string | null;
+    itemTitle?: string | null;
     toolTitle?: string | null;
     availableAt?: string | null;
     satisfied: boolean;

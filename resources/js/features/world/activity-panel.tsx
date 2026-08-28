@@ -654,14 +654,27 @@ function UnlockRequirementTree({
                           requirement.roleSlug ??
                           'required',
                   })
-                : t('world.locked.available_after', 'Available after :time', {
-                      time: requirement.availableAt
-                          ? new Date(requirement.availableAt).toLocaleString()
-                          : t(
-                                'world.locked.scheduled_time',
-                                'the scheduled time',
-                            ),
-                  });
+                : requirement.type === 'item_owned'
+                  ? t(
+                        'world.locked.have_item',
+                        'Have :title in your inventory',
+                        {
+                            title:
+                                requirement.itemTitle ??
+                                t(
+                                    'world.locked.required_item',
+                                    'the required item',
+                                ),
+                        },
+                    )
+                  : t('world.locked.available_after', 'Available after :time', {
+                        time: requirement.availableAt
+                            ? new Date(requirement.availableAt).toLocaleString()
+                            : t(
+                                  'world.locked.scheduled_time',
+                                  'the scheduled time',
+                              ),
+                    });
 
     const prerequisiteHref =
         requirement.type === 'node_completed' &&

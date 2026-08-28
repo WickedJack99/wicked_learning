@@ -79,6 +79,7 @@ import { getSettingsPresentationStyle } from '@/theme/presentation';
 import type { LearningTool } from '@/types';
 import type { MapAsset } from '@/types/learning';
 import { ConfigImageInput as NodeImageInput } from './activity-config-fields';
+import type { EditableItem } from './edit-node-activity-types';
 
 type EditableWorld = {
     description: string | null;
@@ -197,6 +198,10 @@ type UnlockRule =
     | {
           roleSlug: string;
           type: 'role_has';
+      }
+    | {
+          itemId: number;
+          type: 'item_owned';
       };
 
 type MapVisualThemeFields = {
@@ -283,6 +288,10 @@ type NodeForm = {
             enabled: boolean;
             nodeOperator: 'and' | 'or';
             requiredNodeIds: string[];
+            item: {
+                enabled: boolean;
+                itemId: string;
+            };
             tool: {
                 enabled: boolean;
                 toolId: string;
@@ -320,6 +329,7 @@ export default function EditWorldMap({
     contentAuthoringTemplates,
     editableMap,
     embedded = false,
+    items,
     roleOptions,
     tools,
 }: {
@@ -327,6 +337,7 @@ export default function EditWorldMap({
     contentAuthoringTemplates?: ContentAuthoringTemplate[];
     embedded?: boolean;
     editableMap: EditableMapPayload;
+    items: EditableItem[];
     roleOptions: AccessRoleOption[];
     tools: LearningTool[];
 }) {
@@ -2054,6 +2065,85 @@ export default function EditWorldMap({
                                                             message={
                                                                 errors[
                                                                     'visual_config.unlock.roleSlug'
+                                                                ]
+                                                            }
+                                                        />
+                                                    </div>
+
+                                                    <CheckboxField
+                                                        checked={
+                                                            form.visual_config
+                                                                .unlock.item
+                                                                .enabled
+                                                        }
+                                                        description="Learners must have the selected item in their inventory. Entering the node does not consume it."
+                                                        id="unlock-item-enabled"
+                                                        label="Require item possession"
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            setUnlockItemEnabled(
+                                                                setForm,
+                                                                checked,
+                                                            )
+                                                        }
+                                                    />
+                                                    <div className="grid gap-1">
+                                                        <Label htmlFor="unlock-item">
+                                                            Unlock item
+                                                        </Label>
+                                                        <select
+                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            disabled={
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock
+                                                                    .enabled ||
+                                                                !form
+                                                                    .visual_config
+                                                                    .unlock.item
+                                                                    .enabled
+                                                            }
+                                                            id="unlock-item"
+                                                            onChange={(event) =>
+                                                                setUnlockItemId(
+                                                                    setForm,
+                                                                    event
+                                                                        .currentTarget
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            value={
+                                                                form
+                                                                    .visual_config
+                                                                    .unlock.item
+                                                                    .itemId
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                Select an item
+                                                            </option>
+                                                            {items.map(
+                                                                (item) => (
+                                                                    <option
+                                                                        key={
+                                                                            item.id
+                                                                        }
+                                                                        value={
+                                                                            item.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            item.title
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <InputError
+                                                            message={
+                                                                errors[
+                                                                    'visual_config.unlock.item.itemId'
                                                                 ]
                                                             }
                                                         />
@@ -4021,6 +4111,44 @@ function setUnlockRole(
     }));
 }
 
+function setUnlockItemEnabled(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    enabled: boolean,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                item: {
+                    ...current.visual_config.unlock.item,
+                    enabled,
+                },
+            },
+        },
+    }));
+}
+
+function setUnlockItemId(
+    setForm: Dispatch<SetStateAction<NodeForm>>,
+    itemId: string,
+) {
+    setForm((current) => ({
+        ...current,
+        visual_config: {
+            ...current.visual_config,
+            unlock: {
+                ...current.visual_config.unlock,
+                item: {
+                    ...current.visual_config.unlock.item,
+                    itemId,
+                },
+            },
+        },
+    }));
+}
+
 function setLockedState(
     setForm: Dispatch<SetStateAction<NodeForm>>,
     locked: boolean,
@@ -4407,6 +4535,10 @@ function emptyUnlockConfig(): NodeForm['visual_config']['unlock'] {
         enabled: false,
         nodeOperator: 'and',
         requiredNodeIds: [],
+        item: {
+            enabled: false,
+            itemId: '',
+        },
         tool: {
             enabled: false,
             toolId: '',
@@ -4427,6 +4559,7 @@ function unlockConfigFromNode(
     config: VisualConfigValue,
 ): NodeForm['visual_config']['unlock'] {
     const unlock = isVisualConfig(config) ? config : {};
+    const item = isVisualConfig(unlock.item) ? unlock.item : {};
     const tool = isVisualConfig(unlock.tool) ? unlock.tool : {};
     const requiredNodeIds = Array.isArray(unlock.requiredNodeIds)
         ? unlock.requiredNodeIds
@@ -4442,6 +4575,10 @@ function unlockConfigFromNode(
         tool: {
             enabled: booleanConfig(tool.enabled, false),
             toolId: inputStringConfig(tool.toolId, ''),
+        },
+        item: {
+            enabled: booleanConfig(item.enabled, false),
+            itemId: inputStringConfig(item.itemId, ''),
         },
         topOperator:
             stringConfig(unlock.topOperator, 'and') === 'or' ? 'or' : 'and',
@@ -4792,6 +4929,10 @@ function mergeNodeForm(form: NodeForm, override?: Partial<NodeForm>): NodeForm {
                     ...form.visual_config.unlock.tool,
                     ...override.visual_config?.unlock?.tool,
                 },
+                item: {
+                    ...form.visual_config.unlock.item,
+                    ...override.visual_config?.unlock?.item,
+                },
             },
         },
     };
@@ -4839,6 +4980,13 @@ function buildUnlockRules(
     if (unlock.tool.enabled && unlock.tool.toolId) {
         rules.push({
             type: 'tool_used',
+        });
+    }
+
+    if (unlock.item.enabled && unlock.item.itemId) {
+        rules.push({
+            itemId: Number(unlock.item.itemId),
+            type: 'item_owned',
         });
     }
 

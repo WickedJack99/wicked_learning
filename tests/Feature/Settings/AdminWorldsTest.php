@@ -102,6 +102,7 @@ test('admin users can open world builder map configuration and node inside setti
             ->where('selectedWorldMap.canDeleteWorldMaps', true)
             ->where('selectedWorldMap.editableMap.map.slug', 'first-sector')
             ->has('selectedWorldMap.learningGroups')
+            ->has('selectedWorldMap.items')
             ->where('selectedWorldMap.roleOptions.0.slug', User::ROLE_USER)
         );
 
@@ -135,6 +136,34 @@ test('admin users can open world builder map configuration and node inside setti
     expect(app(ActivityTypeRegistry::class)->typeKeys())
         ->not->toContain('dialogue')
         ->toContain('npc_dialogue');
+});
+
+test('admin users must select an item for an item unlock condition', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'description' => $node->description,
+            'position_q' => $node->position_q,
+            'position_r' => $node->position_r,
+            'slug' => $node->slug,
+            'state' => 'locked',
+            'title' => $node->title,
+            'visual_config' => [
+                ...($node->visual_config ?? []),
+                'unlock' => [
+                    'enabled' => true,
+                    'item' => [
+                        'enabled' => true,
+                    ],
+                ],
+            ],
+        ])
+        ->assertSessionHasErrors('visual_config.unlock.item.itemId');
 });
 
 test('normal users can not open the world editor', function () {

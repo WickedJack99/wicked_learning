@@ -111,8 +111,11 @@ participation.
   enabled rules, missing tools, self-prerequisites and impossible time windows.
 - [x] Add one learner-role unlock condition and expose its evaluated state to
   learners without leaking authored rule configuration.
-- Expand unlock rules with item, group and manual conditions plus conflict
-  evaluation beyond the current completion, tool, role and time conditions.
+- [x] Add a non-consuming item-possession unlock condition. Authors select an
+  item from the shared inventory catalogue, and learners see whether they have
+  it without exposing internal rule configuration.
+- Expand unlock rules with group and manual conditions plus conflict evaluation
+  beyond the current completion, tool, role, item and time conditions.
 
 ## Priority 3 - Deeper Cooperation
 

@@ -255,6 +255,8 @@
     "world.locked.use_tool": "Use :title here",
     "world.locked.required_tool": "the required tool",
     "world.locked.have_role": "Have the :title role",
+    "world.locked.have_item": "Have :title in your inventory",
+    "world.locked.required_item": "the required item",
     "world.locked.available_after": "Available after :time",
     "world.locked.scheduled_time": "the scheduled time",
     "activities.focus.apply": "Apply an idea",

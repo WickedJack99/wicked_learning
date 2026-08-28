@@ -45,8 +45,8 @@ Current map behavior includes:
 - no learner-side dragging of MapAssets
 - role-based map access
 - locked, hidden, hinted, available, recommended and completed learner states
-- unlock rules based on completed MapAssets, tools, learner roles, time and
-  nested AND/OR groups
+- unlock rules based on completed MapAssets, tools, learner roles, item
+  possession, time and nested AND/OR groups
 - tool-driven discovery of hidden MapAssets
 
 MapAssets have four interaction modes:

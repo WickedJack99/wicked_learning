@@ -38,8 +38,9 @@ Current learner behavior:
 - Locked, hidden, hinted, available, recommended and completed states are
   resolved per learner.
 - Unlock rules currently support completed MapAssets, tool use, learner roles,
-  time conditions and nested AND/OR rule groups.
-- Visible locked MapAssets with configured rules or tool conditions can be
+  item possession, time conditions and nested AND/OR rule groups.
+- Visible locked MapAssets with configured rules, tool conditions or item
+  conditions can be
   opened for orientation. Their learner panel shows actionable condition
   labels and the learner's current state without exposing authored rule data;
   prerequisite place labels link back to the relevant map location.
@@ -81,6 +82,9 @@ Topic connection:
   time before the node is saved.
 - Authors can optionally require one assigned learner role. The learner sees
   the evaluated role requirement without receiving authored rule configuration.
+- Authors can optionally require an item in the learner's inventory. Entering a
+  node checks possession without consuming the item; item-obstacle activities
+  remain the explicit place for item consumption.
 - Image fields reuse the shared upload, download, select-existing and clear
   component.
 - Visual previews use the same `MapAssetVisual` renderer as the learner map.

@@ -32,7 +32,8 @@ This repository is no longer only a concept archive. It contains a working verti
 - image-alpha-aware hit areas for irregular transparent artwork
 - configurable MapAsset labels, borders, highlights and alternate highlight images
 - discoverable hidden MapAssets that can be revealed with tools
-- locked MapAssets with configurable unlock conditions and optional tool unlocks
+- locked MapAssets with configurable completion, tool, role, item and time
+  unlock conditions
 - editable public presentation content and auth page backgrounds
 - reusable visual and sound libraries for uploaded assets
 - configurable cursor images for normal, action, grab, text and denied states

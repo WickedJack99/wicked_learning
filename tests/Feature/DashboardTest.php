@@ -7,6 +7,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
@@ -632,6 +633,53 @@ test('tool-only unlock conditions open a locked node after the tool is used', fu
         ->assertOk()
         ->assertJsonPath('result.isUseful', true)
         ->assertJsonPath('result.isUnlocked', true);
+});
+
+test('learners unlock a locked node when they have its configured item', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $item = LearningItem::query()->create([
+        'slug' => 'pattern-lens',
+        'title' => 'Pattern lens',
+    ]);
+    $learner = User::factory()->create();
+    $learner->learningItems()->attach($item, [
+        'acquired_at' => now(),
+        'quantity' => 1,
+    ]);
+    $lockedNode = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $lockedNode->forceFill([
+        'state' => 'locked',
+        'visual_config' => [
+            ...($lockedNode->visual_config ?? []),
+            'unlock' => [
+                'enabled' => true,
+                'item' => [
+                    'enabled' => true,
+                    'itemId' => $item->id,
+                ],
+                'rules' => [
+                    'type' => 'item_owned',
+                    'itemId' => $item->id,
+                ],
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps.0.nodes.2.slug', 'quiet-archive')
+            ->where('world.maps.0.nodes.2.state', 'available')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.isItemUnlockable', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.itemOwned', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.type', 'item_owned')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.itemTitle', $item->title)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.satisfied', true)
+            ->missing('world.maps.0.nodes.2.visualConfig.unlock.rules')
+        );
 });
 
 test('npc dialogue answers can hide and unlock nodes for the learner', function () {

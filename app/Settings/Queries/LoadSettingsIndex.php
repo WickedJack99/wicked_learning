@@ -456,7 +456,7 @@ class LoadSettingsIndex
 
     /**
      * @param  array<string, array{read: bool, update: bool, delete: bool}>  $capabilities
-     * @return array{accessGroups: array<int, array<string, mixed>>, canDeleteWorldMaps: bool, editableMap: array<string, mixed>, learningGroups: array<int, array<string, mixed>>, roleOptions: list<array{name: string, slug: string}>, topicOptions: list<array{id: int, label: string, title: string}>, tools: array<int, array<string, mixed>>}|null
+     * @return array{accessGroups: array<int, array<string, mixed>>, canDeleteWorldMaps: bool, editableMap: array<string, mixed>, items: array<int, array<string, mixed>>, learningGroups: array<int, array<string, mixed>>, roleOptions: list<array{name: string, slug: string}>, topicOptions: list<array{id: int, label: string, title: string}>, tools: array<int, array<string, mixed>>}|null
      */
     private function selectedWorldMap(User $user, ?int $mapId, array $capabilities): ?array
     {
@@ -476,6 +476,11 @@ class LoadSettingsIndex
             'editableMap' => $this->editableMapSerializer->serialize(
                 $this->loadEditableMap->handle($map),
             ),
+            'items' => $this->loadEditableItems
+                ->handle()
+                ->map(fn (LearningItem $item): array => $this->adminItemSerializer->serialize($item))
+                ->values()
+                ->all(),
             'learningGroups' => $this->loadLearningGroupOptions->handle(),
             'roleOptions' => AccessRole::query()
                 ->orderBy('level')

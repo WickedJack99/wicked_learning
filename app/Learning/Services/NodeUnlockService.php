@@ -5,6 +5,7 @@ namespace App\Learning\Services;
 use App\Models\AccessRole;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
+use App\Models\LearningItem;
 use App\Models\LearningNode;
 use App\Models\LearningTool;
 use App\Models\User;
@@ -15,6 +16,9 @@ class NodeUnlockService
 {
     /** @var array<int, list<string>> */
     private array $userRoleSlugs = [];
+
+    /** @var array<int, list<int>> */
+    private array $userItemIds = [];
 
     public function __construct(
         private readonly LearnerNodeAnswerEventService $answerEvents,
@@ -73,6 +77,7 @@ class NodeUnlockService
         $ruleTree = $this->ruleTree($node);
         $timeUnlocked = $this->availabilitySchedule->isUnlockedBySchedule($node);
         $roleSlugs = $this->roleSlugs($userId);
+        $itemOwned = $this->hasItemUnlock($node, $userId);
 
         if ($ruleTree === []) {
             return $timeUnlocked;
@@ -84,6 +89,7 @@ class NodeUnlockService
             $this->hasToolUnlock($node, $userId),
             $timeUnlocked,
             $roleSlugs,
+            $itemOwned,
         );
     }
 
@@ -92,13 +98,18 @@ class NodeUnlockService
      */
     public function unlockState(LearningNode $node, ?int $userId): array
     {
-        $isUnlockable = $this->hasUnlockRules($node) || $this->isToolUnlockable($node);
+        $isItemUnlockable = $this->isItemUnlockable($node);
+        $isUnlockable = $this->hasUnlockRules($node)
+            || $this->isToolUnlockable($node)
+            || $isItemUnlockable;
         $isUnlocked = $this->isUnlockedForUser($node, $userId);
 
         return [
             'isUnlockable' => $isUnlockable,
             'isUnlocked' => $isUnlocked,
+            'isItemUnlockable' => $isItemUnlockable,
             'isToolUnlockable' => $this->isToolUnlockable($node),
+            'itemOwned' => $userId !== null && $this->hasItemUnlock($node, $userId),
             'toolUsed' => $userId !== null && $this->hasToolUnlock($node, $userId),
             'requirements' => $isUnlockable ? $this->requirements($node, $userId) : [],
         ];
@@ -116,6 +127,7 @@ class NodeUnlockService
         $toolUsed = $userId !== null && $this->hasToolUnlock($node, $userId);
         $timeUnlocked = $this->availabilitySchedule->isUnlockedBySchedule($node);
         $roleSlugs = $this->roleSlugs($userId);
+        $itemOwned = $userId !== null && $this->hasItemUnlock($node, $userId);
         $rule = $this->ruleTree($node);
 
         if ($rule === []) {
@@ -140,6 +152,13 @@ class NodeUnlockService
                 $rules[] = [
                     'type' => 'role_has',
                     'roleSlug' => $roleSlug,
+                ];
+            }
+
+            if ($itemId = $this->configuredItemId($node)) {
+                $rules[] = [
+                    'type' => 'item_owned',
+                    'itemId' => $itemId,
                 ];
             }
 
@@ -177,6 +196,10 @@ class NodeUnlockService
         $roleTitle = $configuredRoleSlug === null
             ? null
             : AccessRole::query()->where('slug', $configuredRoleSlug)->value('name');
+        $configuredItemId = $this->configuredItemId($node);
+        $itemTitle = $configuredItemId === null
+            ? null
+            : LearningItem::query()->whereKey($configuredItemId)->value('title');
         $unlockAt = $this->availabilitySchedule->unlockAt($node)?->toIso8601String();
 
         return $this->transformRequirement(
@@ -185,9 +208,11 @@ class NodeUnlockService
             $toolUsed,
             $timeUnlocked,
             $roleSlugs,
+            $itemOwned,
             $nodeDetails,
             is_string($toolTitle) ? $toolTitle : null,
             is_string($roleTitle) ? $roleTitle : null,
+            is_string($itemTitle) ? $itemTitle : null,
             $unlockAt,
         );
     }
@@ -196,7 +221,7 @@ class NodeUnlockService
      * @param  array<string, mixed>  $rule
      * @param  array<int, true>  $completedNodeIds
      * @param  list<string>  $roleSlugs
-     * @param  array<int|string, mixed>  $nodeDetails
+     * @param  array<int, mixed>  $nodeDetails
      * @return array<string, mixed>
      */
     private function transformRequirement(
@@ -205,9 +230,11 @@ class NodeUnlockService
         bool $toolUsed,
         bool $timeUnlocked,
         array $roleSlugs,
+        bool $itemOwned,
         array $nodeDetails,
         ?string $toolTitle,
         ?string $roleTitle,
+        ?string $itemTitle,
         ?string $unlockAt,
     ): array {
         $type = $rule['type'] ?? null;
@@ -251,6 +278,16 @@ class NodeUnlockService
             ];
         }
 
+        if ($type === 'item_owned') {
+            $itemId = (int) ($rule['itemId'] ?? 0);
+
+            return [
+                'itemTitle' => $itemTitle,
+                'type' => 'item_owned',
+                'satisfied' => $itemId > 0 && $itemOwned,
+            ];
+        }
+
         $children = collect(is_array($rule['rules'] ?? null) ? $rule['rules'] : [])
             ->filter(fn (mixed $child): bool => is_array($child))
             ->map(fn (array $child): array => $this->transformRequirement(
@@ -259,9 +296,11 @@ class NodeUnlockService
                 $toolUsed,
                 $timeUnlocked,
                 $roleSlugs,
+                $itemOwned,
                 $nodeDetails,
                 $toolTitle,
                 $roleTitle,
+                $itemTitle,
                 $unlockAt,
             ))
             ->values()
@@ -324,11 +363,30 @@ class NodeUnlockService
             && $this->configuredToolId($node) !== null;
     }
 
+    private function isItemUnlockable(LearningNode $node): bool
+    {
+        if ($node->state !== 'locked') {
+            return false;
+        }
+
+        $item = $this->itemConfig($node);
+
+        return filter_var($item['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            && $this->configuredItemId($node) !== null;
+    }
+
     private function configuredRoleSlug(LearningNode $node): ?string
     {
         $roleSlug = trim((string) ($this->unlockConfig($node)['roleSlug'] ?? ''));
 
         return $roleSlug !== '' ? $roleSlug : null;
+    }
+
+    private function configuredItemId(LearningNode $node): ?int
+    {
+        $itemId = (int) ($this->itemConfig($node)['itemId'] ?? 0);
+
+        return $itemId > 0 ? $itemId : null;
     }
 
     /**
@@ -349,6 +407,16 @@ class NodeUnlockService
         $unlock = $this->unlockConfig($node);
 
         return is_array($unlock['tool'] ?? null) ? $unlock['tool'] : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function itemConfig(LearningNode $node): array
+    {
+        $unlock = $this->unlockConfig($node);
+
+        return is_array($unlock['item'] ?? null) ? $unlock['item'] : [];
     }
 
     private function configuredToolId(LearningNode $node): ?int
@@ -389,6 +457,13 @@ class NodeUnlockService
             $rules[] = [
                 'type' => 'role_has',
                 'roleSlug' => $roleSlug,
+            ];
+        }
+
+        if ($this->isItemUnlockable($node) && ($itemId = $this->configuredItemId($node))) {
+            $rules[] = [
+                'type' => 'item_owned',
+                'itemId' => $itemId,
             ];
         }
 
@@ -433,6 +508,7 @@ class NodeUnlockService
         bool $toolUsed,
         bool $timeUnlocked,
         array $roleSlugs,
+        bool $itemOwned,
     ): bool {
         if (($rule['type'] ?? null) === 'node_completed') {
             $nodeId = (int) ($rule['nodeId'] ?? 0);
@@ -454,6 +530,10 @@ class NodeUnlockService
             return $roleSlug !== '' && in_array($roleSlug, $roleSlugs, true);
         }
 
+        if (($rule['type'] ?? null) === 'item_owned') {
+            return $itemOwned && (int) ($rule['itemId'] ?? 0) > 0;
+        }
+
         if (($rule['type'] ?? null) !== 'group') {
             return false;
         }
@@ -469,8 +549,8 @@ class NodeUnlockService
         $operator = ($rule['operator'] ?? 'and') === 'or' ? 'or' : 'and';
 
         return $operator === 'or'
-            ? $rules->contains(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked, $roleSlugs))
-            : $rules->every(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked, $roleSlugs));
+            ? $rules->contains(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked, $roleSlugs, $itemOwned))
+            : $rules->every(fn (array $child): bool => $this->evaluateRule($child, $completedNodeIds, $toolUsed, $timeUnlocked, $roleSlugs, $itemOwned));
     }
 
     /** @return list<string> */
@@ -501,6 +581,30 @@ class NodeUnlockService
                 && ($unlock['source'] ?? null) === 'world-map-lock-tool'
                 && isset($unlock['unlockedAt']);
         });
+    }
+
+    private function hasItemUnlock(LearningNode $node, int $userId): bool
+    {
+        $itemId = $this->configuredItemId($node);
+
+        return $itemId !== null && in_array($itemId, $this->itemIds($userId), true);
+    }
+
+    /** @return list<int> */
+    private function itemIds(int $userId): array
+    {
+        if (array_key_exists($userId, $this->userItemIds)) {
+            return $this->userItemIds[$userId];
+        }
+
+        $user = User::query()->with('learningItems')->find($userId);
+
+        return $this->userItemIds[$userId] = $user?->learningItems
+            ->filter(fn (LearningItem $item): bool => (int) ($item->pivot?->quantity ?? 0) > 0)
+            ->pluck('id')
+            ->map(fn (mixed $itemId): int => (int) $itemId)
+            ->values()
+            ->all() ?? [];
     }
 
     private function recordToolUse(User $user, LearningNode $node, LearningTool $tool): void

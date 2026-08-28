@@ -161,6 +161,7 @@ type SelectedWorldMap = {
     accessGroups: WorldMapAccessGroup[];
     canDeleteWorldMaps: boolean;
     editableMap: EditableMapPayload;
+    items: EditableItem[];
     learningGroups: LearningGroupOption[];
     roleOptions: WorldMapAccessRoleOption[];
     topicOptions: LearningTopicOption[];
@@ -821,6 +822,7 @@ function SettingsDetail({
                                 }
                                 editableMap={selectedWorldMap.editableMap}
                                 embedded
+                                items={selectedWorldMap.items}
                                 tools={selectedWorldMap.tools}
                                 roleOptions={selectedWorldMap.roleOptions}
                             />
