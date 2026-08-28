@@ -19,11 +19,20 @@ Scoped files should only add local guidance. They should not contradict the root
 - `app/Learning/AGENTS.md` covers backend learning-domain behavior.
 - `resources/js/AGENTS.md` covers React, Inertia, feature modules and UI consistency.
 - `tests/AGENTS.md` covers test priorities and scope.
+- Root `AGENTS.md` contains the Laravel Boost guidelines shared with Codex and
+  other compatible agents.
+- `.agents/skills/` contains the committed Boost skills for the Laravel,
+  Inertia React, Tailwind, Wayfinder, testing and AI conventions.
 - `CONTRIBUTING.md` covers architecture expectations, verification and the
   repository commit convention.
 
-There is currently no repository-root `AGENTS.md` and no checked-in
-`.agents/skills` directory. Do not assume either exists based on older sessions.
+`boost.json` records the selected Boost features and agents. The local Codex MCP
+configuration is in `.codex/config.toml`. Refresh generated guidance after a
+Boost or supported-package update with:
+
+```bash
+php artisan boost:update --no-discover --no-interaction
+```
 
 ## Verification
 
@@ -125,7 +134,7 @@ practical.
 
 ## Deferred Work
 
-- Add a repository-root `AGENTS.md` only when the project needs shared guidance
-  that cannot live in `CONTRIBUTING.md` or scoped instruction files.
-- Add repository-local skills only with a documented discovery mechanism and a
-  concrete workflow that is not already covered by project documentation.
+- Keep Boost-generated guidance synchronized when Laravel or supported package
+  conventions change.
+- Add custom repository-local skills only with a documented discovery mechanism
+  and a concrete workflow that is not already covered by Boost.
