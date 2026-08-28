@@ -624,6 +624,7 @@ function MapDetails({ map }: { map: MapSummary }) {
                             className="grid gap-2"
                             items={nodesNeedingReview}
                             pageSize={5}
+                            paginationLabel="Activities awaiting review"
                             paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-slate-950 dark:hover:text-white disabled:pointer-events-none disabled:opacity-40"
                             paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
                             paginationTextClassName="text-xs text-slate-500 dark:text-slate-400"

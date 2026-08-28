@@ -214,6 +214,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                         <LearnerPaginatedItems
                                             items={topic.paths}
                                             pageSize={4}
+                                            paginationLabel="Topic routes"
                                             renderItem={(path) => (
                                                 <TopicPathCard
                                                     key={path.id}
@@ -267,6 +268,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                         <LearnerPaginatedItems
                                             items={topic.maps}
                                             pageSize={4}
+                                            paginationLabel="Topic maps"
                                             renderItem={(map) => (
                                                 <TopicMapCard
                                                     key={map.id}
@@ -322,6 +324,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                             className="divide-y divide-[var(--learner-border-color)]"
                                             items={topic.subtopics}
                                             pageSize={4}
+                                            paginationLabel="Topic subtopics"
                                             renderItem={(subtopic) => (
                                                 <Link
                                                     className="group flex items-start justify-between gap-4 py-4 text-sm"
@@ -446,6 +449,7 @@ function TopicLearningAreas({
                 <LearnerPaginatedItems
                     items={areas}
                     pageSize={4}
+                    paginationLabel="Learning areas"
                     renderItem={(area) => (
                         <Link
                             className="group flex items-start justify-between gap-4 border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_55%,transparent)] p-4 transition hover:border-[color-mix(in_srgb,var(--learner-action-accent)_60%,var(--learner-border-color))] hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))]"
@@ -505,6 +509,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
                     className="divide-y divide-[var(--learner-border-color)]"
                     items={entries}
                     pageSize={4}
+                    paginationLabel="Recent reflections"
                     renderItem={(entry) => (
                         <Link
                             className="group flex items-start justify-between gap-4 py-3 transition hover:text-[var(--learner-accent)]"
@@ -620,6 +625,7 @@ function TopicReflectionComparison({
                                     entry.id !== narrative.later.id,
                             )}
                             pageSize={4}
+                            paginationLabel="Reflections along the way"
                             renderItem={(entry) => (
                                 <ReflectionTrailEntry
                                     entry={entry}
@@ -895,6 +901,7 @@ function TopicCompetenceCard({
                                 className="mt-3 divide-y divide-[var(--learner-border-color)]"
                                 items={competence.evidenceLedger}
                                 pageSize={4}
+                                paginationLabel="Recent competence moments"
                                 renderItem={(entry) => {
                                     const content = (
                                         <span className="flex min-w-0 items-start justify-between gap-4">

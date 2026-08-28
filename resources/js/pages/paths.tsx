@@ -63,6 +63,7 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                             className="mt-6 grid gap-4 md:grid-cols-2"
                             items={paths}
                             pageSize={6}
+                            paginationLabel="Learning paths"
                             renderItem={(path) => (
                                 <PathCard key={path.id} path={path} />
                             )}

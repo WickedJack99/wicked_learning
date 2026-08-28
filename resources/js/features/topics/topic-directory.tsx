@@ -48,6 +48,7 @@ export function TopicDirectory({
                         className="mx-auto mt-9 grid max-w-7xl grid-cols-1 gap-x-20 lg:grid-cols-2"
                         items={areas}
                         pageSize={4}
+                        paginationLabel="Topic areas"
                         renderItem={(area) => (
                             <section className="mb-10 min-w-0" key={area.id}>
                                 <div className="border-b border-[var(--learner-border-color)] pb-3">
@@ -64,6 +65,7 @@ export function TopicDirectory({
                                     className="divide-y divide-[color-mix(in_srgb,var(--learner-border-color)_70%,transparent)]"
                                     items={area.topics}
                                     pageSize={6}
+                                    paginationLabel={`${area.title} topics`}
                                     renderItem={(topic) => (
                                         <Link
                                             className="group flex items-center justify-between gap-4 py-4 pl-0.5 text-sm text-[var(--learner-body-text)] transition hover:text-[var(--learner-accent)]"

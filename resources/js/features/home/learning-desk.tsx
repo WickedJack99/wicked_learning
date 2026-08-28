@@ -123,6 +123,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                                     items={desk.recentRoutes}
                                     pageSize={2}
+                                    paginationLabel="Recent traces"
                                     renderItem={(route) => (
                                         <RecentRouteRow
                                             key={route.id}
@@ -150,6 +151,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
                                     items={desk.currentRoutes}
                                     pageSize={2}
+                                    paginationLabel="Current routes"
                                     renderItem={(route) => (
                                         <RouteRow
                                             key={route.id}

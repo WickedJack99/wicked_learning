@@ -716,6 +716,7 @@ function JoinRequestPanel({
                 }
                 items={requests}
                 pageSize={4}
+                paginationLabel="Join requests"
                 renderItem={(request) => (
                     <article
                         className="rounded-lg border border-slate-200 p-3 dark:border-white/10"
@@ -900,6 +901,7 @@ function MemberList({
                 }
                 items={members}
                 pageSize={8}
+                paginationLabel="Organization members"
                 renderItem={(member) => (
                     <div
                         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"

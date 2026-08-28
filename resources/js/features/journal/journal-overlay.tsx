@@ -487,6 +487,7 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
                                 items={visiblePages}
                                 key={search}
                                 pageSize={4}
+                                paginationLabel="Journal pages"
                                 paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--journal-accent)] transition hover:text-[var(--journal-heading-text)] disabled:pointer-events-none disabled:opacity-40"
                                 paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-panel-border)] pt-3"
                                 paginationTextClassName="text-xs text-[var(--journal-muted-text)]"
@@ -750,6 +751,7 @@ function RevisitInvitations({
                 className="mt-2 grid gap-2"
                 items={invitations}
                 pageSize={1}
+                paginationLabel="Revisit invitations"
                 paginationClassName="mt-3 flex items-center justify-between border-t border-[var(--journal-button-border)] pt-3"
                 renderItem={(invitation) => (
                     <article

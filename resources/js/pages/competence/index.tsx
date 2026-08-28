@@ -921,6 +921,7 @@ function CompetenceReading({
                         className="mt-3 grid gap-2"
                         items={topic.visual.evidenceLedger}
                         pageSize={3}
+                        paginationLabel="Evidence ledger"
                         renderItem={(evidence) => {
                             const content = (
                                 <span className="flex items-start justify-between gap-3">

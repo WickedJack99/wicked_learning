@@ -9,6 +9,7 @@ export function LearnerPaginatedItems<T>({
     emptyState = null,
     items,
     pageSize,
+    paginationLabel,
     paginationButtonClassName = 'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
     paginationClassName = 'mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3',
     paginationTextClassName = 'text-xs text-[var(--learner-muted-text)]',
@@ -18,6 +19,7 @@ export function LearnerPaginatedItems<T>({
     emptyState?: ReactNode;
     items: T[];
     pageSize: number;
+    paginationLabel?: string;
     paginationButtonClassName?: string;
     paginationClassName?: string;
     paginationTextClassName?: string;
@@ -41,7 +43,10 @@ export function LearnerPaginatedItems<T>({
             </div>
             {pageCount > 1 ? (
                 <nav
-                    aria-label={t('common.pagination.navigation', 'Pagination')}
+                    aria-label={
+                        paginationLabel ??
+                        t('common.pagination.navigation', 'Pagination')
+                    }
                     className={paginationClassName}
                 >
                     <button

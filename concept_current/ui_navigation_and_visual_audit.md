@@ -548,7 +548,9 @@ These are test gaps, not claims that the feature is broken:
 - Shared pagination controls now expose a labelled navigation landmark, a live
   page status and a visible keyboard focus outline.
 - Long AI queues, media libraries, graph nodes, journal pages and organization
-  conversations need browser assertions for the final visible action.
+  conversations use collection-specific pagination labels where multiple
+  collections share a surface; a full browser assertion for every final
+  visible action remains open.
 - Keyboard focus and accessible names should still be checked for icon-only map
   controls, account controls and the remaining modal close paths. Activity
   graph nodes and connections now have focused coverage in the implementation,
@@ -567,6 +569,14 @@ Only the active section is in the normal Tab order; Home, End and the arrow
 keys select and focus another section. The active control identifies the
 shared tab panel, which exposes the selected section to assistive technology.
 Pointer selection and the existing form behavior remain unchanged.
+
+### Completed — Distinguish pagination landmarks by collection
+
+The shared pagination component accepts a collection-specific accessible label.
+Learner desk, topic, journal, organization, path and competence collections,
+as well as the World Builder review queue, now identify what their previous
+and next controls page through. This keeps repeated pagination landmarks
+meaningful without changing their visible wording or layout.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 
