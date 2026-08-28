@@ -12,16 +12,16 @@ An activity can transition to another activity based on:
 
 The MVP uses this for:
 
-- Dialogue completion leading to a question.
+- NPC dialogue completion leading to a question.
 - Correct answer leading to reflection.
-- Incorrect answer leading to a short review dialogue.
-- Review dialogue leading back to the question.
+- Incorrect answer leading to an explicit review activity.
+- Review activity leading back to the question.
 
 The admin activity editor now uses a graph view for a single map node. It has a special Start node, a special End node, and activity nodes with Entry and Exit connectors. Dragging from one connector to another creates a connection. Clicking an existing normal connection removes it.
 
 The synthetic Start node can connect to multiple first activities. Each Start-to-activity connection becomes a learner-facing route option in the focused MapAsset panel. A route option can have dark/light preview images and dark/light overlay button colors. If no image is configured, it still appears as a compact button. If enough route options exist, the route list scrolls inside the panel.
 
-The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections, review pauses and portals without replacing the graph itself.
+The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows specialized editors for NPC dialogue graphs, questions, reflections, review pauses and portals without replacing the graph itself.
 
 When an author connects one activity to another, the connection label defaults to
 the destination activity title so the learner and author can understand where

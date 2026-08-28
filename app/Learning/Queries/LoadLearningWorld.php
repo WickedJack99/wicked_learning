@@ -21,7 +21,6 @@ class LoadLearningWorld
             ->with([
                 'maps.topic',
                 'maps.assets.node',
-                'maps.nodes.activities.dialogueStages',
                 'maps.nodes.activities.question.options',
                 'maps.nodes.activities.transitions',
                 'maps.nodes.activityStarts.activity',

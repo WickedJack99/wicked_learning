@@ -425,7 +425,7 @@ test('play route refresh redirects stale activity query to saved current activit
     $firstActivity = LearningActivity::query()->create([
         'learning_node_id' => $node->id,
         'slug' => 'refresh-start',
-        'type' => 'dialogue',
+        'type' => 'open_practice',
         'title' => 'Refresh start',
         'config' => [],
         'sort_order' => 220,
@@ -485,7 +485,7 @@ test('marking a later activity as reached updates route resume state', function 
     $firstActivity = LearningActivity::query()->create([
         'learning_node_id' => $node->id,
         'slug' => 'reached-start',
-        'type' => 'dialogue',
+        'type' => 'open_practice',
         'title' => 'Reached start',
         'config' => [],
         'sort_order' => 240,
@@ -618,7 +618,7 @@ test('npc dialogue bubble state is stored against the current play run', functio
             ->where("playState.{$activity->id}.npcDialogue.history.0", $firstNode->id));
 });
 
-test('npc dialogue bubble state is cleared after the dialogue activity completes', function () {
+test('npc dialogue bubble state is cleared after the NPC dialogue activity completes', function () {
     $learner = User::factory()->create([
         'email' => 'npc-state-reset@example.com',
     ]);

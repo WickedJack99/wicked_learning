@@ -56,7 +56,7 @@ class TranslationCatalogExportService
     private function activityPayloads(): array
     {
         return LearningActivity::query()
-            ->with(['dialogueStages', 'npcDialogueNodes', 'question.options', 'transitions'])
+            ->with(['npcDialogueNodes', 'question.options', 'transitions'])
             ->get()
             ->mapWithKeys(fn (LearningActivity $activity): array => [
                 (string) $activity->id => $this->activityPayloads->make($activity),

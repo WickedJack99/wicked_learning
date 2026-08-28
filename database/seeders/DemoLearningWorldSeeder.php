@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
-use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -113,7 +112,7 @@ class DemoLearningWorldSeeder extends Seeder
             'visual_config' => [
                 'icon' => 'radioTower',
                 'label' => 'Pattern Gate',
-                'tooltip' => 'Start here: short dialogue, then a question.',
+                'tooltip' => 'Start here: follow the NPC dialogue and keep a useful clue.',
                 'dark' => [
                     'tileColor' => '#12343b',
                     'foregroundColor' => '#99f6e4',
@@ -129,58 +128,6 @@ class DemoLearningWorldSeeder extends Seeder
                     'imageUrl' => '/images/nodes/signal-gate-light.svg',
                 ],
             ],
-        ]);
-
-        $mentorDialogue = LearningActivity::query()->create([
-            'learning_node_id' => $signalGate->id,
-            'slug' => 'meet-mira',
-            'type' => 'dialogue',
-            'title' => 'Meet Mira',
-            'introduction' => 'A short orientation with a configurable NPC.',
-            'sort_order' => 10,
-            'config' => [
-                'allowBackward' => true,
-                'competenceTopics' => [
-                    ['slug' => 'pattern-recognition', 'topic' => 'Pattern recognition', 'weight' => 1],
-                ],
-                'learningIntent' => 'participate',
-            ],
-        ]);
-
-        DialogueStage::query()->create([
-            'learning_activity_id' => $mentorDialogue->id,
-            'stage_key' => 'arrival',
-            'speaker_name' => 'Mira',
-            'speaker_role' => 'Learning Guide',
-            'body' => 'Welcome to the Learning Grove. Nothing here asks you to chase points. We look for patterns, test ideas, and keep what becomes useful.',
-            'portrait_url' => '/images/characters/mentor-calm.png',
-            'image_alt' => 'Mira, a calm guide with a glowing frame.',
-            'mood' => 'calm',
-            'sort_order' => 10,
-        ]);
-
-        DialogueStage::query()->create([
-            'learning_activity_id' => $mentorDialogue->id,
-            'stage_key' => 'autonomy',
-            'speaker_name' => 'Mira',
-            'speaker_role' => 'Learning Guide',
-            'body' => 'You can move through places in more than one way. If an answer is off, that is not a failure state. It is just information for the next attempt.',
-            'portrait_url' => '/images/characters/mentor-hint.png',
-            'image_alt' => 'Mira pointing toward branching learning paths.',
-            'mood' => 'encouraging',
-            'sort_order' => 20,
-        ]);
-
-        DialogueStage::query()->create([
-            'learning_activity_id' => $mentorDialogue->id,
-            'stage_key' => 'question-setup',
-            'speaker_name' => 'Mira',
-            'speaker_role' => 'Learning Guide',
-            'body' => 'A small observation just arrived. Read it like an explorer: what detail changes the story?',
-            'portrait_url' => '/images/characters/mentor-alert.png',
-            'image_alt' => 'Mira reviewing a highlighted event stream.',
-            'mood' => 'focused',
-            'sort_order' => 30,
         ]);
 
         $signalQuestion = LearningActivity::query()->create([
@@ -242,7 +189,7 @@ class DemoLearningWorldSeeder extends Seeder
         $sourceReview = LearningActivity::query()->create([
             'learning_node_id' => $signalGate->id,
             'slug' => 'review-source-distribution',
-            'type' => 'dialogue',
+            'type' => 'review',
             'title' => 'Review the pattern spread',
             'introduction' => 'A short loop that points back to the question.',
             'sort_order' => 30,
@@ -252,19 +199,9 @@ class DemoLearningWorldSeeder extends Seeder
                     ['slug' => 'investigation-focus', 'topic' => 'Investigation focus', 'weight' => 1],
                 ],
                 'learningIntent' => 'review',
+                'prompt' => 'Compare the focus clue with the spread clue. What feels clearer now?',
+                'note' => 'Return to the question whenever another comparison would help.',
             ],
-        ]);
-
-        DialogueStage::query()->create([
-            'learning_activity_id' => $sourceReview->id,
-            'stage_key' => 'review',
-            'speaker_name' => 'Mira',
-            'speaker_role' => 'Learning Guide',
-            'body' => 'Try comparing the focus clue with the spread clue. One focus point tells us where attention gathered; many starting points tell us how the pattern behaved.',
-            'portrait_url' => '/images/characters/mentor-hint.png',
-            'image_alt' => 'Mira showing two highlighted evidence columns.',
-            'mood' => 'supportive',
-            'sort_order' => 10,
         ]);
 
         $reflection = LearningActivity::query()->create([
@@ -283,15 +220,6 @@ class DemoLearningWorldSeeder extends Seeder
                 'prompt' => 'In your own words, what did the spread of starting points help you understand?',
                 'note' => 'This note is private orientation for your own thinking.',
             ],
-        ]);
-
-        ActivityTransition::query()->create([
-            'from_activity_id' => $mentorDialogue->id,
-            'to_activity_id' => $signalQuestion->id,
-            'from_connector' => 'completed',
-            'to_connector' => 'in',
-            'trigger' => 'completed',
-            'label' => 'Inspect the alert',
         ]);
 
         ActivityTransition::query()->create([
@@ -321,11 +249,11 @@ class DemoLearningWorldSeeder extends Seeder
             'label' => 'Try the alert again',
         ]);
 
-        $this->seedNpcDialogueExample($signalGate, $reflection);
+        $npcDialogue = $this->seedNpcDialogueExample($signalGate, $reflection);
         $signalLens = $this->seedToolBeltExample();
         $this->seedObstacleRoute($signalGate, $reflection, $signalLens);
 
-        $signalGate->update(['start_activity_id' => $mentorDialogue->id]);
+        $signalGate->update(['start_activity_id' => $npcDialogue->id]);
 
         $portal = $this->seedSecondaryNodes($map);
         $this->seedPortalSibling($world, $map, $portal);
@@ -424,7 +352,7 @@ class DemoLearningWorldSeeder extends Seeder
         }
     }
 
-    private function seedNpcDialogueExample(LearningNode $signalGate, LearningActivity $reflection): void
+    private function seedNpcDialogueExample(LearningNode $signalGate, LearningActivity $reflection): LearningActivity
     {
         $npcDialogue = LearningActivity::query()->create([
             'learning_node_id' => $signalGate->id,
@@ -565,6 +493,8 @@ class DemoLearningWorldSeeder extends Seeder
             'button_border_color_light' => '#0891b2',
             'sort_order' => 20,
         ]);
+
+        return $npcDialogue;
     }
 
     private function seedToolBeltExample(): LearningTool

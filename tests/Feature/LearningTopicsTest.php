@@ -340,7 +340,7 @@ test('the learner journey keeps topic, competence, map and activity context conn
         ->where('slug', 'signal-gate')
         ->firstOrFail();
     $activity = LearningActivity::query()
-        ->where('slug', 'meet-mira')
+        ->where('slug', 'guided-signal-dialogue')
         ->firstOrFail();
     $start = LearningActivityStart::query()
         ->where('learning_activity_id', $activity->id)
@@ -419,7 +419,7 @@ test('selecting a route keeps its run and repairs stale activity state', functio
         ->firstOrFail();
     $unrelatedActivity = LearningActivity::query()
         ->where('learning_node_id', $node->id)
-        ->where('slug', 'meet-mira')
+        ->where('slug', 'guided-signal-dialogue')
         ->firstOrFail();
     $runId = '33333333-3333-4333-8333-333333333333';
 

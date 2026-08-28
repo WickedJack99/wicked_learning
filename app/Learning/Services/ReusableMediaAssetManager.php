@@ -2,7 +2,6 @@
 
 namespace App\Learning\Services;
 
-use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -62,9 +61,7 @@ class ReusableMediaAssetManager
                 ['image_dark', 'image_light'],
                 $url,
             ),
-            'Dialogue' => $this->countStringColumns(DialogueStage::class, ['portrait_url'], $url)
-                + $this->countJsonColumnReferences(DialogueStage::class, 'visual_config', $url)
-                + $this->countJsonColumnReferences(NpcDialogueNode::class, 'config', $url),
+            'NPC dialogue' => $this->countJsonColumnReferences(NpcDialogueNode::class, 'config', $url),
             'Activities' => $this->countJsonColumnReferences(LearningActivity::class, 'config', $url),
             'Maps' => $this->countJsonColumnReferences(LearningMap::class, 'background_config', $url),
             'Map places' => $this->countJsonColumnReferences(LearningMapAsset::class, 'visual_config', $url)
@@ -119,13 +116,11 @@ class ReusableMediaAssetManager
 
         return $this->replaceToolReferences($oldUrl, $newUrl)
             + $this->replaceActivityStartReferences($oldUrl, $newUrl)
-            + $this->replaceDialogueStageReferences($oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningActivity::class, 'config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningMap::class, 'background_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningMapAsset::class, 'visual_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(LearningNode::class, 'visual_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(NpcDialogueNode::class, 'config', $oldUrl, $newUrl)
-            + $this->replaceJsonColumnReferences(DialogueStage::class, 'visual_config', $oldUrl, $newUrl)
             + $this->replaceJsonColumnReferences(PlatformPresentationSetting::class, 'value', $oldUrl, $newUrl)
             + $this->replaceStringColumns(LearningMapAsset::class, ['image_url'], $oldUrl, $newUrl);
     }
@@ -148,11 +143,6 @@ class ReusableMediaAssetManager
             $oldUrl,
             $newUrl,
         );
-    }
-
-    private function replaceDialogueStageReferences(string $oldUrl, string $newUrl): int
-    {
-        return $this->replaceStringColumns(DialogueStage::class, ['portrait_url'], $oldUrl, $newUrl);
     }
 
     /**

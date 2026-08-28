@@ -1,5 +1,6 @@
 <?php
 
+use App\Learning\ActivityTypeRegistry;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -116,10 +117,10 @@ test('admin users can open world builder map configuration and node inside setti
             ->where('selectedWorldMap.editableMap.map.slug', 'first-sector')
             ->where('selectedWorldNode.activityGraph.map.slug', 'first-sector')
             ->where('selectedWorldNode.activityGraph.node.slug', 'signal-gate')
-            ->has('selectedWorldNode.activityGraph.activities', 6)
-            ->where('selectedWorldNode.activityGraph.activities.1.slug', 'guided-signal-dialogue')
-            ->where('selectedWorldNode.activityGraph.activities.1.type', 'npc_dialogue')
-            ->has('selectedWorldNode.activityGraph.transitions', 6)
+            ->has('selectedWorldNode.activityGraph.activities', 5)
+            ->where('selectedWorldNode.activityGraph.activities.0.slug', 'guided-signal-dialogue')
+            ->where('selectedWorldNode.activityGraph.activities.0.type', 'npc_dialogue')
+            ->has('selectedWorldNode.activityGraph.transitions', 5)
             ->has('selectedWorldNode.activityGraph.portalCandidates')
             ->has('selectedWorldNode.activityGraph.activityTypes')
             ->where('selectedWorldNode.activityGraph.canManageAiReview', true)
@@ -129,6 +130,10 @@ test('admin users can open world builder map configuration and node inside setti
                 'Systems Thinking',
             ])
         );
+
+    expect(app(ActivityTypeRegistry::class)->typeKeys())
+        ->not->toContain('dialogue')
+        ->toContain('npc_dialogue');
 });
 
 test('normal users can not open the world editor', function () {

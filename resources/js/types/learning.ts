@@ -256,7 +256,7 @@ export type LearningPortalLink = {
 export type LearningActivity = {
     id: number;
     slug: string;
-    type: 'dialogue' | 'question' | 'reflection' | 'review' | string;
+    type: 'question' | 'reflection' | 'review' | string;
     title: string;
     introduction: string | null;
     config: Record<
@@ -272,7 +272,6 @@ export type LearningActivity = {
     configuredTool: LearningTool | null;
     completionChoicePrompt: string | null;
     feedbackGuidance: LearningFeedbackGuidance | null;
-    dialogueStages: DialogueStage[];
     npcDialogueNodes: NpcDialogueNode[];
     npcDialogueTransitions: NpcDialogueTransition[];
     question: LearningQuestion | null;
@@ -355,18 +354,6 @@ export type NpcDialogueTransition = {
     id: number;
     toConnector: string;
     toNodeId: number;
-};
-
-export type DialogueStage = {
-    id: number;
-    key: string;
-    speakerName: string;
-    speakerRole: string | null;
-    body: string;
-    portraitUrl: string | null;
-    imageAlt: string | null;
-    mood: string | null;
-    visualConfig: Record<string, string>;
 };
 
 export type LearningQuestion = {

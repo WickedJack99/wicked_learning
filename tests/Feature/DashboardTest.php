@@ -650,9 +650,9 @@ test('authenticated users can play a node activity graph outside the map', funct
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('learning/node-play')
             ->where('node.slug', 'signal-gate')
-            ->has('node.activities', 6)
-            ->where('node.activities.1.slug', 'guided-signal-dialogue')
-            ->where('node.activities.1.type', 'npc_dialogue')
+            ->has('node.activities', 5)
+            ->where('node.activities.0.slug', 'guided-signal-dialogue')
+            ->where('node.activities.0.type', 'npc_dialogue')
             ->where('node.mapSlug', 'first-sector')
         );
 });

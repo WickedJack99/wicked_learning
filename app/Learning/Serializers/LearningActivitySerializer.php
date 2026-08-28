@@ -5,7 +5,6 @@ namespace App\Learning\Serializers;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Models\ActivityTransition;
-use App\Models\DialogueStage;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\LearningItem;
@@ -44,9 +43,6 @@ class LearningActivitySerializer
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
             'configuredTool' => $this->configuredTool($activity),
-            'dialogueStages' => $activity->dialogueStages
-                ->map(fn (DialogueStage $stage): array => $this->dialogueStage($stage))
-                ->values(),
             'npcDialogueNodes' => $activity->npcDialogueNodes
                 ->map(fn (NpcDialogueNode $node): array => $this->npcDialogueNode($node))
                 ->values(),
@@ -219,24 +215,6 @@ class LearningActivitySerializer
             'toNodeId' => $transition->to_dialogue_node_id,
             'fromConnector' => $transition->from_connector,
             'toConnector' => $transition->to_connector,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function dialogueStage(DialogueStage $stage): array
-    {
-        return [
-            'id' => $stage->id,
-            'key' => $stage->stage_key,
-            'speakerName' => $stage->speaker_name,
-            'speakerRole' => $stage->speaker_role,
-            'body' => $stage->body,
-            'portraitUrl' => $stage->portrait_url,
-            'imageAlt' => $stage->image_alt,
-            'mood' => $stage->mood,
-            'visualConfig' => $stage->visual_config ?? [],
         ];
     }
 

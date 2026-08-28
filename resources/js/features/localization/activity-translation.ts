@@ -14,16 +14,6 @@ export type LearningActivityTranslation = {
         successText: string;
         text: string;
     }>;
-    dialogueStages?: Record<
-        number,
-        Partial<{
-            body: string;
-            imageAlt: string | null;
-            mood: string | null;
-            speakerName: string;
-            speakerRole: string | null;
-        }>
-    >;
     introduction?: string | null;
     npcDialogueNodes?: Record<
         number,
@@ -62,10 +52,6 @@ export function applyActivityTranslation(
         ...activity,
         title: translation.title ?? activity.title,
         introduction: translation.introduction ?? activity.introduction,
-        dialogueStages: activity.dialogueStages.map((stage) => ({
-            ...stage,
-            ...translation.dialogueStages?.[stage.id],
-        })),
         npcDialogueNodes: activity.npcDialogueNodes.map((node) => ({
             ...node,
             ...translation.npcDialogueNodes?.[node.id],

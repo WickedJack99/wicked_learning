@@ -15,7 +15,7 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
 - Activities run on dedicated playback pages and support graph transitions,
   route restarts and persisted progress.
 - Implemented activity types include item grant, item obstacle, Markdown, NPC
-  dialogue, dialogue, question, reflection, shared task, learner message prompt,
+  NPC dialogue, question, reflection, shared task, learner message prompt,
   learner message wall, obstacle, tool grant, open practice and portal.
 - A message prompt collects at most one short contribution from each learner
   for a reusable MapAsset topic. A message wall displays the topic's visible
@@ -42,7 +42,7 @@ usable slice; future work is maintained in `prioritized_backlog.md`.
   administrative configuration.
 - Admins manage users, roles, registration tokens, map access and groups.
 - World Builder manages worlds, maps, free MapAssets, activity routes,
-  dialogues, portals, rules, visuals and sounds.
+  NPC dialogue graphs, portals, rules, visuals and sounds.
 - Reusable media, tools, items, sounds and cursor images have shared management
   and picker flows.
 - Public presentation, information pages, translations, journal appearance,

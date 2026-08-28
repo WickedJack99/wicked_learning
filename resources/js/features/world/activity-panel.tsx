@@ -37,7 +37,6 @@ import { NpcDialogueActivity } from './npc-dialogue-player';
 import { ObstacleActivity } from './obstacle-activity';
 import { SharedTaskActivity } from './shared-task-activity';
 import {
-    DialogueActivity,
     OpenPracticeActivity,
     PortalActivity,
     QuestionActivity,
@@ -398,15 +397,6 @@ export function ActivityPlayer({
             originTopicSlug={node.topic?.slug}
         >
             <ActivityAmbientSound activity={activity} />
-            {activity.type === 'dialogue' ? (
-                <DialogueActivity
-                    activity={activity}
-                    onComplete={completeActivity}
-                    onMoveToActivity={onMoveToActivity}
-                    transition={completedTransition}
-                />
-            ) : null}
-
             {activity.type === 'question' && activity.question ? (
                 <QuestionActivity
                     activity={activity}

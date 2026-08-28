@@ -162,7 +162,6 @@ class LearningNodeSerializer
     {
         $node->loadMissing([
             'map.topic',
-            'activities.dialogueStages',
             'activities.npcDialogueNodes',
             'activities.npcDialogueTransitions',
             'activities.question.options',

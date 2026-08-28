@@ -55,14 +55,6 @@ class LearningActivity extends Model
     }
 
     /**
-     * @return HasMany<DialogueStage, $this>
-     */
-    public function dialogueStages(): HasMany
-    {
-        return $this->hasMany(DialogueStage::class)->orderBy('sort_order');
-    }
-
-    /**
      * @return HasMany<NpcDialogueNode, $this>
      */
     public function npcDialogueNodes(): HasMany

@@ -2,7 +2,6 @@
 
 namespace App\Localization\Services;
 
-use App\Models\DialogueStage;
 use App\Models\LearningActivity;
 use App\Models\LearningQuestionOption;
 use App\Models\NpcDialogueNode;
@@ -19,7 +18,6 @@ class ActivityTranslationPayloadFactory
     public function make(LearningActivity $activity): array
     {
         $activity->loadMissing([
-            'dialogueStages',
             'npcDialogueNodes',
             'question.options',
             'transitions',
@@ -29,15 +27,6 @@ class ActivityTranslationPayloadFactory
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $this->configurationCopy($activity),
-            'dialogueStages' => $activity->dialogueStages
-                ->mapWithKeys(fn (DialogueStage $stage): array => [$stage->id => [
-                    'speakerName' => $stage->speaker_name,
-                    'speakerRole' => $stage->speaker_role,
-                    'body' => $stage->body,
-                    'imageAlt' => $stage->image_alt,
-                    'mood' => $stage->mood,
-                ]])
-                ->all(),
             'npcDialogueNodes' => $activity->npcDialogueNodes
                 ->mapWithKeys(fn (NpcDialogueNode $node): array => [$node->id => [
                     'title' => $node->title,

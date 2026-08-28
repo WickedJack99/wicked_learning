@@ -18,7 +18,6 @@ class LoadPlayableNode
     {
         $node->loadMissing([
             'map.world',
-            'activities.dialogueStages',
             'activities.npcDialogueNodes',
             'activities.npcDialogueTransitions',
             'activities.question.options',

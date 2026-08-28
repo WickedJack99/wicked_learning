@@ -1,9 +1,7 @@
 import {
-    ArrowLeft,
     ArrowRight,
     CheckCircle2,
     Map as MapIcon,
-    MessageCircle,
     RotateCcw,
 } from 'lucide-react';
 import type { CSSProperties } from 'react';
@@ -345,101 +343,6 @@ function portalAssetLayer(value: string): PortalSceneAsset['layer'] {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-export function DialogueActivity({
-    activity,
-    onComplete,
-    onMoveToActivity,
-    transition,
-}: {
-    activity: LearningActivity;
-    onComplete: (activity: LearningActivity) => Promise<void>;
-    onMoveToActivity: (activityId: number | null) => void;
-    transition: ActivityTransition | null;
-}) {
-    const [stageIndex, setStageIndex] = useState(0);
-    const stages = activity.dialogueStages;
-    const stage = stages[stageIndex];
-    const canGoBack = stageIndex > 0;
-    const canGoForward = stageIndex < stages.length - 1;
-
-    if (!stage) {
-        return null;
-    }
-
-    const completeDialogue = async () => {
-        await onComplete(activity);
-        onMoveToActivity(transition?.toActivityId ?? null);
-    };
-
-    return (
-        <div className="flex flex-1 flex-col gap-5">
-            <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-slate-950/55">
-                {stage.portraitUrl ? (
-                    <img
-                        alt={stage.imageAlt ?? stage.speakerName}
-                        className="aspect-[4/3] w-full object-cover"
-                        src={stage.portraitUrl}
-                    />
-                ) : null}
-            </div>
-
-            <div className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-4 dark:border-teal-200/20 dark:bg-teal-100/8">
-                <div className="mb-3 flex items-center gap-2 text-cyan-700 dark:text-teal-100">
-                    <MessageCircle className="size-4" />
-                    <span className="text-sm font-medium">
-                        {stage.speakerName}
-                    </span>
-                    {stage.speakerRole ? (
-                        <span className="text-xs text-cyan-600 dark:text-teal-100/60">
-                            {stage.speakerRole}
-                        </span>
-                    ) : null}
-                </div>
-                <p className="text-sm leading-6 text-slate-700 dark:text-slate-100">
-                    {stage.body}
-                </p>
-            </div>
-
-            <div className="mt-auto flex items-center justify-between gap-3">
-                <Button
-                    aria-label="Previous dialogue stage"
-                    disabled={!canGoBack}
-                    onClick={() =>
-                        setStageIndex((current) => Math.max(0, current - 1))
-                    }
-                    size="icon"
-                    variant="secondary"
-                >
-                    <ArrowLeft className="size-4" />
-                </Button>
-
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                    {stageIndex + 1} / {stages.length}
-                </span>
-
-                {canGoForward ? (
-                    <Button
-                        aria-label="Next dialogue stage"
-                        onClick={() =>
-                            setStageIndex((current) =>
-                                Math.min(stages.length - 1, current + 1),
-                            )
-                        }
-                        size="icon"
-                    >
-                        <ArrowRight className="size-4" />
-                    </Button>
-                ) : (
-                    <Button onClick={completeDialogue}>
-                        {transition?.label ?? 'Continue'}
-                        <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                )}
-            </div>
-        </div>
-    );
 }
 
 export function QuestionActivity({

@@ -292,7 +292,7 @@ without adding another navigation bar.
 
 ### Completed — Label icon-only activity controls
 
-Previous/next controls in markdown pages, NPC dialogue and dialogue stages
+Previous/next controls in markdown pages and NPC dialogue
 now expose explicit accessible names. The group-message send control follows
 the same rule. Remaining keyboard review is limited to map controls, settings
 authoring widgets and other complex surfaces listed below.

@@ -62,13 +62,6 @@ class ActivityTypeRegistry
                 'outputs' => [$this->connector('dialogue-end-pending', 'A End')],
             ],
             [
-                'key' => 'dialogue',
-                'label' => 'Dialogue',
-                'description' => 'NPC or narrator stages that continue after completion.',
-                'inputs' => [$this->connector('in', 'In')],
-                'outputs' => [$this->connector('completed', 'Completed')],
-            ],
-            [
                 'key' => 'question',
                 'label' => 'Question',
                 'description' => 'A configurable question that can branch by answer outcome.',

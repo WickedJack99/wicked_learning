@@ -27,7 +27,6 @@
 
 ## Activity-Specific Structure
 
-- `dialogue_stages`: staged dialogue content.
 - `learning_questions` and `learning_question_options`: questions, answers and
   informational feedback.
 - `npc_dialogue_nodes`, `npc_dialogue_transitions` and

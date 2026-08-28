@@ -16,7 +16,7 @@ learning logic.
 - Normal and highlighted MapAsset images with shared learner/editor preview.
 - MapAsset image size, opacity, free position and Z depth.
 - Locked, hidden, hinted, recommended, focused and completed visual states.
-- Dialogue backgrounds, portraits, speech bubbles and authored text.
+- NPC dialogue backgrounds, portraits, speech bubbles and authored text.
 - Route preview images and overlay colors.
 - Tool and item images with dark/light variants.
 - Tool animation images, widths and duration.

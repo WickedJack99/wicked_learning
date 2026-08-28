@@ -90,7 +90,7 @@ not a required sequence.
 
 Implemented activity types are:
 
-- dialogue and graph-based NPC dialogue
+- graph-based NPC dialogue
 - questions with correctness and outcome branches
 - reflection and explicit Review / revisit pauses
 - Markdown page graphs
@@ -181,8 +181,8 @@ description and evidence vocabulary in that same compact link rather than
 repeating a second list of the same areas. Separate links remain available when
 a competence area also relates to another published topic.
 
-The demo learning world uses the same two competence topics across its dialogue,
-question, review, obstacle and field-note activities. This keeps the example
+The demo learning world uses the same two competence topics across its NPC
+dialogue, question, review, obstacle and field-note activities. This keeps the example
 world inspectable end to end: different kinds of participation can leave
 different evidence types without introducing a separate progression system.
 
