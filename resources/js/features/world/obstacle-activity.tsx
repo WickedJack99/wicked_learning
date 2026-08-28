@@ -126,6 +126,9 @@ export function ObstacleActivity({
         activity.config.promptText,
         'Something blocks the way. Equip a suitable tool, then use it here.',
     );
+    const toolHint = selectedTool
+        ? 'Selected tool: ' + selectedTool.title + '. Click the gate above.'
+        : 'Choose a tool with the hammer button, then click the gate above.';
     const successText = stringValue(
         activity.config.successText,
         'The obstacle gives way.',
@@ -237,6 +240,7 @@ export function ObstacleActivity({
                     imageUrl={obstacleImage}
                     isResolved={isResolved}
                     isResolving={isResolving}
+                    key={obstacleImage}
                     mirrored={obstacleMirrored}
                     successAnimation={successAnimation}
                     style={obstaclePlacement}
@@ -254,6 +258,7 @@ export function ObstacleActivity({
                 {!isPromptHidden && !isResolved && !isClearedRevisit ? (
                     <ObstacleSpeechBubble
                         activity={activity}
+                        hint={toolHint}
                         mode={resolvedAppearance}
                         onHide={() => setIsPromptHidden(true)}
                         text={promptText}
@@ -328,9 +333,13 @@ function ObstacleTargetVisual({
     style: CSSProperties;
     successAnimation: string;
 }) {
-    if (isResolved && !imageUrl) {
+    const [imageFailed, setImageFailed] = useState(false);
+
+    if (isResolved && (!imageUrl || imageFailed)) {
         return null;
     }
+
+    const canShowImage = Boolean(imageUrl) && !imageFailed;
 
     return (
         <div
@@ -340,20 +349,22 @@ function ObstacleTargetVisual({
             <button
                 className={cn(
                     'cursor-inherit disabled:cursor-inherit grid w-full place-items-center rounded-xl transition focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:focus-visible:ring-teal-200',
-                    imageUrl
+                    canShowImage
                         ? 'bg-transparent p-0'
                         : 'min-h-40 min-w-52 border border-dashed border-cyan-500/40 bg-cyan-950/10 p-6 text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100',
                     isResolved && successAnimationClass(successAnimation),
                 )}
                 data-obstacle-target="true"
                 disabled={isResolving || isResolved}
+                aria-label="Use an equipped tool on the gate"
                 type="button"
             >
-                {imageUrl ? (
+                {canShowImage ? (
                     <img
                         alt=""
                         className="w-full object-contain"
                         draggable={false}
+                        onError={() => setImageFailed(true)}
                         src={imageUrl}
                         style={{
                             transform: mirrored ? 'scaleX(-1)' : undefined,
@@ -361,7 +372,7 @@ function ObstacleTargetVisual({
                     />
                 ) : (
                     <span className="text-sm font-semibold">
-                        Use an equipped tool here
+                        Equip a tool, then click the gate
                     </span>
                 )}
             </button>
@@ -556,12 +567,14 @@ function obstacleDestroyedAt(
 
 function ObstacleSpeechBubble({
     activity,
+    hint,
     mode,
     onHide,
     text,
     typingSpeed,
 }: {
     activity: LearningActivity;
+    hint?: string;
     mode: 'dark' | 'light';
     onHide: () => void;
     text: string;
@@ -587,6 +600,7 @@ function ObstacleSpeechBubble({
                 </Button>
             </div>
             <TypingText key={text} speed={typingSpeed} text={text} />
+            {hint ? <p className="mt-3 text-xs opacity-80">{hint}</p> : null}
         </div>
     );
 }

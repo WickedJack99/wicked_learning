@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img">
+  <defs>
+    <linearGradient id="gate" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#b9e4e2"/>
+      <stop offset=".5" stop-color="#e8f7f4"/>
+      <stop offset="1" stop-color="#c9dfdf"/>
+    </linearGradient>
+  </defs>
+  <path d="M148 500V190L400 72l252 118v310Z" fill="#edfafa" stroke="#087f7a" stroke-opacity=".5" stroke-width="12"/>
+  <path d="M208 480V226L400 137l192 89v254Z" fill="url(#gate)" stroke="#087f7a" stroke-width="7"/>
+  <path d="M282 480V320c0-70 53-126 118-126s118 56 118 126v160" fill="#f8fffd" stroke="#0f9f9b" stroke-width="9"/>
+  <path d="M158 198 400 82l242 116M178 500h444" fill="none" stroke="#075e5b" stroke-opacity=".48" stroke-width="5"/>
+  <g fill="none" stroke="#087f7a" stroke-width="6" stroke-linecap="round">
+    <path d="m90 270 55 20-55 20m620-40-55 20 55 20"/>
+    <path d="m112 360 55 20-55 20m576-40-55 20 55 20"/>
+  </g>
+  <g fill="#075e5b">
+    <circle cx="400" cy="155" r="9"/><circle cx="236" cy="262" r="6"/><circle cx="564" cy="262" r="6"/>
+  </g>
+</svg>

@@ -196,6 +196,11 @@ hidden MapAssets and satisfy configured unlock rules.
 The demo Pattern lens includes separate dark and light SVG visuals so a seeded
 tool is immediately visible wherever learners acquire or equip it.
 
+The seeded noisy-gate obstacle also includes dark and light scene and gate
+visuals. During playback, the learner opens the hammer control, chooses the
+owned Pattern lens and clicks the gate target. A failed image load falls back to
+an explicit target prompt so the action does not become invisible.
+
 Items are consumable inventory objects used by item-grant and item-obstacle
 activities. Probability rolls and inventory mutations happen on the backend so
 browser replay cannot mint repeated grants inside one route run.

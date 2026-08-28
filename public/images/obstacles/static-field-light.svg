@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e8fbfa"/>
+      <stop offset=".55" stop-color="#c7e9e9"/>
+      <stop offset="1" stop-color="#f6fbf8"/>
+    </linearGradient>
+    <radialGradient id="field" cx=".72" cy=".38" r=".55">
+      <stop offset="0" stop-color="#0f9f9b" stop-opacity=".2"/>
+      <stop offset=".6" stop-color="#51b7b2" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#f6fbf8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse" patternTransform="skewY(-12)">
+      <path d="M0 0H80M0 0V80" fill="none" stroke="#087f7a" stroke-opacity=".12"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <rect width="1600" height="900" fill="url(#field)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+  <path d="M0 710C260 640 410 770 690 690s440-100 910 12v198H0Z" fill="#b7d8d7" fill-opacity=".68"/>
+  <path d="M0 742C270 672 470 790 730 716s520-84 870 8" fill="none" stroke="#087f7a" stroke-opacity=".3" stroke-width="3"/>
+  <g fill="#087f7a" fill-opacity=".55">
+    <circle cx="184" cy="185" r="2"/><circle cx="392" cy="302" r="3"/>
+    <circle cx="624" cy="146" r="2"/><circle cx="1010" cy="228" r="3"/>
+    <circle cx="1325" cy="144" r="2"/><circle cx="1450" cy="386" r="2"/>
+  </g>
+</svg>

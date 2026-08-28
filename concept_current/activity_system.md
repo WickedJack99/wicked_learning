@@ -145,6 +145,13 @@ Obstacle activity direction:
 - Obstacle placement is configurable by x/y percentage and image-width percentage, so it can be a wall, a small rock or another localized blocker inside a larger background.
 - Tool-click animation should play first. The obstacle only transitions to solved when the click lands on the obstacle target and the equipped tool is valid.
 - If the click misses the obstacle, the tool animation can still play, but the activity state should not advance.
+- The demo obstacle visuals are repository-owned seeded assets, so the basic
+  obstacle interaction is visible immediately in a fresh demo. If a configured
+  image later fails to load, playback keeps an explicit target that tells the
+  learner to equip a tool and click the gate instead of leaving an invisible
+  action.
+- The obstacle speech bubble should make the interaction path discoverable:
+  open the hammer control, choose an owned tool, then click the visible target.
 - Tools are generic learner-owned capabilities. They can be acquired in activity routes and later used against obstacles, without becoming badges, points or status markers.
 - A floating player/tool-belt control can show acquired tools in acquisition order and lets the learner equip one tool at a time.
 - Tool visuals support dark/light images. For the first implementation, uploaded animated GIF/WebP assets are preferred over a custom frame-node timeline editor because they are easier for admins to understand and keep the runtime simple. The data model should remain open to richer frame-sequence animation later.

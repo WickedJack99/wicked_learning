@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img">
+  <defs>
+    <linearGradient id="gate" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#173d4b"/>
+      <stop offset=".5" stop-color="#0d1f2c"/>
+      <stop offset="1" stop-color="#071018"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <path d="M148 500V190L400 72l252 118v310Z" fill="#06131d" stroke="#7deee7" stroke-opacity=".45" stroke-width="12"/>
+  <path d="M208 480V226L400 137l192 89v254Z" fill="url(#gate)" stroke="#2dd4bf" stroke-width="7"/>
+  <path d="M282 480V320c0-70 53-126 118-126s118 56 118 126v160" fill="#02070d" stroke="#8bfaf0" stroke-width="9"/>
+  <path d="M158 198 400 82l242 116M178 500h444" fill="none" stroke="#d5fffb" stroke-opacity=".45" stroke-width="5"/>
+  <g fill="none" stroke="#72fff5" stroke-width="6" stroke-linecap="round" filter="url(#glow)">
+    <path d="m90 270 55 20-55 20m620-40-55 20 55 20"/>
+    <path d="m112 360 55 20-55 20m576-40-55 20 55 20"/>
+  </g>
+  <g fill="#b9fffa">
+    <circle cx="400" cy="155" r="9"/><circle cx="236" cy="262" r="6"/><circle cx="564" cy="262" r="6"/>
+  </g>
+</svg>
