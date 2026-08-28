@@ -38,7 +38,7 @@ export function LearnerSurfaceNavigation() {
     }
 
     appendLearnerContextNavigation(t, items, {
-        continueHref: activeActivity?.playHref ?? activeActivity?.worldHref,
+        continueHref: activeActivity?.playHref,
         currentMapActive: isMapSurface,
         currentMapHref: isMapSurface
             ? url

@@ -120,6 +120,11 @@ actions remain contained and reachable. This should be protected by an
 automated browser assertion rather than repeatedly treated as a new layout
 fix.
 
+The shared header only shows **Continue activity** when the persisted learner
+context contains a playable activity URL. A stale context may still provide a
+map location, but that location belongs to **Current map** and is not presented
+as a false activity continuation.
+
 **Acceptance criteria:** at 1280×800 and a phone-width viewport, the focused
 map has no horizontal overflow; the top navigation, map controls, search,
 focus panel and activity action remain reachable; any intentionally scrollable

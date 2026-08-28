@@ -19,7 +19,7 @@ export function LearningDeskHeader() {
             activeUrl: page.url,
         }),
         {
-            continueHref: activeActivity?.playHref ?? activeActivity?.worldHref,
+            continueHref: activeActivity?.playHref,
             currentMapHref: activeActivity?.worldHref ?? worldHref,
         },
     );
