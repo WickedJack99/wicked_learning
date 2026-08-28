@@ -271,6 +271,9 @@ Route::middleware(['auth', 'verified', 'can:assets.ru'])->group(function () {
 
     Route::delete('settings/assets/media', [AdminAssetController::class, 'destroyMedia'])
         ->name('settings.assets.media.destroy');
+
+    Route::patch('settings/assets/media/metadata', [AdminAssetController::class, 'updateMediaMetadata'])
+        ->name('settings.assets.media.metadata.update');
 });
 
 Route::middleware(['auth', 'verified', 'can:sounds.ro'])->group(function () {

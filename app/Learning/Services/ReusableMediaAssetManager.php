@@ -17,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReusableMediaAssetManager
 {
-    public function __construct(private readonly LearningMediaUploadService $mediaUpload) {}
+    public function __construct(
+        private readonly LearningMediaUploadService $mediaUpload,
+        private readonly ReusableMediaMetadataManager $metadataManager,
+    ) {}
 
     /**
      * @return array{durationSeconds: float|null, url: string}
@@ -33,6 +36,7 @@ class ReusableMediaAssetManager
     public function replaceAndKeep(string $oldUrl, mixed $file): array
     {
         $upload = $this->upload($file);
+        $this->metadataManager->transfer($oldUrl, $upload['url']);
 
         return [
             ...$upload,
@@ -90,6 +94,7 @@ class ReusableMediaAssetManager
         if ($path) {
             $referencesUpdated = $this->replaceReferences($url, '');
             Storage::disk('public')->delete($path);
+            $this->metadataManager->delete($url);
 
             return $referencesUpdated;
         }
@@ -104,6 +109,7 @@ class ReusableMediaAssetManager
 
         $referencesUpdated = $this->replaceReferences($url, '');
         File::delete($path);
+        $this->metadataManager->delete($url);
 
         return $referencesUpdated;
     }

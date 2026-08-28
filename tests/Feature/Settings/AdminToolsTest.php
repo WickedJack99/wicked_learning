@@ -2,6 +2,7 @@
 
 use App\Models\LearningSound;
 use App\Models\LearningTool;
+use App\Models\ReusableMediaMetadata;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -132,6 +133,46 @@ test('admin users can search reusable image assets', function () {
     expect(collect($assets)->pluck('url'))->toContain('/storage/learning/nodes/reusable-crystal.svg');
 });
 
+test('admin users can save and search reusable image metadata', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put(
+        'learning/media/quiet-portal.svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" />',
+    );
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.assets.media.metadata.update'), [
+            'url' => '/storage/learning/media/quiet-portal.svg',
+            'category' => 'Map background',
+            'tags' => ['Portal', 'night sky'],
+            'has_transparency' => false,
+            'is_animated' => false,
+        ])
+        ->assertRedirect(assetSettingsRoute('visuals'));
+
+    $metadata = ReusableMediaMetadata::query()->firstOrFail();
+
+    expect($metadata->category)->toBe('Map background')
+        ->and($metadata->tags)->toBe(['portal', 'night sky'])
+        ->and($metadata->has_transparency)->toBeFalse()
+        ->and($metadata->is_animated)->toBeFalse();
+
+    $assets = $this->actingAs($admin)
+        ->getJson(route('settings.assets.reusable-images', ['q' => 'night sky']))
+        ->assertOk()
+        ->json('assets');
+
+    expect($assets)->toHaveCount(1)
+        ->and($assets[0]['category'])->toBe('Map background')
+        ->and($assets[0]['tags'])->toBe(['portal', 'night sky'])
+        ->and($assets[0]['hasTransparency'])->toBeFalse()
+        ->and($assets[0]['isAnimated'])->toBeFalse();
+});
+
 test('admin users can replace and delete reusable media assets', function () {
     Storage::fake('public');
     Storage::disk('public')->put(
@@ -147,6 +188,14 @@ test('admin users can replace and delete reusable media assets', function () {
         'title' => 'Wall breaker',
         'image_dark' => '/storage/learning/media/old-wall.svg',
     ]);
+
+    $this->actingAs($admin)
+        ->patch(route('settings.assets.media.metadata.update'), [
+            'url' => '/storage/learning/media/old-wall.svg',
+            'category' => 'Obstacle',
+            'tags' => ['gate'],
+        ])
+        ->assertRedirect(assetSettingsRoute('visuals'));
 
     $this->actingAs($admin)
         ->get(assetSettingsRoute('visuals'))
@@ -170,16 +219,22 @@ test('admin users can replace and delete reusable media assets', function () {
     $tool->refresh();
 
     expect($tool->image_dark)->toStartWith('/storage/learning/media/')
-        ->and($tool->image_dark)->not->toBe('/storage/learning/media/old-wall.svg');
+        ->and($tool->image_dark)->not->toBe('/storage/learning/media/old-wall.svg')
+        ->and(ReusableMediaMetadata::query()->where('url', $tool->image_dark)->value('category'))
+        ->toBe('Obstacle');
     Storage::disk('public')->assertExists('learning/media/old-wall.svg');
+
+    $replacedUrl = $tool->image_dark;
 
     $this->actingAs($admin)
         ->delete(route('settings.assets.media.destroy'), [
-            'url' => $tool->image_dark,
+            'url' => $replacedUrl,
         ])
         ->assertRedirect(assetSettingsRoute('visuals'));
 
     expect($tool->refresh()->image_dark)->toBeNull();
+    expect(ReusableMediaMetadata::query()->where('url', $replacedUrl)->exists())
+        ->toBeFalse();
 });
 
 test('admin users can manage reusable sounds', function () {

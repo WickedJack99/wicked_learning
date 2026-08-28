@@ -11,6 +11,7 @@ use App\Learning\Queries\LoadEditableSounds;
 use App\Learning\Queries\LoadReusableImageAssets;
 use App\Learning\Serializers\AdminSoundSerializer;
 use App\Learning\Services\ReusableMediaAssetManager;
+use App\Learning\Services\ReusableMediaMetadataManager;
 use App\Learning\Services\SoundMediaUploadService;
 use App\Learning\Services\ToolMediaUploadService;
 use App\Learning\Validation\AdminSoundRules;
@@ -36,6 +37,7 @@ class AdminAssetController extends Controller
         private readonly SoundMediaUploadService $soundMediaUpload,
         private readonly LoadReusableImageAssets $loadReusableImageAssets,
         private readonly ReusableMediaAssetManager $mediaAssetManager,
+        private readonly ReusableMediaMetadataManager $metadataManager,
     ) {}
 
     public function index(): RedirectResponse
@@ -154,6 +156,22 @@ class AdminAssetController extends Controller
         ]);
 
         $this->mediaAssetManager->deleteAsset($data['url']);
+
+        return $this->redirectToAssets('visuals');
+    }
+
+    public function updateMediaMetadata(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'url' => ['required', 'string', 'max:2048'],
+            'category' => ['nullable', 'string', 'max:80'],
+            'tags' => ['nullable', 'array', 'max:12'],
+            'tags.*' => ['string', 'max:40'],
+            'has_transparency' => ['nullable', 'boolean'],
+            'is_animated' => ['nullable', 'boolean'],
+        ]);
+
+        $this->metadataManager->save($data['url'], $data);
 
         return $this->redirectToAssets('visuals');
     }

@@ -84,7 +84,9 @@ participation.
   activity-graph connection. Selecting a connection opens a small editor;
   clearing the field restores the destination or connector default, and
   deletion is explicit.
-- Add media tags, categories and useful transparency/animation metadata.
+- [x] Add searchable media tags, categories and explicit transparency/animation
+  metadata to the reusable visual library. Keep unknown values available when
+  a file format cannot be verified reliably.
 - [x] Improve MapAsset crop, anchor and placement ergonomics with shared image
   framing controls and alpha-aware hit testing.
 - Add map/world version history, rollback and collaborative editing locks.

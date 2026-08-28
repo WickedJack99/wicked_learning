@@ -20,12 +20,15 @@ Current behavior:
 - Default bundled media is intended to be replaceable and deletable by deployments. The application should not rely on protected, non-removable demo images.
 - Bundled default media can be licensed separately from code, currently as CC0-style public-domain assets unless a file states otherwise.
 - Visual assets are administration-level resources, not learner rewards.
+- The visual library stores optional metadata beside each file: one category,
+  comma-separated tags and explicit yes/no/unknown values for transparency and
+  animation. Metadata is searchable and follows a file when an author replaces
+  it.
 
 Future direction:
 
-- Add safer replace/delete behavior with clear warnings about which objects reference an asset.
-- Add tags or categories so domains can group media by world, character, map, topic or visual style.
-- Add better preview metadata for transparent images, animated images and large backgrounds.
+- Add richer preview metadata for animated images and large backgrounds when
+  the media pipeline can verify it reliably.
 
 ## Learner tools
 

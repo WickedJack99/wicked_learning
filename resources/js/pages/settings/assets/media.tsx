@@ -5,6 +5,7 @@ import {
     Image,
     LoaderCircle,
     Plus,
+    Save,
     Search,
     Trash2,
     Upload,
@@ -19,11 +20,15 @@ import { cn } from '@/lib/utils';
 export type ReusableMediaAsset = {
     canDelete: boolean;
     canViewPath: boolean;
+    category: string | null;
     extension: string;
+    hasTransparency: boolean | null;
+    isAnimated: boolean | null;
     label: string;
     referenceCount: number;
     referenceGroups: Array<{ count: number; label: string }>;
     source: string;
+    tags: string[];
     uploaded: boolean;
     url: string;
 };
@@ -240,6 +245,7 @@ export default function AdminMediaAssets({
                                 <AssetDetails
                                     asset={selectedAsset}
                                     busy={busyUrl === selectedAsset.url}
+                                    key={selectedAsset.url}
                                     onDelete={deleteSelectedAsset}
                                     onReplace={() =>
                                         replaceInputRef.current?.click()
@@ -290,6 +296,34 @@ function AssetDetails({
     onDelete: () => void;
     onReplace: () => void;
 }) {
+    const [category, setCategory] = useState(asset.category ?? '');
+    const [tags, setTags] = useState(asset.tags.join(', '));
+    const [hasTransparency, setHasTransparency] = useState(
+        metadataChoice(asset.hasTransparency),
+    );
+    const [isAnimated, setIsAnimated] = useState(
+        metadataChoice(asset.isAnimated),
+    );
+    const [isSavingMetadata, setIsSavingMetadata] = useState(false);
+
+    const saveMetadata = () => {
+        setIsSavingMetadata(true);
+        router.patch(
+            '/settings/assets/media/metadata',
+            {
+                category: category.trim() || null,
+                has_transparency: parseMetadataChoice(hasTransparency),
+                is_animated: parseMetadataChoice(isAnimated),
+                tags: tags
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .filter(Boolean),
+                url: asset.url,
+            },
+            { onFinish: () => setIsSavingMetadata(false) },
+        );
+    };
+
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="grid min-h-0 flex-1 place-items-center overflow-hidden bg-[var(--settings-content-background)] p-6">
@@ -348,9 +382,99 @@ function AssetDetails({
                         </Button>
                     </div>
                 </div>
+
+                <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <div className="mb-3">
+                        <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                            Library metadata
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            Add a category, tags and visual properties to make
+                            this asset easier to find and reuse.
+                        </p>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-2">
+                        <label className="grid gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Category
+                            <Input
+                                onChange={(event) =>
+                                    setCategory(event.currentTarget.value)
+                                }
+                                placeholder="Map, character, background..."
+                                value={category}
+                            />
+                        </label>
+                        <label className="grid gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                            Tags
+                            <Input
+                                onChange={(event) =>
+                                    setTags(event.currentTarget.value)
+                                }
+                                placeholder="forest, portal, dark"
+                                value={tags}
+                            />
+                        </label>
+                        <MetadataSelect
+                            label="Transparency"
+                            onChange={setHasTransparency}
+                            value={hasTransparency}
+                        />
+                        <MetadataSelect
+                            label="Animation"
+                            onChange={setIsAnimated}
+                            value={isAnimated}
+                        />
+                    </div>
+                    <Button
+                        className="mt-3"
+                        disabled={isSavingMetadata}
+                        onClick={saveMetadata}
+                        type="button"
+                    >
+                        {isSavingMetadata ? (
+                            <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                            <Save className="size-4" />
+                        )}
+                        Save metadata
+                    </Button>
+                </div>
             </div>
         </div>
     );
+}
+
+function MetadataSelect({
+    label,
+    onChange,
+    value,
+}: {
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <label className="grid gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+            {label}
+            <select
+                className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] dark:border-white/15 dark:bg-slate-950 dark:text-white"
+                onChange={(event) => onChange(event.currentTarget.value)}
+                value={value}
+            >
+                <option value="">Not set</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+            </select>
+        </label>
+    );
+}
+
+function metadataChoice(value: boolean | null): string {
+    return value === null ? '' : value ? 'true' : 'false';
+}
+
+function parseMetadataChoice(value: string): boolean | null {
+    return value === '' ? null : value === 'true';
 }
 
 function AssetListItem({
@@ -392,6 +516,13 @@ function AssetListItem({
                         {asset.extension}
                     </span>
                 </span>
+                {asset.category || asset.tags.length > 0 ? (
+                    <span className="mt-1 block truncate text-xs text-slate-500 dark:text-slate-400">
+                        {[asset.category, ...asset.tags]
+                            .filter(Boolean)
+                            .join(' · ')}
+                    </span>
+                ) : null}
             </span>
         </button>
     );

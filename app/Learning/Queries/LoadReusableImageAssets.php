@@ -5,6 +5,7 @@ namespace App\Learning\Queries;
 use App\Access\AccessLevel;
 use App\Access\PermissionCatalog;
 use App\Learning\Services\ReusableMediaAssetManager;
+use App\Learning\Services\ReusableMediaMetadataManager;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -13,21 +14,38 @@ use SplFileInfo;
 
 class LoadReusableImageAssets
 {
-    public function __construct(private readonly ReusableMediaAssetManager $mediaAssetManager) {}
+    public function __construct(
+        private readonly ReusableMediaAssetManager $mediaAssetManager,
+        private readonly ReusableMediaMetadataManager $metadataManager,
+    ) {}
 
     /**
-     * @return list<array{canDelete: bool, canViewPath: bool, extension: string, label: string, referenceCount: int, referenceGroups: list<array{count: int, label: string}>, source: string, uploaded: bool, url: string}>
+     * @return list<array{canDelete: bool, canViewPath: bool, category: string|null, extension: string, hasTransparency: bool|null, isAnimated: bool|null, label: string, referenceCount: int, referenceGroups: list<array{count: int, label: string}>, source: string, tags: list<string>, uploaded: bool, url: string}>
      */
     public function handle(?string $search = null, ?User $user = null): array
     {
         $needle = Str::of($search ?? '')->trim()->lower()->toString();
         $canViewPath = $user?->hasAccess(PermissionCatalog::MEDIA_PATHS, AccessLevel::READ) ?? false;
 
-        return collect([
+        $assets = collect([
             ...$this->publicImages(),
             ...$this->storedImages(),
         ])
-            ->unique('url')
+            ->unique('url');
+        $metadata = $this->metadataManager->forUrls($assets->pluck('url')->all());
+
+        return $assets
+            ->map(function (array $asset) use ($metadata): array {
+                $saved = $metadata->get($asset['url']);
+
+                return [
+                    ...$asset,
+                    'category' => $saved?->category,
+                    'hasTransparency' => $saved?->has_transparency,
+                    'isAnimated' => $saved?->is_animated,
+                    'tags' => $saved?->tags ?? [],
+                ];
+            })
             ->filter(fn (array $asset): bool => $this->matches($asset, $needle))
             ->sortBy([
                 ['uploaded', 'desc'],
@@ -40,11 +58,15 @@ class LoadReusableImageAssets
                 return [
                     'canDelete' => true,
                     'canViewPath' => $canViewPath,
+                    'category' => $asset['category'],
                     'extension' => $asset['extension'],
+                    'hasTransparency' => $asset['hasTransparency'],
+                    'isAnimated' => $asset['isAnimated'],
                     'label' => $asset['label'],
                     'referenceCount' => $references['count'],
                     'referenceGroups' => $references['groups'],
                     'source' => $asset['source'],
+                    'tags' => $asset['tags'],
                     'uploaded' => $asset['uploaded'],
                     'url' => $asset['url'],
                 ];
@@ -117,7 +139,7 @@ class LoadReusableImageAssets
     }
 
     /**
-     * @param  array{label: string, source: string, url: string}  $asset
+     * @param  array{category: string|null, label: string, source: string, tags: list<string>, url: string}  $asset
      */
     private function matches(array $asset, string $needle): bool
     {
@@ -125,7 +147,13 @@ class LoadReusableImageAssets
             return true;
         }
 
-        return Str::of($asset['label'].' '.$asset['source'].' '.$asset['url'])
+        return Str::of(implode(' ', [
+            $asset['label'],
+            $asset['source'],
+            $asset['category'] ?? '',
+            implode(' ', $asset['tags']),
+            $asset['url'],
+        ]))
             ->lower()
             ->contains($needle);
     }
