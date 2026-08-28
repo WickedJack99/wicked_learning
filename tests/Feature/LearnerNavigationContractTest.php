@@ -14,6 +14,7 @@ test('authenticated learners can open every primary learner surface', function (
         ['topics.index', 'topics/index'],
         ['competence.index', 'competence/index'],
         ['bookmarks', 'bookmarks'],
+        ['organizations.index', 'organizations/index'],
     ];
 
     foreach ($surfaces as [$routeName, $component]) {

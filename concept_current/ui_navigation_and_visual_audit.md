@@ -313,10 +313,10 @@ Topics, Paths, competence map and map/bookmark navigation without relying on
 visual styling.
 
 The primary learner route contract is also covered by feature tests for the
-desk, Paths, Topics, competence, bookmarks and a published topic detail. These
-tests do not replace browser verification of layout or interaction, but they
-prevent a page from silently losing its authenticated route or Inertia
-component while the learner navigation is being extended.
+desk, Paths, Topics, competence, bookmarks, Organizations and a published topic
+detail. These tests do not replace browser verification of layout or
+interaction, but they prevent a page from silently losing its authenticated
+route or Inertia component while the learner navigation is being extended.
 
 ### Completed — Separate highlighted and selected competence stars
 
