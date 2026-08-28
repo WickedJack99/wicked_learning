@@ -39,6 +39,9 @@ Current learner behavior:
   resolved per learner.
 - Unlock rules currently support completed MapAssets, tool use, time conditions
   and nested AND/OR rule groups.
+- Visible locked MapAssets with configured rules or tool conditions can be
+  opened for orientation. Their learner panel shows actionable condition
+  labels and the learner's current state without exposing authored rule data.
 - Hidden MapAssets can be revealed by configured tools.
 - MapAssets can be bookmarked and found through server-side map search.
 - Activity playback runs on a dedicated page and returns to the related map.

@@ -1005,9 +1005,14 @@ function canSelectNode(
     node: LearningNode,
     allowLockedSelection: boolean,
 ): boolean {
+    const unlock = node.visualConfig.unlock;
+
     return (
         node.state !== 'hidden' &&
-        (allowLockedSelection || node.state !== 'locked')
+        (allowLockedSelection ||
+            node.state !== 'locked' ||
+            unlock?.isUnlockable === true ||
+            unlock?.isToolUnlockable === true)
     );
 }
 

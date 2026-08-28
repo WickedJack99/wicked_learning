@@ -45,6 +45,9 @@ promise that every interaction produces an immediate measurable gain.
   named Current map on learner surfaces. Journal is an icon-only utility
   action beside notifications, not a primary navigation item or side-rail
   action.
+- [x] Make configured locked places inspectable before they open. Learners can
+  see actionable completion, tool or time conditions and their current state;
+  hidden places remain concealed and authored rule data stays server-side.
 
 The evidence base is strongest for autonomy-supportive teaching, retrieval and
 spacing, while relatedness effects are more context-dependent. Relatedness

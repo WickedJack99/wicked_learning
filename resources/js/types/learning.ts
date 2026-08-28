@@ -205,6 +205,7 @@ export type LearningNode = {
             };
             toolUsed?: boolean;
             topOperator?: 'and' | 'or';
+            requirements?: LearningUnlockRequirement;
         };
         tooltip?: string;
         imageUrl?: string;
@@ -213,6 +214,16 @@ export type LearningNode = {
     startActivityId: number | null;
     startRoutes: LearningActivityStart[];
     activities: LearningActivity[];
+};
+
+export type LearningUnlockRequirement = {
+    type: 'group' | 'node_completed' | 'time_after' | 'tool_used';
+    operator?: 'and' | 'or';
+    requirements?: LearningUnlockRequirement[];
+    nodeTitle?: string | null;
+    toolTitle?: string | null;
+    availableAt?: string | null;
+    satisfied: boolean;
 };
 
 export type LearningActivityStart = {

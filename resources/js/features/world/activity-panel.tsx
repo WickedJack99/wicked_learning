@@ -22,6 +22,7 @@ import type {
     LearningPortalLink,
     LearningProgress,
     QuestionAnswerProgress,
+    LearningUnlockRequirement,
 } from '@/types';
 import { ActivityAmbientSound } from './activity-ambient-sound';
 import { learningFocusLabel } from './activity-utils';
@@ -86,7 +87,7 @@ export function ActivityPanel({
                 title={node.title}
             >
                 <NodeSummary node={node} />
-                <LockedActivityState />
+                <LockedActivityState node={node} />
             </PanelShell>
         );
     }
@@ -578,17 +579,96 @@ function EmptyActivityState() {
     );
 }
 
-function LockedActivityState() {
+function LockedActivityState({ node }: { node: LearningNode }) {
+    const t = usePlatformTranslation();
+    const requirements = node.visualConfig.unlock?.requirements;
+
     return (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                Locked for now
+                {t('world.locked.title', 'Locked for now')}
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                This place is visible for orientation, but its activities are
-                not open yet.
+                {requirements
+                    ? t(
+                          'world.locked.requirements_intro',
+                          'This place opens when the following conditions are met.',
+                      )
+                    : t(
+                          'world.locked.generic',
+                          'This place is visible for orientation, but its activities are not open yet.',
+                      )}
             </p>
+            {requirements ? (
+                <UnlockRequirementTree requirement={requirements} t={t} />
+            ) : null}
         </div>
+    );
+}
+
+function UnlockRequirementTree({
+    requirement,
+    t,
+}: {
+    requirement: LearningUnlockRequirement;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    if (requirement.type === 'group') {
+        return (
+            <div className="mt-3 grid gap-2">
+                <p className="text-xs font-medium tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
+                    {requirement.operator === 'or'
+                        ? t('world.locked.any_condition', 'Meet one of these')
+                        : t('world.locked.all_conditions', 'Meet all of these')}
+                </p>
+                <div className="grid gap-2 pl-3">
+                    {requirement.requirements?.map((child, index) => (
+                        <UnlockRequirementTree
+                            key={`${child.type}-${index}`}
+                            requirement={child}
+                            t={t}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    const label =
+        requirement.type === 'node_completed'
+            ? t('world.locked.complete_place', 'Complete :title', {
+                  title:
+                      requirement.nodeTitle ??
+                      t('world.locked.prerequisite', 'the prerequisite place'),
+              })
+            : requirement.type === 'tool_used'
+              ? t('world.locked.use_tool', 'Use :title here', {
+                    title:
+                        requirement.toolTitle ??
+                        t('world.locked.required_tool', 'the required tool'),
+                })
+              : t('world.locked.available_after', 'Available after :time', {
+                    time: requirement.availableAt
+                        ? new Date(requirement.availableAt).toLocaleString()
+                        : t(
+                              'world.locked.scheduled_time',
+                              'the scheduled time',
+                          ),
+                });
+
+    return (
+        <p className="flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            <span
+                aria-hidden="true"
+                className={cn(
+                    'mt-2 size-2 shrink-0 rounded-full',
+                    requirement.satisfied
+                        ? 'bg-emerald-500 dark:bg-emerald-300'
+                        : 'bg-slate-400 dark:bg-slate-500',
+                )}
+            />
+            <span>{label}</span>
+        </p>
     );
 }
 

@@ -16,9 +16,14 @@ class NodeAvailabilitySchedule
 
     public function isUnlockedBySchedule(LearningNode $node): bool
     {
-        $unlockAt = $this->timestamp($node, 'unlockAt');
+        $unlockAt = $this->unlockAt($node);
 
         return $unlockAt !== null && Carbon::now()->greaterThanOrEqualTo($unlockAt);
+    }
+
+    public function unlockAt(LearningNode $node): ?Carbon
+    {
+        return $this->timestamp($node, 'unlockAt');
     }
 
     public function hasUnlockSchedule(LearningNode $node): bool

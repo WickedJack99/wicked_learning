@@ -56,7 +56,13 @@ class NodeUnlockService
             return true;
         }
 
-        if (! $this->hasUnlockRules($node) || $userId === null) {
+        $hasUnlockRules = $this->hasUnlockRules($node);
+
+        if (! $hasUnlockRules) {
+            return $userId !== null && $this->hasToolUnlock($node, $userId);
+        }
+
+        if ($userId === null) {
             return false;
         }
 
@@ -80,7 +86,7 @@ class NodeUnlockService
      */
     public function unlockState(LearningNode $node, ?int $userId): array
     {
-        $isUnlockable = $this->hasUnlockRules($node);
+        $isUnlockable = $this->hasUnlockRules($node) || $this->isToolUnlockable($node);
         $isUnlocked = $this->isUnlockedForUser($node, $userId);
 
         return [
@@ -88,7 +94,165 @@ class NodeUnlockService
             'isUnlocked' => $isUnlocked,
             'isToolUnlockable' => $this->isToolUnlockable($node),
             'toolUsed' => $userId !== null && $this->hasToolUnlock($node, $userId),
+            'requirements' => $isUnlockable ? $this->requirements($node, $userId) : [],
         ];
+    }
+
+    /**
+     * Return a learner-safe version of the configured rule tree. It contains
+     * only actionable labels and the learner's own completion state.
+     *
+     * @return array<string, mixed>
+     */
+    private function requirements(LearningNode $node, ?int $userId): array
+    {
+        $completedNodeIds = $userId !== null ? $this->completedNodeIds($userId) : [];
+        $toolUsed = $userId !== null && $this->hasToolUnlock($node, $userId);
+        $timeUnlocked = $this->availabilitySchedule->isUnlockedBySchedule($node);
+        $rule = $this->ruleTree($node);
+
+        if ($rule === []) {
+            $rules = [];
+            $unlock = $this->unlockConfig($node);
+            $requiredNodeIds = is_array($unlock['requiredNodeIds'] ?? null)
+                ? $unlock['requiredNodeIds']
+                : [];
+
+            foreach ($requiredNodeIds as $nodeId) {
+                $rules[] = [
+                    'type' => 'node_completed',
+                    'nodeId' => (int) $nodeId,
+                ];
+            }
+
+            if ($this->isToolUnlockable($node)) {
+                $rules[] = ['type' => 'tool_used'];
+            }
+
+            if ($this->availabilitySchedule->hasUnlockSchedule($node)) {
+                $rules[] = ['type' => 'time_after'];
+            }
+
+            $rule = [
+                'type' => 'group',
+                'operator' => ($unlock['topOperator'] ?? 'and') === 'or' ? 'or' : 'and',
+                'rules' => $rules,
+            ];
+        }
+
+        $nodeIds = $this->nodeIdsInRule($rule);
+        $nodeTitles = $nodeIds === []
+            ? []
+            : LearningNode::query()->whereIn('id', $nodeIds)->pluck('title', 'id')->all();
+        $configuredToolId = $this->configuredToolId($node);
+        $toolTitle = $configuredToolId === null
+            ? null
+            : LearningTool::query()->whereKey($configuredToolId)->value('title');
+        $unlockAt = $this->availabilitySchedule->unlockAt($node)?->toIso8601String();
+
+        return $this->transformRequirement(
+            $rule,
+            $completedNodeIds,
+            $toolUsed,
+            $timeUnlocked,
+            $nodeTitles,
+            is_string($toolTitle) ? $toolTitle : null,
+            $unlockAt,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $rule
+     * @param  array<int, true>  $completedNodeIds
+     * @param  array<int|string, mixed>  $nodeTitles
+     * @return array<string, mixed>
+     */
+    private function transformRequirement(
+        array $rule,
+        array $completedNodeIds,
+        bool $toolUsed,
+        bool $timeUnlocked,
+        array $nodeTitles,
+        ?string $toolTitle,
+        ?string $unlockAt,
+    ): array {
+        $type = $rule['type'] ?? null;
+
+        if ($type === 'node_completed') {
+            $nodeId = (int) ($rule['nodeId'] ?? 0);
+
+            return [
+                'type' => 'node_completed',
+                'nodeTitle' => $nodeTitles[$nodeId] ?? null,
+                'satisfied' => $nodeId > 0 && isset($completedNodeIds[$nodeId]),
+            ];
+        }
+
+        if ($type === 'tool_used') {
+            return [
+                'type' => 'tool_used',
+                'toolTitle' => $toolTitle,
+                'satisfied' => $toolUsed,
+            ];
+        }
+
+        if ($type === 'time_after') {
+            return [
+                'availableAt' => $unlockAt,
+                'type' => 'time_after',
+                'satisfied' => $timeUnlocked,
+            ];
+        }
+
+        $children = collect(is_array($rule['rules'] ?? null) ? $rule['rules'] : [])
+            ->filter(fn (mixed $child): bool => is_array($child))
+            ->map(fn (array $child): array => $this->transformRequirement(
+                $child,
+                $completedNodeIds,
+                $toolUsed,
+                $timeUnlocked,
+                $nodeTitles,
+                $toolTitle,
+                $unlockAt,
+            ))
+            ->values()
+            ->all();
+        $operator = ($rule['operator'] ?? 'and') === 'or' ? 'or' : 'and';
+
+        return [
+            'operator' => $operator,
+            'requirements' => $children,
+            'satisfied' => $operator === 'or'
+                ? collect($children)->contains(fn (array $child): bool => $child['satisfied'] === true)
+                : collect($children)->isNotEmpty()
+                    && collect($children)->every(fn (array $child): bool => $child['satisfied'] === true),
+            'type' => 'group',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $rule
+     * @return array<int, int>
+     */
+    private function nodeIdsInRule(array $rule): array
+    {
+        $ids = [];
+
+        if (($rule['type'] ?? null) === 'node_completed') {
+            $nodeId = (int) ($rule['nodeId'] ?? 0);
+
+            if ($nodeId > 0) {
+                $ids[] = $nodeId;
+            }
+        }
+
+        foreach (is_array($rule['rules'] ?? null) ? $rule['rules'] : [] as $child) {
+            if (is_array($child)) {
+                $ids = [...$ids, ...$this->nodeIdsInRule($child)];
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function hasUnlockRules(LearningNode $node): bool

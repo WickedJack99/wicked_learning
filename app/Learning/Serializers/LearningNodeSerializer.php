@@ -195,10 +195,10 @@ class LearningNodeSerializer
 
         $unlock = $this->nodeUnlockService->unlockState($node, $userId);
         if ($unlock['isUnlockable']) {
-            $visualConfig['unlock'] = [
-                ...(is_array($visualConfig['unlock'] ?? null) ? $visualConfig['unlock'] : []),
-                ...$unlock,
-            ];
+            // Learners need the evaluated state, not the authored rule structure.
+            $visualConfig['unlock'] = $unlock;
+        } else {
+            unset($visualConfig['unlock']);
         }
 
         return [

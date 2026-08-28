@@ -510,6 +510,14 @@ test('learners unlock locked nodes only after configured rules pass', function (
             ->where('world.maps.0.nodes.2.state', 'locked')
             ->where('world.maps.0.nodes.2.visualConfig.unlock.toolUsed', true)
             ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', false)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.operator', 'and')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.nodeTitle', $requiredNode->title)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.satisfied', false)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.1.toolTitle', $tool->title)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.1.satisfied', true)
+            ->missing('world.maps.0.nodes.2.visualConfig.unlock.rules')
+            ->missing('world.maps.0.nodes.2.visualConfig.unlock.requiredNodeIds')
+            ->missing('world.maps.0.nodes.2.visualConfig.unlock.tool')
         );
 
     $requiredActivity = LearningActivity::query()
@@ -534,7 +542,51 @@ test('learners unlock locked nodes only after configured rules pass', function (
             ->where('world.maps.0.nodes.2.slug', 'quiet-archive')
             ->where('world.maps.0.nodes.2.state', 'available')
             ->where('world.maps.0.nodes.2.visualConfig.unlock.isUnlocked', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.requirements.0.satisfied', true)
         );
+});
+
+test('tool-only unlock conditions open a locked node after the tool is used', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $tool = LearningTool::query()->create([
+        'slug' => 'signal-reader',
+        'title' => 'Signal reader',
+    ]);
+    $learner->learningTools()->attach($tool, ['acquired_at' => now()]);
+    $lockedNode = LearningNode::query()->where('slug', 'quiet-archive')->firstOrFail();
+    $lockedNode->forceFill([
+        'state' => 'locked',
+        'visual_config' => [
+            ...($lockedNode->visual_config ?? []),
+            'unlock' => [
+                'enabled' => true,
+                'tool' => [
+                    'enabled' => true,
+                    'toolId' => $tool->id,
+                ],
+            ],
+        ],
+    ])->save();
+
+    $this->actingAs($learner)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('world.maps.0.nodes.2.state', 'locked')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.isToolUnlockable', true)
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.type', 'tool_used')
+            ->where('world.maps.0.nodes.2.visualConfig.unlock.requirements.requirements.0.satisfied', false)
+        );
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.nodes.unlock-tool', $lockedNode), [
+            'tool_id' => $tool->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('result.isUseful', true)
+        ->assertJsonPath('result.isUnlocked', true);
 });
 
 test('npc dialogue answers can hide and unlock nodes for the learner', function () {
