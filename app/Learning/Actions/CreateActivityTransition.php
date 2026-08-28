@@ -22,12 +22,12 @@ class CreateActivityTransition
     public function handle(LearningNode $node, array $data): ActivityTransition
     {
         $fromActivity = $this->nodeActivityOrFail($node, (int) $data['from_activity_id']);
-        $toActivityId = $this->validatedTargetActivityId($node, $data['to_activity_id'] ?? null);
-        $this->ensureActivityCanContinue($fromActivity, $toActivityId);
+        $toActivity = $this->validatedTargetActivity($node, $data['to_activity_id'] ?? null);
+        $this->ensureActivityCanContinue($fromActivity, $toActivity?->id);
 
         return ActivityTransition::query()->firstOrCreate(
-            $this->transitionIdentity($fromActivity, $toActivityId, $data),
-            $this->transitionDefaults($fromActivity, (string) $data['from_connector']),
+            $this->transitionIdentity($fromActivity, $toActivity?->id, $data),
+            $this->transitionDefaults($fromActivity, $toActivity, (string) $data['from_connector']),
         );
     }
 
@@ -39,15 +39,13 @@ class CreateActivityTransition
             ->firstOrFail();
     }
 
-    private function validatedTargetActivityId(LearningNode $node, mixed $activityId): ?int
+    private function validatedTargetActivity(LearningNode $node, mixed $activityId): ?LearningActivity
     {
         if ($activityId === null) {
             return null;
         }
 
-        $this->nodeActivityOrFail($node, (int) $activityId);
-
-        return (int) $activityId;
+        return $this->nodeActivityOrFail($node, (int) $activityId);
     }
 
     private function ensureActivityCanContinue(LearningActivity $fromActivity, ?int $toActivityId): void
@@ -80,11 +78,14 @@ class CreateActivityTransition
     /**
      * @return array<string, mixed>
      */
-    private function transitionDefaults(LearningActivity $fromActivity, string $fromConnector): array
-    {
+    private function transitionDefaults(
+        LearningActivity $fromActivity,
+        ?LearningActivity $toActivity,
+        string $fromConnector,
+    ): array {
         return [
             'trigger' => $this->activityTypes->transitionTriggerForConnector($fromConnector),
-            'label' => $this->activityTypes->labelForOutput($fromActivity, $fromConnector),
+            'label' => $toActivity?->title ?? $this->activityTypes->labelForOutput($fromActivity, $fromConnector),
             'rules' => [],
         ];
     }

@@ -76,6 +76,14 @@ rules. The activity page keeps the global header focused on navigation and shows
 the current topic, map, route and place in a compact context panel beside the
 player.
 
+Selecting a route preserves that route's start, current activity and play run
+through the initial navigation handoff. A stale run state that points outside
+the selected route's reachable graph is repaired at the route start rather than
+silently opening another route's activity. New activity-to-activity graph
+connections use the destination activity title as their default label; terminal
+connections retain their connector outcome label, and authored labels remain
+unchanged.
+
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. The route remains a suggested way in,
 not a required sequence.

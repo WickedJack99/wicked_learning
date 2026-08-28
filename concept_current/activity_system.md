@@ -23,6 +23,12 @@ The synthetic Start node can connect to multiple first activities. Each Start-to
 
 The graph editor is intentionally generic. Activity type definitions describe labels, descriptions, inputs and outputs. That allows later specialized editors for dialogue stages, questions, reflections, review pauses and portals without replacing the graph itself.
 
+When an author connects one activity to another, the connection label defaults to
+the destination activity title so the learner and author can understand where
+the path goes. A connection to the synthetic End node keeps the source
+connector label, such as "Completed". Seeded or explicitly authored labels
+remain authoritative.
+
 `review` is an explicit review/revisit activity type that uses the same
 learner-owned reflection renderer and journal storage as `reflection`. The
 separate type makes the author's intention visible in the activity list and
@@ -115,7 +121,9 @@ Current UI behavior:
   from inside a run should not duplicate grants already made in that run, while
   resetting from the focused MapAsset panel can create a fresh run according to
   the route rules.
-- The URL should stay as clean as practical. Backend run state is preferred over exposing activity internals in query parameters.
+- The initial route handoff keeps the selected route start, current activity
+  and play-run id in the URL so a route cannot silently fall back to another
+  route in the same node.
 
 Route visual notes:
 
@@ -123,6 +131,9 @@ Route visual notes:
 - Route images can be uploaded/downloaded from the Start edge editor.
 - Route overlay buttons use configurable dark/light background and frame colors.
 - The route card is one clickable surface; image and button start the same route.
+- If an older run points to an activity that is not reachable from the selected
+  route start, resuming that route returns to its start and clears the stale
+  current-run activity state.
 
 Obstacle activity direction:
 

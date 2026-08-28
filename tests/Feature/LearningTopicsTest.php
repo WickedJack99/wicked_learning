@@ -4,6 +4,7 @@ use App\Learning\CurrentWorldResolver;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
+use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
@@ -391,7 +392,7 @@ test('the learner journey keeps topic, competence, map and activity context conn
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $this->actingAs($learner)
         ->get(route('learning.nodes.play', ['node' => $node]))
@@ -404,6 +405,56 @@ test('the learner journey keeps topic, competence, map and activity context conn
             ->where('node.mapSlug', $map->slug)
             ->where('node.slug', $node->slug)
             ->where('node.activities.0.id', $activity->id)
+        );
+});
+
+test('selecting a route keeps its run and repairs stale activity state', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+
+    $learner = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $route = LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->where('label', 'Clear noisy gate')
+        ->firstOrFail();
+    $unrelatedActivity = LearningActivity::query()
+        ->where('learning_node_id', $node->id)
+        ->where('slug', 'meet-mira')
+        ->firstOrFail();
+    $runId = '33333333-3333-4333-8333-333333333333';
+
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $route->id,
+        'start_learning_activity_id' => $route->learning_activity_id,
+        'current_learning_activity_id' => $unrelatedActivity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => now(),
+    ]);
+
+    $response = $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'node' => $node,
+            'route' => $route->id,
+        ]))
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
+
+    parse_str((string) parse_url($response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    expect($query['route'])->toBe((string) $route->id)
+        ->and($query['activity_id'])->toBe((string) $route->learning_activity_id)
+        ->and($query['run'])->toBe($runId);
+
+    $this->actingAs($learner)
+        ->get($response->headers->get('Location'))
+        ->assertInertia(fn ($page) => $page
+            ->component('learning/node-play')
+            ->where('playActivityId', $route->learning_activity_id)
+            ->where('playRouteId', $route->id)
+            ->where('playRunId', $runId)
         );
 });
 

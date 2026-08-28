@@ -2,6 +2,7 @@
 
 namespace App\Learning\Services;
 
+use App\Models\ActivityTransition;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -205,7 +206,13 @@ class LearnerRouteProgressService
             $progress->completed_at = null;
             $progress->metadata = $this->withoutCurrentRunState($progress);
         } else {
-            if (! $progress->current_learning_activity_id || $wasCompleted) {
+            $currentActivityIsOnRoute = $progress->current_learning_activity_id === null
+                || $this->activityIsReachableFromStart($start, $progress->current_learning_activity_id);
+
+            if (! $currentActivityIsOnRoute) {
+                $progress->current_learning_activity_id = $start->learning_activity_id;
+                $progress->metadata = $this->withoutCurrentRunState($progress);
+            } elseif (! $progress->current_learning_activity_id || $wasCompleted) {
                 $progress->current_learning_activity_id = $start->learning_activity_id;
             }
         }
@@ -230,5 +237,41 @@ class LearnerRouteProgressService
         unset($metadata['activityStates']);
 
         return $metadata;
+    }
+
+    private function activityIsReachableFromStart(LearningActivityStart $start, int $activityId): bool
+    {
+        if ($start->learning_activity_id === $activityId) {
+            return true;
+        }
+
+        $visited = [$start->learning_activity_id => true];
+        $frontier = [$start->learning_activity_id];
+
+        while ($frontier !== []) {
+            $nextActivities = ActivityTransition::query()
+                ->whereIn('from_activity_id', $frontier)
+                ->whereNotNull('to_activity_id')
+                ->whereHas('fromActivity', fn ($query) => $query->where('learning_node_id', $start->learning_node_id))
+                ->whereHas('toActivity', fn ($query) => $query->where('learning_node_id', $start->learning_node_id))
+                ->pluck('to_activity_id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->unique()
+                ->filter(fn (int $id): bool => ! isset($visited[$id]))
+                ->values()
+                ->all();
+
+            if (in_array($activityId, $nextActivities, true)) {
+                return true;
+            }
+
+            foreach ($nextActivities as $nextActivity) {
+                $visited[$nextActivity] = true;
+            }
+
+            $frontier = $nextActivities;
+        }
+
+        return false;
     }
 }

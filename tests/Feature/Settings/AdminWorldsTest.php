@@ -966,6 +966,14 @@ test('admin users can create and connect activity graph nodes', function () {
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
     $activity = LearningActivity::query()->where('slug', 'choose-a-note-path')->firstOrFail();
+    $nextActivity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'follow-the-note',
+        'title' => 'Follow the note',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 210,
+    ]);
 
     expect($activity->config['nextStep'])->toBe('Choose one observation to investigate next.');
 
@@ -991,13 +999,30 @@ test('admin users can create and connect activity graph nodes', function () {
     $this->actingAs($admin)
         ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
             'from_activity_id' => $activity->id,
+            'to_activity_id' => $nextActivity->id,
+            'from_connector' => 'completed',
+            'to_connector' => 'in',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $nextTransition = $activity->transitions()
+        ->where('to_activity_id', $nextActivity->id)
+        ->firstOrFail();
+
+    expect($nextTransition->label)->toBe('Follow the note');
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
+            'from_activity_id' => $activity->id,
             'to_activity_id' => null,
             'from_connector' => 'completed',
             'to_connector' => 'end',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
-    $transition = $activity->transitions()->firstOrFail();
+    $transition = $activity->transitions()
+        ->whereNull('to_activity_id')
+        ->firstOrFail();
 
     expect($transition->to_activity_id)->toBeNull()
         ->and($transition->from_connector)->toBe('completed')
@@ -1005,6 +1030,10 @@ test('admin users can create and connect activity graph nodes', function () {
 
     $this->actingAs($admin)
         ->delete(route('settings.worlds.activity-transitions.destroy', $transition))
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $this->actingAs($admin)
+        ->delete(route('settings.worlds.activity-transitions.destroy', $nextTransition))
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 
     expect($activity->transitions()->exists())->toBeFalse();

@@ -44,6 +44,11 @@ participation.
 
 ## Priority 1 - Strengthen Existing Learning Loops
 
+- [x] Keep direct route selections bound to their selected activity graph.
+  Route starts now preserve the run and current activity through the initial
+  handoff and repair stale cross-route resume state. New graph connections also
+  name their destination by default, while terminal outcomes retain their
+  connector meaning.
 - Complete the remaining UI audit follow-up in
   `concept_current/ui_navigation_and_visual_audit.md`: add automated
   responsive/collection coverage for configured palettes and long collections.
@@ -66,6 +71,8 @@ participation.
 
 ## Priority 2 - Authoring And Reuse
 
+- Let authors edit an optional learner-facing label for each activity-graph
+  connection, with the destination activity title remaining the safe default.
 - Add media tags, categories and useful transparency/animation metadata.
 - Improve MapAsset crop, anchor and placement ergonomics.
 - Add map/world version history, rollback and collaborative editing locks.

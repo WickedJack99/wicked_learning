@@ -239,7 +239,7 @@ test('item grant activities can grant again on a new play run', function () {
             'activity' => $activity->id,
             'node' => $node,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $firstRunId = currentPlayRunId($learner, $node, $start);
 
@@ -274,7 +274,7 @@ test('item grant activities can grant again on a new play run', function () {
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $resumedRunId = currentPlayRunId($learner, $node, $start);
 
@@ -353,7 +353,7 @@ test('item grant activities can grant again after a selected terminal transition
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $firstRunId = currentPlayRunId($learner, $node, $start);
 
@@ -398,7 +398,7 @@ test('item grant activities can grant again after a selected terminal transition
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $secondRunId = currentPlayRunId($learner, $node, $start);
 
@@ -465,7 +465,7 @@ test('play route refresh redirects stale activity query to saved current activit
             'route' => $start->id,
             'run' => $runId,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $this->actingAs($learner)
         ->get(route('learning.nodes.play', ['node' => $node]))
@@ -539,7 +539,7 @@ test('marking a later activity as reached updates route resume state', function 
             'route' => $start->id,
             'run' => $runId,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 });
 
 test('npc dialogue bubble state is stored against the current play run', function () {
@@ -596,7 +596,7 @@ test('npc dialogue bubble state is stored against the current play run', functio
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $runId = currentPlayRunId($learner, $node, $start);
 
@@ -665,7 +665,7 @@ test('npc dialogue bubble state is cleared after the dialogue activity completes
             'node' => $node,
             'route' => $start->id,
         ]))
-        ->assertRedirect(route('learning.nodes.play', ['node' => $node]));
+        ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $runId = currentPlayRunId($learner, $node, $start);
 

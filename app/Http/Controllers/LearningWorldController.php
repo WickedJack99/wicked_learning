@@ -118,7 +118,12 @@ class LearningWorldController extends Controller
         if ($user && $route && ! $playRunId) {
             $progress = $this->routeProgressService->startOrResume($user, $route);
 
-            return redirect()->route('learning.nodes.play', ['node' => $progress->learning_node_id]);
+            return redirect()->route('learning.nodes.play', [
+                'node' => $progress->learning_node_id,
+                'route' => $progress->learning_activity_start_id,
+                'activity_id' => $progress->current_learning_activity_id,
+                'run' => $progress->current_play_run_id,
+            ]);
         }
 
         if ($user && $runProgress) {
