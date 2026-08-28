@@ -270,6 +270,36 @@ test('manual journal pages keep a title separate from their shared category', fu
         ->count())->toBe(2);
 });
 
+test('a learner can save an empty journal page', function () {
+    $learner = User::factory()->create();
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Thinking about Imps',
+        'topic' => 'General',
+        'subtopic' => '',
+        'markdown' => 'A draft that will be cleared.',
+        'preferred_mode' => 'edit',
+    ]);
+
+    $this->actingAs($learner)
+        ->patchJson(route('learning.journal.pages.update', $page), [
+            'markdown' => '',
+            'preferred_mode' => 'edit',
+            'request_expert_access' => false,
+            'subtopic' => '',
+            'title' => 'Thinking about Imps',
+            'topic' => 'General',
+        ])
+        ->assertOk()
+        ->assertJsonPath('page.markdown', '')
+        ->assertJsonPath('page.title', 'Thinking about Imps');
+
+    $this->assertDatabaseHas('learner_journal_pages', [
+        'id' => $page->id,
+        'markdown' => '',
+    ]);
+});
+
 test('a learner can request review for their own journal page when policy allows it', function () {
     $learner = User::factory()->create();
     PlatformJournalSetting::current()->update(['allow_expert_access_requests' => true]);

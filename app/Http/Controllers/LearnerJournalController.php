@@ -115,7 +115,7 @@ class LearnerJournalController extends Controller
             'title' => ['required', 'string', 'max:240'],
             'topic' => ['required', 'string', 'max:160'],
             'subtopic' => ['nullable', 'string', 'max:160'],
-            'markdown' => ['required', 'string', 'max:100000'],
+            'markdown' => ['nullable', 'string', 'max:100000'],
             'preferred_mode' => ['required', 'in:view,edit'],
             'request_expert_access' => ['nullable', 'boolean'],
         ]);
