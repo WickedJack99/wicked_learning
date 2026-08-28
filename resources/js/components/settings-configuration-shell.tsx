@@ -1,7 +1,12 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type {
+    HTMLAttributes,
+    KeyboardEvent as ReactKeyboardEvent,
+    ReactNode,
+    Ref,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -20,14 +25,19 @@ type SettingsConfigurationShellProps = {
 };
 
 type SettingsSectionButtonProps<T extends string> = {
+    ariaControls?: string;
     active: boolean;
     description?: string;
     danger?: boolean;
+    elementId?: string;
     icon: LucideIcon;
     id: T;
     label: string;
+    buttonRef?: Ref<HTMLButtonElement>;
+    onKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
     onSelect: (id: T) => void;
     role?: 'tab';
+    tabIndex?: number;
 };
 
 export type SettingsNavigationItem<T extends string> = {
@@ -191,17 +201,23 @@ export function SettingsSidebar({ children }: { children: ReactNode }) {
 }
 
 export function SettingsSectionButton<T extends string>({
+    ariaControls,
     active,
+    buttonRef,
     danger = false,
     description,
+    elementId,
     icon: Icon,
     id,
     label,
+    onKeyDown,
     onSelect,
     role,
+    tabIndex,
 }: SettingsSectionButtonProps<T>) {
     return (
         <button
+            aria-controls={role === 'tab' ? ariaControls : undefined}
             aria-selected={role === 'tab' ? active : undefined}
             className={cn(
                 'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
@@ -214,8 +230,12 @@ export function SettingsSectionButton<T extends string>({
                         ? 'text-red-600 hover:bg-red-50 dark:text-red-200 dark:hover:bg-red-400/10'
                         : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]'),
             )}
+            id={elementId}
             onClick={() => onSelect(id)}
+            onKeyDown={onKeyDown}
+            ref={buttonRef}
             role={role}
+            tabIndex={tabIndex}
             type="button"
         >
             <span
@@ -246,9 +266,20 @@ export function SettingsSectionButton<T extends string>({
     );
 }
 
-export function SettingsContentPane({ children }: { children: ReactNode }) {
+export function SettingsContentPane({
+    children,
+    ...props
+}: HTMLAttributes<HTMLDivElement>) {
     return (
-        <div className="h-full min-w-0 overflow-y-auto pr-1">{children}</div>
+        <div
+            {...props}
+            className={cn(
+                'h-full min-w-0 overflow-y-auto pr-1',
+                props.className,
+            )}
+        >
+            {children}
+        </div>
     );
 }
 

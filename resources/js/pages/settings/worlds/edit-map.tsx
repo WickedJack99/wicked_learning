@@ -20,6 +20,7 @@ import { useMemo, useRef, useState } from 'react';
 import type {
     CSSProperties,
     Dispatch,
+    KeyboardEvent as ReactKeyboardEvent,
     PointerEvent,
     SetStateAction,
 } from 'react';
@@ -1494,7 +1495,12 @@ export default function EditWorldMap({
                             />
                         }
                     >
-                        <SettingsContentPane>
+                        <SettingsContentPane
+                            aria-labelledby={`map-asset-settings-tab-${activeNodeSettingsSection}`}
+                            id="map-asset-settings-panel"
+                            role="tabpanel"
+                            tabIndex={0}
+                        >
                             <div
                                 className={cn(
                                     'grid content-start gap-4',
@@ -2951,6 +2957,7 @@ function NodeSettingsSwitcher({
     onChange: (section: NodeSettingsSection) => void;
 }) {
     const t = usePlatformTranslation();
+    const tabRefs = useRef(new Map<NodeSettingsSection, HTMLButtonElement>());
     const visibleSections = nodeSettingsSections(t).filter((section) => {
         if (hasMapAsset && !isEditingNode) {
             return !['activities', 'tile-text', 'right-panel'].includes(
@@ -2998,6 +3005,44 @@ function NodeSettingsSwitcher({
         },
     ];
 
+    const moveFocus = (
+        event: ReactKeyboardEvent<HTMLButtonElement>,
+        currentIndex: number,
+    ) => {
+        if (
+            ![
+                'ArrowDown',
+                'ArrowLeft',
+                'ArrowRight',
+                'ArrowUp',
+                'End',
+                'Home',
+            ].includes(event.key)
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const nextIndex =
+            event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? visibleSections.length - 1
+                  : (currentIndex +
+                        (event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+                            ? -1
+                            : 1) +
+                        visibleSections.length) %
+                    visibleSections.length;
+        const nextSection = visibleSections[nextIndex];
+
+        onChange(nextSection.key);
+        window.requestAnimationFrame(() =>
+            tabRefs.current.get(nextSection.key)?.focus(),
+        );
+    };
+
     return (
         <aside className="min-h-0 overflow-y-auto border-r border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3">
             <div
@@ -3022,19 +3067,45 @@ function NodeSettingsSwitcher({
                             <p className="px-3 text-[0.68rem] font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                                 {group.label}
                             </p>
-                            {items.map((item) => (
-                                <SettingsSectionButton
-                                    active={activeSection === item.key}
-                                    danger={item.danger}
-                                    description={item.description}
-                                    icon={item.icon}
-                                    id={item.key}
-                                    key={item.key}
-                                    label={item.label}
-                                    onSelect={onChange}
-                                    role="tab"
-                                />
-                            ))}
+                            {items.map((item) => {
+                                const sectionIndex = visibleSections.findIndex(
+                                    (section) => section.key === item.key,
+                                );
+
+                                return (
+                                    <SettingsSectionButton
+                                        active={activeSection === item.key}
+                                        ariaControls="map-asset-settings-panel"
+                                        danger={item.danger}
+                                        description={item.description}
+                                        elementId={`map-asset-settings-tab-${item.key}`}
+                                        icon={item.icon}
+                                        id={item.key}
+                                        key={item.key}
+                                        label={item.label}
+                                        onKeyDown={(event) =>
+                                            moveFocus(event, sectionIndex)
+                                        }
+                                        onSelect={onChange}
+                                        buttonRef={(element) => {
+                                            if (element) {
+                                                tabRefs.current.set(
+                                                    item.key,
+                                                    element,
+                                                );
+                                            } else {
+                                                tabRefs.current.delete(
+                                                    item.key,
+                                                );
+                                            }
+                                        }}
+                                        role="tab"
+                                        tabIndex={
+                                            activeSection === item.key ? 0 : -1
+                                        }
+                                    />
+                                );
+                            })}
                         </section>
                     );
                 })}

@@ -556,8 +556,17 @@ These are test gaps, not claims that the feature is broken:
   restoration. Competence stars now expose a visible cyan focus halo while
   retaining their existing keyboard activation. Player inventory and tool
   overlays now keep Tab focus within the open dialog and restore focus on
-  dismissal; a full browser pass still remains for the complete authoring
+  dismissal. The MapAsset editor section tabs now use roving focus and arrow
+  navigation; a full browser pass still remains for the complete authoring
   workspace.
+
+### Completed — Make MapAsset editor sections keyboard navigable
+
+The MapAsset editor now treats its section switcher as a keyboard tablist.
+Only the active section is in the normal Tab order; Home, End and the arrow
+keys select and focus another section. The active control identifies the
+shared tab panel, which exposes the selected section to assistive technology.
+Pointer selection and the existing form behavior remain unchanged.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 
