@@ -1941,6 +1941,62 @@ test('admin unlock diagnostics ignore an unreachable prerequisite in an optional
     expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
 });
 
+test('admin unlock diagnostics report a hidden prerequisite without a reveal path', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $map = LearningMap::query()->firstOrFail();
+    $hiddenPrerequisite = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'hidden-path-check',
+        'title' => 'Hidden path check',
+        'description' => 'A hidden prerequisite for authoring diagnostics.',
+        'position_q' => 12,
+        'position_r' => 12,
+        'state' => 'hidden',
+        'visual_config' => [],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'hidden-prerequisite-check',
+        'title' => 'Hidden prerequisite check',
+        'description' => 'A locked node that depends on a hidden place.',
+        'position_q' => 13,
+        'position_r' => 13,
+        'state' => 'locked',
+        'visual_config' => [
+            'unlock' => [
+                'enabled' => true,
+                'rules' => [
+                    'type' => 'node_completed',
+                    'nodeId' => $hiddenPrerequisite->id,
+                ],
+            ],
+        ],
+    ]);
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))
+        ->toBe([
+            [
+                'id' => $hiddenPrerequisite->id,
+                'title' => $hiddenPrerequisite->title,
+            ],
+        ]);
+
+    $tool = LearningTool::query()->create([
+        'slug' => 'hidden-path-tool',
+        'title' => 'Hidden path tool',
+    ]);
+    $hiddenPrerequisite->forceFill([
+        'visual_config' => [
+            'reveal' => [
+                'enabled' => true,
+                'toolId' => $tool->id,
+            ],
+        ],
+    ])->save();
+
+    expect(app(NodeUnlockReachability::class)->unreachablePrerequisites($node))->toBe([]);
+});
+
 test('admin users can save a valid authored item unlock tree', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

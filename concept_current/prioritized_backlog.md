@@ -133,6 +133,7 @@ participation.
   explicit human fallback.
 - [x] Make authored unlock diagnostics follow AND/OR branches so optional
   unreachable prerequisites do not create false warnings.
+- [x] Diagnose hidden prerequisites that have no configured reveal path.
 - Continue authored unlock conflict evaluation beyond prerequisite cycles,
   including combinations that are structurally valid but still unreachable.
 

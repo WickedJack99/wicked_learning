@@ -19,6 +19,10 @@ class NodeUnlockReachability
     /** @var array<int, true>|null */
     private ?array $answerEventTargets = null;
 
+    public function __construct(
+        private readonly NodeRevealService $nodeRevealService,
+    ) {}
+
     /**
      * @return list<array{id: int, title: string}>
      */
@@ -192,7 +196,15 @@ class NodeUnlockReachability
 
         $node = $this->nodes()[$nodeId] ?? null;
 
-        if (! $node || $node->state !== 'locked') {
+        if (! $node) {
+            return false;
+        }
+
+        if ($node->state === 'hidden') {
+            return $this->nodeRevealService->isDiscoverable($node);
+        }
+
+        if ($node->state !== 'locked') {
             return $node !== null;
         }
 
