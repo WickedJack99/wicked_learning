@@ -340,6 +340,15 @@ while remaining keyboard-reachable for its hover treatment, and reusable image
 choices expose which image is selected. Existing settings panes continue to
 own scrolling so these controls remain reachable in long editors.
 
+### Completed — Make activity-graph connections keyboard actionable
+
+Activity-graph nodes and connections now expose meaningful accessible names.
+When a focused connection receives Enter or Space, the existing connection
+editor opens just as it does for a pointer click. Start-route connections open
+their route editor; activity transitions open their label editor. This keeps
+the graph's visual editing model intact while making its highest-value actions
+available without a pointer.
+
 ### Completed — Describe transient learner panels
 
 The map action rail now exposes the expanded state and controlled panel for
@@ -475,8 +484,9 @@ These are test gaps, not claims that the feature is broken:
 - Long AI queues, media libraries, graph nodes, journal pages and organization
   conversations need browser assertions for the final visible action.
 - Keyboard focus and accessible names should be checked for icon-only map
-  controls, account controls, React Flow actions, image selectors and modal
-  close buttons.
+  controls, account controls, image selectors and modal close buttons. Activity
+  graph nodes and connections now have focused coverage in the implementation;
+  a full browser pass still remains for the complete authoring workspace.
 
 ### Completed — Give keyboard users a direct route into learner workspaces
 

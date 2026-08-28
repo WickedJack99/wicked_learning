@@ -352,6 +352,7 @@ export function buildGraphNodes(
             onEdit,
             onReview,
         },
+        ariaLabel: `${activity.type}: ${activity.title}`,
         position:
             activity.position.x !== null
                 ? {
@@ -376,6 +377,7 @@ export function buildGraphNodes(
                 kind: 'start',
                 title: 'Start',
             },
+            ariaLabel: 'Start node. Connect this to a route activity.',
             position: graphLayout.start ?? { x: -220, y: 40 },
         },
         ...activities,
@@ -387,6 +389,7 @@ export function buildGraphNodes(
                 kind: 'end',
                 title: 'End',
             },
+            ariaLabel: 'End node. Connect completed activities here.',
             position: graphLayout.end ?? { x: fallbackEndX, y: 40 },
         },
     ];
@@ -426,6 +429,7 @@ export function buildGraphEdges(
 
         edges.push({
             id: `start:${startRoute.id}:${startRoute.activityId}`,
+            ariaLabel: `Start route to ${targetActivity.title}`,
             source: 'start',
             sourceHandle: 'start',
             target: startRoute.activityId.toString(),
@@ -463,6 +467,7 @@ export function buildGraphEdges(
 
         edges.push({
             id: `transition:${transition.id}`,
+            ariaLabel: `Connection from ${sourceActivity.title} to ${targetActivity?.title ?? 'End'}: ${transition.label ?? transition.trigger}`,
             source: transition.fromActivityId.toString(),
             sourceHandle: transition.fromConnector,
             target: transition.toActivityId?.toString() ?? 'end',

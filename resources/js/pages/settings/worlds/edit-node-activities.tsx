@@ -16,6 +16,7 @@ import {
     Sparkles,
     Trash2,
 } from 'lucide-react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
@@ -497,6 +498,43 @@ export default function EditNodeActivities({
         }
     };
 
+    const activateEdge = (edge: ActivityGraphEdge) => {
+        if (edge.id.startsWith('start:')) {
+            openStartRoute(edge);
+
+            return;
+        }
+
+        handleEdgeClick(edge);
+    };
+
+    const handleGraphKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+
+        const edgeElement =
+            event.target instanceof Element
+                ? event.target.closest<HTMLElement>(
+                      '[aria-roledescription="edge"]',
+                  )
+                : null;
+        const edgeId = edgeElement?.dataset.id;
+
+        if (!edgeId) {
+            return;
+        }
+
+        const edge = edges.find((candidate) => candidate.id === edgeId);
+
+        if (!edge) {
+            return;
+        }
+
+        event.preventDefault();
+        activateEdge(edge);
+    };
+
     const updateTransition = () => {
         if (!selectedTransition) {
             return;
@@ -661,7 +699,10 @@ export default function EditNodeActivities({
                         </div>
                     ) : null}
 
-                    <section className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]">
+                    <section
+                        className="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-[#111820]"
+                        onKeyDown={handleGraphKeyDown}
+                    >
                         {activityGraph.activities.length === 0 ? (
                             <div className="pointer-events-none absolute inset-x-0 top-8 z-10 flex justify-center">
                                 <div className="rounded-xl border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)] px-5 py-4 text-center shadow-lg backdrop-blur">
@@ -685,17 +726,9 @@ export default function EditNodeActivities({
                             nodeTypes={activityNodeTypes}
                             nodes={nodes}
                             onConnect={connectActivities}
-                            onEdgeClick={(_, edge) => {
-                                const graphEdge = edge as ActivityGraphEdge;
-
-                                if (graphEdge.id.startsWith('start:')) {
-                                    openStartRoute(graphEdge);
-
-                                    return;
-                                }
-
-                                handleEdgeClick(graphEdge);
-                            }}
+                            onEdgeClick={(_, edge) =>
+                                activateEdge(edge as ActivityGraphEdge)
+                            }
                             onEdgesChange={onEdgesChange}
                             onNodeDragStop={(_, node) =>
                                 savePosition(node as ActivityGraphNode)
