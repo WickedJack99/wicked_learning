@@ -55,6 +55,49 @@ spacing, while relatedness effects are more context-dependent. Relatedness
 features should therefore invite connection rather than require social
 participation.
 
+## Priority 0 - Research-critical learning engine
+
+The attached research and implementation review (22 August 2026) is a dated
+design-gap assessment, not a claim that later code was absent from that
+snapshot. These items remain open after reconciling the report with the
+current repository. They are intentionally above the UI and authoring backlog
+because they determine whether activity engagement becomes durable learning.
+
+- Build a complete evidence-event contract. Keep the existing immutable event
+  model, but add activity-appropriate quality or correctness, attempt number,
+  confidence, assistance level, latency and objective/concept/source links;
+  then derive learner-facing competence narratives from multiple evidence
+  types instead of authored completion contribution alone. Preserve the
+  qualitative language and never expose a score-shaped substitute.
+- Add a transparent retrieval engine: RecallItem, ReviewSchedule and
+  ReviewAttempt records plus a deterministic rule-based scheduler and a finite
+  learner-controlled due queue. Support why-it-is-due explanations, snooze and
+  replacement before considering adaptive or AI scheduling.
+- Add explicit self-explanation and transfer task contracts with authorable
+  prompts, observable rubrics and explanatory critique. Keep existing generic
+  activity-purpose metadata, but do not treat a reflection or completion as
+  equivalent to an explanation or transfer demonstration.
+- Make explanatory feedback and calibration first-class where an activity can
+  support them: capture confidence before feedback, explain observable
+  evidence, offer one useful next action and create later independent checks
+  where appropriate.
+- Add content-level source provenance. Provide reusable versioned sources and
+  excerpts with authorship, publication metadata, rights and stable anchors;
+  link them to activities, concepts and AI-generated drafts so factual content
+  and feedback can show where it came from.
+- Add learner-controlled regulation support: optional intent and time-box
+  setting, transparent recommendation reasons with alternatives, and an
+  optional focus workspace that reduces unrelated navigation during a task.
+- Build a separate effort-preserving learner AI workflow only after evidence
+  and source contracts exist. Define AI-off, questions-only, hints and
+  post-attempt support levels, grounded responses with uncertainty, and
+  assistance-aware evidence so supported performance is not silently treated
+  as independent capability.
+- Add an evaluation foundation for delayed unaided retrieval, transfer,
+  confidence calibration, need satisfaction, self-regulation, help quality and
+  AI-off performance. Keep these as privacy-conscious research/operations
+  measures rather than learner-facing rankings or success definitions.
+
 ## Priority 1 - Strengthen Existing Learning Loops
 
 - [x] Keep direct route selections bound to their selected activity graph.
