@@ -60,6 +60,7 @@ class AdminWorldSummarySerializer
             'title' => $node->title,
             'description' => $node->description,
             'activityReviewCount' => 0,
+            'pendingReviewActivities' => [],
             'position' => [
                 'q' => $node->position_q,
                 'r' => $node->position_r,

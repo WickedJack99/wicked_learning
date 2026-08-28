@@ -39,6 +39,10 @@ test('admin users can see the world graph with portal links', function () {
         ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
         ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
         ->count();
+    $portalReview = LearningActivity::query()
+        ->whereHas('node', fn ($query) => $query->where('slug', 'portal-foundation'))
+        ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
+        ->firstOrFail();
 
     $this->actingAs($admin)
         ->get(route('settings.index', [
@@ -53,6 +57,8 @@ test('admin users can see the world graph with portal links', function () {
             ->where('worldGraph.maps.0.reviewCount', $reviewCount)
             ->where('worldGraph.maps.0.nodes.0.slug', 'portal-foundation')
             ->where('worldGraph.maps.0.nodes.0.activityReviewCount', 1)
+            ->where('worldGraph.maps.0.nodes.0.pendingReviewActivities.0.id', $portalReview->id)
+            ->where('worldGraph.maps.0.nodes.0.pendingReviewActivities.0.title', $portalReview->title)
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')

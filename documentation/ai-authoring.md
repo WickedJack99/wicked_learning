@@ -68,11 +68,12 @@ Applying a draft:
 These writes run in one database transaction. A validation or write failure
 does not leave a partially created route.
 
-Activity review results are available from the same World Builder graph. A
-tutor can open the Activity editor directly from a result, then decide whether
-to save any content or metadata changes. Saving a change places the Activity
-back in the review queue. After a result is available, the dialog can also move
-to the next pending Activity in that node's scoped queue.
+Activity review results are available from the World Builder graph and its
+world-level Review queue. The queue lists each pending Activity by name and
+opens its scoped review dialog directly. A tutor can then decide whether to
+save any content or metadata changes. Saving a change places the Activity back
+in the review queue. After a result is available, the dialog can also move to
+the next pending Activity in that node's scoped queue.
 Each completed review is also retained as a compact, immutable review run. The
 dialog shows the five most recent runs on request, while the activity keeps its
 latest result as the current review state. Review history is authoring data and

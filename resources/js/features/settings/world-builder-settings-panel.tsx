@@ -21,7 +21,10 @@ import { Button } from '@/components/ui/button';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { WorldBuilderPanel } from '@/pages/settings/worlds';
-import type { WorldGraph } from '@/pages/settings/worlds';
+import type {
+    ReviewActivitySummary,
+    WorldGraph,
+} from '@/pages/settings/worlds';
 
 export type WorldBuilderSection = 'graph' | 'review' | 'structural';
 export type WorldBuilderMapView = 'configure' | 'nodes';
@@ -163,9 +166,15 @@ export function WorldBuilderSettingsPanel({
 function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
     const t = usePlatformTranslation();
     const reviewItems = worldGraph.maps.flatMap((map) =>
-        map.nodes
-            .filter((node) => node.activityReviewCount > 0)
-            .map((node) => ({ map, node })),
+        map.nodes.flatMap((node) =>
+            node.pendingReviewActivities.map(
+                (activity: ReviewActivitySummary) => ({
+                    activity,
+                    map,
+                    node,
+                }),
+            ),
+        ),
     );
     const [page, setPage] = useState(0);
     const pageSize = 6;
@@ -198,8 +207,8 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                                   ? 'settings.world_builder.review_queue.waiting_one'
                                   : 'settings.world_builder.review_queue.waiting_many',
                               reviewItems.length === 1
-                                  ? '1 MapAsset has activities waiting for review.'
-                                  : ':count MapAssets have activities waiting for review.',
+                                  ? '1 activity is waiting for review.'
+                                  : ':count activities are waiting for review.',
                               { count: reviewItems.length },
                           )
                         : t(
@@ -222,11 +231,12 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                 <>
                     <div className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto py-4 pr-2">
                         <div className="grid gap-3">
-                            {visibleItems.map(({ map, node }) => (
+                            {visibleItems.map(({ activity, map, node }) => (
                                 <Link
+                                    aria-label={`Review ${activity.title}`}
                                     className="group rounded-lg border border-slate-200 p-4 transition hover:border-[var(--settings-accent)] dark:border-white/10"
-                                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes`}
-                                    key={`${map.id}-${node.id}`}
+                                    href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes&reviewActivity=${activity.id}`}
+                                    key={activity.id}
                                 >
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
@@ -234,17 +244,10 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                                                 {map.title}
                                             </p>
                                             <h3 className="mt-1 truncate font-semibold">
-                                                {node.title}
+                                                {activity.title}
                                             </h3>
                                             <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                                                {node.activityReviewCount}{' '}
-                                                {node.activityReviewCount === 1
-                                                    ? 'activity'
-                                                    : 'activities'}{' '}
-                                                {t(
-                                                    'settings.world_builder.review_queue.waiting_suffix',
-                                                    'waiting for review',
-                                                )}
+                                                {node.title} · {activity.type}
                                             </p>
                                         </div>
                                         <span className="shrink-0 text-sm font-semibold text-[var(--settings-accent)] group-hover:underline">

@@ -112,10 +112,10 @@ node, making the scoped queue discoverable before an author opens individual
 maps.
 
 World Builder also provides a world-level Review queue section. It gathers
-waiting MapAssets across the current world, paginates the list as it grows and
-opens each entry at its exact node editor. The review operation remains scoped
-to one activity at a time; the world-level view is an entry point, not a batch
-approval mechanism.
+waiting activities across the current world, paginates the list as it grows
+and opens each entry directly in its scoped review dialog. The review
+operation remains scoped to one activity at a time; the world-level view is an
+entry point, not a batch approval mechanism.
 
 The content-authoring contract supports Markdown, Reflection, Message
 prompt, Shared task and Open practice activities. An Open practice activity

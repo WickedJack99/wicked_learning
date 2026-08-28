@@ -93,6 +93,9 @@ participation.
 - [x] Retain a bounded history of completed activity-review runs for tutors.
   The current review remains the active state, while the latest five authoring
   readings can be inspected without exposing AI review data to learners.
+- [x] Make the world-level AI review queue activity-specific and directly
+  actionable. Each pending activity is paginated as its own entry and opens
+  its scoped review dialog from the queue.
 
 ## Priority 2 - Authoring And Reuse
 

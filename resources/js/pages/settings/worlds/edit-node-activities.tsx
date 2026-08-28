@@ -118,7 +118,23 @@ export default function EditNodeActivities({
     const [updatingTransition, setUpdatingTransition] = useState(false);
     const [deletingTransition, setDeletingTransition] = useState(false);
     const [reviewingActivity, setReviewingActivity] =
-        useState<ActivitySummary | null>(null);
+        useState<ActivitySummary | null>(() => {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+
+            const reviewActivityId = Number(
+                new URLSearchParams(window.location.search).get(
+                    'reviewActivity',
+                ),
+            );
+
+            return Number.isInteger(reviewActivityId) && reviewActivityId > 0
+                ? (activityGraph.activities.find(
+                      (activity) => activity.id === reviewActivityId,
+                  ) ?? null)
+                : null;
+        });
     const [selectedStartRoute, setSelectedStartRoute] =
         useState<ActivityStartRoute | null>(null);
     const [startRouteForm, setStartRouteForm] = useState<StartRouteForm>({
@@ -243,6 +259,23 @@ export default function EditNodeActivities({
 
     useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
     useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
+    useEffect(() => {
+        if (!reviewingActivity || typeof window === 'undefined') {
+            return;
+        }
+
+        const reviewActivityId = Number(
+            new URLSearchParams(window.location.search).get('reviewActivity'),
+        );
+
+        if (reviewActivityId !== reviewingActivity.id) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('reviewActivity');
+        window.history.replaceState(window.history.state, '', url);
+    }, [reviewingActivity]);
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (
