@@ -119,6 +119,17 @@ test('shared settings headings use the semantic foreground token', function () {
         ->not->toContain('text-slate-950 dark:text-white');
 });
 
+test('map editor configuration surfaces use settings palette tokens', function () {
+    $editor = file_get_contents(resource_path('js/pages/settings/worlds/edit-map.tsx'));
+
+    expect($editor)
+        ->toContain('bg-[var(--settings-input-background)]')
+        ->toContain('border-[var(--settings-border-color)]')
+        ->toContain('text-[var(--settings-muted-text)]')
+        ->not->toContain('bg-white px-3 py-2 text-sm text-slate-950')
+        ->not->toContain('text-slate-500 dark:text-slate-400');
+});
+
 test('palette preview tabs expose selection and keyboard navigation semantics', function () {
     $workbench = file_get_contents(resource_path('js/components/palette-workbench.tsx'));
 

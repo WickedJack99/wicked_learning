@@ -1008,7 +1008,7 @@ export default function EditWorldMap({
             {!embedded ? <Head title={`Edit ${map.title}`} /> : null}
             <main
                 className={cn(
-                    'h-full overflow-hidden bg-slate-100 text-slate-950 dark:bg-[#0b1117] dark:text-slate-100',
+                    'h-full overflow-hidden bg-[var(--settings-content-background)] text-foreground',
                     embedded &&
                         'bg-transparent text-inherit dark:bg-transparent',
                 )}
@@ -1059,7 +1059,7 @@ export default function EditWorldMap({
                                 </Button>
                             </div>
                         </div>
-                        <p className="hidden max-w-2xl text-sm leading-6 text-slate-600 md:block dark:text-slate-300">
+                        <p className="hidden max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)] md:block">
                             Place MapAssets on the surface and edit their
                             position and visual settings from the in-map menu.
                         </p>
@@ -1103,7 +1103,7 @@ export default function EditWorldMap({
                         className={cn(
                             'relative hidden min-h-0 flex-1 touch-none overflow-hidden bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_14%,transparent),rgba(255,255,255,0.88)_64%)] select-none dark:bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_16%,transparent),rgba(17,24,32,0.94)_66%)]',
                             !embedded &&
-                                'rounded-[2rem] border border-slate-200 shadow-2xl dark:border-white/10',
+                                'rounded-[2rem] border border-[var(--settings-border-color)] shadow-2xl',
                         )}
                         data-draggable-surface="true"
                         data-dragging={isDraggingSurface ? 'true' : undefined}
@@ -1175,11 +1175,11 @@ export default function EditWorldMap({
 
                         {map.nodes.length === 0 ? (
                             <div className="pointer-events-none absolute inset-x-0 top-24 z-20 flex justify-center px-4">
-                                <div className="max-w-sm rounded-xl border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-white/86 p-4 text-center text-sm shadow-lg backdrop-blur dark:bg-slate-950/72">
-                                    <p className="font-semibold text-slate-950 dark:text-white">
+                                <div className="max-w-sm rounded-xl border border-dashed border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)] bg-[color-mix(in_srgb,var(--settings-panel-background)_86%,transparent)] p-4 text-center text-sm shadow-lg backdrop-blur">
+                                    <p className="font-semibold text-foreground">
                                         This map is empty
                                     </p>
-                                    <p className="mt-2 leading-6 text-slate-600 dark:text-slate-300">
+                                    <p className="mt-2 leading-6 text-[var(--settings-muted-text)]">
                                         Use the plus button in the center to
                                         create the first tile. After that the
                                         editor can grow the map from nearby
@@ -1244,7 +1244,7 @@ export default function EditWorldMap({
                         <div className="grid gap-1">
                             <Label htmlFor="map-description">Description</Label>
                             <textarea
-                                className="min-h-28 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-950 shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none dark:border-white/10 dark:bg-slate-950 dark:text-white"
+                                className="min-h-28 rounded-md border border-[var(--settings-control-border)] bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs transition focus-visible:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[color-mix(in_srgb,var(--settings-accent)_24%,transparent)] focus-visible:outline-none"
                                 id="map-description"
                                 onChange={(event) => {
                                     const description =
@@ -1377,7 +1377,7 @@ export default function EditWorldMap({
                     <div className="grid gap-3">
                         {accessGroups.map((group) => (
                             <label
-                                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm dark:border-white/10 dark:bg-white/5"
+                                className="flex items-start gap-3 rounded-xl border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-panel-background)_80%,transparent)] p-3 text-sm"
                                 key={group.slug}
                             >
                                 <Checkbox
@@ -1392,11 +1392,11 @@ export default function EditWorldMap({
                                     }
                                 />
                                 <span className="grid gap-1">
-                                    <span className="font-semibold text-slate-950 dark:text-white">
+                                    <span className="font-semibold text-foreground">
                                         {group.label}
                                     </span>
                                     {group.description ? (
-                                        <span className="leading-5 text-slate-600 dark:text-slate-300">
+                                        <span className="leading-5 text-[var(--settings-muted-text)]">
                                             {group.description}
                                         </span>
                                     ) : null}
@@ -1411,7 +1411,7 @@ export default function EditWorldMap({
                         />
                     </div>
 
-                    <div className="rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-3 text-sm leading-6 text-slate-800 dark:text-slate-100">
+                    <div className="rounded-xl border border-[color-mix(in_srgb,var(--settings-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--settings-accent)_10%,transparent)] p-3 text-sm leading-6 text-foreground">
                         Public maps can be opened without an account. Guest
                         progress, tools and items are not stored on the server;
                         server-side learning state starts after login.
@@ -1456,7 +1456,7 @@ export default function EditWorldMap({
                     className={cn(
                         'flex h-[calc(100svh-8rem)] flex-col overflow-hidden',
                         embedded &&
-                            'rounded-none border-y-0 border-r-0 bg-[var(--settings-panel-background)] p-0 text-slate-950 shadow-2xl sm:max-w-none dark:text-slate-100',
+                            'rounded-none border-y-0 border-r-0 bg-[var(--settings-panel-background)] p-0 text-foreground shadow-2xl sm:max-w-none',
                     )}
                     overlayClassName={embedded ? 'bg-transparent' : ''}
                     style={nodeDialogStyle}
@@ -1659,7 +1659,7 @@ export default function EditWorldMap({
                                                 Description
                                             </Label>
                                             <textarea
-                                                className="min-h-28 resize-y rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                className="min-h-28 resize-y rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                 id="tile-description"
                                                 onChange={(event) => {
                                                     const description =
@@ -1757,7 +1757,7 @@ export default function EditWorldMap({
                                                         Reveal tool
                                                     </Label>
                                                     <select
-                                                        className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                        className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                         disabled={
                                                             !form.visual_config
                                                                 .reveal.enabled
@@ -1831,14 +1831,14 @@ export default function EditWorldMap({
                                                         ]
                                                     }
                                                 />
-                                                <div className="grid gap-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
+                                                <div className="grid gap-3 rounded-md bg-[color-mix(in_srgb,var(--settings-muted-text)_8%,transparent)] p-3">
                                                     <div className="grid gap-1">
                                                         <Label htmlFor="unlock-top-operator">
                                                             Combine node and
                                                             tool rules with
                                                         </Label>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -1878,7 +1878,7 @@ export default function EditWorldMap({
                                                             Completed-node rule
                                                         </Label>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -1912,7 +1912,7 @@ export default function EditWorldMap({
                                                             </option>
                                                         </select>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -1968,7 +1968,7 @@ export default function EditWorldMap({
                                                                 .requiredNodeIds
                                                                 .length ===
                                                             0 ? (
-                                                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                                <span className="text-xs text-[var(--settings-muted-text)]">
                                                                     No
                                                                     completed-node
                                                                     conditions
@@ -2025,7 +2025,7 @@ export default function EditWorldMap({
                                                             condition
                                                         </Label>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -2069,7 +2069,7 @@ export default function EditWorldMap({
                                                                 ),
                                                             )}
                                                         </select>
-                                                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                                        <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                                                             Only learners with
                                                             this assigned role
                                                             can open the node.
@@ -2106,7 +2106,7 @@ export default function EditWorldMap({
                                                             Unlock item
                                                         </Label>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -2185,7 +2185,7 @@ export default function EditWorldMap({
                                                             Unlock tool
                                                         </Label>
                                                         <select
-                                                            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm text-slate-950 shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-slate-950 dark:text-slate-100"
+                                                            className="h-10 rounded-md border border-input bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                                                             disabled={
                                                                 !form
                                                                     .visual_config
@@ -2241,7 +2241,7 @@ export default function EditWorldMap({
                                                         />
                                                     </div>
 
-                                                    <div className="grid gap-4 rounded-md border border-slate-200 bg-white p-3 sm:grid-cols-2 dark:border-white/10 dark:bg-slate-950/60">
+                                                    <div className="grid gap-4 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3 sm:grid-cols-2">
                                                         <DateTimeField
                                                             description="Optional unlock condition. The rule passes when the current time is the same or later."
                                                             disabled={
@@ -3434,7 +3434,7 @@ function DateTimeField({
                 type="datetime-local"
                 value={value}
             />
-            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                 {description}
             </p>
             <InputError message={error} />
@@ -3516,8 +3516,8 @@ function NodeSoundTriggerField({
     value: NodeSoundTriggerConfig;
 }) {
     return (
-        <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
+        <div className="grid gap-3 rounded-lg border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-muted-text)_8%,transparent)] p-3">
+            <div className="flex items-start gap-3 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3">
                 <Checkbox
                     checked={value.enabled}
                     id={`${id}-enabled`}
@@ -3529,7 +3529,7 @@ function NodeSoundTriggerField({
                     <Label htmlFor={`${id}-enabled`}>
                         Enable {label.toLowerCase()} sound
                     </Label>
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                         {description}
                     </p>
                 </div>
@@ -3550,12 +3550,12 @@ function NodeSoundTriggerField({
 
 function NodeSoundPreview({ sounds }: { sounds: NodeSoundFields }) {
     return (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/70">
-            <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+        <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                 Preview
             </p>
             <button
-                className="mt-4 grid min-h-44 w-full place-items-center rounded-xl border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-semibold text-slate-700 transition hover:border-[var(--settings-accent)] hover:bg-slate-50 dark:border-white/15 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-white/5"
+                className="mt-4 grid min-h-44 w-full place-items-center rounded-xl border border-dashed border-[var(--settings-border-color)] bg-[var(--settings-input-background)] px-4 text-center text-sm font-semibold text-foreground transition hover:border-[var(--settings-accent)] hover:bg-[color-mix(in_srgb,var(--settings-accent)_6%,var(--settings-input-background))]"
                 onClick={() => void playNodeSound(sounds.click)}
                 onMouseEnter={() => void playNodeSound(sounds.mouseEnter)}
                 onMouseLeave={() => void playNodeSound(sounds.mouseLeave)}
@@ -3563,7 +3563,7 @@ function NodeSoundPreview({ sounds }: { sounds: NodeSoundFields }) {
             >
                 <span>
                     Preview MapAsset
-                    <span className="mt-2 block text-xs font-normal text-slate-500 dark:text-slate-400">
+                    <span className="mt-2 block text-xs font-normal text-[var(--settings-muted-text)]">
                         Hover, click, and leave this MapAsset to test configured
                         sounds.
                     </span>
@@ -3673,10 +3673,10 @@ function NodeVisualModeFields({
     const labelPrefix = mode === 'dark' ? 'Dark mode' : 'Light mode';
 
     return (
-        <div className="grid gap-3 rounded-lg border border-slate-200 p-3 dark:border-white/10">
+        <div className="grid gap-3 rounded-lg border border-[var(--settings-border-color)] p-3">
             <div>
                 <h3 className="text-sm font-semibold">{labelPrefix}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
                     These values define how the MapAsset appears in this mode.
                 </p>
             </div>
@@ -3756,14 +3756,14 @@ function NodeVisualPreview({
         form.visual_config.label || form.title || 'Preview tile';
 
     return (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-950/70">
-            <p className="text-xs font-medium tracking-[0.16em] text-slate-500 uppercase dark:text-slate-400">
+        <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
+            <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                 Preview
             </p>
             <div className="mt-4 grid min-h-72 place-items-center rounded-lg bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.12),transparent_55%)] dark:bg-[radial-gradient(circle_at_center,rgba(45,212,191,0.10),transparent_58%)]">
                 <div
                     aria-label="MapAsset image hover preview"
-                    className="group pointer-events-none relative grid h-[180px] w-[180px] place-items-center overflow-hidden text-center focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:outline-none"
+                    className="group pointer-events-none relative grid h-[180px] w-[180px] place-items-center overflow-hidden text-center focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                     onBlur={() => setIsHovered(false)}
                     onFocus={() => setIsHovered(true)}
                     onMouseEnter={() => setIsHovered(true)}
@@ -3789,7 +3789,7 @@ function NodeVisualPreview({
                     ) : null}
                 </div>
             </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="mt-3 text-xs leading-5 text-[var(--settings-muted-text)]">
                 {imageUrl
                     ? 'Hover or focus the image to test the highlight and label colors.'
                     : 'Select a MapAsset image under Surface & placement to preview it here.'}
@@ -3903,7 +3903,7 @@ function CheckboxField({
             />
             <div className="grid gap-1">
                 <Label htmlFor={id}>{label}</Label>
-                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                     {description}
                 </p>
             </div>
@@ -3940,7 +3940,7 @@ function DimmingField({
                     type="number"
                     value={value}
                 />
-                <span className="text-xs text-slate-500 dark:text-slate-400">
+                <span className="text-xs text-[var(--settings-muted-text)]">
                     %
                 </span>
             </div>
@@ -3952,7 +3952,7 @@ function DimmingField({
                 type="range"
                 value={sliderValue}
             />
-            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
                 Completed tiles keep their colors and receive only this dim
                 overlay.
             </p>
