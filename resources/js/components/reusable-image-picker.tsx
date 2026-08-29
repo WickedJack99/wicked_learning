@@ -18,6 +18,7 @@ type ReusableImageAsset = {
     extension: string;
     label: string;
     source: string;
+    tags: string[];
     url: string;
 };
 
@@ -33,6 +34,29 @@ type ReusableImagePayload = {
     message?: string;
     pagination?: ReusableImagePagination;
 };
+
+const presetImageTags = [
+    {
+        value: 'tool',
+        labelKey: 'settings.assets.images.tag_tool',
+        fallback: 'Tool',
+    },
+    {
+        value: 'item',
+        labelKey: 'settings.assets.images.tag_item',
+        fallback: 'Item',
+    },
+    {
+        value: 'background',
+        labelKey: 'settings.assets.images.tag_background',
+        fallback: 'Background',
+    },
+    {
+        value: 'character',
+        labelKey: 'settings.assets.images.tag_character',
+        fallback: 'Character',
+    },
+] as const;
 
 function imagePickerPageSize(): number {
     if (typeof window === 'undefined' || window.innerWidth >= 1280) {
@@ -76,6 +100,7 @@ export function ReusableImagePicker({
         total: 0,
     });
     const [search, setSearch] = useState('');
+    const [selectedTag, setSelectedTag] = useState('');
     const restoreFocusRef = useRef<HTMLElement | null>(
         typeof document !== 'undefined' &&
             document.activeElement instanceof HTMLElement
@@ -137,6 +162,10 @@ export function ReusableImagePicker({
                 params.set('q', search.trim());
             }
 
+            if (selectedTag) {
+                params.set('tag', selectedTag);
+            }
+
             params.set('page', String(page));
             params.set('per_page', String(pageSize));
 
@@ -185,7 +214,7 @@ export function ReusableImagePicker({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [loadError, page, pageSize, search]);
+    }, [loadError, page, pageSize, search, selectedTag]);
 
     return (
         <Dialog
@@ -225,7 +254,7 @@ export function ReusableImagePicker({
                     </div>
                 </DialogHeader>
 
-                <div className="grid shrink-0 gap-3 border-b border-slate-200 p-4 md:grid-cols-[1fr_auto] dark:border-white/10">
+                <div className="grid shrink-0 gap-3 border-b border-slate-200 p-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto] dark:border-white/10">
                     <div className="relative">
                         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
                         <Input
@@ -242,6 +271,32 @@ export function ReusableImagePicker({
                             value={search}
                         />
                     </div>
+                    <label className="grid gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                        {t(
+                            'settings.assets.images.tag_filter_label',
+                            'Filter by tag',
+                        )}
+                        <select
+                            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm font-normal text-slate-950 outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] dark:border-white/15 dark:bg-slate-950 dark:text-white"
+                            onChange={(event) => {
+                                setSelectedTag(event.currentTarget.value);
+                                setPage(1);
+                            }}
+                            value={selectedTag}
+                        >
+                            <option value="">
+                                {t(
+                                    'settings.assets.images.tag_all',
+                                    'All tags',
+                                )}
+                            </option>
+                            {presetImageTags.map((tag) => (
+                                <option key={tag.value} value={tag.value}>
+                                    {t(tag.labelKey, tag.fallback)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                     <Button
                         disabled={!currentValue}
                         onClick={() => {
@@ -328,6 +383,11 @@ export function ReusableImagePicker({
                                                 {asset.extension}
                                             </span>
                                         </span>
+                                        {asset.tags.length > 0 ? (
+                                            <span className="mt-1 block truncate text-xs text-slate-400 dark:text-slate-500">
+                                                {asset.tags.join(' · ')}
+                                            </span>
+                                        ) : null}
                                         {asset.canViewPath ? (
                                             <span className="mt-1 block truncate text-xs text-slate-400 dark:text-slate-500">
                                                 {asset.url}

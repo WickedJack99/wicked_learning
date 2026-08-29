@@ -163,6 +163,50 @@ test('admin users can paginate reusable image assets', function () {
     expect($response->json('assets'))->toHaveCount(2);
 });
 
+test('admin users can filter reusable image assets by tag', function () {
+    Storage::fake('public');
+    Storage::disk('public')->put(
+        'learning/media/tool-lens.svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" />',
+    );
+    Storage::disk('public')->put(
+        'learning/media/forest-background.svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" />',
+    );
+    ReusableMediaMetadata::query()->create([
+        'url' => '/storage/learning/media/tool-lens.svg',
+        'tags' => ['tool'],
+    ]);
+    ReusableMediaMetadata::query()->create([
+        'url' => '/storage/learning/media/forest-background.svg',
+        'tags' => ['background'],
+    ]);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $assets = $this->actingAs($admin)
+        ->getJson(route('settings.assets.reusable-images', [
+            'q' => 'lens',
+            'tag' => 'TOOL',
+        ]))
+        ->assertOk()
+        ->json('assets');
+
+    expect($assets)->toHaveCount(1)
+        ->and($assets[0]['url'])->toBe('/storage/learning/media/tool-lens.svg')
+        ->and($assets[0]['tags'])->toBe(['tool']);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.assets.reusable-images', [
+            'q' => 'lens',
+            'tag' => 'background',
+        ]))
+        ->assertOk()
+        ->assertJsonCount(0, 'assets');
+});
+
 test('admin users can save and search reusable image metadata', function () {
     Storage::fake('public');
     Storage::disk('public')->put(

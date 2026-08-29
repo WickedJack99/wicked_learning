@@ -333,7 +333,9 @@ before an author replaces or deletes it. Replacing an image updates those
 references together; deleting it clears them explicitly after confirmation.
 Authors can also add a searchable category and tags, plus explicit
 transparency and animation metadata; unknown values are allowed when the file
-does not provide a reliable signal.
+does not provide a reliable signal. Shared image pickers retain free-text
+search and also offer preset tag filters for tool, item, background and
+character assets; the selected tag is combined with the text search.
 
 Public pages, auth backgrounds, information pages, source links, platform
 languages and translation catalogs are configurable. Cursor roles currently

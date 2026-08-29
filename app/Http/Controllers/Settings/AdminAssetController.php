@@ -183,6 +183,7 @@ class AdminAssetController extends Controller
     {
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
+            'tag' => ['nullable', 'string', 'max:40'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
@@ -192,6 +193,7 @@ class AdminAssetController extends Controller
             user: $request->user(),
             page: $data['page'] ?? 1,
             perPage: $data['per_page'] ?? 12,
+            tag: $data['tag'] ?? null,
         ));
     }
 

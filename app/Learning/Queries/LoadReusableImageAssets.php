@@ -25,15 +25,19 @@ class LoadReusableImageAssets
     /**
      * @return list<array{canDelete: bool, canViewPath: bool, category: string|null, extension: string, hasTransparency: bool|null, isAnimated: bool|null, label: string, referenceCount: int, referenceGroups: list<array{count: int, label: string}>, source: string, tags: list<string>, uploaded: bool, url: string}>
      */
-    public function handle(?string $search = null, ?User $user = null): array
-    {
-        return $this->serializeAssets($this->matchingAssets($search), $user);
+    public function handle(
+        ?string $search = null,
+        ?User $user = null,
+        ?string $tag = null,
+    ): array {
+        return $this->serializeAssets($this->matchingAssets($search, $tag), $user);
     }
 
     /** @return Collection<int, array<string, mixed>> */
-    private function matchingAssets(?string $search): Collection
+    private function matchingAssets(?string $search, ?string $tag): Collection
     {
         $needle = Str::of($search ?? '')->trim()->lower()->toString();
+        $tagNeedle = Str::of($tag ?? '')->trim()->lower()->toString();
 
         $assets = collect([
             ...$this->publicImages(),
@@ -55,7 +59,7 @@ class LoadReusableImageAssets
                     'tags' => $saved?->tags ?? [],
                 ];
             })
-            ->filter(fn (array $asset): bool => $this->matches($asset, $needle))
+            ->filter(fn (array $asset): bool => $this->matches($asset, $needle, $tagNeedle))
             ->sortBy([
                 ['uploaded', 'desc'],
                 ['modifiedAt', 'desc'],
@@ -106,9 +110,10 @@ class LoadReusableImageAssets
         ?User $user = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PAGE_SIZE,
+        ?string $tag = null,
     ): array {
         $perPage = max(1, min(self::DEFAULT_PAGE_SIZE, $perPage));
-        $assets = $this->matchingAssets($search);
+        $assets = $this->matchingAssets($search, $tag);
         $total = $assets->count();
         $lastPage = max(1, (int) ceil($total / $perPage));
         $currentPage = min(max(1, $page), $lastPage);
@@ -193,8 +198,13 @@ class LoadReusableImageAssets
     /**
      * @param  array{category: string|null, label: string, source: string, tags: list<string>, url: string}  $asset
      */
-    private function matches(array $asset, string $needle): bool
+    private function matches(array $asset, string $needle, string $tag): bool
     {
+        if ($tag !== '' && ! collect($asset['tags'])
+            ->contains(fn (mixed $assetTag): bool => Str::lower((string) $assetTag) === $tag)) {
+            return false;
+        }
+
         if ($needle === '') {
             return true;
         }
