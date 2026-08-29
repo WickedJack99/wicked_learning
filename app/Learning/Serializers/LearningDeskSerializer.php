@@ -23,6 +23,7 @@ class LearningDeskSerializer
      *     checkIns: list<array<string, mixed>>,
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
+     *     revisitInvitations: list<array<string, mixed>>,
      *     featuredBookmark: LearningNodeBookmark|null
      * }  $desk
      * @return array<string, mixed>
@@ -56,6 +57,7 @@ class LearningDeskSerializer
                 ->map(fn (LearnerRouteProgress $progress): array => $this->recentRoute($progress))
                 ->values()
                 ->all(),
+            'revisitInvitations' => $desk['revisitInvitations'],
             'featuredBookmark' => $desk['featuredBookmark']
                 ? $this->bookmark($desk['featuredBookmark'])
                 : null,

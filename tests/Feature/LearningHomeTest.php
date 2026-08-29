@@ -40,8 +40,68 @@ test('authenticated learners can open an empty learning desk', function () {
             ->has('desk.currentRoutes', 0)
             ->has('desk.recentRoutes', 0)
             ->has('desk.bookmarks', 0)
+            ->has('desk.revisitInvitations', 0)
             ->has('desk.connections', 0)
             ->where('desk.featuredBookmark', null)
+        );
+});
+
+test('the learning desk surfaces learner-chosen revisit invitations', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'revisit-map',
+        'title' => 'Revisit Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'revisit-node',
+        'title' => 'Revisit Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'revisit-activity',
+        'title' => 'Revisit Activity',
+        'type' => 'markdown',
+        'sort_order' => 10,
+    ]);
+    $recordedAt = now()->subDays(4)->toIso8601String();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'metadata' => [
+            'learningCheckIns' => [[
+                'nextDirection' => 'revisit',
+                'recordedAt' => $recordedAt,
+            ]],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.revisitInvitations', 1)
+            ->where('desk.revisitInvitations.0.activityTitle', 'Revisit Activity')
+            ->where('desk.revisitInvitations.0.availableSince', $recordedAt)
+            ->where('desk.revisitInvitations.0.nodeHref', route('world', [
+                'map' => 'revisit-map',
+                'focused' => 'revisit-node',
+            ], false))
         );
 });
 

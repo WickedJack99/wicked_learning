@@ -16,6 +16,7 @@ import { LearningDeskSearch } from './learning-desk-search';
 import type {
     LearningDeskBookmark,
     LearningDeskData,
+    LearningDeskRevisitInvitation,
     LearningDeskRoute,
 } from './types';
 
@@ -106,6 +107,43 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 />
                             )}
                         </section>
+
+                        {desk.revisitInvitations.length > 0 ? (
+                            <section
+                                className="mt-14"
+                                aria-labelledby="revisit-heading"
+                            >
+                                <SectionHeading
+                                    id="revisit-heading"
+                                    label={t(
+                                        'home.learning_desk.revisit.title',
+                                        'Return when useful',
+                                    )}
+                                />
+                                <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'home.learning_desk.revisit.body',
+                                        'These are places you chose to return to after some time away.',
+                                    )}
+                                </p>
+                                <LearnerPaginatedItems
+                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                    items={desk.revisitInvitations}
+                                    pageSize={2}
+                                    paginationLabel={t(
+                                        'home.learning_desk.revisit.pagination',
+                                        'Revisit invitations',
+                                    )}
+                                    renderItem={(invitation) => (
+                                        <RevisitInvitationRow
+                                            invitation={invitation}
+                                            key={invitation.activityId}
+                                            locale={localization.locale}
+                                        />
+                                    )}
+                                />
+                            </section>
+                        ) : null}
 
                         {desk.recentRoutes.length > 0 ? (
                             <section
@@ -488,6 +526,56 @@ function RecentRouteRow({
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
             </span>
+        </div>
+    );
+}
+
+function RevisitInvitationRow({
+    invitation,
+    locale,
+}: {
+    invitation: LearningDeskRevisitInvitation;
+    locale: string;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <div className="group grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
+            <Clock3
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <span className="min-w-0">
+                <Link
+                    className="block truncate text-sm font-medium hover:text-[var(--learner-accent)]"
+                    href={invitation.activityHref}
+                >
+                    {invitation.activityTitle}
+                </Link>
+                <span className="mt-1 block truncate text-sm text-[var(--learner-muted-text)]">
+                    <Link
+                        className="hover:text-[var(--learner-action-accent)] hover:underline"
+                        href={invitation.nodeHref}
+                    >
+                        {invitation.nodeTitle}
+                    </Link>{' '}
+                    · {invitation.mapTitle}
+                </span>
+                <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
+                    {t(
+                        'home.learning_desk.revisit.available',
+                        'Available since',
+                    )}{' '}
+                    {formatDate(invitation.availableSince, locale)}
+                </span>
+            </span>
+            <Link
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
+                href={invitation.activityHref}
+            >
+                {t('home.learning_desk.revisit.action', 'Open activity')}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </Link>
         </div>
     );
 }

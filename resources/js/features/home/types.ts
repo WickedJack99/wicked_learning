@@ -39,12 +39,23 @@ export type LearningDeskCheckIn = {
     topics: { name: string; slug: string }[];
 };
 
+export type LearningDeskRevisitInvitation = {
+    activityHref: string;
+    activityId: number;
+    activityTitle: string;
+    availableSince: string;
+    mapTitle: string;
+    nodeHref: string;
+    nodeTitle: string;
+};
+
 export type LearningDeskData = {
     bookmarks: LearningDeskBookmark[];
     checkIns: LearningDeskCheckIn[];
     connections: LearningDeskBookmark[];
     currentRoutes: LearningDeskRoute[];
     recentRoutes: LearningDeskRoute[];
+    revisitInvitations: LearningDeskRevisitInvitation[];
     featuredBookmark: LearningDeskBookmark | null;
 };
 
