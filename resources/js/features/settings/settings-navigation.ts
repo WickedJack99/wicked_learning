@@ -92,7 +92,7 @@ export const adminSettings: SettingsListItem[] = [
         label: 'Learning Support',
         labelKey: 'settings.navigation.learning_support',
         description:
-            'Journal settings, reflection support and future competence views.',
+            'Journal settings, reflection support and competence topics.',
         descriptionKey: 'settings.navigation.learning_support.description',
         icon: NotebookPen,
         panel: 'admin-learning-support',
@@ -117,11 +117,13 @@ export const adminSettings: SettingsListItem[] = [
             },
             {
                 label: 'Organization Icons',
+                labelKey: 'settings.navigation.organization_icons',
                 href: '/settings?panel=admin-learning-support&support=organization-icons',
                 resources: ['organization_moderation'],
             },
             {
                 label: 'Competence Topics',
+                labelKey: 'settings.navigation.competence_topics',
                 href: '/settings?panel=admin-learning-support&support=competence-topics',
                 resources: ['competence_topics'],
             },
@@ -167,7 +169,7 @@ export const adminSettings: SettingsListItem[] = [
         label: 'Assets & World Objects',
         labelKey: 'settings.navigation.assets_world_objects',
         description:
-            'Media, sounds, cursor images, reusable tools, consumable items and future currencies.',
+            'Media, sounds, cursor images, reusable tools and consumable items.',
         descriptionKey: 'settings.navigation.assets_world_objects.description',
         icon: Database,
         panel: 'admin-assets-world-objects',
