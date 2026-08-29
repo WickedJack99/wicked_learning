@@ -1039,6 +1039,11 @@ function CompetenceReading({
                                                 evidence.evidenceClaim,
                                             )}
                                         </span>
+                                        {evidence.objective ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                Objective: {evidence.objective}
+                                            </span>
+                                        ) : null}
                                         {evidence.learningPurpose ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Purpose:{' '}

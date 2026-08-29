@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'learning_activity_id',
     'play_run_id',
+    'objective',
     'topic_slug',
     'topic_name',
     'evidence_type',

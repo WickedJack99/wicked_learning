@@ -64,6 +64,7 @@ export type TopicEvidenceLedgerEntry = {
     evidenceCriterion: string | null;
     evidenceRubric: string[];
     evidenceType: string;
+    objective: string | null;
     learningPurpose: string | null;
     confidence: string | null;
     id: number;

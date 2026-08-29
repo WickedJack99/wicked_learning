@@ -605,6 +605,11 @@ export function ActivityFormFields({
                                     form={form}
                                     onChange={onChange}
                                 />
+                                <EvidenceObjectiveField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
                                 <FeedbackGuidanceFields
                                     errors={errors}
                                     form={form}
@@ -995,6 +1000,41 @@ function LearningIntentField({
                 </p>
             ) : null}
             <InputError message={errors.learning_intent} />
+        </div>
+    );
+}
+
+function EvidenceObjectiveField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-evidence-objective">
+                Evidence objective
+            </Label>
+            <Input
+                id="activity-evidence-objective"
+                maxLength={600}
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        evidence_objective: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Connect the observation to a reason."
+                value={form.evidence_objective}
+            />
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                A concise, observable objective copied into future evidence
+                records. It is context for reflection, not a grade.
+            </p>
+            <InputError message={errors.evidence_objective} />
         </div>
     );
 }

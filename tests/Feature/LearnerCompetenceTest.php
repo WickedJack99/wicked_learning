@@ -179,6 +179,7 @@ test('route play completion records configured evidence once per play run', func
         'config' => [
             ...$activity->config,
             'learningIntent' => 'review',
+            'evidenceObjective' => 'Reconnect the observation to its underlying reason.',
             'feedbackGuidance' => [
                 'purpose' => 'Return to the idea and notice what changed.',
             ],
@@ -227,6 +228,11 @@ test('route play completion records configured evidence once per play run', func
             ->where('topic_slug', 'algebra')
             ->value('learning_purpose'))
         ->toBe('Return to the idea and notice what changed.')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('topic_slug', 'algebra')
+            ->value('objective'))
+        ->toBe('Reconnect the observation to its underlying reason.')
         ->and(LearnerEvidenceEvent::query()
             ->where('play_run_id', $runId)
             ->pluck('latency_seconds')
@@ -514,6 +520,7 @@ test('admins can configure competence topics on any activity', function () {
                 ['topic' => '', 'weight' => 9],
             ],
             'learning_intent' => 'review',
+            'evidence_objective' => 'Reconnect the observation to its underlying reason.',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $activity->node));
 
@@ -527,6 +534,8 @@ test('admins can configure competence topics on any activity', function () {
         ],
     ])
         ->and($activity->config['learningIntent'])->toBe('review')
+        ->and($activity->config['evidenceObjective'])
+        ->toBe('Reconnect the observation to its underlying reason.')
         ->and(CompetenceTopicDefinition::query()
             ->where('slug', 'creative-problem-solving')
             ->value('name'))->toBe('Creative Problem Solving');

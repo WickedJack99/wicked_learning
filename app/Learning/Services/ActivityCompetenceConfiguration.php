@@ -9,6 +9,8 @@ class ActivityCompetenceConfiguration
 {
     public const CONFIG_KEY = 'competenceTopics';
 
+    public const OBJECTIVE_CONFIG_KEY = 'evidenceObjective';
+
     public const EVIDENCE_TYPES = [
         'apply',
         'explain',
@@ -39,6 +41,14 @@ class ActivityCompetenceConfiguration
             : $intent;
     }
 
+    public function objectiveForActivity(LearningActivity $activity): ?string
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+        $objective = trim((string) ($config[self::OBJECTIVE_CONFIG_KEY] ?? ''));
+
+        return $objective === '' ? null : Str::limit($objective, 600, '');
+    }
+
     public function learningIntentForActivity(LearningActivity $activity): string
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -65,6 +75,16 @@ class ActivityCompetenceConfiguration
      */
     public function mergeInto(array $existing, array $data): array
     {
+        if (array_key_exists('evidence_objective', $data)) {
+            $objective = trim((string) ($data['evidence_objective'] ?? ''));
+
+            if ($objective === '') {
+                unset($existing[self::OBJECTIVE_CONFIG_KEY]);
+            } else {
+                $existing[self::OBJECTIVE_CONFIG_KEY] = Str::limit($objective, 600, '');
+            }
+        }
+
         if (array_key_exists('learning_intent', $data)) {
             $intent = trim((string) ($data['learning_intent'] ?? ''));
 
@@ -107,7 +127,8 @@ class ActivityCompetenceConfiguration
     public function shouldUpdate(array $data): bool
     {
         return array_key_exists('competence_topics', $data)
-            || array_key_exists('learning_intent', $data);
+            || array_key_exists('learning_intent', $data)
+            || array_key_exists('evidence_objective', $data);
     }
 
     /**

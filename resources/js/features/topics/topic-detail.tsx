@@ -919,6 +919,12 @@ function TopicCompetenceCard({
                                                         ? ` · ${entry.nodeTitle}`
                                                         : ''}
                                                 </span>
+                                                {entry.objective ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        Objective:{' '}
+                                                        {entry.objective}
+                                                    </span>
+                                                ) : null}
                                                 {entry.learningPurpose ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                         Purpose:{' '}
@@ -928,10 +934,13 @@ function TopicCompetenceCard({
                                                 {entry.evidenceCriterion ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
                                                         What to notice:{' '}
-                                                        {entry.evidenceCriterion}
+                                                        {
+                                                            entry.evidenceCriterion
+                                                        }
                                                     </span>
                                                 ) : null}
-                                                {entry.evidenceRubric.length > 0 ? (
+                                                {entry.evidenceRubric.length >
+                                                0 ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
                                                         Cues:{' '}
                                                         {entry.evidenceRubric.join(

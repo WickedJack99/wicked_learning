@@ -12,6 +12,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         activity_sound_id: '',
         competence_topics: [{ topic: '', weight: '1' }],
         completion_choice_prompt: '',
+        evidence_objective: '',
         feedback_evidence: '',
         feedback_next_action: '',
         feedback_purpose: '',
@@ -186,6 +187,7 @@ export function activityFormFromActivity(
         completion_choice_prompt: stringConfig(
             activity.config.completionChoicePrompt,
         ),
+        evidence_objective: stringConfig(activity.config.evidenceObjective),
         feedback_evidence: feedbackGuidanceField(
             activity.config.feedbackGuidance,
             'evidence',

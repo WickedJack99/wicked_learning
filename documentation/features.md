@@ -224,6 +224,9 @@ For explanation and transfer moments, the evidence ledger also retains the
 author's observable “what to notice” criterion that was active when the moment
 was recorded. Authors can add up to three optional observable rubric cues, one
 per line; these are learner-facing prompts for noticing, not pass/fail grades.
+Authors can also provide a concise evidence objective. The objective is copied
+into later evidence records as context for the learner's reflection; it does
+not create a grade or replace the activity's learning purpose.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

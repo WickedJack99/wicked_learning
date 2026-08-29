@@ -38,13 +38,15 @@ class LearnerCompetenceService
             ? $this->feedbackGuidance->rubricForActivity($activity)
             : [];
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
+        $objective = $this->activityCompetence->objectiveForActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
                     'learning_activity_id' => $activity->id,
                     'play_run_id' => $playRunId,
+                    'objective' => $objective,
                     'topic_slug' => $topic['slug'],
                     'topic_name' => $topic['topic'],
                     'evidence_type' => $evidenceType,

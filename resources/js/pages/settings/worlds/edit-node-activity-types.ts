@@ -269,6 +269,7 @@ export type CreateActivityForm = {
     activity_sound_id: string;
     competence_topics: CompetenceTopicForm[];
     completion_choice_prompt: string;
+    evidence_objective: string;
     feedback_evidence: string;
     feedback_next_action: string;
     feedback_purpose: string;
