@@ -517,7 +517,7 @@ export default function NodePlay({
                         {pendingLearningCheckIn &&
                         hiddenCheckInActivityId !==
                             pendingLearningCheckIn.activityId ? (
-                            <div className="absolute inset-x-0 top-0 z-30 max-h-[calc(100%_-_0.75rem)] overflow-y-auto rounded-lg shadow-2xl">
+                            <div className="absolute inset-0 z-30 overflow-hidden rounded-lg shadow-2xl">
                                 <LearningCheckIn
                                     activityTitle={
                                         pendingLearningCheckIn.activityTitle

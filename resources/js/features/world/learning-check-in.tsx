@@ -106,7 +106,7 @@ export function LearningCheckIn({
     return (
         <section
             aria-labelledby="learning-check-in-title"
-            className="rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))] p-4"
+            className="h-full min-h-0 overflow-y-auto overscroll-contain rounded-lg border border-[color-mix(in_srgb,var(--learner-action-accent)_30%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,var(--learner-panel-background))] p-4"
         >
             <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
