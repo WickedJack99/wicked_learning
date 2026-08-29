@@ -9,7 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class LearnerCompetenceService
 {
-    public function __construct(private readonly ActivityCompetenceConfiguration $activityCompetence) {}
+    public function __construct(
+        private readonly ActivityCompetenceConfiguration $activityCompetence,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+    ) {}
 
     public function awardActivityCompletion(
         User $user,
@@ -27,8 +30,9 @@ class LearnerCompetenceService
         }
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
+        $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -37,6 +41,7 @@ class LearnerCompetenceService
                     'topic_slug' => $topic['slug'],
                     'topic_name' => $topic['topic'],
                     'evidence_type' => $evidenceType,
+                    'learning_purpose' => $learningPurpose,
                     'contribution' => $topic['weight'],
                     'outcome' => $outcome ?? 'completed',
                     'confidence' => $confidence,

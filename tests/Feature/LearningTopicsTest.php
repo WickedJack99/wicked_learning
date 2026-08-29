@@ -518,6 +518,7 @@ test('a topic page exposes its scoped learning trail', function () {
         'topic_slug' => 'astronomy',
         'topic_name' => 'Astronomy',
         'evidence_type' => 'retrieve',
+        'learning_purpose' => 'Recall the central relationship before reviewing it.',
         'contribution' => 4,
     ]);
     $subtopicNode = LearningNode::query()->create([
@@ -608,6 +609,7 @@ test('a topic page exposes its scoped learning trail', function () {
             ->where('topic.competence.evidenceTypes', ['retrieve'])
             ->where('topic.competence.evidenceLedger.0.activityTitle', 'Notice patterns')
             ->where('topic.competence.evidenceLedger.0.evidenceType', 'retrieve')
+            ->where('topic.competence.evidenceLedger.0.learningPurpose', 'Recall the central relationship before reviewing it.')
             ->where('topic.competence.evidenceLedger.0.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $node]))
             ->where('topic.competence.learningPeriods', ['Aug 2026'])
             ->where('topic.competence.revisit.activityTitle', 'Notice patterns')

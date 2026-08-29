@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'topic_slug',
     'topic_name',
     'evidence_type',
+    'learning_purpose',
     'contribution',
     'outcome',
     'confidence',

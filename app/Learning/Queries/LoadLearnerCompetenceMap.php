@@ -142,7 +142,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, learningPurpose: string|null, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -157,6 +157,7 @@ class LoadLearnerCompetenceMap
                     'activityTitle' => $activity?->title,
                     'evidenceType' => $event->evidence_type,
                     'id' => $event->id,
+                    'learningPurpose' => $event->learning_purpose,
                     'nodeHref' => $node
                         ? route('learning.nodes.play', ['node' => $node])
                         : null,

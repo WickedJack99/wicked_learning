@@ -177,6 +177,9 @@ test('route play completion records configured evidence once per play run', func
         'config' => [
             ...$activity->config,
             'learningIntent' => 'review',
+            'feedbackGuidance' => [
+                'purpose' => 'Return to the idea and notice what changed.',
+            ],
         ],
     ]);
     $runId = (string) Str::uuid();
@@ -216,7 +219,12 @@ test('route play completion records configured evidence once per play run', func
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'systems-thinking')
-            ->value('evidence_type'))->toBe('review');
+            ->value('evidence_type'))->toBe('review')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('topic_slug', 'algebra')
+            ->value('learning_purpose'))
+        ->toBe('Return to the idea and notice what changed.');
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {
@@ -551,6 +559,7 @@ test('competence star map shows studied topics and transitions', function () {
         'topic_slug' => 'algebra',
         'topic_name' => 'Algebra',
         'evidence_type' => 'retrieve',
+        'learning_purpose' => 'Recall the central relationship before reviewing it.',
         'contribution' => 3,
         'confidence' => 'settled',
         'attempt_number' => 2,
@@ -619,6 +628,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.confidence', 'settled')
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.attemptNumber', 2)
+            ->where('competenceMap.topics.0.visual.evidenceLedger.1.learningPurpose', 'Recall the central relationship before reviewing it.')
             ->where('competenceMap.topics.0.revisit.activityTitle', $activity->title)
             ->where('competenceMap.topics.0.revisit.activityHref', route('learning.nodes.play', ['activity_id' => $activity->id, 'node' => $activity->node]))
             ->where('competenceMap.topics.0.revisit.nodeTitle', $activity->node->title)

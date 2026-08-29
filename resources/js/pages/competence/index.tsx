@@ -938,6 +938,12 @@ function CompetenceReading({
                                                 ? ` · ${evidence.nodeTitle}`
                                                 : ''}
                                         </span>
+                                        {evidence.learningPurpose ? (
+                                            <span className="mt-1 block text-xs text-slate-500">
+                                                Purpose:{' '}
+                                                {evidence.learningPurpose}
+                                            </span>
+                                        ) : null}
                                         {evidence.confidence ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Before answering:{' '}

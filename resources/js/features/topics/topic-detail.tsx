@@ -919,6 +919,12 @@ function TopicCompetenceCard({
                                                         ? ` · ${entry.nodeTitle}`
                                                         : ''}
                                                 </span>
+                                                {entry.learningPurpose ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                        Purpose:{' '}
+                                                        {entry.learningPurpose}
+                                                    </span>
+                                                ) : null}
                                                 {entry.confidence ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                         Before answering:{' '}

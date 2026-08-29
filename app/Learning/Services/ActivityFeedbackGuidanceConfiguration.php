@@ -54,6 +54,11 @@ class ActivityFeedbackGuidanceConfiguration
         return $this->normalize($guidance);
     }
 
+    public function purposeForActivity(LearningActivity $activity): ?string
+    {
+        return $this->forActivity($activity)['purpose'] ?? null;
+    }
+
     /**
      * @param  array<string, mixed>  $guidance
      * @return array{purpose: string|null, evidence: string|null, nextAction: string|null}|null
