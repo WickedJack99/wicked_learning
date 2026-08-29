@@ -1,1 +1,0 @@
-When a user logs in, the first thing that is shown, is like in a game, the contributers, Wicked Learning Labs, SDT, ChatGpt, Codex, can be skipped by pressing space bar or tapping / clicking on the screen.

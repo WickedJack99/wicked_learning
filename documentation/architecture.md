@@ -4,6 +4,11 @@ Wicked Learning is a Laravel 13 application with an Inertia 3 and React 19
 frontend. The prototype separates reusable learning behavior from the content,
 visual identity and media configured by each deployment.
 
+This document records the current implementation boundaries, not proposed
+product behavior. Product intent belongs in [product.md](product.md), current
+user-visible behavior in [features.md](features.md), and prioritized changes in
+[roadmap.md](roadmap.md).
+
 ## Request Areas
 
 Laravel routes return Inertia pages for browser workflows and JSON for focused

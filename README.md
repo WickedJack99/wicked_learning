@@ -4,7 +4,9 @@ An open-source experiment in building an explorable learning environment around 
 
 Wicked Learning is currently a Laravel, Inertia and React prototype. The long-term idea is a domain-agnostic platform that can be adapted to any learning domain. Admins shape the story, visual theme, maps, MapAssets, activities, media and public text while the core learning model stays reusable.
 
-The concept direction comes from the project creator. The implementation is evolving through hands-on prototyping, concept notes and frequent iteration.
+The product direction is documented in [documentation/product.md](documentation/product.md).
+The implementation evolves through hands-on prototyping, focused experiments
+and frequent iteration.
 
 ## Why this exists
 
@@ -168,23 +170,25 @@ Important areas:
 - `resources/js/theme` - appearance and presentation configuration helpers
 - `public/images` - CC0 cursors, route images, MapAsset images and theme assets
 - `public/sounds` - CC0 demo sound effects and background loops
-- `concept*` - concept notes and evolving project ideas
 - `conversations` - archived development conversations
 
-## Documentation and concept notes
+## Documentation
 
-The `documentation` folder contains slower-moving project documentation:
+The active documentation has one home per idea:
 
 - [Documentation index](documentation/README.md)
+- [Product direction](documentation/product.md)
 - [Local setup](documentation/setup.md)
 - [Feature overview](documentation/features.md)
 - [Architecture notes](documentation/architecture.md)
+- [Roadmap](documentation/roadmap.md)
 - [AI-assisted authoring](documentation/ai-authoring.md)
 - [Content API](documentation/content-api.md)
+- [Deployment](documentation/deployment.md)
 
-This repository also documents both implementation and thinking. Older concept files may contain ideas that changed or were discarded. The most useful concept documents should be treated as living notes rather than a fixed specification.
-
-The direction at the moment is practical prototyping: build a usable slice, test how it feels, then update the concept when the implementation teaches us something.
+Product documentation describes intended direction; feature and architecture
+documentation describe the current implementation. Archived conversations are
+historical context, not instructions for current work.
 
 ## Status
 

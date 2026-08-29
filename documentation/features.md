@@ -5,6 +5,13 @@ points, streak pressure or leaderboards. Deployments configure their own maps,
 MapAssets, activity routes, media and public presentation while the learning
 and authoring systems remain reusable.
 
+This is the current behavior reference. Product rationale and boundaries live
+in [product.md](product.md), implementation structure lives in
+[architecture.md](architecture.md), and active work lives in
+[roadmap.md](roadmap.md). When this document disagrees with the application or
+its tests, verify the behavior and correct the source of truth rather than
+silently inventing a new contract.
+
 ## Learner Experience
 
 ### Public Pages And Accounts

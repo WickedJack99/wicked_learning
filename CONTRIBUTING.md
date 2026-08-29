@@ -6,12 +6,17 @@ progress instead of points, streak pressure or ranking loops.
 
 ## Project Direction
 
-Contributions should support the platform as a domain-agnostic learning
-environment. New features should be configurable enough to fit different
-stories, visual styles and learning domains without hardcoding one subject area.
+Wicked Learning's durable product direction is documented in
+[documentation/product.md](documentation/product.md). Contributions that
+materially affect the learner experience should be consistent with that
+direction or explicitly explain why it should change. The
+[roadmap](documentation/roadmap.md) records active strategic work; completed
+implementation details belong in the feature and architecture documentation.
 
-Please avoid features that push learners toward external reward chasing, such as
-global leaderboards, streak pressure, public ranking or point farming.
+New features should remain configurable enough to fit different stories,
+visual styles and learning domains without hardcoding one subject area. Avoid
+global leaderboards, streak pressure, public ranking and point farming unless
+the product boundaries are deliberately reconsidered and documented first.
 
 ## Development Setup
 
