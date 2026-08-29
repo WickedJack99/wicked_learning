@@ -207,6 +207,9 @@ Question activities also retain the learner's pre-answer confidence, the
 correctness outcome, attempt order and independent-assistance context. The
 learner can see the confidence and attempt context in the competence reading;
 this supports calibration and noticing change without presenting a grade.
+The competence view also offers a bounded review history showing the revisited
+activity, outcome and confidence context; it does not expose private journal
+writing or turn review attempts into a score.
 The evidence reading also distinguishes a successful independent recall from a
 generic attempt or encounter, while keeping application, explanation,
 reflection, review and transfer as the kinds of activity they were rather than

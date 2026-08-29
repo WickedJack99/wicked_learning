@@ -9,6 +9,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerQuestionAnswer;
+use App\Models\LearnerReviewAttempt;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -747,6 +748,52 @@ test('competence evidence ledger keeps a bounded inspectable window', function (
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('competenceMap.topics.0.visual.evidenceLedger', 12)
+        );
+});
+
+test('competence map shows bounded review history without private journal text', function () {
+    $learner = User::factory()->create();
+    [$node, $activity] = competenceRoute([]);
+    $progress = LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 2,
+        'completed_at' => now(),
+        'metadata' => [],
+    ]);
+
+    LearnerReviewAttempt::query()->create([
+        'user_id' => $learner->id,
+        'learning_activity_id' => $activity->id,
+        'learner_activity_progress_id' => $progress->id,
+        'attempt_number' => 2,
+        'source' => 'revisit',
+        'outcome' => 'correct',
+        'confidence' => 'leaning',
+        'assistance_level' => 'independent',
+        'attempted_at' => now(),
+        'metadata' => [
+            'privateReflection' => 'This text must not be exposed here.',
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.reviewAttempts.0.activityTitle', $activity->title)
+            ->where('competenceMap.reviewAttempts.0.activityHref', route('learning.nodes.play', [
+                'activity_id' => $activity->id,
+                'node' => $node,
+            ]))
+            ->where('competenceMap.reviewAttempts.0.nodeTitle', $node->title)
+            ->where('competenceMap.reviewAttempts.0.outcome', 'correct')
+            ->where('competenceMap.reviewAttempts.0.confidence', 'leaning')
+            ->where('competenceMap.reviewAttempts.0.attemptNumber', 2)
+            ->missing('competenceMap.reviewAttempts.0.metadata')
+            ->missing('competenceMap.reviewAttempts.0.privateReflection')
         );
 });
 

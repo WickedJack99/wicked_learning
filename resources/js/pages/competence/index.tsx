@@ -23,6 +23,7 @@ import {
 import type {
     CompetenceMap,
     CompetenceCheckIn,
+    CompetenceReviewAttempt,
     CompetenceTransition,
     PositionedTopic,
 } from './competence-star-layout';
@@ -479,6 +480,7 @@ export default function CompetenceStarMap({
                         </section>
                         <LearningPulseTimeline
                             checkIns={competenceMap.checkIns}
+                            reviewAttempts={competenceMap.reviewAttempts}
                             onTopicSelect={(slug) => {
                                 setHoveredTopicSlug(null);
                                 setSelectedTopicSlug(slug);
@@ -567,9 +569,11 @@ function CompetenceMapGuide({
 
 function LearningPulseTimeline({
     checkIns,
+    reviewAttempts,
     onTopicSelect,
 }: {
     checkIns: CompetenceCheckIn[];
+    reviewAttempts: CompetenceReviewAttempt[];
     onTopicSelect: (slug: string) => void;
 }) {
     const translate = usePlatformTranslation();
@@ -666,6 +670,89 @@ function LearningPulseTimeline({
                     future self.
                 </p>
             )}
+
+            {reviewAttempts.length > 0 ? (
+                <section
+                    aria-labelledby="competence-review-history-heading"
+                    className="mt-6 border-t border-cyan-200/10 pt-5"
+                >
+                    <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200/80 uppercase">
+                        Review history
+                    </p>
+                    <h2
+                        className="mt-1 text-sm font-semibold text-white"
+                        id="competence-review-history-heading"
+                    >
+                        Returns you chose to make
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                        A bounded record of revisits, kept separate from the
+                        learning pulse and any private journal writing.
+                    </p>
+                    <LearnerPaginatedItems
+                        className="mt-4 grid gap-3"
+                        items={reviewAttempts}
+                        pageSize={2}
+                        paginationLabel="Review history"
+                        renderItem={(attempt) => {
+                            const content = (
+                                <span className="block">
+                                    <span className="flex items-start justify-between gap-3">
+                                        <span className="min-w-0">
+                                            <span className="block text-sm font-medium text-slate-100">
+                                                {attempt.activityTitle ??
+                                                    'Learning activity'}
+                                            </span>
+                                            <span className="mt-1 block text-xs text-slate-400">
+                                                {attempt.nodeTitle ??
+                                                    'Learning place'}
+                                                {attempt.outcome
+                                                    ? ` · ${reviewOutcomeLabel(attempt.outcome)}`
+                                                    : ''}
+                                            </span>
+                                        </span>
+                                        {attempt.attemptedAt ? (
+                                            <time
+                                                className="shrink-0 text-xs text-slate-500"
+                                                dateTime={attempt.attemptedAt}
+                                            >
+                                                {formatCheckInDate(
+                                                    attempt.attemptedAt,
+                                                )}
+                                            </time>
+                                        ) : null}
+                                    </span>
+                                    <span className="mt-2 block text-xs text-cyan-100/75">
+                                        {attempt.confidence
+                                            ? `Confidence: ${confidenceLabel(attempt.confidence)}`
+                                            : 'Review completed'}
+                                        {attempt.attemptNumber > 1
+                                            ? ` · attempt ${attempt.attemptNumber}`
+                                            : ''}
+                                    </span>
+                                </span>
+                            );
+
+                            return attempt.activityHref ? (
+                                <Link
+                                    className="rounded-lg border border-cyan-200/10 bg-cyan-200/5 p-3 transition hover:border-cyan-200/30 hover:bg-cyan-200/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+                                    href={attempt.activityHref}
+                                    key={`${attempt.activityHref}:${attempt.attemptedAt}`}
+                                >
+                                    {content}
+                                </Link>
+                            ) : (
+                                <div
+                                    className="rounded-lg border border-cyan-200/10 bg-cyan-200/5 p-3"
+                                    key={`${attempt.activityTitle}:${attempt.attemptedAt}`}
+                                >
+                                    {content}
+                                </div>
+                            );
+                        }}
+                    />
+                </section>
+            ) : null}
         </aside>
     );
 }
@@ -678,6 +765,15 @@ function checkInFeelingLabel(feeling: string | null): string {
             stretched: 'It stretched me',
             stuck: 'I got stuck',
         }[feeling ?? ''] ?? 'A reflection'
+    );
+}
+
+function reviewOutcomeLabel(outcome: string): string {
+    return (
+        {
+            correct: 'Useful clue found',
+            incorrect: 'Adjust the hypothesis',
+        }[outcome] ?? 'Review completed'
     );
 }
 

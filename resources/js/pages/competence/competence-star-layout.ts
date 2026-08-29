@@ -60,10 +60,21 @@ export type CompetenceCheckIn = {
     }>;
 };
 
+export type CompetenceReviewAttempt = {
+    activityHref: string | null;
+    activityTitle: string | null;
+    attemptedAt: string | null;
+    attemptNumber: number;
+    confidence: string | null;
+    nodeTitle: string | null;
+    outcome: string | null;
+};
+
 export type CompetenceMap = {
     checkIns: CompetenceCheckIn[];
     monthKey: string;
     recentWindowDays: number;
+    reviewAttempts: CompetenceReviewAttempt[];
     topics: CompetenceTopic[];
     transitions: CompetenceTransition[];
 };

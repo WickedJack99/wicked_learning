@@ -7,6 +7,7 @@ use App\Learning\Services\LearnerEvidenceClaim;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearnerReviewAttempt;
 use App\Models\LearningActivity;
 use App\Models\LearningTopic;
 use App\Models\User;
@@ -24,7 +25,7 @@ class LoadLearnerCompetenceMap
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, reviewAttempts: list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null}>, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
@@ -116,9 +117,44 @@ class LoadLearnerCompetenceMap
             'checkIns' => $this->checkIns->handle($user),
             'monthKey' => $monthKey,
             'recentWindowDays' => self::RECENT_WINDOW_DAYS,
+            'reviewAttempts' => $this->reviewAttempts($user),
             'topics' => $topics,
             'transitions' => $transitions,
         ];
+    }
+
+    /**
+     * Keep review history useful without making the competence surface an
+     * unbounded activity log. Review attempts do not contain private journal
+     * text, so this serializer only exposes the learning context and signal
+     * captured by the review record.
+     *
+     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null}>
+     */
+    private function reviewAttempts(User $user): array
+    {
+        return LearnerReviewAttempt::query()
+            ->where('user_id', $user->id)
+            ->with('activity.node')
+            ->latest('attempted_at')
+            ->latest('id')
+            ->limit(12)
+            ->get()
+            ->map(function (LearnerReviewAttempt $attempt): array {
+                $activity = $attempt->activity;
+
+                return [
+                    'activityHref' => $this->activityHref($activity),
+                    'activityTitle' => $activity?->title,
+                    'attemptedAt' => $attempt->attempted_at?->toIso8601String(),
+                    'attemptNumber' => (int) $attempt->attempt_number,
+                    'confidence' => $attempt->confidence,
+                    'nodeTitle' => $activity?->node?->title,
+                    'outcome' => $attempt->outcome,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
