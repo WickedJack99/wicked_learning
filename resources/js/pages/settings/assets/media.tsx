@@ -64,6 +64,8 @@ export default function AdminMediaAssets({
                 asset.label,
                 asset.source,
                 asset.extension,
+                asset.category ?? '',
+                asset.tags.join(' '),
                 asset.canViewPath ? asset.url : '',
             ]
                 .join(' ')
