@@ -374,6 +374,7 @@ function AssetDetails({
                 <img
                     alt=""
                     className="h-full min-h-0 w-full min-w-0 rounded-lg object-contain"
+                    decoding="async"
                     draggable={false}
                     src={asset.url}
                 />
@@ -552,6 +553,8 @@ function AssetListItem({
                 <img
                     alt=""
                     className="max-h-full max-w-full object-contain"
+                    loading="lazy"
+                    decoding="async"
                     draggable={false}
                     src={asset.url}
                 />

@@ -157,6 +157,7 @@ export function ItemObstacleActivity({
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    decoding="async"
                     src={background}
                     style={{
                         transform: backgroundMirrored
@@ -185,6 +186,7 @@ export function ItemObstacleActivity({
                 <img
                     alt=""
                     className="absolute z-10 -translate-x-1/2 -translate-y-1/2 object-contain"
+                    decoding="async"
                     draggable={false}
                     src={overlay}
                     style={{
@@ -268,6 +270,7 @@ function ItemSlot({
                     <img
                         alt=""
                         className="size-full object-contain"
+                        decoding="async"
                         draggable={false}
                         src={image}
                     />

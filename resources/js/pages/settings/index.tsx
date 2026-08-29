@@ -517,6 +517,7 @@ export default function SettingsIndex({
     const selectPanel = useCallback((panel: SettingsPanelKey) => {
         setSelectedPanel(panel);
         writePanelToUrl(panel);
+        router.reload();
     }, []);
 
     useEffect(() => {

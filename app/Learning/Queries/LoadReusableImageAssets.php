@@ -34,7 +34,7 @@ class LoadReusableImageAssets
             ->unique('url');
         $metadata = $this->metadataManager->forUrls($assets->pluck('url')->all());
 
-        return $assets
+        $assets = $assets
             ->map(function (array $asset) use ($metadata): array {
                 $saved = $metadata->get($asset['url']);
 
@@ -52,8 +52,15 @@ class LoadReusableImageAssets
                 ['modifiedAt', 'desc'],
                 ['url', 'asc'],
             ])
-            ->map(function (array $asset) use ($canViewPath): array {
-                $references = $this->mediaAssetManager->referenceSummary($asset['url']);
+            ->values();
+        $references = $this->mediaAssetManager->referenceSummaries(
+            $assets->pluck('url')->all(),
+        );
+
+        return $assets
+            ->map(function (array $asset) use ($canViewPath, $references): array {
+                $referenceSummary = $references[$asset['url']]
+                    ?? ['count' => 0, 'groups' => []];
 
                 return [
                     'canDelete' => true,
@@ -63,15 +70,14 @@ class LoadReusableImageAssets
                     'hasTransparency' => $asset['hasTransparency'],
                     'isAnimated' => $asset['isAnimated'],
                     'label' => $asset['label'],
-                    'referenceCount' => $references['count'],
-                    'referenceGroups' => $references['groups'],
+                    'referenceCount' => $referenceSummary['count'],
+                    'referenceGroups' => $referenceSummary['groups'],
                     'source' => $asset['source'],
                     'tags' => $asset['tags'],
                     'uploaded' => $asset['uploaded'],
                     'url' => $asset['url'],
                 ];
             })
-            ->values()
             ->all();
     }
 

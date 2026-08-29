@@ -244,6 +244,8 @@ export function ReusableImagePicker({
                                             alt=""
                                             className="max-h-full max-w-full object-contain transition group-hover:scale-[1.02]"
                                             draggable={false}
+                                            loading="lazy"
+                                            decoding="async"
                                             src={normalizeMediaUrl(asset.url)}
                                         />
                                     </span>

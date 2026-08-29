@@ -53,6 +53,12 @@ class User extends Authenticatable implements PasskeyUser
 
     public const ROLE_USER = 'user';
 
+    /** @var list<string>|null */
+    private ?array $assignedRolesCache = null;
+
+    /** @var array<string, AccessRole|null> */
+    private array $accessRoleCache = [];
+
     /**
      * @var list<string>
      */
@@ -125,6 +131,10 @@ class User extends Authenticatable implements PasskeyUser
      */
     public function assignedRoles(): array
     {
+        if ($this->assignedRolesCache !== null) {
+            return $this->assignedRolesCache;
+        }
+
         $roleSlugs = [];
 
         if ($this->relationLoaded('accessRoles')) {
@@ -141,11 +151,13 @@ class User extends Authenticatable implements PasskeyUser
                 ->all();
         }
 
-        return self::normalizeRoles([
+        $this->assignedRolesCache = self::normalizeRoles([
             ...$roleSlugs,
             ...($this->roles ?? []),
             $this->role,
         ]);
+
+        return $this->assignedRolesCache;
     }
 
     /**
@@ -252,6 +264,8 @@ class User extends Authenticatable implements PasskeyUser
             'role' => $this->primaryRole($normalizedRoles),
             'roles' => $normalizedRoles,
         ]);
+        $this->assignedRolesCache = null;
+        $this->accessRoleCache = [];
 
         if ($this->exists && Schema::hasTable('access_roles')) {
             $roleIds = AccessRole::query()
@@ -324,14 +338,22 @@ class User extends Authenticatable implements PasskeyUser
 
     private function accessRoleForSlug(string $slug): ?AccessRole
     {
+        if (array_key_exists($slug, $this->accessRoleCache)) {
+            return $this->accessRoleCache[$slug];
+        }
+
         if (! Schema::hasTable('access_roles')) {
+            $this->accessRoleCache[$slug] = null;
+
             return null;
         }
 
-        return AccessRole::query()
+        $this->accessRoleCache[$slug] = AccessRole::query()
             ->with('permissions')
             ->where('slug', $slug)
             ->first();
+
+        return $this->accessRoleCache[$slug];
     }
 
     /**

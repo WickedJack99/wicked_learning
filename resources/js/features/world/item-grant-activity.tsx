@@ -113,6 +113,7 @@ export function ItemGrantActivity({
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    decoding="async"
                     draggable={false}
                     src={backgroundImage}
                     style={{
@@ -179,6 +180,7 @@ function GrantedItemTile({ display }: { display: GrantedItemDisplay }) {
                 <img
                     alt=""
                     className="size-full object-contain"
+                    decoding="async"
                     draggable={false}
                     src={display.imageUrl}
                 />
@@ -212,6 +214,7 @@ function ItemGrantFlightItems({ items }: { items: GrantedItemDisplay[] }) {
                         <img
                             alt=""
                             className="size-full object-contain"
+                            decoding="async"
                             draggable={false}
                             src={display.imageUrl}
                         />

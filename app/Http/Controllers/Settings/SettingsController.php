@@ -16,6 +16,14 @@ class SettingsController extends Controller
 
     public function index(Request $request): Response
     {
+        $panel = $request->query('panel');
+
+        if ($panel === 'admin-presentation-localization') {
+            $panel = $request->query('presentation') === 'palette'
+                ? 'admin-color-palettes'
+                : 'admin-public-pages';
+        }
+
         return Inertia::render(
             'settings/index',
             $this->loadSettingsIndex->handle(
@@ -24,6 +32,7 @@ class SettingsController extends Controller
                 $request->session()->get('created_registration_token'),
                 $request->integer('map') ?: null,
                 $request->integer('node') ?: null,
+                $panel,
             ),
         );
     }

@@ -1,0 +1,19 @@
+{
+	frankenphp
+}
+
+:{$SERVER_NAME} {
+	root * /app/public
+	encode zstd gzip
+
+	@builtMedia path /images/*
+	header @builtMedia Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+
+	@uploadedMedia path /storage/*
+	header @uploadedMedia Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+
+	@builtAssets path /build/*
+	header @builtAssets Cache-Control "public, max-age=31536000, immutable"
+
+	php_server
+}

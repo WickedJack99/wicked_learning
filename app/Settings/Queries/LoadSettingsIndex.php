@@ -89,40 +89,93 @@ class LoadSettingsIndex
         ?string $createdRegistrationToken,
         ?int $selectedMapId = null,
         ?int $selectedNodeId = null,
+        ?string $panel = null,
     ): array {
+        $hasExplicitPanel = $panel !== null;
+        $panel = $this->normalizePanel($panel);
         $accessCapabilities = $this->accessCapabilities($user);
-        $canManageUsers = $user->can(PermissionCatalog::ability(PermissionCatalog::USERS, AccessLevel::READ));
-        $canManageGroups = $user->can(PermissionCatalog::ability(PermissionCatalog::GROUPS, AccessLevel::READ));
-        $canManageRoles = $user->can(PermissionCatalog::ability(PermissionCatalog::ROLES, AccessLevel::READ));
-        $canManagePresentation = $user->can(PermissionCatalog::ability(PermissionCatalog::PRESENTATION, AccessLevel::READ));
+        $canManageUsers = $accessCapabilities[PermissionCatalog::USERS]['read'] ?? false;
+        $canManageGroups = $accessCapabilities[PermissionCatalog::GROUPS]['read'] ?? false;
+        $canManageRoles = $accessCapabilities[PermissionCatalog::ROLES]['read'] ?? false;
+        $canManagePresentation = $accessCapabilities[PermissionCatalog::PRESENTATION]['read'] ?? false;
+        $loadsAccess = $panel === 'admin-access' || ! $hasExplicitPanel;
+        $loadsAssets = $panel === 'admin-assets-world-objects';
+        $loadsAi = in_array($panel, ['admin-ai-integrations', 'admin-world-builder'], true);
+        $loadsColorPalettes = $panel === 'admin-color-palettes';
+        $loadsLanguages = $panel === 'admin-translations';
+        $loadsLearningSupport = $panel === 'admin-learning-support';
+        $loadsPublicPages = $panel === 'admin-public-pages';
+        $loadsWorldBuilder = $panel === 'admin-world-builder';
 
         return [
             'canManageUsers' => $canManageUsers,
             'canAccessAdministration' => $this->canAccessAdministration($accessCapabilities),
             'accessCapabilities' => $accessCapabilities,
-            'accessGroups' => $canManageGroups ? $this->accessGroups($user) : [],
-            'accessGroupUsers' => ($canManageUsers || $canManageGroups) ? $this->accessGroupUsers() : [],
-            'assignableRegistrationRoles' => $user->assignableRoles(),
-            'personalSettings' => [
-                ...$this->personalSettings->handle($user, $status),
-                'initialSection' => 'profile',
-            ],
-            'adminUsers' => $canManageUsers ? $this->adminUsers() : [],
-            'assetsWorldObjects' => $this->assetsWorldObjects($accessCapabilities, $user),
-            'aiSettings' => $this->aiSettings($accessCapabilities),
-            'registrationTokens' => $canManageUsers ? $this->registrationTokens() : [],
-            'adminRoles' => $canManageRoles ? $this->accessRoles() : [],
-            'permissionResources' => $this->permissionResources(),
-            'colorPaletteSettings' => $this->colorPaletteSettings($user, $accessCapabilities),
-            'languages' => $this->languages($accessCapabilities),
-            'learningSupportSettings' => $this->loadLearningSupportSettings->handle($user),
-            'platformInfoPages' => $canManagePresentation ? $this->platformInfoPages() : [],
+            'accessGroups' => $loadsAccess && $canManageGroups ? $this->accessGroups($user) : [],
+            'accessGroupUsers' => $loadsAccess && ($canManageUsers || $canManageGroups) ? $this->accessGroupUsers() : [],
+            'assignableRegistrationRoles' => $loadsAccess ? $user->assignableRoles() : [],
+            'personalSettings' => $panel === 'personal'
+                ? [
+                    ...$this->personalSettings->handle($user, $status),
+                    'initialSection' => 'profile',
+                ]
+                : [],
+            'adminUsers' => $loadsAccess && $canManageUsers ? $this->adminUsers() : [],
+            'assetsWorldObjects' => $loadsAssets
+                ? $this->assetsWorldObjects($accessCapabilities, $user)
+                : $this->emptyAssetsWorldObjects(),
+            'aiSettings' => $loadsAi ? $this->aiSettings($accessCapabilities) : null,
+            'registrationTokens' => $loadsAccess && $canManageUsers ? $this->registrationTokens() : [],
+            'adminRoles' => $loadsAccess && $canManageRoles ? $this->accessRoles() : [],
+            'permissionResources' => $loadsAccess ? $this->permissionResources() : [],
+            'colorPaletteSettings' => $loadsColorPalettes
+                ? $this->colorPaletteSettings($user, $accessCapabilities)
+                : null,
+            'languages' => $loadsLanguages ? $this->languages($accessCapabilities) : [],
+            'learningSupportSettings' => $loadsLearningSupport
+                ? $this->loadLearningSupportSettings->handle($user)
+                : [],
+            'platformInfoPages' => $loadsPublicPages && $canManagePresentation
+                ? $this->platformInfoPages()
+                : [],
             'publicPresentation' => PlatformPresentationSetting::current(),
             'createdRegistrationToken' => $createdRegistrationToken,
             'settingsNotifications' => $this->settingsNotifications($accessCapabilities),
-            'worldGraph' => $this->worldGraph($user, $accessCapabilities),
-            'selectedWorldMap' => $this->selectedWorldMap($user, $selectedMapId, $accessCapabilities),
-            'selectedWorldNode' => $this->selectedWorldNode($user, $selectedNodeId, $accessCapabilities),
+            'worldGraph' => $loadsWorldBuilder
+                ? $this->worldGraph($user, $accessCapabilities)
+                : null,
+            'selectedWorldMap' => $loadsWorldBuilder
+                ? $this->selectedWorldMap($user, $selectedMapId, $accessCapabilities)
+                : null,
+            'selectedWorldNode' => $loadsWorldBuilder
+                ? $this->selectedWorldNode($user, $selectedNodeId, $accessCapabilities)
+                : null,
+        ];
+    }
+
+    private function normalizePanel(?string $panel): string
+    {
+        return [
+            'admin-presentation-localization' => 'admin-public-pages',
+            'admin-users' => 'admin-access',
+            'admin-world' => 'admin-world-builder',
+            'appearance' => 'personal',
+            'notifications' => 'personal',
+            'profile' => 'personal',
+            'security' => 'personal',
+        ][$panel ?? 'personal'] ?? ($panel ?? 'personal');
+    }
+
+    /**
+     * @return array{items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>, visuals: array<int, array<string, mixed>>}
+     */
+    private function emptyAssetsWorldObjects(): array
+    {
+        return [
+            'items' => [],
+            'sounds' => [],
+            'tools' => [],
+            'visuals' => [],
         ];
     }
 

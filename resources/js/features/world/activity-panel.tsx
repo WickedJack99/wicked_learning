@@ -247,6 +247,8 @@ function RouteStartOption({
                     <img
                         alt=""
                         className="h-32 w-full object-cover"
+                        decoding="async"
+                        loading="lazy"
                         src={image}
                     />
                     <span

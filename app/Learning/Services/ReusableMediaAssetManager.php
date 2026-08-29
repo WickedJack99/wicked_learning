@@ -83,37 +83,56 @@ class ReusableMediaAssetManager
      */
     public function referenceSummary(string $url): array
     {
-        $groups = collect([
-            'Tools' => $this->countStringColumns(
-                LearningTool::class,
-                ['image_dark', 'image_light', 'animation_dark', 'animation_light'],
-                $url,
-            ),
-            'Activity starts' => $this->countStringColumns(
-                LearningActivityStart::class,
-                ['image_dark', 'image_light'],
-                $url,
-            ),
-            'NPC dialogue' => $this->countJsonColumnReferences(NpcDialogueNode::class, 'config', $url),
-            'Activities' => $this->countJsonColumnReferences(LearningActivity::class, 'config', $url),
-            'Maps' => $this->countJsonColumnReferences(LearningMap::class, 'background_config', $url),
-            'Map places' => $this->countJsonColumnReferences(LearningMapAsset::class, 'visual_config', $url)
-                + $this->countStringColumns(LearningMapAsset::class, ['image_url'], $url),
-            'Learning nodes' => $this->countJsonColumnReferences(LearningNode::class, 'visual_config', $url),
-            'Presentation' => $this->countJsonColumnReferences(PlatformPresentationSetting::class, 'value', $url),
-        ])
-            ->filter(fn (int $count): bool => $count > 0)
-            ->map(fn (int $count, string $label): array => [
-                'count' => $count,
-                'label' => $label,
-            ])
-            ->values()
-            ->all();
+        return $this->referenceSummaries([$url])[$url] ?? $this->emptyReferenceSummary();
+    }
 
-        return [
-            'count' => collect($groups)->sum('count'),
-            'groups' => $groups,
-        ];
+    /**
+     * Calculate references for several media URLs in one pass over each
+     * content table. The asset library displays many images at once, so
+     * looking up every URL independently creates an avoidable query storm.
+     *
+     * @param  list<string>  $urls
+     * @return array<string, array{count: int, groups: list<array{count: int, label: string}>}>
+     */
+    public function referenceSummaries(array $urls): array
+    {
+        $urls = array_values(array_unique(array_filter(
+            $urls,
+            fn (mixed $url): bool => is_string($url) && $url !== '',
+        )));
+
+        if ($urls === []) {
+            return [];
+        }
+
+        $counts = array_fill_keys($urls, []);
+        $urlSet = array_fill_keys($urls, true);
+
+        $this->addStringReferenceCounts(
+            $counts,
+            LearningTool::class,
+            ['image_dark', 'image_light', 'animation_dark', 'animation_light'],
+            'Tools',
+            $urlSet,
+        );
+        $this->addStringReferenceCounts(
+            $counts,
+            LearningActivityStart::class,
+            ['image_dark', 'image_light'],
+            'Activity starts',
+            $urlSet,
+        );
+        $this->addJsonReferenceCounts($counts, NpcDialogueNode::class, 'config', 'NPC dialogue', $urlSet);
+        $this->addJsonReferenceCounts($counts, LearningActivity::class, 'config', 'Activities', $urlSet);
+        $this->addJsonReferenceCounts($counts, LearningMap::class, 'background_config', 'Maps', $urlSet);
+        $this->addJsonReferenceCounts($counts, LearningMapAsset::class, 'visual_config', 'Map places', $urlSet);
+        $this->addStringReferenceCounts($counts, LearningMapAsset::class, ['image_url'], 'Map places', $urlSet);
+        $this->addJsonReferenceCounts($counts, LearningNode::class, 'visual_config', 'Learning nodes', $urlSet);
+        $this->addJsonReferenceCounts($counts, PlatformPresentationSetting::class, 'value', 'Presentation', $urlSet);
+
+        return collect($urls)
+            ->mapWithKeys(fn (string $url): array => [$url => $this->summaryFromCounts($counts[$url])])
+            ->all();
     }
 
     public function deleteAsset(string $url): int
@@ -202,13 +221,109 @@ class ReusableMediaAssetManager
     }
 
     /**
+     * @param  array<string, array<string, int>>  $counts
      * @param  class-string<Model>  $modelClass
      * @param  list<string>  $columns
+     * @param  array<string, true>  $urlSet
      */
-    private function countStringColumns(string $modelClass, array $columns, string $url): int
+    private function addStringReferenceCounts(
+        array &$counts,
+        string $modelClass,
+        array $columns,
+        string $group,
+        array $urlSet,
+    ): void {
+        foreach ($columns as $column) {
+            $modelClass::query()
+                ->whereIn($column, array_keys($urlSet))
+                ->pluck($column)
+                ->each(function (mixed $value) use (&$counts, $group): void {
+                    if (! is_string($value) || ! isset($counts[$value])) {
+                        return;
+                    }
+
+                    $counts[$value][$group] = ($counts[$value][$group] ?? 0) + 1;
+                });
+        }
+    }
+
+    /**
+     * @param  array<string, array<string, int>>  $counts
+     * @param  class-string<Model>  $modelClass
+     * @param  array<string, true>  $urlSet
+     */
+    private function addJsonReferenceCounts(
+        array &$counts,
+        string $modelClass,
+        string $column,
+        string $group,
+        array $urlSet,
+    ): void {
+        $modelClass::query()
+            ->get([$column])
+            ->each(function (Model $model) use (&$counts, $column, $group, $urlSet): void {
+                $matches = [];
+                $this->collectReferencedUrls($model->{$column}, $urlSet, $matches);
+
+                foreach (array_keys($matches) as $url) {
+                    $counts[$url][$group] = ($counts[$url][$group] ?? 0) + 1;
+                }
+            });
+    }
+
+    /**
+     * @param  array<string, true>  $urlSet
+     * @param  array<string, true>  $matches
+     */
+    private function collectReferencedUrls(mixed $value, array $urlSet, array &$matches): void
     {
-        return collect($columns)
-            ->sum(fn (string $column): int => $modelClass::query()->where($column, $url)->count());
+        if (is_string($value)) {
+            if (isset($urlSet[$value])) {
+                $matches[$value] = true;
+            }
+
+            return;
+        }
+
+        if (! is_array($value)) {
+            return;
+        }
+
+        foreach ($value as $item) {
+            $this->collectReferencedUrls($item, $urlSet, $matches);
+        }
+    }
+
+    /**
+     * @param  array<string, int>  $counts
+     * @return array{count: int, groups: list<array{count: int, label: string}>}
+     */
+    private function summaryFromCounts(array $counts): array
+    {
+        $groups = collect($counts)
+            ->filter(fn (int $count): bool => $count > 0)
+            ->map(fn (int $count, string $label): array => [
+                'count' => $count,
+                'label' => $label,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'count' => collect($groups)->sum('count'),
+            'groups' => $groups,
+        ];
+    }
+
+    /**
+     * @return array{count: int, groups: list<array{count: int, label: string}>}
+     */
+    private function emptyReferenceSummary(): array
+    {
+        return [
+            'count' => 0,
+            'groups' => [],
+        ];
     }
 
     /**
@@ -244,23 +359,6 @@ class ReusableMediaAssetManager
     }
 
     /**
-     * @param  class-string<Model>  $modelClass
-     */
-    private function countJsonColumnReferences(string $modelClass, string $column, string $url): int
-    {
-        $count = 0;
-
-        $modelClass::query()
-            ->each(function ($model) use ($column, $url, &$count): void {
-                if ($this->containsValue($model->{$column}, $url)) {
-                    $count++;
-                }
-            });
-
-        return $count;
-    }
-
-    /**
      * @return array{0: mixed, 1: bool}
      */
     private function replaceInValue(mixed $value, string $oldUrl, string $newUrl): array
@@ -282,25 +380,6 @@ class ReusableMediaAssetManager
         }
 
         return [$value, $changed];
-    }
-
-    private function containsValue(mixed $value, string $needle): bool
-    {
-        if ($value === $needle) {
-            return true;
-        }
-
-        if (! is_array($value)) {
-            return false;
-        }
-
-        foreach ($value as $item) {
-            if ($this->containsValue($item, $needle)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function storagePathFromUrl(string $url): ?string

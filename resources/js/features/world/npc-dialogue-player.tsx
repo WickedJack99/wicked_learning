@@ -449,6 +449,7 @@ function NpcDialogueScene({
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    decoding="async"
                     onError={(event) => {
                         event.currentTarget.style.display = 'none';
                     }}
@@ -591,6 +592,7 @@ function DialogueSceneAssetImage({ asset }: { asset: DialogueSceneAsset }) {
         <img
             alt={asset.label}
             className="pointer-events-none absolute z-[18] max-h-[95%] object-contain"
+            decoding="async"
             draggable={false}
             src={asset.imageUrl}
             style={{
@@ -690,6 +692,7 @@ function AnimatedNpcCharacterImage({
         <img
             alt=""
             className="absolute z-10 max-h-[70%] max-w-[55%] object-contain"
+            decoding="async"
             draggable={false}
             src={imageUrl}
             style={{

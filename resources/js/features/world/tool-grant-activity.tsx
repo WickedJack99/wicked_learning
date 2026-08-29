@@ -135,6 +135,7 @@ export function ToolGrantActivity({
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    decoding="async"
                     src={backgroundImage}
                     style={{
                         transform: backgroundMirrored
@@ -318,6 +319,7 @@ function AnimatedToolGrantImage({
         <img
             alt=""
             className="absolute z-10 max-h-[52%] object-contain"
+            decoding="async"
             draggable={false}
             src={imageUrl}
             style={{

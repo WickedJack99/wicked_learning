@@ -19,7 +19,7 @@ test('settings shared navigation exposes semantic and keyboard-friendly controls
     expect($workspaceShell)
         ->toContain('<h1 className="shrink-0')
         ->toContain("'settings.navigation.label',")
-        ->toContain('aria-labelledby={sectionHeadingId}')
+        ->toContain('aria-labelledby={`settings-section-${section.key}`}')
         ->toContain("aria-label={t('navigation.source', 'Source code')}")
         ->toContain("active ? 'page' : undefined")
         ->and($configurationShell)

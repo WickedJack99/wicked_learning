@@ -79,6 +79,7 @@ export function PortalScene({
                 <img
                     alt=""
                     className="absolute inset-0 z-[1] size-full object-cover"
+                    decoding="async"
                     src={backgroundImage}
                     style={{
                         transform: backgroundMirrored
@@ -116,6 +117,7 @@ export function PortalScene({
                                 'w-full object-contain',
                                 swirlEnabled && 'animate-portal-swirl',
                             )}
+                            decoding="async"
                             src={foregroundImage}
                         />
                     </span>
@@ -172,6 +174,7 @@ function PortalSceneAssetImage({
             <img
                 alt=""
                 className="w-full object-contain"
+                decoding="async"
                 src={asset.image}
                 style={{
                     transform: asset.mirrored ? 'scaleX(-1)' : undefined,

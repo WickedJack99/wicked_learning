@@ -219,6 +219,7 @@ export function ObstacleActivity({
                 <img
                     alt=""
                     className="absolute inset-0 size-full object-cover"
+                    decoding="async"
                     src={backgroundImage}
                     style={{
                         transform: backgroundMirrored
@@ -363,6 +364,7 @@ function ObstacleTargetVisual({
                     <img
                         alt=""
                         className="w-full object-contain"
+                        decoding="async"
                         draggable={false}
                         onError={() => setImageFailed(true)}
                         src={imageUrl}
@@ -401,6 +403,7 @@ function ObstacleClearedVisual({
             <img
                 alt=""
                 className="w-full object-contain"
+                decoding="async"
                 draggable={false}
                 src={imageUrl}
                 style={{
@@ -420,6 +423,7 @@ function ToolUseAnimation({ animation }: { animation: ToolUseAnimation }) {
         <img
             alt=""
             className="pointer-events-none absolute z-30 h-auto max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+            decoding="async"
             draggable={false}
             key={animation.id}
             src={cacheBustedUrl(animation.imageUrl, animation.id)}

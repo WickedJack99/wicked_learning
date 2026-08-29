@@ -16,6 +16,7 @@ RUN install-php-extensions \
     zip
 
 COPY docker/php/uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 
 WORKDIR /app
 
