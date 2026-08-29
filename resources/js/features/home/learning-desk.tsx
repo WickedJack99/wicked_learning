@@ -7,9 +7,11 @@ import {
     Compass,
     Pin,
 } from 'lucide-react';
+import { useState } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
+import { updateRevisitInvitation } from '@/features/journal/journal-client';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskSearch } from './learning-desk-search';
@@ -24,6 +26,35 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
+    const [handledRevisitIds, setHandledRevisitIds] = useState<number[]>([]);
+    const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
+        null,
+    );
+    const [revisitError, setRevisitError] = useState(false);
+    const revisitInvitations = desk.revisitInvitations.filter(
+        (invitation) => !handledRevisitIds.includes(invitation.activityId),
+    );
+
+    async function handleRevisitUpdate(
+        activityId: number,
+        action: 'dismiss' | 'snooze',
+    ) {
+        if (updatingRevisitId !== null) {
+            return;
+        }
+
+        setUpdatingRevisitId(activityId);
+        setRevisitError(false);
+
+        try {
+            await updateRevisitInvitation(activityId, action);
+            setHandledRevisitIds((current) => [...current, activityId]);
+        } catch {
+            setRevisitError(true);
+        } finally {
+            setUpdatingRevisitId(null);
+        }
+    }
 
     return (
         <LearnerDocumentSurface scrollable={false}>
@@ -108,7 +139,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             )}
                         </section>
 
-                        {desk.revisitInvitations.length > 0 ? (
+                        {revisitInvitations.length > 0 ? (
                             <section
                                 className="mt-14"
                                 aria-labelledby="revisit-heading"
@@ -128,7 +159,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 </p>
                                 <LearnerPaginatedItems
                                     className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
-                                    items={desk.revisitInvitations}
+                                    items={revisitInvitations}
                                     pageSize={2}
                                     paginationLabel={t(
                                         'home.learning_desk.revisit.pagination',
@@ -139,9 +170,26 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             invitation={invitation}
                                             key={invitation.activityId}
                                             locale={localization.locale}
+                                            onUpdate={handleRevisitUpdate}
+                                            updating={
+                                                updatingRevisitId ===
+                                                invitation.activityId
+                                            }
                                         />
                                     )}
                                 />
+                                {revisitError ? (
+                                    <p
+                                        aria-live="polite"
+                                        className="mt-3 text-sm text-red-300"
+                                        role="status"
+                                    >
+                                        {t(
+                                            'home.learning_desk.revisit.error',
+                                            'That choice could not be saved. Try again.',
+                                        )}
+                                    </p>
+                                ) : null}
                             </section>
                         ) : null}
 
@@ -533,9 +581,16 @@ function RecentRouteRow({
 function RevisitInvitationRow({
     invitation,
     locale,
+    onUpdate,
+    updating,
 }: {
     invitation: LearningDeskRevisitInvitation;
     locale: string;
+    onUpdate: (
+        activityId: number,
+        action: 'dismiss' | 'snooze',
+    ) => Promise<void>;
+    updating: boolean;
 }) {
     const t = usePlatformTranslation();
 
@@ -568,14 +623,39 @@ function RevisitInvitationRow({
                     )}{' '}
                     {formatDate(invitation.availableSince, locale)}
                 </span>
+                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                    {t(
+                        'home.learning_desk.revisit.due',
+                        'Ready after :days days away.',
+                        { days: invitation.availableAfterDays },
+                    )}
+                </span>
             </span>
-            <Link
-                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--learner-accent)]"
-                href={invitation.activityHref}
-            >
-                {t('home.learning_desk.revisit.action', 'Open activity')}
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            <span className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <Link
+                    className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-medium text-[var(--learner-accent)]"
+                    href={invitation.activityHref}
+                >
+                    {t('home.learning_desk.revisit.action', 'Open activity')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <button
+                    className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--learner-action-accent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)] hover:underline disabled:pointer-events-none disabled:opacity-50"
+                    disabled={updating}
+                    onClick={() => void onUpdate(invitation.activityId, 'snooze')}
+                    type="button"
+                >
+                    {t('home.learning_desk.revisit.later', 'Later')}
+                </button>
+                <button
+                    className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--learner-muted-text)] underline-offset-2 transition hover:text-[var(--learner-heading-text)] hover:underline disabled:pointer-events-none disabled:opacity-50"
+                    disabled={updating}
+                    onClick={() => void onUpdate(invitation.activityId, 'dismiss')}
+                    type="button"
+                >
+                    {t('home.learning_desk.revisit.hide', 'Hide')}
+                </button>
+            </span>
         </div>
     );
 }

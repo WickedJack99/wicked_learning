@@ -21,9 +21,10 @@ meanings: participation, retrieval, reflection, explanation, application,
 review and transfer are not interchangeable.
 
 The immutable event model, authored learning-purpose snapshots, question
-calibration slice and optional completion-latency observation are the
-foundation. The next work should define what claims each evidence combination
-can support and what remains an internal observation.
+calibration slice, optional completion-latency observation and conservative
+learner evidence-claim layer are now the foundation. Retrieval support can
+build on this without collapsing participation, retrieval and transfer into a
+single hidden score.
 
 ### 2. Retrieval and spacing
 

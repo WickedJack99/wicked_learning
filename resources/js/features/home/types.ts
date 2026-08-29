@@ -43,6 +43,7 @@ export type LearningDeskRevisitInvitation = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
+    availableAfterDays: number;
     availableSince: string;
     mapTitle: string;
     nodeHref: string;

@@ -16,7 +16,7 @@ class LoadLearnerRevisitInvitations
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /**
-     * @return list<array{activityHref: string, activityId: int, activityTitle: string, availableSince: string, mapTitle: string, nodeHref: string, nodeTitle: string}>
+     * @return list<array{activityHref: string, activityId: int, activityTitle: string, availableAfterDays: int, availableSince: string, mapTitle: string, nodeHref: string, nodeTitle: string}>
      */
     public function handle(User $user): array
     {
@@ -69,6 +69,7 @@ class LoadLearnerRevisitInvitations
                     ], false),
                     'activityId' => $activity->id,
                     'activityTitle' => $activity->title,
+                    'availableAfterDays' => self::AVAILABLE_AFTER_DAYS,
                     'availableSince' => $recordedAt->toIso8601String(),
                     'mapTitle' => $map->title,
                     'nodeHref' => route('world', [

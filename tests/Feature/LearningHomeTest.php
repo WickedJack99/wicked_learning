@@ -97,6 +97,7 @@ test('the learning desk surfaces learner-chosen revisit invitations', function (
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('desk.revisitInvitations', 1)
             ->where('desk.revisitInvitations.0.activityTitle', 'Revisit Activity')
+            ->where('desk.revisitInvitations.0.availableAfterDays', 3)
             ->where('desk.revisitInvitations.0.availableSince', $recordedAt)
             ->where('desk.revisitInvitations.0.nodeHref', route('world', [
                 'map' => 'revisit-map',

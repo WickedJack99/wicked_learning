@@ -174,10 +174,11 @@ Authors can optionally add a short context sentence explaining why one of these
 directions may be useful after a particular activity. The choice set remains
 bounded and optional.
 
-When the learner chose `Return to this place`, the Journal can surface the
-activity again after a short spacing window. The learner can open it, defer it
-or hide the invitation. This is a quiet return surface rather than a
-notification or required task queue.
+When the learner chose `Return to this place`, the Learning Desk and Journal
+can surface the activity again after a transparent three-day spacing window.
+The learner can open it, defer it or hide the invitation. This is a quiet,
+finite return queue rather than a notification or required task queue; a new
+check-in replaces an older direction.
 
 Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and

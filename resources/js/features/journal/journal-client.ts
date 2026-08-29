@@ -144,6 +144,15 @@ export async function updateRevisitInvitation(
     await postJson(`/learning/activities/${activityId}/revisit-invitation`, {
         action,
     });
+
+    if (cachedPayload) {
+        cachedPayload = {
+            ...cachedPayload,
+            revisitInvitations: cachedPayload.revisitInvitations.filter(
+                (invitation) => invitation.activityId !== activityId,
+            ),
+        };
+    }
 }
 
 export function getCachedJournalPayload(): JournalPayload | null {
