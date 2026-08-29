@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useRef } from 'react';
 import type {
     HTMLAttributes,
     KeyboardEvent as ReactKeyboardEvent,
@@ -601,13 +602,37 @@ export function SettingsSectionNavigation<T extends string>({
     items,
     onChange,
 }: SettingsSectionNavigationProps<T>) {
+    const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+    const moveToSection = (
+        index: number,
+        direction: 'next' | 'previous' | 'first' | 'last',
+    ) => {
+        const targetIndex =
+            direction === 'first'
+                ? 0
+                : direction === 'last'
+                  ? items.length - 1
+                  : direction === 'next'
+                    ? (index + 1) % items.length
+                    : (index - 1 + items.length) % items.length;
+        const target = items[targetIndex];
+
+        if (!target) {
+            return;
+        }
+
+        onChange(target.key);
+        buttonRefs.current[targetIndex]?.focus();
+    };
+
     return (
         <div
             aria-label={ariaLabel}
             className="grid auto-rows-max content-start gap-2"
             role="tablist"
         >
-            {items.map((item) => (
+            {items.map((item, index) => (
                 <SettingsSectionButton
                     active={activeSection === item.key}
                     danger={item.danger}
@@ -616,8 +641,33 @@ export function SettingsSectionNavigation<T extends string>({
                     id={item.key}
                     key={item.key}
                     label={item.label}
+                    buttonRef={(element) => {
+                        buttonRefs.current[index] = element;
+                    }}
+                    onKeyDown={(event) => {
+                        if (
+                            event.key === 'ArrowDown' ||
+                            event.key === 'ArrowRight'
+                        ) {
+                            event.preventDefault();
+                            moveToSection(index, 'next');
+                        } else if (
+                            event.key === 'ArrowUp' ||
+                            event.key === 'ArrowLeft'
+                        ) {
+                            event.preventDefault();
+                            moveToSection(index, 'previous');
+                        } else if (event.key === 'Home') {
+                            event.preventDefault();
+                            moveToSection(index, 'first');
+                        } else if (event.key === 'End') {
+                            event.preventDefault();
+                            moveToSection(index, 'last');
+                        }
+                    }}
                     onSelect={onChange}
                     role="tab"
+                    tabIndex={activeSection === item.key ? 0 : -1}
                 />
             ))}
         </div>

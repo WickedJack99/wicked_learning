@@ -68,7 +68,6 @@ import {
     canOpenPanel,
     findSettingsItemForPanel,
     isSettingsPanelKey,
-    panelContent,
     settingsSections,
 } from '@/features/settings/settings-navigation';
 import type {
@@ -79,17 +78,13 @@ import type {
 } from '@/features/settings/settings-navigation';
 import {
     SettingsOverview,
-    SettingsPlaceholderPanel,
     SettingsRouteGroupPanel,
 } from '@/features/settings/settings-panel-directory';
 import {
     SettingsSidebarNavigation,
     SettingsTopBar,
 } from '@/features/settings/settings-workspace-shell';
-import type {
-    SettingsNotificationSummary,
-    SettingsWorldBreadcrumb,
-} from '@/features/settings/settings-workspace-shell';
+import type { SettingsNotificationSummary } from '@/features/settings/settings-workspace-shell';
 import { WorldBuilderSettingsPanel } from '@/features/settings/world-builder-settings-panel';
 import type {
     WorldBuilderMapView,
@@ -214,7 +209,7 @@ function readPanelFromUrl(
     const panel =
         rawPanel === 'admin-presentation-localization'
             ? panelFromLegacyPresentationParam(url.searchParams)
-            : rawPanel;
+            : normalizeLegacyPanel(rawPanel);
 
     if (
         !isSettingsPanelKey(panel) ||
@@ -224,6 +219,20 @@ function readPanelFromUrl(
     }
 
     return panel;
+}
+
+function normalizeLegacyPanel(value: string | null): string | null {
+    return (
+        {
+            appearance: 'personal',
+            'admin-presentation': 'admin-public-pages',
+            'admin-users': 'admin-access',
+            'admin-world': 'admin-world-builder',
+            notifications: 'personal',
+            profile: 'personal',
+            security: 'personal',
+        }[value ?? ''] ?? value
+    );
 }
 
 function panelFromLegacyPresentationParam(
@@ -297,15 +306,26 @@ function readPersonalViewFromUrl(): PersonalView {
         return 'profile';
     }
 
-    const value = new URL(window.location.href).searchParams.get('personal');
+    const searchParams = new URL(window.location.href).searchParams;
+    const value = searchParams.get('personal');
+    const legacyPanel = searchParams.get('panel');
+    const resolvedValue =
+        value ??
+        ({
+            appearance: 'appearance',
+            notifications: 'notifications',
+            profile: 'profile',
+            security: 'security',
+        }[legacyPanel ?? ''] ?? null);
 
-    return value === 'appearance' ||
-        value === 'delete-account' ||
-        value === 'language' ||
-        value === 'notifications' ||
-        value === 'security' ||
-        value === 'sound'
-        ? value
+    return resolvedValue === 'appearance' ||
+        resolvedValue === 'delete-account' ||
+        resolvedValue === 'language' ||
+        resolvedValue === 'notifications' ||
+        resolvedValue === 'security' ||
+        resolvedValue === 'sound' ||
+        resolvedValue === 'profile'
+        ? resolvedValue
         : 'profile';
 }
 
@@ -533,36 +553,6 @@ export default function SettingsIndex({
             ),
         [accessCapabilities, canAccessAdministration, menuQuery, t],
     );
-    const activeItem = useMemo(
-        () => findSettingsItemForPanel(selectedPanel),
-        [selectedPanel],
-    );
-    const worldBreadcrumb = useMemo<SettingsWorldBreadcrumb>(
-        () => ({
-            map: worldBuilderHasDetailSelection
-                ? (selectedWorldMap?.editableMap.map ??
-                  selectedWorldNode?.activityGraph.map ??
-                  null)
-                : null,
-            node:
-                worldBuilderHasDetailSelection && selectedWorldNode
-                    ? selectedWorldNode.activityGraph.node
-                    : null,
-            section: worldBuilderRootView,
-            view:
-                worldBuilderHasDetailSelection &&
-                (selectedWorldMap || selectedWorldNode)
-                    ? worldBuilderView
-                    : null,
-        }),
-        [
-            selectedWorldMap,
-            selectedWorldNode,
-            worldBuilderHasDetailSelection,
-            worldBuilderRootView,
-            worldBuilderView,
-        ],
-    );
     const openItem = useCallback(
         (item: SettingsListItem) => {
             if (item.href) {
@@ -590,12 +580,10 @@ export default function SettingsIndex({
             >
                 <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
                     <SettingsTopBar
-                        activeItem={activeItem}
                         currentUser={currentUser}
                         menuQuery={menuQuery}
                         notifications={settingsNotifications}
                         onSearchChange={setMenuQuery}
-                        worldBreadcrumb={worldBreadcrumb}
                     />
 
                     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
@@ -757,7 +745,6 @@ function SettingsDetail({
     worldBuilderRootView: WorldBuilderRootView;
     worldGraph: WorldGraph | null;
 }) {
-    const content = panelContent[selectedPanel];
     const selectedItem = findSettingsItemForPanel(selectedPanel);
     const showWorldBuilderMapDetail =
         selectedPanel === 'admin-world-builder' &&
@@ -941,8 +928,7 @@ function SettingsDetail({
                     selectedMapDetail={worldBuilderMapDetail}
                     worldGraph={worldGraph}
                 />
-            ) : (selectedPanel === 'admin-access' ||
-                  selectedPanel === 'admin-users') &&
+            ) : selectedPanel === 'admin-access' &&
               (accessCapabilities.users?.read ||
                   accessCapabilities.roles?.read) ? (
                 <AccessManagementPanel
@@ -960,11 +946,6 @@ function SettingsDetail({
                 <SettingsRouteGroupPanel
                     accessCapabilities={accessCapabilities}
                     item={selectedItem}
-                />
-            ) : content ? (
-                <SettingsPlaceholderPanel
-                    content={content}
-                    panel={selectedPanel}
                 />
             ) : null}
         </div>

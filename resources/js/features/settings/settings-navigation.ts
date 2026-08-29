@@ -21,19 +21,11 @@ export type SettingsPanelKey =
     | 'admin-assets-world-objects'
     | 'admin-color-palettes'
     | 'admin-learning-support'
-    | 'admin-presentation'
-    | 'admin-presentation-localization'
     | 'admin-public-pages'
     | 'admin-translations'
-    | 'admin-users'
-    | 'admin-world'
     | 'admin-world-builder'
-    | 'appearance'
     | 'information'
-    | 'notifications'
-    | 'personal'
-    | 'profile'
-    | 'security';
+    | 'personal';
 
 export type SettingsTranslator = ReturnType<typeof usePlatformTranslation>;
 
@@ -358,41 +350,6 @@ export const adminSettings: SettingsListItem[] = [
     },
 ];
 
-export const panelContent: Partial<
-    Record<
-        SettingsPanelKey,
-        {
-            body: string;
-            title: string;
-        }
-    >
-> = {
-    profile: {
-        title: 'Profile',
-        body: 'This will connect to the existing profile settings while keeping account management inside the platform shell.',
-    },
-    security: {
-        title: 'Security',
-        body: 'Password, passkeys and two-factor controls can move here without relying on a separate sidebar-heavy screen.',
-    },
-    appearance: {
-        title: 'Appearance',
-        body: 'Theme preference, reduced motion and future cursor/theme packs belong here.',
-    },
-    notifications: {
-        title: 'Notifications',
-        body: 'Future reminders should support learner autonomy, quiet hours and wellbeing instead of pressure loops.',
-    },
-    'admin-world': {
-        title: 'World content',
-        body: 'First admin target: create and edit maps, hex nodes, activity graphs, dialogue stages, questions and portals.',
-    },
-    'admin-access': {
-        title: 'Access management',
-        body: 'Manage users and configurable access roles.',
-    },
-};
-
 export const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-access',
     'admin-api',
@@ -400,19 +357,11 @@ export const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-assets-world-objects',
     'admin-color-palettes',
     'admin-learning-support',
-    'admin-presentation',
-    'admin-presentation-localization',
     'admin-public-pages',
     'admin-translations',
-    'admin-users',
-    'admin-world',
     'admin-world-builder',
-    'appearance',
     'information',
-    'notifications',
     'personal',
-    'profile',
-    'security',
 ];
 
 export function isSettingsPanelKey(

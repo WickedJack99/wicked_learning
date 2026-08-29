@@ -1,6 +1,4 @@
 import { router } from '@inertiajs/react';
-import { Database } from 'lucide-react';
-import AppearanceTabs from '@/components/appearance-tabs';
 import {
     SettingsContentPane,
     SettingsPanelHeader,
@@ -10,10 +8,11 @@ import {
     settingsItemDescription,
     settingsItemLabel,
     settingsLinkLabel,
-    type AccessCapability,
-    type SettingsListItem,
-    type SettingsNavigationSection,
-    type SettingsPanelKey,
+} from '@/features/settings/settings-navigation';
+import type {
+    AccessCapability,
+    SettingsListItem,
+    SettingsNavigationSection,
 } from '@/features/settings/settings-navigation';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
@@ -28,18 +27,11 @@ type SettingsRouteGroupPanelProps = {
     item: SettingsListItem;
 };
 
-type SettingsPlaceholderPanelProps = {
-    content: { body: string; title: string };
-    panel: SettingsPanelKey;
-};
-
 export function SettingsOverview({
     accessCapabilities,
     onOpenItem,
     sections,
 }: SettingsOverviewProps) {
-    const t = usePlatformTranslation();
-
     return (
         <div className="h-full overflow-y-auto p-5">
             <div className="grid gap-5">
@@ -88,7 +80,7 @@ export function SettingsRouteGroupPanel({
                 <div className="grid gap-3 xl:grid-cols-2">
                     {visibleChildren.map((child) => (
                         <button
-                            className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 text-left transition hover:border-[var(--settings-accent)]"
+                            className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-4 text-left transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
                             key={child.href}
                             onClick={() => router.visit(child.href)}
                             type="button"
@@ -110,38 +102,6 @@ export function SettingsRouteGroupPanel({
                 ) : null}
             </div>
         </SettingsContentPane>
-    );
-}
-
-export function SettingsPlaceholderPanel({
-    content,
-    panel,
-}: SettingsPlaceholderPanelProps) {
-    const t = usePlatformTranslation();
-
-    return (
-        <div className="rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] p-5">
-            <SettingsPanelHeader
-                eyebrow={content.title}
-                icon={Database}
-                title={content.title}
-            />
-            <p className="mt-5 text-sm leading-6 text-[var(--settings-muted-text)]">
-                {content.body}
-            </p>
-            {panel === 'appearance' ? (
-                <div className="mt-5">
-                    <AppearanceTabs />
-                </div>
-            ) : (
-                <div className="mt-5 rounded-md border border-dashed border-[var(--settings-border-color)] p-4 text-sm leading-6 text-[var(--settings-muted-text)]">
-                    {t(
-                        'settings.scaffold',
-                        'This is a scaffolded settings panel. The next step can connect this area to real forms and policies.',
-                    )}
-                </div>
-            )}
-        </div>
     );
 }
 

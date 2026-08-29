@@ -37,18 +37,6 @@ export type SettingsNotificationOrganization = {
     name: string;
 };
 
-export type SettingsWorldBreadcrumb = {
-    map: {
-        id: number;
-        title: string;
-    } | null;
-    node: {
-        title: string;
-    } | null;
-    section: 'graph' | 'review' | 'structural';
-    view: 'configure' | 'nodes' | null;
-};
-
 type SettingsSidebarNavigationProps = {
     activePanel: SettingsPanelKey | null;
     onOpenItem: (item: SettingsListItem) => void;
@@ -56,12 +44,10 @@ type SettingsSidebarNavigationProps = {
 };
 
 type SettingsTopBarProps = {
-    activeItem: SettingsListItem | null;
     currentUser: AuthUser | null;
     menuQuery: string;
     notifications: SettingsNotificationSummary;
     onSearchChange: (query: string) => void;
-    worldBreadcrumb: SettingsWorldBreadcrumb;
 };
 
 export function SettingsSidebarNavigation({
@@ -94,6 +80,7 @@ export function SettingsSidebarNavigation({
                                             ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
                                             : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
                                     )}
+                                    aria-current={active ? 'page' : undefined}
                                     key={item.key}
                                     onClick={() => onOpenItem(item)}
                                     type="button"
@@ -138,9 +125,9 @@ export function SettingsTopBar({
             ref={setPortalContainer}
         >
             <div className="flex min-w-0 items-center">
-                <span className="shrink-0 text-2xl leading-none font-semibold text-white dark:text-white">
+                <h1 className="shrink-0 text-2xl leading-none font-semibold text-white dark:text-white">
                     {t('settings.title', 'Settings')}
-                </span>
+                </h1>
             </div>
 
             <div className="flex min-w-0 flex-wrap items-center gap-2 md:justify-end">
@@ -170,7 +157,7 @@ export function SettingsTopBar({
                 />
 
                 <a
-                    aria-label={t('settings.help', 'Help')}
+                    aria-label={t('navigation.source', 'Source code')}
                     className="settings-topbar-control grid size-10 place-items-center rounded-lg border border-[var(--settings-border-color)] text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)]"
                     href="https://github.com/WickedJack99/wicked_learning"
                     rel="noreferrer"
