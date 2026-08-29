@@ -56,8 +56,13 @@ the product around the skill.
 
 - Decide viewport ownership, bounded collection behavior and keyboard paths
   before adding UI items.
-- Prefer pagination when a finite collection can keep the main actions visible;
-  use scrolling when continuous reading or editing is the actual task.
+- Prefer pagination for finite collections that may grow; do not introduce a
+  scrolling area merely to fit more items. Use scrolling only when continuous
+  reading or editing is the actual task.
+- When a view contains several distinct areas or workflows that may not fit in
+  the viewport, add a visible submenu or tab switcher so the learner or author
+  can move between those areas instead of stacking them into one scrolling
+  surface.
 - Keep panels within the available viewport beneath the shared navigation and
   verify overflow at the smallest supported layout before finishing a change.
 
