@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { UserInfo } from '@/components/user-info';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import {
+    informationSettings,
     isActiveSettingsItem,
     settingsItemLabel,
 } from '@/features/settings/settings-navigation';
@@ -56,55 +57,127 @@ export function SettingsSidebarNavigation({
     sections,
 }: SettingsSidebarNavigationProps) {
     const t = usePlatformTranslation();
+    const selectableItems = sections.flatMap((section) => section.items);
+    const selectedItem = [
+        ...selectableItems,
+        ...informationSettings,
+    ].find((item) => (item.panel ?? item.key) === activePanel);
 
     return (
-        <nav className="min-h-0 flex-1 overflow-y-auto px-3 pt-4 pb-4">
-            {sections.map((section) => (
-                <section className="mb-5" key={section.key}>
-                    <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
-                        {section.label}
-                    </h2>
-                    <div className="grid gap-2">
-                        {section.items.map((item) => {
-                            const Icon = item.icon;
-                            const active = isActiveSettingsItem(
-                                item,
-                                activePanel,
-                            );
+        <>
+            <div className="border-b border-[var(--settings-border-color)] px-3 pt-3 pb-3 lg:hidden">
+                <label
+                    className="px-1 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase"
+                    htmlFor="settings-mobile-section"
+                >
+                    {t('settings.navigation.area', 'Settings area')}
+                </label>
+                <select
+                    aria-label={t(
+                        'settings.navigation.area',
+                        'Settings area',
+                    )}
+                    className="mt-2 h-10 w-full rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)] px-3 text-sm text-white focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:text-white"
+                    id="settings-mobile-section"
+                    onChange={(event) => {
+                        const item = [
+                            ...selectableItems,
+                            ...informationSettings,
+                        ].find(
+                            (candidate) =>
+                                (candidate.panel ?? candidate.key) ===
+                                event.currentTarget.value,
+                        );
 
-                            return (
-                                <button
-                                    className={cn(
-                                        'relative grid h-12 grid-cols-[2rem_minmax(0,1fr)] items-center overflow-hidden rounded-lg px-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
-                                        active
-                                            ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
-                                            : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
-                                    )}
-                                    aria-current={active ? 'page' : undefined}
+                        if (item) {
+                            onOpenItem(item);
+                        }
+                    }}
+                    value={selectedItem?.panel ?? ''}
+                >
+                    <option disabled value="">
+                        {t(
+                            'settings.navigation.choose_area',
+                            'Choose a settings area',
+                        )}
+                    </option>
+                    {sections.map((section) => (
+                        <optgroup key={section.key} label={section.label}>
+                            {section.items.map((item) => (
+                                <option
                                     key={item.key}
-                                    onClick={() => onOpenItem(item)}
-                                    type="button"
+                                    value={item.panel ?? item.key}
                                 >
-                                    <span
-                                        aria-hidden="true"
+                                    {settingsItemLabel(item, t)}
+                                </option>
+                            ))}
+                        </optgroup>
+                    ))}
+                    <optgroup
+                        label={t(
+                            'settings.sections.information',
+                            'Information',
+                        )}
+                    >
+                        <option
+                            value={informationSettings[0]?.panel ?? 'information'}
+                        >
+                            {settingsItemLabel(informationSettings[0], t)}
+                        </option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <nav className="hidden min-h-0 flex-1 overflow-y-auto px-3 pt-4 pb-4 lg:block">
+                {sections.map((section) => (
+                    <section className="mb-5" key={section.key}>
+                        <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                            {section.label}
+                        </h2>
+                        <div className="grid gap-2">
+                            {section.items.map((item) => {
+                                const Icon = item.icon;
+                                const active = isActiveSettingsItem(
+                                    item,
+                                    activePanel,
+                                );
+
+                                return (
+                                    <button
                                         className={cn(
-                                            'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                            'relative grid h-12 grid-cols-[2rem_minmax(0,1fr)] items-center overflow-hidden rounded-lg px-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                             active
-                                                ? 'opacity-100'
-                                                : 'opacity-0',
+                                                ? 'bg-[var(--settings-active-background)] text-[var(--settings-accent)]'
+                                                : 'text-[var(--settings-muted-text)] hover:bg-[var(--settings-active-background)] hover:text-[var(--settings-accent)]',
                                         )}
-                                    />
-                                    <Icon className="size-4" />
-                                    <span className="truncate">
-                                        {settingsItemLabel(item, t)}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </section>
-            ))}
-        </nav>
+                                        aria-current={
+                                            active ? 'page' : undefined
+                                        }
+                                        key={item.key}
+                                        onClick={() => onOpenItem(item)}
+                                        type="button"
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className={cn(
+                                                'absolute inset-y-2 left-0 w-1 rounded-r-full bg-[var(--settings-accent)] transition-opacity',
+                                                active
+                                                    ? 'opacity-100'
+                                                    : 'opacity-0',
+                                            )}
+                                        />
+                                        <Icon className="size-4" />
+                                        <span className="truncate">
+                                            {settingsItemLabel(item, t)}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ))}
+            </nav>
+        </>
     );
 }
 

@@ -64,13 +64,13 @@ export function SettingsCornerNavigation() {
         },
     ];
 
-    return (
+    const renderItems = (className: string) => (
         <nav
             aria-label={t(
                 'settings.quick_navigation',
                 'Settings quick navigation',
             )}
-            className="grid gap-1 border-t border-[var(--settings-border-color)] px-3 pt-3 pb-4"
+            className={className}
         >
             {items.map((item) => (
                 <Link
@@ -90,5 +90,19 @@ export function SettingsCornerNavigation() {
                 </Link>
             ))}
         </nav>
+    );
+
+    return (
+        <>
+            <details className="border-t border-[var(--settings-border-color)] lg:hidden">
+                <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-[var(--settings-muted-text)] transition hover:text-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+                    {t('settings.quick_navigation', 'Quick navigation')}
+                </summary>
+                {renderItems('grid gap-1 px-3 pb-3')}
+            </details>
+            {renderItems(
+                'hidden gap-1 border-t border-[var(--settings-border-color)] px-3 pt-3 pb-4 lg:grid',
+            )}
+        </>
     );
 }
