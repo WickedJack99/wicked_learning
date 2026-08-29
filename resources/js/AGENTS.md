@@ -20,6 +20,38 @@ This directory owns the Inertia/React user interface. Keep pages focused on comp
 - Keep scroll behavior intentional. Main app views should not accidentally create body scroll.
 - Preserve custom cursor behavior unless the feature intentionally overrides it, such as equipped tools.
 
+## UI/UX design skill
+
+For learner-facing or administrator-facing UI work, use the
+`ui-ux-pro-max` skill as an advisory design and usability resource.
+
+Its recommendations are subordinate to:
+
+1. `documentation/product.md`
+2. existing Wicked Learning interaction and visual language
+3. this scoped `AGENTS.md`
+4. accessibility and established application behavior
+
+Use the skill especially for:
+
+- accessibility review
+- responsive behavior
+- interaction states
+- layout and visual hierarchy
+- forms and controls
+- keyboard and focus behavior
+- identifying common usability anti-patterns
+
+Do not adopt generic product templates, gamification patterns, dashboards,
+visual styles, color systems, typography, or engagement mechanics merely
+because the skill recommends them.
+
+Intentional exploration, spatial navigation, ambiguity and discovery in
+Wicked Learning must not automatically be treated as UX defects.
+
+Prefer adapting the skill's guidance to the existing product over redesigning
+the product around the skill.
+
 ## Collection and viewport decisions
 
 - Decide viewport ownership, bounded collection behavior and keyboard paths
