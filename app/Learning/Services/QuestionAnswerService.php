@@ -23,6 +23,7 @@ class QuestionAnswerService
         int $optionId,
         ?string $playRunId = null,
         ?string $confidence = null,
+        bool $isRevisit = false,
     ): array {
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
@@ -51,6 +52,7 @@ class QuestionAnswerService
             confidence: $confidence,
             attemptNumber: $attemptNumber,
             assistanceLevel: 'independent',
+            isRevisit: $isRevisit,
         );
         $transition = $this->transitionResolver->for($question, $option);
 

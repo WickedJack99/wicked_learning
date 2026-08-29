@@ -217,7 +217,9 @@ The competence view also offers a bounded review history showing the revisited
 activity, outcome and confidence context; it does not expose private journal
 writing or turn review attempts into a score.
 When a learner completes a due revisit, the review history and the linked
-competence evidence retain the same attempt sequence.
+competence evidence retain the same attempt sequence. For question activities,
+the review record also preserves the answer's correctness and starting
+confidence; the generic completion path does not add a second evidence event.
 The evidence reading also distinguishes a successful independent recall from a
 generic attempt or encounter, while keeping application, explanation,
 reflection, review and transfer as the kinds of activity they were rather than

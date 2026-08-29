@@ -499,6 +499,99 @@ test('question answers complete the active route and record retrieval evidence',
         ->toBe('completed');
 });
 
+test('a revisited question records its outcome and confidence in review history', function () {
+    Carbon::setTestNow('2026-08-29 10:00:00');
+
+    $learner = User::factory()->create();
+    [$node, $activity, $start] = competenceRoute([
+        ['topic' => 'Algebra', 'weight' => 2],
+    ]);
+    $activity->update([
+        'type' => 'question',
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'retrieve',
+        ],
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'Which idea fits?',
+        'explanation' => 'The first idea fits the evidence.',
+    ]);
+    $option = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'The first idea.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+    $runId = (string) Str::uuid();
+
+    $progress = LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_PENDING,
+        'revisit_available_at' => now()->subDay(),
+        'metadata' => [
+            'revisitInvitation' => [
+                'status' => 'pending',
+            ],
+        ],
+    ]);
+    LearnerQuestionAnswer::query()->create([
+        'user_id' => $learner->id,
+        'learning_question_id' => $question->id,
+        'learning_question_option_id' => $option->id,
+        'is_correct' => true,
+        'confidence' => 'settled',
+        'selected_option_ids' => [$option->id],
+        'feedback' => null,
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => now()->subMinutes(2),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'leaning',
+            'is_revisit' => true,
+            'option_id' => $option->id,
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.isCorrect', true)
+        ->assertJsonPath('answer.attemptNumber', 2);
+
+    $review = LearnerReviewAttempt::query()->firstOrFail();
+    $evidence = LearnerEvidenceEvent::query()->firstOrFail();
+
+    expect($review->learner_activity_progress_id)->toBe($progress->id)
+        ->and($review->attempt_number)->toBe(2)
+        ->and($review->source)->toBe('revisit')
+        ->and($review->outcome)->toBe('correct')
+        ->and($review->confidence)->toBe('leaning')
+        ->and($review->assistance_level)->toBe('independent')
+        ->and($evidence->attempt_number)->toBe(2)
+        ->and($evidence->outcome)->toBe('correct')
+        ->and($evidence->confidence)->toBe('leaning')
+        ->and(LearnerReviewAttempt::query()->count())->toBe(1)
+        ->and(LearnerEvidenceEvent::query()->count())->toBe(1);
+});
+
 test('returning to a question keeps its route continuation', function () {
     $learner = User::factory()->create();
     [$node, , $start] = competenceRoute([]);

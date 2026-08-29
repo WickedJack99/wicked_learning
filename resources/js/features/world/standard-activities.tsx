@@ -350,13 +350,18 @@ export function QuestionActivity({
     answer,
     onAnswer,
     onComplete,
+    isRevisit,
     onMoveToActivity,
     playRunId,
 }: {
     activity: LearningActivity;
     answer: QuestionAnswerProgress | undefined;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
-    onComplete: (activity: LearningActivity) => Promise<void>;
+    onComplete: (
+        activity: LearningActivity,
+        options?: { progressAlreadyMarked?: boolean },
+    ) => Promise<void>;
+    isRevisit: boolean;
     onMoveToActivity: (activityId: number | null) => void;
     playRunId: string | null;
 }) {
@@ -379,12 +384,13 @@ export function QuestionActivity({
                 {
                     option_id: optionId,
                     confidence,
+                    is_revisit: isRevisit,
                     play_run_id: playRunId,
                 },
             );
 
             onAnswer(question.id, response.answer);
-            await onComplete(activity);
+            await onComplete(activity, { progressAlreadyMarked: true });
         } finally {
             setIsSubmitting(false);
         }

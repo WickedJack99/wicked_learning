@@ -355,6 +355,7 @@ export function ActivityPlayer({
     node,
     onAnswer,
     onComplete,
+    isRevisit,
     onMoveToActivity,
     onRestart,
     playState,
@@ -368,8 +369,9 @@ export function ActivityPlayer({
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
     onComplete: (
         activity: LearningActivity,
-        options?: { endsRoute?: boolean },
+        options?: { endsRoute?: boolean; progressAlreadyMarked?: boolean },
     ) => Promise<void>;
+    isRevisit: boolean;
     onMoveToActivity: (activityId: number | null) => void;
     onRestart: () => void;
     playState: Record<string, unknown>;
@@ -382,9 +384,13 @@ export function ActivityPlayer({
     const completesRoute =
         !completedTransition || completedTransition.toActivityId === null;
     const completeActivity = useCallback(
-        (completedActivity: LearningActivity) =>
+        (
+            completedActivity: LearningActivity,
+            options: { progressAlreadyMarked?: boolean } = {},
+        ) =>
             onComplete(completedActivity, {
                 endsRoute: completesRoute,
+                progressAlreadyMarked: options.progressAlreadyMarked,
             }),
         [completesRoute, onComplete],
     );
@@ -406,6 +412,7 @@ export function ActivityPlayer({
                     answer={answerProgress[activity.question.id]}
                     onAnswer={onAnswer}
                     onComplete={completeActivity}
+                    isRevisit={isRevisit}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
                 />
@@ -826,7 +833,10 @@ function FeedbackGuidance({
                     </p>
                     <ul className="mt-1 grid gap-1 text-sm leading-6 text-[var(--learner-body-text)]">
                         {guidance.rubric.map((cue) => (
-                            <li className="pl-4 before:mr-2 before:text-[var(--learner-action-accent)] before:content-['•']" key={cue}>
+                            <li
+                                className="pl-4 before:mr-2 before:text-[var(--learner-action-accent)] before:content-['•']"
+                                key={cue}
+                            >
                                 {cue}
                             </li>
                         ))}

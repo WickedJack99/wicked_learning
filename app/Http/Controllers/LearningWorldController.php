@@ -297,6 +297,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
+            'is_revisit' => ['sometimes', 'boolean'],
             'option_id' => ['required', 'integer'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
@@ -308,6 +309,7 @@ class LearningWorldController extends Controller
                 (int) $data['option_id'],
                 is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
+                is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
             ),
         ]);
     }

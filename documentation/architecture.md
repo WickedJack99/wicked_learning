@@ -170,6 +170,9 @@ their activity and node context; it intentionally omits review metadata and
 private journal content from the learner-facing serializer. Reopened activity
 evidence uses the same incremented attempt number as its review-attempt record,
 so the two records cannot describe different positions in the revisit sequence.
+Question answers pass revisit intent into this same completion transaction and
+snapshot their correctness and confidence on the review attempt. Their player
+does not submit a second generic completion request after the answer is saved.
 
 Roles are configurable permission bundles. Administrative resources use `RO`,
 `RU` and `RUD` levels, and map edit access is additionally scoped by the map.

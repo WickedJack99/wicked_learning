@@ -38,8 +38,9 @@ learner chose to return, the indexed ready time and the learner-facing pause
 or postpone reason. Continue with reusable recall items and richer review
 attempt contracts. Adaptive or AI scheduling should wait until the baseline is
 measurable and understandable. Reopened activity evidence now retains the same
-attempt sequence as its corresponding review-attempt record; reusable recall
-items and richer review outcomes remain open.
+attempt sequence as its corresponding review-attempt record, and question
+revisits preserve their correctness and confidence in that record. Reusable
+recall items and richer review outcomes for other activity types remain open.
 
 ### 3. Self-explanation and transfer
 

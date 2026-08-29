@@ -45,6 +45,7 @@ type NodePlayProps = {
 
 type CompletionOptions = {
     endsRoute?: boolean;
+    progressAlreadyMarked?: boolean;
 };
 
 type CheckInDestination =
@@ -209,6 +210,22 @@ export default function NodePlay({
                 return;
             }
 
+            if (options.progressAlreadyMarked) {
+                const completedAt = new Date().toISOString();
+
+                setActivityProgress((current) => ({
+                    ...current,
+                    [activity.id]: {
+                        ...current[activity.id],
+                        completedAt,
+                        status: 'completed',
+                    },
+                }));
+                setActivityPlayState((current) =>
+                    withoutActivityPlayState(current, activity.id),
+                );
+            }
+
             const payload: {
                 ends_route?: boolean;
                 is_revisit: boolean;
@@ -224,23 +241,26 @@ export default function NodePlay({
                 payload.ends_route = options.endsRoute;
             }
 
-            const response = await postJson<{
-                progress: LearningProgress['activities'][number] & {
-                    activityId: number;
-                };
-            }>(`/learning/activities/${activity.id}/progress`, payload);
+            if (!options.progressAlreadyMarked) {
+                const response = await postJson<{
+                    progress: LearningProgress['activities'][number] & {
+                        activityId: number;
+                    };
+                }>(`/learning/activities/${activity.id}/progress`, payload);
 
-            setActivityProgress((current) => ({
-                ...current,
-                [response.progress.activityId]: {
-                    completedAt: response.progress.completedAt,
-                    metadata: response.progress.metadata,
-                    status: response.progress.status,
-                },
-            }));
-            setActivityPlayState((current) =>
-                withoutActivityPlayState(current, activity.id),
-            );
+                setActivityProgress((current) => ({
+                    ...current,
+                    [response.progress.activityId]: {
+                        completedAt: response.progress.completedAt,
+                        metadata: response.progress.metadata,
+                        status: response.progress.status,
+                    },
+                }));
+                setActivityPlayState((current) =>
+                    withoutActivityPlayState(current, activity.id),
+                );
+            }
+
             const checkIn: PendingLearningCheckIn = {
                 activityId: activity.id,
                 activityTitle: activity.title,
@@ -567,6 +587,9 @@ export default function NodePlay({
                                 node={node}
                                 onAnswer={updateAnswer}
                                 onComplete={markCompleted}
+                                isRevisit={
+                                    displayedActivity.id === revisitActivityId
+                                }
                                 onMoveToActivity={moveToActivity}
                                 onRestart={() => void restartFromBeginning()}
                                 playState={activityPlayState}
