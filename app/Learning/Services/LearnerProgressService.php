@@ -70,6 +70,10 @@ class LearnerProgressService
 
         $progress->save();
 
+        $evidenceAttemptNumber = $recordsReviewAttempt
+            ? (int) $progress->attempt_count
+            : $attemptNumber;
+
         if ($recordsReviewAttempt) {
             LearnerReviewAttempt::query()->create([
                 'user_id' => $userId,
@@ -106,7 +110,7 @@ class LearnerProgressService
                             $playRunId,
                             $outcome,
                             $confidence,
-                            $attemptNumber,
+                            $evidenceAttemptNumber,
                             $assistanceLevel,
                             $latencySeconds,
                         );

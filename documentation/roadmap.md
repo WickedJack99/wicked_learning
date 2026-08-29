@@ -37,7 +37,9 @@ turning them into independent competence claims. It now also exposes when the
 learner chose to return, the indexed ready time and the learner-facing pause
 or postpone reason. Continue with reusable recall items and richer review
 attempt contracts. Adaptive or AI scheduling should wait until the baseline is
-measurable and understandable.
+measurable and understandable. Reopened activity evidence now retains the same
+attempt sequence as its corresponding review-attempt record; reusable recall
+items and richer review outcomes remain open.
 
 ### 3. Self-explanation and transfer
 

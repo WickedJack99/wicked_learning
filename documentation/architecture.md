@@ -167,7 +167,9 @@ observation, not a measure of attention and not a learner score.
 `LearnerReviewAttempt` keeps a separate, bounded history for completed learner-
 chosen revisits. The competence query loads only the latest twelve attempts with
 their activity and node context; it intentionally omits review metadata and
-private journal content from the learner-facing serializer.
+private journal content from the learner-facing serializer. Reopened activity
+evidence uses the same incremented attempt number as its review-attempt record,
+so the two records cannot describe different positions in the revisit sequence.
 
 Roles are configurable permission bundles. Administrative resources use `RO`,
 `RU` and `RUD` levels, and map edit access is additionally scoped by the map.

@@ -274,6 +274,55 @@ test('completion leaves latency unset when the activity entry time is unavailabl
         ->toBeNull();
 });
 
+test('a reopened activity keeps review and evidence attempt numbers aligned', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    $learner = User::factory()->create();
+    [$node, $activity, $start] = competenceRoute([
+        ['topic' => 'Retrieval practice', 'weight' => 1],
+    ]);
+    $runId = (string) Str::uuid();
+
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_PENDING,
+        'revisit_available_at' => now()->subHour(),
+        'metadata' => [],
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => now()->subMinute(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'is_revisit' => true,
+            'play_run_id' => $runId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    expect(LearnerReviewAttempt::query()->firstOrFail()->attempt_number)
+        ->toBe(2)
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->value('attempt_number'))
+        ->toBe(2);
+});
+
 test('explanation and transfer evidence require an observable authored criterion', function () {
     $learner = User::factory()->create();
     [, $explanation] = competenceRoute([
