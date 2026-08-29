@@ -7,6 +7,7 @@ use App\Access\PermissionCatalog;
 use App\Learning\Services\ReusableMediaAssetManager;
 use App\Learning\Services\ReusableMediaMetadataManager;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -14,6 +15,8 @@ use SplFileInfo;
 
 class LoadReusableImageAssets
 {
+    private const DEFAULT_PAGE_SIZE = 12;
+
     public function __construct(
         private readonly ReusableMediaAssetManager $mediaAssetManager,
         private readonly ReusableMediaMetadataManager $metadataManager,
@@ -24,8 +27,13 @@ class LoadReusableImageAssets
      */
     public function handle(?string $search = null, ?User $user = null): array
     {
+        return $this->serializeAssets($this->matchingAssets($search), $user);
+    }
+
+    /** @return Collection<int, array<string, mixed>> */
+    private function matchingAssets(?string $search): Collection
+    {
         $needle = Str::of($search ?? '')->trim()->lower()->toString();
-        $canViewPath = $user?->hasAccess(PermissionCatalog::MEDIA_PATHS, AccessLevel::READ) ?? false;
 
         $assets = collect([
             ...$this->publicImages(),
@@ -53,6 +61,14 @@ class LoadReusableImageAssets
                 ['url', 'asc'],
             ])
             ->values();
+
+        return $assets;
+    }
+
+    /** @param Collection<int, array<string, mixed>> $assets */
+    private function serializeAssets(Collection $assets, ?User $user): array
+    {
+        $canViewPath = $user?->hasAccess(PermissionCatalog::MEDIA_PATHS, AccessLevel::READ) ?? false;
         $references = $this->mediaAssetManager->referenceSummaries(
             $assets->pluck('url')->all(),
         );
@@ -79,6 +95,35 @@ class LoadReusableImageAssets
                 ];
             })
             ->all();
+    }
+
+    /**
+     * @return array{assets: list<array<string, mixed>>, pagination: array{currentPage: int, lastPage: int, perPage: int, total: int}}
+     */
+    public function paginate(
+        ?string $search = null,
+        ?User $user = null,
+        int $page = 1,
+        int $perPage = self::DEFAULT_PAGE_SIZE,
+    ): array {
+        $perPage = max(1, min(self::DEFAULT_PAGE_SIZE, $perPage));
+        $assets = $this->matchingAssets($search);
+        $total = $assets->count();
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $currentPage = min(max(1, $page), $lastPage);
+
+        return [
+            'assets' => $this->serializeAssets(
+                $assets->forPage($currentPage, $perPage),
+                $user,
+            ),
+            'pagination' => [
+                'currentPage' => $currentPage,
+                'lastPage' => $lastPage,
+                'perPage' => $perPage,
+                'total' => $total,
+            ],
+        ];
     }
 
     /**

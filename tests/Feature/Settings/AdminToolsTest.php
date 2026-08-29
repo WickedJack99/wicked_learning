@@ -133,6 +133,36 @@ test('admin users can search reusable image assets', function () {
     expect(collect($assets)->pluck('url'))->toContain('/storage/learning/nodes/reusable-crystal.svg');
 });
 
+test('admin users can paginate reusable image assets', function () {
+    Storage::fake('public');
+
+    foreach (['one', 'two', 'three', 'four'] as $name) {
+        Storage::disk('public')->put(
+            "learning/media/picker-{$name}.svg",
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" />',
+        );
+    }
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->getJson(route('settings.assets.reusable-images', [
+            'q' => 'picker',
+            'page' => 2,
+            'per_page' => 2,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 2)
+        ->assertJsonPath('pagination.perPage', 2)
+        ->assertJsonPath('pagination.total', 4);
+
+    expect($response->json('assets'))->toHaveCount(2);
+});
+
 test('admin users can save and search reusable image metadata', function () {
     Storage::fake('public');
     Storage::disk('public')->put(

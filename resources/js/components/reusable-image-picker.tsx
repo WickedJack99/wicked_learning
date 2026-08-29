@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,35 @@ type ReusableImageAsset = {
     url: string;
 };
 
+type ReusableImagePagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
+type ReusableImagePayload = {
+    assets?: ReusableImageAsset[];
+    message?: string;
+    pagination?: ReusableImagePagination;
+};
+
+function imagePickerPageSize(): number {
+    if (typeof window === 'undefined' || window.innerWidth >= 1280) {
+        return 12;
+    }
+
+    if (window.innerWidth >= 1024) {
+        return 9;
+    }
+
+    if (window.innerWidth >= 640) {
+        return 6;
+    }
+
+    return 4;
+}
+
 export function ReusableImagePicker({
     currentValue,
     onClose,
@@ -38,6 +67,14 @@ export function ReusableImagePicker({
     const [assets, setAssets] = useState<ReusableImageAsset[]>([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(imagePickerPageSize);
+    const [pagination, setPagination] = useState<ReusableImagePagination>({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: pageSize,
+        total: 0,
+    });
     const [search, setSearch] = useState('');
     const restoreFocusRef = useRef<HTMLElement | null>(
         typeof document !== 'undefined' &&
@@ -72,6 +109,26 @@ export function ReusableImagePicker({
     }, [closePicker]);
 
     useEffect(() => {
+        const handleResize = () => {
+            const nextPageSize = imagePickerPageSize();
+
+            setPageSize((currentPageSize) => {
+                if (currentPageSize === nextPageSize) {
+                    return currentPageSize;
+                }
+
+                setPage(1);
+
+                return nextPageSize;
+            });
+        };
+
+        window.addEventListener('resize', handleResize);
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => {
             const params = new URLSearchParams();
@@ -79,6 +136,9 @@ export function ReusableImagePicker({
             if (search.trim()) {
                 params.set('q', search.trim());
             }
+
+            params.set('page', String(page));
+            params.set('per_page', String(pageSize));
 
             setIsLoading(true);
             setError('');
@@ -92,12 +152,16 @@ export function ReusableImagePicker({
                     const payload = (await readJsonResponse(
                         response,
                         loadError,
-                    )) as {
-                        assets?: ReusableImageAsset[];
-                        message?: string;
-                    };
-
+                    )) as ReusableImagePayload;
                     setAssets(payload.assets ?? []);
+                    setPagination(
+                        payload.pagination ?? {
+                            currentPage: page,
+                            lastPage: 1,
+                            perPage: pageSize,
+                            total: payload.assets?.length ?? 0,
+                        },
+                    );
                 })
                 .catch((nextError: unknown) => {
                     if (controller.signal.aborted) {
@@ -121,7 +185,7 @@ export function ReusableImagePicker({
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [loadError, search]);
+    }, [loadError, page, pageSize, search]);
 
     return (
         <Dialog
@@ -135,7 +199,7 @@ export function ReusableImagePicker({
             <DialogContent
                 aria-describedby={descriptionId}
                 aria-labelledby={headingId}
-                className="flex max-h-[min(42rem,calc(100svh-2rem))] w-full max-w-4xl flex-col overflow-hidden border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-[#111820]"
+                className="flex max-h-[min(48rem,calc(100svh-1rem))] w-full max-w-6xl flex-col overflow-hidden border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-[#111820]"
                 overlayClassName="bg-slate-950/55 backdrop-blur-sm"
             >
                 <DialogHeader className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 text-left dark:border-white/10">
@@ -167,9 +231,10 @@ export function ReusableImagePicker({
                         <Input
                             autoFocus
                             className="pl-9"
-                            onChange={(event) =>
-                                setSearch(event.currentTarget.value)
-                            }
+                            onChange={(event) => {
+                                setSearch(event.currentTarget.value);
+                                setPage(1);
+                            }}
                             placeholder={t(
                                 'settings.assets.images.search_placeholder',
                                 'Search uploaded and bundled images',
@@ -190,7 +255,7 @@ export function ReusableImagePicker({
                     </Button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <div className="min-h-0 flex-1 overflow-hidden p-4">
                     {error ? (
                         <p className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200">
                             {error}
@@ -198,13 +263,15 @@ export function ReusableImagePicker({
                     ) : null}
 
                     {!error && isLoading ? (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <div
-                                    className="h-36 animate-pulse rounded-lg bg-slate-100 dark:bg-white/8"
-                                    key={index}
-                                />
-                            ))}
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {Array.from({ length: pageSize }).map(
+                                (_, index) => (
+                                    <div
+                                        className="h-36 animate-pulse rounded-lg bg-slate-100 dark:bg-white/8"
+                                        key={index}
+                                    />
+                                ),
+                            )}
                         </div>
                     ) : null}
 
@@ -218,7 +285,7 @@ export function ReusableImagePicker({
                     ) : null}
 
                     {!error && !isLoading && assets.length > 0 ? (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {assets.map((asset) => (
                                 <button
                                     aria-pressed={
@@ -239,7 +306,7 @@ export function ReusableImagePicker({
                                     }}
                                     type="button"
                                 >
-                                    <span className="grid h-28 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
+                                    <span className="grid h-24 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
                                         <img
                                             alt=""
                                             className="max-h-full max-w-full object-contain transition group-hover:scale-[1.02]"
@@ -272,6 +339,65 @@ export function ReusableImagePicker({
                         </div>
                     ) : null}
                 </div>
+
+                {!error && !isLoading && pagination.lastPage > 1 ? (
+                    <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 dark:border-white/10">
+                        <Button
+                            aria-label={t(
+                                'settings.assets.images.previous_page',
+                                'Previous image page',
+                            )}
+                            disabled={pagination.currentPage <= 1}
+                            onClick={() =>
+                                setPage((currentPage) =>
+                                    Math.max(1, currentPage - 1),
+                                )
+                            }
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                        >
+                            <ChevronLeft className="size-4" />
+                            {t('common.previous', 'Previous')}
+                        </Button>
+                        <span
+                            aria-live="polite"
+                            className="text-xs text-slate-500 dark:text-slate-400"
+                        >
+                            {t(
+                                'common.pagination.page',
+                                'Page :current of :total',
+                                {
+                                    current: pagination.currentPage,
+                                    total: pagination.lastPage,
+                                },
+                            )}
+                        </span>
+                        <Button
+                            aria-label={t(
+                                'settings.assets.images.next_page',
+                                'Next image page',
+                            )}
+                            disabled={
+                                pagination.currentPage >= pagination.lastPage
+                            }
+                            onClick={() =>
+                                setPage((currentPage) =>
+                                    Math.min(
+                                        pagination.lastPage,
+                                        currentPage + 1,
+                                    ),
+                                )
+                            }
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                        >
+                            {t('common.next', 'Next')}
+                            <ChevronRight className="size-4" />
+                        </Button>
+                    </div>
+                ) : null}
             </DialogContent>
         </Dialog>
     );

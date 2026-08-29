@@ -182,11 +182,16 @@ class AdminAssetController extends Controller
     {
         $data = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:12'],
         ]);
 
-        return response()->json([
-            'assets' => $this->loadReusableImageAssets->handle($data['q'] ?? null, $request->user()),
-        ]);
+        return response()->json($this->loadReusableImageAssets->paginate(
+            search: $data['q'] ?? null,
+            user: $request->user(),
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 12,
+        ));
     }
 
     public function downloadMedia(Request $request): BinaryFileResponse|StreamedResponse
