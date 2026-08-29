@@ -90,7 +90,7 @@ export function PaletteWorkbench({
                         className="divide-y divide-[var(--palette-workbench-border)]"
                         items={fields}
                         pageSize={3}
-                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--palette-workbench-accent)] transition hover:text-white disabled:pointer-events-none disabled:opacity-40"
+                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--palette-workbench-accent)] transition hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                         paginationClassName="flex items-center justify-between border-t border-[var(--palette-workbench-border)] px-5 py-3"
                         paginationTextClassName="text-xs text-[var(--palette-workbench-muted)]"
                         renderItem={(field) => (
@@ -102,13 +102,13 @@ export function PaletteWorkbench({
                 </div>
             </div>
 
-            <div className="flex min-h-0 flex-col overflow-hidden bg-[var(--palette-workbench-content)] text-white">
+            <div className="flex min-h-0 flex-col overflow-hidden bg-[var(--palette-workbench-content)] text-foreground">
                 <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--palette-workbench-border)] px-5 py-4">
                     <div>
                         <p className="text-xs font-medium tracking-[0.16em] text-[var(--palette-workbench-accent)] uppercase">
                             Live preview
                         </p>
-                        <h3 className="mt-1 text-lg font-semibold text-white">
+                        <h3 className="mt-1 text-lg font-semibold text-foreground">
                             {previewTitle}
                         </h3>
                     </div>
@@ -120,7 +120,7 @@ export function PaletteWorkbench({
                                         'border-b-2 border-transparent px-3 py-1.5 text-xs font-medium transition',
                                         activePreview?.id === tab.id
                                             ? 'border-[var(--palette-workbench-accent)] text-[var(--palette-workbench-accent)]'
-                                            : 'text-[var(--palette-workbench-muted)] hover:text-white',
+                                            : 'text-[var(--palette-workbench-muted)] hover:text-foreground',
                                     )}
                                     key={tab.id}
                                     onClick={() => setActivePreviewId(tab.id)}

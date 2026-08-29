@@ -100,6 +100,15 @@ test('learning support settings surfaces do not bypass palette tokens', function
     );
 });
 
+test('the palette workbench uses the semantic foreground token for preview text', function () {
+    $workbench = file_get_contents(resource_path('js/components/palette-workbench.tsx'));
+
+    expect($workbench)
+        ->toContain('bg-[var(--palette-workbench-content)] text-foreground')
+        ->toContain('hover:text-foreground')
+        ->not->toContain('text-white');
+});
+
 test('journal background images resolve against the app origin', function () {
     $journalTheme = file_get_contents(resource_path('js/features/journal/theme.ts'));
     $journalOverlay = file_get_contents(resource_path('js/features/journal/journal-overlay.tsx'));
