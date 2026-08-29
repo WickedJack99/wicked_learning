@@ -1045,6 +1045,12 @@ function CompetenceReading({
                                                 {evidence.learningPurpose}
                                             </span>
                                         ) : null}
+                                        {evidence.evidenceCriterion ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                What to notice:{' '}
+                                                {evidence.evidenceCriterion}
+                                            </span>
+                                        ) : null}
                                         {evidence.confidence ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Before answering:{' '}

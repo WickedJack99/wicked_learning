@@ -31,9 +31,12 @@ class LearnerCompetenceService
         }
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
+        $evidenceCriterion = in_array($evidenceType, ['explain', 'transfer'], true)
+            ? $this->feedbackGuidance->evidenceCriterionForActivity($activity)
+            : null;
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $latencySeconds, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceCriterion, $evidenceType, $latencySeconds, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -43,6 +46,7 @@ class LearnerCompetenceService
                     'topic_name' => $topic['topic'],
                     'evidence_type' => $evidenceType,
                     'learning_purpose' => $learningPurpose,
+                    'evidence_criterion' => $evidenceCriterion,
                     'contribution' => $topic['weight'],
                     'outcome' => $outcome ?? 'completed',
                     'confidence' => $confidence,

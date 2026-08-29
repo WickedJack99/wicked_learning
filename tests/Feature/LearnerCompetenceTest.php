@@ -288,7 +288,11 @@ test('explanation and transfer evidence require an observable authored criterion
 
     expect(LearnerEvidenceEvent::query()
         ->where('learning_activity_id', $explanation->id)
-        ->value('evidence_type'))->toBe('participate');
+        ->value('evidence_type'))->toBe('participate')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('learning_activity_id', $explanation->id)
+            ->value('evidence_criterion'))
+        ->toBeNull();
 
     [, $transfer] = competenceRoute([
         ['topic' => 'Systems Thinking', 'weight' => 1],
@@ -308,10 +312,22 @@ test('explanation and transfer evidence require an observable authored criterion
         $transfer,
         (string) Str::uuid(),
     );
+    $transfer->update([
+        'config' => [
+            ...$transfer->config,
+            'feedbackGuidance' => [
+                'evidence' => 'A later author edit should not rewrite this moment.',
+            ],
+        ],
+    ]);
 
     expect(LearnerEvidenceEvent::query()
         ->where('learning_activity_id', $transfer->id)
-        ->value('evidence_type'))->toBe('transfer');
+        ->value('evidence_type'))->toBe('transfer')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('learning_activity_id', $transfer->id)
+            ->value('evidence_criterion'))
+        ->toBe('Look for the idea working in a changed context.');
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {

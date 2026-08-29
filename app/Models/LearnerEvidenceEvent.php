@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'topic_name',
     'evidence_type',
     'learning_purpose',
+    'evidence_criterion',
     'contribution',
     'outcome',
     'confidence',

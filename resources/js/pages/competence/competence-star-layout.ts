@@ -19,6 +19,7 @@ export type CompetenceTopic = {
             activityTitle: string | null;
             activityHref: string | null;
             evidenceClaim: string;
+            evidenceCriterion: string | null;
             evidenceType: string;
             learningPurpose: string | null;
             confidence: string | null;

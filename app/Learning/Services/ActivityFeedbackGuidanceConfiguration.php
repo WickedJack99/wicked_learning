@@ -59,6 +59,11 @@ class ActivityFeedbackGuidanceConfiguration
         return $this->forActivity($activity)['purpose'] ?? null;
     }
 
+    public function evidenceCriterionForActivity(LearningActivity $activity): ?string
+    {
+        return $this->forActivity($activity)['evidence'] ?? null;
+    }
+
     /**
      * @param  array<string, mixed>  $guidance
      * @return array{purpose: string|null, evidence: string|null, nextAction: string|null}|null

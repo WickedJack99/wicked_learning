@@ -61,6 +61,7 @@ export type TopicEvidenceLedgerEntry = {
     activityHref: string | null;
     activityTitle: string | null;
     evidenceClaim: string;
+    evidenceCriterion: string | null;
     evidenceType: string;
     learningPurpose: string | null;
     confidence: string | null;

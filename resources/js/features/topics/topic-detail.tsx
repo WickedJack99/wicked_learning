@@ -925,6 +925,12 @@ function TopicCompetenceCard({
                                                         {entry.learningPurpose}
                                                     </span>
                                                 ) : null}
+                                                {entry.evidenceCriterion ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        What to notice:{' '}
+                                                        {entry.evidenceCriterion}
+                                                    </span>
+                                                ) : null}
                                                 <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                     {evidenceClaimLabel(
                                                         entry.evidenceClaim,
