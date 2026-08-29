@@ -84,7 +84,10 @@ Current and recent route rows also retain their authored learning-area links,
 so the desk can lead directly to the corresponding competence reading without
 adding a separate progression panel. Desk areas are switched through a local
 navigation control, while route and revisit collections are paginated so the
-desktop desk does not need one growing collection scroll region.
+desktop desk does not need one growing collection scroll region. Revisit
+invitations explain both when the learner chose to return and when the item
+became ready, keeping the spacing decision visible without exposing internal
+scheduling details.
 
 ### Activities And Routes
 

@@ -775,6 +775,16 @@ function RevisitInvitations({
                                 className="mt-1 text-xs"
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
+                                {t(
+                                    'journal.revisit.chosen',
+                                    'You chose to return on',
+                                )}{' '}
+                                {formatCheckInDate(invitation.availableSince)}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
                                 {t('journal.revisit.ready', 'Ready since')}{' '}
                                 {formatCheckInDate(invitation.availableAt)}
                             </p>

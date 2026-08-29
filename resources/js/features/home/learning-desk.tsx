@@ -706,6 +706,13 @@ function RevisitInvitationRow({
                     · {invitation.mapTitle}
                 </span>
                 <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
+                    {t(
+                        'home.learning_desk.revisit.chosen',
+                        'You chose to return on',
+                    )}{' '}
+                    {formatDate(invitation.availableSince, locale)}
+                </span>
+                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                     {t('home.learning_desk.revisit.ready', 'Ready since')}{' '}
                     {formatDate(invitation.availableAt, locale)}
                 </span>
