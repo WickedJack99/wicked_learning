@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { cn } from '@/lib/utils';
@@ -46,11 +46,29 @@ export function PaletteWorkbench({
     renderField,
     theme = defaultWorkbenchTheme,
 }: PaletteWorkbenchProps) {
+    const workbenchId = useId();
     const [activePreviewId, setActivePreviewId] = useState(
         previewTabs[0]?.id ?? '',
     );
     const activePreview =
         previewTabs.find((tab) => tab.id === activePreviewId) ?? previewTabs[0];
+    const activePreviewIndex = Math.max(
+        0,
+        previewTabs.findIndex((tab) => tab.id === activePreview?.id),
+    );
+
+    const focusPreviewTab = (index: number) => {
+        const tab = previewTabs[index];
+
+        if (!tab) {
+            return;
+        }
+
+        setActivePreviewId(tab.id);
+        window.requestAnimationFrame(() => {
+            document.getElementById(`${workbenchId}-tab-${index}`)?.focus();
+        });
+    };
 
     return (
         <section
@@ -113,17 +131,49 @@ export function PaletteWorkbench({
                         </h3>
                     </div>
                     {previewTabs.length > 1 ? (
-                        <div className="flex items-center gap-1">
-                            {previewTabs.map((tab) => (
+                        <div
+                            aria-label={`${previewTitle} preview`}
+                            className="flex items-center gap-1"
+                            role="tablist"
+                        >
+                            {previewTabs.map((tab, index) => (
                                 <button
                                     className={cn(
-                                        'border-b-2 border-transparent px-3 py-1.5 text-xs font-medium transition',
+                                        'border-b-2 border-transparent px-3 py-1.5 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--palette-workbench-accent)] focus-visible:outline-none',
                                         activePreview?.id === tab.id
                                             ? 'border-[var(--palette-workbench-accent)] text-[var(--palette-workbench-accent)]'
                                             : 'text-[var(--palette-workbench-muted)] hover:text-foreground',
                                     )}
+                                    aria-controls={`${workbenchId}-panel`}
+                                    aria-selected={activePreview?.id === tab.id}
+                                    id={`${workbenchId}-tab-${index}`}
                                     key={tab.id}
                                     onClick={() => setActivePreviewId(tab.id)}
+                                    onKeyDown={(event) => {
+                                        const nextIndex =
+                                            event.key === 'ArrowRight'
+                                                ? (index + 1) %
+                                                  previewTabs.length
+                                                : event.key === 'ArrowLeft'
+                                                  ? (index -
+                                                        1 +
+                                                        previewTabs.length) %
+                                                    previewTabs.length
+                                                  : event.key === 'Home'
+                                                    ? 0
+                                                    : event.key === 'End'
+                                                      ? previewTabs.length - 1
+                                                      : null;
+
+                                        if (nextIndex !== null) {
+                                            event.preventDefault();
+                                            focusPreviewTab(nextIndex);
+                                        }
+                                    }}
+                                    role="tab"
+                                    tabIndex={
+                                        activePreview?.id === tab.id ? 0 : -1
+                                    }
                                     type="button"
                                 >
                                     {tab.label}
@@ -132,7 +182,13 @@ export function PaletteWorkbench({
                         </div>
                     ) : null}
                 </div>
-                <div className="min-h-[24rem] flex-1 overflow-y-auto p-5">
+                <div
+                    aria-labelledby={`${workbenchId}-tab-${activePreviewIndex}`}
+                    className="min-h-[24rem] flex-1 overflow-y-auto p-5"
+                    id={`${workbenchId}-panel`}
+                    role="tabpanel"
+                    tabIndex={0}
+                >
                     {activePreview?.content}
                 </div>
             </div>

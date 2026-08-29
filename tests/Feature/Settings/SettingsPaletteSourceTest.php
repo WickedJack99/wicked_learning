@@ -109,6 +109,20 @@ test('the palette workbench uses the semantic foreground token for preview text'
         ->not->toContain('text-white');
 });
 
+test('palette preview tabs expose selection and keyboard navigation semantics', function () {
+    $workbench = file_get_contents(resource_path('js/components/palette-workbench.tsx'));
+
+    expect($workbench)
+        ->toContain('role="tablist"')
+        ->toContain('role="tab"')
+        ->toContain('aria-selected={activePreview?.id === tab.id}')
+        ->toContain("event.key === 'ArrowRight'")
+        ->toContain("event.key === 'ArrowLeft'")
+        ->toContain('focus-visible:ring-2')
+        ->toContain('role="tabpanel"')
+        ->toContain('tabIndex={0}');
+});
+
 test('journal background images resolve against the app origin', function () {
     $journalTheme = file_get_contents(resource_path('js/features/journal/theme.ts'));
     $journalOverlay = file_get_contents(resource_path('js/features/journal/journal-overlay.tsx'));
