@@ -44,10 +44,12 @@ export type LearningDeskRevisitInvitation = {
     activityId: number;
     activityTitle: string;
     availableAfterDays: number;
+    availableAt: string;
     availableSince: string;
     mapTitle: string;
     nodeHref: string;
     nodeTitle: string;
+    revisitReason: 'pause' | 'later';
 };
 
 export type LearningDeskData = {

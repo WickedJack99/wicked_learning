@@ -98,7 +98,9 @@ test('the learning desk surfaces learner-chosen revisit invitations', function (
             ->has('desk.revisitInvitations', 1)
             ->where('desk.revisitInvitations.0.activityTitle', 'Revisit Activity')
             ->where('desk.revisitInvitations.0.availableAfterDays', 3)
+            ->where('desk.revisitInvitations.0.availableAt', now()->subDay()->toIso8601String())
             ->where('desk.revisitInvitations.0.availableSince', $recordedAt)
+            ->where('desk.revisitInvitations.0.revisitReason', 'pause')
             ->where('desk.revisitInvitations.0.activityHref', route('learning.nodes.play', [
                 'activity_id' => $activity->id,
                 'node' => $node,

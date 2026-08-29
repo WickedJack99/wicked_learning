@@ -16,7 +16,7 @@ class LoadLearnerRevisitInvitations
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /**
-     * @return list<array{activityHref: string, activityId: int, activityTitle: string, availableAfterDays: int, availableSince: string, mapTitle: string, nodeHref: string, nodeTitle: string}>
+     * @return list<array{activityHref: string, activityId: int, activityTitle: string, availableAfterDays: int, availableAt: string, availableSince: string, mapTitle: string, nodeHref: string, nodeTitle: string, revisitReason: 'pause'|'later'}>
      */
     public function handle(User $user): array
     {
@@ -64,6 +64,12 @@ class LoadLearnerRevisitInvitations
                     return null;
                 }
 
+                $availableAt = $progress->revisit_available_at;
+
+                if ($availableAt === null) {
+                    return null;
+                }
+
                 return [
                     'activityHref' => route('learning.nodes.play', [
                         'activity_id' => $activity->id,
@@ -73,6 +79,7 @@ class LoadLearnerRevisitInvitations
                     'activityId' => $activity->id,
                     'activityTitle' => $activity->title,
                     'availableAfterDays' => LearnerActivityProgress::REVISIT_AVAILABLE_AFTER_DAYS,
+                    'availableAt' => $availableAt->toIso8601String(),
                     'availableSince' => $recordedAt->toIso8601String(),
                     'mapTitle' => $map->title,
                     'nodeHref' => route('world', [
@@ -80,6 +87,9 @@ class LoadLearnerRevisitInvitations
                         'focused' => $node->slug,
                     ], false),
                     'nodeTitle' => $node->title,
+                    'revisitReason' => $progress->revisit_status === LearnerActivityProgress::REVISIT_STATUS_SNOOZED
+                        ? 'later'
+                        : 'pause',
                 ];
             })
             ->filter()

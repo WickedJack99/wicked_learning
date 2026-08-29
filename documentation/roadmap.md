@@ -32,9 +32,10 @@ Add transparent learner-controlled retrieval support: recall items, review
 schedules, review attempts, deterministic due explanations, snooze and
 replacement. The first finite return queue now persists its due state, queries
 only bounded due candidates, and records explicit due-review attempts without
-turning them into independent competence claims; extend it with recall items
-and richer due explanations. Adaptive or AI scheduling should wait until the
-baseline is measurable and understandable.
+turning them into independent competence claims. It now also exposes the
+indexed ready time and learner-facing pause or postpone reason; extend it with
+recall items and richer due explanations. Adaptive or AI scheduling should wait
+until the baseline is measurable and understandable.
 
 ### 3. Self-explanation and transfer
 

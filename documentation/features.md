@@ -127,8 +127,10 @@ resulting evidence event and shown alongside that learning moment in the
 learner's competence ledger; older moments without a purpose remain valid.
 
 When a learner chooses to return after a review pause, the due activity is
-opened as a review attempt. Completing it records that attempt separately from
-route completion and does not by itself claim independent competence.
+opened as a review attempt. The Learning Desk and Journal explain when it
+became ready and whether the learner originally paused or postponed the return.
+Completing it records that attempt separately from route completion and does
+not by itself claim independent competence.
 
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.

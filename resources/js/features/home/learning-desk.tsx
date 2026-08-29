@@ -618,17 +618,22 @@ function RevisitInvitationRow({
                 </span>
                 <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
                     {t(
-                        'home.learning_desk.revisit.available',
-                        'Available since',
+                        'home.learning_desk.revisit.ready',
+                        'Ready since',
                     )}{' '}
-                    {formatDate(invitation.availableSince, locale)}
+                    {formatDate(invitation.availableAt, locale)}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                    {t(
-                        'home.learning_desk.revisit.due',
-                        'Ready after :days days away.',
-                        { days: invitation.availableAfterDays },
-                    )}
+                    {invitation.revisitReason === 'later'
+                        ? t(
+                              'home.learning_desk.revisit.snoozed',
+                              'You chose to wait longer before returning.',
+                          )
+                        : t(
+                              'home.learning_desk.revisit.due',
+                              'Ready after :days days away.',
+                              { days: invitation.availableAfterDays },
+                          )}
                 </span>
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">

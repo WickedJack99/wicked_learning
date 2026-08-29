@@ -219,7 +219,9 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
         ->getJson(route('learning.journal.index'))
         ->assertOk()
         ->assertJsonPath('revisitInvitations.0.activityTitle', 'Check-in Activity')
-        ->assertJsonPath('revisitInvitations.0.availableSince', $recordedAt);
+        ->assertJsonPath('revisitInvitations.0.availableSince', $recordedAt)
+        ->assertJsonPath('revisitInvitations.0.availableAt', now()->subDay()->toIso8601String())
+        ->assertJsonPath('revisitInvitations.0.revisitReason', 'pause');
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.revisit-invitation', $activity), [
@@ -235,9 +237,13 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
         ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_SNOOZED)
         ->revisit_available_at->toEqual(now()->addDays(7));
 
+    Carbon::setTestNow('2026-09-07 14:30:00');
+
     $this->actingAs($learner)
         ->getJson(route('learning.journal.index'))
-        ->assertJsonCount(0, 'revisitInvitations');
+        ->assertJsonCount(1, 'revisitInvitations')
+        ->assertJsonPath('revisitInvitations.0.revisitReason', 'later')
+        ->assertJsonPath('revisitInvitations.0.availableAt', now()->subDay()->toIso8601String());
 });
 
 test('completing a reopened activity consumes its revisit invitation', function () {

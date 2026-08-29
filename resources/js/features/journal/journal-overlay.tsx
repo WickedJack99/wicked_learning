@@ -726,6 +726,8 @@ function RevisitInvitations({
     ) => Promise<void>;
     updatingActivityId: number | null;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <section
             aria-label="Revisit invitations"
@@ -768,6 +770,27 @@ function RevisitInvitations({
                                 style={{ color: 'var(--journal-muted-text)' }}
                             >
                                 {invitation.nodeTitle} · {invitation.mapTitle}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {t('journal.revisit.ready', 'Ready since')}{' '}
+                                {formatCheckInDate(invitation.availableAt)}
+                            </p>
+                            <p
+                                className="mt-1 text-xs"
+                                style={{ color: 'var(--journal-muted-text)' }}
+                            >
+                                {invitation.revisitReason === 'later'
+                                    ? t(
+                                          'journal.revisit.snoozed',
+                                          'You chose to wait longer before returning.',
+                                      )
+                                    : t(
+                                          'journal.revisit.paused',
+                                          'You chose to return after time away.',
+                                      )}
                             </p>
                         </a>
                         <div className="mt-2 flex flex-wrap gap-2">

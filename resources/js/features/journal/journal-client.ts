@@ -58,10 +58,12 @@ export type JournalRevisitInvitation = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
+    availableAt: string;
     availableSince: string;
     mapTitle: string;
     nodeHref: string;
     nodeTitle: string;
+    revisitReason: 'pause' | 'later';
 };
 
 export async function requestJournalFeedback(
