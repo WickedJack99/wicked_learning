@@ -21,10 +21,11 @@ class ReusableMediaMetadataManager
     }
 
     /**
-     * @param  array{category?: string|null, tags?: list<string>, has_transparency?: bool|null, is_animated?: bool|null}  $data
+     * @param  array{display_name?: string|null, category?: string|null, tags?: list<string>, has_transparency?: bool|null, is_animated?: bool|null}  $data
      */
     public function save(string $url, array $data): void
     {
+        $displayName = Str::of($data['display_name'] ?? '')->squish()->toString();
         $category = Str::of($data['category'] ?? '')->squish()->toString();
         $tags = collect($data['tags'] ?? [])
             ->map(fn (string $tag): string => Str::of($tag)->trim()->lower()->toString())
@@ -33,6 +34,7 @@ class ReusableMediaMetadataManager
             ->values()
             ->all();
         $attributes = [
+            'display_name' => $displayName === '' ? null : $displayName,
             'category' => $category === '' ? null : $category,
             'tags' => $tags === [] ? null : $tags,
             'has_transparency' => $data['has_transparency'] ?? null,

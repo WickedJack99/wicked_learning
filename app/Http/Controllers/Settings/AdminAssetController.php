@@ -166,6 +166,7 @@ class AdminAssetController extends Controller
     {
         $data = $request->validate([
             'url' => ['required', 'string', 'max:2048'],
+            'display_name' => ['nullable', 'string', 'max:160'],
             'category' => ['nullable', 'string', 'max:80'],
             'tags' => ['nullable', 'array', 'max:12'],
             'tags.*' => ['string', 'max:40'],

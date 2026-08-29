@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
     'url',
+    'display_name',
     'category',
     'tags',
     'has_transparency',

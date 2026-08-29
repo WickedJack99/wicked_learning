@@ -51,6 +51,7 @@ class LoadReusableImageAssets
                     'category' => $saved?->category,
                     'hasTransparency' => $saved?->has_transparency,
                     'isAnimated' => $saved?->is_animated,
+                    'label' => $saved?->display_name ?: $asset['label'],
                     'tags' => $saved?->tags ?? [],
                 ];
             })

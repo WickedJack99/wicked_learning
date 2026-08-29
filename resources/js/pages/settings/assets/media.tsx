@@ -15,6 +15,7 @@ import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AssetLibraryWorkspace } from '@/features/settings/asset-library-workspace';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import mediaAssetRoutes from '@/routes/settings/assets/media';
 
@@ -340,6 +341,8 @@ function AssetDetails({
     onDelete: () => void;
     onReplace: () => void;
 }) {
+    const t = usePlatformTranslation();
+    const [displayName, setDisplayName] = useState(asset.label);
     const [category, setCategory] = useState(asset.category ?? '');
     const [tags, setTags] = useState(asset.tags.join(', '));
     const [hasTransparency, setHasTransparency] = useState(
@@ -355,6 +358,7 @@ function AssetDetails({
         router.patch(
             '/settings/assets/media/metadata',
             {
+                display_name: displayName.trim() || null,
                 category: category.trim() || null,
                 has_transparency: parseMetadataChoice(hasTransparency),
                 is_animated: parseMetadataChoice(isAnimated),
@@ -445,6 +449,29 @@ function AssetDetails({
                         </p>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
+                        <label className="grid gap-1 text-xs font-medium text-slate-600 md:col-span-2 dark:text-slate-300">
+                            {t(
+                                'settings.assets.visuals.display_name',
+                                'Display name',
+                            )}
+                            <Input
+                                aria-describedby="visual-display-name-help"
+                                maxLength={160}
+                                onChange={(event) =>
+                                    setDisplayName(event.currentTarget.value)
+                                }
+                                value={displayName}
+                            />
+                            <span
+                                className="text-xs font-normal text-slate-500 dark:text-slate-400"
+                                id="visual-display-name-help"
+                            >
+                                {t(
+                                    'settings.assets.visuals.display_name_help',
+                                    'Shown in the library while the original file path stays unchanged.',
+                                )}
+                            </span>
+                        </label>
                         <label className="grid gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
                             Category
                             <Input

@@ -177,6 +177,7 @@ test('admin users can save and search reusable image metadata', function () {
     $this->actingAs($admin)
         ->patch(route('settings.assets.media.metadata.update'), [
             'url' => '/storage/learning/media/quiet-portal.svg',
+            'display_name' => 'Quiet portal',
             'category' => 'Map background',
             'tags' => ['Portal', 'night sky'],
             'has_transparency' => false,
@@ -186,17 +187,19 @@ test('admin users can save and search reusable image metadata', function () {
 
     $metadata = ReusableMediaMetadata::query()->firstOrFail();
 
-    expect($metadata->category)->toBe('Map background')
+    expect($metadata->display_name)->toBe('Quiet portal')
+        ->and($metadata->category)->toBe('Map background')
         ->and($metadata->tags)->toBe(['portal', 'night sky'])
         ->and($metadata->has_transparency)->toBeFalse()
         ->and($metadata->is_animated)->toBeFalse();
 
     $assets = $this->actingAs($admin)
-        ->getJson(route('settings.assets.reusable-images', ['q' => 'night sky']))
+        ->getJson(route('settings.assets.reusable-images', ['q' => 'quiet portal']))
         ->assertOk()
         ->json('assets');
 
     expect($assets)->toHaveCount(1)
+        ->and($assets[0]['label'])->toBe('Quiet portal')
         ->and($assets[0]['category'])->toBe('Map background')
         ->and($assets[0]['tags'])->toBe(['portal', 'night sky'])
         ->and($assets[0]['hasTransparency'])->toBeFalse()

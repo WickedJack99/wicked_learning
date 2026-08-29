@@ -494,6 +494,8 @@
     "settings.assets.sections.items.open": "Open Items",
     "settings.assets.sections.currencies": "Currencies",
     "settings.assets.sections.currencies.description": "Future non-pressure resource concepts, if ever needed.",
+    "settings.assets.visuals.display_name": "Display name",
+    "settings.assets.visuals.display_name_help": "Shown in the library while the original file path stays unchanged.",
     "settings.assets.images.close_picker": "Close image picker",
     "settings.assets.images.empty_search": "No images match this search.",
     "settings.assets.images.load_error": "Images could not be loaded.",
