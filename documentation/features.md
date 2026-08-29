@@ -153,7 +153,8 @@ The learner journal is a private Markdown workspace with custom pages,
 reflection-created pages, search, writing/rendered modes, autosaved drafts and
 export. The shared Journal action opens it as a focused workspace. Learners can
 explicitly request feedback for one page from an eligible journal, group or
-organization domain; this explicit request is the supported sharing path, and
+organization domain. The request is shown in the permission-controlled
+feedback queue; this explicit request is the supported sharing path, and
 journals are not a general staff-reading surface.
 
 Recent journal check-ins retain their related learning areas. Each area can

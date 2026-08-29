@@ -155,8 +155,8 @@ The qualitative competence map and topic trails should therefore answer
 Learner words, confidence and assistance context are private by default. The
 implemented sharing path is an explicit learner request for feedback on a
 selected journal page and selected eligible domain; it does not make journal
-content generally visible to staff or peers. The feedback queue receives a
-page only through that explicit request; the separate support-signals view
+content generally visible to staff or peers. The request is then available in
+the permission-controlled feedback queue; the separate support-signals view
 receives scoped evidence signals, not journal text.
 
 ## Authoring philosophy
