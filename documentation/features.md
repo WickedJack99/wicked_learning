@@ -140,6 +140,12 @@ became ready and whether the learner originally paused or postponed the return.
 Completing it records that attempt separately from route completion and does
 not by itself claim independent competence.
 
+Question activities also let learners explicitly keep an answered question in a
+private recall queue. The queue is shown as its own paginated Learning Desk
+area, links back to the originating activity and can be cleared by the learner;
+it has no deadline and does not alter route progress. This is a reusable
+question-level recall affordance, not an adaptive schedule or a score.
+
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.
 

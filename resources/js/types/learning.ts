@@ -416,6 +416,7 @@ export type LearningProgress = {
         }
     >;
     answers: Record<number, QuestionAnswerProgress>;
+    recallQuestionIds: number[];
 };
 
 export type LearningCheckInFeeling =

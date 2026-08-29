@@ -1,0 +1,126 @@
+<?php
+
+use App\Learning\CurrentWorldResolver;
+use App\Models\LearnerActivityProgress;
+use App\Models\LearnerRecallItem;
+use App\Models\LearningActivity;
+use App\Models\LearningMap;
+use App\Models\LearningNode;
+use App\Models\LearningQuestion;
+use App\Models\LearningQuestionOption;
+use App\Models\LearningWorld;
+use App\Models\User;
+use Inertia\Testing\AssertableInertia;
+
+test('a learner can keep a question in a private recall queue', function () {
+    [$learner, $question, $activity, $node] = recallQuestionContext();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.store', $question))
+        ->assertOk()
+        ->assertJson([
+            'questionId' => $question->id,
+            'queued' => true,
+        ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.store', $question))
+        ->assertOk();
+
+    expect(LearnerRecallItem::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_question_id', $question->id)
+        ->count())->toBe(1);
+    expect(LearnerActivityProgress::query()->count())->toBe(0);
+
+    $this->actingAs($learner)
+        ->get(route('home'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.recallItems', 1)
+            ->where('desk.recallItems.0.questionId', $question->id)
+            ->where('desk.recallItems.0.prompt', 'What changed?')
+            ->where('desk.recallItems.0.activityTitle', $activity->title)
+            ->where('desk.recallItems.0.nodeTitle', $node->title)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', ['node' => $node, 'activity_id' => $activity->id]))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('progress.recallQuestionIds', [$question->id])
+        );
+});
+
+test('a learner can remove a question from the private recall queue', function () {
+    [$learner, $question] = recallQuestionContext();
+
+    LearnerRecallItem::query()->create([
+        'user_id' => $learner->id,
+        'learning_question_id' => $question->id,
+    ]);
+
+    $this->actingAs($learner)
+        ->deleteJson(route('learning.questions.recall.destroy', $question))
+        ->assertOk()
+        ->assertJson([
+            'questionId' => $question->id,
+            'queued' => false,
+        ]);
+
+    expect(LearnerRecallItem::query()->count())->toBe(0);
+});
+
+test('a learner cannot queue a question from an inaccessible map', function () {
+    [$learner, $question] = recallQuestionContext();
+    $question->activity->node->map->update(['access_roles' => [User::ROLE_ADMIN]]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.store', $question))
+        ->assertNotFound();
+
+    expect(LearnerRecallItem::query()->count())->toBe(0);
+});
+
+/** @return array{User, LearningQuestion, LearningActivity, LearningNode} */
+function recallQuestionContext(): array
+{
+    $learner = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $learner->id,
+        'slug' => 'recall-map',
+        'title' => 'Recall Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'recall-node',
+        'title' => 'Recall Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'recall-activity',
+        'type' => 'question',
+        'title' => 'Recall Activity',
+        'sort_order' => 10,
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'What changed?',
+    ]);
+    LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'Something changed.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+
+    return [$learner, $question, $activity, $node];
+}

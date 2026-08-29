@@ -83,6 +83,9 @@ export default function NodePlay({
         initialActivity?.id ?? null,
     );
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
+    const [recallQuestionIds, setRecallQuestionIds] = useState(
+        progress.recallQuestionIds,
+    );
     const [activityProgress, setActivityProgress] = useState(
         progress.activities,
     );
@@ -329,6 +332,19 @@ export default function NodePlay({
                 ...current,
                 [questionId]: answer,
             }));
+        },
+        [],
+    );
+
+    const updateRecallQuestion = useCallback(
+        (questionId: number, queued: boolean) => {
+            setRecallQuestionIds((current) =>
+                queued
+                    ? current.includes(questionId)
+                        ? current
+                        : [...current, questionId]
+                    : current.filter((id) => id !== questionId),
+            );
         },
         [],
     );
@@ -584,8 +600,11 @@ export default function NodePlay({
                                 activity={displayedActivity}
                                 activityProgress={activityProgress}
                                 answerProgress={answerProgress}
+                                canRecall={isAuthenticated}
                                 node={node}
                                 onAnswer={updateAnswer}
+                                onRecallChange={updateRecallQuestion}
+                                recallQuestionIds={recallQuestionIds}
                                 onComplete={markCompleted}
                                 isRevisit={
                                     displayedActivity.id === revisitActivityId

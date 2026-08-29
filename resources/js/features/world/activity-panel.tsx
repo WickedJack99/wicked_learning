@@ -352,21 +352,26 @@ export function ActivityPlayer({
     activity,
     activityProgress,
     answerProgress,
+    canRecall,
     node,
     onAnswer,
+    onRecallChange,
     onComplete,
     isRevisit,
     onMoveToActivity,
     onRestart,
     playState,
     playRunId,
+    recallQuestionIds,
     onTravel,
 }: {
     activity: LearningActivity | null;
     activityProgress: LearningProgress['activities'];
     answerProgress: LearningProgress['answers'];
+    canRecall: boolean;
     node: LearningNode;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
+    onRecallChange: (questionId: number, queued: boolean) => void;
     onComplete: (
         activity: LearningActivity,
         options?: { endsRoute?: boolean; progressAlreadyMarked?: boolean },
@@ -376,6 +381,7 @@ export function ActivityPlayer({
     onRestart: () => void;
     playState: Record<string, unknown>;
     playRunId: string | null;
+    recallQuestionIds: number[];
     onTravel: (portalLink: LearningPortalLink) => void;
 }) {
     const completedTransition = activity
@@ -410,11 +416,16 @@ export function ActivityPlayer({
                 <QuestionActivity
                     activity={activity}
                     answer={answerProgress[activity.question.id]}
+                    canRecall={canRecall}
                     onAnswer={onAnswer}
                     onComplete={completeActivity}
+                    onRecallChange={onRecallChange}
                     isRevisit={isRevisit}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}
+                    recallQueued={recallQuestionIds.includes(
+                        activity.question.id,
+                    )}
                 />
             ) : null}
 

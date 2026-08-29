@@ -6,12 +6,14 @@ import {
     Clock3,
     Compass,
     Pin,
+    Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { updateRevisitInvitation } from '@/features/journal/journal-client';
+import { removeRecallQuestion } from '@/features/learning/recall-items';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskSearch } from './learning-desk-search';
@@ -19,10 +21,16 @@ import type {
     LearningDeskBookmark,
     LearningDeskData,
     LearningDeskRevisitInvitation,
+    LearningDeskRecallItem,
     LearningDeskRoute,
 } from './types';
 
-type LearningDeskArea = 'connections' | 'revisit' | 'recent' | 'continue';
+type LearningDeskArea =
+    | 'connections'
+    | 'recall'
+    | 'revisit'
+    | 'recent'
+    | 'continue';
 
 export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
@@ -33,6 +41,16 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         null,
     );
     const [revisitError, setRevisitError] = useState(false);
+    const [removedRecallQuestionIds, setRemovedRecallQuestionIds] = useState<
+        number[]
+    >([]);
+    const [recallError, setRecallError] = useState(false);
+    const [removingRecallQuestionId, setRemovingRecallQuestionId] = useState<
+        number | null
+    >(null);
+    const recallItems = desk.recallItems.filter(
+        (item) => !removedRecallQuestionIds.includes(item.questionId),
+    );
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
@@ -44,6 +62,17 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
             id: 'connections',
             label: t('home.learning_desk.sections.connections', 'Connections'),
         },
+        ...(recallItems.length > 0
+            ? [
+                  {
+                      id: 'recall' as const,
+                      label: t(
+                          'home.learning_desk.sections.recall',
+                          'Recall queue',
+                      ),
+                  },
+              ]
+            : []),
         ...(revisitInvitations.length > 0
             ? [
                   {
@@ -96,6 +125,24 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
             setRevisitError(true);
         } finally {
             setUpdatingRevisitId(null);
+        }
+    }
+
+    async function handleRecallRemoval(questionId: number) {
+        if (removingRecallQuestionId !== null) {
+            return;
+        }
+
+        setRemovingRecallQuestionId(questionId);
+        setRecallError(false);
+
+        try {
+            await removeRecallQuestion(questionId);
+            setRemovedRecallQuestionIds((current) => [...current, questionId]);
+        } catch {
+            setRecallError(true);
+        } finally {
+            setRemovingRecallQuestionId(null);
         }
     }
 
@@ -271,6 +318,60 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             {t(
                                                 'home.learning_desk.revisit.error',
                                                 'That choice could not be saved. Try again.',
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </section>
+                            ) : null}
+
+                            {visibleArea === 'recall' &&
+                            recallItems.length > 0 ? (
+                                <section
+                                    aria-labelledby="recall-heading"
+                                    className="mt-8"
+                                >
+                                    <SectionHeading
+                                        id="recall-heading"
+                                        label={t(
+                                            'home.learning_desk.recall.title',
+                                            'Recall queue',
+                                        )}
+                                    />
+                                    <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                        {t(
+                                            'home.learning_desk.recall.body',
+                                            'Questions you chose to keep nearby for another look. There is no deadline; remove one whenever it no longer helps.',
+                                        )}
+                                    </p>
+                                    <LearnerPaginatedItems
+                                        className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                        items={recallItems}
+                                        pageSize={2}
+                                        paginationLabel={t(
+                                            'home.learning_desk.recall.pagination',
+                                            'Recall questions',
+                                        )}
+                                        renderItem={(item) => (
+                                            <RecallItemRow
+                                                item={item}
+                                                key={item.questionId}
+                                                onRemove={handleRecallRemoval}
+                                                removing={
+                                                    removingRecallQuestionId ===
+                                                    item.questionId
+                                                }
+                                            />
+                                        )}
+                                    />
+                                    {recallError ? (
+                                        <p
+                                            aria-live="polite"
+                                            className="mt-3 text-sm text-red-300"
+                                            role="status"
+                                        >
+                                            {t(
+                                                'home.learning_desk.recall.error',
+                                                'That recall choice could not be removed. Try again.',
                                             )}
                                         </p>
                                     ) : null}
@@ -756,6 +857,59 @@ function RevisitInvitationRow({
                     type="button"
                 >
                     {t('home.learning_desk.revisit.hide', 'Hide')}
+                </button>
+            </span>
+        </div>
+    );
+}
+
+function RecallItemRow({
+    item,
+    onRemove,
+    removing,
+}: {
+    item: LearningDeskRecallItem;
+    onRemove: (questionId: number) => Promise<void>;
+    removing: boolean;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <div className="group grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
+            <Bookmark
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <span className="min-w-0">
+                <Link
+                    className="block text-sm font-medium hover:text-[var(--learner-accent)]"
+                    href={item.activityHref}
+                >
+                    {item.prompt}
+                </Link>
+                <span className="mt-1 block truncate text-sm text-[var(--learner-muted-text)]">
+                    {item.activityTitle} · {item.nodeTitle} · {item.mapTitle}
+                </span>
+            </span>
+            <span className="flex flex-wrap items-center gap-2 sm:justify-end">
+                <Link
+                    className="inline-flex min-h-11 items-center gap-2 px-2 text-sm font-medium text-[var(--learner-accent)]"
+                    href={item.activityHref}
+                >
+                    {t('home.learning_desk.recall.open', 'Open question')}
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                <button
+                    aria-label={t(
+                        'home.learning_desk.recall.remove_label',
+                        'Remove question from recall queue',
+                    )}
+                    className="inline-flex size-11 items-center justify-center rounded-md text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-50"
+                    disabled={removing}
+                    onClick={() => void onRemove(item.questionId)}
+                    type="button"
+                >
+                    <Trash2 aria-hidden="true" className="size-4" />
                 </button>
             </span>
         </div>

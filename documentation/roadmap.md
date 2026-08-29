@@ -35,12 +35,15 @@ replacement. The first finite return queue now persists its due state, queries
 only bounded due candidates, and records explicit due-review attempts without
 turning them into independent competence claims. It now also exposes when the
 learner chose to return, the indexed ready time and the learner-facing pause
-or postpone reason. Continue with reusable recall items and richer review
-attempt contracts. Adaptive or AI scheduling should wait until the baseline is
+or postpone reason. Continue with transparent timing and richer review attempt
+contracts. Adaptive or AI scheduling should wait until the baseline is
 measurable and understandable. Reopened activity evidence now retains the same
 attempt sequence as its corresponding review-attempt record, and question
-revisits preserve their correctness and confidence in that record. Reusable
-recall items and richer review outcomes for other activity types remain open.
+revisits preserve their correctness and confidence in that record. Question
+activities now provide a private, learner-controlled recall queue that
+links back to the existing activity without introducing a second scheduler.
+Transparent timing for those items and richer review outcomes for other
+activity types remain open.
 
 ### 3. Self-explanation and transfer
 

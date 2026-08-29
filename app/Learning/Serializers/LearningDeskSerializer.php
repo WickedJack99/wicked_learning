@@ -21,6 +21,7 @@ class LearningDeskSerializer
      * @param  array{
      *     bookmarks: Collection<int, LearningNodeBookmark>,
      *     checkIns: list<array<string, mixed>>,
+     *     recallItems: list<array<string, mixed>>,
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     revisitInvitations: list<array<string, mixed>>,
@@ -58,6 +59,7 @@ class LearningDeskSerializer
                 ->values()
                 ->all(),
             'revisitInvitations' => $desk['revisitInvitations'],
+            'recallItems' => $desk['recallItems'],
             'featuredBookmark' => $desk['featuredBookmark']
                 ? $this->bookmark($desk['featuredBookmark'])
                 : null,

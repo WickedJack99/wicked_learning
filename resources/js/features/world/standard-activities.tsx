@@ -1,5 +1,6 @@
 import {
     ArrowRight,
+    Bookmark,
     CheckCircle2,
     Map as MapIcon,
     RotateCcw,
@@ -7,6 +8,10 @@ import {
 import type { CSSProperties } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import {
+    queueRecallQuestion,
+    removeRecallQuestion,
+} from '@/features/learning/recall-items';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
@@ -348,15 +353,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export function QuestionActivity({
     activity,
     answer,
+    canRecall,
     onAnswer,
     onComplete,
+    onRecallChange,
     isRevisit,
     onMoveToActivity,
     playRunId,
+    recallQueued,
 }: {
     activity: LearningActivity;
     answer: QuestionAnswerProgress | undefined;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
+    canRecall: boolean;
+    onRecallChange: (questionId: number, queued: boolean) => void;
     onComplete: (
         activity: LearningActivity,
         options?: { progressAlreadyMarked?: boolean },
@@ -364,12 +374,15 @@ export function QuestionActivity({
     isRevisit: boolean;
     onMoveToActivity: (activityId: number | null) => void;
     playRunId: string | null;
+    recallQueued: boolean;
 }) {
     const question = activity.question;
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
+    const [isRecallUpdating, setIsRecallUpdating] = useState(false);
+    const [recallError, setRecallError] = useState(false);
 
     if (!question) {
         return null;
@@ -393,6 +406,25 @@ export function QuestionActivity({
             await onComplete(activity, { progressAlreadyMarked: true });
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const toggleRecall = async () => {
+        setIsRecallUpdating(true);
+        setRecallError(false);
+
+        try {
+            if (recallQueued) {
+                await removeRecallQuestion(question.id);
+            } else {
+                await queueRecallQuestion(question.id);
+            }
+
+            onRecallChange(question.id, !recallQueued);
+        } catch {
+            setRecallError(true);
+        } finally {
+            setIsRecallUpdating(false);
         }
     };
 
@@ -479,6 +511,40 @@ export function QuestionActivity({
                         <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                             {answer.explanation}
                         </p>
+                    ) : null}
+                    {canRecall ? (
+                        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-white/10">
+                            <Button
+                                className="min-h-11"
+                                disabled={isRecallUpdating}
+                                onClick={() => void toggleRecall()}
+                                type="button"
+                                variant="outline"
+                            >
+                                <Bookmark
+                                    aria-hidden="true"
+                                    className="mr-2 size-4"
+                                />
+                                {recallQueued
+                                    ? 'Remove from recall queue'
+                                    : 'Keep for later recall'}
+                            </Button>
+                            <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {recallQueued
+                                    ? 'This question is waiting on your Learning Desk until you remove it.'
+                                    : 'Save this question when you want to return to it without changing your route.'}
+                            </p>
+                            {recallError ? (
+                                <p
+                                    aria-live="polite"
+                                    className="mt-2 text-xs text-red-600 dark:text-red-300"
+                                    role="status"
+                                >
+                                    This recall choice could not be saved. Try
+                                    again.
+                                </p>
+                            ) : null}
+                        </div>
                     ) : null}
                     {answer.confidence ? (
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">

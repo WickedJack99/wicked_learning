@@ -5,6 +5,7 @@ namespace App\Learning\Serializers;
 use App\Learning\Services\QuestionTransitionResolver;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerQuestionAnswer;
+use App\Models\LearnerRecallItem;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 
@@ -20,6 +21,7 @@ class LearnerProgressSerializer
         return [
             'activities' => [],
             'answers' => [],
+            'recallQuestionIds' => [],
         ];
     }
 
@@ -31,6 +33,11 @@ class LearnerProgressSerializer
         return [
             'activities' => $this->activities($userId),
             'answers' => $this->answers($userId),
+            'recallQuestionIds' => LearnerRecallItem::query()
+                ->where('user_id', $userId)
+                ->pluck('learning_question_id')
+                ->map(fn (mixed $id): int => (int) $id)
+                ->all(),
         ];
     }
 

@@ -101,6 +101,14 @@ spacing window and the original pause or later choice. This keeps due
 explanations understandable without exposing internal schedule state or adding
 a second scheduling system.
 
+`LearnerRecallItem` stores explicit private membership of a question in a
+learner's recall queue. The queue is separate from activity progress: it links
+to an existing question activity without marking a due review, changing route
+position or creating a competence event. The desk query loads a bounded set
+with its question, activity and map context in one eager load, while the
+progress serializer exposes only question IDs needed to render the in-activity
+queue control.
+
 `ActivityCompetenceConfiguration` keeps explanation and transfer evidence
 conservative: their authored learning purpose is only emitted as that evidence
 type when feedback guidance includes an observable criterion. Otherwise the

@@ -52,12 +52,24 @@ export type LearningDeskRevisitInvitation = {
     revisitReason: 'pause' | 'later';
 };
 
+export type LearningDeskRecallItem = {
+    activityHref: string;
+    activityId: number;
+    activityTitle: string;
+    mapTitle: string;
+    nodeHref: string;
+    nodeTitle: string;
+    prompt: string;
+    questionId: number;
+};
+
 export type LearningDeskData = {
     bookmarks: LearningDeskBookmark[];
     checkIns: LearningDeskCheckIn[];
     connections: LearningDeskBookmark[];
     currentRoutes: LearningDeskRoute[];
     recentRoutes: LearningDeskRoute[];
+    recallItems: LearningDeskRecallItem[];
     revisitInvitations: LearningDeskRevisitInvitation[];
     featuredBookmark: LearningDeskBookmark | null;
 };

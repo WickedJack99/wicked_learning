@@ -14,6 +14,7 @@ use App\Learning\Serializers\LearningWorldSerializer;
 use App\Learning\Services\LearnerActivityPlayStateService;
 use App\Learning\Services\LearnerMapLocationService;
 use App\Learning\Services\LearnerProgressService;
+use App\Learning\Services\LearnerRecallItemService;
 use App\Learning\Services\LearnerRouteProgressService;
 use App\Learning\Services\LearningBookmarkService;
 use App\Learning\Services\LearningMapAccessService;
@@ -58,6 +59,7 @@ class LearningWorldController extends Controller
         private readonly LearningMapAccessService $mapAccess,
         private readonly LearningPlayRunService $playRunService,
         private readonly QuestionAnswerService $questionAnswerService,
+        private readonly LearnerRecallItemService $recallItems,
         private readonly NpcDialogueAnswerService $npcDialogueAnswerService,
         private readonly ObstacleToolService $obstacleToolService,
         private readonly LearningToolGrantService $toolGrantService,
@@ -311,6 +313,26 @@ class LearningWorldController extends Controller
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
                 is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
             ),
+        ]);
+    }
+
+    public function queueQuestionForRecall(Request $request, LearningQuestion $question): JsonResponse
+    {
+        $item = $this->recallItems->queue($request->user(), $question);
+
+        return response()->json([
+            'questionId' => $item->learning_question_id,
+            'queued' => true,
+        ]);
+    }
+
+    public function removeQuestionFromRecall(Request $request, LearningQuestion $question): JsonResponse
+    {
+        $this->recallItems->remove($request->user(), $question);
+
+        return response()->json([
+            'questionId' => $question->id,
+            'queued' => false,
         ]);
     }
 
