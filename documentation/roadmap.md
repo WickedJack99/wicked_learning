@@ -20,10 +20,10 @@ concepts and source links. Different evidence types must retain different
 meanings: participation, retrieval, reflection, explanation, application,
 review and transfer are not interchangeable.
 
-The immutable event model, authored learning-purpose snapshots and question
-calibration slice are the foundation. The next work should define what claims
-each evidence combination can support and what remains an internal
-observation.
+The immutable event model, authored learning-purpose snapshots, question
+calibration slice and optional completion-latency observation are the
+foundation. The next work should define what claims each evidence combination
+can support and what remains an internal observation.
 
 ### 2. Retrieval and spacing
 

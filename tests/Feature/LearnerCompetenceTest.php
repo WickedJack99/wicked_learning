@@ -193,7 +193,7 @@ test('route play completion records configured evidence once per play run', func
         'current_play_run_id' => $runId,
         'status' => 'in_progress',
         'started_at' => now(),
-        'last_entered_at' => now(),
+        'last_entered_at' => now()->subMinutes(3),
         'metadata' => [],
     ]);
 
@@ -224,7 +224,46 @@ test('route play completion records configured evidence once per play run', func
             ->where('user_id', $learner->id)
             ->where('topic_slug', 'algebra')
             ->value('learning_purpose'))
-        ->toBe('Return to the idea and notice what changed.');
+        ->toBe('Return to the idea and notice what changed.')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('play_run_id', $runId)
+            ->pluck('latency_seconds')
+            ->map(fn (mixed $value): int => (int) $value)
+            ->all())
+        ->toBe([180, 180]);
+});
+
+test('completion leaves latency unset when the activity entry time is unavailable', function () {
+    $learner = User::factory()->create();
+    [$node, $activity, $start] = competenceRoute([
+        ['topic' => 'Algebra', 'weight' => 1],
+    ]);
+    $runId = (string) Str::uuid();
+
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => null,
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'play_run_id' => $runId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('play_run_id', $runId)
+        ->value('latency_seconds'))
+        ->toBeNull();
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {

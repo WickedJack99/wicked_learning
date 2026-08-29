@@ -57,7 +57,13 @@ class LearnerProgressService
                 }
 
                 if ($status === 'completed') {
-                    if ($this->routeProgress->progressForRun($routeUser, $activity, $playRunId)) {
+                    $runProgress = $this->routeProgress->progressForRun($routeUser, $activity, $playRunId);
+
+                    if ($runProgress) {
+                        $latencySeconds = $runProgress->last_entered_at
+                            ? max(0, (int) $runProgress->last_entered_at->diffInSeconds($now))
+                            : null;
+
                         $this->competence->awardActivityCompletion(
                             $routeUser,
                             $activity,
@@ -66,6 +72,7 @@ class LearnerProgressService
                             $confidence,
                             $attemptNumber,
                             $assistanceLevel,
+                            $latencySeconds,
                         );
                     }
 

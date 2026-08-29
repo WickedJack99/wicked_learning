@@ -22,6 +22,7 @@ class LearnerCompetenceService
         ?string $confidence = null,
         int $attemptNumber = 1,
         string $assistanceLevel = 'untracked',
+        ?int $latencySeconds = null,
     ): void {
         $topics = $this->activityCompetence->topicsForActivity($activity);
 
@@ -32,7 +33,7 @@ class LearnerCompetenceService
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $confidence, $evidenceType, $latencySeconds, $learningPurpose, $outcome, $playRunId, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -47,6 +48,7 @@ class LearnerCompetenceService
                     'confidence' => $confidence,
                     'attempt_number' => max(1, $attemptNumber),
                     'assistance_level' => $assistanceLevel,
+                    'latency_seconds' => $latencySeconds,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

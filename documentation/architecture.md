@@ -135,6 +135,12 @@ Support and reflection models include:
 - `LearnerReflection`
 - `LearningMessageTopic` and moderated `LearnerMessage` records
 
+`LearnerEvidenceEvent` records the activity-specific evidence type, authored
+learning purpose, outcome, confidence, attempt and assistance context. When a
+route entry timestamp is available, `latency_seconds` records elapsed wall-clock
+time from the learner's latest entry into that activity to completion. It is an
+internal observation, not a measure of attention and not a learner score.
+
 Roles are configurable permission bundles. Administrative resources use `RO`,
 `RU` and `RUD` levels, and map edit access is additionally scoped by the map.
 
