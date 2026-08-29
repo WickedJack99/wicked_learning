@@ -86,6 +86,7 @@ test('admins can add optional feedback guidance to any activity', function () {
             'feedback_purpose' => 'Connect an observation to a reason.',
             'feedback_evidence' => 'Look for a reason grounded in the observation.',
             'feedback_next_action' => 'Try the same idea with a new example.',
+            'feedback_rubric' => "Names the observation.\nConnects it to a reason.\nUses a new example.",
             'title' => 'Explain the observation',
             'type' => 'open_practice',
         ])
@@ -99,6 +100,11 @@ test('admins can add optional feedback guidance to any activity', function () {
         'purpose' => 'Connect an observation to a reason.',
         'evidence' => 'Look for a reason grounded in the observation.',
         'nextAction' => 'Try the same idea with a new example.',
+        'rubric' => [
+            'Names the observation.',
+            'Connects it to a reason.',
+            'Uses a new example.',
+        ],
     ]);
 
     $payload = app(LearningActivitySerializer::class)->serialize($activity);
@@ -110,6 +116,7 @@ test('admins can add optional feedback guidance to any activity', function () {
             'feedback_evidence' => '',
             'feedback_next_action' => '',
             'feedback_purpose' => '',
+            'feedback_rubric' => '',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
 

@@ -1036,6 +1036,18 @@ function FeedbackGuidanceFields({
             name: 'feedback_next_action' as const,
             placeholder: 'e.g. Try the same idea with…',
         },
+        {
+            description:
+                form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer'
+                    ? 'Optional: add up to three observable cues, one per line. These guide noticing; they do not produce a grade.'
+                    : 'Optional: add up to three observable cues, one per line, for later review.',
+            id: 'activity-feedback-rubric',
+            label: 'Observable rubric cues',
+            name: 'feedback_rubric' as const,
+            placeholder:
+                'e.g. Names the observation\nConnects it to a reason\nUses the idea in the changed context',
+        },
     ];
 
     return (

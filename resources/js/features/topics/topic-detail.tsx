@@ -931,6 +931,14 @@ function TopicCompetenceCard({
                                                         {entry.evidenceCriterion}
                                                     </span>
                                                 ) : null}
+                                                {entry.evidenceRubric.length > 0 ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        Cues:{' '}
+                                                        {entry.evidenceRubric.join(
+                                                            ' · ',
+                                                        )}
+                                                    </span>
+                                                ) : null}
                                                 <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                     {evidenceClaimLabel(
                                                         entry.evidenceClaim,

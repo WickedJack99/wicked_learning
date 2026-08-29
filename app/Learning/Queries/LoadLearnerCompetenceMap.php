@@ -180,7 +180,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, learningPurpose: string|null, evidenceCriterion: string|null, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -196,6 +196,9 @@ class LoadLearnerCompetenceMap
                     'evidenceClaim' => $this->evidenceClaim->forEvent($event),
                     'evidenceType' => $event->evidence_type,
                     'evidenceCriterion' => $event->evidence_criterion,
+                    'evidenceRubric' => is_array($event->evidence_rubric)
+                        ? array_values(array_filter($event->evidence_rubric, 'is_string'))
+                        : [],
                     'id' => $event->id,
                     'learningPurpose' => $event->learning_purpose,
                     'nodeHref' => $node

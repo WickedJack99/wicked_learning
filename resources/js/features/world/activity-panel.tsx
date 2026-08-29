@@ -803,7 +803,7 @@ function FeedbackGuidance({
         ['Next action', guidance.nextAction],
     ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
-    if (entries.length === 0) {
+    if (entries.length === 0 && !guidance.rubric?.length) {
         return null;
     }
 
@@ -819,6 +819,20 @@ function FeedbackGuidance({
                     </p>
                 </div>
             ))}
+            {guidance.rubric?.length ? (
+                <div className="md:col-span-3">
+                    <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                        Observable cues
+                    </p>
+                    <ul className="mt-1 grid gap-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {guidance.rubric.map((cue) => (
+                            <li className="pl-4 before:mr-2 before:text-[var(--learner-action-accent)] before:content-['•']" key={cue}>
+                                {cue}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
         </div>
     );
 }

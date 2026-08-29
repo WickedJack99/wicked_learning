@@ -272,6 +272,7 @@ export type CreateActivityForm = {
     feedback_evidence: string;
     feedback_next_action: string;
     feedback_purpose: string;
+    feedback_rubric: string;
     introduction: string;
     learning_intent: string;
     item_grant_background_dark: string;

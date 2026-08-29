@@ -1051,6 +1051,14 @@ function CompetenceReading({
                                                 {evidence.evidenceCriterion}
                                             </span>
                                         ) : null}
+                                        {evidence.evidenceRubric.length > 0 ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                Cues:{' '}
+                                                {evidence.evidenceRubric.join(
+                                                    ' · ',
+                                                )}
+                                            </span>
+                                        ) : null}
                                         {evidence.confidence ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Before answering:{' '}

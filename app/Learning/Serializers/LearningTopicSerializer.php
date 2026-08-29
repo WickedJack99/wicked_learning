@@ -147,6 +147,9 @@ class LearningTopicSerializer
                         'evidenceCriterion' => is_string($entry['evidenceCriterion'] ?? null)
                             ? $entry['evidenceCriterion']
                             : null,
+                        'evidenceRubric' => is_array($entry['evidenceRubric'] ?? null)
+                            ? array_values(array_filter($entry['evidenceRubric'], 'is_string'))
+                            : [],
                         'id' => (int) ($entry['id'] ?? 0),
                         'learningPurpose' => is_string($entry['learningPurpose'] ?? null)
                             ? $entry['learningPurpose']

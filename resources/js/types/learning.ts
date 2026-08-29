@@ -313,6 +313,7 @@ export type LearningFeedbackGuidance = {
     evidence: string | null;
     nextAction: string | null;
     purpose: string | null;
+    rubric?: string[];
 };
 
 export type SharedTaskState = {

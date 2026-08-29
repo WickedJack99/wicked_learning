@@ -15,6 +15,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         feedback_evidence: '',
         feedback_next_action: '',
         feedback_purpose: '',
+        feedback_rubric: '',
         introduction: '',
         learning_intent: '',
         item_grant_background_dark: '',
@@ -196,6 +197,10 @@ export function activityFormFromActivity(
         feedback_purpose: feedbackGuidanceField(
             activity.config.feedbackGuidance,
             'purpose',
+        ),
+        feedback_rubric: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'rubric',
         ),
         introduction: activity.introduction ?? '',
         learning_intent: stringConfig(activity.config.learningIntent),
@@ -610,9 +615,21 @@ function competenceTopics(value: unknown): ActivityForm['competence_topics'] {
 
 function feedbackGuidanceField(
     value: unknown,
-    field: 'purpose' | 'evidence' | 'nextAction',
+    field: 'purpose' | 'evidence' | 'nextAction' | 'rubric',
 ): string {
-    return isRecord(value) ? stringConfig(value[field]) : '';
+    if (!isRecord(value)) {
+        return '';
+    }
+
+    if (field === 'rubric') {
+        return Array.isArray(value[field])
+            ? value[field]
+                  .filter((entry): entry is string => typeof entry === 'string')
+                  .join('\n')
+            : '';
+    }
+
+    return stringConfig(value[field]);
 }
 
 function ambientSoundEnabled(value: unknown): boolean {

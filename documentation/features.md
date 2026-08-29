@@ -216,7 +216,8 @@ reflection, review and transfer as the kinds of activity they were rather than
 turning them into a shared score.
 For explanation and transfer moments, the evidence ledger also retains the
 author's observable “what to notice” criterion that was active when the moment
-was recorded.
+was recorded. Authors can add up to three optional observable rubric cues, one
+per line; these are learner-facing prompts for noticing, not pass/fail grades.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

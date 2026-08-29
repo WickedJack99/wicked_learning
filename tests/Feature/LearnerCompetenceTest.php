@@ -303,6 +303,10 @@ test('explanation and transfer evidence require an observable authored criterion
             'learningIntent' => 'transfer',
             'feedbackGuidance' => [
                 'evidence' => 'Look for the idea working in a changed context.',
+                'rubric' => [
+                    'Names the changed context.',
+                    'Connects the idea to the new situation.',
+                ],
             ],
         ],
     ]);
@@ -327,7 +331,15 @@ test('explanation and transfer evidence require an observable authored criterion
         ->and(LearnerEvidenceEvent::query()
             ->where('learning_activity_id', $transfer->id)
             ->value('evidence_criterion'))
-        ->toBe('Look for the idea working in a changed context.');
+        ->toBe('Look for the idea working in a changed context.')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('learning_activity_id', $transfer->id)
+            ->firstOrFail()
+            ->evidence_rubric)
+        ->toBe([
+            'Names the changed context.',
+            'Connects the idea to the new situation.',
+        ]);
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {

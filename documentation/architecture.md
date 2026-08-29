@@ -155,12 +155,13 @@ Support and reflection models include:
 
 `LearnerEvidenceEvent` records the activity-specific evidence type, authored
 learning purpose, observable evidence criterion, outcome, confidence, attempt
-and assistance context. The purpose and criterion are snapshots of the
-activity guidance at completion time, so later author edits do not rewrite the
-meaning of an earlier learning moment. When a route entry timestamp is
-available, `latency_seconds` records elapsed wall-clock time from the learner's
-latest entry into that activity to completion. It is an internal observation,
-not a measure of attention and not a learner score.
+and assistance context. For explanation and transfer events it also stores up
+to three normalized rubric cues. The purpose, criterion and cues are snapshots
+of the activity guidance at completion time, so later author edits do not
+rewrite the meaning of an earlier learning moment. When a route entry
+timestamp is available, `latency_seconds` records elapsed wall-clock time from
+the learner's latest entry into that activity to completion. It is an internal
+observation, not a measure of attention and not a learner score.
 `LearnerReviewAttempt` keeps a separate, bounded history for completed learner-
 chosen revisits. The competence query loads only the latest twelve attempts with
 their activity and node context; it intentionally omits review metadata and
