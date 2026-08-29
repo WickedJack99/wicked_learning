@@ -129,6 +129,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 ## Artisan
 
 - Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
+- After adding or pulling database migrations, run `php artisan migrate --no-interaction` locally and verify with `php artisan migrate:status --no-interaction` before testing or handing off the change. A migration committed to Git does not update an existing local database automatically.
 - Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
 - Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
 
