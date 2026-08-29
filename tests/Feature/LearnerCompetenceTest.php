@@ -2,6 +2,7 @@
 
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Learning\Services\LearnerCompetenceService;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -264,6 +265,52 @@ test('completion leaves latency unset when the activity entry time is unavailabl
         ->where('play_run_id', $runId)
         ->value('latency_seconds'))
         ->toBeNull();
+});
+
+test('explanation and transfer evidence require an observable authored criterion', function () {
+    $learner = User::factory()->create();
+    [, $explanation] = competenceRoute([
+        ['topic' => 'Systems Thinking', 'weight' => 1],
+    ]);
+    $explanation->update([
+        'config' => [
+            ...$explanation->config,
+            'learningIntent' => 'explain',
+        ],
+    ]);
+
+    app(LearnerCompetenceService::class)->awardActivityCompletion(
+        $learner,
+        $explanation,
+        (string) Str::uuid(),
+    );
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('learning_activity_id', $explanation->id)
+        ->value('evidence_type'))->toBe('participate');
+
+    [, $transfer] = competenceRoute([
+        ['topic' => 'Systems Thinking', 'weight' => 1],
+    ]);
+    $transfer->update([
+        'config' => [
+            ...$transfer->config,
+            'learningIntent' => 'transfer',
+            'feedbackGuidance' => [
+                'evidence' => 'Look for the idea working in a changed context.',
+            ],
+        ],
+    ]);
+
+    app(LearnerCompetenceService::class)->awardActivityCompletion(
+        $learner,
+        $transfer,
+        (string) Str::uuid(),
+    );
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('learning_activity_id', $transfer->id)
+        ->value('evidence_type'))->toBe('transfer');
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {

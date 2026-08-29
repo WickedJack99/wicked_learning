@@ -31,7 +31,12 @@ class ActivityCompetenceConfiguration
 
     public function evidenceTypeForActivity(LearningActivity $activity): string
     {
-        return $this->learningIntentForActivity($activity);
+        $intent = $this->learningIntentForActivity($activity);
+
+        return in_array($intent, ['explain', 'transfer'], true)
+            && ! $this->hasObservableEvidenceGuide($activity)
+            ? 'participate'
+            : $intent;
     }
 
     public function learningIntentForActivity(LearningActivity $activity): string
@@ -142,5 +147,15 @@ class ActivityCompetenceConfiguration
     private function topicSlug(string $topic): string
     {
         return Str::limit(Str::slug($topic), 140, '');
+    }
+
+    private function hasObservableEvidenceGuide(LearningActivity $activity): bool
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+        $guidance = is_array($config['feedbackGuidance'] ?? null)
+            ? $config['feedbackGuidance']
+            : [];
+
+        return trim((string) ($guidance['evidence'] ?? '')) !== '';
     }
 }

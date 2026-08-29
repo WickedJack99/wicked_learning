@@ -100,6 +100,12 @@ indexed ready time, plus a small learner-facing reason for the pause or later
 choice. This keeps due explanations deterministic without exposing internal
 schedule state or adding a second scheduling system.
 
+`ActivityCompetenceConfiguration` keeps explanation and transfer evidence
+conservative: their authored learning purpose is only emitted as that evidence
+type when feedback guidance includes an observable criterion. Otherwise the
+completion is recorded as participation while the activity itself remains
+usable.
+
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover
 their connectors without hard-coding one linear course model.

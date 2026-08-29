@@ -125,6 +125,9 @@ activity review inspects the guidance for clarity. It is not a score or a
 learner assessment. When a purpose is configured, it is captured with the
 resulting evidence event and shown alongside that learning moment in the
 learner's competence ledger; older moments without a purpose remain valid.
+Explanation and transfer evidence also require an authored observable “what to
+notice” criterion; without one, completion remains represented as
+participation rather than making a stronger claim than the activity supports.
 
 When a learner chooses to return after a review pause, the due activity is
 opened as a review attempt. The Learning Desk and Journal explain when it

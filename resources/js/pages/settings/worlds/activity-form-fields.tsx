@@ -1019,7 +1019,10 @@ function FeedbackGuidanceFields({
         },
         {
             description:
-                'Point to something observable in the learner’s response or action.',
+                form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer'
+                    ? 'Required to represent this as explanation or transfer evidence: point to something observable in the learner’s response or action.'
+                    : 'Point to something observable in the learner’s response or action.',
             id: 'activity-feedback-evidence',
             label: 'What to notice',
             name: 'feedback_evidence' as const,
