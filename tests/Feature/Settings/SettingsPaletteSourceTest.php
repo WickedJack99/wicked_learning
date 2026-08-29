@@ -77,6 +77,7 @@ test('learning support settings surfaces do not bypass palette tokens', function
         resource_path('js/components/two-factor-recovery-codes.tsx'),
         resource_path('js/features/settings/learning-support-panel.tsx'),
         resource_path('js/features/settings/sound-settings-panel.tsx'),
+        resource_path('js/features/settings/access-group-management-panel.tsx'),
         resource_path('js/pages/settings/admin-panel.tsx'),
         resource_path('js/pages/settings/journal.tsx'),
     ];

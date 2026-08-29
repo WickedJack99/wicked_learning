@@ -148,15 +148,15 @@ export function AccessGroupManagementPanel({
 
     return (
         <div className="flex h-full min-h-0 flex-col">
-            <div className="flex shrink-0 flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+            <div className="flex shrink-0 flex-col gap-4 border-b border-[var(--settings-border-color)] pb-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <div className="mb-3 flex items-center gap-3 text-[var(--settings-accent)]">
                         <Users className="size-5" />
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                        <h2 className="text-lg font-semibold text-foreground">
                             Groups
                         </h2>
                     </div>
-                    <p className="max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    <p className="max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
                         Manage shared learner groups, memberships and
                         admin-visible chat voting state.
                     </p>
@@ -223,12 +223,12 @@ function GroupEditor({
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto pr-1">
-                <section className="grid gap-4 border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
+                <section className="grid gap-4 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
                     <div>
                         <h2 className="text-lg font-semibold">
                             {selectedGroup ? selectedGroup.name : 'New group'}
                         </h2>
-                        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        <p className="mt-1 text-sm leading-6 text-[var(--settings-muted-text)]">
                             Groups can share chat, activity state and selected
                             map editing permissions.
                         </p>
@@ -262,7 +262,7 @@ function GroupEditor({
 
                     <Field label="Description" message={errors.description}>
                         <textarea
-                            className="min-h-24 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-950"
+                            className="min-h-24 rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 py-2 text-sm"
                             value={form.description}
                             onChange={(event) =>
                                 onFormChange({
@@ -298,7 +298,7 @@ function GroupEditor({
                     <AdminChatPreview group={selectedGroup} />
                 ) : null}
             </div>
-            <footer className="flex shrink-0 flex-wrap gap-2 border-t border-slate-200 py-4 dark:border-white/10">
+            <footer className="flex shrink-0 flex-wrap gap-2 border-t border-[var(--settings-border-color)] py-4">
                 <Button
                     disabled={saving || !hasGroupChanges}
                     onClick={onSaveGroup}
@@ -331,16 +331,16 @@ function MembersPanel({
     users: AccessGroupUser[];
 }) {
     return (
-        <section className="grid gap-3 border border-slate-200 bg-slate-50/80 p-4 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <section className="grid gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
             <div>
                 <h2 className="text-sm font-semibold">Members</h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
                     Assign any number of users to this group.
                 </p>
             </div>
-            <div className="grid max-h-80 gap-2 overflow-y-auto border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/70">
+            <div className="grid max-h-80 gap-2 overflow-y-auto border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-3">
                 {users.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-3 text-sm text-[var(--settings-muted-text)]">
                         No users available.
                     </p>
                 ) : null}
@@ -359,7 +359,7 @@ function MembersPanel({
                             <span className="block truncate font-medium">
                                 {user.name}
                             </span>
-                            <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                            <span className="block truncate text-xs text-[var(--settings-muted-text)]">
                                 {user.email}
                             </span>
                         </span>
@@ -381,9 +381,9 @@ function GroupList({
     selectedGroupId: number | 'new';
 }) {
     return (
-        <aside className="grid h-full min-h-0 content-start gap-2 overflow-y-auto border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-[#0b1117]/80">
+        <aside className="grid h-full min-h-0 content-start gap-2 overflow-y-auto border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-3">
             {groups.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-4 text-sm text-[var(--settings-muted-text)]">
                     No groups yet.
                 </p>
             ) : null}
@@ -393,14 +393,14 @@ function GroupList({
                         'rounded-lg border p-3 text-left text-sm transition',
                         selectedGroupId === group.id
                             ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
-                            : 'border-slate-200 bg-white hover:border-slate-300 dark:border-white/10 dark:bg-slate-950/50 dark:hover:border-white/20',
+                            : 'border-[var(--settings-border-color)] bg-[var(--settings-input-background)] hover:border-[color-mix(in_srgb,var(--settings-accent)_42%,transparent)]',
                     )}
                     key={group.id}
                     onClick={() => onSelect(group)}
                     type="button"
                 >
                     <span className="block font-semibold">{group.name}</span>
-                    <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                    <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
                         {group.memberCount} members
                     </span>
                 </button>
@@ -411,14 +411,14 @@ function GroupList({
 
 function AdminChatPreview({ group }: { group: AccessLearningGroup }) {
     return (
-        <section className="grid gap-3 border border-slate-200 p-4 dark:border-white/10">
+        <section className="grid gap-3 border border-[var(--settings-border-color)] p-4">
             <div className="flex items-center justify-between gap-3">
                 <div>
                     <h2 className="flex items-center gap-2 text-sm font-semibold">
                         <MessageSquareText className="size-4" />
                         Admin-visible chat
                     </h2>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
                         {group.adminChatVisible
                             ? 'Members voted to allow admin viewing.'
                             : group.adminChatVisibleUntil
@@ -426,7 +426,7 @@ function AdminChatPreview({ group }: { group: AccessLearningGroup }) {
                               : 'Not visible until more than half of members vote to allow it.'}
                     </p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs dark:bg-white/10">
+                <span className="rounded-full bg-[color-mix(in_srgb,var(--settings-muted-text)_12%,transparent)] px-2 py-1 text-xs">
                     {group.adminChatVoteCount}/{group.adminChatRequiredVotes}
                 </span>
             </div>
@@ -435,13 +435,13 @@ function AdminChatPreview({ group }: { group: AccessLearningGroup }) {
                 className="grid h-72 content-start gap-2 overflow-y-auto overscroll-contain"
             >
                 {group.messages.length === 0 ? (
-                    <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
+                    <p className="rounded-lg border border-dashed border-[var(--settings-border-color)] p-3 text-sm text-[var(--settings-muted-text)]">
                         No admin-visible messages.
                     </p>
                 ) : null}
                 {group.messages.map((message) => (
                     <article
-                        className="rounded-lg bg-slate-100 p-3 text-sm dark:bg-white/10"
+                        className="rounded-lg bg-[color-mix(in_srgb,var(--settings-muted-text)_12%,transparent)] p-3 text-sm"
                         key={message.id}
                     >
                         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -449,7 +449,7 @@ function AdminChatPreview({ group }: { group: AccessLearningGroup }) {
                                 {message.user?.name ?? 'Unknown user'}
                             </p>
                             <time
-                                className="text-xs text-slate-500 dark:text-slate-400"
+                                className="text-xs text-[var(--settings-muted-text)]"
                                 dateTime={message.createdAt ?? undefined}
                             >
                                 {formatMessageTime(message.createdAt)}
