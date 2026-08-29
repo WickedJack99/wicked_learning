@@ -147,7 +147,7 @@ export function SettingsConfigurationShell({
 
     return (
         <main
-            className="settings-surface fixed inset-0 overflow-hidden bg-[var(--settings-content-background)] px-4 py-5 text-slate-950 dark:text-slate-100"
+            className="settings-surface fixed inset-0 overflow-hidden bg-[var(--settings-content-background)] px-4 py-5 text-foreground"
             style={getSettingsPresentationStyle(
                 props.publicPresentation,
                 resolvedAppearance,
@@ -317,7 +317,7 @@ export function SettingsPanelHeader({
                         </p>
                     </div>
                 ) : null}
-                <h2 className="text-2xl font-semibold tracking-normal text-slate-950 dark:text-white">
+                <h2 className="text-2xl font-semibold tracking-normal text-foreground">
                     {title}
                 </h2>
                 {description ? (
@@ -530,7 +530,7 @@ export function SettingsLevelBanner({
                         )}
                     >
                         {BannerIcon ? <BannerIcon className="size-5" /> : null}
-                        <h2 className="text-lg font-semibold text-slate-950 dark:text-white">
+                        <h2 className="text-lg font-semibold text-foreground">
                             {bannerTitle}
                         </h2>
                     </div>

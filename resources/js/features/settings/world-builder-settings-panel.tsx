@@ -200,7 +200,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                         'Review queue',
                     )}
                 </h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
                     {reviewItems.length > 0
                         ? t(
                               reviewItems.length === 1
@@ -234,7 +234,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                             {visibleItems.map(({ activity, map, node }) => (
                                 <Link
                                     aria-label={`Review ${activity.title}`}
-                                    className="group rounded-lg border border-slate-200 p-4 transition hover:border-[var(--settings-accent)] dark:border-white/10"
+                                    className="group rounded-lg border border-[var(--settings-border-color)] p-4 transition hover:border-[var(--settings-accent)]"
                                     href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes&reviewActivity=${activity.id}`}
                                     key={activity.id}
                                 >
@@ -246,7 +246,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                                             <h3 className="mt-1 truncate font-semibold">
                                                 {activity.title}
                                             </h3>
-                                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                                            <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
                                                 {node.title} · {activity.type}
                                             </p>
                                         </div>

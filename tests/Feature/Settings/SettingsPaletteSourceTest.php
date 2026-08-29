@@ -78,6 +78,7 @@ test('learning support settings surfaces do not bypass palette tokens', function
         resource_path('js/features/settings/learning-support-panel.tsx'),
         resource_path('js/features/settings/sound-settings-panel.tsx'),
         resource_path('js/features/settings/access-group-management-panel.tsx'),
+        resource_path('js/features/settings/world-builder-settings-panel.tsx'),
         resource_path('js/pages/settings/admin-panel.tsx'),
         resource_path('js/pages/settings/journal.tsx'),
     ];
@@ -108,6 +109,14 @@ test('the palette workbench uses the semantic foreground token for preview text'
         ->toContain('bg-[var(--palette-workbench-content)] text-foreground')
         ->toContain('hover:text-foreground')
         ->not->toContain('text-white');
+});
+
+test('shared settings headings use the semantic foreground token', function () {
+    $shell = file_get_contents(resource_path('js/components/settings-configuration-shell.tsx'));
+
+    expect($shell)
+        ->toContain('text-foreground')
+        ->not->toContain('text-slate-950 dark:text-white');
 });
 
 test('palette preview tabs expose selection and keyboard navigation semantics', function () {
