@@ -47,7 +47,11 @@ class LearnerProgressService
 
             $metadata = is_array($progress->metadata) ? $progress->metadata : [];
             unset($metadata['revisitInvitation']);
-            $progress->metadata = $metadata;
+            $progress->forceFill([
+                'metadata' => $metadata,
+                'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_NONE,
+                'revisit_available_at' => null,
+            ]);
         }
 
         $progress->save();
@@ -121,9 +125,10 @@ class LearnerProgressService
         }
 
         $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $recordedAt = Carbon::now();
         $checkIn = [
             'feeling' => $feeling,
-            'recordedAt' => Carbon::now()->toIso8601String(),
+            'recordedAt' => $recordedAt->toIso8601String(),
         ];
 
         if ($note !== null && $note !== '') {
@@ -141,7 +146,15 @@ class LearnerProgressService
         $metadata['learningCheckIns'] = array_values(array_slice($history, -30));
         $metadata['learningCheckIn'] = $checkIn;
 
-        $progress->forceFill(['metadata' => $metadata])->save();
+        $progress->forceFill([
+            'metadata' => $metadata,
+            'revisit_status' => $nextDirection === 'revisit'
+                ? LearnerActivityProgress::REVISIT_STATUS_PENDING
+                : LearnerActivityProgress::REVISIT_STATUS_NONE,
+            'revisit_available_at' => $nextDirection === 'revisit'
+                ? $recordedAt->copy()->addDays(LearnerActivityProgress::REVISIT_AVAILABLE_AFTER_DAYS)
+                : null,
+        ])->save();
 
         return $progress;
     }
@@ -161,17 +174,28 @@ class LearnerProgressService
         }
 
         $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $updatedAt = Carbon::now();
+        $isSnoozed = $action === 'snooze';
+        $availableAt = $isSnoozed
+            ? $updatedAt->copy()->addDays(LearnerActivityProgress::REVISIT_SNOOZE_DAYS)
+            : null;
         $invitation = [
             'status' => $action === 'dismiss' ? 'dismissed' : 'snoozed',
-            'updatedAt' => Carbon::now()->toIso8601String(),
+            'updatedAt' => $updatedAt->toIso8601String(),
         ];
 
-        if ($action === 'snooze') {
-            $invitation['until'] = Carbon::now()->addDays(7)->toIso8601String();
+        if ($isSnoozed) {
+            $invitation['until'] = $availableAt?->toIso8601String();
         }
 
         $metadata['revisitInvitation'] = $invitation;
-        $progress->forceFill(['metadata' => $metadata])->save();
+        $progress->forceFill([
+            'metadata' => $metadata,
+            'revisit_status' => $isSnoozed
+                ? LearnerActivityProgress::REVISIT_STATUS_SNOOZED
+                : LearnerActivityProgress::REVISIT_STATUS_DISMISSED,
+            'revisit_available_at' => $availableAt,
+        ])->save();
 
         return $progress;
     }

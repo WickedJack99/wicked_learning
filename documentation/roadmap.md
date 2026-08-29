@@ -30,9 +30,10 @@ single hidden score.
 
 Add transparent learner-controlled retrieval support: recall items, review
 schedules, review attempts, deterministic due explanations, snooze and
-replacement. Start with an inspectable rule-based scheduler and a finite due
-queue. Adaptive or AI scheduling should wait until the baseline is measurable
-and understandable.
+replacement. The first finite return queue now persists its due state and
+queries only bounded due candidates; extend it with explicit review attempts,
+recall items and richer due explanations. Adaptive or AI scheduling should
+wait until the baseline is measurable and understandable.
 
 ### 3. Self-explanation and transfer
 

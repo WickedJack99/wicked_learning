@@ -88,6 +88,11 @@ can persist more specific state without putting it into the URL:
 - message Activities share a MapAsset-scoped `LearningMessageTopic`.
 - portals connect Activity playback to another MapAsset or map.
 
+Completed activity progress also stores the indexed state of a learner-chosen
+revisit invitation. Its status and due timestamp keep the finite return queue
+bounded at query time; the original check-in metadata remains the learner-facing
+explanation and compatibility source for existing records.
+
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover
 their connectors without hard-coding one linear course model.

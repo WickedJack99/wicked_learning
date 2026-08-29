@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 /** Loads learner-chosen activities that are ready to revisit after a pause. */
 class LoadLearnerRevisitInvitations
 {
-    private const AVAILABLE_AFTER_DAYS = 3;
+    private const MAX_DUE_CANDIDATES = 48;
 
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
@@ -21,15 +21,22 @@ class LoadLearnerRevisitInvitations
     public function handle(User $user): array
     {
         $now = Carbon::now();
-        $availableBefore = $now->copy()->subDays(self::AVAILABLE_AFTER_DAYS);
 
         return LearnerActivityProgress::query()
             ->where('user_id', $user->id)
             ->where('status', 'completed')
+            ->whereIn('revisit_status', [
+                LearnerActivityProgress::REVISIT_STATUS_PENDING,
+                LearnerActivityProgress::REVISIT_STATUS_SNOOZED,
+            ])
+            ->whereNotNull('revisit_available_at')
+            ->where('revisit_available_at', '<=', $now)
             ->with('activity.node.map')
+            ->orderByDesc('revisit_available_at')
             ->latest('updated_at')
+            ->limit(self::MAX_DUE_CANDIDATES)
             ->get()
-            ->map(function (LearnerActivityProgress $progress) use ($availableBefore, $user): ?array {
+            ->map(function (LearnerActivityProgress $progress) use ($user): ?array {
                 $activity = $progress->activity;
                 $node = $activity?->node;
                 $map = $node?->map;
@@ -50,15 +57,10 @@ class LoadLearnerRevisitInvitations
                     return null;
                 }
 
-                $snoozedUntil = $this->dateFrom($invitation['until'] ?? null);
-                if ($snoozedUntil?->isFuture() ?? false) {
-                    return null;
-                }
-
                 $checkIn = $this->latestRevisitCheckIn($metadata);
                 $recordedAt = $this->dateFrom($checkIn['recordedAt'] ?? null);
 
-                if ($recordedAt === null || $recordedAt->greaterThan($availableBefore)) {
+                if ($recordedAt === null) {
                     return null;
                 }
 
@@ -69,7 +71,7 @@ class LoadLearnerRevisitInvitations
                     ], false),
                     'activityId' => $activity->id,
                     'activityTitle' => $activity->title,
-                    'availableAfterDays' => self::AVAILABLE_AFTER_DAYS,
+                    'availableAfterDays' => LearnerActivityProgress::REVISIT_AVAILABLE_AFTER_DAYS,
                     'availableSince' => $recordedAt->toIso8601String(),
                     'mapTitle' => $map->title,
                     'nodeHref' => route('world', [

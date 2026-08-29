@@ -144,6 +144,31 @@ test('a learner can save an optional next direction with a check-in', function (
         ->assertJsonPath('checkIns.0.nextDirection', 'related');
 });
 
+test('a revisit check-in persists its due timestamp', function () {
+    Carbon::setTestNow('2026-08-26 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.check-in', $activity), [
+            'next_direction' => 'revisit',
+        ])
+        ->assertOk();
+
+    expect(LearnerActivityProgress::query()->firstOrFail())
+        ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_PENDING)
+        ->revisit_available_at->toEqual(now()->addDays(3));
+});
+
 test('a check-in only accepts supported next directions', function () {
     [$learner, $activity] = checkInActivityContext();
     LearnerActivityProgress::query()->create([
@@ -185,6 +210,10 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
         ],
     ]);
 
+    expect(LearnerActivityProgress::query()->firstOrFail())
+        ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_PENDING)
+        ->revisit_available_at->toEqual(now()->subDay());
+
     $this->actingAs($learner)
         ->getJson(route('learning.journal.index'))
         ->assertOk()
@@ -200,6 +229,10 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
 
     expect(LearnerActivityProgress::query()->firstOrFail()->metadata['revisitInvitation']['until'])
         ->toBe(now()->addDays(7)->toIso8601String());
+
+    expect(LearnerActivityProgress::query()->firstOrFail())
+        ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_SNOOZED)
+        ->revisit_available_at->toEqual(now()->addDays(7));
 
     $this->actingAs($learner)
         ->getJson(route('learning.journal.index'))
@@ -238,6 +271,10 @@ test('completing a reopened activity consumes its revisit invitation', function 
 
     expect(LearnerActivityProgress::query()->firstOrFail()->metadata)
         ->not->toHaveKey('revisitInvitation');
+
+    expect(LearnerActivityProgress::query()->firstOrFail())
+        ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_NONE)
+        ->revisit_available_at->toBeNull();
 });
 
 test('a learner can hide a revisit invitation and unsupported actions are rejected', function () {
@@ -267,6 +304,10 @@ test('a learner can hide a revisit invitation and unsupported actions are reject
 
     expect(LearnerActivityProgress::query()->firstOrFail()->metadata['revisitInvitation']['status'])
         ->toBe('dismissed');
+
+    expect(LearnerActivityProgress::query()->firstOrFail())
+        ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_DISMISSED)
+        ->revisit_available_at->toBeNull();
 
     $invalidActionResponse = $this->actingAs($learner)
         ->postJson(route('learning.activities.revisit-invitation', $activity), [
