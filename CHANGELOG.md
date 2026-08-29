@@ -1,5 +1,10 @@
 # Changelog
 
+This file records notable changes in released versions. Git history remains the
+complete development record; current capabilities belong in
+`documentation/features.md`, and active future direction belongs in
+`documentation/roadmap.md`.
+
 This project follows Semantic Versioning while it is in the `0.x` demo phase.
 Breaking changes are allowed between minor versions while the core learning
 experience is still being tested.

@@ -177,6 +177,7 @@ Important areas:
 The active documentation has one home per idea:
 
 - [Documentation index](documentation/README.md)
+- [Changelog](CHANGELOG.md)
 - [Product direction](documentation/product.md)
 - [Local setup](documentation/setup.md)
 - [Feature overview](documentation/features.md)

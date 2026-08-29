@@ -5,12 +5,19 @@ README stays public-facing; these files describe product direction, implemented
 behavior, architecture and operation without duplicating the development
 history.
 
+Git history is the complete development record. `CHANGELOG.md` contains only
+notable changes in released versions. `features.md` describes current
+implemented capabilities, while `roadmap.md` records active future and
+research direction.
+
 Wicked Learning is designed as a generic, domain-agnostic platform. A deployment can adapt maps, MapAssets, activities, visuals, media, public pages and terminology to a learning domain while keeping the same underlying architecture.
 
 ## Start here
 
 - [Product direction](product.md) - durable product identity, design lenses,
   boundaries and open questions.
+- [Changelog](../CHANGELOG.md) - notable changes in released versions, not a
+  second feature specification.
 - [Local setup](setup.md) - install dependencies, configure the database and start the development server.
 - [Feature overview](features.md) - what the current prototype can do from a learner and admin perspective.
 - [Architecture notes](architecture.md) - how the main Laravel, Inertia and React pieces fit together.

@@ -152,8 +152,12 @@ remain distinct rather than being collapsed into one disguised score.
 
 The qualitative competence map and topic trails should therefore answer
 “what can I notice or revisit?” rather than “how many points did I earn?”.
-Learner words, confidence and assistance context remain private unless the
-learner deliberately shares them through an explicitly scoped workflow.
+Learner words, confidence and assistance context are private by default. The
+implemented sharing path is an explicit learner request for feedback on a
+selected journal page and selected eligible domain; it does not make journal
+content generally visible to staff or peers. The feedback queue receives a
+page only through that explicit request; the separate support-signals view
+receives scoped evidence signals, not journal text.
 
 ## Authoring philosophy
 

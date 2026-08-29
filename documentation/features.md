@@ -24,15 +24,14 @@ Registration requires a valid registration token. Authenticated users can edit
 their profile and language, choose appearance and sound preferences, manage
 passwords, passkeys and two-factor authentication, and review notifications.
 Successful password changes and two-factor or passkey lifecycle changes also
-appear in the administrator's per-user access history without storing a
-password, secret, credential identifier or any other derived credential value.
+appear in the administrator's per-user access history without exposing
+credentials.
 
 ### Freeform World Maps
 
 Learners explore maps made from freely positioned MapAssets. A MapAsset combines
-the visible map object with the learning place learners can focus; the internal
-`LearningNode` record anchors activities, progress and portals behind the
-MapAsset. It is not a learner-facing object or an additional authoring step.
+the visible map object with the learning place learners can focus, including
+its activities, routes and available interactions.
 
 Current map behavior includes:
 
@@ -40,10 +39,7 @@ Current map behavior includes:
 - transparent PNG and WebP artwork with overlapping visual layers
 - image framing can show the full image or fill and crop its square frame, with
   center, top, right, bottom or left anchoring
-- image-alpha-aware pointer hit areas that follow visible pixels instead of the
-  surrounding image rectangle
-- image framing and alpha-aware hit testing use the same fit and anchor
-  settings
+- click targets can follow visible artwork instead of transparent image edges
 - responsive hit testing shared by the learner map and World Builder preview
 - normal, hover and focused visuals with configurable borders, labels, colors
   and optional highlight images
@@ -98,14 +94,11 @@ rules. The activity page keeps the global header focused on navigation and shows
 the current topic, map, route and place in a compact context panel beside the
 player.
 
-Selecting a route preserves that route's start, current activity and play run
-through the initial navigation handoff. A stale run state that points outside
-the selected route's reachable graph is repaired at the route start rather than
-silently opening another route's activity. New activity-to-activity graph
-connections use the destination activity title as their default label; terminal
-connections retain their connector outcome label, and authored labels remain
-unchanged. Authors can select a graph connection to edit its learner-facing
-label or delete it explicitly; clearing the label restores the safe default.
+Selecting a route opens that route and resumes its saved position when the
+position is still valid; it does not silently switch to another route. Activity
+connections have meaningful learner-facing labels, and authors can edit or
+remove those labels while the platform supplies a safe default when no label is
+authored.
 
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. The route remains a suggested way in,
@@ -158,11 +151,10 @@ filtering, and managed by Learning Support alongside the original messages.
 
 The learner journal is a private Markdown workspace with custom pages,
 reflection-created pages, search, writing/rendered modes, autosaved drafts and
-export. The shared Journal action opens it as a focused overlay; `/journal` is a
-deep link that redirects to the learning desk with the overlay open, while
-`/learning/journal` is its lazy-loading JSON endpoint. Learners can explicitly
-request feedback for one page from an eligible journal, group or organization
-domain; journals are not a general staff-reading surface.
+export. The shared Journal action opens it as a focused workspace. Learners can
+explicitly request feedback for one page from an eligible journal, group or
+organization domain; this explicit request is the supported sharing path, and
+journals are not a general staff-reading surface.
 
 Recent journal check-ins retain their related learning areas. Each area can
 open its focused competence-map reading, while the activity itself remains a
@@ -180,23 +172,22 @@ directions may be useful after a particular activity. The choice set remains
 bounded and optional.
 
 When the learner chose `Return to this place`, the Journal can surface the
-activity again after a short spacing window. The learner can open it, choose
-`Later` to defer it, or choose `Hide` to remove the invitation. This is a quiet
-return surface rather than a notification or required task queue.
+activity again after a short spacing window. The learner can open it, defer it
+or hide the invitation. This is a quiet return surface rather than a
+notification or required task queue.
 
 Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and
 its map place. When two or more private reflections are connected to the
-topic's published map, the trail also places the earliest and latest reflection
-side by side as an optional look back, keeps intermediate reflections in a
-small paginated chronological view, and links to the full Journal.
+topic's published map, the trail can offer a bounded chronological look back and
+link to the full Journal.
 
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments.
-The evidence ledger keeps up to twelve recent events reachable through small
-paginated groups in the topic trail and selected-star reading, while authorized
-support staff receive scoped signals for orientation and support conversations
-rather than ranking.
+The evidence ledger keeps a bounded set of recent events reachable through the
+topic trail and selected-star reading. Authorized support staff receive scoped
+signals for orientation and support conversations rather than ranking; they do
+not receive private journal text through this view.
 Question activities also retain the learner's pre-answer confidence, the
 correctness outcome, attempt order and independent-assistance context. The
 learner can see the confidence and attempt context in the competence reading;
@@ -211,11 +202,6 @@ description and evidence vocabulary in that same compact link rather than
 repeating a second list of the same areas. Separate links remain available when
 a competence area also relates to another published topic.
 
-The demo learning world uses the same two competence topics across its NPC
-dialogue, question, review, obstacle and field-note activities. This keeps the example
-world inspectable end to end: different kinds of participation can leave
-different evidence types without introducing a separate progression system.
-
 Organizations, learning groups, group chat and shared-task activities form an
 early collaboration slice. Their purpose is contribution and coordination, not
 public scoring.
@@ -223,20 +209,12 @@ public scoring.
 ### Tools, Items And Portals
 
 Tools are reusable learner capabilities. They can be granted by activities or
-NPC dialogue, equipped from the learner controls, used in obstacles, reveal
-hidden MapAssets and satisfy configured unlock rules.
-
-The demo Pattern lens includes separate dark and light SVG visuals so a seeded
-tool is immediately visible wherever learners acquire or equip it.
-
-The seeded noisy-gate obstacle also includes dark and light scene and gate
-visuals. During playback, the learner opens the hammer control, chooses the
-owned Pattern lens and clicks the gate target. A failed image load falls back to
-an explicit target prompt so the action does not become invisible.
+NPC dialogue, equipped from learner controls, used in obstacles, reveal hidden
+MapAssets and satisfy configured unlock rules.
 
 Items are consumable inventory objects used by item-grant and item-obstacle
-activities. Probability rolls and inventory mutations happen on the backend so
-browser replay cannot mint repeated grants inside one route run.
+activities. Grants and inventory changes are persisted with the learner's
+activity progress.
 
 Portal activities connect MapAssets and maps. Entry portals own the destination;
 exit portals receive the learner and can show or skip an arrival scene. Portal
@@ -298,32 +276,23 @@ The World Builder provides:
 - activity, NPC dialogue and Markdown graph editors
 
 The activity graph also provides a local template action for eligible
-activities. It opens an editable copy in the current MapAsset, generates a
-fresh slug when saved and places the new activity in the AI review queue. This
-is intentionally a local starting point. The copy dialog identifies the
-current MapAsset scope and calls out copied message topics or portal
-destinations that need a tutor's attention. A shared cross-map template library
-is not yet part of the prototype.
+activities. It opens an editable copy in the current MapAsset and flags copied
+message topics or portal destinations that need an author's attention. A shared
+cross-map template library is not yet part of the prototype.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an
 author can discover and enter the scoped review queue without opening maps one
 by one.
 World Builder also has a world-level Review queue section that gathers waiting
-MapAssets across the current world, paginates them as the collection grows and
-opens each item at its exact node editor. Review execution remains scoped to
-one activity at a time; the list is an entry point rather than batch approval.
+MapAssets across the current world and paginates them as the collection grows.
+Review execution remains scoped to one activity at a time; the list is an entry
+point rather than batch approval.
 Review results can open the affected Activity editor directly, so content
 suggestions and optional metadata suggestions can be considered in the same
 scoped authoring flow.
-If no activity-review helper is configured, the queue links to the template
-editor with the activity-review purpose preselected.
-The queue only offers that setup link to accounts with AI update permission;
-activity-edit access alone cannot invoke a review request.
-
-Selecting a MapAsset opens its editor directly. Admins do not create or link a
-separate LearningNode; the backend creates the internal compatibility record as
-part of the MapAsset operation.
+If no activity-review helper is configured, permitted authors receive a setup
+path for the activity-review purpose.
 
 ### Reusable Assets And Presentation
 
@@ -346,9 +315,8 @@ cover normal, action, grab, text and denied states.
 ### AI And Content Authoring
 
 Admins can store encrypted provider credentials and reusable agent templates,
-including a `content_authoring` purpose. Provider requests use a Responses-style
-API client with timeouts, bounded retries for transient failures, sanitized
-error messages, request identifiers and model-aware generation controls.
+including a content-authoring purpose. Provider failures are surfaced through
+sanitized, reviewable authoring states.
 
 From a map's MapAsset surface, an admin can ask an enabled content-authoring
 template for a draft. The brief contains a learning goal, optional audience and
@@ -356,21 +324,18 @@ prior knowledge, route length and allowed Activity types. The AI returns a
 versioned structured ContentPlan. Nothing is created until the admin reviews the
 MapAsset, linear route, warnings and token usage and explicitly applies it.
 
-The authoring slice creates one focusable MapAsset at the map center and one to
-three selected Markdown, Reflection, Message prompt, Shared task or Open
-practice Activities. Applying the draft revalidates the plan and writes the
-MapAsset, Activities, route start and transitions in one database transaction.
-The draft can be edited before approval; saving the edits runs the same contract
-and semantic validation as generation and application.
+The authoring slice proposes a focusable MapAsset, activities and route
+connections. Applying the draft revalidates the plan before creating content.
+The draft can be edited before approval, and edited plans receive the same
+validation before application.
 See [AI-assisted authoring](ai-authoring.md).
 
 ### Content API
 
-The permission-controlled Content API exposes a versioned machine contract plus
-operations to list and create maps, MapAssets and Activities. Settings contains
-an interactive console and a readable contract view. Requests currently use the
-signed-in administrator session and CSRF protection; this is an administration
-API, not a public token API. See [Content API](content-api.md).
+The permission-controlled Content API exposes a versioned machine contract and
+operations for maps, MapAssets and Activities. Settings contains an interactive
+console and readable contract view. It is an administration API rather than a
+public token API. See [Content API](content-api.md).
 
 ## Intentional Non-goals
 

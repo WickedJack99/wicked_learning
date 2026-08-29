@@ -89,7 +89,7 @@ Examples:
 feat(map-assets): add state-switching interactions
 fix(map-assets): align hit areas with visible image pixels
 refactor(ai): centralize provider request handling
-docs(concepts): describe the MapAsset content model
+docs(product): clarify the MapAsset product model
 chore(deps): update frontend dependencies
 ```
 

@@ -20,6 +20,15 @@ This directory owns the Inertia/React user interface. Keep pages focused on comp
 - Keep scroll behavior intentional. Main app views should not accidentally create body scroll.
 - Preserve custom cursor behavior unless the feature intentionally overrides it, such as equipped tools.
 
+## Collection and viewport decisions
+
+- Decide viewport ownership, bounded collection behavior and keyboard paths
+  before adding UI items.
+- Prefer pagination when a finite collection can keep the main actions visible;
+  use scrolling when continuous reading or editing is the actual task.
+- Keep panels within the available viewport beneath the shared navigation and
+  verify overflow at the smallest supported layout before finishing a change.
+
 ## Localization
 
 - Add fixed, generic, user-facing UI strings for touched features to `lang/en.json`.

@@ -18,16 +18,13 @@ conversations as if they were current requirements.
 3. Is this a new learner-facing capability? Check its fit with the product
    boundaries, identify the evidence or learning claim it is allowed to make,
    and keep administration separate from learner flow where appropriate.
-4. Is this a new collection or panel? Decide its viewport ownership, bounded
-   collection behavior and keyboard path before adding items. Prefer pagination
-   where a finite page preserves the main actions; use scrolling only where
-   continuous reading or editing is the actual task.
-5. Is this documentation? Put product rationale in `documentation/product.md`,
+4. Is this documentation? Put product rationale in `documentation/product.md`,
    implemented behavior in `documentation/features.md`, technical truth in
    `documentation/architecture.md` or a focused operational document, and
    active strategic work in `documentation/roadmap.md`. Do not create another
-   concept layer or a dated changelog disguised as a backlog.
-6. Before committing, search the active docs and code for superseded terms,
+   parallel documentation hierarchy or a dated changelog disguised as a
+   backlog.
+5. Before committing, search the active docs and code for superseded terms,
    inspect recent Git history, preserve unrelated worktree changes, test the
    affected behavior, and update documentation only when the product or
    current implementation actually changed.
