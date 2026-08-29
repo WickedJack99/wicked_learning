@@ -206,6 +206,40 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
         ->assertJsonCount(0, 'revisitInvitations');
 });
 
+test('completing a reopened activity consumes its revisit invitation', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $activity] = checkInActivityContext();
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subDays(4),
+        'completed_at' => now()->subDays(4),
+        'metadata' => [
+            'learningCheckIn' => [
+                'nextDirection' => 'revisit',
+                'recordedAt' => now()->subDays(4)->toIso8601String(),
+            ],
+            'revisitInvitation' => [
+                'status' => 'snoozed',
+                'until' => now()->subDay()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'status' => 'completed',
+        ])
+        ->assertOk()
+        ->assertJsonPath('progress.metadata.revisitInvitation', null);
+
+    expect(LearnerActivityProgress::query()->firstOrFail()->metadata)
+        ->not->toHaveKey('revisitInvitation');
+});
+
 test('a learner can hide a revisit invitation and unsupported actions are rejected', function () {
     Carbon::setTestNow('2026-08-30 14:30:00');
     [$learner, $activity] = checkInActivityContext();

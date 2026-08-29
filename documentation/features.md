@@ -178,7 +178,9 @@ When the learner chose `Return to this place`, the Learning Desk and Journal
 can surface the activity again after a transparent three-day spacing window.
 The learner can open it, defer it or hide the invitation. This is a quiet,
 finite return queue rather than a notification or required task queue; a new
-check-in replaces an older direction.
+check-in replaces an older direction, and completing the reopened activity
+consumes the invitation. Opening it without completing it leaves the choice
+available.
 
 Topic pages can also show a short private trail of recent learning-pulse
 reflections connected to that topic. Each entry links back to the activity and

@@ -44,6 +44,10 @@ class LearnerProgressService
 
         if ($status === 'completed') {
             $progress->completed_at ??= $now;
+
+            $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+            unset($metadata['revisitInvitation']);
+            $progress->metadata = $metadata;
         }
 
         $progress->save();
