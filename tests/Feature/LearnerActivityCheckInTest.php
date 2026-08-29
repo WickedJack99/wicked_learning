@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerReviewAttempt;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
@@ -264,6 +265,7 @@ test('completing a reopened activity consumes its revisit invitation', function 
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
+            'is_revisit' => true,
             'status' => 'completed',
         ])
         ->assertOk()
@@ -275,6 +277,15 @@ test('completing a reopened activity consumes its revisit invitation', function 
     expect(LearnerActivityProgress::query()->firstOrFail())
         ->revisit_status->toBe(LearnerActivityProgress::REVISIT_STATUS_NONE)
         ->revisit_available_at->toBeNull();
+
+    expect(LearnerReviewAttempt::query()->firstOrFail())
+        ->user_id->toBe($learner->id)
+        ->learning_activity_id->toBe($activity->id)
+        ->attempt_number->toBe(2)
+        ->source->toBe('revisit')
+        ->outcome->toBeNull()
+        ->assistance_level->toBe('untracked')
+        ->attempted_at->toEqual(now());
 });
 
 test('a learner can hide a revisit invitation and unsupported actions are rejected', function () {
@@ -315,6 +326,19 @@ test('a learner can hide a revisit invitation and unsupported actions are reject
         ]);
 
     expect($invalidActionResponse->status())->toBe(422);
+});
+
+test('a revisit marker does not create a review attempt before the activity is due', function () {
+    [$learner, $activity] = checkInActivityContext();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'is_revisit' => true,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    expect(LearnerReviewAttempt::query()->count())->toBe(0);
 });
 
 test('a newer check-in direction replaces an older revisit invitation', function () {

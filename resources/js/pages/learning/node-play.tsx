@@ -38,6 +38,7 @@ type NodePlayProps = {
     playActivityId: number | null;
     playRouteId: number | null;
     playRunId: string | null;
+    revisitActivityId: number | null;
     playState: Record<string, unknown>;
     progress: LearningProgress;
 };
@@ -65,6 +66,7 @@ export default function NodePlay({
     playActivityId,
     playRouteId,
     playRunId,
+    revisitActivityId,
     playState: initialPlayState,
     progress,
 }: NodePlayProps) {
@@ -209,9 +211,11 @@ export default function NodePlay({
 
             const payload: {
                 ends_route?: boolean;
+                is_revisit: boolean;
                 play_run_id: string | null;
                 status: 'completed';
             } = {
+                is_revisit: activity.id === revisitActivityId,
                 play_run_id: playRunId,
                 status: 'completed',
             };
@@ -249,7 +253,7 @@ export default function NodePlay({
             setHiddenCheckInActivityId(null);
             setPendingLearningCheckIn(checkIn);
         },
-        [isAuthenticated, originTopicSlug, playRunId],
+        [isAuthenticated, originTopicSlug, playRunId, revisitActivityId],
     );
 
     const moveToActivity = useCallback(

@@ -149,6 +149,7 @@ class LearningWorldController extends Controller
             'playActivityId' => $requestedActivity?->id ?? $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,
             'playRunId' => $playRunId,
+            'revisitActivityId' => $request->boolean('revisit') ? $requestedActivity?->id : null,
             'playState' => $this->activityPlayStateService->activityStatesForRun($runProgress),
             'progress' => $user
                 ? $this->progressSerializer->forUser($user->id)
@@ -204,6 +205,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'ends_route' => ['sometimes', 'boolean'],
+            'is_revisit' => ['sometimes', 'boolean'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
             'status' => ['required', 'string', 'in:reached,completed'],
         ]);
@@ -214,6 +216,7 @@ class LearningWorldController extends Controller
             (string) $data['status'],
             is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
             array_key_exists('ends_route', $data) ? (bool) $data['ends_route'] : null,
+            isRevisit: is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
         );
 
         return response()->json([

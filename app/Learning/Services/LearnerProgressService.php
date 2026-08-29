@@ -3,6 +3,7 @@
 namespace App\Learning\Services;
 
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerReviewAttempt;
 use App\Models\LearningActivity;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -26,6 +27,7 @@ class LearnerProgressService
         ?string $confidence = null,
         int $attemptNumber = 1,
         string $assistanceLevel = 'untracked',
+        bool $isRevisit = false,
     ): LearnerActivityProgress {
         $now = Carbon::now();
         $progress = LearnerActivityProgress::query()->firstOrCreate([
@@ -37,6 +39,15 @@ class LearnerProgressService
             'attempt_count' => 1,
             'reached_at' => $now,
         ]);
+        $recordsReviewAttempt = $isRevisit
+            && $status === 'completed'
+            && $progress->status === 'completed'
+            && in_array($progress->revisit_status, [
+                LearnerActivityProgress::REVISIT_STATUS_PENDING,
+                LearnerActivityProgress::REVISIT_STATUS_SNOOZED,
+            ], true)
+            && $progress->revisit_available_at !== null
+            && $progress->revisit_available_at?->lessThanOrEqualTo($now);
 
         $progress->learning_node_id = $activity->learning_node_id;
         $progress->status = $status === 'completed' ? 'completed' : ($progress->status ?: 'reached');
@@ -44,6 +55,9 @@ class LearnerProgressService
 
         if ($status === 'completed') {
             $progress->completed_at ??= $now;
+            if ($recordsReviewAttempt) {
+                $progress->attempt_count = ((int) $progress->attempt_count) + 1;
+            }
 
             $metadata = is_array($progress->metadata) ? $progress->metadata : [];
             unset($metadata['revisitInvitation']);
@@ -55,6 +69,20 @@ class LearnerProgressService
         }
 
         $progress->save();
+
+        if ($recordsReviewAttempt) {
+            LearnerReviewAttempt::query()->create([
+                'user_id' => $userId,
+                'learning_activity_id' => $activity->id,
+                'learner_activity_progress_id' => $progress->id,
+                'attempt_number' => $progress->attempt_count,
+                'source' => 'revisit',
+                'outcome' => $outcome,
+                'confidence' => $confidence,
+                'assistance_level' => $assistanceLevel,
+                'attempted_at' => $now,
+            ]);
+        }
 
         if ($playRunId) {
             $routeUser = User::query()->find($userId);

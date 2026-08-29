@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /** @property array<string, mixed>|null $metadata */
@@ -55,6 +56,12 @@ class LearnerActivityProgress extends Model
     public function activity(): BelongsTo
     {
         return $this->belongsTo(LearningActivity::class, 'learning_activity_id');
+    }
+
+    /** @return HasMany<LearnerReviewAttempt, $this> */
+    public function reviewAttempts(): HasMany
+    {
+        return $this->hasMany(LearnerReviewAttempt::class);
     }
 
     /**

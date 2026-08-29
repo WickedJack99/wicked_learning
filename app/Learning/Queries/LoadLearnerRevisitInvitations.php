@@ -68,6 +68,7 @@ class LoadLearnerRevisitInvitations
                     'activityHref' => route('learning.nodes.play', [
                         'activity_id' => $activity->id,
                         'node' => $node,
+                        'revisit' => 1,
                     ], false),
                     'activityId' => $activity->id,
                     'activityTitle' => $activity->title,
