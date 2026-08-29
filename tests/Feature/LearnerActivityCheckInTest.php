@@ -219,6 +219,7 @@ test('a learner can revisit a chosen activity after a spacing window and defer i
         ->getJson(route('learning.journal.index'))
         ->assertOk()
         ->assertJsonPath('revisitInvitations.0.activityTitle', 'Check-in Activity')
+        ->assertJsonPath('revisitInvitations.0.availableAfterDays', 3)
         ->assertJsonPath('revisitInvitations.0.availableSince', $recordedAt)
         ->assertJsonPath('revisitInvitations.0.availableAt', now()->subDay()->toIso8601String())
         ->assertJsonPath('revisitInvitations.0.revisitReason', 'pause');

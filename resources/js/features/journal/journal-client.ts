@@ -58,6 +58,7 @@ export type JournalRevisitInvitation = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
+    availableAfterDays: number;
     availableAt: string;
     availableSince: string;
     mapTitle: string;

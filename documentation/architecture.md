@@ -96,9 +96,10 @@ link marks only its selected activity as a revisit candidate. Completing that
 activity records a separate review-attempt record with its attempt context; it
 does not silently turn the revisit into an independent competence claim.
 Queue serializers expose the original check-in time separately from the
-indexed ready time, plus a small learner-facing reason for the pause or later
-choice. This keeps due explanations deterministic without exposing internal
-schedule state or adding a second scheduling system.
+indexed ready time, plus a deterministic learner-facing explanation of the
+spacing window and the original pause or later choice. This keeps due
+explanations understandable without exposing internal schedule state or adding
+a second scheduling system.
 
 `ActivityCompetenceConfiguration` keeps explanation and transfer evidence
 conservative: their authored learning purpose is only emitted as that evidence

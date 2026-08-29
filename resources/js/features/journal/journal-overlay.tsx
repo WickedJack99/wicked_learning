@@ -788,8 +788,11 @@ function RevisitInvitations({
                                           'You chose to wait longer before returning.',
                                       )
                                     : t(
-                                          'journal.revisit.paused',
-                                          'You chose to return after time away.',
+                                          'journal.revisit.due',
+                                          'Ready after :days days away.',
+                                          {
+                                              days: invitation.availableAfterDays,
+                                          },
                                       )}
                             </p>
                         </a>

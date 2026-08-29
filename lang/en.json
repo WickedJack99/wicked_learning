@@ -717,7 +717,7 @@
     "home.learning_desk.revisit.hide": "Hide",
     "home.learning_desk.revisit.error": "That choice could not be saved. Try again.",
     "journal.revisit.ready": "Ready since",
-    "journal.revisit.paused": "You chose to return after time away.",
+    "journal.revisit.due": "Ready after :days days away.",
     "journal.revisit.snoozed": "You chose to wait longer before returning.",
     "home.learning_desk.rail.title": "Pinned for later",
     "home.learning_desk.rail.featured": "Pinned place",
