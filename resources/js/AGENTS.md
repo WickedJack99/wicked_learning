@@ -63,6 +63,9 @@ the product around the skill.
   the viewport, add a visible submenu or tab switcher so the learner or author
   can move between those areas instead of stacking them into one scrolling
   surface.
+- A document-level scroll may remain necessary at narrow breakpoints when the
+  layout stacks separate regions; it must not replace pagination or a submenu
+  for collection or area overflow.
 - Keep panels within the available viewport beneath the shared navigation and
   verify overflow at the smallest supported layout before finishing a change.
 

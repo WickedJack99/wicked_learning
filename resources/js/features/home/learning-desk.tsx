@@ -22,6 +22,8 @@ import type {
     LearningDeskRoute,
 } from './types';
 
+type LearningDeskArea = 'connections' | 'revisit' | 'recent' | 'continue';
+
 export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
@@ -34,6 +36,47 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
+    const [activeArea, setActiveArea] = useState<LearningDeskArea>(
+        desk.currentRoutes.length > 0 ? 'continue' : 'connections',
+    );
+    const deskAreas: { id: LearningDeskArea; label: string }[] = [
+        {
+            id: 'connections',
+            label: t('home.learning_desk.sections.connections', 'Connections'),
+        },
+        ...(revisitInvitations.length > 0
+            ? [
+                  {
+                      id: 'revisit' as const,
+                      label: t(
+                          'home.learning_desk.sections.revisit',
+                          'Return when useful',
+                      ),
+                  },
+              ]
+            : []),
+        ...(desk.recentRoutes.length > 0
+            ? [
+                  {
+                      id: 'recent' as const,
+                      label: t(
+                          'home.learning_desk.sections.recent',
+                          'Recent traces',
+                      ),
+                  },
+              ]
+            : []),
+        {
+            id: 'continue',
+            label: t(
+                'home.learning_desk.sections.continue',
+                'Continue learning',
+            ),
+        },
+    ];
+    const visibleArea = deskAreas.some((area) => area.id === activeArea)
+        ? activeArea
+        : 'continue';
 
     async function handleRevisitUpdate(
         activityId: number,
@@ -58,9 +101,9 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
 
     return (
         <LearnerDocumentSurface scrollable={false}>
-            <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]">
-                <div className="min-h-0 min-w-0 overflow-y-auto px-5 py-10 sm:px-8 lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
-                    <div className="mx-auto max-w-4xl">
+            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_25rem]">
+                <div className="min-w-0 px-5 py-10 sm:px-8 lg:min-h-0 lg:overflow-hidden lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
+                    <div className="mx-auto flex max-w-4xl flex-col lg:h-full lg:min-h-0">
                         <section>
                             <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
                                 {t(
@@ -80,194 +123,240 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                             <LearningDeskSearch />
                         </section>
 
-                        <section
-                            className="mt-10"
-                            aria-labelledby="connections-heading"
-                        >
-                            <SectionHeading
-                                id="connections-heading"
-                                label={t(
-                                    'home.learning_desk.connections.title',
-                                    'Possible connections',
-                                )}
-                            />
-                            {desk.connections.length > 0 ? (
-                                <div className="border-b border-[var(--learner-border-color)] py-6">
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
-                                        {desk.connections.map(
-                                            (connection, index) => (
-                                                <div
-                                                    className="flex items-center gap-4"
-                                                    key={connection.id}
-                                                >
-                                                    {index > 0 ? (
-                                                        <ArrowRight className="size-4 text-[var(--learner-action-accent)]" />
-                                                    ) : null}
-                                                    <Link
-                                                        className="underline decoration-transparent underline-offset-4 transition hover:text-[var(--learner-accent)] hover:decoration-[var(--learner-accent)]"
-                                                        href={connection.href}
-                                                    >
-                                                        {connection.title}
-                                                    </Link>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                    <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
-                                        {t(
-                                            'home.learning_desk.connections.saved_reason',
-                                            'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
-                                        )}
-                                    </p>
-                                </div>
-                            ) : (
-                                <EmptyState
-                                    body={t(
-                                        'home.learning_desk.connections.empty_body',
-                                        'Save interesting places and this area can reveal useful paths between them.',
-                                    )}
-                                    href="/world"
-                                    link={t(
-                                        'home.learning_desk.connections.empty_action',
-                                        'Open the map',
-                                    )}
-                                    title={t(
-                                        'home.learning_desk.connections.empty_title',
-                                        'Connections need a little context',
-                                    )}
-                                />
+                        <nav
+                            aria-label={t(
+                                'home.learning_desk.sections.label',
+                                'Learning desk areas',
                             )}
-                        </section>
-
-                        {revisitInvitations.length > 0 ? (
-                            <section
-                                className="mt-14"
-                                aria-labelledby="revisit-heading"
-                            >
-                                <SectionHeading
-                                    id="revisit-heading"
-                                    label={t(
-                                        'home.learning_desk.revisit.title',
-                                        'Return when useful',
-                                    )}
-                                />
-                                <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
-                                    {t(
-                                        'home.learning_desk.revisit.body',
-                                        'These are places you chose to return to after some time away.',
-                                    )}
-                                </p>
-                                <LearnerPaginatedItems
-                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
-                                    items={revisitInvitations}
-                                    pageSize={2}
-                                    paginationLabel={t(
-                                        'home.learning_desk.revisit.pagination',
-                                        'Revisit invitations',
-                                    )}
-                                    renderItem={(invitation) => (
-                                        <RevisitInvitationRow
-                                            invitation={invitation}
-                                            key={invitation.activityId}
-                                            locale={localization.locale}
-                                            onUpdate={handleRevisitUpdate}
-                                            updating={
-                                                updatingRevisitId ===
-                                                invitation.activityId
-                                            }
-                                        />
-                                    )}
-                                />
-                                {revisitError ? (
-                                    <p
-                                        aria-live="polite"
-                                        className="mt-3 text-sm text-red-300"
-                                        role="status"
+                            className="mt-8 shrink-0 border-y border-[var(--learner-border-color)] py-3"
+                        >
+                            <p className="text-xs font-semibold tracking-[0.18em] text-[var(--learner-muted-text)] uppercase">
+                                {t(
+                                    'home.learning_desk.sections.label',
+                                    'Learning desk areas',
+                                )}
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                                {deskAreas.map((area) => (
+                                    <button
+                                        aria-pressed={visibleArea === area.id}
+                                        className={[
+                                            'min-h-10 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
+                                            visibleArea === area.id
+                                                ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
+                                                : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
+                                        ].join(' ')}
+                                        key={area.id}
+                                        onClick={() => setActiveArea(area.id)}
+                                        type="button"
                                     >
+                                        {area.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </nav>
+
+                        <div className="min-h-0 flex-1">
+                            {visibleArea === 'connections' ? (
+                                <section
+                                    className="mt-8"
+                                    aria-labelledby="connections-heading"
+                                >
+                                    <SectionHeading
+                                        id="connections-heading"
+                                        label={t(
+                                            'home.learning_desk.connections.title',
+                                            'Possible connections',
+                                        )}
+                                    />
+                                    {desk.connections.length > 0 ? (
+                                        <div className="border-b border-[var(--learner-border-color)] py-6">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm">
+                                                {desk.connections.map(
+                                                    (connection, index) => (
+                                                        <div
+                                                            className="flex items-center gap-4"
+                                                            key={connection.id}
+                                                        >
+                                                            {index > 0 ? (
+                                                                <ArrowRight className="size-4 text-[var(--learner-action-accent)]" />
+                                                            ) : null}
+                                                            <Link
+                                                                className="underline decoration-transparent underline-offset-4 transition hover:text-[var(--learner-accent)] hover:decoration-[var(--learner-accent)]"
+                                                                href={
+                                                                    connection.href
+                                                                }
+                                                            >
+                                                                {
+                                                                    connection.title
+                                                                }
+                                                            </Link>
+                                                        </div>
+                                                    ),
+                                                )}
+                                            </div>
+                                            <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'home.learning_desk.connections.saved_reason',
+                                                    'Drawn from places you saved for later. Tutor and AI suggestions can join this space as separate, clearly labelled sources.',
+                                                )}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <EmptyState
+                                            body={t(
+                                                'home.learning_desk.connections.empty_body',
+                                                'Save interesting places and this area can reveal useful paths between them.',
+                                            )}
+                                            href="/world"
+                                            link={t(
+                                                'home.learning_desk.connections.empty_action',
+                                                'Open the map',
+                                            )}
+                                            title={t(
+                                                'home.learning_desk.connections.empty_title',
+                                                'Connections need a little context',
+                                            )}
+                                        />
+                                    )}
+                                </section>
+                            ) : null}
+
+                            {visibleArea === 'revisit' &&
+                            revisitInvitations.length > 0 ? (
+                                <section
+                                    className="mt-8"
+                                    aria-labelledby="revisit-heading"
+                                >
+                                    <SectionHeading
+                                        id="revisit-heading"
+                                        label={t(
+                                            'home.learning_desk.revisit.title',
+                                            'Return when useful',
+                                        )}
+                                    />
+                                    <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
                                         {t(
-                                            'home.learning_desk.revisit.error',
-                                            'That choice could not be saved. Try again.',
+                                            'home.learning_desk.revisit.body',
+                                            'These are places you chose to return to after some time away.',
                                         )}
                                     </p>
-                                ) : null}
-                            </section>
-                        ) : null}
+                                    <LearnerPaginatedItems
+                                        className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                        items={revisitInvitations}
+                                        pageSize={2}
+                                        paginationLabel={t(
+                                            'home.learning_desk.revisit.pagination',
+                                            'Revisit invitations',
+                                        )}
+                                        renderItem={(invitation) => (
+                                            <RevisitInvitationRow
+                                                invitation={invitation}
+                                                key={invitation.activityId}
+                                                locale={localization.locale}
+                                                onUpdate={handleRevisitUpdate}
+                                                updating={
+                                                    updatingRevisitId ===
+                                                    invitation.activityId
+                                                }
+                                            />
+                                        )}
+                                    />
+                                    {revisitError ? (
+                                        <p
+                                            aria-live="polite"
+                                            className="mt-3 text-sm text-red-300"
+                                            role="status"
+                                        >
+                                            {t(
+                                                'home.learning_desk.revisit.error',
+                                                'That choice could not be saved. Try again.',
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </section>
+                            ) : null}
 
-                        {desk.recentRoutes.length > 0 ? (
-                            <section
-                                className="mt-14"
-                                aria-labelledby="recent-heading"
-                            >
-                                <SectionHeading
-                                    id="recent-heading"
-                                    label={t(
-                                        'home.learning_desk.recent.title',
-                                        'Recent traces',
-                                    )}
-                                />
-                                <LearnerPaginatedItems
-                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
-                                    items={desk.recentRoutes}
-                                    pageSize={2}
-                                    paginationLabel="Recent traces"
-                                    renderItem={(route) => (
-                                        <RecentRouteRow
-                                            key={route.id}
-                                            locale={localization.locale}
-                                            route={route}
+                            {visibleArea === 'recent' &&
+                            desk.recentRoutes.length > 0 ? (
+                                <section
+                                    className="mt-8"
+                                    aria-labelledby="recent-heading"
+                                >
+                                    <SectionHeading
+                                        id="recent-heading"
+                                        label={t(
+                                            'home.learning_desk.recent.title',
+                                            'Recent traces',
+                                        )}
+                                    />
+                                    <LearnerPaginatedItems
+                                        className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                        items={desk.recentRoutes}
+                                        pageSize={2}
+                                        paginationLabel="Recent traces"
+                                        renderItem={(route) => (
+                                            <RecentRouteRow
+                                                key={route.id}
+                                                locale={localization.locale}
+                                                route={route}
+                                            />
+                                        )}
+                                    />
+                                </section>
+                            ) : null}
+
+                            {visibleArea === 'continue' ? (
+                                <section
+                                    className="mt-8"
+                                    aria-labelledby="continue-heading"
+                                >
+                                    <SectionHeading
+                                        id="continue-heading"
+                                        label={t(
+                                            'home.learning_desk.continue.title',
+                                            'Continue learning',
+                                        )}
+                                    />
+                                    {desk.currentRoutes.length > 0 ? (
+                                        <LearnerPaginatedItems
+                                            className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                            items={desk.currentRoutes}
+                                            pageSize={2}
+                                            paginationLabel="Current routes"
+                                            renderItem={(route) => (
+                                                <RouteRow
+                                                    key={route.id}
+                                                    locale={localization.locale}
+                                                    route={route}
+                                                    emphasized={
+                                                        route.id ===
+                                                        desk.currentRoutes[0]
+                                                            ?.id
+                                                    }
+                                                />
+                                            )}
+                                        />
+                                    ) : (
+                                        <EmptyState
+                                            body={t(
+                                                'home.learning_desk.continue.empty_body',
+                                                'Start a learning route and it will wait for you here.',
+                                            )}
+                                            href="/topics"
+                                            link={t(
+                                                'home.learning_desk.continue.empty_action',
+                                                'Browse topics',
+                                            )}
+                                            title={t(
+                                                'home.learning_desk.continue.empty_title',
+                                                'Nothing is currently in progress',
+                                            )}
                                         />
                                     )}
-                                />
-                            </section>
-                        ) : null}
-
-                        <section
-                            className="mt-14"
-                            aria-labelledby="continue-heading"
-                        >
-                            <SectionHeading
-                                id="continue-heading"
-                                label={t(
-                                    'home.learning_desk.continue.title',
-                                    'Continue learning',
-                                )}
-                            />
-                            {desk.currentRoutes.length > 0 ? (
-                                <LearnerPaginatedItems
-                                    className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
-                                    items={desk.currentRoutes}
-                                    pageSize={2}
-                                    paginationLabel="Current routes"
-                                    renderItem={(route) => (
-                                        <RouteRow
-                                            key={route.id}
-                                            locale={localization.locale}
-                                            route={route}
-                                            emphasized={
-                                                route.id ===
-                                                desk.currentRoutes[0]?.id
-                                            }
-                                        />
-                                    )}
-                                />
-                            ) : (
-                                <EmptyState
-                                    body={t(
-                                        'home.learning_desk.continue.empty_body',
-                                        'Start a learning route and it will wait for you here.',
-                                    )}
-                                    href="/topics"
-                                    link={t(
-                                        'home.learning_desk.continue.empty_action',
-                                        'Browse topics',
-                                    )}
-                                    title={t(
-                                        'home.learning_desk.continue.empty_title',
-                                        'Nothing is currently in progress',
-                                    )}
-                                />
-                            )}
-                        </section>
+                                </section>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 
@@ -282,7 +371,7 @@ function LearningDeskRail({ desk }: { desk: LearningDeskData }) {
     const featured = desk.featuredBookmark;
 
     return (
-        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:h-full lg:overflow-y-auto lg:border-t-0 lg:border-l lg:px-7">
+        <aside className="border-t border-[var(--learner-border-color)] bg-[var(--learner-panel-muted-background)] px-5 py-9 sm:px-8 lg:h-full lg:border-t-0 lg:border-l lg:px-7">
             <p className="text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase">
                 {t('home.learning_desk.rail.title', 'Pinned for later')}
             </p>
@@ -617,10 +706,7 @@ function RevisitInvitationRow({
                     · {invitation.mapTitle}
                 </span>
                 <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
-                    {t(
-                        'home.learning_desk.revisit.ready',
-                        'Ready since',
-                    )}{' '}
+                    {t('home.learning_desk.revisit.ready', 'Ready since')}{' '}
                     {formatDate(invitation.availableAt, locale)}
                 </span>
                 <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
@@ -647,7 +733,9 @@ function RevisitInvitationRow({
                 <button
                     className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--learner-action-accent)] underline-offset-2 transition hover:text-[var(--learner-heading-text)] hover:underline disabled:pointer-events-none disabled:opacity-50"
                     disabled={updating}
-                    onClick={() => void onUpdate(invitation.activityId, 'snooze')}
+                    onClick={() =>
+                        void onUpdate(invitation.activityId, 'snooze')
+                    }
                     type="button"
                 >
                     {t('home.learning_desk.revisit.later', 'Later')}
@@ -655,7 +743,9 @@ function RevisitInvitationRow({
                 <button
                     className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--learner-muted-text)] underline-offset-2 transition hover:text-[var(--learner-heading-text)] hover:underline disabled:pointer-events-none disabled:opacity-50"
                     disabled={updating}
-                    onClick={() => void onUpdate(invitation.activityId, 'dismiss')}
+                    onClick={() =>
+                        void onUpdate(invitation.activityId, 'dismiss')
+                    }
                     type="button"
                 >
                     {t('home.learning_desk.revisit.hide', 'Hide')}

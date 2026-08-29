@@ -82,7 +82,9 @@ traces. When the same route has both an active run and an older completion, it
 appears only under Continue learning so the desk keeps one clear next step.
 Current and recent route rows also retain their authored learning-area links,
 so the desk can lead directly to the corresponding competence reading without
-adding a separate progression panel.
+adding a separate progression panel. Desk areas are switched through a local
+navigation control, while route and revisit collections are paginated so the
+desktop desk does not need one growing collection scroll region.
 
 ### Activities And Routes
 

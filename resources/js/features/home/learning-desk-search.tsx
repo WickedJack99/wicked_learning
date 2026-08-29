@@ -16,10 +16,13 @@ type SearchResponse = {
     results: LearningSearchResult[];
 };
 
+const SEARCH_PAGE_SIZE = 5;
+
 export function LearningDeskSearch() {
     const t = usePlatformTranslation();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<LearningSearchResult[]>([]);
+    const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const requestId = useRef(0);
@@ -42,6 +45,7 @@ export function LearningDeskSearch() {
                 .then((response) => {
                     if (id === requestId.current) {
                         setResults(response.results);
+                        setPage(1);
                         setOpen(true);
                     }
                 })
@@ -80,6 +84,15 @@ export function LearningDeskSearch() {
         }
     };
 
+    const totalPages = Math.max(
+        1,
+        Math.ceil(results.length / SEARCH_PAGE_SIZE),
+    );
+    const visibleResults = results.slice(
+        (page - 1) * SEARCH_PAGE_SIZE,
+        page * SEARCH_PAGE_SIZE,
+    );
+
     return (
         <div className="relative mt-7">
             <form className="flex flex-col gap-3 sm:flex-row" onSubmit={submit}>
@@ -102,6 +115,7 @@ export function LearningDeskSearch() {
                             if (value.trim().length < 2) {
                                 requestId.current++;
                                 setResults([]);
+                                setPage(1);
                                 setLoading(false);
                                 setOpen(false);
                             }
@@ -129,33 +143,62 @@ export function LearningDeskSearch() {
             {open && query.trim().length >= 2 && !loading ? (
                 <div className="absolute top-[calc(100%+0.6rem)] right-0 left-0 z-30 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl sm:right-auto sm:w-[calc(100%-8.75rem)] dark:border-white/12 dark:bg-[#0d1825]">
                     {results.length > 0 ? (
-                        <ul className="max-h-80 overflow-y-auto p-2">
-                            {results.map((result) => (
-                                <li key={result.id}>
+                        <>
+                            <ul className="p-2">
+                                {visibleResults.map((result) => (
+                                    <li key={result.id}>
+                                        <button
+                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)]"
+                                            onClick={() => visit(result)}
+                                            type="button"
+                                        >
+                                            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
+                                                {result.kind === 'topic' ? (
+                                                    <BookOpenText className="size-4" />
+                                                ) : (
+                                                    <Map className="size-4" />
+                                                )}
+                                            </span>
+                                            <span className="min-w-0">
+                                                <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">
+                                                    {result.title}
+                                                </span>
+                                                <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
+                                                    {result.subtitle}
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                            {totalPages > 1 ? (
+                                <div className="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10">
                                     <button
-                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)]"
-                                        onClick={() => visit(result)}
+                                        className="rounded px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:bg-white/8 dark:hover:text-white"
+                                        disabled={page === 1}
+                                        onClick={() =>
+                                            setPage((value) => value - 1)
+                                        }
                                         type="button"
                                     >
-                                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] text-[var(--learner-action-accent)]">
-                                            {result.kind === 'topic' ? (
-                                                <BookOpenText className="size-4" />
-                                            ) : (
-                                                <Map className="size-4" />
-                                            )}
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block truncate text-sm font-medium text-slate-900 dark:text-white">
-                                                {result.title}
-                                            </span>
-                                            <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
-                                                {result.subtitle}
-                                            </span>
-                                        </span>
+                                        {t('common.previous', 'Previous')}
                                     </button>
-                                </li>
-                            ))}
-                        </ul>
+                                    <span className="text-slate-500 dark:text-slate-400">
+                                        {page} / {totalPages}
+                                    </span>
+                                    <button
+                                        className="rounded px-2 py-1 text-[var(--learner-action-accent)] transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_10%,transparent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
+                                        disabled={page === totalPages}
+                                        onClick={() =>
+                                            setPage((value) => value + 1)
+                                        }
+                                        type="button"
+                                    >
+                                        {t('common.next', 'Next')}
+                                    </button>
+                                </div>
+                            ) : null}
+                        </>
                     ) : (
                         <p className="px-4 py-5 text-sm text-slate-500 dark:text-slate-400">
                             {t(
