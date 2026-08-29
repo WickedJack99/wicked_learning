@@ -75,6 +75,11 @@ the product around the skill.
 - Avoid client-side searches for data that must include other maps or access-controlled records.
 - Keep graph math and hex-grid math in reusable helpers.
 - Avoid reloading already fetched lightweight overlay data when local cache is enough and privacy allows it.
+- Do not load data for inactive panels or features when scoped Inertia props can provide only the active workspace.
+- For collections that grow with realistic data, prefer pagination, lazy loading or virtualization over rendering everything at once.
+- For media, distinguish browser caching from server performance: inspect cache headers and repeated network requests before changing formats or resolutions.
+- Use appropriately sized or responsive assets, asynchronous decoding and lazy loading for non-critical media, while keeping above-the-fold content available without layout shifts.
+- Avoid frontend rendering or network work whose cost grows unnecessarily with every asset, relationship or interaction.
 
 ## Activity UI
 

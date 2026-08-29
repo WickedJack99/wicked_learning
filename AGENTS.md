@@ -32,6 +32,23 @@ conversations as if they were current requirements.
 Scoped `AGENTS.md` files add path-specific engineering guidance. They do not
 override the product/documentation ownership above.
 
+## Performance and scalability
+
+Treat performance as part of implementation quality, not only as a response to
+reported slowness. For performance-sensitive work, establish a useful baseline
+such as request duration, SQL query count, serialized payload size, media
+requests, or frontend interaction timing.
+
+Diagnose the dominant bottleneck before optimizing. Prefer bounded, scoped,
+batched or memoized work over avoidable repeated computation, eager loading,
+unbounded collections, N+1 queries, or unnecessarily large payloads. Use
+caching when data is safely reusable, not as a substitute for fixing repeated
+work or loading data that is not needed.
+
+When a measurable performance problem materially degrades an existing learner
+or author workflow, a bounded performance fix may take priority over a new
+feature. Report before-and-after measurements when practical.
+
 <laravel-boost-guidelines>
 === foundation rules ===
 

@@ -35,3 +35,10 @@ Use this area for:
 ## Validation
 
 Prefer small, targeted tests around new behavior. Use factories or seed-style fixtures only when they clarify the learning rule being tested.
+
+## Query and data-loading performance
+
+- Treat query count, serialized payload size and collection bounds as part of query design. Measure them when changing an actively used workflow.
+- Avoid N+1 relationship or permission lookups, repeated scans of the same dataset and loading records outside the current authorization or workspace scope.
+- Reuse request-level authorization and relationship data where safe; batch reusable-media reference checks and similar multi-record work instead of rescanning every reference for every asset.
+- Prefer pagination or scoped loading for growing collections. Add caching only after confirming the data is safely reusable and repeated work is the dominant cost.
