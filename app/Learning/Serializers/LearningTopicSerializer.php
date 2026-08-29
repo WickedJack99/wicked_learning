@@ -142,6 +142,7 @@ class LearningTopicSerializer
                         'activityTitle' => is_string($entry['activityTitle'] ?? null)
                             ? $entry['activityTitle']
                             : null,
+                        'evidenceClaim' => (string) ($entry['evidenceClaim'] ?? 'learning_encounter'),
                         'evidenceType' => (string) ($entry['evidenceType'] ?? ''),
                         'id' => (int) ($entry['id'] ?? 0),
                         'learningPurpose' => is_string($entry['learningPurpose'] ?? null)

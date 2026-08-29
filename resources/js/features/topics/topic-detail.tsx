@@ -925,6 +925,11 @@ function TopicCompetenceCard({
                                                         {entry.learningPurpose}
                                                     </span>
                                                 ) : null}
+                                                <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
+                                                    {evidenceClaimLabel(
+                                                        entry.evidenceClaim,
+                                                    )}
+                                                </span>
                                                 {entry.confidence ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                         Before answering:{' '}
@@ -1014,6 +1019,22 @@ function evidenceTypeLabel(
     const label = learningIntentLabel(type, translate);
 
     return label ?? type;
+}
+
+function evidenceClaimLabel(claim: string): string {
+    return (
+        {
+            application_attempt: 'An application attempt was recorded.',
+            explanation_attempt: 'An explanation attempt was recorded.',
+            independent_recall: 'Successful independent recall recorded.',
+            learning_encounter: 'A learning encounter was recorded.',
+            participation: 'Participation was recorded.',
+            reflection: 'A reflection was recorded.',
+            retrieval_attempt: 'A recall attempt was recorded.',
+            review: 'A review was recorded.',
+            transfer_attempt: 'A transfer attempt was recorded.',
+        }[claim] ?? 'A learning encounter was recorded.'
+    );
 }
 
 function confidenceLabel(confidence: string): string {

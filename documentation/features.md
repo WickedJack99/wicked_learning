@@ -195,6 +195,10 @@ Question activities also retain the learner's pre-answer confidence, the
 correctness outcome, attempt order and independent-assistance context. The
 learner can see the confidence and attempt context in the competence reading;
 this supports calibration and noticing change without presenting a grade.
+The evidence reading also distinguishes a successful independent recall from a
+generic attempt or encounter, while keeping application, explanation,
+reflection, review and transfer as the kinds of activity they were rather than
+turning them into a shared score.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

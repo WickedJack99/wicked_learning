@@ -60,6 +60,7 @@ export type TopicCompetence = {
 export type TopicEvidenceLedgerEntry = {
     activityHref: string | null;
     activityTitle: string | null;
+    evidenceClaim: string;
     evidenceType: string;
     learningPurpose: string | null;
     confidence: string | null;

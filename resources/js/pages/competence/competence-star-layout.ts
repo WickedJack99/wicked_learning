@@ -18,6 +18,7 @@ export type CompetenceTopic = {
         evidenceLedger: Array<{
             activityTitle: string | null;
             activityHref: string | null;
+            evidenceClaim: string;
             evidenceType: string;
             learningPurpose: string | null;
             confidence: string | null;

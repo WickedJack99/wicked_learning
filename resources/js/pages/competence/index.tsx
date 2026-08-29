@@ -938,6 +938,11 @@ function CompetenceReading({
                                                 ? ` · ${evidence.nodeTitle}`
                                                 : ''}
                                         </span>
+                                        <span className="mt-1 block text-xs text-cyan-100/80">
+                                            {evidenceClaimLabel(
+                                                evidence.evidenceClaim,
+                                            )}
+                                        </span>
                                         {evidence.learningPurpose ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Purpose:{' '}
@@ -1069,6 +1074,22 @@ function evidenceTypeLabel(type: string): string {
             review: 'reviewing',
             transfer: 'transferring',
         }[type] ?? type
+    );
+}
+
+function evidenceClaimLabel(claim: string): string {
+    return (
+        {
+            application_attempt: 'An application attempt was recorded.',
+            explanation_attempt: 'An explanation attempt was recorded.',
+            independent_recall: 'Successful independent recall recorded.',
+            learning_encounter: 'A learning encounter was recorded.',
+            participation: 'Participation was recorded.',
+            reflection: 'A reflection was recorded.',
+            retrieval_attempt: 'A recall attempt was recorded.',
+            review: 'A review was recorded.',
+            transfer_attempt: 'A transfer attempt was recorded.',
+        }[claim] ?? 'A learning encounter was recorded.'
     );
 }
 

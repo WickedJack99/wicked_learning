@@ -3,6 +3,7 @@
 namespace App\Learning\Queries;
 
 use App\Learning\Services\CompetenceVisualScale;
+use App\Learning\Services\LearnerEvidenceClaim;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
@@ -19,6 +20,7 @@ class LoadLearnerCompetenceMap
     public function __construct(
         private readonly CompetenceVisualScale $visualScale,
         private readonly LoadLearnerActivityCheckIns $checkIns,
+        private readonly LearnerEvidenceClaim $evidenceClaim,
     ) {}
 
     /**
@@ -142,7 +144,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, learningPurpose: string|null, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, learningPurpose: string|null, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -155,6 +157,7 @@ class LoadLearnerCompetenceMap
                 return [
                     'activityHref' => $this->activityHref($activity),
                     'activityTitle' => $activity?->title,
+                    'evidenceClaim' => $this->evidenceClaim->forEvent($event),
                     'evidenceType' => $event->evidence_type,
                     'id' => $event->id,
                     'learningPurpose' => $event->learning_purpose,
