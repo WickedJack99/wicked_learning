@@ -56,6 +56,7 @@
     "settings.navigation.journal.description": "Learner reflection pages and optional expert feedback consent.",
     "settings.navigation.learning_support": "Learning Support",
     "settings.navigation.learning_support.description": "Journal settings, reflection support and competence topics.",
+    "settings.navigation.label": "Settings navigation",
     "settings.navigation.learning_support.support_signals": "Support Signals",
     "settings.navigation.organization_icons": "Organization Icons",
     "settings.navigation.competence_topics": "Competence Topics",

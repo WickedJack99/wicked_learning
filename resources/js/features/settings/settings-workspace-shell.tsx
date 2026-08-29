@@ -128,10 +128,23 @@ export function SettingsSidebarNavigation({
                 </select>
             </div>
 
-            <nav className="hidden min-h-0 flex-1 overflow-y-auto px-3 pt-4 pb-4 lg:block">
+            <nav
+                aria-label={t(
+                    'settings.navigation.label',
+                    'Settings navigation',
+                )}
+                className="hidden min-h-0 flex-1 overflow-y-auto px-3 pt-4 pb-4 lg:block"
+            >
                 {sections.map((section) => (
-                    <section className="mb-5" key={section.key}>
-                        <h2 className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                    <section
+                        aria-labelledby={`settings-section-${section.key}`}
+                        className="mb-5"
+                        key={section.key}
+                    >
+                        <h2
+                            className="mb-2 px-2 text-xs font-medium tracking-[0.16em] text-[var(--settings-muted-text)] uppercase"
+                            id={`settings-section-${section.key}`}
+                        >
                             {section.label}
                         </h2>
                         <div className="grid gap-2">
