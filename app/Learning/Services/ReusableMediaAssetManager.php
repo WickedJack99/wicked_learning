@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -261,21 +262,24 @@ class ReusableMediaAssetManager
         array $urlSet,
     ): void {
         $query = $modelClass::query();
-        $wrappedColumn = $query->getQuery()->getGrammar()->wrap($column);
+        $predicate = match ($column) {
+            'config' => 'CAST("config" AS TEXT) LIKE ?',
+            'background_config' => 'CAST("background_config" AS TEXT) LIKE ?',
+            'visual_config' => 'CAST("visual_config" AS TEXT) LIKE ?',
+            'value' => 'CAST("value" AS TEXT) LIKE ?',
+            default => throw new LogicException('Unsupported JSON reference column.'),
+        };
 
         $query
-            ->where(function (Builder $query) use ($wrappedColumn, $urlSet): void {
+            ->where(function (Builder $query) use ($predicate, $urlSet): void {
                 foreach (array_keys($urlSet) as $url) {
-                    $query->orWhereRaw(
-                        "CAST({$wrappedColumn} AS TEXT) LIKE ?",
-                        ['%'.$url.'%'],
-                    );
+                    $query->orWhereRaw($predicate, ['%'.$url.'%']);
                 }
             })
             ->get([$column])
             ->each(function (Model $model) use (&$counts, $column, $group, $urlSet): void {
                 $matches = [];
-                $this->collectReferencedUrls($model->{$column}, $urlSet, $matches);
+                $this->collectReferencedUrls($model->getAttribute($column), $urlSet, $matches);
 
                 foreach (array_keys($matches) as $url) {
                     $counts[$url][$group] = ($counts[$url][$group] ?? 0) + 1;
