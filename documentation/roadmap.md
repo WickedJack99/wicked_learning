@@ -131,9 +131,9 @@ alternatives remain open.
 The Learning Companion now provides optional deterministic orientation on the
 desk, worlds and activities, with inherited scope configuration, reusable
 assigned graphs, a bounded React Flow editor and local traversal of authored
-message, choice and end nodes. Continue with a provider-neutral,
-server-bounded turn flow for AI nodes only after the
-interaction contract is usable. Define explicit assistance levels such as AI-off, questions-only,
+message, choice and end nodes. It also supports one provider-neutral,
+server-bounded plain-text turn for an authored AI node when an administrator
+enables a guarded learner-companion template. Continue by defining explicit assistance levels such as AI-off, questions-only,
 hints and post-attempt support. Ground responses, disclose uncertainty and
 record assistance so supported performance is not silently interpreted as
 independent capability; the assistant must never emit arbitrary navigation or

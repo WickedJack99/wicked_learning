@@ -232,14 +232,17 @@ bounded overlay so the graph list and selected-graph details remain visible by
 default. When a graph is assigned, the learner launcher can traverse its
 authored message, choice and end nodes locally, with local Back and Restart
 controls for recovering from a branch; navigation choices resolve only to
-server-provided context actions, while AI nodes disclose that provider
-execution is not yet available. Learners can open the companion from
-the lower-left corner on the Learning Desk, bookmarks and activities, or
-immediately to the right of map search on a world map. The current learner
-surface still uses deterministic context and up to two safe navigation choices;
-provider-backed AI turns are not yet implemented. The
-companion does not replace map exploration or activity playback, and does not
-read private journal, group or unrelated learner history.
+server-provided context actions. An administrator may enable authored AI nodes
+with a guarded `learner_companion` template and a maximum of three allowlisted
+context capabilities. Each AI node makes one server-resolved, plain-text turn;
+the response is transient in the open companion panel and cannot navigate,
+mutate content or read private journal, group or unrelated learner history.
+Learners can open the companion from the lower-left corner on the Learning Desk,
+bookmarks and activities, or immediately to the right of map search on a world
+map. Without a configured provider or enabled template, the companion keeps its
+deterministic fallback. The companion does not replace map exploration or
+activity playback and does not make independent-competence claims from AI
+assistance.
 
 ### Learner Messages
 

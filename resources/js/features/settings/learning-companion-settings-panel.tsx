@@ -17,12 +17,26 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { uploadMediaFile } from '@/lib/media-upload';
 
 export type LearningCompanionSettings = {
+    ai_capabilities: string[];
+    ai_enabled: boolean;
+    ai_template_id: number | null;
+    ai_template_options: Array<{ enabled: boolean; id: number; name: string }>;
     avatar_color: string;
     avatar_url: string | null;
     display_name: string;
     enabled: boolean;
+    mode: 'guided_ai' | 'open_ai' | 'scripted' | string;
     welcome_message: string;
 };
+
+const companionCapabilities = [
+    ['current-context', 'Current place and activity'],
+    ['topic-context', 'Topic context'],
+    ['route-context', 'Route context'],
+    ['nearby-places', 'Nearby places'],
+    ['navigation-alternatives', 'Navigation alternatives'],
+    ['revisit-options', 'Revisit options'],
+] as const;
 
 type LearningCompanionSection = 'dialogues' | 'identity';
 
@@ -121,7 +135,8 @@ export function LearningCompanionSettingsPanel({
     };
 
     const activeSectionItem =
-        sections.find((section) => section.key === activeSection) ?? sections[0];
+        sections.find((section) => section.key === activeSection) ??
+        sections[0];
 
     return (
         <SettingsNestedWorkspace
@@ -142,158 +157,349 @@ export function LearningCompanionSettingsPanel({
             {activeSection === 'dialogues' ? (
                 <LearningCompanionDialoguesPanel />
             ) : (
-        <div className="h-full min-h-0 overflow-auto p-5 sm:p-6">
-            <section className="mx-auto grid max-w-4xl gap-6">
-                <SettingsPanelHeader
-                    description={t(
-                        'settings.companion.description',
-                        'Set the small scripted guide learners can open while exploring a map or activity. It works without an AI provider.',
-                    )}
-                    eyebrow={t('settings.companion.eyebrow', 'Learner experience')}
-                    icon={Bot}
-                    title={t('settings.companion.title', 'Learning Companion')}
-                />
-
-                <form
-                    className="grid gap-5 rounded-xl border p-5"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        save();
-                    }}
-                    style={{
-                        background: 'var(--settings-panel-background)',
-                        borderColor: 'var(--settings-border-color)',
-                    }}
-                >
-                    <label className="flex items-start gap-3">
-                        <input
-                            checked={form.enabled}
-                            className="mt-1 size-4 accent-[var(--settings-accent)]"
-                            onChange={(event) =>
-                                setForm((current) => ({
-                                    ...current,
-                                    enabled: event.target.checked,
-                                }))
-                            }
-                            type="checkbox"
+                <div className="h-full min-h-0 overflow-auto p-5 sm:p-6">
+                    <section className="mx-auto grid max-w-4xl gap-6">
+                        <SettingsPanelHeader
+                            description={t(
+                                'settings.companion.description',
+                                'Set the small scripted guide learners can open while exploring a map or activity. It works without an AI provider.',
+                            )}
+                            eyebrow={t(
+                                'settings.companion.eyebrow',
+                                'Learner experience',
+                            )}
+                            icon={Bot}
+                            title={t(
+                                'settings.companion.title',
+                                'Learning Companion',
+                            )}
                         />
-                        <span>
-                            <span className="block text-sm font-semibold">
-                                {t(
-                                    'settings.companion.enabled',
-                                    'Show the companion to learners',
-                                )}
-                            </span>
-                            <span className="mt-1 block text-sm text-[var(--settings-muted-text)]">
-                                {t(
-                                    'settings.companion.enabled_description',
-                                    'Learners can open it from the lower-left corner of a world or activity. It never blocks map exploration or activity playback.',
-                                )}
-                            </span>
-                        </span>
-                    </label>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="companion-display-name">
-                            {t('settings.companion.display_name', 'Display name')}
-                        </Label>
-                        <Input
-                            id="companion-display-name"
-                            maxLength={80}
-                            onChange={updateText('display_name')}
-                            value={form.display_name}
-                        />
-                    </div>
+                        <form
+                            className="grid gap-5 rounded-xl border p-5"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                save();
+                            }}
+                            style={{
+                                background: 'var(--settings-panel-background)',
+                                borderColor: 'var(--settings-border-color)',
+                            }}
+                        >
+                            <label className="flex items-start gap-3">
+                                <input
+                                    checked={form.enabled}
+                                    className="mt-1 size-4 accent-[var(--settings-accent)]"
+                                    onChange={(event) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            enabled: event.target.checked,
+                                        }))
+                                    }
+                                    type="checkbox"
+                                />
+                                <span>
+                                    <span className="block text-sm font-semibold">
+                                        {t(
+                                            'settings.companion.enabled',
+                                            'Show the companion to learners',
+                                        )}
+                                    </span>
+                                    <span className="mt-1 block text-sm text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.companion.enabled_description',
+                                            'Learners can open it from the lower-left corner of a world or activity. It never blocks map exploration or activity playback.',
+                                        )}
+                                    </span>
+                                </span>
+                            </label>
 
-                    <ConfigImageInput
-                        description={t(
-                            'settings.companion.avatar_description',
-                            'Upload a new image or reuse an existing visual from the media library.',
-                        )}
-                        error={errors.avatar_url}
-                        id="companion-avatar-url"
-                        label={t(
-                            'settings.companion.avatar_url',
-                            'Avatar image (optional)',
-                        )}
-                        onChange={(value) =>
-                            setForm((current) => ({
-                                ...current,
-                                avatar_url: value,
-                            }))
-                        }
-                        onUpload={(file) => void uploadAvatar(file)}
-                        placeholder="/storage/learning/media/companion-avatar.png"
-                        uploading={uploading}
-                        value={form.avatar_url ?? ''}
-                    />
+                            <div className="grid gap-2">
+                                <Label htmlFor="companion-display-name">
+                                    {t(
+                                        'settings.companion.display_name',
+                                        'Display name',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="companion-display-name"
+                                    maxLength={80}
+                                    onChange={updateText('display_name')}
+                                    value={form.display_name}
+                                />
+                            </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="companion-avatar-color">
-                            {t('settings.companion.avatar_color', 'Avatar color')}
-                        </Label>
-                        <div className="flex items-center gap-3">
-                            <input
-                                aria-label={t(
-                                    'settings.companion.avatar_color',
-                                    'Avatar color',
+                            <ConfigImageInput
+                                description={t(
+                                    'settings.companion.avatar_description',
+                                    'Upload a new image or reuse an existing visual from the media library.',
                                 )}
-                                className="size-11 cursor-pointer rounded-md border border-[var(--settings-border-color)] bg-transparent p-1"
-                                id="companion-avatar-color"
-                                onChange={(event) =>
+                                error={errors.avatar_url}
+                                id="companion-avatar-url"
+                                label={t(
+                                    'settings.companion.avatar_url',
+                                    'Avatar image (optional)',
+                                )}
+                                onChange={(value) =>
                                     setForm((current) => ({
                                         ...current,
-                                        avatar_color: event.target.value,
+                                        avatar_url: value,
                                     }))
                                 }
-                                type="color"
-                                value={form.avatar_color}
+                                onUpload={(file) => void uploadAvatar(file)}
+                                placeholder="/storage/learning/media/companion-avatar.png"
+                                uploading={uploading}
+                                value={form.avatar_url ?? ''}
                             />
-                            <span className="font-mono text-sm text-[var(--settings-muted-text)]">
-                                {form.avatar_color}
-                            </span>
-                        </div>
-                        <p className="text-sm text-[var(--settings-muted-text)]">
-                            {t(
-                                'settings.companion.avatar_color_description',
-                                'Used for the companion circle and its fallback icon.',
-                            )}
-                        </p>
-                        {errors.avatar_color ? (
-                            <p className="text-sm text-destructive">{errors.avatar_color}</p>
-                        ) : null}
-                    </div>
 
-                    <div className="grid gap-2">
-                        <Label htmlFor="companion-welcome-message">
-                            {t('settings.companion.message', 'Orientation message')}
-                        </Label>
-                        <textarea
-                            className="min-h-32 rounded-md border bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
-                            id="companion-welcome-message"
-                            maxLength={1200}
-                            onChange={updateText('welcome_message')}
-                            value={form.welcome_message}
-                        />
-                        <p className="text-sm text-[var(--settings-muted-text)]">
-                            {t(
-                                'settings.companion.message_description',
-                                'Keep this invitational and choice-preserving. It is shown with deterministic context and safe navigation suggestions.',
-                            )}
-                        </p>
-                    </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="companion-avatar-color">
+                                    {t(
+                                        'settings.companion.avatar_color',
+                                        'Avatar color',
+                                    )}
+                                </Label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        aria-label={t(
+                                            'settings.companion.avatar_color',
+                                            'Avatar color',
+                                        )}
+                                        className="size-11 cursor-pointer rounded-md border border-[var(--settings-border-color)] bg-transparent p-1"
+                                        id="companion-avatar-color"
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                avatar_color:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        type="color"
+                                        value={form.avatar_color}
+                                    />
+                                    <span className="font-mono text-sm text-[var(--settings-muted-text)]">
+                                        {form.avatar_color}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-[var(--settings-muted-text)]">
+                                    {t(
+                                        'settings.companion.avatar_color_description',
+                                        'Used for the companion circle and its fallback icon.',
+                                    )}
+                                </p>
+                                {errors.avatar_color ? (
+                                    <p className="text-sm text-destructive">
+                                        {errors.avatar_color}
+                                    </p>
+                                ) : null}
+                            </div>
 
-                    <div>
-                        <Button disabled={saving} type="submit">
-                            <Save className="size-4" />
-                            {saving
-                                ? t('settings.companion.saving', 'Saving...')
-                                : t('common.save', 'Save')}
-                        </Button>
-                    </div>
-                </form>
-            </section>
-        </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="companion-welcome-message">
+                                    {t(
+                                        'settings.companion.message',
+                                        'Orientation message',
+                                    )}
+                                </Label>
+                                <textarea
+                                    className="min-h-32 rounded-md border bg-[var(--settings-input-background)] px-3 py-2 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
+                                    id="companion-welcome-message"
+                                    maxLength={1200}
+                                    onChange={updateText('welcome_message')}
+                                    value={form.welcome_message}
+                                />
+                                <p className="text-sm text-[var(--settings-muted-text)]">
+                                    {t(
+                                        'settings.companion.message_description',
+                                        'Keep this invitational and choice-preserving. It is shown with deterministic context and safe navigation suggestions.',
+                                    )}
+                                </p>
+                            </div>
+
+                            <fieldset className="grid gap-4 rounded-lg border p-4">
+                                <legend className="px-1 text-sm font-semibold">
+                                    {t(
+                                        'settings.companion.ai.title',
+                                        'AI companion turns',
+                                    )}
+                                </legend>
+                                <label className="flex items-start gap-3">
+                                    <input
+                                        checked={form.ai_enabled}
+                                        className="mt-1 size-4 accent-[var(--settings-accent)]"
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                ai_enabled:
+                                                    event.target.checked,
+                                            }))
+                                        }
+                                        type="checkbox"
+                                    />
+                                    <span className="text-sm">
+                                        <span className="block font-semibold">
+                                            {t(
+                                                'settings.companion.ai.enabled',
+                                                'Allow authored AI nodes',
+                                            )}
+                                        </span>
+                                        <span className="mt-1 block text-[var(--settings-muted-text)]">
+                                            {t(
+                                                'settings.companion.ai.description',
+                                                'Responses use only the authored instruction and bounded learning context. The companion cannot navigate or change content.',
+                                            )}
+                                        </span>
+                                    </span>
+                                </label>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="companion-mode">
+                                            {t(
+                                                'settings.companion.ai.mode',
+                                                'AI mode',
+                                            )}
+                                        </Label>
+                                        <select
+                                            className="h-10 rounded-md border bg-[var(--settings-input-background)] px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
+                                            id="companion-mode"
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    mode: event.target.value,
+                                                }))
+                                            }
+                                            value={form.mode}
+                                        >
+                                            <option value="scripted">
+                                                Scripted only
+                                            </option>
+                                            <option value="guided_ai">
+                                                Guided AI
+                                            </option>
+                                            <option value="open_ai">
+                                                Open AI
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="companion-ai-template">
+                                            {t(
+                                                'settings.companion.ai.template',
+                                                'AI template',
+                                            )}
+                                        </Label>
+                                        <select
+                                            className="h-10 rounded-md border bg-[var(--settings-input-background)] px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
+                                            id="companion-ai-template"
+                                            onChange={(event) =>
+                                                setForm((current) => ({
+                                                    ...current,
+                                                    ai_template_id: event.target
+                                                        .value
+                                                        ? Number(
+                                                              event.target
+                                                                  .value,
+                                                          )
+                                                        : null,
+                                                }))
+                                            }
+                                            value={form.ai_template_id ?? ''}
+                                        >
+                                            <option value="">
+                                                {t(
+                                                    'settings.companion.ai.template_none',
+                                                    'Choose a learner companion template',
+                                                )}
+                                            </option>
+                                            {form.ai_template_options.map(
+                                                (template) => (
+                                                    <option
+                                                        disabled={
+                                                            !template.enabled
+                                                        }
+                                                        key={template.id}
+                                                        value={template.id}
+                                                    >
+                                                        {template.name}
+                                                        {!template.enabled
+                                                            ? ' (disabled)'
+                                                            : ''}
+                                                    </option>
+                                                ),
+                                            )}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <span className="text-sm font-semibold">
+                                        {t(
+                                            'settings.companion.ai.capabilities',
+                                            'Allowed context',
+                                        )}
+                                    </span>
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {companionCapabilities.map(
+                                            ([value, label]) => (
+                                                <label
+                                                    className="flex items-center gap-2 text-sm"
+                                                    key={value}
+                                                >
+                                                    <input
+                                                        checked={form.ai_capabilities.includes(
+                                                            value,
+                                                        )}
+                                                        className="size-4 accent-[var(--settings-accent)]"
+                                                        onChange={(event) =>
+                                                            setForm(
+                                                                (current) => ({
+                                                                    ...current,
+                                                                    ai_capabilities:
+                                                                        event
+                                                                            .target
+                                                                            .checked
+                                                                            ? [
+                                                                                  ...current.ai_capabilities,
+                                                                                  value,
+                                                                              ].slice(
+                                                                                  0,
+                                                                                  3,
+                                                                              )
+                                                                            : current.ai_capabilities.filter(
+                                                                                  (
+                                                                                      capability,
+                                                                                  ) =>
+                                                                                      capability !==
+                                                                                      value,
+                                                                              ),
+                                                                }),
+                                                            )
+                                                        }
+                                                        type="checkbox"
+                                                    />
+                                                    {label}
+                                                </label>
+                                            ),
+                                        )}
+                                    </div>
+                                </div>
+                            </fieldset>
+
+                            <div>
+                                <Button disabled={saving} type="submit">
+                                    <Save className="size-4" />
+                                    {saving
+                                        ? t(
+                                              'settings.companion.saving',
+                                              'Saving...',
+                                          )
+                                        : t('common.save', 'Save')}
+                                </Button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
             )}
         </SettingsNestedWorkspace>
     );

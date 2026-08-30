@@ -1,8 +1,16 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, MessageCircle, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { readJsonResponse } from '@/lib/json-response';
 import type { LearningCompanion, LearningCompanionDialogueNode } from '@/types';
+
+type CompanionTurnResponse = {
+    errors?: Record<string, string[]>;
+    message?: string;
+    node_id: string;
+    text: string;
+};
 
 export function LearningCompanionDialogue({
     companion,
@@ -13,16 +21,96 @@ export function LearningCompanionDialogue({
     const graph = companion.dialogue;
     const [nodeId, setNodeId] = useState(graph?.start ?? '');
     const [nodeHistory, setNodeHistory] = useState<string[]>([]);
+    const [aiResponses, setAiResponses] = useState<Record<string, string>>({});
+    const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
     const nodeById = useMemo(
         () => new Map(graph?.nodes.map((node) => [node.id, node]) ?? []),
         [graph],
     );
 
+    const node = nodeById.get(nodeId);
+    const aiEnabled = companion.configuration.aiEnabled;
+
+    useEffect(() => {
+        if (
+            !aiEnabled ||
+            !node ||
+            node.type !== 'ai' ||
+            aiResponses[node.id] !== undefined
+        ) {
+            return;
+        }
+
+        const controller = new AbortController();
+        // The request is intentionally one turn per node; cached responses avoid
+        // repeated provider work when a learner revisits a branch.
+
+        const context = companion.context;
+        const body = {
+            activity_id: context.activity?.id ?? undefined,
+            dialogue_node_id: node.id,
+            map_id: context.map?.id ?? undefined,
+            node_id: context.node?.id ?? undefined,
+            surface: context.surface,
+        };
+        const csrfToken =
+            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                ?.content ?? '';
+
+        void fetch('/learning/companion/turn', {
+            body: JSON.stringify(body),
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            method: 'POST',
+            signal: controller.signal,
+        })
+            .then((response) =>
+                readJsonResponse<CompanionTurnResponse>(
+                    response,
+                    t(
+                        'learning.companion.dialogue.ai_error',
+                        'The companion could not answer this turn. You can continue exploring without it.',
+                    ),
+                ),
+            )
+            .then((payload) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                setAiResponses((current) => ({
+                    ...current,
+                    [node.id]: payload.text,
+                }));
+            })
+            .catch((error: unknown) => {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                setAiErrors((current) => ({
+                    ...current,
+                    [node.id]:
+                        error instanceof Error
+                            ? error.message
+                            : t(
+                                  'learning.companion.dialogue.ai_error',
+                                  'The companion could not answer this turn. You can continue exploring without it.',
+                              ),
+                }));
+            });
+
+        return () => controller.abort();
+    }, [aiEnabled, aiResponses, companion.context, node, t]);
+
     if (!graph || graph.nodes.length === 0) {
         return null;
     }
-
-    const node = nodeById.get(nodeId);
 
     if (!node) {
         return null;
@@ -76,7 +164,14 @@ export function LearningCompanionDialogue({
                     </p>
                 ) : null}
                 <p className="text-sm leading-6 text-[var(--map-side-control-text-color)]">
-                    {nodeContent(node, t)}
+                    {node.type === 'ai'
+                        ? aiResponses[node.id] ||
+                          aiErrors[node.id] ||
+                          t(
+                              'learning.companion.dialogue.ai_loading',
+                              'The companion is considering this context...',
+                          )
+                        : nodeContent(node, t)}
                 </p>
             </div>
 

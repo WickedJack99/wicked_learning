@@ -175,19 +175,23 @@ inherited visual overrides and defaults to the shared map accent.
 
 `LearningCompanionContext` builds a small allowlisted payload from the already
 resolved desk, world or activity context; it exposes only stable references and
-at most two named navigation actions. The launcher is a separate learner-shell
-component. Its default lower-left position is shared by desk, bookmark and
-activity surfaces; the world map supplies a map-search placement that reserves
-a slot immediately to the search control's right.
+at most two named navigation actions. `LearningCompanionTurnService` resolves
+the submitted surface identifiers back to accessible server models, resolves
+the effective graph and AI settings, and runs only enabled guarded templates
+whose purpose is `learner_companion`. It sends the authored AI instruction and
+selected bounded references to the existing provider-neutral runner and returns
+only a short plain-text response. The turn endpoint has no navigation or content
+mutation contract. The launcher is a separate learner-shell component. Its
+default lower-left position is shared by desk, bookmark and activity surfaces;
+the world map supplies a map-search placement that reserves a slot immediately
+to the search control's right.
 
 The learner launcher traverses assigned message, choice and end nodes locally,
 keeps a transient in-panel history for Back and Restart controls, and resolves
-graph navigation keys against the server-provided context actions.
-AI nodes currently disclose that provider execution is unavailable rather than
-pretending to answer. Future AI turns must reuse the validated capability
-contract, resolve navigation on the server and keep this deterministic fallback
-usable when no provider is available. AI must not receive direct authority to
-navigate, mutate content or emit arbitrary URLs.
+graph navigation keys against the server-provided context actions. AI nodes make
+one request when first entered and cache that response for the open panel;
+loading and provider failures keep the authored fallback usable. AI must not
+receive direct authority to navigate, mutate content or emit arbitrary URLs.
 
 ## AI And Content API
 

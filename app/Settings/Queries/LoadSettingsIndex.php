@@ -35,6 +35,7 @@ use App\Learning\Services\LearningMapEditAccessService;
 use App\Localization\Queries\LoadLanguageAdministration;
 use App\Models\AccessChangeEvent;
 use App\Models\AccessRole;
+use App\Models\AiAgentTemplate;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearningDialogueSoundSet;
 use App\Models\LearningGroup;
@@ -171,6 +172,12 @@ class LoadSettingsIndex
         $configuredColor = is_array($setting->companion_config)
             ? ($setting->companion_config['avatar_color'] ?? null)
             : null;
+        $companionConfig = is_array($setting->companion_config)
+            ? $setting->companion_config
+            : [];
+        $aiConfig = is_array($companionConfig['ai'] ?? null)
+            ? $companionConfig['ai']
+            : [];
 
         return [
             ...$setting->only(['enabled', 'display_name', 'avatar_url', 'welcome_message']),
@@ -178,6 +185,28 @@ class LoadSettingsIndex
                 && preg_match('/^#[0-9a-fA-F]{6}$/', $configuredColor) === 1
                 ? $configuredColor
                 : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_COLOR,
+            'mode' => in_array($companionConfig['mode'] ?? null, ['scripted', 'guided_ai', 'open_ai'], true)
+                ? $companionConfig['mode']
+                : 'scripted',
+            'ai_enabled' => ($aiConfig['enabled'] ?? false) === true,
+            'ai_template_id' => is_int($aiConfig['template_id'] ?? null)
+                ? $aiConfig['template_id']
+                : null,
+            'ai_capabilities' => is_array($aiConfig['capabilities'] ?? null)
+                ? array_values(array_map('strval', $aiConfig['capabilities']))
+                : [],
+            'ai_template_options' => AiAgentTemplate::query()
+                ->where('purpose', 'learner_companion')
+                ->orderBy('name')
+                ->limit(50)
+                ->get(['id', 'name', 'enabled'])
+                ->map(fn (AiAgentTemplate $template): array => [
+                    'id' => $template->id,
+                    'name' => $template->name,
+                    'enabled' => (bool) $template->enabled,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

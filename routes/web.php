@@ -6,6 +6,7 @@ use App\Http\Controllers\LearnerJournalController;
 use App\Http\Controllers\LearnerMessageController;
 use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
+use App\Http\Controllers\LearningCompanionController;
 use App\Http\Controllers\LearningGroupController;
 use App\Http\Controllers\LearningHomeController;
 use App\Http\Controllers\LearningItemActivityController;
@@ -159,6 +160,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.item-obstacle-slot');
     Route::post('learning/activities/{activity}/item-obstacle-continue', [LearningItemActivityController::class, 'continueObstacle'])
         ->name('learning.activities.item-obstacle-continue');
+    Route::post('learning/companion/turn', [LearningCompanionController::class, 'turn'])
+        ->middleware('throttle:30,1')
+        ->name('learning.companion.turn');
 });
 
 Route::middleware(['auth', 'verified', 'can:content_topics.ru'])->group(function () {

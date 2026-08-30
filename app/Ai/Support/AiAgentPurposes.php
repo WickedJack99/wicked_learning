@@ -26,6 +26,11 @@ class AiAgentPurposes
                 'description' => 'Prepares informational feedback for reflections without scores or pressure loops.',
             ],
             [
+                'value' => 'learner_companion',
+                'label' => 'Learning Companion',
+                'description' => 'Provides short, context-bounded responses to authored companion dialogue nodes.',
+            ],
+            [
                 'value' => 'general_assistant',
                 'label' => 'General assistant',
                 'description' => 'A broader helper for tasks that do not need sensitive learner context.',
