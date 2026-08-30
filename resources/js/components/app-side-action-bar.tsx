@@ -28,6 +28,22 @@ export function AppSideActionBar() {
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
     const companion = props.companion as LearningCompanion | null | undefined;
+    const initialPostAttemptAvailable = Boolean(
+        companion?.context.postAttemptAvailable,
+    );
+    const companionActivityId = companion?.context.activity?.id ?? null;
+    const companionContextKey = `${url}:${companionActivityId ?? 'none'}:${initialPostAttemptAvailable ? 'available' : 'pending'}`;
+    const [completedContext, setCompletedContext] = useState<{
+        key: string;
+        available: boolean;
+    }>({
+        key: companionContextKey,
+        available: initialPostAttemptAvailable,
+    });
+    const postAttemptAvailable =
+        completedContext.key === companionContextKey
+            ? completedContext.available
+            : initialPostAttemptAvailable;
     const companionPlacement = url.startsWith('/world')
         ? 'map-search'
         : 'default';
@@ -39,6 +55,31 @@ export function AppSideActionBar() {
                 url.startsWith('/learning/')),
         [props.auth.user, url],
     );
+
+    useEffect(() => {
+        const handleActivityCompletion = (event: Event) => {
+            const activityId = (event as CustomEvent<{ activityId?: number }>)
+                .detail?.activityId;
+
+            if (activityId === companionActivityId) {
+                setCompletedContext({
+                    key: companionContextKey,
+                    available: true,
+                });
+            }
+        };
+
+        window.addEventListener(
+            'learning-companion:attempt-completed',
+            handleActivityCompletion,
+        );
+
+        return () =>
+            window.removeEventListener(
+                'learning-companion:attempt-completed',
+                handleActivityCompletion,
+            );
+    }, [companionActivityId, companionContextKey]);
     const closeOverlay = useCallback(() => {
         setOverlay(null);
         window.setTimeout(() => overlayTriggerRef.current?.focus(), 0);
@@ -116,6 +157,7 @@ export function AppSideActionBar() {
             {companion?.enabled ? (
                 <LearningCompanionLauncher
                     companion={companion}
+                    postAttemptAvailable={postAttemptAvailable}
                     placement={companionPlacement}
                 />
             ) : null}
@@ -173,7 +215,9 @@ export function AppSideActionBar() {
                         <ActionButton
                             ariaControls="learning-tools-panel"
                             ariaExpanded={overlay === 'tools'}
-                            isActive={overlay === 'tools' || Boolean(selectedTool)}
+                            isActive={
+                                overlay === 'tools' || Boolean(selectedTool)
+                            }
                             label="Open tools"
                             onClick={(event) => {
                                 if (selectedTool) {

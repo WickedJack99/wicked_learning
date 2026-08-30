@@ -134,12 +134,14 @@ assigned graphs, a bounded React Flow editor and local traversal of authored
 message, choice and end nodes. It also supports one provider-neutral,
 server-bounded plain-text turn for an authored AI node when an administrator
 enables a guarded learner-companion template. Learners can now choose AI-off,
-one reflective question or one small hint before a transient turn. Continue by
-adding post-attempt support, grounded uncertainty disclosure and explicit
-assistance evidence only where the learner has consented and the interaction
-can support that interpretation; supported performance must not silently be
-interpreted as independent capability. The assistant must never emit arbitrary
-navigation or mutate content directly.
+one reflective question or one small hint before a transient turn. After an
+activity is completed, learners can also request one bounded comparison or next
+question grounded in authored feedback guidance without sharing their private
+response. Continue with grounded uncertainty disclosure and explicit assistance
+evidence only where the learner has consented and the interaction can support
+that interpretation; supported performance must not silently be interpreted as
+independent capability. The assistant must never emit arbitrary navigation or
+mutate content directly.
 
 ### 8. Privacy-conscious evaluation
 

@@ -235,8 +235,12 @@ controls for recovering from a branch; navigation choices resolve only to
 server-provided context actions. An administrator may enable authored AI nodes
 with a guarded `learner_companion` template and a maximum of three allowlisted
 context capabilities. Before a turn, the learner chooses no AI support, one
-reflective question or one small hint. Only the selected question or hint makes
-one server-resolved, plain-text provider turn; the response is transient in the
+reflective question or one small hint. After completing an activity, the
+learner may also request one bounded comparison or next question grounded in
+the activity's authored feedback guidance. The post-attempt request does not
+send the learner's answer, confidence, journal or other private response to the
+companion. Only the selected question, hint or post-attempt request makes one
+server-resolved, plain-text provider turn; the response is transient in the
 open companion panel and cannot navigate, mutate content or read private
 journal, group or unrelated learner history. AI assistance is not independent
 learning evidence.

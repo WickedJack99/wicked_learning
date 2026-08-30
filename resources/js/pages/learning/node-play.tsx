@@ -318,6 +318,12 @@ export default function NodePlay({
                 );
             }
 
+            window.dispatchEvent(
+                new CustomEvent('learning-companion:attempt-completed', {
+                    detail: { activityId: activity.id },
+                }),
+            );
+
             const checkIn: PendingLearningCheckIn = {
                 activityId: activity.id,
                 activityTitle: activity.title,

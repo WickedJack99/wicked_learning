@@ -171,6 +171,7 @@ class LearningWorldController extends Controller
                 $requestedActivity ?? $runProgress?->currentActivity,
                 $route,
                 $playRunId,
+                $user,
             ),
             'playActivityId' => $requestedActivity?->id ?? $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,

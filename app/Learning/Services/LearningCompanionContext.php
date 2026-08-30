@@ -2,12 +2,14 @@
 
 namespace App\Learning\Services;
 
+use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use App\Models\PlatformCompanionSetting;
+use App\Models\User;
 
 /** Builds a small, deterministic context for the learner companion. */
 class LearningCompanionContext
@@ -33,6 +35,7 @@ class LearningCompanionContext
             'route' => null,
             'topic' => null,
             'playRunId' => null,
+            'postAttemptAvailable' => false,
             'actions' => [
                 [
                     'key' => 'topics',
@@ -70,6 +73,7 @@ class LearningCompanionContext
             'route' => null,
             'topic' => $map?->topic ? $this->reference($map->topic->id, $map->topic->title) : null,
             'playRunId' => null,
+            'postAttemptAvailable' => false,
             'actions' => array_values(array_filter([
                 [
                     'key' => 'learning-desk',
@@ -93,6 +97,7 @@ class LearningCompanionContext
         ?LearningActivity $activity,
         ?LearningActivityStart $routeStart,
         ?string $playRunId,
+        ?User $user = null,
     ): ?array {
         $setting = PlatformCompanionSetting::current();
 
@@ -121,6 +126,7 @@ class LearningCompanionContext
                 : null,
             'topic' => $topic ? $this->reference($topic->id, $topic->title) : null,
             'playRunId' => $playRunId,
+            'postAttemptAvailable' => $this->postAttemptAvailable($user, $activity),
             'actions' => [
                 [
                     'key' => 'current-map',
@@ -136,6 +142,17 @@ class LearningCompanionContext
                 ],
             ],
         ]);
+    }
+
+    private function postAttemptAvailable(?User $user, ?LearningActivity $activity): bool
+    {
+        return $user !== null
+            && $activity !== null
+            && LearnerActivityProgress::query()
+                ->where('user_id', $user->id)
+                ->where('learning_activity_id', $activity->id)
+                ->where('status', 'completed')
+                ->exists();
     }
 
     /** @param array<string, mixed> $context @return array<string, mixed> */

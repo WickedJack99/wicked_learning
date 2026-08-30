@@ -13,7 +13,13 @@ export type LearningCompanion = {
     configuration: {
         aiEnabled: boolean;
         mode: 'guided_ai' | 'open_ai' | 'scripted' | string;
-        sourceScope: 'activity' | 'map' | 'node' | 'platform' | 'world' | string;
+        sourceScope:
+            | 'activity'
+            | 'map'
+            | 'node'
+            | 'platform'
+            | 'world'
+            | string;
     };
     context: {
         actions: Array<{
@@ -26,6 +32,7 @@ export type LearningCompanion = {
         map: { id: number; title: string } | null;
         node: { id: number; title: string } | null;
         playRunId: string | null;
+        postAttemptAvailable: boolean;
         route: { id: number; title: string } | null;
         surface: 'activity' | 'desk' | 'world';
         topic: { id: number; title: string } | null;
@@ -45,7 +52,12 @@ export type LearningCompanionDialogueGraph = {
 
 export type LearningCompanionDialogueNode = {
     choices?: Array<{
-        action?: 'continue-exploring' | 'current-map' | 'learning-desk' | 'topics' | string;
+        action?:
+            | 'continue-exploring'
+            | 'current-map'
+            | 'learning-desk'
+            | 'topics'
+            | string;
         key: string;
         label: string;
         next?: string | null;

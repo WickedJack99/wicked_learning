@@ -12,12 +12,14 @@ type CompanionTurnResponse = {
     text: string;
 };
 
-type CompanionAssistanceLevel = 'off' | 'question' | 'hint';
+type CompanionAssistanceLevel = 'off' | 'question' | 'hint' | 'post-attempt';
 
 export function LearningCompanionDialogue({
     companion,
+    postAttemptAvailable = companion.context.postAttemptAvailable,
 }: {
     companion: LearningCompanion;
+    postAttemptAvailable?: boolean;
 }) {
     const t = usePlatformTranslation();
     const graph = companion.dialogue;
@@ -204,7 +206,7 @@ export function LearningCompanionDialogue({
                                 'Choose AI assistance',
                             )}
                         </legend>
-                        <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="grid gap-2 sm:grid-cols-2">
                             {(
                                 [
                                     [
@@ -240,6 +242,21 @@ export function LearningCompanionDialogue({
                                             'Offer one small clue.',
                                         ),
                                     ],
+                                    ...(postAttemptAvailable
+                                        ? [
+                                              [
+                                                  'post-attempt',
+                                                  t(
+                                                      'learning.companion.dialogue.assistance_post_attempt',
+                                                      'After my attempt',
+                                                  ),
+                                                  t(
+                                                      'learning.companion.dialogue.assistance_post_attempt_description',
+                                                      'Compare with authored guidance without sharing your response.',
+                                                  ),
+                                              ],
+                                          ]
+                                        : []),
                                 ] as [
                                     CompanionAssistanceLevel,
                                     string,

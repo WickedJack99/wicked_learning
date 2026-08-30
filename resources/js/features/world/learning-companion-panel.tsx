@@ -10,19 +10,30 @@ type LearningCompanionPlacement = 'default' | 'map-search';
 
 export function LearningCompanionPanel({
     companion,
+    postAttemptAvailable = companion.context.postAttemptAvailable,
 }: {
     companion: LearningCompanion;
+    postAttemptAvailable?: boolean;
 }) {
     const t = usePlatformTranslation();
     const contextEntries = [
         companion.context.topic
-            ? [t('learning.companion.context.topic', 'Topic'), companion.context.topic.title]
+            ? [
+                  t('learning.companion.context.topic', 'Topic'),
+                  companion.context.topic.title,
+              ]
             : null,
         companion.context.map
-            ? [t('learning.companion.context.map', 'Map'), companion.context.map.title]
+            ? [
+                  t('learning.companion.context.map', 'Map'),
+                  companion.context.map.title,
+              ]
             : null,
         companion.context.node
-            ? [t('learning.companion.context.place', 'Place'), companion.context.node.title]
+            ? [
+                  t('learning.companion.context.place', 'Place'),
+                  companion.context.node.title,
+              ]
             : null,
         companion.context.activity
             ? [
@@ -31,9 +42,14 @@ export function LearningCompanionPanel({
               ]
             : null,
         companion.context.route
-            ? [t('learning.companion.context.route', 'Route'), companion.context.route.title]
+            ? [
+                  t('learning.companion.context.route', 'Route'),
+                  companion.context.route.title,
+              ]
             : null,
-    ].filter((entry): entry is [string, string] => entry !== null).slice(0, 4);
+    ]
+        .filter((entry): entry is [string, string] => entry !== null)
+        .slice(0, 4);
 
     return (
         <div className="grid gap-4">
@@ -60,12 +76,18 @@ export function LearningCompanionPanel({
                 </p>
             </div>
 
-            <LearningCompanionDialogue companion={companion} />
+            <LearningCompanionDialogue
+                companion={companion}
+                postAttemptAvailable={postAttemptAvailable}
+            />
 
             {contextEntries.length > 0 ? (
                 <dl className="grid gap-2 border-t border-[var(--map-side-control-panel-border-color)] pt-3">
                     {contextEntries.map(([label, value]) => (
-                        <div className="flex items-baseline justify-between gap-3" key={label}>
+                        <div
+                            className="flex items-baseline justify-between gap-3"
+                            key={label}
+                        >
                             <dt className="text-xs font-medium tracking-[0.12em] text-[var(--map-side-control-muted-text-color)] uppercase">
                                 {label}
                             </dt>
@@ -100,9 +122,11 @@ export function LearningCompanionPanel({
 
 export function LearningCompanionLauncher({
     companion,
+    postAttemptAvailable = companion.context.postAttemptAvailable,
     placement = 'default',
 }: {
     companion: LearningCompanion;
+    postAttemptAvailable?: boolean;
     placement?: LearningCompanionPlacement;
 }) {
     const t = usePlatformTranslation();
@@ -164,7 +188,8 @@ export function LearningCompanionLauncher({
                     role="dialog"
                     style={{
                         background: 'var(--map-side-control-panel-background)',
-                        borderColor: 'var(--map-side-control-panel-border-color)',
+                        borderColor:
+                            'var(--map-side-control-panel-border-color)',
                         color: 'var(--map-side-control-text-color)',
                     }}
                 >
@@ -186,14 +211,20 @@ export function LearningCompanionLauncher({
                             className="rounded-md px-2 py-1 text-xs font-semibold hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
                             onClick={() => {
                                 setIsOpen(false);
-                                window.setTimeout(() => triggerRef.current?.focus(), 0);
+                                window.setTimeout(
+                                    () => triggerRef.current?.focus(),
+                                    0,
+                                );
                             }}
                             type="button"
                         >
                             {t('learning.companion.close', 'Close')}
                         </button>
                     </div>
-                    <LearningCompanionPanel companion={companion} />
+                    <LearningCompanionPanel
+                        companion={companion}
+                        postAttemptAvailable={postAttemptAvailable}
+                    />
                 </div>
             ) : null}
             <button
