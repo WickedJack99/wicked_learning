@@ -551,10 +551,13 @@ The World Builder provides:
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors
 
-The activity graph also provides a local template action for eligible
-activities. It opens an editable copy in the current MapAsset and flags copied
-message topics or portal destinations that need an author's attention. A shared
-cross-map template library is not yet part of the prototype.
+The activity graph also provides a template action for eligible activities. It
+opens an editable copy with a destination MapAsset chooser, reusing the
+author's existing editable world graph. Copies preserve reusable content and
+media, while message topics and portal destinations are cleared when the
+destination changes so source-context references cannot be carried across by
+accident. A shared, versioned template library is not yet part of the
+prototype.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an

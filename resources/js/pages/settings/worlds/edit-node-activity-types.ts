@@ -197,6 +197,17 @@ export type ActivityGraphPayload = {
     };
 };
 
+export type ActivityTemplateTargetGraph = {
+    maps: Array<{
+        id: number;
+        nodes: Array<{
+            id: number;
+            title: string;
+        }>;
+        title: string;
+    }>;
+};
+
 export type MessageTopicOption = {
     id: number;
     title: string;

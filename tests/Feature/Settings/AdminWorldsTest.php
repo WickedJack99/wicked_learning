@@ -790,6 +790,32 @@ test('admin users configure portal destinations from portal activities', functio
         );
 });
 
+test('admin users can copy an activity to another editable MapAsset', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $sourceNode = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $targetNode = LearningNode::query()->where('slug', 'return-gate')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $sourceNode), [
+            'target_node_id' => $targetNode->id,
+            'title' => 'Copied observation practice',
+            'type' => 'open_practice',
+            'introduction' => 'Practice the same noticing move in a new place.',
+            'open_practice_next_step' => 'Write down one pattern you can test.',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $targetNode));
+
+    $activity = LearningActivity::query()
+        ->where('title', 'Copied observation practice')
+        ->firstOrFail();
+
+    expect($activity->learning_node_id)->toBe($targetNode->id)
+        ->and($activity->introduction)->toBe('Practice the same noticing move in a new place.');
+});
+
 test('admin users can update obstacle activity images', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

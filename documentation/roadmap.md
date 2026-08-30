@@ -175,8 +175,9 @@ mentor digests remain future work.
 - Add bulk import/export for maps and MapAssets with explicit reference
   handling.
 - Add configuration profiles with visible inherited values and local overrides.
-- Expand local activity templates into cross-map reuse only after context,
-  asset and portal references have explicit resolution controls.
+- Expand activity templates into a shared, versioned library with richer
+  context and asset resolution controls; the current copy flow supports an
+  explicit MapAsset destination and clears source-scoped references.
 
 ### Collaboration
 

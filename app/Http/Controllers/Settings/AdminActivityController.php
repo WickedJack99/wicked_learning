@@ -78,12 +78,29 @@ class AdminActivityController extends Controller
     {
         $this->authorizeNodeEdit($request, $node);
 
-        $this->createLearningActivity->handle(
-            $node,
-            $request->validate($this->rules->store($node)),
-        );
+        $targetData = $request->validate([
+            'target_node_id' => ['sometimes', 'nullable', 'integer', 'exists:learning_nodes,id'],
+        ]);
+        $targetNode = $node;
 
-        return $this->redirectToActivities($node);
+        if (isset($targetData['target_node_id'])) {
+            $targetNode = LearningNode::query()->findOrFail((int) $targetData['target_node_id']);
+            $this->authorizeNodeEdit($request, $targetNode);
+        }
+
+        $data = $request->validate($this->rules->store($targetNode));
+
+        if ($targetNode->id !== $node->id) {
+            unset(
+                $data['message_topic_id'],
+                $data['message_topic_title'],
+                $data['target_portal_activity_id'],
+            );
+        }
+
+        $this->createLearningActivity->handle($targetNode, $data);
+
+        return $this->redirectToActivities($targetNode);
     }
 
     public function storeSourceRecord(Request $request): JsonResponse

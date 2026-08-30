@@ -79,6 +79,11 @@ Activities connect through `ActivityTransition` records. A MapAsset can expose
 several `LearningActivityStart` records as learner-facing route choices. A start
 points to the first Activity and can carry route-card images and colors.
 
+The administrator activity editor can copy an activity to another editable
+MapAsset from the already-loaded world graph. The create action authorizes the
+destination node independently; source-scoped message topics and portal
+destinations are intentionally not copied across MapAssets.
+
 `LearnerRouteProgress` stores the learner, compatibility node, route start,
 current Activity, run key, completion counts and completion time. Activity types
 can persist more specific state without putting it into the URL:

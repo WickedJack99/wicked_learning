@@ -4,12 +4,11 @@ export type ActivityTemplateReference = 'message_topic' | 'portal_destination';
 
 export type ActivityTemplateContext = {
     references: ActivityTemplateReference[];
-    scope: 'current_map_asset';
 };
 
 /**
- * Identifies references that need a tutor's attention before reuse expands
- * beyond the current MapAsset.
+ * Identifies source-context references that need an author's attention before
+ * an activity copy is saved.
  */
 export function activityTemplateContext(
     form: Pick<
@@ -35,6 +34,5 @@ export function activityTemplateContext(
 
     return {
         references,
-        scope: 'current_map_asset',
     };
 }

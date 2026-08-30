@@ -771,6 +771,7 @@ function SettingsDetail({
                           items={selectedWorldNode.items}
                           sounds={selectedWorldNode.sounds}
                           tools={selectedWorldNode.tools}
+                          worldGraph={worldGraph}
                       />
                   ),
                   mapId: selectedWorldNode.activityGraph.map.id,

@@ -56,6 +56,7 @@ import { themedPreviewAsset } from './activity-scene-preview';
 import { activityTemplateContext } from './activity-template-context';
 import type {
     ActivityForm,
+    ActivityTemplateTargetGraph,
     ActivityGraphEdge,
     ActivityGraphNode,
     ActivityGraphPayload,
@@ -80,8 +81,10 @@ export default function EditNodeActivities({
     items,
     sounds,
     tools,
+    worldGraph,
 }: {
     activityGraph: ActivityGraphPayload;
+    worldGraph: ActivityTemplateTargetGraph | null;
     embedded?: boolean;
     items: EditableItem[];
     sounds: EditableSound[];
@@ -99,6 +102,9 @@ export default function EditNodeActivities({
     const [duplicateSourceTitle, setDuplicateSourceTitle] = useState<
         string | null
     >(null);
+    const [targetNodeId, setTargetNodeId] = useState(() =>
+        String(activityGraph.node.id),
+    );
     const [editOpen, setEditOpen] = useState(false);
     const [editingActivity, setEditingActivity] =
         useState<ActivitySummary | null>(null);
@@ -404,11 +410,12 @@ export default function EditNodeActivities({
                 title: `${activity.title} (copy)`,
             });
             setDuplicateSourceTitle(activity.title);
+            setTargetNodeId(String(activityGraph.node.id));
             setErrors({});
             resetImageUploadErrors();
             setCreateOpen(true);
         },
-        [firstType, resetImageUploadErrors],
+        [activityGraph.node.id, firstType, resetImageUploadErrors],
     );
 
     const requestReview = useCallback((activity: ActivitySummary) => {
@@ -532,6 +539,32 @@ export default function EditNodeActivities({
     const copiedTemplateContext = duplicateSourceTitle
         ? activityTemplateContext(form)
         : null;
+    const copyingToAnotherMapAsset =
+        duplicateSourceTitle && targetNodeId !== String(activityGraph.node.id);
+    const targetMaps = useMemo(() => {
+        const maps = (worldGraph?.maps ?? []).map((map) => ({
+            ...map,
+            nodes: [...map.nodes],
+        }));
+        const hasCurrentNode = maps.some((map) =>
+            map.nodes.some((node) => node.id === activityGraph.node.id),
+        );
+
+        if (!hasCurrentNode) {
+            maps.unshift({
+                id: activityGraph.map.id,
+                nodes: [
+                    {
+                        id: activityGraph.node.id,
+                        title: activityGraph.node.title,
+                    },
+                ],
+                title: activityGraph.map.title,
+            });
+        }
+
+        return maps;
+    }, [activityGraph.map, activityGraph.node, worldGraph]);
     const activitiesNeedingReview = activityGraph.activities.filter(
         (activity) => activity.aiReviewStatus !== 'reviewed',
     ).length;
@@ -559,6 +592,7 @@ export default function EditNodeActivities({
     const openCreate = () => {
         setForm(emptyCreateForm(firstType));
         setDuplicateSourceTitle(null);
+        setTargetNodeId(String(activityGraph.node.id));
         setErrors({});
         resetImageUploadErrors();
         setCreateOpen(true);
@@ -567,9 +601,18 @@ export default function EditNodeActivities({
     const createActivity = () => {
         setCreating(true);
 
+        const selectedTargetNodeId = Number(targetNodeId);
+        const payload =
+            selectedTargetNodeId === activityGraph.node.id
+                ? activityFormPayload(form)
+                : {
+                      ...activityFormPayload(form),
+                      target_node_id: selectedTargetNodeId,
+                  };
+
         router.post(
             `/settings/worlds/nodes/${activityGraph.node.id}/activities`,
-            activityFormPayload(form),
+            payload,
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setErrors(nextErrors),
@@ -1131,7 +1174,7 @@ export default function EditNodeActivities({
                                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                                 {t(
                                     'settings.worlds.activities.template.scope',
-                                    'This copy stays in the current MapAsset. It is a starting point, not a shared template.',
+                                    'This is an editable starting point. Review context-specific references before saving.',
                                 )}
                             </p>
                             {copiedTemplateContext.references.length > 0 ? (
@@ -1142,7 +1185,7 @@ export default function EditNodeActivities({
                                         <li>
                                             {t(
                                                 'settings.worlds.activities.template.message_topic',
-                                                'Message topic copied from this MapAsset; choose a new topic if this copy belongs elsewhere.',
+                                                'Message topic copied from the source MapAsset; review it before saving.',
                                             )}
                                         </li>
                                     ) : null}
@@ -1157,6 +1200,65 @@ export default function EditNodeActivities({
                                         </li>
                                     ) : null}
                                 </ul>
+                            ) : null}
+                        </div>
+                    ) : null}
+
+                    {duplicateSourceTitle ? (
+                        <div className="grid gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3">
+                            <Label htmlFor="activity-template-target">
+                                Copy into MapAsset
+                            </Label>
+                            <select
+                                aria-describedby="activity-template-target-help"
+                                className="h-10 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-3 text-sm text-[var(--settings-text-color)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
+                                id="activity-template-target"
+                                onChange={(event) => {
+                                    const nextTargetId = event.target.value;
+
+                                    setTargetNodeId(nextTargetId);
+
+                                    if (
+                                        nextTargetId !==
+                                        String(activityGraph.node.id)
+                                    ) {
+                                        setForm((current) => ({
+                                            ...current,
+                                            message_topic_id: '',
+                                            message_topic_title: '',
+                                            target_portal_activity_id: '',
+                                        }));
+                                    }
+                                }}
+                                value={targetNodeId}
+                            >
+                                {targetMaps.map((map) => (
+                                    <optgroup key={map.id} label={map.title}>
+                                        {map.nodes.map((node) => (
+                                            <option
+                                                key={node.id}
+                                                value={node.id}
+                                            >
+                                                {node.title}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                ))}
+                            </select>
+                            <p
+                                className="text-xs leading-5 text-[var(--settings-muted-text)]"
+                                id="activity-template-target-help"
+                            >
+                                Choose the destination MapAsset. Message topics
+                                and portal destinations are reset when moving a
+                                copy to another MapAsset so they cannot point at
+                                the source context by accident.
+                            </p>
+                            {copyingToAnotherMapAsset ? (
+                                <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                                    Source-specific message and portal links
+                                    have been cleared for this destination.
+                                </p>
                             ) : null}
                         </div>
                     ) : null}
