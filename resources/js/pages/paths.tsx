@@ -1,7 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
-import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
+import { PaginationControls } from '@/components/pagination-controls';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -28,7 +28,20 @@ type LearningPath = {
     topic: { href: string; slug: string; title: string } | null;
 };
 
-export default function Paths({ paths }: { paths: LearningPath[] }) {
+type PathsPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
+export default function Paths({
+    paths,
+    pagination,
+}: {
+    paths: LearningPath[];
+    pagination: PathsPagination;
+}) {
     const t = usePlatformTranslation();
 
     return (
@@ -59,14 +72,27 @@ export default function Paths({ paths }: { paths: LearningPath[] }) {
                                 {t('paths.available.title', 'Available routes')}
                             </h2>
                         </div>
-                        <LearnerPaginatedItems
-                            className="mt-6 grid gap-4 md:grid-cols-2"
-                            items={paths}
-                            pageSize={6}
-                            paginationLabel="Learning paths"
-                            renderItem={(path) => (
+                        <div className="mt-6 grid min-h-[89rem] gap-4 md:min-h-[44rem] md:grid-cols-2">
+                            {paths.map((path) => (
                                 <PathCard key={path.id} path={path} />
+                            ))}
+                        </div>
+                        <PaginationControls
+                            buttonClassName="text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                            className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3"
+                            currentPage={pagination.currentPage}
+                            label={t(
+                                'paths.pagination.label',
+                                'Learning paths',
                             )}
+                            onPageChange={(page) =>
+                                router.visit('/paths?page=' + page, {
+                                    preserveScroll: true,
+                                    replace: true,
+                                })
+                            }
+                            pageCount={pagination.lastPage}
+                            textClassName="text-xs text-[var(--learner-muted-text)]"
                         />
                     </section>
                 ) : (

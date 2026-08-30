@@ -83,6 +83,12 @@ points to the first Activity and can carry route-card images and colors.
 current Activity, run key, completion counts and completion time. Activity types
 can persist more specific state without putting it into the URL:
 
+The learner Paths query evaluates the existing per-user map and node state
+services in bounded candidate chunks, then serializes only the requested page
+of routes and its progress. This keeps the Inertia response and hydrated route
+models bounded while preserving unlock and reveal rules that are configured in
+node JSON and cannot yet be expressed as a portable SQL scope.
+
 - NPC dialogue uses nested nodes, answers and transitions.
 - questions store learner answers and branch outcomes.
 - reflections can write learner-owned journal data.

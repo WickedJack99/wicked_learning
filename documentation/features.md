@@ -131,8 +131,9 @@ remove those labels while the platform supplies a safe default when no label is
 authored.
 
 The Paths directory shows each route's authored learning areas and links those
-areas to the focused competence reading. The route remains a suggested way in,
-not a required sequence.
+areas to the focused competence reading. Routes are returned in bounded server
+pages with stable controls as the directory grows. The route remains a
+suggested way in, not a required sequence.
 
 Implemented activity types are:
 

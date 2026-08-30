@@ -17,10 +17,14 @@ class LearningPathController extends Controller
 
     public function __invoke(Request $request): Response
     {
+        $paths = $this->loadLearningPaths->handle(
+            $request->user(),
+            page: max(1, (int) $request->query('page', 1)),
+        );
+
         return Inertia::render('paths', [
-            'paths' => $this->serializer->serialize(
-                $this->loadLearningPaths->handle($request->user()),
-            ),
+            'paths' => $this->serializer->serialize($paths),
+            'pagination' => $paths['pagination'],
         ]);
     }
 }

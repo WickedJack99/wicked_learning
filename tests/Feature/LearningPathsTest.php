@@ -97,7 +97,7 @@ test('learners can discover accessible authored routes with topic context', func
         );
 });
 
-test('learning paths preserve long route collections for client pagination', function () {
+test('learning paths paginate long route collections on the server', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([
         'slug' => 'long-route-area',
@@ -150,9 +150,33 @@ test('learning paths preserve long route collections for client pagination', fun
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('paths')
-            ->has('paths', 7)
+            ->has('paths', 6)
+            ->where('pagination.currentPage', 1)
+            ->where('pagination.lastPage', 2)
+            ->where('pagination.perPage', 6)
+            ->where('pagination.total', 7)
             ->where('paths.0.label', 'Long route 1')
-            ->where('paths.6.label', 'Long route 7')
+            ->where('paths.5.label', 'Long route 6')
+        );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 1)
+            ->where('pagination.currentPage', 2)
+            ->where('pagination.total', 7)
+            ->where('paths.0.label', 'Long route 7')
+        );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['page' => 99]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->where('pagination.currentPage', 2)
+            ->where('paths.0.label', 'Long route 7')
         );
 });
 

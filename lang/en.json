@@ -1120,6 +1120,7 @@
     "paths.eyebrow": "Ways into the world",
     "paths.description": "Choose a prepared route into a place on the learning map. The route is a starting point; what you notice and where you go next can remain open.",
     "paths.available.title": "Available routes",
+    "paths.pagination.label": "Learning paths",
     "paths.action.continue": "Continue route",
     "paths.action.enter": "Enter route",
     "paths.status.current": "Current step",
