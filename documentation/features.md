@@ -319,6 +319,8 @@ does not remove copied activity references. Version history is available for
 author inspection through the same picker: each update keeps the prior metadata
 as an immutable, paginated revision. Concept linkage and reusable excerpt
 workflows remain future work.
+Authors can restore a listed revision; the current record is preserved as a
+new revision first, and copied activity references still do not change.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

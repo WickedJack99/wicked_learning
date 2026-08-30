@@ -93,6 +93,7 @@ export function ActivityFormFields({
     onDeleteSourceRecord,
     onLoadSourceRecordVersions,
     onUploadPortalImage,
+    onRestoreSourceRecordVersion,
     onSaveSourceRecord,
     onUpdateSourceRecord,
     portalCandidates,
@@ -116,6 +117,10 @@ export function ActivityFormFields({
         id: number,
         page: number,
     ) => Promise<SourceRecordVersionPage>;
+    onRestoreSourceRecordVersion: (
+        sourceId: number,
+        versionId: number,
+    ) => Promise<EditableSourceRecord>;
     onUploadPortalImage: (
         key: string,
         file: File,
@@ -683,6 +688,9 @@ export function ActivityFormFields({
                                 onDeleteSourceRecord={onDeleteSourceRecord}
                                 onLoadSourceRecordVersions={
                                     onLoadSourceRecordVersions
+                                }
+                                onRestoreSourceRecordVersion={
+                                    onRestoreSourceRecordVersion
                                 }
                                 onSaveSourceRecord={onSaveSourceRecord}
                                 onUpdateSourceRecord={onUpdateSourceRecord}

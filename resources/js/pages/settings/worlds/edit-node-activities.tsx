@@ -299,6 +299,49 @@ export default function EditNodeActivities({
         [],
     );
 
+    const restoreSourceRecordVersion = useCallback(
+        async (
+            sourceId: number,
+            versionId: number,
+        ): Promise<EditableSourceRecord> => {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch(
+                `/settings/worlds/source-records/${sourceId}/versions/${versionId}/restore`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'POST',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The source version could not be restored.');
+            }
+
+            const payload = (await response.json()) as {
+                sourceRecord: EditableSourceRecord;
+            };
+            setSourceRecords((current) =>
+                current.map((source) =>
+                    source.id === payload.sourceRecord.id
+                        ? payload.sourceRecord
+                        : source,
+                ),
+            );
+
+            return payload.sourceRecord;
+        },
+        [],
+    );
+
     const openEdit = useCallback(
         (activity: ActivitySummary) => {
             setEditingActivity(activity);
@@ -1101,6 +1144,9 @@ export default function EditNodeActivities({
                             onLoadSourceRecordVersions={
                                 loadSourceRecordVersions
                             }
+                            onRestoreSourceRecordVersion={
+                                restoreSourceRecordVersion
+                            }
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedType}
@@ -1156,6 +1202,9 @@ export default function EditNodeActivities({
                             onDeleteSourceRecord={deleteSourceRecord}
                             onLoadSourceRecordVersions={
                                 loadSourceRecordVersions
+                            }
+                            onRestoreSourceRecordVersion={
+                                restoreSourceRecordVersion
                             }
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}

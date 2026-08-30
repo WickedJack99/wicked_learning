@@ -147,6 +147,31 @@ class AdminActivityController extends Controller
         ]);
     }
 
+    public function restoreSourceRecordVersion(
+        Request $request,
+        LearningSourceRecord $sourceRecord,
+        LearningSourceRecordVersion $version,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        abort_unless($version->learning_source_record_id === $sourceRecord->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $sourceRecord = $this->updateSourceRecord->handle($user, $sourceRecord, [
+            'anchor' => $version->anchor,
+            'excerpt' => $version->excerpt,
+            'publishedAt' => $version->published_at?->format('Y-m-d'),
+            'publisher' => $version->publisher,
+            'rights' => $version->rights,
+            'title' => $version->title,
+            'url' => $version->url,
+        ]);
+
+        return response()->json([
+            'sourceRecord' => $this->sourceRecordSerializer->serialize($sourceRecord),
+        ]);
+    }
+
     public function destroySourceRecord(Request $request, LearningSourceRecord $sourceRecord): HttpResponse
     {
         $this->authorizeGlobalActivityEdit($request);

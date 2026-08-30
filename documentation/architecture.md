@@ -134,6 +134,8 @@ current record changes, and the editor can load the latest revisions through a
 bounded paginated endpoint. Deleting a catalog record also removes its private
 revision history; copied activity references remain unchanged. AI-draft linkage
 remains roadmap work.
+Restoring a revision uses the same transactional update path, so the
+pre-restore current record is also retained in that history.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

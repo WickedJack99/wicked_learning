@@ -88,6 +88,7 @@ copies metadata into the activity so existing evidence snapshots remain stable.
 The catalog now supports bounded author-side editing and deletion without
 rewriting copied references, and each update preserves a paginated immutable
 revision history for authors. Add concept linkage and reusable excerpts later.
+Authors can also restore a listed revision without losing the current state.
 Link those records to activities, concepts and AI-generated drafts so authors
 and learners can inspect the basis of factual content and feedback.
 

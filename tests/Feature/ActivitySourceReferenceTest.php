@@ -207,3 +207,65 @@ test('source record updates preserve paginated previous versions', function () {
 
     expect($source->versions()->count())->toBe(1);
 });
+
+test('authors can restore a source record version without losing the current version', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $source = LearningSourceRecord::query()->create([
+        'title' => 'Source before restore',
+        'url' => 'https://example.com/source-before-restore',
+    ]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.source-records.update', $source), [
+            'title' => 'Source to restore over',
+            'url' => 'https://example.com/source-to-restore-over',
+        ])
+        ->assertOk();
+
+    $version = $source->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.source-records.versions.restore', [
+            'sourceRecord' => $source,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('sourceRecord.title', 'Source before restore')
+        ->assertJsonPath('sourceRecord.url', 'https://example.com/source-before-restore');
+
+    expect($source->refresh()->title)->toBe('Source before restore')
+        ->and($source->versions()->count())->toBe(2);
+});
+
+test('source record version restores cannot cross source records', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $source = LearningSourceRecord::query()->create([
+        'title' => 'Source with history',
+        'url' => 'https://example.com/source-with-history',
+    ]);
+    $otherSource = LearningSourceRecord::query()->create([
+        'title' => 'Other source',
+        'url' => 'https://example.com/other-source',
+    ]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.source-records.update', $source), [
+            'title' => 'Updated source',
+            'url' => 'https://example.com/updated-source',
+        ])
+        ->assertOk();
+
+    $version = $source->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.source-records.versions.restore', [
+            'sourceRecord' => $otherSource,
+            'version' => $version,
+        ]))
+        ->assertNotFound();
+
+    expect($otherSource->refresh()->title)->toBe('Other source')
+        ->and($otherSource->versions()->count())->toBe(0);
+});

@@ -3,6 +3,7 @@ import {
     ChevronRight,
     Pencil,
     Plus,
+    RotateCcw,
     Save,
     Trash2,
 } from 'lucide-react';
@@ -16,6 +17,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityForm,
     EditableSourceRecord,
+    SourceRecordVersion,
     SourceRecordVersionPage,
     SourceReferenceForm,
 } from './edit-node-activity-types';
@@ -36,6 +38,7 @@ export function ActivitySourceReferenceFields({
     onChange,
     onDeleteSourceRecord,
     onLoadSourceRecordVersions,
+    onRestoreSourceRecordVersion,
     onSaveSourceRecord,
     onUpdateSourceRecord,
     sourceRecords,
@@ -48,6 +51,10 @@ export function ActivitySourceReferenceFields({
         id: number,
         page: number,
     ) => Promise<SourceRecordVersionPage>;
+    onRestoreSourceRecordVersion: (
+        sourceId: number,
+        versionId: number,
+    ) => Promise<EditableSourceRecord>;
     onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
     onUpdateSourceRecord: (
         id: number,
@@ -67,6 +74,9 @@ export function ActivitySourceReferenceFields({
     const [historyError, setHistoryError] = useState(false);
     const [sourceHistory, setSourceHistory] =
         useState<SourceRecordVersionPage | null>(null);
+    const [restoringVersionId, setRestoringVersionId] = useState<number | null>(
+        null,
+    );
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [saveError, setSaveError] = useState(false);
 
@@ -161,6 +171,37 @@ export function ActivitySourceReferenceFields({
         setSourceHistory(null);
         setHistoryError(false);
         setHistoryLoading(false);
+        setRestoringVersionId(null);
+    }
+
+    async function restoreSourceVersion(version: SourceRecordVersion) {
+        if (
+            editingSourceId === null ||
+            !window.confirm(
+                t(
+                    'settings.activity_sources.restore_confirm',
+                    'Restore this version? The current source will be preserved in history.',
+                ),
+            )
+        ) {
+            return;
+        }
+
+        setRestoringVersionId(version.id);
+        setCatalogError(false);
+
+        try {
+            const source = await onRestoreSourceRecordVersion(
+                editingSourceId,
+                version.id,
+            );
+            setCatalogForm(sourceFormFromRecord(source));
+            await loadSourceHistoryPage(sourceHistory?.pagination.page ?? 1);
+        } catch {
+            setCatalogError(true);
+        } finally {
+            setRestoringVersionId(null);
+        }
     }
 
     async function loadSourceHistoryPage(page: number) {
@@ -495,6 +536,8 @@ export function ActivitySourceReferenceFields({
                                 loading={historyLoading}
                                 error={historyError}
                                 onPageChange={loadSourceHistoryPage}
+                                onRestore={restoreSourceVersion}
+                                restoringVersionId={restoringVersionId}
                             />
                         </div>
                     ) : null}
@@ -719,11 +762,15 @@ function SourceHistory({
     history,
     loading,
     onPageChange,
+    onRestore,
+    restoringVersionId,
 }: {
     error: boolean;
     history: SourceRecordVersionPage | null;
     loading: boolean;
     onPageChange: (page: number) => void;
+    onRestore: (version: SourceRecordVersion) => void;
+    restoringVersionId: number | null;
 }) {
     const t = usePlatformTranslation();
 
@@ -792,6 +839,28 @@ function SourceHistory({
                                     {version.excerpt}
                                 </p>
                             ) : null}
+                            <div className="flex justify-end">
+                                <Button
+                                    disabled={
+                                        loading || restoringVersionId !== null
+                                    }
+                                    onClick={() => void onRestore(version)}
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <RotateCcw className="size-4" />
+                                    {restoringVersionId === version.id
+                                        ? t(
+                                              'settings.activity_sources.restoring',
+                                              'Restoring…',
+                                          )
+                                        : t(
+                                              'settings.activity_sources.restore',
+                                              'Restore this version',
+                                          )}
+                                </Button>
+                            </div>
                         </div>
                     ))}
                 </div>
