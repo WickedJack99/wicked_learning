@@ -147,7 +147,9 @@ Reflection activities configured for explanation use a clearly labelled
 explanation response. Transfer reflections additionally ask the learner to
 name the changed context where they tried the idea. These responses are saved
 with the learner's private journal entry; they are structured evidence context,
-not an automatic rubric pass.
+not an automatic rubric pass. Explanation and transfer activities can also
+capture an optional starting-confidence signal before their guidance pause;
+this remains a descriptive learner signal rather than an assessment.
 
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion

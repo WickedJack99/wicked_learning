@@ -757,6 +757,7 @@
     "learning.reflection.feedback_evidence_label": "What to notice",
     "learning.reflection.feedback_next_action_label": "A possible next action",
     "learning.reflection.feedback_rubric_label": "Observable cues",
+    "learning.reflection.confidence_prompt": "How settled does your starting understanding feel? (optional)",
     "learning.reflection.continue_after_feedback": "Continue",
     "learning.question.confidence_reflection": "Confidence reflection",
     "learning.review.confidence_prompt": "How settled does this feel now? (optional)",

@@ -909,6 +909,43 @@ export function ReflectionActivity({
                 {prompt}
             </p>
             {responseType ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        {t(
+                            'learning.reflection.confidence_prompt',
+                            'How settled does your starting understanding feel? (optional)',
+                        )}
+                    </legend>
+                    <div
+                        aria-label={t(
+                            'learning.reflection.confidence_prompt',
+                            'How settled does your starting understanding feel? (optional)',
+                        )}
+                        className="mt-2 flex flex-wrap gap-2"
+                        role="group"
+                    >
+                        {questionConfidenceOptions.map((option) => (
+                            <button
+                                aria-pressed={confidence === option.value}
+                                className={cn(
+                                    'min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200',
+                                    confidence === option.value &&
+                                        'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100',
+                                )}
+                                key={option.value}
+                                onClick={() => setConfidence(option.value)}
+                                type="button"
+                            >
+                                {t(
+                                    `learning.review.confidence_${option.value}`,
+                                    option.label,
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </fieldset>
+            ) : null}
+            {responseType ? (
                 <label
                     className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
                     htmlFor="activity-reflection-response"

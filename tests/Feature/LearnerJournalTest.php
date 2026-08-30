@@ -90,6 +90,7 @@ test('a transfer reflection records its changed context as structured private ev
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
+            'confidence' => 'leaning',
             'play_run_id' => $runId,
             'status' => 'completed',
             'observed_cues' => ['Connects the idea to the new situation.'],
@@ -100,7 +101,12 @@ test('a transfer reflection records its changed context as structured private ev
         ->where('user_id', $learner->id)
         ->firstOrFail()
         ->observed_cues)
-        ->toBe(['Connects the idea to the new situation.']);
+        ->toBe(['Connects the idea to the new situation.'])
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->firstOrFail()
+            ->confidence)
+        ->toBe('leaning');
 });
 
 test('a review activity offers earlier private reflections from the same journal topic', function () {
