@@ -272,6 +272,10 @@ per line; these are learner-facing prompts for noticing, not pass/fail grades.
 Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.
+Authors can optionally attach up to eight concept labels, one per line. These
+labels are copied into later evidence records and shown in the competence and
+topic ledgers as context; they do not create a grade or alter the qualitative
+competence interpretation.
 
 Activity authors can attach up to five source references with a title, URL,
 optional publisher, publication date, rights or licence, stable anchor and a

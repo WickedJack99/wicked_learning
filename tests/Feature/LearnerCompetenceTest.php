@@ -152,6 +152,7 @@ test('a topic shows competence evidence encountered through its map', function (
         'confidence' => 'leaning',
         'outcome' => 'clearer',
         'attempt_number' => 2,
+        'concepts' => ['Pattern recognition'],
         'source_references' => [
             [
                 'title' => 'Pattern field guide',
@@ -171,6 +172,7 @@ test('a topic shows competence evidence encountered through its map', function (
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.confidence', 'leaning')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.outcome', 'clearer')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.concepts', ['Pattern recognition'])
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.attemptNumber', 2)
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.title', 'Pattern field guide')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.url', 'https://example.test/patterns')
@@ -455,6 +457,7 @@ test('explanation and transfer evidence require an observable authored criterion
                     'Connects the idea to the new situation.',
                 ],
             ],
+            'evidenceConcepts' => ['Transfer', 'Changed context'],
         ],
     ]);
 
@@ -486,7 +489,12 @@ test('explanation and transfer evidence require an observable authored criterion
         ->toBe([
             'Names the changed context.',
             'Connects the idea to the new situation.',
-        ]);
+        ])
+        ->and(LearnerEvidenceEvent::query()
+            ->where('learning_activity_id', $transfer->id)
+            ->firstOrFail()
+            ->concepts)
+        ->toBe(['Transfer', 'Changed context']);
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {
@@ -946,6 +954,7 @@ test('competence star map shows studied topics and transitions', function () {
         'confidence' => 'settled',
         'outcome' => 'connected',
         'attempt_number' => 2,
+        'concepts' => ['Working memory', 'Cognitive load'],
     ]);
     $olderEvent->forceFill([
         'created_at' => Carbon::parse('2026-06-20 10:00:00'),
@@ -1012,6 +1021,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.confidence', 'settled')
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.outcome', 'connected')
+            ->where('competenceMap.topics.0.visual.evidenceLedger.1.concepts', ['Working memory', 'Cognitive load'])
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.evidenceClaim', 'retrieval_attempt')
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.attemptNumber', 2)
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.learningPurpose', 'Recall the central relationship before reviewing it.')

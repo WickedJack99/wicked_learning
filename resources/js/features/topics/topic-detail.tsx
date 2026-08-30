@@ -925,6 +925,14 @@ function TopicCompetenceCard({
                                                         {entry.objective}
                                                     </span>
                                                 ) : null}
+                                                {entry.concepts.length > 0 ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        Concepts:{' '}
+                                                        {entry.concepts.join(
+                                                            ' · ',
+                                                        )}
+                                                    </span>
+                                                ) : null}
                                                 {entry.learningPurpose ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                         Purpose:{' '}

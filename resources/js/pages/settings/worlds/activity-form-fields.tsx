@@ -612,6 +612,11 @@ export function ActivityFormFields({
                                     form={form}
                                     onChange={onChange}
                                 />
+                                <EvidenceConceptsField
+                                    errors={errors}
+                                    form={form}
+                                    onChange={onChange}
+                                />
                                 <FeedbackGuidanceFields
                                     errors={errors}
                                     form={form}
@@ -1143,6 +1148,40 @@ function FeedbackGuidanceFields({
                     <InputError message={errors[field.name]} />
                 </div>
             ))}
+        </div>
+    );
+}
+
+function EvidenceConceptsField({
+    errors,
+    form,
+    onChange,
+}: {
+    errors: Record<string, string>;
+    form: ActivityForm;
+    onChange: Dispatch<SetStateAction<ActivityForm>>;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor="activity-evidence-concepts">Concepts</Label>
+            <textarea
+                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id="activity-evidence-concepts"
+                maxLength={1000}
+                onChange={(event) =>
+                    onChange((current) => ({
+                        ...current,
+                        evidence_concepts: event.target.value,
+                    }))
+                }
+                placeholder="e.g. Working memory\nCognitive load"
+                value={form.evidence_concepts}
+            />
+            <p className="max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Add up to eight concepts, one per line. They are copied into
+                future evidence records as context, not treated as grades.
+            </p>
+            <InputError message={errors.evidence_concepts} />
         </div>
     );
 }

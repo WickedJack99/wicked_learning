@@ -1064,6 +1064,12 @@ function CompetenceReading({
                                                 Objective: {evidence.objective}
                                             </span>
                                         ) : null}
+                                        {evidence.concepts.length > 0 ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                Concepts:{' '}
+                                                {evidence.concepts.join(' · ')}
+                                            </span>
+                                        ) : null}
                                         {evidence.learningPurpose ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Purpose:{' '}

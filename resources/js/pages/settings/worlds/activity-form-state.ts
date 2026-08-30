@@ -14,6 +14,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         competence_topics: [{ topic: '', weight: '1' }],
         completion_choice_prompt: '',
         evidence_objective: '',
+        evidence_concepts: '',
         feedback_evidence: '',
         feedback_next_action: '',
         feedback_purpose: '',
@@ -190,6 +191,7 @@ export function activityFormFromActivity(
             activity.config.completionChoicePrompt,
         ),
         evidence_objective: stringConfig(activity.config.evidenceObjective),
+        evidence_concepts: lineListConfig(activity.config.evidenceConcepts),
         feedback_evidence: feedbackGuidanceField(
             activity.config.feedbackGuidance,
             'evidence',
@@ -886,6 +888,14 @@ function stringConfig(value: unknown, fallback = ''): string {
     }
 
     return fallback;
+}
+
+function lineListConfig(value: unknown): string {
+    return Array.isArray(value)
+        ? value
+              .filter((item): item is string => typeof item === 'string')
+              .join('\n')
+        : '';
 }
 
 function booleanConfig(value: unknown, fallback: boolean): boolean {

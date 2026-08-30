@@ -41,15 +41,19 @@ class LearnerCompetenceService
             : [];
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
         $objective = $this->activityCompetence->objectiveForActivity($activity);
+        $concepts = $this->activityCompetence->conceptsForActivity($activity);
         $sourceReferences = $this->sourceReferences->forActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $concepts, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
                     'learning_activity_id' => $activity->id,
                     'play_run_id' => $playRunId,
                     'objective' => $objective,
+                    'concepts' => $concepts === []
+                        ? null
+                        : json_encode($concepts, JSON_THROW_ON_ERROR),
                     'topic_slug' => $topic['slug'],
                     'topic_name' => $topic['topic'],
                     'evidence_type' => $evidenceType,

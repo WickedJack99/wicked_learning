@@ -175,7 +175,7 @@ Support and reflection models include:
 - `LearningMessageTopic` and moderated `LearnerMessage` records
 
 `LearnerEvidenceEvent` records the activity-specific evidence type, authored
-objective and learning-purpose snapshots, observable evidence criterion,
+objective, concept-label and learning-purpose snapshots, observable evidence criterion,
 outcome, confidence, calibration, attempt and assistance context. For question
 activities, calibration is a descriptive snapshot derived from the submitted
 confidence and answer outcome; it does not contribute a score. For explanation

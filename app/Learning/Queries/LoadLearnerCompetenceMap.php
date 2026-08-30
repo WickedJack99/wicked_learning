@@ -182,7 +182,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -198,6 +198,9 @@ class LoadLearnerCompetenceMap
                     'evidenceClaim' => $this->evidenceClaim->forEvent($event),
                     'evidenceType' => $event->evidence_type,
                     'objective' => $event->objective,
+                    'concepts' => is_array($event->concepts)
+                        ? array_values(array_filter($event->concepts, 'is_string'))
+                        : [],
                     'evidenceCriterion' => $event->evidence_criterion,
                     'evidenceRubric' => is_array($event->evidence_rubric)
                         ? array_values(array_filter($event->evidence_rubric, 'is_string'))

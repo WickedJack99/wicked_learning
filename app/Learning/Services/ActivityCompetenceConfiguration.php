@@ -11,6 +11,8 @@ class ActivityCompetenceConfiguration
 
     public const OBJECTIVE_CONFIG_KEY = 'evidenceObjective';
 
+    public const CONCEPTS_CONFIG_KEY = 'evidenceConcepts';
+
     public const EVIDENCE_TYPES = [
         'apply',
         'explain',
@@ -49,6 +51,14 @@ class ActivityCompetenceConfiguration
         return $objective === '' ? null : Str::limit($objective, 600, '');
     }
 
+    /** @return list<string> */
+    public function conceptsForActivity(LearningActivity $activity): array
+    {
+        $config = is_array($activity->config) ? $activity->config : [];
+
+        return $this->concepts($config[self::CONCEPTS_CONFIG_KEY] ?? null);
+    }
+
     public function learningIntentForActivity(LearningActivity $activity): string
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -82,6 +92,16 @@ class ActivityCompetenceConfiguration
                 unset($existing[self::OBJECTIVE_CONFIG_KEY]);
             } else {
                 $existing[self::OBJECTIVE_CONFIG_KEY] = Str::limit($objective, 600, '');
+            }
+        }
+
+        if (array_key_exists('evidence_concepts', $data)) {
+            $concepts = $this->concepts($data['evidence_concepts']);
+
+            if ($concepts === []) {
+                unset($existing[self::CONCEPTS_CONFIG_KEY]);
+            } else {
+                $existing[self::CONCEPTS_CONFIG_KEY] = $concepts;
             }
         }
 
@@ -128,7 +148,8 @@ class ActivityCompetenceConfiguration
     {
         return array_key_exists('competence_topics', $data)
             || array_key_exists('learning_intent', $data)
-            || array_key_exists('evidence_objective', $data);
+            || array_key_exists('evidence_objective', $data)
+            || array_key_exists('evidence_concepts', $data);
     }
 
     /**
@@ -168,6 +189,35 @@ class ActivityCompetenceConfiguration
     private function topicSlug(string $topic): string
     {
         return Str::limit(Str::slug($topic), 140, '');
+    }
+
+    /** @return list<string> */
+    private function concepts(mixed $value): array
+    {
+        $values = is_array($value)
+            ? $value
+            : (preg_split('/\R/', (string) ($value ?? '')) ?: []);
+        $concepts = [];
+
+        foreach (array_slice($values, 0, 8) as $entry) {
+            if (! is_string($entry) && ! is_numeric($entry)) {
+                continue;
+            }
+
+            $concept = Str::limit(Str::squish(trim((string) $entry)), 120, '');
+
+            if ($concept === '') {
+                continue;
+            }
+
+            $key = mb_strtolower($concept);
+
+            if (! array_key_exists($key, $concepts)) {
+                $concepts[$key] = $concept;
+            }
+        }
+
+        return array_values($concepts);
     }
 
     private function hasObservableEvidenceGuide(LearningActivity $activity): bool

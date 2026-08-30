@@ -20,12 +20,12 @@ concepts and source links. Different evidence types must retain different
 meanings: participation, retrieval, reflection, explanation, application,
 review and transfer are not interchangeable.
 
-The immutable event model, authored objective and learning-purpose snapshots,
+The immutable event model, authored objective, lightweight concept-label and learning-purpose snapshots,
 question calibration slice, optional completion-latency observation and
 conservative learner evidence-claim layer are now the foundation. Retrieval
 support can build on this without collapsing participation, retrieval and
-transfer into a single hidden score. Concepts and source links remain open
-parts of this contract.
+transfer into a single hidden score. Reusable concept records and richer
+concept relationships remain open parts of this contract.
 
 ### 2. Retrieval and spacing
 

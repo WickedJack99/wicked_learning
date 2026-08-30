@@ -26,6 +26,7 @@ export type CompetenceTopic = {
             evidenceType: string;
             sources: LearningSourceReference[];
             objective: string | null;
+            concepts: string[];
             learningPurpose: string | null;
             confidence: string | null;
             outcome: string | null;

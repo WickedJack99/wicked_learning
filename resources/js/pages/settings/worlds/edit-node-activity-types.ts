@@ -280,6 +280,7 @@ export type CreateActivityForm = {
     competence_topics: CompetenceTopicForm[];
     completion_choice_prompt: string;
     evidence_objective: string;
+    evidence_concepts: string;
     feedback_evidence: string;
     feedback_next_action: string;
     feedback_purpose: string;

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learning_activity_id',
     'play_run_id',
     'objective',
+    'concepts',
     'topic_slug',
     'topic_name',
     'evidence_type',
@@ -35,6 +36,7 @@ class LearnerEvidenceEvent extends Model
             'attempt_number' => 'integer',
             'latency_seconds' => 'integer',
             'evidence_rubric' => 'array',
+            'concepts' => 'array',
             'source_references' => 'array',
         ];
     }

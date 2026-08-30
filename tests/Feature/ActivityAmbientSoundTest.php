@@ -87,6 +87,7 @@ test('admins can add optional feedback guidance to any activity', function () {
             'feedback_evidence' => 'Look for a reason grounded in the observation.',
             'feedback_next_action' => 'Try the same idea with a new example.',
             'feedback_rubric' => "Names the observation.\nConnects it to a reason.\nUses a new example.",
+            'evidence_concepts' => "Pattern recognition\nCognitive load",
             'title' => 'Explain the observation',
             'type' => 'open_practice',
         ])
@@ -105,6 +106,10 @@ test('admins can add optional feedback guidance to any activity', function () {
             'Connects it to a reason.',
             'Uses a new example.',
         ],
+    ]);
+    expect($activity->config['evidenceConcepts'])->toBe([
+        'Pattern recognition',
+        'Cognitive load',
     ]);
 
     $payload = app(LearningActivitySerializer::class)->serialize($activity);
