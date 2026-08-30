@@ -15,6 +15,7 @@ import { LearningDeskHeader } from '@/features/home/learning-desk-header';
 import {
     reviewOutcomeDescription,
     reviewOutcomeLabel,
+    reviewResponseTypeLabel,
 } from '@/features/learning/review-outcomes';
 import { learningCheckInDirectionLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -723,6 +724,20 @@ function LearningPulseTimeline({
                                                     {reviewOutcomeDescription(
                                                         attempt.outcome,
                                                         translate,
+                                                    )}
+                                                </span>
+                                            ) : null}
+                                            {attempt.responseType ? (
+                                                <span className="mt-1 block text-xs text-cyan-100/70">
+                                                    {translate(
+                                                        'competence.pulse.review_response_type',
+                                                        'Response: :type',
+                                                        {
+                                                            type: reviewResponseTypeLabel(
+                                                                attempt.responseType,
+                                                                translate,
+                                                            ),
+                                                        },
                                                     )}
                                                 </span>
                                             ) : null}

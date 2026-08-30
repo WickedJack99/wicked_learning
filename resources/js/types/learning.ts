@@ -482,6 +482,8 @@ export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';
 
 export type ReviewOutcome = 'clearer' | 'connected' | 'open';
 
+export type ReviewResponseType = 'reflection' | 'explain' | 'transfer';
+
 export type ActivityCompletionOutcome = ReviewOutcome | 'correct' | 'incorrect';
 
 export type QuestionCalibration =

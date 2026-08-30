@@ -1325,6 +1325,7 @@ test('competence map shows bounded review history without private journal text',
         'confidence' => 'leaning',
         'confidence_after_feedback' => 'settled',
         'observed_cues' => ['Names the changed pattern.'],
+        'response_type' => 'transfer',
         'assistance_level' => 'independent',
         'attempted_at' => now(),
         'metadata' => [
@@ -1347,6 +1348,7 @@ test('competence map shows bounded review history without private journal text',
             ->where('competenceMap.reviewAttempts.0.confidence', 'leaning')
             ->where('competenceMap.reviewAttempts.0.confidenceAfterFeedback', 'settled')
             ->where('competenceMap.reviewAttempts.0.observedCues', ['Names the changed pattern.'])
+            ->where('competenceMap.reviewAttempts.0.responseType', 'transfer')
             ->where('competenceMap.reviewAttempts.0.revisitReason', 'later')
             ->where('competenceMap.reviewAttempts.0.attemptNumber', 2)
             ->missing('competenceMap.reviewAttempts.0.metadata')

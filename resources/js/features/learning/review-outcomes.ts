@@ -1,4 +1,4 @@
-import type { ReviewOutcome } from '@/types';
+import type { ReviewOutcome, ReviewResponseType } from '@/types';
 
 type Translate = (
     key: string,
@@ -85,4 +85,24 @@ export function reviewOutcomeDescription(
     const copy = option ?? questionOutcomeCopy[outcome];
 
     return copy ? translate(copy.descriptionKey, copy.description) : null;
+}
+
+export function reviewResponseTypeLabel(
+    responseType: ReviewResponseType,
+    translate: Translate,
+): string {
+    const copy: Record<ReviewResponseType, [string, string]> = {
+        explain: [
+            'learning.review.response_type_explain',
+            'Explained in own words',
+        ],
+        reflection: ['learning.review.response_type_reflection', 'Reflected'],
+        transfer: [
+            'learning.review.response_type_transfer',
+            'Applied in a changed context',
+        ],
+    };
+    const [key, fallback] = copy[responseType];
+
+    return translate(key, fallback);
 }

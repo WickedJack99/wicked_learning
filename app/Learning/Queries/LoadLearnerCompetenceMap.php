@@ -27,7 +27,7 @@ class LoadLearnerCompetenceMap
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, reviewAttempts: list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null}>, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, reviewAttempts: list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, confidenceAfterFeedback: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null, observedCues: list<string>, responseType: string|null, revisitReason: string|null}>, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
@@ -131,7 +131,7 @@ class LoadLearnerCompetenceMap
      * text, so this serializer only exposes the learning context and signal
      * captured by the review record.
      *
-     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, confidenceAfterFeedback: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null, observedCues: list<string>, revisitReason: string|null}>
+     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, confidenceAfterFeedback: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null, observedCues: list<string>, responseType: string|null, revisitReason: string|null}>
      */
     private function reviewAttempts(User $user): array
     {
@@ -158,6 +158,7 @@ class LoadLearnerCompetenceMap
                     'observedCues' => is_array($attempt->observed_cues)
                         ? array_values(array_filter($attempt->observed_cues, 'is_string'))
                         : [],
+                    'responseType' => $this->responseType($attempt->response_type),
                     'revisitReason' => $this->revisitReason($attempt->metadata),
                 ];
             })
@@ -172,6 +173,14 @@ class LoadLearnerCompetenceMap
 
         return is_string($reason) && in_array($reason, ['pause', 'later'], true)
             ? $reason
+            : null;
+    }
+
+    private function responseType(?string $responseType): ?string
+    {
+        return is_string($responseType)
+            && in_array($responseType, ['reflection', 'explain', 'transfer'], true)
+            ? $responseType
             : null;
     }
 

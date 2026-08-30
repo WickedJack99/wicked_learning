@@ -1,4 +1,7 @@
-import type { LearningSourceReference } from '@/types/learning';
+import type {
+    LearningSourceReference,
+    ReviewResponseType,
+} from '@/types/learning';
 
 export type CompetenceTopic = {
     name: string;
@@ -82,6 +85,7 @@ export type CompetenceReviewAttempt = {
     outcome: string | null;
     assistanceLevel: string | null;
     observedCues: string[];
+    responseType: ReviewResponseType | null;
     revisitReason: 'pause' | 'later' | null;
 };
 
