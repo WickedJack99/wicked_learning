@@ -211,6 +211,29 @@ adaptive or AI-generated recommendation.
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.
 
+### Learning Companion
+
+Administrators can enable and configure a small Learning Companion with a
+display name, optional avatar image, avatar color and orientation message. The
+avatar color controls the launcher and fallback avatar treatment. The avatar
+image uses the reusable media workflow for upload, download, selection and
+clearing.
+Companion settings may inherit from the platform, world, map, place or
+activity, with the most specific valid setting taking precedence. Administrators
+can create and rename reusable dialogue graphs in the Learning Companion's
+Dialogues section, edit their bounded graph definition, and assign each graph
+to one or more worlds, maps, places or activities. Both graph records and
+assignment targets use paginated, searchable views; assignments are saved as a
+multi-selection rather than as hidden scope configuration. Authored dialogue
+graphs are bounded and validate their node links and terminal actions against a
+small server-owned navigation allowlist. Learners can open the companion from
+the lower-left corner on the Learning Desk, bookmarks and activities, or
+immediately to the right of map search on a world map. The current learner
+surface still uses deterministic context and up to two safe navigation choices;
+provider-backed AI turns and a visual node editor are not yet implemented. The
+companion does not replace map exploration or activity playback, and does not
+read private journal, group or unrelated learner history.
+
 ### Learner Messages
 
 A message-prompt Activity collects at most one short contribution from a learner

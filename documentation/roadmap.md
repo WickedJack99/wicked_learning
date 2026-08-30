@@ -128,11 +128,15 @@ alternatives remain open.
 
 ### 7. Effort-preserving learner AI
 
-Only deepen learner-facing AI after evidence and provenance foundations exist.
-Define explicit assistance levels such as AI-off, questions-only, hints and
-post-attempt support. Ground responses, disclose uncertainty and record
-assistance so supported performance is not silently interpreted as independent
-capability.
+The Learning Companion now provides optional deterministic orientation on the
+desk, worlds and activities, with inherited scope configuration, reusable
+assigned graphs and a bounded graph editor. Continue with a structured node
+authoring UI and a provider-neutral, server-bounded turn flow only after the
+interaction contract is usable. Define explicit assistance levels such as AI-off, questions-only,
+hints and post-attempt support. Ground responses, disclose uncertainty and
+record assistance so supported performance is not silently interpreted as
+independent capability; the assistant must never emit arbitrary navigation or
+mutate content directly.
 
 ### 8. Privacy-conscious evaluation
 

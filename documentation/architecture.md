@@ -157,6 +157,35 @@ Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover
 their connectors without hard-coding one linear course model.
 
+## Learning Companion
+
+`PlatformCompanionSetting` stores the platform-level companion defaults, while
+nullable `companion_config` JSON on the world, map, node and activity scopes
+stores valid overrides. Reusable authored graphs live in
+`LearningCompanionDialogue`; `LearningCompanionDialogueAssignment` stores an
+allowlisted world, map, node or activity target. The settings controller
+returns bounded pages for both graph management and target selection, and syncs
+assignments transactionally. `LearningCompanionConfigurationResolver` applies
+scope configuration from broadest to most specific, loads applicable assigned
+graphs in one batched query, and fails safe when an authored dialogue graph is
+invalid. `LearningCompanionDialogueGraphValidator` bounds graph size, node
+content, AI capability names and terminal navigation actions; the server owns
+the resulting hrefs. The companion avatar color is one of the validated
+inherited visual overrides and defaults to the shared map accent.
+
+`LearningCompanionContext` builds a small allowlisted payload from the already
+resolved desk, world or activity context; it exposes only stable references and
+at most two named navigation actions. The launcher is a separate learner-shell
+component. Its default lower-left position is shared by desk, bookmark and
+activity surfaces; the world map supplies a map-search placement that reserves
+a slot immediately to the search control's right.
+
+This is a runtime orientation and bounded graph-definition authoring slice, not
+yet a provider AI runtime or visual node editor. Future AI turns must reuse the validated
+capability contract, resolve navigation on the server and keep the deterministic
+fallback usable when no provider is available. AI must not receive direct
+authority to navigate, mutate content or emit arbitrary URLs.
+
 ## AI And Content API
 
 AI configuration uses:

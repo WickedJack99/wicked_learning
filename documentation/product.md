@@ -103,6 +103,14 @@ inspectable and optional. Humans remain responsible for decisions that affect
 learning content. AI should not become a hidden evaluator or a required path
 through the platform.
 
+A small Learning Companion may make the current context and available
+directions easier to notice. It must remain optional, bounded and choice-
+preserving: it supports map exploration and activity recovery without
+replacing either one. Authored dialogue may offer only server-defined
+navigation choices. Any AI extension must keep the same explicit context,
+privacy and capability boundaries; it may suggest, but never directly perform,
+navigation or content changes.
+
 ## Core product model
 
 ```text
