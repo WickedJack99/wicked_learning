@@ -53,7 +53,7 @@ export function LearnerNavigationHeader({
                     'Skip to content',
                 )}
             </a>
-            <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:flex-nowrap sm:px-6 lg:px-8">
+            <div className="flex min-h-16 flex-wrap items-center gap-x-5 px-4 sm:px-6 lg:px-8 xl:flex-nowrap">
                 <LearnerBrand />
 
                 {centerContent ? (
@@ -67,7 +67,7 @@ export function LearnerNavigationHeader({
                         'home.learning_desk.navigation.label',
                         'Learner navigation',
                     )}
-                    className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full gap-1 overflow-x-auto border-t px-4 sm:order-none sm:mx-0 sm:w-auto sm:basis-auto sm:border-t-0 sm:px-0"
+                    className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 overflow-visible border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:overflow-visible xl:border-t-0 xl:px-0 2xl:gap-1"
                     style={{ borderColor: 'var(--learner-border-color)' }}
                 >
                     {items.map((item) => (
@@ -83,7 +83,7 @@ export function LearnerNavigationHeader({
 
 function LearnerNavigationItem({ item }: { item: LearnerNavigationItem }) {
     const className = cn(
-        'relative inline-flex shrink-0 items-center gap-2 px-3 py-3 text-sm transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none sm:py-[1.35rem]',
+        'relative inline-flex shrink-0 items-center gap-2 px-2 py-3 text-sm transition hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none xl:py-[1.35rem] 2xl:px-3',
         'text-[var(--learner-muted-text)]',
         item.active &&
             'text-[var(--learner-heading-text)] after:absolute after:right-3 after:bottom-0 after:left-3 after:h-0.5 after:bg-[var(--learner-accent)]',
