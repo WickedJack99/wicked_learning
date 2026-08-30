@@ -62,6 +62,7 @@ export function ActivitySourceReferenceFields({
     onLoadSourceRecords: (
         page: number,
         search: string,
+        concept: string,
     ) => Promise<SourceRecordPage>;
     onRestoreSourceRecordVersion: (
         sourceId: number,
@@ -94,6 +95,7 @@ export function ActivitySourceReferenceFields({
     const [saveError, setSaveError] = useState(false);
     const [sourceSearchInput, setSourceSearchInput] = useState('');
     const [sourceSearch, setSourceSearch] = useState('');
+    const [sourceConcept, setSourceConcept] = useState('');
     const [sourceRecordsLoading, setSourceRecordsLoading] = useState(false);
     const [sourceRecordsError, setSourceRecordsError] = useState(false);
 
@@ -356,6 +358,7 @@ export function ActivitySourceReferenceFields({
     async function loadSourceRecordsPage(
         page: number,
         search = sourceSearch,
+        concept = sourceConcept,
     ): Promise<void> {
         if (sourceRecordsLoading) {
             return;
@@ -365,8 +368,9 @@ export function ActivitySourceReferenceFields({
         setSourceRecordsError(false);
 
         try {
-            await onLoadSourceRecords(page, search);
+            await onLoadSourceRecords(page, search, concept);
             setSourceSearch(search);
+            setSourceConcept(concept);
             setSelectedSourceId('');
         } catch {
             setSourceRecordsError(true);
@@ -376,7 +380,7 @@ export function ActivitySourceReferenceFields({
     }
 
     function searchSourceRecords() {
-        void loadSourceRecordsPage(1, sourceSearchInput.trim());
+        void loadSourceRecordsPage(1, sourceSearchInput.trim(), sourceConcept);
     }
 
     return (
@@ -454,6 +458,38 @@ export function ActivitySourceReferenceFields({
                                       'Search',
                                   )}
                         </Button>
+                        <div className="grid min-w-48 flex-1 gap-1">
+                            <Label htmlFor="saved-source-concept">
+                                {t(
+                                    'settings.activity_sources.concept_filter_label',
+                                    'Filter by concept',
+                                )}
+                            </Label>
+                            <select
+                                aria-label={t(
+                                    'settings.activity_sources.concept_filter_label',
+                                    'Filter by concept',
+                                )}
+                                className="h-9 min-w-0 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                                id="saved-source-concept"
+                                onChange={(event) =>
+                                    setSourceConcept(event.target.value)
+                                }
+                                value={sourceConcept}
+                            >
+                                <option value="">
+                                    {t(
+                                        'settings.activity_sources.concept_filter_all',
+                                        'All concepts',
+                                    )}
+                                </option>
+                                {evidenceConceptOptions.map((concept) => (
+                                    <option key={concept} value={concept}>
+                                        {concept}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <select
                             aria-label="Saved source records"
                             disabled={sourceRecordsLoading}
@@ -573,7 +609,11 @@ export function ActivitySourceReferenceFields({
                                 'Next saved sources',
                             )}
                             onPageChange={(page) =>
-                                void loadSourceRecordsPage(page)
+                                void loadSourceRecordsPage(
+                                    page,
+                                    sourceSearch,
+                                    sourceConcept,
+                                )
                             }
                             pageCount={sourceRecordsPagination.lastPage}
                             previousLabel={t(
@@ -693,7 +733,9 @@ export function ActivitySourceReferenceFields({
                                         className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
                                         id="saved-source-concept"
                                         onChange={(event) =>
-                                            addCatalogConcept(event.target.value)
+                                            addCatalogConcept(
+                                                event.target.value,
+                                            )
                                         }
                                         value=""
                                     >
@@ -723,24 +765,26 @@ export function ActivitySourceReferenceFields({
                                     </select>
                                     {catalogForm.concepts.length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
-                                            {catalogForm.concepts.map((concept) => (
-                                                <button
-                                                    className="inline-flex min-h-8 items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 text-xs text-cyan-700 transition hover:bg-cyan-500/20 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-cyan-200"
-                                                    key={concept}
-                                                    onClick={() =>
-                                                        removeCatalogConcept(
-                                                            concept,
-                                                        )
-                                                    }
-                                                    type="button"
-                                                >
-                                                    {concept}
-                                                    <X
-                                                        aria-hidden="true"
-                                                        className="size-3.5"
-                                                    />
-                                                </button>
-                                            ))}
+                                            {catalogForm.concepts.map(
+                                                (concept) => (
+                                                    <button
+                                                        className="inline-flex min-h-8 items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 text-xs text-cyan-700 transition hover:bg-cyan-500/20 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-cyan-200"
+                                                        key={concept}
+                                                        onClick={() =>
+                                                            removeCatalogConcept(
+                                                                concept,
+                                                            )
+                                                        }
+                                                        type="button"
+                                                    >
+                                                        {concept}
+                                                        <X
+                                                            aria-hidden="true"
+                                                            className="size-3.5"
+                                                        />
+                                                    </button>
+                                                ),
+                                            )}
                                         </div>
                                     ) : null}
                                     <p className="text-xs text-slate-500 dark:text-slate-400">

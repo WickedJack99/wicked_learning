@@ -205,7 +205,11 @@ export default function EditNodeActivities({
     );
 
     const loadSourceRecords = useCallback(
-        async (page: number, search: string): Promise<SourceRecordPage> => {
+        async (
+            page: number,
+            search: string,
+            concept: string,
+        ): Promise<SourceRecordPage> => {
             const params = new URLSearchParams({
                 page: String(page),
                 per_page: '12',
@@ -213,6 +217,10 @@ export default function EditNodeActivities({
 
             if (search.trim() !== '') {
                 params.set('search', search.trim());
+            }
+
+            if (concept.trim() !== '') {
+                params.set('concept', concept.trim());
             }
 
             const response = await fetch(

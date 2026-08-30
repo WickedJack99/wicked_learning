@@ -126,6 +126,7 @@ export function ActivityFormFields({
     onLoadSourceRecords: (
         page: number,
         search: string,
+        concept: string,
     ) => Promise<SourceRecordPage>;
     onRestoreSourceRecordVersion: (
         sourceId: number,

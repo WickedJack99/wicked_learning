@@ -94,7 +94,8 @@ The catalog now supports bounded author-side editing and deletion without
 rewriting copied references, and each update preserves a paginated immutable
 revision history for authors. The source catalog also supports Concept Library
 labels that are copied into activity provenance snapshots and shown with
-learner-visible sources. Add richer concept linkage and reusable excerpts later.
+learner-visible sources, and authoring reuse can now filter by those labels.
+Add richer concept linkage and reusable excerpts later.
 Authors can also restore a listed revision without losing the current state.
 Link those records to activities, concepts and AI-generated drafts so authors
 and learners can inspect the basis of factual content and feedback.

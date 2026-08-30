@@ -199,6 +199,24 @@ test('authors can search and paginate saved source records', function () {
         ->assertJsonCount(1, 'items')
         ->assertJsonPath('items.0.title', 'A differently named source')
         ->assertJsonPath('pagination.total', 1);
+
+    LearningSourceRecord::query()->create([
+        'concepts' => ['Retrieval'],
+        'title' => 'Retrieval source',
+        'url' => 'https://example.com/retrieval-source',
+    ]);
+    LearningSourceRecord::query()->create([
+        'concepts' => ['Transfer'],
+        'title' => 'Transfer source',
+        'url' => 'https://example.com/transfer-source',
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?concept=Retrieval')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('items.0.title', 'Retrieval source')
+        ->assertJsonPath('pagination.total', 1);
 });
 
 test('admins can maintain saved sources without changing copied activity references', function () {

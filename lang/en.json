@@ -107,6 +107,8 @@
     "settings.activity_sources.search_placeholder": "Title, URL or publisher",
     "settings.activity_sources.search": "Search",
     "settings.activity_sources.searching": "Searching…",
+    "settings.activity_sources.concept_filter_label": "Filter by concept",
+    "settings.activity_sources.concept_filter_all": "All concepts",
     "settings.activity_sources.catalog_load_error": "The saved sources could not be loaded. Try again.",
     "settings.activity_sources.no_matches": "No saved sources match this search.",
     "settings.activity_sources.pagination": "Saved source pages",

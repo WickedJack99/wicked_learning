@@ -116,11 +116,13 @@ class AdminActivityController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
             'search' => ['nullable', 'string', 'max:160'],
+            'concept' => ['nullable', 'string', 'max:120'],
         ]);
         $sources = $this->sourceRecords->paginate(
             page: $data['page'] ?? 1,
             perPage: $data['per_page'] ?? 12,
             search: $data['search'] ?? null,
+            concept: $data['concept'] ?? null,
         );
 
         return response()->json([

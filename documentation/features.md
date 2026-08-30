@@ -339,7 +339,8 @@ authoring convenience, not a live link: changing a catalog record does not
 rewrite an activity or an existing learner evidence snapshot. The picker
 searches and paginates catalog records so a growing catalog does not have to be
 loaded into every activity editor at once. Catalog records can carry reusable
-Concept Library labels; copying a record includes those labels in the
+Concept Library labels; authors can filter catalog reuse by those labels while
+searching and paging. Copying a record includes those labels in the
 activity's provenance snapshot, and learners can inspect them alongside the
 source. Authors can also edit or delete catalog records from the same picker;
 deleting a catalog entry does not remove copied activity references. Version
