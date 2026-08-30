@@ -17,13 +17,16 @@ class LoadLearnerMessages
         User $user,
         string $audience = 'peers',
         bool $allowResponses = false,
+        int $page = 1,
+        int $perPage = 12,
     ): array {
         $messages = $topic->messages()->where('audience', $audience);
-        $loadedMessages = (clone $messages)
+        $messagePage = (clone $messages)
             ->whereNull('hidden_at')
             ->latest()
-            ->limit(12)
-            ->get();
+            ->orderByDesc('id')
+            ->paginate(min(max($perPage, 1), 12), ['*'], 'page', max($page, 1));
+        $loadedMessages = $messagePage->getCollection()->shuffle()->values();
         $messageIds = $loadedMessages->modelKeys();
         $respondedMessageIds = $allowResponses && $messageIds !== []
             ? LearnerMessageResponse::query()
@@ -44,9 +47,13 @@ class LoadLearnerMessages
             'hasContributed' => (clone $messages)
                 ->where('user_id', $user->id)
                 ->exists(),
+            'pagination' => [
+                'currentPage' => $messagePage->currentPage(),
+                'lastPage' => $messagePage->lastPage(),
+                'perPage' => $messagePage->perPage(),
+                'total' => $messagePage->total(),
+            ],
             'messages' => $loadedMessages
-                ->shuffle()
-                ->values()
                 ->map(function (LearnerMessage $message) use ($allowResponses, $respondedMessageIds, $responsesByMessage, $user): array {
                     $responses = $allowResponses
                         ? collect($responsesByMessage[$message->id] ?? [])

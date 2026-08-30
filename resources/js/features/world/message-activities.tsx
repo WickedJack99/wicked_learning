@@ -2,6 +2,7 @@ import { Check, MessageSquareText, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import InputError from '@/components/input-error';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -11,7 +12,15 @@ import { getJson, postJson } from './api';
 type MessageResponse = {
     hasContributed: boolean;
     messages: Array<MessageItem>;
+    pagination: MessagePagination;
     topic: { id: number; title: string };
+};
+
+type MessagePagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
 };
 
 type MessageItem = {
@@ -299,11 +308,31 @@ export function MessageWallActivity({
         useState<ResponseType>('explanation');
     const [responseError, setResponseError] = useState('');
     const [responding, setResponding] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(() =>
+        typeof window !== 'undefined' &&
+        window.matchMedia('(max-width: 639px)').matches
+            ? 3
+            : 10,
+    );
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(max-width: 639px)');
+        const updatePageSize = () => {
+            setLoading(true);
+            setPageSize(mediaQuery.matches ? 3 : 10);
+            setPage(1);
+        };
+
+        mediaQuery.addEventListener('change', updatePageSize);
+
+        return () => mediaQuery.removeEventListener('change', updatePageSize);
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
         getJson<MessageResponse>(
-            `/learning/activities/${activity.id}/messages`,
+            `/learning/activities/${activity.id}/messages?page=${page}&per_page=${pageSize}`,
             controller.signal,
         )
             .then(setState)
@@ -311,7 +340,7 @@ export function MessageWallActivity({
             .finally(() => setLoading(false));
 
         return () => controller.abort();
-    }, [activity.id]);
+    }, [activity.id, page, pageSize]);
 
     const close = async () => {
         setClosing(true);
@@ -335,14 +364,17 @@ export function MessageWallActivity({
         setResponseError('');
 
         try {
-            const response = await postJson<MessageResponse>(
+            await postJson<MessageResponse>(
                 `/learning/activities/${activity.id}/messages/${messageId}/responses`,
                 {
                     body: responseBody.trim(),
                     response_type: responseType,
                 },
             );
-            setState(response);
+            const refreshedState = await getJson<MessageResponse>(
+                `/learning/activities/${activity.id}/messages?page=${page}&per_page=${pageSize}`,
+            );
+            setState(refreshedState);
             setActiveMessageId(null);
             setResponseBody('');
             setResponseType('explanation');
@@ -365,6 +397,10 @@ export function MessageWallActivity({
         setResponseBody('');
         setResponseType('explanation');
         setResponseError('');
+    };
+    const changePage = (nextPage: number) => {
+        setLoading(true);
+        setPage(nextPage);
     };
     const messages = state?.messages ?? [];
 
@@ -430,8 +466,8 @@ export function MessageWallActivity({
                 </div>
             ) : (
                 <>
-                    <div className="grid gap-3 px-4 pt-24 pb-5 sm:hidden">
-                        {messages.slice(0, 6).map((message) => (
+                    <div className="grid gap-3 px-4 pt-24 pb-16 sm:hidden">
+                        {messages.map((message) => (
                             <MessageCard
                                 allowResponses={allowResponses}
                                 activeMessageId={activeMessageId}
@@ -453,7 +489,7 @@ export function MessageWallActivity({
                         ))}
                     </div>
                     <div className="hidden h-full min-h-[28rem] sm:block">
-                        {messages.slice(0, 10).map((message, index) => (
+                        {messages.map((message, index) => (
                             <div
                                 className="absolute w-[min(17rem,32%)]"
                                 key={message.id}
@@ -479,6 +515,28 @@ export function MessageWallActivity({
                             </div>
                         ))}
                     </div>
+                    {state !== null && state.pagination.lastPage > 1 ? (
+                        <PaginationControls
+                            buttonClassName="inline-flex min-h-8 items-center gap-1 rounded-lg border px-2 text-xs transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-40"
+                            className="absolute right-4 bottom-3 left-4 z-30 rounded-lg px-2 py-1"
+                            label={t(
+                                'activities.messages.pagination',
+                                'Message pages',
+                            )}
+                            nextLabel={t(
+                                'activities.messages.next_page',
+                                'Next message page',
+                            )}
+                            currentPage={state.pagination.currentPage}
+                            onPageChange={changePage}
+                            pageCount={state.pagination.lastPage}
+                            previousLabel={t(
+                                'activities.messages.previous_page',
+                                'Previous message page',
+                            )}
+                            textClassName="text-xs opacity-80"
+                        />
+                    ) : null}
                 </>
             )}
         </div>

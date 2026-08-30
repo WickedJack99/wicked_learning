@@ -278,6 +278,8 @@ moderation surface.
 Peer message walls may also invite one optional response per learner and
 message. Responses are anonymous to learners, subject to the same moderation
 filtering, and managed by Learning Support alongside the original messages.
+Walls expose their visible contributions through bounded pages, so a growing
+topic does not hide older contributions behind a clipped or unbounded panel.
 Authors can optionally add short response guidance to help peers explain a clue,
 question, example or counterexample; this guidance is an invitation, not a grade
 or required rubric. Responding learners can optionally describe their

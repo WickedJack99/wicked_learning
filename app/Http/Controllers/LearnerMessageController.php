@@ -27,12 +27,23 @@ class LearnerMessageController extends Controller
     public function index(Request $request, LearningActivity $activity): JsonResponse
     {
         $this->authorizeActivity($request, $activity);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:12'],
+        ]);
 
         $audience = $this->messageConfiguration->audienceFor($activity);
         $allowResponses = $this->messageConfiguration->allowsResponsesFor($activity);
 
         return response()->json(
-            $this->messages->handle($this->topicForActivity->resolve($activity), $request->user(), $audience, $allowResponses),
+            $this->messages->handle(
+                $this->topicForActivity->resolve($activity),
+                $request->user(),
+                $audience,
+                $allowResponses,
+                (int) ($data['page'] ?? 1),
+                (int) ($data['per_page'] ?? 12),
+            ),
         );
     }
 

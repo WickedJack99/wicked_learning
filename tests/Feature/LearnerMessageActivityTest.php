@@ -387,7 +387,7 @@ test('learner message response loading stays bounded as a wall grows', function 
         ->first(fn (array $query): bool => str_contains($query['query'], 'response_rank'));
     DB::disableQueryLog();
 
-    expect($queryCount)->toBe(4)
+    expect($queryCount)->toBe(5)
         ->and($responseQuery)->not->toBeNull()
         ->and(strtolower($responseQuery['query']))->toContain('response_rank" <= ?')
         ->and($responseQuery['bindings'])->toContain(3)
@@ -400,6 +400,41 @@ test('learner message response loading stays bounded as a wall grows', function 
             ['id' => 10, 'body' => 'Response 10', 'responseType' => null],
         ])
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
+});
+
+test('learner message walls paginate visible contributions', function () {
+    $learner = User::factory()->create();
+    $authors = User::factory()->count(13)->create();
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'paged-wall',
+        'title' => 'Paged wall',
+    ]);
+    $wall = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'paged-wall-activity',
+        'type' => 'message_wall',
+        'title' => 'Paged wall',
+        'config' => ['messageTopicId' => $topic->id],
+    ]);
+
+    foreach ($authors as $number => $author) {
+        LearnerMessage::query()->create([
+            'learning_message_topic_id' => $topic->id,
+            'user_id' => $author->id,
+            'body' => 'Contribution '.($number + 1),
+            'audience' => 'peers',
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $wall).'?page=2&per_page=5')
+        ->assertOk()
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 3)
+        ->assertJsonPath('pagination.perPage', 5)
+        ->assertJsonPath('pagination.total', 13)
+        ->assertJsonCount(5, 'messages');
 });
 
 test('admins can hide restore and delete learner messages', function () {
