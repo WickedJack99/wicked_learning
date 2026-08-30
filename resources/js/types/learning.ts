@@ -479,6 +479,8 @@ export type QuestionAnswerAttempt = {
 
 export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';
 
+export type ReviewOutcome = 'clearer' | 'connected' | 'open';
+
 export type QuestionCalibration =
     | 'aligned'
     | 'stronger_than_expected'

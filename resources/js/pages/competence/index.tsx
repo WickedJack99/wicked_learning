@@ -707,7 +707,7 @@ function LearningPulseTimeline({
                                                 {attempt.nodeTitle ??
                                                     'Learning place'}
                                                 {attempt.outcome
-                                                    ? ` · ${reviewOutcomeLabel(attempt.outcome)}`
+                                                    ? ` · ${reviewOutcomeLabel(attempt.outcome, translate)}`
                                                     : ''}
                                             </span>
                                         </span>
@@ -768,12 +768,19 @@ function checkInFeelingLabel(feeling: string | null): string {
     );
 }
 
-function reviewOutcomeLabel(outcome: string): string {
-    return (
+function reviewOutcomeLabel(
+    outcome: string,
+    translate: ReturnType<typeof usePlatformTranslation>,
+): string {
+    return translate(
+        `learning.review.outcome_${outcome}`,
         {
+            clearer: 'Clearer now',
+            connected: 'More connected',
+            open: 'Still open',
             correct: 'Useful clue found',
             incorrect: 'Adjust the hypothesis',
-        }[outcome] ?? 'Review completed'
+        }[outcome] ?? 'Review completed',
     );
 }
 

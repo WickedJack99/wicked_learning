@@ -152,7 +152,9 @@ not an automatic rubric pass.
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion
 and any due revisit attempt; choosing nothing remains valid and does not block
-completion.
+completion. They can also optionally describe the result as clearer now, more
+connected, or still open. These are private learner observations, not scores,
+correctness judgments, or automatic rubric decisions.
 
 When a learner chooses to return after a review pause, the due activity is
 opened as a review attempt. The Learning Desk and Journal explain when it

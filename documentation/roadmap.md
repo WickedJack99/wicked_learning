@@ -46,7 +46,8 @@ The first transparent timing baseline for question recall is now implemented:
 the desk distinguishes ready items from future items and explicit recall answers
 record the next interval. Richer review outcomes for other activity types,
 including optional learner confidence after a review response, are now partly
-supported; richer outcome vocabulary and adaptive scheduling remain open.
+supported; a small descriptive review-outcome vocabulary is now also
+supported. Richer outcome contracts and adaptive scheduling remain open.
 
 ### 3. Self-explanation and transfer
 

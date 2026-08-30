@@ -214,6 +214,7 @@ class LearningWorldController extends Controller
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
             'ends_route' => ['sometimes', 'boolean'],
             'is_revisit' => ['sometimes', 'boolean'],
+            'outcome' => ['nullable', 'string', 'in:clearer,connected,open'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
             'status' => ['required', 'string', 'in:reached,completed'],
         ]);
@@ -224,7 +225,7 @@ class LearningWorldController extends Controller
             (string) $data['status'],
             is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
             array_key_exists('ends_route', $data) ? (bool) $data['ends_route'] : null,
-            outcome: null,
+            outcome: is_string($data['outcome'] ?? null) ? (string) $data['outcome'] : null,
             confidence: is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
             isRevisit: is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
         );

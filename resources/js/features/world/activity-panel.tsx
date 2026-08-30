@@ -24,6 +24,7 @@ import type {
     LearningProgress,
     QuestionConfidence,
     QuestionAnswerProgress,
+    ReviewOutcome,
     LearningUnlockRequirement,
 } from '@/types';
 import { ActivityAmbientSound } from './activity-ambient-sound';
@@ -380,6 +381,7 @@ export function ActivityPlayer({
         options?: {
             confidence?: QuestionConfidence;
             endsRoute?: boolean;
+            outcome?: ReviewOutcome;
             progressAlreadyMarked?: boolean;
         },
     ) => Promise<void>;
@@ -402,12 +404,14 @@ export function ActivityPlayer({
             completedActivity: LearningActivity,
             options: {
                 confidence?: QuestionConfidence;
+                outcome?: ReviewOutcome;
                 progressAlreadyMarked?: boolean;
             } = {},
         ) =>
             onComplete(completedActivity, {
                 confidence: options.confidence,
                 endsRoute: completesRoute,
+                outcome: options.outcome,
                 progressAlreadyMarked: options.progressAlreadyMarked,
             }),
         [completesRoute, onComplete],

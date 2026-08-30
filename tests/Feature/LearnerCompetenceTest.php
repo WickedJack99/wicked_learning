@@ -210,10 +210,21 @@ test('route play completion records configured evidence once per play run', func
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
+            'confidence' => 'settled',
+            'outcome' => 'clearer',
             'play_run_id' => $runId,
             'status' => 'completed',
         ])
         ->assertOk();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'outcome' => 'scored',
+            'play_run_id' => $runId,
+            'status' => 'completed',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('outcome');
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
@@ -241,6 +252,16 @@ test('route play completion records configured evidence once per play run', func
             ->where('topic_slug', 'algebra')
             ->value('objective'))
         ->toBe('Reconnect the observation to its underlying reason.')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('play_run_id', $runId)
+            ->where('topic_slug', 'algebra')
+            ->value('outcome'))
+        ->toBe('clearer')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('play_run_id', $runId)
+            ->where('topic_slug', 'algebra')
+            ->value('confidence'))
+        ->toBe('settled')
         ->and(LearnerEvidenceEvent::query()
             ->where('play_run_id', $runId)
             ->pluck('latency_seconds')

@@ -31,6 +31,7 @@ import type {
     LearningProgress,
     QuestionConfidence,
     QuestionAnswerProgress,
+    ReviewOutcome,
 } from '@/types';
 
 type NodePlayProps = {
@@ -48,6 +49,7 @@ type NodePlayProps = {
 type CompletionOptions = {
     confidence?: QuestionConfidence;
     endsRoute?: boolean;
+    outcome?: ReviewOutcome;
     progressAlreadyMarked?: boolean;
 };
 
@@ -243,6 +245,7 @@ export default function NodePlay({
                 confidence?: QuestionConfidence;
                 ends_route?: boolean;
                 is_revisit: boolean;
+                outcome?: ReviewOutcome;
                 play_run_id: string | null;
                 status: 'completed';
             } = {
@@ -257,6 +260,10 @@ export default function NodePlay({
 
             if (options.confidence) {
                 payload.confidence = options.confidence;
+            }
+
+            if (options.outcome) {
+                payload.outcome = options.outcome;
             }
 
             if (!options.progressAlreadyMarked) {
