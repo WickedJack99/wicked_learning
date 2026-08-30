@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'visual_config',
     'activity_graph_layout',
     'start_activity_id',
+    'companion_config',
 ])]
 class LearningNode extends Model
 {
@@ -34,6 +35,7 @@ class LearningNode extends Model
         return [
             'visual_config' => 'array',
             'activity_graph_layout' => 'array',
+            'companion_config' => 'array',
         ];
     }
 

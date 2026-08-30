@@ -9,10 +9,11 @@ import {
     useSelectedLearningTool,
 } from '@/features/tools/tool-selection';
 import { toolImageUrl } from '@/features/tools/tool-visuals';
+import { LearningCompanionLauncher } from '@/features/world/learning-companion-panel';
 import { useAppearance } from '@/hooks/use-appearance';
 import { normalizeMediaUrl } from '@/lib/media-url';
 import { cn } from '@/lib/utils';
-import type { LearningItem, LearningTool } from '@/types';
+import type { LearningCompanion, LearningItem, LearningTool } from '@/types';
 
 type OverlayMode = 'inventory' | 'tools' | null;
 type MapThemedStyle = CSSProperties & Record<`--${string}`, string>;
@@ -26,6 +27,10 @@ export function AppSideActionBar() {
     const selectedTool = useSelectedLearningTool();
     const items = useAvailableLearningItems(props.auth.items);
     const tools = useAvailableLearningTools(props.auth.tools);
+    const companion = props.companion as LearningCompanion | null | undefined;
+    const companionPlacement = url.startsWith('/world')
+        ? 'map-search'
+        : 'default';
     const shouldShow = useMemo(
         () =>
             Boolean(props.auth.user) &&
@@ -102,89 +107,99 @@ export function AppSideActionBar() {
         };
     }, [closeOverlay, overlay]);
 
-    if (!shouldShow) {
+    if (!shouldShow && !companion?.enabled) {
         return null;
     }
 
     return (
-        <aside
-            aria-label="Player actions"
-            className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 md:top-1/2 md:right-5 md:bottom-auto md:left-auto md:translate-x-0 md:-translate-y-1/2 md:flex-row"
-            ref={sideActionRef}
-        >
-            {overlay === 'inventory' ? (
-                <SideOverlay
-                    eyebrow="Inventory"
-                    id="learning-inventory-panel"
-                    onClose={closeOverlay}
-                    title="Items"
-                >
-                    <ItemGrid items={items} mode={resolvedAppearance} />
-                </SideOverlay>
+        <>
+            {companion?.enabled ? (
+                <LearningCompanionLauncher
+                    companion={companion}
+                    placement={companionPlacement}
+                />
             ) : null}
-            {overlay === 'tools' ? (
-                <SideOverlay
-                    eyebrow="Tools"
-                    id="learning-tools-panel"
-                    onClose={closeOverlay}
-                    title="Select a tool"
+            {shouldShow ? (
+                <aside
+                    aria-label="Player actions"
+                    className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col items-center gap-3 md:top-1/2 md:right-5 md:bottom-auto md:left-auto md:translate-x-0 md:-translate-y-1/2 md:flex-row"
+                    ref={sideActionRef}
                 >
-                    <ToolGrid
-                        mode={resolvedAppearance}
-                        onClose={closeOverlay}
-                        selectedTool={selectedTool}
-                        tools={tools}
-                    />
-                </SideOverlay>
+                    {overlay === 'inventory' ? (
+                        <SideOverlay
+                            eyebrow="Inventory"
+                            id="learning-inventory-panel"
+                            onClose={closeOverlay}
+                            title="Items"
+                        >
+                            <ItemGrid items={items} mode={resolvedAppearance} />
+                        </SideOverlay>
+                    ) : null}
+                    {overlay === 'tools' ? (
+                        <SideOverlay
+                            eyebrow="Tools"
+                            id="learning-tools-panel"
+                            onClose={closeOverlay}
+                            title="Select a tool"
+                        >
+                            <ToolGrid
+                                mode={resolvedAppearance}
+                                onClose={closeOverlay}
+                                selectedTool={selectedTool}
+                                tools={tools}
+                            />
+                        </SideOverlay>
+                    ) : null}
+                    <div
+                        className="grid grid-flow-col gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:grid-flow-row dark:shadow-black/35"
+                        style={{
+                            background: 'var(--map-side-control-background)',
+                            borderColor: 'var(--map-side-control-border-color)',
+                            color: 'var(--map-side-control-text-color)',
+                            cursor: 'var(--platform-cursor)',
+                        }}
+                    >
+                        <ActionButton
+                            ariaControls="learning-inventory-panel"
+                            ariaExpanded={overlay === 'inventory'}
+                            isActive={overlay === 'inventory'}
+                            label="Open inventory"
+                            onClick={(event) =>
+                                toggleOverlay('inventory', event.currentTarget)
+                            }
+                        >
+                            <Backpack className="size-5" />
+                        </ActionButton>
+                        <ActionButton
+                            ariaControls="learning-tools-panel"
+                            ariaExpanded={overlay === 'tools'}
+                            isActive={overlay === 'tools' || Boolean(selectedTool)}
+                            label="Open tools"
+                            onClick={(event) => {
+                                if (selectedTool) {
+                                    selectLearningTool(null);
+                                    closeOverlay();
+
+                                    return;
+                                }
+
+                                toggleOverlay('tools', event.currentTarget);
+                            }}
+                        >
+                            {selectedTool ? (
+                                <ToolImage
+                                    className="size-6"
+                                    mode={resolvedAppearance}
+                                    tool={selectedTool}
+                                />
+                            ) : (
+                                <Hammer className="size-5" />
+                            )}
+                        </ActionButton>
+                    </div>
+                </aside>
             ) : null}
-            <div
-                className="grid grid-flow-col gap-1.5 rounded-2xl border p-1.5 shadow-2xl shadow-slate-950/15 backdrop-blur-md md:grid-flow-row dark:shadow-black/35"
-                style={{
-                    background: 'var(--map-side-control-background)',
-                    borderColor: 'var(--map-side-control-border-color)',
-                    color: 'var(--map-side-control-text-color)',
-                    cursor: 'var(--platform-cursor)',
-                }}
-            >
-                <ActionButton
-                    ariaControls="learning-inventory-panel"
-                    ariaExpanded={overlay === 'inventory'}
-                    isActive={overlay === 'inventory'}
-                    label="Open inventory"
-                    onClick={(event) =>
-                        toggleOverlay('inventory', event.currentTarget)
-                    }
-                >
-                    <Backpack className="size-5" />
-                </ActionButton>
-                <ActionButton
-                    ariaControls="learning-tools-panel"
-                    ariaExpanded={overlay === 'tools'}
-                    isActive={overlay === 'tools' || Boolean(selectedTool)}
-                    label="Open tools"
-                    onClick={(event) => {
-                        if (selectedTool) {
-                            selectLearningTool(null);
-                            closeOverlay();
-
-                            return;
-                        }
-
-                        toggleOverlay('tools', event.currentTarget);
-                    }}
-                >
-                    {selectedTool ? (
-                        <ToolImage
-                            className="size-6"
-                            mode={resolvedAppearance}
-                            tool={selectedTool}
-                        />
-                    ) : (
-                        <Hammer className="size-5" />
-                    )}
-                </ActionButton>
-            </div>
-        </aside>
+        </>
     );
 }
 

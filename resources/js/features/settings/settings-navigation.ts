@@ -20,6 +20,7 @@ export type SettingsPanelKey =
     | 'admin-ai-integrations'
     | 'admin-assets-world-objects'
     | 'admin-color-palettes'
+    | 'admin-learning-companion'
     | 'admin-learning-support'
     | 'admin-public-pages'
     | 'admin-translations'
@@ -247,6 +248,16 @@ export const adminSettings: SettingsListItem[] = [
         ],
     },
     {
+        key: 'admin-learning-companion',
+        label: 'Learning Companion',
+        labelKey: 'settings.navigation.learning_companion',
+        description: 'Configure the scripted learner orientation companion.',
+        descriptionKey: 'settings.navigation.learning_companion.description',
+        icon: Sparkles,
+        panel: 'admin-learning-companion',
+        resources: ['companion'],
+    },
+    {
         key: 'admin-ai-integrations',
         label: 'AI & Integrations',
         labelKey: 'settings.navigation.ai_integrations',
@@ -366,6 +377,7 @@ export const settingsPanelKeys: SettingsPanelKey[] = [
     'admin-ai-integrations',
     'admin-assets-world-objects',
     'admin-color-palettes',
+    'admin-learning-companion',
     'admin-learning-support',
     'admin-public-pages',
     'admin-translations',

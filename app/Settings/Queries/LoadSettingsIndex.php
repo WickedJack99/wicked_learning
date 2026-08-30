@@ -30,6 +30,7 @@ use App\Learning\Serializers\DialogueTypingSoundSetSerializer;
 use App\Learning\Serializers\EditableMapSerializer;
 use App\Learning\Serializers\LearningGroupSerializer;
 use App\Learning\Serializers\LearningItemSerializer;
+use App\Learning\Services\LearningCompanionConfigurationResolver;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Localization\Queries\LoadLanguageAdministration;
 use App\Models\AccessChangeEvent;
@@ -43,6 +44,7 @@ use App\Models\LearningNode;
 use App\Models\LearningSound;
 use App\Models\LearningTool;
 use App\Models\OrganizationIconReport;
+use App\Models\PlatformCompanionSetting;
 use App\Models\PlatformInfoPage;
 use App\Models\PlatformPresentationSetting;
 use App\Models\RegistrationToken;
@@ -106,6 +108,7 @@ class LoadSettingsIndex
         $loadsAccess = $panel === 'admin-access' || ! $hasExplicitPanel;
         $loadsAssets = $panel === 'admin-assets-world-objects';
         $loadsAi = in_array($panel, ['admin-ai-integrations', 'admin-world-builder'], true);
+        $loadsCompanion = $panel === 'admin-learning-companion';
         $loadsColorPalettes = $panel === 'admin-color-palettes';
         $loadsLanguages = $panel === 'admin-translations';
         $loadsLearningSupport = $panel === 'admin-learning-support';
@@ -130,6 +133,9 @@ class LoadSettingsIndex
                 ? $this->assetsWorldObjects($accessCapabilities, $user)
                 : $this->emptyAssetsWorldObjects(),
             'aiSettings' => $loadsAi ? $this->aiSettings($accessCapabilities) : null,
+            'companionSettings' => $loadsCompanion && ($accessCapabilities[PermissionCatalog::COMPANION]['read'] ?? false)
+                ? $this->companionSettings()
+                : null,
             'registrationTokens' => $loadsAccess && $canManageUsers ? $this->registrationTokens() : [],
             'adminRoles' => $loadsAccess && $canManageRoles ? $this->accessRoles() : [],
             'permissionResources' => $loadsAccess ? $this->permissionResources() : [],
@@ -155,6 +161,23 @@ class LoadSettingsIndex
             'selectedWorldNode' => $loadsWorldBuilder
                 ? $this->selectedWorldNode($user, $selectedNodeId, $accessCapabilities)
                 : null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function companionSettings(): array
+    {
+        $setting = PlatformCompanionSetting::current();
+        $configuredColor = is_array($setting->companion_config)
+            ? ($setting->companion_config['avatar_color'] ?? null)
+            : null;
+
+        return [
+            ...$setting->only(['enabled', 'display_name', 'avatar_url', 'welcome_message']),
+            'avatar_color' => is_string($configuredColor)
+                && preg_match('/^#[0-9a-fA-F]{6}$/', $configuredColor) === 1
+                ? $configuredColor
+                : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_COLOR,
         ];
     }
 

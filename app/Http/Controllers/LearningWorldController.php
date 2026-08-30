@@ -18,6 +18,7 @@ use App\Learning\Services\LearnerProgressService;
 use App\Learning\Services\LearnerRecallItemService;
 use App\Learning\Services\LearnerRouteProgressService;
 use App\Learning\Services\LearningBookmarkService;
+use App\Learning\Services\LearningCompanionContext;
 use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningPlayRunService;
 use App\Learning\Services\LearningToolGrantService;
@@ -69,6 +70,7 @@ class LearningWorldController extends Controller
         private readonly LearningBookmarkService $bookmarkService,
         private readonly NodeRevealService $nodeRevealService,
         private readonly NodeUnlockService $nodeUnlockService,
+        private readonly LearningCompanionContext $companionContext,
     ) {}
 
     public function show(Request $request): Response|RedirectResponse
@@ -88,6 +90,15 @@ class LearningWorldController extends Controller
             }
         }
 
+        $selectedMap = $world?->maps->first();
+
+        if ($world && is_string($request->query('map'))) {
+            $selectedMap = $this->mapLocationService->mapFromRequest(
+                $request->query('map'),
+                $world->maps,
+            ) ?? $selectedMap;
+        }
+
         return Inertia::render('world', [
             'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user->id) : [],
             'groups' => $user
@@ -98,6 +109,7 @@ class LearningWorldController extends Controller
                     ->all()
                 : [],
             'world' => $world ? $this->worldSerializer->serialize($world, $user) : null,
+            'companion' => $world ? $this->companionContext->forWorld($world, $selectedMap) : null,
             'progress' => $user
                 ? $this->progressSerializer->forUser($user->id)
                 : $this->progressSerializer->empty(),
@@ -154,6 +166,12 @@ class LearningWorldController extends Controller
                 ? $this->bookmarkService->isBookmarked($user->id, $node)
                 : false,
             'node' => $this->nodeSerializer->serialize($playableNode, $user, true),
+            'companion' => $this->companionContext->forActivity(
+                $playableNode,
+                $requestedActivity ?? $runProgress?->currentActivity,
+                $route,
+                $playRunId,
+            ),
             'playActivityId' => $requestedActivity?->id ?? $runProgress?->current_learning_activity_id,
             'playRouteId' => $route?->id,
             'playRunId' => $playRunId,

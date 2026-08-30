@@ -6,6 +6,8 @@ use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAiContentAuthoringController;
 use App\Http\Controllers\Settings\AdminAiController;
 use App\Http\Controllers\Settings\AdminAssetController;
+use App\Http\Controllers\Settings\AdminCompanionController;
+use App\Http\Controllers\Settings\AdminCompanionDialogueController;
 use App\Http\Controllers\Settings\AdminDialogueSoundSetController;
 use App\Http\Controllers\Settings\AdminItemController;
 use App\Http\Controllers\Settings\AdminLanguageController;
@@ -442,6 +444,29 @@ Route::middleware(['auth', 'verified', 'can:ai.rud'])->group(function () {
 
     Route::delete('settings/ai/templates/{template}', [AdminAiController::class, 'destroyTemplate'])
         ->name('settings.ai.templates.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'can:companion.ru'])->group(function () {
+    Route::post('settings/companion/avatar', [AdminCompanionController::class, 'uploadAvatar'])
+        ->name('settings.companion.avatar.store');
+
+    Route::patch('settings/companion', [AdminCompanionController::class, 'update'])
+        ->name('settings.companion.update');
+
+    Route::get('settings/companion/dialogues', [AdminCompanionDialogueController::class, 'index'])
+        ->name('settings.companion.dialogues.index');
+    Route::post('settings/companion/dialogues', [AdminCompanionDialogueController::class, 'store'])
+        ->name('settings.companion.dialogues.store');
+    Route::get('settings/companion/dialogues/{dialogue}/assignments', [AdminCompanionDialogueController::class, 'assignments'])
+        ->name('settings.companion.dialogues.assignments.index');
+    Route::put('settings/companion/dialogues/{dialogue}/assignments', [AdminCompanionDialogueController::class, 'syncAssignments'])
+        ->name('settings.companion.dialogues.assignments.update');
+    Route::get('settings/companion/dialogues/{dialogue}', [AdminCompanionDialogueController::class, 'show'])
+        ->name('settings.companion.dialogues.show');
+    Route::patch('settings/companion/dialogues/{dialogue}', [AdminCompanionDialogueController::class, 'update'])
+        ->name('settings.companion.dialogues.update');
+    Route::delete('settings/companion/dialogues/{dialogue}', [AdminCompanionDialogueController::class, 'destroy'])
+        ->name('settings.companion.dialogues.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'can:groups.ru'])->group(function () {

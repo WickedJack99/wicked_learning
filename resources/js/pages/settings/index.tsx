@@ -43,6 +43,8 @@ import type {
 } from '@/features/settings/assets-world-objects-panel';
 import { ContentApiPanel } from '@/features/settings/content-api-panel';
 import { LearningSupportPanel } from '@/features/settings/learning-support-panel';
+import { LearningCompanionSettingsPanel } from '@/features/settings/learning-companion-settings-panel';
+import type { LearningCompanionSettings } from '@/features/settings/learning-companion-settings-panel';
 import type {
     LearningSupportSection,
     LearningSupportSettings,
@@ -131,6 +133,7 @@ type SettingsIndexProps = {
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     aiSettings: AiSettingsProps | null;
+    companionSettings: LearningCompanionSettings | null;
     assetsWorldObjects: AssetsWorldObjectsSettings;
     assignableRegistrationRoles: UserRole[];
     canAccessAdministration: boolean;
@@ -476,6 +479,7 @@ export default function SettingsIndex({
     adminRoles,
     adminUsers,
     aiSettings,
+    companionSettings,
     assetsWorldObjects,
     assignableRegistrationRoles,
     canAccessAdministration,
@@ -609,6 +613,7 @@ export default function SettingsIndex({
                                     adminRoles={adminRoles}
                                     adminUsers={adminUsers}
                                     aiSettings={aiSettings}
+                                    companionSettings={companionSettings}
                                     assetsWorldObjects={assetsWorldObjects}
                                     colorPaletteSettings={colorPaletteSettings}
                                     createdRegistrationToken={
@@ -683,6 +688,7 @@ function SettingsDetail({
     adminRoles,
     adminUsers,
     aiSettings,
+    companionSettings,
     aiView,
     assetView,
     assetsWorldObjects,
@@ -718,6 +724,7 @@ function SettingsDetail({
     adminRoles: AccessRoleSummary[];
     adminUsers: AdminUser[];
     aiSettings: AiSettingsProps | null;
+    companionSettings: LearningCompanionSettings | null;
     aiView: AiView;
     assetView: AssetView;
     assetsWorldObjects: AssetsWorldObjectsSettings;
@@ -834,6 +841,10 @@ function SettingsDetail({
                         writePersonalViewToUrl(section);
                     }}
                 />
+            ) : selectedPanel === 'admin-learning-companion' && companionSettings ? (
+                <LearningCompanionSettingsPanel settings={companionSettings} />
+            ) : selectedPanel === 'admin-learning-companion' ? (
+                <SettingsUnavailablePanel label="Learning Companion" />
             ) : selectedPanel === 'admin-ai-integrations' && aiSettings ? (
                 <div className="h-full min-h-0">
                     <AiSettings

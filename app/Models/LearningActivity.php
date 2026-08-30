@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
     'sort_order',
     'graph_position_x',
     'graph_position_y',
+    'companion_config',
 ])]
 class LearningActivity extends Model
 {
@@ -43,6 +44,7 @@ class LearningActivity extends Model
             'config' => 'array',
             'ai_reviewed_at' => 'datetime',
             'ai_review' => 'array',
+            'companion_config' => 'array',
         ];
     }
 

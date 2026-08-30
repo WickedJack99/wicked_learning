@@ -13,6 +13,7 @@ export function PaginationControls({
     className,
     buttonClassName,
     textClassName,
+    showSinglePage,
 }: {
     currentPage: number;
     pageCount: number;
@@ -23,6 +24,7 @@ export function PaginationControls({
     className?: string;
     buttonClassName?: string;
     textClassName?: string;
+    showSinglePage?: boolean;
 }) {
     const t = usePlatformTranslation();
     const inputId = useId();
@@ -39,7 +41,7 @@ export function PaginationControls({
         }
     }, [safeCurrentPage]);
 
-    if (safePageCount <= 1) {
+    if (safePageCount <= 1 && !showSinglePage) {
         return null;
     }
 

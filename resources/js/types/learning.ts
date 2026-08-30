@@ -7,6 +7,59 @@ export type LearningWorld = {
     maps: LearningMap[];
 };
 
+export type LearningCompanion = {
+    avatarColor: string;
+    avatarUrl: string | null;
+    configuration: {
+        aiEnabled: boolean;
+        mode: 'guided_ai' | 'open_ai' | 'scripted' | string;
+        sourceScope: 'activity' | 'map' | 'node' | 'platform' | 'world' | string;
+    };
+    context: {
+        actions: Array<{
+            href: string;
+            key: string;
+            label: string;
+            reason: string;
+        }>;
+        activity: { id: number; title: string } | null;
+        map: { id: number; title: string } | null;
+        node: { id: number; title: string } | null;
+        playRunId: string | null;
+        route: { id: number; title: string } | null;
+        surface: 'activity' | 'desk' | 'world';
+        topic: { id: number; title: string } | null;
+        world: { id: number; title: string } | null;
+    };
+    dialogue: LearningCompanionDialogueGraph | null;
+    displayName: string;
+    enabled: boolean;
+    message: string;
+};
+
+export type LearningCompanionDialogueGraph = {
+    nodes: LearningCompanionDialogueNode[];
+    start: string;
+    version: number;
+};
+
+export type LearningCompanionDialogueNode = {
+    choices?: Array<{
+        action?: 'continue-exploring' | 'current-map' | 'learning-desk' | 'topics' | string;
+        key: string;
+        label: string;
+        next?: string | null;
+    }>;
+    capabilities?: string[];
+    id: string;
+    instruction?: string;
+    message?: string;
+    next?: string | null;
+    prompt?: string;
+    response_mode?: 'choice' | 'message';
+    type: 'ai' | 'choice' | 'end' | 'message';
+};
+
 type ThemeVariant<T> = T & {
     dark?: Partial<T>;
     light?: Partial<T>;

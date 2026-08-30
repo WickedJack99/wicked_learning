@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'access_roles',
     'time_background_enabled',
     'map_assets_locked',
+    'companion_config',
 ])]
 class LearningMap extends Model
 {
@@ -41,6 +42,7 @@ class LearningMap extends Model
             'access_roles' => 'array',
             'time_background_enabled' => 'boolean',
             'map_assets_locked' => 'boolean',
+            'companion_config' => 'array',
         ];
     }
 

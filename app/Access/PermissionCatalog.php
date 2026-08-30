@@ -52,6 +52,8 @@ class PermissionCatalog
 
     public const AI = 'ai';
 
+    public const COMPANION = 'companion';
+
     public const CONTENT_API = 'content_api';
 
     public const CONTENT_TOPICS = 'content_topics';
@@ -171,6 +173,11 @@ class PermissionCatalog
                 'label' => 'AI support',
                 'description' => 'Provider credentials, agent templates and usage guardrails.',
                 'group' => 'AI',
+            ],
+            self::COMPANION => [
+                'label' => 'Learning companion',
+                'description' => 'Configure the scripted learner companion and its orientation message.',
+                'group' => 'Learning support',
             ],
             self::CONTENT_API => [
                 'label' => 'Content API',

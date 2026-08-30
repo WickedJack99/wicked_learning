@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['slug', 'title', 'description', 'theme_config'])]
+#[Fillable(['slug', 'title', 'description', 'theme_config', 'companion_config'])]
 class LearningWorld extends Model
 {
     /**
@@ -18,6 +18,7 @@ class LearningWorld extends Model
     {
         return [
             'theme_config' => 'array',
+            'companion_config' => 'array',
         ];
     }
 
