@@ -4,6 +4,7 @@ import {
     ArrowRight,
     Bookmark,
     CheckCircle2,
+    ExternalLink,
     PlayCircle,
     RotateCcw,
     X,
@@ -793,6 +794,8 @@ function ActivityFrame({
 
             <FeedbackGuidance guidance={activity.feedbackGuidance} />
 
+            <ActivitySources sources={activity.sources} />
+
             {children}
 
             <div className="mt-auto flex justify-end border-t border-[var(--learner-border-color)] pt-3">
@@ -806,6 +809,49 @@ function ActivityFrame({
                 </Button>
             </div>
         </section>
+    );
+}
+
+function ActivitySources({
+    sources,
+}: {
+    sources: LearningActivity['sources'];
+}) {
+    if (sources.length === 0) {
+        return null;
+    }
+
+    return (
+        <details className="rounded-lg border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_78%,transparent)] p-3">
+            <summary className="cursor-pointer list-inside text-sm font-medium text-[var(--learner-heading-text)] outline-none marker:text-[var(--learner-action-accent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-panel-background)]">
+                Sources ({sources.length})
+            </summary>
+            <ul className="mt-3 grid gap-3 border-t border-[var(--learner-border-color)] pt-3">
+                {sources.map((source) => (
+                    <li className="grid gap-1 text-sm" key={`${source.url}-${source.title}`}>
+                        <a
+                            className="inline-flex w-fit max-w-full items-start gap-1.5 font-medium text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                            href={source.url}
+                            rel="noreferrer noopener"
+                            target="_blank"
+                        >
+                            <span className="[overflow-wrap:anywhere]">
+                                {source.title}
+                            </span>
+                            <ExternalLink
+                                aria-hidden="true"
+                                className="mt-0.5 size-3.5 shrink-0"
+                            />
+                        </a>
+                        <p className="[overflow-wrap:anywhere] text-xs leading-5 text-[var(--learner-muted-text)]">
+                            {[source.publisher, source.publishedAt, source.rights, source.anchor]
+                                .filter(Boolean)
+                                .join(' · ')}
+                        </p>
+                    </li>
+                ))}
+            </ul>
+        </details>
     );
 }
 

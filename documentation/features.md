@@ -260,6 +260,12 @@ Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.
 
+Activity authors can attach up to five source references with a title, URL and
+optional publisher, publication date, rights or licence, and stable anchor.
+Learners can expand the Sources section during playback to inspect those
+references. Source references explain the basis of activity content; they are
+not learner evidence, grades or private learner data.
+
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused
 competence-map reading. Those links retain the originating topic as a return

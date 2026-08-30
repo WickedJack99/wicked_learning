@@ -34,6 +34,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ActivityAmbientSoundFields } from './activity-ambient-sound-fields';
+import { ActivitySourceReferenceFields } from './activity-source-reference-fields';
 import type {
     ActivityForm,
     ActivityTypeDefinition,
@@ -74,6 +75,7 @@ type ActivitySettingsSection =
     | 'flow'
     | 'visuals'
     | 'competence'
+    | 'sources'
     | 'details';
 
 export function ActivityFormFields({
@@ -645,6 +647,19 @@ export function ActivityFormFields({
                         </SettingsConfigurationSection>
                     ) : null}
 
+                    {activeSection === 'sources' ? (
+                        <SettingsConfigurationSection
+                            description="Make the factual basis of this activity inspectable to learners."
+                            title="Source references"
+                        >
+                            <ActivitySourceReferenceFields
+                                errors={errors}
+                                form={form}
+                                onChange={onChange}
+                            />
+                        </SettingsConfigurationSection>
+                    ) : null}
+
                     {activeSection === 'details' ? (
                         <SettingsConfigurationSection
                             description="Optional text and stable URL-friendly naming."
@@ -725,6 +740,12 @@ const activitySettingsSections: SettingsNavigationItem<ActivitySettingsSection>[
             icon: Star,
             key: 'competence',
             label: 'Learning evidence',
+        },
+        {
+            description: 'Inspectable references for factual content.',
+            icon: FileText,
+            key: 'sources',
+            label: 'Sources',
         },
         {
             description: 'Slug and optional introductory text.',

@@ -5,6 +5,7 @@ import type {
     MarkdownPageForm,
     MarkdownTransitionForm,
     PortalAssetForm,
+    SourceReferenceForm,
 } from './edit-node-activity-types';
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
@@ -19,6 +20,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         feedback_rubric: '',
         introduction: '',
         learning_intent: '',
+        source_references: [],
         item_grant_background_dark: '',
         item_grant_background_light: '',
         item_grant_background_mirrored: false,
@@ -206,6 +208,7 @@ export function activityFormFromActivity(
         ),
         introduction: activity.introduction ?? '',
         learning_intent: stringConfig(activity.config.learningIntent),
+        source_references: sourceReferences(activity.config.sourceReferences),
         item_grant_background_dark: stringConfig(
             activity.config.backgroundDark,
         ),
@@ -613,6 +616,21 @@ function competenceTopics(value: unknown): ActivityForm['competence_topics'] {
         .filter((topic) => topic.topic.trim().length > 0);
 
     return topics.length > 0 ? topics : [{ topic: '', weight: '1' }];
+}
+
+function sourceReferences(value: unknown): SourceReferenceForm[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter(isRecord).slice(0, 5).map((reference) => ({
+        anchor: stringConfig(reference.anchor),
+        publishedAt: stringConfig(reference.publishedAt),
+        publisher: stringConfig(reference.publisher),
+        rights: stringConfig(reference.rights),
+        title: stringConfig(reference.title),
+        url: stringConfig(reference.url),
+    }));
 }
 
 function feedbackGuidanceField(

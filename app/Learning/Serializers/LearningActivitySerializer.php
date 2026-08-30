@@ -4,6 +4,7 @@ namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
+use App\Learning\Services\ActivitySourceReferenceConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
@@ -23,6 +24,7 @@ class LearningActivitySerializer
         private readonly LearningItemSerializer $itemSerializer,
         private readonly SharedTaskStateSerializer $sharedTaskState,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+        private readonly ActivitySourceReferenceConfiguration $sourceReferences,
         private readonly ActivityCompletionChoiceConfiguration $completionChoice,
         private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
     ) {}
@@ -44,6 +46,7 @@ class LearningActivitySerializer
             'introduction' => $activity->introduction,
             'config' => $this->learnerConfig($activity),
             'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
+            'sources' => $this->sourceReferences->forActivity($activity),
             'completionChoicePrompt' => $this->completionChoice->forActivity($activity),
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
@@ -72,6 +75,7 @@ class LearningActivitySerializer
     private function learnerConfig(LearningActivity $activity): array
     {
         $config = is_array($activity->config) ? $activity->config : [];
+        unset($config[ActivitySourceReferenceConfiguration::CONFIG_KEY]);
         $topics = $config['competenceTopics'] ?? null;
 
         if (! is_array($topics)) {

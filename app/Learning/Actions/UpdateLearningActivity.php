@@ -6,6 +6,7 @@ use App\Learning\Services\ActivityAmbientSoundConfiguration;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
+use App\Learning\Services\ActivitySourceReferenceConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\LearningActivityReviewState;
@@ -31,6 +32,7 @@ class UpdateLearningActivity
         private readonly ActivityCompetenceConfiguration $competenceConfig,
         private readonly ActivityCompletionChoiceConfiguration $completionChoiceConfig,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
+        private readonly ActivitySourceReferenceConfiguration $sourceReferenceConfig,
         private readonly LearningActivityReviewState $reviewState,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
@@ -96,6 +98,7 @@ class UpdateLearningActivity
             || $this->competenceConfig->shouldUpdate($data)
             || $this->feedbackGuidanceConfig->shouldUpdate($data)
             || $this->completionChoiceConfig->shouldUpdate($data)
+            || $this->sourceReferenceConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($activity->node, $type, $data, $config);
@@ -128,7 +131,10 @@ class UpdateLearningActivity
         return $this->competenceConfig->mergeInto(
             $this->completionChoiceConfig->mergeInto(
                 $this->feedbackGuidanceConfig->mergeInto(
-                    $this->ambientSoundConfig->mergeInto($config, $data),
+                    $this->sourceReferenceConfig->mergeInto(
+                        $this->ambientSoundConfig->mergeInto($config, $data),
+                        $data,
+                    ),
                     $data,
                 ),
                 $data,

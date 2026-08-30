@@ -32,6 +32,7 @@ class AdminActivityRules
             ...$this->toolGrantRules(),
             ...$this->ambientSoundRules(),
             ...$this->competenceRules(),
+            ...$this->sourceReferenceRules(),
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
         ];
@@ -67,6 +68,7 @@ class AdminActivityRules
             ...$this->toolGrantRules('sometimes'),
             ...$this->ambientSoundRules('sometimes'),
             ...$this->competenceRules('sometimes'),
+            ...$this->sourceReferenceRules('sometimes'),
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
             'return_to_markdown' => ['sometimes', 'boolean'],
@@ -173,6 +175,20 @@ class AdminActivityRules
             'feedback_next_action' => $this->optional($modifier, ['string', 'max:600']),
             'feedback_rubric' => $this->optional($modifier, ['string', 'max:900']),
             'completion_choice_prompt' => $this->optional($modifier, ['string', 'max:600']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function sourceReferenceRules(string $modifier = 'nullable'): array
+    {
+        return [
+            'source_references' => [$modifier, 'array', 'max:5'],
+            'source_references.*.title' => $this->optional($modifier, ['string', 'max:160']),
+            'source_references.*.url' => $this->optional($modifier, ['url', 'max:2048']),
+            'source_references.*.publisher' => $this->optional($modifier, ['nullable', 'string', 'max:160']),
+            'source_references.*.publishedAt' => $this->optional($modifier, ['nullable', 'date_format:Y-m-d']),
+            'source_references.*.rights' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
+            'source_references.*.anchor' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
         ];
     }
 

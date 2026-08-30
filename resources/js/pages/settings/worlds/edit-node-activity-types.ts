@@ -75,6 +75,15 @@ export type CompetenceTopicForm = {
     weight: string;
 };
 
+export type SourceReferenceForm = {
+    anchor: string;
+    publishedAt: string;
+    publisher: string;
+    rights: string;
+    title: string;
+    url: string;
+};
+
 export type PortalActivityLink = {
     description: string | null;
     id: number;
@@ -276,6 +285,7 @@ export type CreateActivityForm = {
     feedback_rubric: string;
     introduction: string;
     learning_intent: string;
+    source_references: SourceReferenceForm[];
     item_grant_background_dark: string;
     item_grant_background_light: string;
     item_grant_background_mirrored: boolean;

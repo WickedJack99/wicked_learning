@@ -55,6 +55,8 @@ Important world models include:
 - `LearningPortalLink` and `LearnerRouteProgress`
 - `LearningTool`, `LearningItem` and `LearningSound`
 - `LearningMessageTopic` and `LearnerMessage`
+- activity configuration source references, normalized and bounded by
+  `ActivitySourceReferenceConfiguration`
 
 ## Map Rendering And Interaction
 
@@ -114,6 +116,13 @@ conservative: their authored learning purpose is only emitted as that evidence
 type when feedback guidance includes an observable criterion. Otherwise the
 completion is recorded as participation while the activity itself remains
 usable.
+
+`ActivitySourceReferenceConfiguration` stores up to five normalized source
+references in the activity's existing JSON configuration. The learner activity
+serializer exposes them as a separate bounded `sources` collection and removes
+the authoring-shaped config key from the learner config. This keeps the first
+provenance slice small and inspectable; versioned reusable source records,
+excerpts and AI-draft linkage remain roadmap work.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

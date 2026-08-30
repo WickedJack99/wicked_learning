@@ -295,6 +295,7 @@ export type LearningActivity = {
     configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
     dialogueTypingSoundSets: DialogueTypingSoundSet[];
+    sources: LearningSourceReference[];
     completionChoicePrompt: string | null;
     feedbackGuidance: LearningFeedbackGuidance | null;
     npcDialogueNodes: NpcDialogueNode[];
@@ -315,6 +316,15 @@ export type LearningFeedbackGuidance = {
     nextAction: string | null;
     purpose: string | null;
     rubric?: string[];
+};
+
+export type LearningSourceReference = {
+    anchor: string | null;
+    publishedAt: string | null;
+    publisher: string | null;
+    rights: string | null;
+    title: string;
+    url: string;
 };
 
 export type SharedTaskState = {
