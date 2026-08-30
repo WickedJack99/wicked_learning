@@ -76,6 +76,9 @@ review contracts. Explanation, transfer and review responses with authored
 guidance now also pause for a learner-controlled comparison with the purpose,
 “what to notice” cues and possible next action, without treating these responses
 or cues as a rubric pass.
+Reflection and review completion also now stays at participation until the
+matching private response is saved, so the evidence label reflects the learner
+action that actually occurred.
 
 ### 4. Explanatory feedback and calibration
 

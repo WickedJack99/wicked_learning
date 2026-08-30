@@ -3,6 +3,7 @@
 namespace App\Learning\Services;
 
 use App\Models\LearnerCompetenceTopicTransition;
+use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,14 @@ class LearnerCompetenceService
         }
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
+        if (
+            in_array($evidenceType, ['explain', 'transfer'], true)
+            && in_array($activity->type, ['reflection', 'review'], true)
+            && ! $this->hasRecordedResponse($user, $activity, $evidenceType)
+        ) {
+            $evidenceType = 'participate';
+        }
+
         $hasObservableGuidance = in_array($evidenceType, ['explain', 'review', 'transfer'], true);
         $evidenceCriterion = $hasObservableGuidance
             ? $this->feedbackGuidance->evidenceCriterionForActivity($activity)
@@ -87,6 +96,16 @@ class LearnerCompetenceService
                 ]);
             }
         });
+    }
+
+    private function hasRecordedResponse(User $user, LearningActivity $activity, string $responseType): bool
+    {
+        return LearnerReflection::query()
+            ->where('user_id', $user->id)
+            ->where('learning_activity_id', $activity->id)
+            ->where('response_type', $responseType)
+            ->whereNotNull('reflection')
+            ->exists();
     }
 
     public function visitActivityTopics(User $user, LearningActivity $activity): void

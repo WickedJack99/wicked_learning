@@ -9,7 +9,9 @@ use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerCompetenceTopicTransition;
 use App\Models\LearnerEvidenceEvent;
+use App\Models\LearnerJournalPage;
 use App\Models\LearnerQuestionAnswer;
+use App\Models\LearnerReflection;
 use App\Models\LearnerReviewAttempt;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
@@ -542,6 +544,70 @@ test('explanation and transfer evidence require an observable authored criterion
             ->firstOrFail()
             ->concepts)
         ->toBe(['Transfer', 'Changed context']);
+});
+
+test('reflection and review claims require a saved matching learner response', function () {
+    $learner = User::factory()->create();
+    [$node, $activity] = competenceRoute([
+        ['topic' => 'Systems Thinking', 'weight' => 1],
+    ]);
+    $activity->update([
+        'type' => 'reflection',
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'explain',
+            'feedbackGuidance' => [
+                'evidence' => 'Explains how the idea applies.',
+            ],
+        ],
+    ]);
+
+    $service = app(LearnerCompetenceService::class);
+    $service->awardActivityCompletion($learner, $activity, (string) Str::uuid());
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->value('evidence_type'))->toBe('participate')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('learning_activity_id', $activity->id)
+            ->value('evidence_criterion'))->toBeNull();
+
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Systems Thinking',
+        'topic' => 'Systems Thinking',
+        'subtopic' => 'Competence Activity',
+        'markdown' => '',
+        'preferred_mode' => 'view',
+        'expert_access_requested' => false,
+    ]);
+    LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $page->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'title' => 'Competence response',
+        'question' => 'What did you notice?',
+        'reflection' => 'The idea applies when the surrounding conditions change.',
+        'response_type' => 'explain',
+        'expert_access_requested' => false,
+        'feedback_status' => 'not_requested',
+    ]);
+
+    $service->awardActivityCompletion($learner, $activity, (string) Str::uuid());
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->orderByDesc('id')
+        ->value('evidence_type'))->toBe('explain')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('learning_activity_id', $activity->id)
+            ->orderByDesc('id')
+            ->value('evidence_criterion'))->toBe('Explains how the idea applies.');
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {
