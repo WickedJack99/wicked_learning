@@ -777,6 +777,18 @@ function LearningPulseTimeline({
                                                   },
                                               )}`
                                             : ''}
+                                        {attempt.revisitReason
+                                            ? ` · ${translate(
+                                                  attempt.revisitReason ===
+                                                      'later'
+                                                      ? 'competence.pulse.review_returned_later'
+                                                      : 'competence.pulse.review_returned_after_pause',
+                                                  attempt.revisitReason ===
+                                                      'later'
+                                                      ? 'Returned after postponing the revisit'
+                                                      : 'Returned after choosing to pause',
+                                              )}`
+                                            : ''}
                                         {attempt.assistanceLevel
                                             ? ` · ${assistanceLevelLabel(attempt.assistanceLevel, translate)}`
                                             : ''}

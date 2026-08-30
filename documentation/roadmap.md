@@ -48,6 +48,9 @@ activities now pause after showing question feedback so an optional
 post-feedback-confidence signal can be captured without collapsing it into the
 answer or a score. They also provide a private, learner-controlled recall queue
 links back to the existing activity without introducing a second scheduler.
+Review history now retains whether a due return followed a learner's pause or a
+later postponement, keeping the learner's spacing choice inspectable without
+turning it into a performance measure.
 The first transparent timing baseline for question recall is now implemented:
 the desk distinguishes ready items from future items and explicit recall answers
 record the next interval. Richer review outcomes for other activity types,

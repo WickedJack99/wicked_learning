@@ -309,6 +309,8 @@
     "competence.pulse.review_after_guidance": "After guidance: :confidence",
     "competence.pulse.review_completed": "Review completed",
     "competence.pulse.review_noticed_cues": "Noticed: :cues",
+    "competence.pulse.review_returned_after_pause": "Returned after choosing to pause",
+    "competence.pulse.review_returned_later": "Returned after postponing the revisit",
     "bookmarks.panel.open_topic": "Open topic",
     "world.search.clear": "Clear search",
     "world.search.close": "Close map search",

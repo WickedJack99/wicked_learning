@@ -82,6 +82,7 @@ export type CompetenceReviewAttempt = {
     outcome: string | null;
     assistanceLevel: string | null;
     observedCues: string[];
+    revisitReason: 'pause' | 'later' | null;
 };
 
 export type CompetenceMap = {

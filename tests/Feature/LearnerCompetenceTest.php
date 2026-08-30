@@ -3,6 +3,7 @@
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Services\LearnerCompetenceService;
+use App\Learning\Services\LearnerProgressService;
 use App\Models\ActivityTransition;
 use App\Models\CompetenceTopicDefinition;
 use App\Models\LearnerActivityProgress;
@@ -388,6 +389,8 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ->toBe('settled')
         ->and(LearnerReviewAttempt::query()->firstOrFail()->observed_cues)
         ->toBe(['Names the changed pattern.'])
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->metadata)
+        ->toBe(['revisitReason' => 'pause'])
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->value('attempt_number'))
@@ -1201,6 +1204,7 @@ test('competence map shows bounded review history without private journal text',
         'attempted_at' => now(),
         'metadata' => [
             'privateReflection' => 'This text must not be exposed here.',
+            'revisitReason' => 'later',
         ],
     ]);
 
@@ -1218,10 +1222,37 @@ test('competence map shows bounded review history without private journal text',
             ->where('competenceMap.reviewAttempts.0.confidence', 'leaning')
             ->where('competenceMap.reviewAttempts.0.confidenceAfterFeedback', 'settled')
             ->where('competenceMap.reviewAttempts.0.observedCues', ['Names the changed pattern.'])
+            ->where('competenceMap.reviewAttempts.0.revisitReason', 'later')
             ->where('competenceMap.reviewAttempts.0.attemptNumber', 2)
             ->missing('competenceMap.reviewAttempts.0.metadata')
             ->missing('competenceMap.reviewAttempts.0.privateReflection')
         );
+});
+
+test('a postponed revisit keeps its later return reason in review history', function () {
+    $learner = User::factory()->create();
+    [$node, $activity] = competenceRoute([]);
+    LearnerActivityProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'completed_at' => now()->subDays(4),
+        'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_SNOOZED,
+        'revisit_available_at' => now()->subMinute(),
+        'metadata' => [],
+    ]);
+
+    app(LearnerProgressService::class)->mark(
+        userId: $learner->id,
+        activity: $activity,
+        status: 'completed',
+        isRevisit: true,
+    );
+
+    expect(LearnerReviewAttempt::query()->firstOrFail()->metadata)
+        ->toBe(['revisitReason' => 'later']);
 });
 
 test('competence star map keeps recent glow across month boundaries', function () {

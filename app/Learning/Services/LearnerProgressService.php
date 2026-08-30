@@ -52,6 +52,11 @@ class LearnerProgressService
             ], true)
             && $progress->revisit_available_at !== null
             && $progress->revisit_available_at?->lessThanOrEqualTo($now);
+        $revisitReason = $recordsReviewAttempt
+            ? ($progress->revisit_status === LearnerActivityProgress::REVISIT_STATUS_SNOOZED
+                ? 'later'
+                : 'pause')
+            : null;
 
         $progress->learning_node_id = $activity->learning_node_id;
         $progress->status = $status === 'completed' ? 'completed' : ($progress->status ?: 'reached');
@@ -108,6 +113,9 @@ class LearnerProgressService
                 'confidence_after_feedback' => $confidenceAfterFeedback,
                 'assistance_level' => $assistanceLevel,
                 'observed_cues' => $reviewObservedCues === [] ? null : $reviewObservedCues,
+                'metadata' => $revisitReason === null ? null : [
+                    'revisitReason' => $revisitReason,
+                ],
                 'latency_seconds' => $latencySeconds,
                 'attempted_at' => $now,
             ]);

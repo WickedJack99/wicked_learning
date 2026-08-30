@@ -280,6 +280,9 @@ When a learner completes a due revisit, the review history and the linked
 competence evidence retain the same attempt sequence. For question activities,
 the review record also preserves the answer's correctness and starting
 confidence; the generic completion path does not add a second evidence event.
+The review history also retains whether the learner returned after choosing to
+pause or after postponing the invitation. This is descriptive context about
+the learner's timing choice, not a measure of diligence or attention.
 When the existing route context provides an entry timestamp, the bounded review
 record also keeps the optional elapsed-time observation used by completion
 evidence. It is not shown as a score or interpreted as attention; reviews
