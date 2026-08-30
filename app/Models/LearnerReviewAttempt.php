@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array<string, mixed>|null $metadata
  * @property list<string>|null $observed_cues
  * @property int|null $latency_seconds
+ * @property string|null $response_type
  */
 #[Fillable([
     'user_id',
     'learning_activity_id',
     'learner_activity_progress_id',
     'learner_reflection_id',
+    'response_type',
     'attempt_number',
     'source',
     'outcome',

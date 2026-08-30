@@ -117,6 +117,7 @@ class LearnerProgressService
                 'learning_activity_id' => $activity->id,
                 'learner_activity_progress_id' => $progress->id,
                 'learner_reflection_id' => $reviewReflection?->id,
+                'response_type' => $reviewReflection?->response_type,
                 'attempt_number' => $progress->attempt_count,
                 'source' => 'revisit',
                 'outcome' => $outcome,
