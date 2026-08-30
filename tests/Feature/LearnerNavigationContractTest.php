@@ -58,6 +58,16 @@ test('document surfaces keep the shared learner header outside their scroll regi
         );
 });
 
+test('the learning desk defaults to its first visible area', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+
+    expect($learningDesk)
+        ->toContain("const defaultArea = availableAreas[0] ?? 'connections';")
+        ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
+});
+
 test('an authenticated learner can open a published topic detail surface', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([

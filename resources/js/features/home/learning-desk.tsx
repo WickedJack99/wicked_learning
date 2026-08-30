@@ -73,12 +73,6 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
-    const defaultArea: LearningDeskArea =
-        desk.currentRoutes.length > 0
-            ? 'continue'
-            : desk.checkIns.length > 0
-              ? 'reflections'
-              : 'connections';
     const areaLabels: Record<LearningDeskArea, string> = {
         connections: t(
             'home.learning_desk.sections.connections',
@@ -104,6 +98,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         ...(desk.recentRoutes.length > 0 ? (['recent'] as const) : []),
         'continue',
     ];
+    const defaultArea = availableAreas[0] ?? 'connections';
     const deskAreas = availableAreas.map((id) => ({
         id,
         label: areaLabels[id],
