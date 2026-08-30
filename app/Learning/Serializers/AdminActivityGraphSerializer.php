@@ -5,6 +5,7 @@ namespace App\Learning\Serializers;
 use App\Learning\ActivityTypeRegistry;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadEditableSourceRecords;
+use App\Learning\Queries\LoadLearningConcepts;
 use App\Learning\Services\ActivityRouteEligibility;
 use App\Learning\Services\PortalLinkService;
 use App\Models\ActivityTransition;
@@ -18,6 +19,7 @@ class AdminActivityGraphSerializer
     public function __construct(
         private readonly ActivityTypeRegistry $activityTypes,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
+        private readonly LoadLearningConcepts $learningConcepts,
         private readonly ActivityRouteEligibility $routeEligibility,
         private readonly LearningActivityStartSerializer $startSerializer,
         private readonly PortalLinkService $portalLinkService,
@@ -38,6 +40,7 @@ class AdminActivityGraphSerializer
             'node' => $this->node($node),
             'activityTypes' => $this->activityTypes->definitions(),
             'competenceTopicOptions' => $this->competenceTopics->names(),
+            'evidenceConceptOptions' => $this->learningConcepts->names(),
             'portalCandidates' => $this->portalLinkService->candidatesForNode($node),
             'messageTopics' => $node->mapAsset?->messageTopics
                 ?->map(fn ($topic): array => [

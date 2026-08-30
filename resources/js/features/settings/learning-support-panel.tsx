@@ -1,4 +1,5 @@
 import {
+    BookOpenText,
     Flag,
     HeartHandshake,
     MessageSquareText,
@@ -41,6 +42,7 @@ type Props = {
     canViewAdminPanel: boolean;
     canViewJournal: boolean;
     canViewLearnerMessages: boolean;
+    canViewLearningConcepts: boolean;
     canViewSupportSignals: boolean;
     onSelectSection: (section: LearningSupportSection) => void;
     settings: LearningSupportSettings;
@@ -79,6 +81,12 @@ const sections = [
         label: 'Competence Topics',
     },
     {
+        description: 'Maintain reusable vocabulary for evidence authoring.',
+        icon: BookOpenText,
+        key: 'learning-concepts',
+        label: 'Concept Library',
+    },
+    {
         description: 'Journal policy, background and interaction colors.',
         icon: NotebookPen,
         key: 'journal',
@@ -91,6 +99,7 @@ export function LearningSupportPanel({
     canViewAdminPanel,
     canViewJournal,
     canViewLearnerMessages,
+    canViewLearningConcepts,
     canViewSupportSignals,
     onSelectSection,
     settings,
@@ -115,7 +124,9 @@ export function LearningSupportPanel({
               ? canViewLearnerMessages
               : section.key === 'support-signals'
                 ? canViewSupportSignals
-                : canViewAdminPanel,
+                : section.key === 'learning-concepts'
+                  ? canViewLearningConcepts
+                  : canViewAdminPanel,
     );
     const resolvedSection = visibleSections.some(
         (section) => section.key === activeSection,

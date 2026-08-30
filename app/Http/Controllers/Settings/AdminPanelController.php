@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\RespondToLearnerJournalFeedback;
 use App\Learning\Actions\SyncCompetenceTopicDefinitions;
+use App\Learning\Actions\SyncLearningConcepts;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\OrganizationIconReport;
 use App\Organizations\Actions\ResolveOrganizationIconReport;
@@ -17,6 +18,7 @@ class AdminPanelController extends Controller
 {
     public function __construct(
         private readonly SyncCompetenceTopicDefinitions $syncCompetenceTopics,
+        private readonly SyncLearningConcepts $syncLearningConcepts,
         private readonly RespondToLearnerJournalFeedback $respondToFeedback,
         private readonly ResolveOrganizationIconReport $resolveIconReport,
         private readonly UpdateOrganizationSettings $updateOrganizationSettings,
@@ -43,6 +45,20 @@ class AdminPanelController extends Controller
         ]);
 
         $this->syncCompetenceTopics->handle($data['topics']);
+
+        return back();
+    }
+
+    public function updateLearningConcepts(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'concepts' => ['present', 'array', 'max:200'],
+            'concepts.*.description' => ['nullable', 'string', 'max:2000'],
+            'concepts.*.is_active' => ['required', 'boolean'],
+            'concepts.*.name' => ['required', 'string', 'max:120'],
+        ]);
+
+        $this->syncLearningConcepts->handle($data['concepts']);
 
         return back();
     }

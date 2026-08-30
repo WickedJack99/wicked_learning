@@ -26,6 +26,7 @@ import type { SettingsNavigationItem } from '@/components/settings-configuration
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
     Select,
     SelectContent,
@@ -84,6 +85,7 @@ type ActivitySettingsSection =
 export function ActivityFormFields({
     activityTypes,
     competenceTopicOptions,
+    evidenceConceptOptions,
     errors,
     editingActivityId = null,
     form,
@@ -106,6 +108,7 @@ export function ActivityFormFields({
 }: {
     activityTypes: ActivityTypeDefinition[];
     competenceTopicOptions: string[];
+    evidenceConceptOptions: string[];
     editingActivityId?: number | null;
     errors: Record<string, string>;
     form: ActivityForm;
@@ -637,6 +640,9 @@ export function ActivityFormFields({
                                     onChange={onChange}
                                 />
                                 <EvidenceConceptsField
+                                    evidenceConceptOptions={
+                                        evidenceConceptOptions
+                                    }
                                     errors={errors}
                                     form={form}
                                     onChange={onChange}
@@ -1187,17 +1193,90 @@ function FeedbackGuidanceFields({
 }
 
 function EvidenceConceptsField({
+    evidenceConceptOptions,
     errors,
     form,
     onChange,
 }: {
+    evidenceConceptOptions: string[];
     errors: Record<string, string>;
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
 }) {
+    const t = usePlatformTranslation();
+    const [selectedConcept, setSelectedConcept] = useState('');
+
+    function addSelectedConcept() {
+        const concept = selectedConcept.trim();
+
+        if (!concept) {
+            return;
+        }
+
+        const concepts = form.evidence_concepts
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (
+            concepts.some(
+                (value) => value.toLowerCase() === concept.toLowerCase(),
+            ) ||
+            concepts.length >= 8
+        ) {
+            return;
+        }
+
+        onChange((current) => ({
+            ...current,
+            evidence_concepts: [...concepts, concept].join('\n'),
+        }));
+        setSelectedConcept('');
+    }
+
     return (
         <div className="grid gap-2">
             <Label htmlFor="activity-evidence-concepts">Concepts</Label>
+            {evidenceConceptOptions.length > 0 ? (
+                <div className="flex flex-wrap items-end gap-2">
+                    <div className="grid min-w-56 flex-1 gap-2">
+                        <Label htmlFor="activity-evidence-concept-library">
+                            {t(
+                                'settings.learning_concepts.add_from_library',
+                                'Add from concept library',
+                            )}
+                        </Label>
+                        <select
+                            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                            id="activity-evidence-concept-library"
+                            onChange={(event) =>
+                                setSelectedConcept(event.target.value)
+                            }
+                            value={selectedConcept}
+                        >
+                            <option value="">
+                                {t(
+                                    'settings.learning_concepts.choose',
+                                    'Choose a concept',
+                                )}
+                            </option>
+                            {evidenceConceptOptions.map((concept) => (
+                                <option key={concept} value={concept}>
+                                    {concept}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <Button
+                        disabled={!selectedConcept}
+                        onClick={addSelectedConcept}
+                        type="button"
+                        variant="secondary"
+                    >
+                        {t('settings.learning_concepts.add', 'Add concept')}
+                    </Button>
+                </div>
+            ) : null}
             <textarea
                 className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
                 id="activity-evidence-concepts"

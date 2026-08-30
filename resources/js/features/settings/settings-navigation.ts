@@ -100,6 +100,7 @@ export const adminSettings: SettingsListItem[] = [
             'journal_settings',
             'journal_feedback',
             'learner_support_signals',
+            'learning_concepts',
         ],
         children: [
             {
@@ -132,6 +133,13 @@ export const adminSettings: SettingsListItem[] = [
                 labelKey: 'settings.navigation.journal',
                 href: '/settings?panel=admin-learning-support&support=journal',
                 resources: ['journal_settings'],
+            },
+            {
+                label: 'Concept Library',
+                labelKey:
+                    'settings.navigation.learning_support.concept_library',
+                href: '/settings?panel=admin-learning-support&support=learning-concepts',
+                resources: ['learning_concepts'],
             },
         ],
     },

@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
     BarChart3,
+    BookOpenText,
     Building2,
     Flag,
     Inbox,
@@ -31,6 +32,8 @@ import { OrganizationIcon } from '@/features/organizations/organization-icon';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
+import { LearningConceptsSection } from '@/features/settings/learning-concepts-section';
+import type { LearningConceptDefinition } from '@/features/settings/learning-concepts-section';
 
 export type AdminPanelMetrics = {
     feedbackRequests: number;
@@ -111,6 +114,7 @@ type CompetenceTopicDraft = {
 export type AdminPanelProps = {
     activeSection?: AdminPanelSection;
     competenceTopics: CompetenceTopicDefinition[];
+    learningConcepts: LearningConceptDefinition[];
     embedded?: boolean;
     feedbackRequests: FeedbackRequest[];
     hideNavigation?: boolean;
@@ -125,6 +129,7 @@ export type AdminPanelProps = {
 export type AdminPanelSection =
     | 'competence-topics'
     | 'feedback-requests'
+    | 'learning-concepts'
     | 'organization-icons';
 
 const adminPanelSections = [
@@ -146,6 +151,12 @@ const adminPanelSections = [
         key: 'competence-topics',
         label: 'Competence Topics',
     },
+    {
+        description: 'Maintain reusable vocabulary for evidence authoring.',
+        icon: BookOpenText,
+        key: 'learning-concepts',
+        label: 'Concept Library',
+    },
 ] satisfies SettingsNavigationItem<AdminPanelSection>[];
 
 const embeddedSectionHeadings = {
@@ -158,6 +169,11 @@ const embeddedSectionHeadings = {
         description: 'Review learner journal feedback requests.',
         eyebrow: 'Feedback',
         title: 'Feedback Requests',
+    },
+    'learning-concepts': {
+        description: 'Maintain reusable names for authored learning evidence.',
+        eyebrow: 'Evidence',
+        title: 'Concept Library',
     },
     'organization-icons': {
         description: 'Review reported icons and organization limits.',
@@ -172,6 +188,7 @@ const embeddedSectionHeadings = {
 export default function AdminPanel({
     activeSection,
     competenceTopics,
+    learningConcepts,
     embedded = false,
     feedbackRequests,
     hideNavigation = false,
@@ -216,6 +233,7 @@ export default function AdminPanel({
                             title={embeddedHeading.title}
                         />
                         <SectionStats
+                            learningConcepts={learningConcepts}
                             metrics={metrics}
                             section={section}
                             topics={competenceTopics}
@@ -232,6 +250,7 @@ export default function AdminPanel({
                     className={cn(
                         'min-h-0 flex-1 p-4 sm:p-5',
                         section === 'competence-topics' ||
+                            section === 'learning-concepts' ||
                             section === 'organization-icons'
                             ? 'overflow-hidden'
                             : 'overflow-y-auto',
@@ -241,6 +260,7 @@ export default function AdminPanel({
                         className={cn(
                             'grid gap-4',
                             (section === 'competence-topics' ||
+                                section === 'learning-concepts' ||
                                 section === 'organization-icons') &&
                                 'h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)]',
                         )}
@@ -251,6 +271,7 @@ export default function AdminPanel({
                             title={embeddedHeading.title}
                         />
                         <SectionStats
+                            learningConcepts={learningConcepts}
                             metrics={metrics}
                             section={section}
                             topics={competenceTopics}
@@ -265,6 +286,11 @@ export default function AdminPanel({
                         {section === 'competence-topics' ? (
                             <CompetenceTopicsSection
                                 topics={competenceTopics}
+                            />
+                        ) : null}
+                        {section === 'learning-concepts' ? (
+                            <LearningConceptsSection
+                                concepts={learningConcepts}
                             />
                         ) : null}
                     </div>
@@ -603,11 +629,13 @@ function emptyCompetenceTopic(): CompetenceTopicDraft {
 }
 
 function SectionStats({
+    learningConcepts,
     metrics,
     section,
     topics,
     t,
 }: {
+    learningConcepts: LearningConceptDefinition[];
     metrics: AdminPanelMetrics;
     section: AdminPanelSection;
     topics: CompetenceTopicDefinition[];
@@ -652,6 +680,23 @@ function SectionStats({
                     'Journal pages',
                 ),
                 value: metrics.journalPages,
+            },
+        ],
+        'learning-concepts': [
+            {
+                label: t(
+                    'settings.admin_panel.metrics.learning_concepts',
+                    'Learning concepts',
+                ),
+                value: learningConcepts.length,
+            },
+            {
+                label: t(
+                    'settings.admin_panel.metrics.active_learning_concepts',
+                    'Active concepts',
+                ),
+                value: learningConcepts.filter((concept) => concept.isActive)
+                    .length,
             },
         ],
         'organization-icons': [

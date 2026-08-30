@@ -23,6 +23,7 @@ test('settings loads heavy collections only for the active workspace', function 
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('worldGraph.world.title', 'Performance World')
             ->where('assetsWorldObjects', [
+                'dialogueSoundSets' => [],
                 'items' => [],
                 'sounds' => [],
                 'tools' => [],

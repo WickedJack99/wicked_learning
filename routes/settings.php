@@ -361,6 +361,11 @@ Route::middleware(['auth', 'verified', 'can:competence_topics.ru'])->group(funct
         ->name('settings.admin-panel.competence-topics.update');
 });
 
+Route::middleware(['auth', 'verified', 'can:learning_concepts.ru'])->group(function () {
+    Route::patch('settings/admin-panel/learning-concepts', [AdminPanelController::class, 'updateLearningConcepts'])
+        ->name('settings.admin-panel.learning-concepts.update');
+});
+
 Route::middleware(['auth', 'verified', 'can:organization_moderation.ru'])->group(function () {
     Route::patch('settings/admin-panel/organizations', [AdminPanelController::class, 'updateOrganizationSettings'])
         ->name('settings.admin-panel.organizations.update');

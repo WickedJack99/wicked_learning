@@ -42,6 +42,8 @@ class PermissionCatalog
 
     public const COMPETENCE_TOPICS = 'competence_topics';
 
+    public const LEARNING_CONCEPTS = 'learning_concepts';
+
     public const LEARNER_SUPPORT_SIGNALS = 'learner_support_signals';
 
     public const LEARNER_MESSAGES = 'learner_messages';
@@ -143,6 +145,11 @@ class PermissionCatalog
             self::COMPETENCE_TOPICS => [
                 'label' => 'Competence topics',
                 'description' => 'Define learner competence topics and star-map thresholds.',
+                'group' => 'Learning support',
+            ],
+            self::LEARNING_CONCEPTS => [
+                'label' => 'Learning concepts',
+                'description' => 'Maintain reusable authoring vocabulary for learning evidence.',
                 'group' => 'Learning support',
             ],
             self::LEARNER_SUPPORT_SIGNALS => [

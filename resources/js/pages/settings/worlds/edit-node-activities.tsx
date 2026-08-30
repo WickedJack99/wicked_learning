@@ -1134,6 +1134,9 @@ export default function EditNodeActivities({
                             competenceTopicOptions={
                                 activityGraph.competenceTopicOptions
                             }
+                            evidenceConceptOptions={
+                                activityGraph.evidenceConceptOptions
+                            }
                             editingActivityId={null}
                             errors={errors}
                             form={form}
@@ -1192,6 +1195,9 @@ export default function EditNodeActivities({
                             activityTypes={activityGraph.activityTypes}
                             competenceTopicOptions={
                                 activityGraph.competenceTopicOptions
+                            }
+                            evidenceConceptOptions={
+                                activityGraph.evidenceConceptOptions
                             }
                             editingActivityId={editingActivity?.id ?? null}
                             errors={editErrors}

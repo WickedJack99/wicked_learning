@@ -137,6 +137,13 @@ remains roadmap work.
 Restoring a revision uses the same transactional update path, so the
 pre-restore current record is also retained in that history.
 
+`LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
+Its bounded query supplies active names to the activity graph and all records
+to the permission-controlled Concept Library editor. Saving the catalog
+upserts normalized names and removes omitted records; activity configuration
+continues to store concept labels as a snapshot, so deleting or renaming a
+catalog entry cannot change earlier activity or learner evidence data.
+
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover
 their connectors without hard-coding one linear course model.

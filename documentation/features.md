@@ -301,6 +301,10 @@ Authors can optionally attach up to eight concept labels, one per line. These
 labels are copied into later evidence records and shown in the competence and
 topic ledgers as context; they do not create a grade or alter the qualitative
 competence interpretation.
+Authors can maintain a separate Concept Library of reusable names and optional
+descriptions. Active library entries can be added while configuring an
+activity's evidence labels, while the activity still stores a snapshot so
+later library edits do not rewrite existing evidence.
 
 Activity authors can attach up to five source references with a title, URL,
 optional publisher, publication date, rights or licence, stable anchor and a

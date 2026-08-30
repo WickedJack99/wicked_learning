@@ -403,7 +403,8 @@ function readLearningSupportViewFromUrl(): LearningSupportView {
         value === 'feedback-requests' ||
         value === 'support-signals' ||
         value === 'organization-icons' ||
-        value === 'competence-topics'
+        value === 'competence-topics' ||
+        value === 'learning-concepts'
         ? value
         : 'learner-messages';
 }
@@ -867,6 +868,9 @@ function SettingsDetail({
                     canViewSupportSignals={
                         accessCapabilities.learner_support_signals?.read ??
                         false
+                    }
+                    canViewLearningConcepts={
+                        accessCapabilities.learning_concepts?.read ?? false
                     }
                     onSelectSection={(section) => {
                         setLearningSupportView(section);

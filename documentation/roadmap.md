@@ -24,8 +24,10 @@ The immutable event model, authored objective, lightweight concept-label and lea
 question calibration slice, optional completion-latency observation and
 conservative learner evidence-claim layer are now the foundation. Retrieval
 support can build on this without collapsing participation, retrieval and
-transfer into a single hidden score. Reusable concept records and richer
-concept relationships remain open parts of this contract.
+transfer into a single hidden score. The first bounded reusable concept catalog
+now supports stable authoring vocabulary without changing evidence snapshots;
+richer concept relationships and source-to-concept linkage remain open parts of
+this contract.
 
 ### 2. Retrieval and spacing
 

@@ -159,6 +159,7 @@ export type ActivityGraphPayload = {
     canManageAiReview: boolean;
     aiReviewTemplates: ActivityReviewTemplate[];
     competenceTopicOptions: string[];
+    evidenceConceptOptions: string[];
     map: {
         id: number;
         slug: string;

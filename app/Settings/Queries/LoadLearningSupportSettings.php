@@ -10,6 +10,7 @@ use App\Learning\Queries\LoadCompetenceTopicDefinitions;
 use App\Learning\Queries\LoadLearnerManualUnlockTargets;
 use App\Learning\Queries\LoadLearnerMessageModeration;
 use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Learning\Queries\LoadLearningConcepts;
 use App\Learning\Serializers\AdminJournalFeedbackRequestSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
 use App\Models\LearnerJournalFeedbackRequest;
@@ -25,6 +26,7 @@ class LoadLearningSupportSettings
     public function __construct(
         private readonly LoadAdminPanelMetrics $metrics,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
+        private readonly LoadLearningConcepts $learningConcepts,
         private readonly LoadLearnerSupportSignals $supportSignals,
         private readonly LoadLearnerManualUnlockTargets $manualUnlockTargets,
         private readonly LoadLearnerMessageModeration $learnerMessages,
@@ -63,9 +65,10 @@ class LoadLearningSupportSettings
     {
         $canReviewFeedback = $user->can(PermissionCatalog::ability(PermissionCatalog::JOURNAL_FEEDBACK, AccessLevel::READ));
         $canManageCompetenceTopics = $user->can(PermissionCatalog::ability(PermissionCatalog::COMPETENCE_TOPICS, AccessLevel::READ));
+        $canManageLearningConcepts = $user->can(PermissionCatalog::ability(PermissionCatalog::LEARNING_CONCEPTS, AccessLevel::READ));
         $canModerateOrganizations = $user->can(PermissionCatalog::ability(PermissionCatalog::ORGANIZATION_MODERATION, AccessLevel::READ));
 
-        if (! $canReviewFeedback && ! $canManageCompetenceTopics && ! $canModerateOrganizations) {
+        if (! $canReviewFeedback && ! $canManageCompetenceTopics && ! $canManageLearningConcepts && ! $canModerateOrganizations) {
             return null;
         }
 
@@ -73,6 +76,9 @@ class LoadLearningSupportSettings
             'metrics' => $this->metrics->handle(),
             'competenceTopics' => $canManageCompetenceTopics
                 ? $this->competenceTopics->handle()
+                : [],
+            'learningConcepts' => $canManageLearningConcepts
+                ? $this->learningConcepts->handle()
                 : [],
             'feedbackRequests' => $canReviewFeedback
                 ? $this->feedbackRequests->handle()
