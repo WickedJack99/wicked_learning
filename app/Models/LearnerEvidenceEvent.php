@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'learning_activity_id',
     'play_run_id',
+    'learner_reflection_id',
     'objective',
     'concepts',
     'topic_slug',
@@ -54,5 +55,11 @@ class LearnerEvidenceEvent extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<LearnerReflection, $this> */
+    public function reflection(): BelongsTo
+    {
+        return $this->belongsTo(LearnerReflection::class, 'learner_reflection_id');
     }
 }

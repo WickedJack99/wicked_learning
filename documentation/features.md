@@ -164,7 +164,9 @@ For reflection and review activities, the matching private response must be
 saved in the same activity play-run before an explanation or transfer evidence
 entry is recorded; an older response from another run does not authorize a new
 claim. Completing without that response remains participation evidence.
-Shared-task contributions use their own submission path.
+The resulting evidence keeps an internal reference to the private response for
+auditability, while learner ledgers and support signals continue to exclude its
+text. Shared-task contributions use their own submission path.
 
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion

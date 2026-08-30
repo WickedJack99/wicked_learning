@@ -606,7 +606,7 @@ test('reflection and review claims require a saved matching learner response', f
         ->orderByDesc('id')
         ->value('evidence_type'))->toBe('participate');
 
-    LearnerReflection::query()->create([
+    $currentResponse = LearnerReflection::query()->create([
         'user_id' => $learner->id,
         'learner_journal_page_id' => $page->id,
         'learning_node_id' => $node->id,
@@ -631,7 +631,12 @@ test('reflection and review claims require a saved matching learner response', f
             ->where('user_id', $learner->id)
             ->where('learning_activity_id', $activity->id)
             ->orderByDesc('id')
-            ->value('evidence_criterion'))->toBe('Explains how the idea applies.');
+            ->value('evidence_criterion'))->toBe('Explains how the idea applies.')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->where('learning_activity_id', $activity->id)
+            ->orderByDesc('id')
+            ->value('learner_reflection_id'))->toBe($currentResponse->id);
 });
 
 test('question answers complete the active route and record retrieval evidence', function () {

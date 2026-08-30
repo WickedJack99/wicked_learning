@@ -36,14 +36,19 @@ class LearnerCompetenceService
         }
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
+        $response = in_array($evidenceType, ['explain', 'transfer'], true)
+            && in_array($activity->type, ['reflection', 'review'], true)
+            ? $this->matchingResponse($user, $activity, $playRunId, $evidenceType)
+            : null;
         if (
             in_array($evidenceType, ['explain', 'transfer'], true)
             && in_array($activity->type, ['reflection', 'review'], true)
-            && ! $this->hasRecordedResponse($user, $activity, $playRunId, $evidenceType)
+            && $response === null
         ) {
             $evidenceType = 'participate';
         }
 
+        $learnerReflectionId = $response?->id;
         $hasObservableGuidance = in_array($evidenceType, ['explain', 'review', 'transfer'], true);
         $evidenceCriterion = $hasObservableGuidance
             ? $this->feedbackGuidance->evidenceCriterionForActivity($activity)
@@ -59,12 +64,13 @@ class LearnerCompetenceService
             ? $this->feedbackGuidance->observedCuesForActivity($activity, $observedCues)
             : [];
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $confidenceAfterFeedback, $concepts, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $confidenceAfterFeedback, $concepts, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learnerReflectionId, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
                     'learning_activity_id' => $activity->id,
                     'play_run_id' => $playRunId,
+                    'learner_reflection_id' => $learnerReflectionId,
                     'objective' => $objective,
                     'concepts' => $concepts === []
                         ? null
@@ -98,19 +104,20 @@ class LearnerCompetenceService
         });
     }
 
-    private function hasRecordedResponse(
+    private function matchingResponse(
         User $user,
         LearningActivity $activity,
         string $playRunId,
         string $responseType,
-    ): bool {
+    ): ?LearnerReflection {
         return LearnerReflection::query()
             ->where('user_id', $user->id)
             ->where('learning_activity_id', $activity->id)
             ->where('play_run_id', $playRunId)
             ->where('response_type', $responseType)
             ->whereNotNull('reflection')
-            ->exists();
+            ->latest('id')
+            ->first();
     }
 
     public function visitActivityTopics(User $user, LearningActivity $activity): void
