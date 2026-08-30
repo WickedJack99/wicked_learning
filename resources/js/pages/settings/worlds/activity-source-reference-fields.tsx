@@ -1,4 +1,4 @@
-import { Plus, Save, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
@@ -26,17 +26,30 @@ export function ActivitySourceReferenceFields({
     errors,
     form,
     onChange,
+    onDeleteSourceRecord,
     onSaveSourceRecord,
+    onUpdateSourceRecord,
     sourceRecords,
 }: {
     errors: Record<string, string>;
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
+    onDeleteSourceRecord: (id: number) => Promise<void>;
     onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
+    onUpdateSourceRecord: (
+        id: number,
+        reference: SourceReferenceForm,
+    ) => Promise<void>;
     sourceRecords: EditableSourceRecord[];
 }) {
     const t = usePlatformTranslation();
     const [selectedSourceId, setSelectedSourceId] = useState('');
+    const [editingSourceId, setEditingSourceId] = useState<number | null>(null);
+    const [catalogForm, setCatalogForm] = useState<SourceReferenceForm | null>(
+        null,
+    );
+    const [catalogBusy, setCatalogBusy] = useState(false);
+    const [catalogError, setCatalogError] = useState(false);
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [saveError, setSaveError] = useState(false);
 
@@ -101,6 +114,89 @@ export function ActivitySourceReferenceFields({
             ],
         }));
         setSelectedSourceId('');
+    }
+
+    function beginEditingSource() {
+        const source = sourceRecords.find(
+            (candidate) => candidate.id.toString() === selectedSourceId,
+        );
+
+        if (!source) {
+            return;
+        }
+
+        setEditingSourceId(source.id);
+        setCatalogForm(sourceFormFromRecord(source));
+        setCatalogError(false);
+    }
+
+    function cancelEditingSource() {
+        setEditingSourceId(null);
+        setCatalogForm(null);
+        setCatalogError(false);
+    }
+
+    function updateCatalogField(
+        field: keyof SourceReferenceForm,
+        value: string,
+    ) {
+        setCatalogForm((current) =>
+            current ? { ...current, [field]: value } : current,
+        );
+    }
+
+    async function updateSavedSource() {
+        if (
+            editingSourceId === null ||
+            !catalogForm ||
+            !catalogForm.title.trim() ||
+            !catalogForm.url.trim()
+        ) {
+            return;
+        }
+
+        setCatalogBusy(true);
+        setCatalogError(false);
+
+        try {
+            await onUpdateSourceRecord(editingSourceId, catalogForm);
+            cancelEditingSource();
+        } catch {
+            setCatalogError(true);
+        } finally {
+            setCatalogBusy(false);
+        }
+    }
+
+    async function deleteSavedSource() {
+        const source = sourceRecords.find(
+            (candidate) => candidate.id.toString() === selectedSourceId,
+        );
+
+        if (
+            !source ||
+            !window.confirm(
+                t(
+                    'settings.activity_sources.delete_confirm',
+                    'Delete this saved source? Existing activity references will not change.',
+                ),
+            )
+        ) {
+            return;
+        }
+
+        setCatalogBusy(true);
+        setCatalogError(false);
+
+        try {
+            await onDeleteSourceRecord(source.id);
+            cancelEditingSource();
+            setSelectedSourceId('');
+        } catch {
+            setCatalogError(true);
+        } finally {
+            setCatalogBusy(false);
+        }
     }
 
     async function saveReference(
@@ -191,6 +287,40 @@ export function ActivitySourceReferenceFields({
                                 'Add saved source',
                             )}
                         </Button>
+                        <Button
+                            aria-label={t(
+                                'settings.activity_sources.edit',
+                                'Edit saved source',
+                            )}
+                            disabled={selectedSourceId === '' || catalogBusy}
+                            onClick={beginEditingSource}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            <Pencil className="size-4" />
+                            {t(
+                                'settings.activity_sources.edit',
+                                'Edit saved source',
+                            )}
+                        </Button>
+                        <Button
+                            aria-label={t(
+                                'settings.activity_sources.delete',
+                                'Delete saved source',
+                            )}
+                            disabled={selectedSourceId === '' || catalogBusy}
+                            onClick={deleteSavedSource}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            <Trash2 className="size-4" />
+                            {t(
+                                'settings.activity_sources.delete',
+                                'Delete saved source',
+                            )}
+                        </Button>
                     </div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                         {t(
@@ -198,6 +328,136 @@ export function ActivitySourceReferenceFields({
                             'This copies the saved metadata into the activity. Later edits to the catalog do not rewrite existing learner evidence snapshots.',
                         )}
                     </p>
+                    {editingSourceId !== null && catalogForm ? (
+                        <div className="grid gap-3 rounded-md border border-cyan-500/30 bg-cyan-500/5 p-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                                    {t(
+                                        'settings.activity_sources.editing',
+                                        'Editing saved source',
+                                    )}
+                                </p>
+                                <Button
+                                    disabled={catalogBusy}
+                                    onClick={cancelEditingSource}
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    {t(
+                                        'settings.activity_sources.cancel_edit',
+                                        'Cancel',
+                                    )}
+                                </Button>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                                <SourceField
+                                    id="saved-source-title"
+                                    label="Title"
+                                    onChange={(value) =>
+                                        updateCatalogField('title', value)
+                                    }
+                                    value={catalogForm.title}
+                                />
+                                <SourceField
+                                    id="saved-source-url"
+                                    label="URL"
+                                    onChange={(value) =>
+                                        updateCatalogField('url', value)
+                                    }
+                                    type="url"
+                                    value={catalogForm.url}
+                                />
+                                <div className="grid gap-2 md:col-span-2">
+                                    <Label htmlFor="saved-source-excerpt">
+                                        Short excerpt or location note
+                                        (optional)
+                                    </Label>
+                                    <textarea
+                                        className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                        id="saved-source-excerpt"
+                                        maxLength={800}
+                                        onChange={(event) =>
+                                            updateCatalogField(
+                                                'excerpt',
+                                                event.target.value,
+                                            )
+                                        }
+                                        rows={3}
+                                        value={catalogForm.excerpt}
+                                    />
+                                </div>
+                                <SourceField
+                                    id="saved-source-publisher"
+                                    label="Publisher"
+                                    onChange={(value) =>
+                                        updateCatalogField('publisher', value)
+                                    }
+                                    value={catalogForm.publisher}
+                                />
+                                <SourceField
+                                    id="saved-source-published-at"
+                                    label="Published date"
+                                    onChange={(value) =>
+                                        updateCatalogField('publishedAt', value)
+                                    }
+                                    type="date"
+                                    value={catalogForm.publishedAt}
+                                />
+                                <SourceField
+                                    id="saved-source-rights"
+                                    label="Rights or licence"
+                                    onChange={(value) =>
+                                        updateCatalogField('rights', value)
+                                    }
+                                    value={catalogForm.rights}
+                                />
+                                <SourceField
+                                    id="saved-source-anchor"
+                                    label="Stable anchor (optional)"
+                                    onChange={(value) =>
+                                        updateCatalogField('anchor', value)
+                                    }
+                                    value={catalogForm.anchor}
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button
+                                    disabled={
+                                        catalogBusy ||
+                                        !catalogForm.title.trim() ||
+                                        !catalogForm.url.trim()
+                                    }
+                                    onClick={updateSavedSource}
+                                    size="sm"
+                                    type="button"
+                                >
+                                    <Save className="size-4" />
+                                    {catalogBusy
+                                        ? t(
+                                              'settings.activity_sources.updating',
+                                              'Updating…',
+                                          )
+                                        : t(
+                                              'settings.activity_sources.update',
+                                              'Update saved source',
+                                          )}
+                                </Button>
+                            </div>
+                        </div>
+                    ) : null}
+                    {catalogError ? (
+                        <p
+                            aria-live="polite"
+                            className="text-sm text-red-600 dark:text-red-300"
+                            role="status"
+                        >
+                            {t(
+                                'settings.activity_sources.catalog_error',
+                                'The saved source could not be changed. Try again.',
+                            )}
+                        </p>
+                    ) : null}
                 </div>
             ) : null}
 
@@ -400,4 +660,18 @@ function SourceField({
             <InputError message={error} />
         </div>
     );
+}
+
+function sourceFormFromRecord(
+    source: EditableSourceRecord,
+): SourceReferenceForm {
+    return {
+        anchor: source.anchor ?? '',
+        excerpt: source.excerpt ?? '',
+        publishedAt: source.publishedAt ?? '',
+        publisher: source.publisher ?? '',
+        rights: source.rights ?? '',
+        title: source.title,
+        url: source.url,
+    };
 }

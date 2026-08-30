@@ -89,8 +89,10 @@ export function ActivityFormFields({
     imageUploadErrors,
     messageTopics,
     onChange,
+    onDeleteSourceRecord,
     onUploadPortalImage,
     onSaveSourceRecord,
+    onUpdateSourceRecord,
     portalCandidates,
     selectedType,
     sounds,
@@ -107,6 +109,7 @@ export function ActivityFormFields({
     imageUploadErrors: Record<string, string>;
     messageTopics: MessageTopicOption[];
     onChange: Dispatch<SetStateAction<ActivityForm>>;
+    onDeleteSourceRecord: (id: number) => Promise<void>;
     onUploadPortalImage: (
         key: string,
         file: File,
@@ -120,6 +123,10 @@ export function ActivityFormFields({
     tools: EditableTool[];
     uploadingImageKey: string | null;
     onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
+    onUpdateSourceRecord: (
+        id: number,
+        reference: SourceReferenceForm,
+    ) => Promise<void>;
 }) {
     const [activeSection, setActiveSection] =
         useState<ActivitySettingsSection>('basics');
@@ -667,7 +674,9 @@ export function ActivityFormFields({
                                 errors={errors}
                                 form={form}
                                 onChange={onChange}
+                                onDeleteSourceRecord={onDeleteSourceRecord}
                                 onSaveSourceRecord={onSaveSourceRecord}
+                                onUpdateSourceRecord={onUpdateSourceRecord}
                                 sourceRecords={sourceRecords}
                             />
                         </SettingsConfigurationSection>

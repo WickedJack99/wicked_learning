@@ -85,7 +85,9 @@ an activity, lets learners inspect them during playback, and includes them in
 the scoped activity-review context. Authors can also save a validated source
 reference to a bounded catalog and reuse it in another activity; the reuse
 copies metadata into the activity so existing evidence snapshots remain stable.
-Add editing, version history, concept linkage and reusable excerpts later.
+The catalog now supports bounded author-side editing and deletion without
+rewriting copied references. Add version history, concept linkage and reusable
+excerpts later.
 Link those records to activities, concepts and AI-generated drafts so authors
 and learners can inspect the basis of factual content and feedback.
 

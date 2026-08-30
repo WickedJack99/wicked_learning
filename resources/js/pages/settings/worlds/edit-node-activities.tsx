@@ -67,6 +67,7 @@ import type {
     EditableItem,
     EditableSound,
     EditableTool,
+    SourceReferenceForm,
     StartRouteForm,
 } from './edit-node-activity-types';
 import { useNodeImageUpload } from './use-node-image-upload';
@@ -202,6 +203,75 @@ export default function EditNodeActivities({
                     (source) => source.id !== payload.sourceRecord.id,
                 ),
             ]);
+        },
+        [],
+    );
+
+    const updateSourceRecord = useCallback(
+        async (id: number, reference: SourceReferenceForm): Promise<void> => {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch(
+                `/settings/worlds/source-records/${id}`,
+                {
+                    body: JSON.stringify(reference),
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'PATCH',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The source could not be updated.');
+            }
+
+            const payload = (await response.json()) as {
+                sourceRecord: EditableSourceRecord;
+            };
+            setSourceRecords((current) =>
+                current.map((source) =>
+                    source.id === payload.sourceRecord.id
+                        ? payload.sourceRecord
+                        : source,
+                ),
+            );
+        },
+        [],
+    );
+
+    const deleteSourceRecord = useCallback(
+        async (id: number): Promise<void> => {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch(
+                `/settings/worlds/source-records/${id}`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'DELETE',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The source could not be deleted.');
+            }
+
+            setSourceRecords((current) =>
+                current.filter((source) => source.id !== id),
+            );
         },
         [],
     );
@@ -1004,6 +1074,7 @@ export default function EditNodeActivities({
                             imageUploadErrors={imageUploadErrors}
                             messageTopics={activityGraph.messageTopics}
                             onChange={setForm}
+                            onDeleteSourceRecord={deleteSourceRecord}
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedType}
@@ -1012,6 +1083,7 @@ export default function EditNodeActivities({
                             sourceRecords={sourceRecords}
                             tools={tools}
                             onSaveSourceRecord={saveSourceRecord}
+                            onUpdateSourceRecord={updateSourceRecord}
                             uploadingImageKey={uploadingImageKey}
                         />
 
@@ -1055,6 +1127,7 @@ export default function EditNodeActivities({
                             imageUploadErrors={imageUploadErrors}
                             messageTopics={activityGraph.messageTopics}
                             onChange={setEditForm}
+                            onDeleteSourceRecord={deleteSourceRecord}
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedEditType}
@@ -1063,6 +1136,7 @@ export default function EditNodeActivities({
                             sourceRecords={sourceRecords}
                             tools={tools}
                             onSaveSourceRecord={saveSourceRecord}
+                            onUpdateSourceRecord={updateSourceRecord}
                             uploadingImageKey={uploadingImageKey}
                         />
                     </div>

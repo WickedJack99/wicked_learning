@@ -126,7 +126,9 @@ provenance slice small and inspectable. The scoped activity-review context also
 passes those references to the reviewed authoring request without including
 learner data. `LearningSourceRecord` stores a bounded authoring catalog with
 the same publication metadata. The activity editor loads at most 100 records,
-and copying one into an activity remains a snapshot rather than a live link;
+and copying one into an activity remains a snapshot rather than a live link.
+Authorized activity authors can update or delete catalog records through the
+same bounded editor path; those operations do not mutate activity JSON. Source
 version history and AI-draft linkage remain roadmap work.
 
 Activity types are registered as small data-shaped definitions in

@@ -138,3 +138,41 @@ test('the activity graph exposes a bounded source catalog', function () {
         'url' => 'https://example.com/catalog-source',
     ]);
 });
+
+test('admins can maintain saved sources without changing copied activity references', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $source = LearningSourceRecord::query()->create([
+        'title' => 'Source before editing',
+        'url' => 'https://example.com/source-before-editing',
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = $node->activities()->firstOrFail();
+    $activity->forceFill([
+        'config' => [
+            'sourceReferences' => [[
+                'title' => 'Source before editing',
+                'url' => 'https://example.com/source-before-editing',
+            ]],
+        ],
+    ])->save();
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.source-records.update', $source), [
+            'title' => 'Source after editing',
+            'url' => 'https://example.com/source-after-editing',
+        ])
+        ->assertOk()
+        ->assertJsonPath('sourceRecord.title', 'Source after editing');
+
+    expect($activity->refresh()->config['sourceReferences'])->toBe([[
+        'title' => 'Source before editing',
+        'url' => 'https://example.com/source-before-editing',
+    ]]);
+
+    $this->actingAs($admin)
+        ->deleteJson(route('settings.worlds.source-records.destroy', $source))
+        ->assertNoContent();
+
+    expect(LearningSourceRecord::query()->find($source->id))->toBeNull();
+});

@@ -29,6 +29,7 @@ use App\Models\LearningSourceRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -95,6 +96,34 @@ class AdminActivityController extends Controller
         return response()->json([
             'sourceRecord' => $this->sourceRecordSerializer->serialize($source),
         ], 201);
+    }
+
+    public function updateSourceRecord(Request $request, LearningSourceRecord $sourceRecord): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $data = $request->validate($this->rules->sourceRecord());
+
+        $sourceRecord->update([
+            'anchor' => $data['anchor'] ?? null,
+            'excerpt' => $data['excerpt'] ?? null,
+            'published_at' => $data['publishedAt'] ?? null,
+            'publisher' => $data['publisher'] ?? null,
+            'rights' => $data['rights'] ?? null,
+            'title' => $data['title'],
+            'url' => $data['url'],
+        ]);
+
+        return response()->json([
+            'sourceRecord' => $this->sourceRecordSerializer->serialize($sourceRecord->refresh()),
+        ]);
+    }
+
+    public function destroySourceRecord(Request $request, LearningSourceRecord $sourceRecord): HttpResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $sourceRecord->delete();
+
+        return response()->noContent();
     }
 
     public function update(Request $request, LearningActivity $activity): RedirectResponse
