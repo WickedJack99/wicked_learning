@@ -44,7 +44,9 @@ contracts. Adaptive or AI scheduling should wait until the baseline is
 measurable and understandable. Reopened activity evidence now retains the same
 attempt sequence as its corresponding review-attempt record, and question
 revisits preserve their correctness and confidence in that record. Question
-activities now provide a private, learner-controlled recall queue that
+activities now pause after showing question feedback so an optional
+post-feedback-confidence signal can be captured without collapsing it into the
+answer or a score. They also provide a private, learner-controlled recall queue
 links back to the existing activity without introducing a second scheduler.
 The first transparent timing baseline for question recall is now implemented:
 the desk distinguishes ready items from future items and explicit recall answers

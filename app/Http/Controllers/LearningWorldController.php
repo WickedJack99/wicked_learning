@@ -214,10 +214,13 @@ class LearningWorldController extends Controller
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
             'confidence_after_feedback' => ['nullable', 'string', 'in:exploring,leaning,settled'],
             'ends_route' => ['sometimes', 'boolean'],
+            'attempt_number' => ['sometimes', 'integer', 'min:1', 'max:1000'],
+            'assistance_level' => ['sometimes', 'string', 'in:untracked,independent,hint,questions_only,post_attempt_support'],
+            'calibration' => ['nullable', 'string', 'in:aligned,stronger_than_expected,higher_than_result,uncertainty_made_gap_visible'],
             'is_revisit' => ['sometimes', 'boolean'],
             'observed_cues' => ['sometimes', 'array', 'max:3'],
             'observed_cues.*' => ['string', 'max:300'],
-            'outcome' => ['nullable', 'string', 'in:clearer,connected,open'],
+            'outcome' => ['nullable', 'string', 'in:clearer,connected,open,correct,incorrect'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
             'status' => ['required', 'string', 'in:reached,completed'],
         ]);
@@ -233,6 +236,11 @@ class LearningWorldController extends Controller
             confidenceAfterFeedback: is_string($data['confidence_after_feedback'] ?? null)
                 ? (string) $data['confidence_after_feedback']
                 : null,
+            attemptNumber: is_int($data['attempt_number'] ?? null) ? $data['attempt_number'] : 1,
+            assistanceLevel: is_string($data['assistance_level'] ?? null)
+                ? (string) $data['assistance_level']
+                : 'untracked',
+            calibration: is_string($data['calibration'] ?? null) ? (string) $data['calibration'] : null,
             observedCues: is_array($data['observed_cues'] ?? null) ? $data['observed_cues'] : [],
             isRevisit: is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
         );
@@ -315,6 +323,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
+            'defer_completion' => ['sometimes', 'boolean'],
             'is_recall' => ['sometimes', 'boolean'],
             'is_revisit' => ['sometimes', 'boolean'],
             'option_id' => ['required', 'integer'],
@@ -330,6 +339,7 @@ class LearningWorldController extends Controller
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
                 is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
                 is_bool($data['is_recall'] ?? null) ? $data['is_recall'] : false,
+                is_bool($data['defer_completion'] ?? null) ? $data['defer_completion'] : false,
             ),
         ]);
     }

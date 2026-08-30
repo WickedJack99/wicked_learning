@@ -29,9 +29,10 @@ import type {
     LearningNode,
     LearningPortalLink,
     LearningProgress,
+    ActivityCompletionOutcome,
+    QuestionCalibration,
     QuestionConfidence,
     QuestionAnswerProgress,
-    ReviewOutcome,
 } from '@/types';
 
 type NodePlayProps = {
@@ -49,9 +50,12 @@ type NodePlayProps = {
 type CompletionOptions = {
     confidence?: QuestionConfidence;
     confidenceAfterFeedback?: QuestionConfidence;
+    calibration?: QuestionCalibration;
     endsRoute?: boolean;
+    attemptNumber?: number;
+    assistanceLevel?: string;
     observedCues?: string[];
-    outcome?: ReviewOutcome;
+    outcome?: ActivityCompletionOutcome;
     progressAlreadyMarked?: boolean;
 };
 
@@ -246,10 +250,13 @@ export default function NodePlay({
             const payload: {
                 confidence?: QuestionConfidence;
                 confidence_after_feedback?: QuestionConfidence;
+                calibration?: QuestionCalibration;
                 ends_route?: boolean;
+                attempt_number?: number;
+                assistance_level?: string;
                 is_revisit: boolean;
                 observed_cues?: string[];
-                outcome?: ReviewOutcome;
+                outcome?: ActivityCompletionOutcome;
                 play_run_id: string | null;
                 status: 'completed';
             } = {
@@ -269,6 +276,18 @@ export default function NodePlay({
             if (options.confidenceAfterFeedback) {
                 payload.confidence_after_feedback =
                     options.confidenceAfterFeedback;
+            }
+
+            if (options.calibration) {
+                payload.calibration = options.calibration;
+            }
+
+            if (options.attemptNumber) {
+                payload.attempt_number = options.attemptNumber;
+            }
+
+            if (options.assistanceLevel) {
+                payload.assistance_level = options.assistanceLevel;
             }
 
             if (options.outcome) {

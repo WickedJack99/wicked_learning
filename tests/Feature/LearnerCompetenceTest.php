@@ -667,6 +667,78 @@ test('question answers complete the active route and record retrieval evidence',
         ->toBe('completed');
 });
 
+test('a question can defer evidence until its feedback pause is complete', function () {
+    $learner = User::factory()->create();
+    [$node, $activity, $start] = competenceRoute([
+        ['topic' => 'Algebra', 'weight' => 1],
+    ]);
+    $activity->update([
+        'type' => 'question',
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'retrieve',
+        ],
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'Which idea fits?',
+    ]);
+    $option = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'The first idea.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+    $runId = (string) Str::uuid();
+
+    LearnerRouteProgress::query()->create([
+        'user_id' => $learner->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_start_id' => $start->id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+        'started_at' => now(),
+        'last_entered_at' => now(),
+        'metadata' => [],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'settled',
+            'defer_completion' => true,
+            'option_id' => $option->id,
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.isCorrect', true);
+
+    expect(LearnerActivityProgress::query()->count())->toBe(0)
+        ->and(LearnerEvidenceEvent::query()->count())->toBe(0);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'assistance_level' => 'independent',
+            'attempt_number' => 1,
+            'calibration' => 'aligned',
+            'confidence' => 'settled',
+            'confidence_after_feedback' => 'leaning',
+            'outcome' => 'correct',
+            'play_run_id' => $runId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    expect(LearnerEvidenceEvent::query()->firstOrFail())
+        ->confidence_after_feedback->toBe('leaning')
+        ->and(LearnerEvidenceEvent::query()->firstOrFail()->calibration)
+        ->toBe('aligned')
+        ->and(LearnerEvidenceEvent::query()->firstOrFail()->outcome)
+        ->toBe('correct');
+});
+
 test('a revisited question records its outcome and confidence in review history', function () {
     Carbon::setTestNow('2026-08-29 10:00:00');
 

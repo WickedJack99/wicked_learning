@@ -26,6 +26,7 @@ class QuestionAnswerService
         ?string $confidence = null,
         bool $isRevisit = false,
         bool $isRecall = false,
+        bool $deferCompletion = false,
     ): array {
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
@@ -47,18 +48,20 @@ class QuestionAnswerService
             'feedback' => $feedback,
         ]);
 
-        $this->progressService->mark(
-            userId: $userId,
-            activity: $question->activity,
-            status: 'completed',
-            playRunId: $playRunId,
-            outcome: $option->is_correct ? 'correct' : 'incorrect',
-            confidence: $confidence,
-            attemptNumber: $attemptNumber,
-            assistanceLevel: 'independent',
-            isRevisit: $isRevisit,
-            calibration: $calibration,
-        );
+        if (! $deferCompletion) {
+            $this->progressService->mark(
+                userId: $userId,
+                activity: $question->activity,
+                status: 'completed',
+                playRunId: $playRunId,
+                outcome: $option->is_correct ? 'correct' : 'incorrect',
+                confidence: $confidence,
+                attemptNumber: $attemptNumber,
+                assistanceLevel: 'independent',
+                isRevisit: $isRevisit,
+                calibration: $calibration,
+            );
+        }
         $recall = $isRecall
             ? $this->recallItems->recordRecall(
                 $userId,

@@ -20,6 +20,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
+    ActivityCompletionOutcome,
     ActivityTransition,
     LearningActivity,
     LearningNode,
@@ -361,6 +362,7 @@ export function QuestionActivity({
     activity,
     answer,
     canRecall,
+    isCompleted,
     onAnswer,
     onComplete,
     onRecallChange,
@@ -374,10 +376,18 @@ export function QuestionActivity({
     answer: QuestionAnswerProgress | undefined;
     onAnswer: (questionId: number, answer: QuestionAnswerProgress) => void;
     canRecall: boolean;
+    isCompleted: boolean;
     onRecallChange: (questionId: number, queued: boolean) => void;
     onComplete: (
         activity: LearningActivity,
-        options?: { progressAlreadyMarked?: boolean },
+        options?: {
+            confidence?: QuestionConfidence;
+            confidenceAfterFeedback?: QuestionConfidence;
+            calibration?: QuestionCalibration;
+            attemptNumber?: number;
+            assistanceLevel?: string;
+            outcome?: ActivityCompletionOutcome;
+        },
     ) => Promise<void>;
     isRecall: boolean;
     isRevisit: boolean;
@@ -390,9 +400,19 @@ export function QuestionActivity({
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
+    const [confidenceAfterFeedback, setConfidenceAfterFeedback] =
+        useState<QuestionConfidence | null>(null);
+    const [isCompleting, setIsCompleting] = useState(false);
     const [isRecallUpdating, setIsRecallUpdating] = useState(false);
     const [recallError, setRecallError] = useState(false);
+    const continueButtonRef = useRef<HTMLButtonElement>(null);
     const t = usePlatformTranslation();
+
+    useEffect(() => {
+        if (answer) {
+            continueButtonRef.current?.focus();
+        }
+    }, [answer]);
 
     if (!question) {
         return null;
@@ -407,6 +427,7 @@ export function QuestionActivity({
                 {
                     option_id: optionId,
                     confidence,
+                    defer_completion: true,
                     is_recall: isRecall,
                     is_revisit: isRevisit,
                     play_run_id: playRunId,
@@ -414,9 +435,36 @@ export function QuestionActivity({
             );
 
             onAnswer(question.id, response.answer);
-            await onComplete(activity, { progressAlreadyMarked: true });
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    const completeQuestion = async () => {
+        if (isCompleting || !answer) {
+            return;
+        }
+
+        if (isCompleted) {
+            onMoveToActivity(answer.nextActivityId ?? null);
+
+            return;
+        }
+
+        setIsCompleting(true);
+
+        try {
+            await onComplete(activity, {
+                confidence: answer.confidence ?? undefined,
+                confidenceAfterFeedback: confidenceAfterFeedback ?? undefined,
+                calibration: answer.calibration ?? undefined,
+                attemptNumber: answer.attemptNumber,
+                assistanceLevel: 'independent',
+                outcome: answer.isCorrect ? 'correct' : 'incorrect',
+            });
+            onMoveToActivity(answer.nextActivityId ?? null);
+        } finally {
+            setIsCompleting(false);
         }
     };
 
@@ -535,6 +583,52 @@ export function QuestionActivity({
                             {questionCalibrationMessage(t, answer.calibration)}
                         </p>
                     ) : null}
+                    <fieldset className="mt-4 rounded-md border border-slate-200 p-3 dark:border-white/10">
+                        <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                            {t(
+                                'learning.question.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
+                        </legend>
+                        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {t(
+                                'learning.question.confidence_after_feedback_helper',
+                                'This is a reflection on your understanding, not a grade.',
+                            )}
+                        </p>
+                        <div
+                            aria-label={t(
+                                'learning.question.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
+                            className="mt-2 flex flex-wrap gap-2"
+                            role="group"
+                        >
+                            {questionConfidenceOptions.map((option) => (
+                                <button
+                                    aria-pressed={
+                                        confidenceAfterFeedback === option.value
+                                    }
+                                    className={cn(
+                                        'min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200',
+                                        confidenceAfterFeedback ===
+                                            option.value &&
+                                            'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100',
+                                    )}
+                                    key={option.value}
+                                    onClick={() =>
+                                        setConfidenceAfterFeedback(option.value)
+                                    }
+                                    type="button"
+                                >
+                                    {t(
+                                        `learning.review.confidence_${option.value}`,
+                                        option.label,
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
                     {isRecall && answer.recall ? (
                         <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                             {t(
@@ -627,12 +721,17 @@ export function QuestionActivity({
                     ) : null}
                     {answer ? (
                         <Button
+                            aria-busy={isCompleting}
                             className="mt-4"
-                            onClick={() =>
-                                onMoveToActivity(answer.nextActivityId ?? null)
-                            }
+                            disabled={isCompleting}
+                            onClick={() => void completeQuestion()}
+                            ref={continueButtonRef}
                         >
-                            {answer.nextActivityId ? 'Continue' : 'Finish'}
+                            {isCompleting
+                                ? t('learning.question.saving_feedback', 'Saving...')
+                                : answer.nextActivityId
+                                  ? 'Continue'
+                                  : 'Finish'}
                             <ArrowRight className="ml-2 size-4" />
                         </Button>
                     ) : null}

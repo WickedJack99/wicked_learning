@@ -17,14 +17,15 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
+    ActivityCompletionOutcome,
     ActivityTransition,
     LearningActivity,
     LearningNode,
     LearningPortalLink,
     LearningProgress,
     QuestionConfidence,
+    QuestionCalibration,
     QuestionAnswerProgress,
-    ReviewOutcome,
     LearningUnlockRequirement,
 } from '@/types';
 import { ActivityAmbientSound } from './activity-ambient-sound';
@@ -381,9 +382,12 @@ export function ActivityPlayer({
         options?: {
             confidence?: QuestionConfidence;
             confidenceAfterFeedback?: QuestionConfidence;
+            calibration?: QuestionCalibration;
             endsRoute?: boolean;
+            attemptNumber?: number;
+            assistanceLevel?: string;
             observedCues?: string[];
-            outcome?: ReviewOutcome;
+            outcome?: ActivityCompletionOutcome;
             progressAlreadyMarked?: boolean;
         },
     ) => Promise<void>;
@@ -407,15 +411,21 @@ export function ActivityPlayer({
             options: {
                 confidence?: QuestionConfidence;
                 confidenceAfterFeedback?: QuestionConfidence;
+                calibration?: QuestionCalibration;
                 observedCues?: string[];
-                outcome?: ReviewOutcome;
+                outcome?: ActivityCompletionOutcome;
+                attemptNumber?: number;
+                assistanceLevel?: string;
                 progressAlreadyMarked?: boolean;
             } = {},
         ) =>
             onComplete(completedActivity, {
                 confidence: options.confidence,
                 confidenceAfterFeedback: options.confidenceAfterFeedback,
+                calibration: options.calibration,
                 endsRoute: completesRoute,
+                attemptNumber: options.attemptNumber,
+                assistanceLevel: options.assistanceLevel,
                 observedCues: options.observedCues,
                 outcome: options.outcome,
                 progressAlreadyMarked: options.progressAlreadyMarked,
@@ -439,6 +449,9 @@ export function ActivityPlayer({
                     activity={activity}
                     answer={answerProgress[activity.question.id]}
                     canRecall={canRecall}
+                    isCompleted={
+                        activityProgress[activity.id]?.status === 'completed'
+                    }
                     onAnswer={onAnswer}
                     onComplete={completeActivity}
                     onRecallChange={onRecallChange}
