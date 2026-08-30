@@ -35,6 +35,20 @@ class LearnerMessageModerationController extends Controller
         ));
     }
 
+    public function responses(Request $request, LearnerMessage $message): JsonResponse
+    {
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:12'],
+        ]);
+
+        return response()->json($this->moderation->responses(
+            $message,
+            (int) ($data['page'] ?? 1),
+            (int) ($data['per_page'] ?? 3),
+        ));
+    }
+
     public function updateVisibility(Request $request, LearnerMessage $message): RedirectResponse
     {
         $data = $request->validate(['hidden' => ['required', 'boolean']]);

@@ -234,8 +234,11 @@ Account and access models include:
 
 Learning Support moderation loads topic summaries in the settings payload and
 uses the permission-protected message-topic endpoint for paginated message
-records and resolution counts. Nested response details are loaded only for the
-current message page; response-level pagination remains a separate concern.
+records and resolution counts. Response details are fetched in a small first
+page for each selected message, and subsequent response pages use a separate
+permission-protected endpoint. The database applies a per-message
+`ROW_NUMBER()` range before response models are hydrated, keeping both SQL
+query count and returned response rows bounded by the requested page size.
 
 Support and reflection models include:
 

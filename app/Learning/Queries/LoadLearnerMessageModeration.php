@@ -3,11 +3,16 @@
 namespace App\Learning\Queries;
 
 use App\Models\LearnerMessage;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearningMessageTopic;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class LoadLearnerMessageModeration
 {
+    private const RESPONSE_PAGE_SIZE = 3;
+
     /** @return array<int, array<string, mixed>> */
     public function topics(): array
     {
@@ -36,9 +41,8 @@ class LoadLearnerMessageModeration
             ->with([
                 'author:id,name,email',
                 'hiddenBy:id,name,email',
-                'responses.author:id,name,email',
-                'responses.hiddenBy:id,name,email',
             ])
+            ->withCount('responses')
             ->when(
                 $filter === 'helpful',
                 fn ($query) => $query->whereHas(
@@ -75,6 +79,12 @@ class LoadLearnerMessageModeration
         ]);
         $topic->loadCount('messages');
 
+        $responsesByMessage = $this->responsesForMessages(
+            $messagePage->getCollection()->modelKeys(),
+            1,
+            self::RESPONSE_PAGE_SIZE,
+        );
+
         return [
             'topic' => $this->topicSummary($topic),
             'counts' => [
@@ -84,10 +94,38 @@ class LoadLearnerMessageModeration
             ],
             'messages' => $messagePage
                 ->getCollection()
-                ->map(fn (LearnerMessage $message): array => $this->serializeMessage($message))
+                ->map(fn (LearnerMessage $message): array => $this->serializeMessage(
+                    $message,
+                    $responsesByMessage[$message->id] ?? collect(),
+                    1,
+                    self::RESPONSE_PAGE_SIZE,
+                ))
                 ->values()
                 ->all(),
             'pagination' => $this->pagination($messagePage),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function responses(
+        LearnerMessage $message,
+        int $page = 1,
+        int $perPage = self::RESPONSE_PAGE_SIZE,
+    ): array {
+        $page = max($page, 1);
+        $perPage = min(max($perPage, 1), 12);
+        $message->loadCount('responses');
+        $responses = $this->responsesForMessages([$message->id], $page, $perPage)[$message->id]
+            ?? collect();
+
+        return [
+            'messageId' => $message->id,
+            'responses' => $this->serializeResponses($responses),
+            'pagination' => $this->responsePagination(
+                (int) $message->responses_count,
+                $page,
+                $perPage,
+            ),
         ];
     }
 
@@ -119,9 +157,16 @@ class LoadLearnerMessageModeration
         ];
     }
 
-    /** @return array<string, mixed> */
-    private function serializeMessage(LearnerMessage $message): array
-    {
+    /**
+     * @param  Collection<int, LearnerMessageResponse>  $responses
+     * @return array<string, mixed>
+     */
+    private function serializeMessage(
+        LearnerMessage $message,
+        Collection $responses,
+        int $responsePage,
+        int $responsePerPage,
+    ): array {
         return [
             'id' => $message->id,
             'audience' => $message->audience,
@@ -137,23 +182,93 @@ class LoadLearnerMessageModeration
                 'id' => $message->hiddenBy->id,
                 'name' => $message->hiddenBy->name,
             ] : null,
-            'responses' => $message->responses->map(fn ($response): array => [
-                'id' => $response->id,
-                'body' => $response->body,
-                'responseType' => $response->response_type,
-                'isHelpful' => $response->helpful_at !== null,
-                'createdAt' => $response->created_at?->toIso8601String(),
-                'hiddenAt' => $response->hidden_at?->toIso8601String(),
-                'author' => [
-                    'id' => $response->author->id,
-                    'name' => $response->author->name,
-                    'email' => $response->author->email,
-                ],
-                'hiddenBy' => $response->hiddenBy ? [
-                    'id' => $response->hiddenBy->id,
-                    'name' => $response->hiddenBy->name,
-                ] : null,
-            ])->values()->all(),
+            'responseCount' => (int) $message->responses_count,
+            'responsePagination' => $this->responsePagination(
+                (int) $message->responses_count,
+                $responsePage,
+                $responsePerPage,
+            ),
+            'responses' => $this->serializeResponses($responses),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, LearnerMessageResponse>  $responses
+     * @return array<int, array<string, mixed>>
+     */
+    private function serializeResponses(Collection $responses): array
+    {
+        return $responses->map(fn (LearnerMessageResponse $response): array => [
+            'id' => $response->id,
+            'body' => $response->body,
+            'responseType' => $response->response_type,
+            'isHelpful' => $response->helpful_at !== null,
+            'createdAt' => $response->created_at?->toIso8601String(),
+            'hiddenAt' => $response->hidden_at?->toIso8601String(),
+            'author' => [
+                'id' => $response->author->id,
+                'name' => $response->author->name,
+                'email' => $response->author->email,
+            ],
+            'hiddenBy' => $response->hiddenBy ? [
+                'id' => $response->hiddenBy->id,
+                'name' => $response->hiddenBy->name,
+            ] : null,
+        ])->values()->all();
+    }
+
+    /**
+     * @param  array<int, int|string>  $messageIds
+     * @return array<int, Collection<int, LearnerMessageResponse>>
+     */
+    private function responsesForMessages(array $messageIds, int $page, int $perPage): array
+    {
+        if ($messageIds === []) {
+            return [];
+        }
+
+        $offset = (max($page, 1) - 1) * $perPage;
+        $rankedResponses = DB::table('learner_message_responses')
+            ->select(['id', 'learner_message_id'])
+            ->selectRaw('ROW_NUMBER() OVER (PARTITION BY learner_message_id ORDER BY created_at DESC, id DESC) AS response_rank')
+            ->whereIn('learner_message_id', $messageIds);
+        $responseRows = DB::query()
+            ->fromSub($rankedResponses, 'ranked_responses')
+            ->whereBetween('response_rank', [$offset + 1, $offset + $perPage])
+            ->orderBy('learner_message_id')
+            ->orderBy('response_rank')
+            ->get();
+
+        if ($responseRows->isEmpty()) {
+            return [];
+        }
+
+        $responses = LearnerMessageResponse::query()
+            ->with([
+                'author:id,name,email',
+                'hiddenBy:id,name,email',
+            ])
+            ->whereIn('id', $responseRows->pluck('id'))
+            ->get()
+            ->keyBy('id');
+
+        return $responseRows
+            ->groupBy('learner_message_id')
+            ->map(fn (Collection $rows): Collection => $rows
+                ->map(fn (object $row): ?LearnerMessageResponse => $responses->get($row->id))
+                ->filter()
+                ->values())
+            ->all();
+    }
+
+    /** @return array<string, int> */
+    private function responsePagination(int $total, int $currentPage, int $perPage): array
+    {
+        return [
+            'currentPage' => min(max($currentPage, 1), max(1, (int) ceil($total / $perPage))),
+            'lastPage' => max(1, (int) ceil($total / $perPage)),
+            'perPage' => $perPage,
+            'total' => $total,
         ];
     }
 }

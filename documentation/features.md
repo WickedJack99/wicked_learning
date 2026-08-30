@@ -301,7 +301,9 @@ selected topic's threads with or without learner-confirmed help.
 Learning Support keeps the topic directory lightweight and retrieves one
 selected topic's moderation messages in bounded pages; changing the topic,
 resolution view or page loads only that slice while preserving the existing
-moderation actions.
+moderation actions. Response histories are also paged per message, so a busy
+thread does not expand the moderation payload without limit; response hide,
+show and delete actions remain available on each loaded response page.
 
 ### Journal, Competence And Collaboration
 

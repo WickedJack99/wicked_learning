@@ -259,12 +259,15 @@ test('support can page and filter learner message moderation results', function 
             'audience' => 'peers',
         ]);
     });
-    LearnerMessageResponse::query()->create([
-        'learner_message_id' => $messages->first()->id,
-        'user_id' => $admin->id,
-        'body' => 'A helpful response.',
-        'helpful_at' => now(),
-    ]);
+    $responseAuthors = User::factory()->count(9)->create();
+    foreach ($responseAuthors as $index => $responseAuthor) {
+        LearnerMessageResponse::query()->create([
+            'learner_message_id' => $messages->first()->id,
+            'user_id' => $responseAuthor->id,
+            'body' => 'Moderation response '.($index + 1).'.',
+            'helpful_at' => $index === 0 ? now() : null,
+        ]);
+    }
 
     $this->actingAs($admin)
         ->getJson(route('settings.learning-support.message-topics.messages.index', $topic).'?page=2&per_page=5')
@@ -282,7 +285,32 @@ test('support can page and filter learner message moderation results', function 
         ->assertOk()
         ->assertJsonCount(1, 'messages')
         ->assertJsonPath('pagination.total', 1)
-        ->assertJsonPath('messages.0.responses.0.body', 'A helpful response.');
+        ->assertJsonPath('messages.0.responseCount', 9)
+        ->assertJsonPath('messages.0.responsePagination.currentPage', 1)
+        ->assertJsonPath('messages.0.responsePagination.lastPage', 3)
+        ->assertJsonCount(3, 'messages.0.responses');
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.messages.responses.index', $messages->first()).'?page=2&per_page=3')
+        ->assertOk()
+        ->assertJsonPath('messageId', $messages->first()->id)
+        ->assertJsonCount(3, 'responses')
+        ->assertJsonPath('responses.0.body', 'Moderation response 6.')
+        ->assertJsonPath('responses.1.body', 'Moderation response 5.')
+        ->assertJsonPath('responses.2.body', 'Moderation response 4.')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 3)
+        ->assertJsonPath('pagination.total', 9);
+    $rankedResponseQuery = collect(DB::getQueryLog())
+        ->first(fn (array $query): bool => str_contains(strtolower($query['query']), 'response_rank'));
+    DB::disableQueryLog();
+
+    expect($rankedResponseQuery)->not->toBeNull()
+        ->and(strtolower($rankedResponseQuery['query']))->toContain('response_rank" between ? and ?')
+        ->and($rankedResponseQuery['bindings'])->toContain(4)
+        ->and($rankedResponseQuery['bindings'])->toContain(6);
 
     $this->actingAs($admin)
         ->getJson(route('settings.learning-support.message-topics.messages.index', $topic).'?filter=unconfirmed')

@@ -1,6 +1,6 @@
 import { router } from '@inertiajs/react';
 import { Eye, EyeOff, MessageSquareText, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsConfigurationLayout,
@@ -15,6 +15,13 @@ import { getJson } from '@/features/world/api';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
+
+type PaginationState = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
 
 export type LearnerMessageModerationTopic = {
     id: number;
@@ -35,6 +42,8 @@ export type LearnerMessageModerationMessage = {
     hiddenAt: string | null;
     hiddenBy: { id: number; name: string } | null;
     id: number;
+    responseCount: number;
+    responsePagination: PaginationState;
     responses: Array<{
         author: { email: string; id: number; name: string };
         body: string;
@@ -52,6 +61,12 @@ export type LearnerMessageModerationMessage = {
     }>;
 };
 
+type LearnerMessageResponsesPage = {
+    messageId: number;
+    pagination: PaginationState;
+    responses: LearnerMessageModerationMessage['responses'];
+};
+
 type LearnerMessageModerationPage = {
     counts: {
         all: number;
@@ -59,15 +74,11 @@ type LearnerMessageModerationPage = {
         unconfirmed: number;
     };
     messages: LearnerMessageModerationMessage[];
-    pagination: {
-        currentPage: number;
-        lastPage: number;
-        perPage: number;
-        total: number;
-    };
+    pagination: PaginationState;
 };
 
 const MESSAGE_PAGE_SIZE = 6;
+const RESPONSE_PAGE_SIZE = 3;
 
 export function LearnerMessageModerationPanel({
     topics,
@@ -99,6 +110,13 @@ export function LearnerMessageModerationPanel({
     const [page, setPage] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [responseErrorMessageId, setResponseErrorMessageId] = useState<
+        number | null
+    >(null);
+    const [responseLoadingMessageId, setResponseLoadingMessageId] = useState<
+        number | null
+    >(null);
+    const responseRequestRef = useRef<AbortController | null>(null);
     const loadMessages = useCallback(
         async (
             topicId: number,
@@ -106,6 +124,10 @@ export function LearnerMessageModerationPanel({
             filter: ResponseFilter,
             signal?: AbortSignal,
         ): Promise<void> => {
+            responseRequestRef.current?.abort();
+            responseRequestRef.current = null;
+            setResponseErrorMessageId(null);
+            setResponseLoadingMessageId(null);
             setIsLoading(true);
             setError('');
             const params = new URLSearchParams({
@@ -150,6 +172,51 @@ export function LearnerMessageModerationPanel({
         },
         [t],
     );
+    const loadResponses = useCallback(
+        async (messageId: number, requestedPage: number): Promise<void> => {
+            responseRequestRef.current?.abort();
+            const controller = new AbortController();
+            responseRequestRef.current = controller;
+            setResponseErrorMessageId(null);
+            setResponseLoadingMessageId(messageId);
+            const params = new URLSearchParams({
+                page: String(requestedPage),
+                per_page: String(RESPONSE_PAGE_SIZE),
+            });
+
+            try {
+                const payload = await getJson<LearnerMessageResponsesPage>(
+                    `/settings/learning-support/messages/${messageId}/responses?${params.toString()}`,
+                    controller.signal,
+                );
+                setMessages((currentMessages) =>
+                    currentMessages.map((message) =>
+                        message.id === messageId
+                            ? {
+                                  ...message,
+                                  responsePagination: payload.pagination,
+                                  responses: payload.responses,
+                              }
+                            : message,
+                    ),
+                );
+            } catch (requestError) {
+                if (
+                    requestError instanceof DOMException &&
+                    requestError.name === 'AbortError'
+                ) {
+                    return;
+                }
+
+                setResponseErrorMessageId(messageId);
+            } finally {
+                if (!controller.signal.aborted) {
+                    setResponseLoadingMessageId(null);
+                }
+            }
+        },
+        [],
+    );
     useEffect(() => {
         if (selectedTopicId === null) {
             return;
@@ -168,6 +235,7 @@ export function LearnerMessageModerationPanel({
 
         return () => controller.abort();
     }, [loadMessages, page, responseFilter, selectedTopicId]);
+    useEffect(() => () => responseRequestRef.current?.abort(), []);
     const refreshMessages = useCallback(() => {
         if (selectedTopicId === null) {
             return;
@@ -446,8 +514,50 @@ export function LearnerMessageModerationPanel({
                                                         : ''}
                                                 </p>
                                             ) : null}
-                                            {message.responses.length > 0 ? (
-                                                <div className="mt-4 grid gap-3 border-l-2 border-[var(--settings-border-color)] pl-4">
+                                            {message.responseCount > 0 ? (
+                                                <div
+                                                    aria-busy={
+                                                        responseLoadingMessageId ===
+                                                        message.id
+                                                    }
+                                                    className="mt-4 grid gap-3 border-l-2 border-[var(--settings-border-color)] pl-4"
+                                                >
+                                                    <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                        {t(
+                                                            message.responseCount ===
+                                                                1
+                                                                ? 'settings.learner_messages.responses_count_one'
+                                                                : 'settings.learner_messages.responses_count_many',
+                                                            message.responseCount ===
+                                                                1
+                                                                ? ':count response'
+                                                                : ':count responses',
+                                                            {
+                                                                count: message.responseCount,
+                                                            },
+                                                        )}
+                                                    </p>
+                                                    {responseLoadingMessageId ===
+                                                    message.id ? (
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                            {t(
+                                                                'settings.learner_messages.responses_loading',
+                                                                'Loading responses...',
+                                                            )}
+                                                        </p>
+                                                    ) : null}
+                                                    {responseErrorMessageId ===
+                                                    message.id ? (
+                                                        <p
+                                                            className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-700 dark:text-red-200"
+                                                            role="alert"
+                                                        >
+                                                            {t(
+                                                                'settings.learner_messages.responses_load_error',
+                                                                'The responses could not be loaded.',
+                                                            )}
+                                                        </p>
+                                                    ) : null}
                                                     {message.responses.map(
                                                         (response) => (
                                                             <div
@@ -574,6 +684,39 @@ export function LearnerMessageModerationPanel({
                                                             </div>
                                                         ),
                                                     )}
+                                                    <PaginationControls
+                                                        className="border-t border-[var(--settings-border-color)] pt-2"
+                                                        currentPage={
+                                                            message
+                                                                .responsePagination
+                                                                .currentPage
+                                                        }
+                                                        label={t(
+                                                            'settings.learner_messages.responses_pagination',
+                                                            'Response pages',
+                                                        )}
+                                                        nextLabel={t(
+                                                            'settings.learner_messages.responses_next_page',
+                                                            'Next response page',
+                                                        )}
+                                                        onPageChange={(
+                                                            responsePage,
+                                                        ) =>
+                                                            void loadResponses(
+                                                                message.id,
+                                                                responsePage,
+                                                            )
+                                                        }
+                                                        pageCount={
+                                                            message
+                                                                .responsePagination
+                                                                .lastPage
+                                                        }
+                                                        previousLabel={t(
+                                                            'settings.learner_messages.responses_previous_page',
+                                                            'Previous response page',
+                                                        )}
+                                                    />
                                                 </div>
                                             ) : null}
                                         </article>
