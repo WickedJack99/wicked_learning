@@ -68,6 +68,18 @@ test('the learning desk defaults to its first visible area', function () {
         ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
 });
 
+test('node route choices use pagination instead of a growing scroll region', function () {
+    $activityPanel = file_get_contents(
+        resource_path('js/features/world/activity-panel.tsx'),
+    );
+
+    expect($activityPanel)
+        ->toContain('const ROUTE_PAGE_SIZE = 3;')
+        ->toContain('const visibleRoutes = routes.slice(')
+        ->toContain('<PaginationControls')
+        ->not->toContain('route-options-scroll');
+});
+
 test('an authenticated learner can open a published topic detail surface', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([

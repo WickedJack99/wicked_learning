@@ -1,6 +1,5 @@
 import { Link, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
     ArrowRight,
     Bookmark,
     CheckCircle2,
@@ -9,8 +8,9 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import type { CSSProperties } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -132,7 +132,12 @@ function RouteStartButtons({
         routeId?: number | null,
     ) => void;
 }) {
+    const [routePageState, setRoutePageState] = useState({
+        nodeId: node.id,
+        page: 1,
+    });
     const { resolvedAppearance } = useAppearance();
+
     const routes =
         node.startRoutes.length > 0
             ? node.startRoutes
@@ -158,22 +163,22 @@ function RouteStartButtons({
         return <EmptyActivityState />;
     }
 
-    const showScrollHints = routes.length > 3;
+    const routePageCount = Math.max(
+        1,
+        Math.ceil(routes.length / ROUTE_PAGE_SIZE),
+    );
+    const routePage =
+        routePageState.nodeId === node.id ? routePageState.page : 1;
+    const currentPage = Math.min(routePage, routePageCount);
+    const visibleRoutes = routes.slice(
+        (currentPage - 1) * ROUTE_PAGE_SIZE,
+        currentPage * ROUTE_PAGE_SIZE,
+    );
 
     return (
         <div className="relative mt-auto flex min-h-[50%] basis-1/2 flex-col pb-12 md:pb-14">
-            {showScrollHints ? (
-                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center bg-gradient-to-b from-white via-white/80 to-transparent py-1 text-slate-400 dark:from-[#111820] dark:via-[#111820]/80">
-                    <ArrowLeft className="size-3 rotate-90" />
-                </div>
-            ) : null}
-            <div
-                className={cn(
-                    'route-options-scroll -mt-1 grid min-h-0 flex-1 content-end gap-2 overflow-y-auto px-1 pt-2 pb-1',
-                    showScrollHints && 'py-6',
-                )}
-            >
-                {routes.map((route) => (
+            <div className="grid min-h-0 flex-1 content-start gap-2 px-1 pt-2 pb-1">
+                {visibleRoutes.map((route) => (
                     <RouteStartOption
                         key={`${route.id}:${route.activityId}`}
                         mode={resolvedAppearance}
@@ -183,14 +188,19 @@ function RouteStartButtons({
                     />
                 ))}
             </div>
-            {showScrollHints ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center bg-gradient-to-t from-white via-white/80 to-transparent py-1 text-slate-400 dark:from-[#111820] dark:via-[#111820]/80">
-                    <ArrowLeft className="size-3 -rotate-90" />
-                </div>
-            ) : null}
+            <PaginationControls
+                className="mt-2 shrink-0 px-1 text-xs text-slate-500 dark:text-slate-400"
+                currentPage={currentPage}
+                onPageChange={(page) =>
+                    setRoutePageState({ nodeId: node.id, page })
+                }
+                pageCount={routePageCount}
+            />
         </div>
     );
 }
+
+const ROUTE_PAGE_SIZE = 3;
 
 function RouteStartOption({
     mode,
