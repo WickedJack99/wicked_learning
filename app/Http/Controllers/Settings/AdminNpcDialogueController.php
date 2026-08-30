@@ -8,13 +8,16 @@ use App\Learning\Actions\CreateNpcDialogueTransition;
 use App\Learning\Actions\DeleteNpcDialogueNode;
 use App\Learning\Actions\DeleteNpcDialogueTransition;
 use App\Learning\Actions\UpdateNpcDialogueNode;
+use App\Learning\Queries\LoadEditableDialogueSoundSets;
 use App\Learning\Queries\LoadEditableNpcDialogueGraph;
 use App\Learning\Queries\LoadEditableTools;
 use App\Learning\Serializers\AdminNpcDialogueGraphSerializer;
+use App\Learning\Serializers\DialogueTypingSoundSetSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminNpcDialogueRules;
 use App\Models\LearningActivity;
+use App\Models\LearningDialogueSoundSet;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
@@ -28,8 +31,10 @@ class AdminNpcDialogueController extends Controller
     public function __construct(
         private readonly LoadEditableNpcDialogueGraph $loadDialogueGraph,
         private readonly LoadEditableTools $loadEditableTools,
+        private readonly LoadEditableDialogueSoundSets $loadEditableDialogueSoundSets,
         private readonly AdminNpcDialogueGraphSerializer $dialogueGraphSerializer,
         private readonly LearningToolSerializer $toolSerializer,
+        private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
         private readonly AdminNpcDialogueRules $rules,
         private readonly CreateNpcDialogueNode $createNode,
         private readonly UpdateNpcDialogueNode $updateNode,
@@ -50,6 +55,11 @@ class AdminNpcDialogueController extends Controller
             'tools' => $this->loadEditableTools
                 ->handle()
                 ->map(fn (LearningTool $tool): array => $this->toolSerializer->serialize($tool))
+                ->all(),
+            'dialogueSoundSets' => $this->loadEditableDialogueSoundSets
+                ->handle()
+                ->map(fn (LearningDialogueSoundSet $set): array => $this->dialogueSoundSetSerializer->admin($set))
+                ->values()
                 ->all(),
         ]);
     }

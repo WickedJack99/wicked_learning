@@ -6,6 +6,7 @@ use App\Http\Controllers\Settings\AdminActivityController;
 use App\Http\Controllers\Settings\AdminAiContentAuthoringController;
 use App\Http\Controllers\Settings\AdminAiController;
 use App\Http\Controllers\Settings\AdminAssetController;
+use App\Http\Controllers\Settings\AdminDialogueSoundSetController;
 use App\Http\Controllers\Settings\AdminItemController;
 use App\Http\Controllers\Settings\AdminLanguageController;
 use App\Http\Controllers\Settings\AdminLearningGroupController;
@@ -288,6 +289,9 @@ Route::middleware(['auth', 'verified', 'can:sounds.ro'])->group(function () {
 
     Route::get('settings/assets/reusable-sounds', [AdminAssetController::class, 'reusableSounds'])
         ->name('settings.assets.reusable-sounds');
+
+    Route::get('settings/assets/dialogue-sound-sets', [AdminDialogueSoundSetController::class, 'index'])
+        ->name('settings.assets.dialogue-sound-sets');
 });
 
 Route::middleware(['auth', 'verified', 'can:sounds.ru'])->group(function () {
@@ -299,6 +303,18 @@ Route::middleware(['auth', 'verified', 'can:sounds.ru'])->group(function () {
 
     Route::post('settings/assets/sound-media', [AdminAssetController::class, 'uploadSoundMedia'])
         ->name('settings.assets.sound-media.store');
+
+    Route::post('settings/assets/dialogue-sound-sets', [AdminDialogueSoundSetController::class, 'store'])
+        ->name('settings.assets.dialogue-sound-sets.store');
+
+    Route::patch('settings/assets/dialogue-sound-sets/{set}', [AdminDialogueSoundSetController::class, 'update'])
+        ->name('settings.assets.dialogue-sound-sets.update');
+
+    Route::post('settings/assets/dialogue-sound-sets/{set}/replace', [AdminDialogueSoundSetController::class, 'replace'])
+        ->name('settings.assets.dialogue-sound-sets.replace');
+
+    Route::post('settings/assets/dialogue-sound-sets/{set}/sounds/{letter}', [AdminDialogueSoundSetController::class, 'replaceSound'])
+        ->name('settings.assets.dialogue-sound-sets.sounds.replace');
 });
 
 Route::middleware(['auth', 'verified', 'can:sounds.rud'])->group(function () {

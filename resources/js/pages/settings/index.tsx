@@ -311,12 +311,13 @@ function readPersonalViewFromUrl(): PersonalView {
     const legacyPanel = searchParams.get('panel');
     const resolvedValue =
         value ??
-        ({
+        {
             appearance: 'appearance',
             notifications: 'notifications',
             profile: 'profile',
             security: 'security',
-        }[legacyPanel ?? ''] ?? null);
+        }[legacyPanel ?? ''] ??
+        null;
 
     return resolvedValue === 'appearance' ||
         resolvedValue === 'delete-account' ||
@@ -371,6 +372,7 @@ function readAssetViewFromUrl(): AssetView {
     const value = new URL(window.location.href).searchParams.get('asset');
 
     return value === 'sounds' ||
+        value === 'dialogue-sounds' ||
         value === 'tools' ||
         value === 'items' ||
         value === 'cursors'

@@ -39,8 +39,8 @@ import {
     SettingsContentPane,
     SettingsSectionNavigation,
     SettingsSidebar,
-    type SettingsNavigationItem,
 } from '@/components/settings-configuration-shell';
+import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -59,6 +59,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { DialogueSoundSetSummary } from '@/features/settings/assets-world-objects-panel';
 import { useAppearance } from '@/hooks/use-appearance';
 import { uploadMediaFile } from '@/lib/media-upload';
 import { cn } from '@/lib/utils';
@@ -216,9 +217,11 @@ const edgeStyle = {
 
 export default function EditNpcDialogue({
     dialogueGraph,
+    dialogueSoundSets,
     tools,
 }: {
     dialogueGraph: DialogueGraphPayload;
+    dialogueSoundSets: DialogueSoundSetSummary[];
     tools: EditableTool[];
 }) {
     const { resolvedAppearance } = useAppearance();
@@ -504,6 +507,7 @@ export default function EditNpcDialogue({
                 processing={processing}
                 targetNodes={dialogueGraph.worldNodes}
                 title="Add dialogue node"
+                dialogueSoundSets={dialogueSoundSets}
                 tools={tools}
                 uploadingImageKey={uploadingImageKey}
             />
@@ -520,6 +524,7 @@ export default function EditNpcDialogue({
                 processing={processing}
                 targetNodes={dialogueGraph.worldNodes}
                 title="Edit dialogue node"
+                dialogueSoundSets={dialogueSoundSets}
                 tools={tools}
                 uploadingImageKey={uploadingImageKey}
             />
@@ -721,6 +726,7 @@ function StartNode({ data }: { data: SpecialNodeData; selected: boolean }) {
 }
 
 function DialogueNodeDialog({
+    dialogueSoundSets,
     errors,
     form,
     imageUploadErrors,
@@ -735,6 +741,7 @@ function DialogueNodeDialog({
     tools,
     uploadingImageKey,
 }: {
+    dialogueSoundSets: DialogueSoundSetSummary[];
     errors: Record<string, string>;
     form: DialogueForm;
     imageUploadErrors: Record<string, string>;
@@ -790,6 +797,7 @@ function DialogueNodeDialog({
 
                             {activeSection === 'content' ? (
                                 <DialogueContentFields
+                                    dialogueSoundSets={dialogueSoundSets}
                                     errors={errors}
                                     form={form}
                                     onChange={onChange}
@@ -910,10 +918,12 @@ function DialogueBasicsFields({
 }
 
 function DialogueContentFields({
+    dialogueSoundSets,
     errors,
     form,
     onChange,
 }: {
+    dialogueSoundSets: DialogueSoundSetSummary[];
     errors: Record<string, string>;
     form: DialogueForm;
     onChange: Dispatch<SetStateAction<DialogueForm>>;
@@ -1025,6 +1035,59 @@ function DialogueContentFields({
                 suffix="ms per character"
                 value={stringConfig(form.config.typingSpeed, '28')}
             />
+            <div className="mt-4 grid gap-3 rounded-md border border-[var(--settings-border-color)] p-3">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                        checked={Boolean(form.config.typingSoundEnabled)}
+                        className="size-4 rounded border-slate-300 text-[var(--settings-accent)] focus:ring-[var(--settings-accent)] dark:border-white/20 dark:bg-slate-950"
+                        onChange={(event) =>
+                            setConfigValue(
+                                onChange,
+                                'typingSoundEnabled',
+                                event.target.checked,
+                            )
+                        }
+                        type="checkbox"
+                    />
+                    Enable typing sound
+                </label>
+                <div className="grid gap-2">
+                    <Label htmlFor="dialogue-typing-sound-set">Sound set</Label>
+                    <Select
+                        onValueChange={(value) =>
+                            setConfigValue(
+                                onChange,
+                                'typingSoundSetId',
+                                value === 'default' ? null : Number(value),
+                            )
+                        }
+                        value={stringConfig(
+                            form.config.typingSoundSetId,
+                            'default',
+                        )}
+                    >
+                        <SelectTrigger id="dialogue-typing-sound-set">
+                            <SelectValue placeholder="Use default set" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="default">
+                                Use default set
+                            </SelectItem>
+                            {dialogueSoundSets.map((set) => (
+                                <SelectItem key={set.id} value={String(set.id)}>
+                                    {set.name}
+                                    {set.isDefault ? ' (default)' : ''}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        The next character stops the previous sound before
+                        playing, so typing sounds never overlap. Spaces remain
+                        quiet.
+                    </p>
+                </div>
+            </div>
             {form.type === 'reflection' ? (
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                     <ConfigTextField
@@ -2265,6 +2328,8 @@ function emptyDialogueForm(type: DialogueForm['type']): DialogueForm {
                       slideDurationSeconds: 0.6,
                       toolId: null,
                       typingSpeed: 28,
+                      typingSoundEnabled: false,
+                      typingSoundSetId: null,
                   },
         title:
             type === 'end'

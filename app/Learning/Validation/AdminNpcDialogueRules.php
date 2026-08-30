@@ -20,6 +20,8 @@ class AdminNpcDialogueRules
             ...$this->sceneAssetRules(),
             ...$this->answerEventRules(),
             'config.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
+            'config.typingSoundEnabled' => ['nullable', 'boolean'],
+            'config.typingSoundSetId' => ['nullable', 'integer', 'exists:learning_dialogue_sound_sets,id'],
             'graph_position_x' => ['nullable', 'integer'],
             'graph_position_y' => ['nullable', 'integer'],
         ];
@@ -39,6 +41,8 @@ class AdminNpcDialogueRules
             ...$this->sceneAssetRules(),
             ...$this->answerEventRules(),
             'config.toolId' => ['nullable', 'integer', 'exists:learning_tools,id'],
+            'config.typingSoundEnabled' => ['nullable', 'boolean'],
+            'config.typingSoundSetId' => ['nullable', 'integer', 'exists:learning_dialogue_sound_sets,id'],
             'graph_position_x' => ['sometimes', 'required', 'integer'],
             'graph_position_y' => ['sometimes', 'required', 'integer'],
         ];

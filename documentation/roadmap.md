@@ -131,7 +131,9 @@ popularity or public status. Participation remains optional.
 
 ### Optional expansion
 
-- Add map ambience and dedicated portal, tool-use and dialogue-typing sounds.
+- Add map ambience and dedicated portal and tool-use sounds. Dialogue-typing
+  sound sets now have an initial implementation; broader sound authoring and
+  additional sound layers remain future work.
 - Add currencies or merchant interactions only where their learning purpose is
   explicit and they do not recreate reward pressure.
 - Add map lenses, richer competence relationships and learner notes when their

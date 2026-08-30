@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, MessageCircle } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Button } from '@/components/ui/button';
+import { useDialogueTypingSoundPlayer } from '@/features/sounds/dialogue-typing-sound-player';
 import {
     addGrantedLearningTool,
     learningToolIsAvailable,
@@ -10,7 +11,12 @@ import {
 } from '@/features/tools/tool-selection';
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
-import type { LearningActivity, LearningTool, NpcDialogueNode } from '@/types';
+import type {
+    DialogueTypingSoundSet,
+    LearningActivity,
+    LearningTool,
+    NpcDialogueNode,
+} from '@/types';
 import { postJson } from './api';
 
 type NpcDialogueActivityProps = {
@@ -89,6 +95,17 @@ export function NpcDialogueActivity({
     const canGoBack = history.length > 0;
     const displayedText = currentNode?.body ?? '';
     const typingSpeed = numericConfig(currentNode?.config.typingSpeed, 28);
+    const configuredSoundSetId = numericConfig(
+        currentNode?.config.typingSoundSetId,
+        0,
+    );
+    const typingSoundSet =
+        activity.dialogueTypingSoundSets.find(
+            (set) => set.id === configuredSoundSetId,
+        ) ?? activity.dialogueTypingSoundSets.find((set) => set.isDefault);
+    const typingSoundEnabled =
+        Boolean(currentNode?.config.typingSoundEnabled) &&
+        typingSoundSet !== undefined;
     const persistDialogueState = useCallback(
         (nextNodeId: number | null, nextHistory: number[]) => {
             if (!playRunId) {
@@ -345,6 +362,8 @@ export function NpcDialogueActivity({
             reflection={reflection}
             text={displayedText}
             typingSpeed={typingSpeed}
+            typingSoundEnabled={typingSoundEnabled}
+            typingSoundSet={typingSoundSet}
         />
     );
 }
@@ -398,6 +417,8 @@ function NpcDialogueScene({
     reflection,
     text,
     typingSpeed,
+    typingSoundEnabled,
+    typingSoundSet,
 }: {
     answers: NpcAnswerOption[];
     canGoBack: boolean;
@@ -417,6 +438,8 @@ function NpcDialogueScene({
     reflection: string;
     text: string;
     typingSpeed: number;
+    typingSoundEnabled: boolean;
+    typingSoundSet: DialogueTypingSoundSet | undefined;
 }) {
     const backgroundImage = themedImage(
         currentNode.config.backgroundDark,
@@ -496,6 +519,9 @@ function NpcDialogueScene({
                         key={currentNode.id}
                         speed={typingSpeed}
                         text={text}
+                        soundSet={
+                            typingSoundEnabled ? typingSoundSet : undefined
+                        }
                     />
                     {grantedToolName ? (
                         <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">
@@ -761,8 +787,18 @@ function NpcAnswerOptions({
     );
 }
 
-function TypingText({ speed, text }: { speed: number; text: string }) {
+function TypingText({
+    soundSet,
+    speed,
+    text,
+}: {
+    soundSet: DialogueTypingSoundSet | undefined;
+    speed: number;
+    text: string;
+}) {
     const [visibleText, setVisibleText] = useState('');
+    const { play: playTypingSound, stop: stopTypingSound } =
+        useDialogueTypingSoundPlayer();
 
     useEffect(() => {
         if (!text) {
@@ -775,6 +811,20 @@ function TypingText({ speed, text }: { speed: number; text: string }) {
                 index += 1;
                 setVisibleText(text.slice(0, index));
 
+                if (soundSet && text[index - 1]?.trim()) {
+                    const character = text[index - 1].toLowerCase();
+                    const availableSounds = Object.values(soundSet.sounds);
+                    const sound =
+                        soundSet.sounds[character] ??
+                        availableSounds[
+                            Math.floor(Math.random() * availableSounds.length)
+                        ];
+
+                    if (sound) {
+                        playTypingSound(sound);
+                    }
+                }
+
                 if (index >= text.length) {
                     window.clearInterval(timer);
                 }
@@ -782,8 +832,11 @@ function TypingText({ speed, text }: { speed: number; text: string }) {
             Math.max(1, speed),
         );
 
-        return () => window.clearInterval(timer);
-    }, [speed, text]);
+        return () => {
+            window.clearInterval(timer);
+            stopTypingSound();
+        };
+    }, [playTypingSound, soundSet, speed, stopTypingSound, text]);
 
     return <p className="min-h-16 text-sm leading-6">{visibleText}</p>;
 }

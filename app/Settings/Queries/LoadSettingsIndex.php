@@ -11,6 +11,7 @@ use App\Ai\Queries\LoadActivityReviewTemplates;
 use App\Ai\Queries\LoadAiSettings;
 use App\Learning\Queries\LoadAdminLearningGroups;
 use App\Learning\Queries\LoadEditableActivityGraph;
+use App\Learning\Queries\LoadEditableDialogueSoundSets;
 use App\Learning\Queries\LoadEditableItems;
 use App\Learning\Queries\LoadEditableMap;
 use App\Learning\Queries\LoadEditableSounds;
@@ -25,6 +26,7 @@ use App\Learning\Serializers\AdminItemSerializer;
 use App\Learning\Serializers\AdminSoundSerializer;
 use App\Learning\Serializers\AdminToolSerializer;
 use App\Learning\Serializers\AdminWorldGraphSerializer;
+use App\Learning\Serializers\DialogueTypingSoundSetSerializer;
 use App\Learning\Serializers\EditableMapSerializer;
 use App\Learning\Serializers\LearningGroupSerializer;
 use App\Learning\Serializers\LearningItemSerializer;
@@ -33,6 +35,7 @@ use App\Localization\Queries\LoadLanguageAdministration;
 use App\Models\AccessChangeEvent;
 use App\Models\AccessRole;
 use App\Models\LearnerJournalFeedbackRequest;
+use App\Models\LearningDialogueSoundSet;
 use App\Models\LearningGroup;
 use App\Models\LearningItem;
 use App\Models\LearningMap;
@@ -70,6 +73,7 @@ class LoadSettingsIndex
         private readonly LoadEditableTools $loadEditableTools,
         private readonly LoadEditableItems $loadEditableItems,
         private readonly LoadEditableSounds $loadEditableSounds,
+        private readonly LoadEditableDialogueSoundSets $loadEditableDialogueSoundSets,
         private readonly LoadLearningMapAccessGroups $loadMapAccessGroups,
         private readonly LoadLearningGroupOptions $loadLearningGroupOptions,
         private readonly LoadLearningTopicOptions $loadLearningTopicOptions,
@@ -77,6 +81,7 @@ class LoadSettingsIndex
         private readonly AdminItemSerializer $adminItemSerializer,
         private readonly LearningItemSerializer $itemSerializer,
         private readonly AdminSoundSerializer $soundSerializer,
+        private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
         private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
@@ -167,13 +172,14 @@ class LoadSettingsIndex
     }
 
     /**
-     * @return array{items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>, visuals: array<int, array<string, mixed>>}
+     * @return array{dialogueSoundSets: array<int, array<string, mixed>>, items: array<int, array<string, mixed>>, sounds: array<int, array<string, mixed>>, tools: array<int, array<string, mixed>>, visuals: array<int, array<string, mixed>>}
      */
     private function emptyAssetsWorldObjects(): array
     {
         return [
             'items' => [],
             'sounds' => [],
+            'dialogueSoundSets' => [],
             'tools' => [],
             'visuals' => [],
         ];
@@ -369,6 +375,13 @@ class LoadSettingsIndex
                 ? $this->loadEditableSounds
                     ->handle()
                     ->map(fn (LearningSound $sound): array => $this->soundSerializer->serialize($sound))
+                    ->values()
+                    ->all()
+                : [],
+            'dialogueSoundSets' => $canReadSounds
+                ? $this->loadEditableDialogueSoundSets
+                    ->handle()
+                    ->map(fn (LearningDialogueSoundSet $set): array => $this->dialogueSoundSetSerializer->admin($set))
                     ->values()
                     ->all()
                 : [],

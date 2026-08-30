@@ -294,6 +294,7 @@ export type LearningActivity = {
     configuredItems: LearningItem[];
     configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
+    dialogueTypingSoundSets: DialogueTypingSoundSet[];
     completionChoicePrompt: string | null;
     feedbackGuidance: LearningFeedbackGuidance | null;
     npcDialogueNodes: NpcDialogueNode[];
@@ -356,6 +357,20 @@ export type LearningSound = {
     slug: string;
     url: string;
     volume: number;
+};
+
+export type DialogueTypingSound = {
+    id: number;
+    letter: string;
+    url: string;
+    volume: number;
+};
+
+export type DialogueTypingSoundSet = {
+    id: number;
+    isDefault: boolean;
+    name: string;
+    sounds: Record<string, DialogueTypingSound>;
 };
 
 export type NpcDialogueNode = {

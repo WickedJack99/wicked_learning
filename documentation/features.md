@@ -126,6 +126,12 @@ Implemented activity types are:
 - open practice pauses for learner-directed next steps, with an author-written
   invitation shown before the learner continues
 
+NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
+Authors enable this per speech bubble and may choose an authored sound set or
+the configured default. Spaces remain quiet and unsupported symbols reuse a
+random available letter sound; learners can still mute or lower effects sound
+through their existing sound preferences.
+
 Activity authors can optionally add feedback guidance for any activity: its
 purpose, what to notice in a learner response or action, and one possible next
 action. Playback presents this as a compact orientation aid, and the scoped AI
@@ -348,6 +354,10 @@ Admins can manage reusable images, animations, sounds, tools, items and cursor
 images. Image inputs reuse existing media paths instead of forcing duplicate
 uploads. Sound records include category, icon, volume, looping and optional
 duration metadata, and the browser player supports concurrent sound layers.
+Admins with sound-library access can also create complete WAV sound sets for
+dialogue typing, replace a set or an individual letter, add tags, and choose
+the default set. Set creation requires one file for each letter from `a.wav`
+through `z.wav`.
 
 The reusable visual library shows where each image is currently referenced
 before an author replaces or deletes it. Replacing an image updates those

@@ -215,8 +215,13 @@ support upload, download, select existing and clear; clearing removes the form
 reference and does not delete the underlying reusable file.
 
 Sounds are separate records because their volume, looping, duration and layered
-playback behavior differs from image assets. Activities can reference optional
-ambience while specialized renderers add other sound layers.
+playback behavior differs from image assets. Generic sounds remain suitable for
+ambience and one-shot effects; dialogue typing uses a separate set/letter model
+so an activity can reference a bounded, reusable 26-letter collection without
+copying audio URLs into every dialogue node. The learner serializer resolves
+only sets referenced by enabled dialogue nodes (plus the default when needed),
+and the dialogue player caches audio elements while using one active channel so
+successive letter sounds do not overlap.
 
 Presentation data is split between authenticated preferences, database-backed
 public/settings/journal palettes, map-specific visuals and authored Activity

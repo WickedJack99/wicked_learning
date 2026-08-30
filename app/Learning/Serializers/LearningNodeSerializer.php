@@ -10,6 +10,7 @@ use App\Learning\Services\NodeUnlockService;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningDialogueSoundSet;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\LearningTopic;
@@ -45,6 +46,7 @@ class LearningNodeSerializer
         $reviewContexts = $includeLearnerReviewContext && $user
             ? $this->reviewContexts($node, $user)
             : [];
+        $dialogueSoundSets = $this->dialogueSoundSets($node);
 
         return [
             ...$this->baseNode($node, null, [
@@ -61,6 +63,7 @@ class LearningNodeSerializer
                 ->map(fn (LearningActivity $activity): array => $this->activitySerializer->serialize(
                     $activity,
                     $reviewContexts[$activity->id] ?? null,
+                    $dialogueSoundSets,
                 ))
                 ->values(),
         ];
@@ -170,6 +173,56 @@ class LearningNodeSerializer
             'outgoingPortalLinks.targetNode.discoveries',
             'outgoingPortalLinks.targetNode.map',
         ]);
+    }
+
+    /**
+     * @return Collection<int, LearningDialogueSoundSet>
+     */
+    private function dialogueSoundSets(LearningNode $node): Collection
+    {
+        $enabledNodes = $node->activities
+            ->filter(fn (LearningActivity $activity): bool => $activity->type === 'npc_dialogue')
+            ->flatMap(fn (LearningActivity $activity) => $activity->npcDialogueNodes)
+            ->filter(function ($dialogueNode): bool {
+                $config = is_array($dialogueNode->config) ? $dialogueNode->config : [];
+
+                return (bool) ($config['typingSoundEnabled'] ?? false);
+            });
+
+        if ($enabledNodes->isEmpty()) {
+            return collect();
+        }
+
+        $ids = $enabledNodes
+            ->map(function ($dialogueNode): int {
+                $config = is_array($dialogueNode->config) ? $dialogueNode->config : [];
+
+                return is_numeric($config['typingSoundSetId'] ?? null)
+                    ? (int) $config['typingSoundSetId']
+                    : 0;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+        $usesDefault = $enabledNodes->contains(function ($dialogueNode): bool {
+            $config = is_array($dialogueNode->config) ? $dialogueNode->config : [];
+
+            return ! is_numeric($config['typingSoundSetId'] ?? null);
+        });
+
+        return LearningDialogueSoundSet::query()
+            ->with('sounds')
+            ->where(function ($query) use ($ids, $usesDefault): void {
+                if ($ids->isNotEmpty()) {
+                    $query->whereIn('id', $ids->all());
+                }
+
+                if ($usesDefault) {
+                    $query->orWhere('is_default', true);
+                }
+            })
+            ->get()
+            ->keyBy('id');
     }
 
     /**

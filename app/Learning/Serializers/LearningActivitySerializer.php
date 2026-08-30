@@ -7,6 +7,7 @@ use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
+use App\Models\LearningDialogueSoundSet;
 use App\Models\LearningItem;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningSound;
@@ -23,14 +24,18 @@ class LearningActivitySerializer
         private readonly SharedTaskStateSerializer $sharedTaskState,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
         private readonly ActivityCompletionChoiceConfiguration $completionChoice,
+        private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
     ) {}
 
     /**
      * @param  Collection<int, LearnerReflection>|null  $reviewReflections
      * @return array<string, mixed>
      */
-    public function serialize(LearningActivity $activity, ?Collection $reviewReflections = null): array
-    {
+    public function serialize(
+        LearningActivity $activity,
+        ?Collection $reviewReflections = null,
+        ?Collection $dialogueSoundSets = null,
+    ): array {
         return [
             'id' => $activity->id,
             'slug' => $activity->slug,
@@ -42,6 +47,9 @@ class LearningActivitySerializer
             'completionChoicePrompt' => $this->completionChoice->forActivity($activity),
             'configuredItems' => $this->configuredItems($activity),
             'configuredSounds' => $this->configuredSounds($activity),
+            'dialogueTypingSoundSets' => $activity->type === 'npc_dialogue'
+                ? $this->configuredDialogueSoundSets($activity, $dialogueSoundSets)
+                : [],
             'configuredTool' => $this->configuredTool($activity),
             'npcDialogueNodes' => $activity->npcDialogueNodes
                 ->map(fn (NpcDialogueNode $node): array => $this->npcDialogueNode($node))
@@ -116,6 +124,58 @@ class LearningActivitySerializer
                 'playSeconds' => $sound->play_seconds,
                 'loop' => $sound->loop,
             ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, LearningDialogueSoundSet>|null  $dialogueSoundSets
+     * @return array<int, array<string, mixed>>
+     */
+    private function configuredDialogueSoundSets(LearningActivity $activity, ?Collection $dialogueSoundSets): array
+    {
+        $nodes = $activity->npcDialogueNodes;
+        $enabledNodes = $nodes->filter(function (NpcDialogueNode $node): bool {
+            $config = is_array($node->config) ? $node->config : [];
+
+            return (bool) ($config['typingSoundEnabled'] ?? false);
+        });
+
+        if ($enabledNodes->isEmpty()) {
+            return [];
+        }
+
+        $ids = $enabledNodes
+            ->map(function (NpcDialogueNode $node): int {
+                $config = is_array($node->config) ? $node->config : [];
+                $value = $config['typingSoundSetId'] ?? null;
+
+                return is_numeric($value) ? (int) $value : 0;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+        $usesDefault = $enabledNodes->contains(function (NpcDialogueNode $node): bool {
+            $config = is_array($node->config) ? $node->config : [];
+
+            return ! is_numeric($config['typingSoundSetId'] ?? null);
+        });
+
+        $sets = $dialogueSoundSets ?? LearningDialogueSoundSet::query()
+            ->with('sounds')
+            ->where(function ($query) use ($ids, $usesDefault): void {
+                if ($ids->isNotEmpty()) {
+                    $query->whereIn('id', $ids->all());
+                }
+
+                if ($usesDefault) {
+                    $query->orWhere('is_default', true);
+                }
+            })
+            ->get();
+
+        return $sets
+            ->map(fn (LearningDialogueSoundSet $set): array => $this->dialogueSoundSetSerializer->learner($set))
             ->values()
             ->all();
     }

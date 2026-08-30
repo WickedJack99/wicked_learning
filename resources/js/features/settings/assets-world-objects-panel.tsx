@@ -1,10 +1,18 @@
-import { Hammer, Image, MousePointer2, Music, Package } from 'lucide-react';
+import {
+    Hammer,
+    Image,
+    MessageCircle,
+    MousePointer2,
+    Music,
+    Package,
+} from 'lucide-react';
 import {
     SettingsNestedWorkspace,
     SettingsSectionNavigation,
 } from '@/components/settings-configuration-shell';
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { CursorImageSettingsPanel } from '@/features/settings/cursor-image-settings-panel';
+import AdminDialogueSoundSetsPage from '@/pages/settings/assets/dialogue-sound-sets';
 import AdminItemsPage from '@/pages/settings/assets/items';
 import type { AdminItem } from '@/pages/settings/assets/items';
 import AdminMediaAssets from '@/pages/settings/assets/media';
@@ -15,15 +23,27 @@ import type { AdminTool } from '@/pages/settings/assets/tools';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { LearningSound } from '@/types';
 
+export type DialogueSoundSetSummary = {
+    id: number;
+    isDefault: boolean;
+    letters: string[];
+    name: string;
+    slug: string;
+    soundCount: number;
+    tags: string[];
+};
+
 export type AssetsWorldObjectsSection =
     | 'cursors'
     | 'items'
+    | 'dialogue-sounds'
     | 'sounds'
     | 'tools'
     | 'visuals';
 
 export type AssetsWorldObjectsSettings = {
     items: AdminItem[];
+    dialogueSoundSets: DialogueSoundSetSummary[];
     sounds: LearningSound[];
     tools: AdminTool[];
     visuals: ReusableMediaAsset[];
@@ -51,6 +71,12 @@ const sections = [
         icon: Music,
         key: 'sounds',
         label: 'Sounds',
+    },
+    {
+        description: 'Letter-keyed speech bubble sounds for dialogue typing.',
+        icon: MessageCircle,
+        key: 'dialogue-sounds',
+        label: 'Dialogue typing',
     },
     {
         description: 'Inspectable tools and map interaction helpers.',
@@ -83,6 +109,10 @@ export function AssetsWorldObjectsPanel({
 }: Props) {
     const visibleSections = sections.filter((section) => {
         if (section.key === 'sounds') {
+            return canViewSounds;
+        }
+
+        if (section.key === 'dialogue-sounds') {
             return canViewSounds;
         }
 
@@ -139,6 +169,13 @@ export function AssetsWorldObjectsPanel({
 
             {resolvedSection === 'sounds' ? (
                 <AdminSoundsPage embedded sounds={assets.sounds} />
+            ) : null}
+
+            {resolvedSection === 'dialogue-sounds' ? (
+                <AdminDialogueSoundSetsPage
+                    embedded
+                    soundSets={assets.dialogueSoundSets}
+                />
             ) : null}
 
             {resolvedSection === 'cursors' && publicPresentation ? (

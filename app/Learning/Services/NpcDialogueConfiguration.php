@@ -111,6 +111,8 @@ class NpcDialogueConfiguration
             'journalTopic' => '',
             'journalSubtopic' => '',
             'typingSpeed' => 28,
+            'typingSoundEnabled' => false,
+            'typingSoundSetId' => null,
             'bubbleColorDark' => '#0f172a',
             'bubbleBorderColorDark' => '#2dd4bf',
             'bubbleOpacityDark' => 92,
