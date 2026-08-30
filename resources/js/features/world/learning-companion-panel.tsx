@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, Compass } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { LearningCompanionDialogue } from '@/features/world/learning-companion-dialogue';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type { LearningCompanion } from '@/types';
@@ -58,6 +59,8 @@ export function LearningCompanionPanel({
                     {companion.message}
                 </p>
             </div>
+
+            <LearningCompanionDialogue companion={companion} />
 
             {contextEntries.length > 0 ? (
                 <dl className="grid gap-2 border-t border-[var(--map-side-control-panel-border-color)] pt-3">

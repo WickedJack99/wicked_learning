@@ -57,6 +57,7 @@ export type LearningCompanionDialogueNode = {
     next?: string | null;
     prompt?: string;
     response_mode?: 'choice' | 'message';
+    title?: string;
     type: 'ai' | 'choice' | 'end' | 'message';
 };
 

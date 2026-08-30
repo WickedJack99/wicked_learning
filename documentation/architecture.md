@@ -180,11 +180,13 @@ component. Its default lower-left position is shared by desk, bookmark and
 activity surfaces; the world map supplies a map-search placement that reserves
 a slot immediately to the search control's right.
 
-This is a runtime orientation and bounded React Flow graph authoring slice, not
-yet a provider AI runtime. Future AI turns must reuse the validated
-capability contract, resolve navigation on the server and keep the deterministic
-fallback usable when no provider is available. AI must not receive direct
-authority to navigate, mutate content or emit arbitrary URLs.
+The learner launcher traverses assigned message, choice and end nodes locally,
+and resolves graph navigation keys against the server-provided context actions.
+AI nodes currently disclose that provider execution is unavailable rather than
+pretending to answer. Future AI turns must reuse the validated capability
+contract, resolve navigation on the server and keep this deterministic fallback
+usable when no provider is available. AI must not receive direct authority to
+navigate, mutate content or emit arbitrary URLs.
 
 ## AI And Content API
 
