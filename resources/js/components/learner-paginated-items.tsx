@@ -1,7 +1,6 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { PaginationControls } from '@/components/pagination-controls';
 import { cn } from '@/lib/utils';
 
 export function LearnerPaginatedItems<T>({
@@ -25,10 +24,33 @@ export function LearnerPaginatedItems<T>({
     paginationTextClassName?: string;
     renderItem: (item: T) => ReactNode;
 }) {
-    const t = usePlatformTranslation();
     const [page, setPage] = useState(0);
+    const [reservedContentHeight, setReservedContentHeight] = useState(0);
+    const contentRef = useRef<HTMLDivElement>(null);
     const pageCount = Math.ceil(items.length / pageSize);
     const currentPage = Math.min(page, Math.max(0, pageCount - 1));
+
+    const rememberContentHeight = useCallback(() => {
+        const contentHeight =
+            contentRef.current?.getBoundingClientRect().height;
+
+        if (contentHeight === undefined) {
+            return;
+        }
+
+        setReservedContentHeight((currentHeight) =>
+            Math.max(currentHeight, contentHeight),
+        );
+    }, []);
+
+    useLayoutEffect(() => {
+        rememberContentHeight();
+    }, [currentPage, rememberContentHeight]);
+
+    const changePage = (nextPage: number) => {
+        rememberContentHeight();
+        setPage(nextPage - 1);
+    };
 
     if (items.length === 0) {
         return emptyState;
@@ -36,70 +58,35 @@ export function LearnerPaginatedItems<T>({
 
     return (
         <>
-            <div className={className}>
+            <div
+                className={className}
+                ref={contentRef}
+                style={{
+                    minHeight:
+                        reservedContentHeight > 0
+                            ? reservedContentHeight
+                            : undefined,
+                }}
+            >
                 {items
                     .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
                     .map(renderItem)}
             </div>
-            {pageCount > 1 ? (
-                <nav
-                    aria-label={
-                        paginationLabel ??
-                        t('common.pagination.navigation', 'Pagination')
-                    }
-                    className={paginationClassName}
-                >
-                    <button
-                        aria-label={t(
-                            'common.pagination.previous',
-                            'Previous items',
-                        )}
-                        className={cn(
-                            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]',
-                            paginationButtonClassName,
-                        )}
-                        disabled={currentPage === 0}
-                        onClick={() =>
-                            setPage((value) => Math.max(0, value - 1))
-                        }
-                        type="button"
-                    >
-                        <ChevronLeft className="size-4" />
-                        {t('common.pagination.previous_short', 'Previous')}
-                    </button>
-                    <span
-                        aria-live="polite"
-                        role="status"
-                        className={paginationTextClassName}
-                    >
-                        {t(
-                            'common.pagination.page',
-                            'Page :current of :total',
-                            {
-                                current: currentPage + 1,
-                                total: pageCount,
-                            },
-                        )}
-                    </span>
-                    <button
-                        aria-label={t('common.pagination.next', 'Next items')}
-                        className={cn(
-                            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]',
-                            paginationButtonClassName,
-                        )}
-                        disabled={currentPage === pageCount - 1}
-                        onClick={() =>
-                            setPage((value) =>
-                                Math.min(pageCount - 1, value + 1),
-                            )
-                        }
-                        type="button"
-                    >
-                        {t('common.pagination.next_short', 'Next')}
-                        <ChevronRight className="size-4" />
-                    </button>
-                </nav>
-            ) : null}
+            <PaginationControls
+                buttonClassName={cn(
+                    'text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]',
+                    paginationButtonClassName,
+                )}
+                className={paginationClassName}
+                currentPage={currentPage + 1}
+                label={paginationLabel}
+                onPageChange={changePage}
+                pageCount={pageCount}
+                textClassName={cn(
+                    'text-[var(--learner-muted-text)]',
+                    paginationTextClassName,
+                )}
+            />
         </>
     );
 }

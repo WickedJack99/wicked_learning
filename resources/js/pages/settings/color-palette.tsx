@@ -233,7 +233,7 @@ export default function ColorPaletteSettings({
     publicPresentation,
 }: ColorPaletteSettingsProps) {
     const [section, setSection] = useState<PaletteSection>(
-        publicPresentation ? 'presentation' : journal ? 'journal' : 'maps',
+        publicPresentation ? 'readability' : journal ? 'journal' : 'maps',
     );
     const [mode, setMode] = useState<ConfigThemeMode>('dark');
     const [presentationDraft, setPresentationDraft] = useState(() =>

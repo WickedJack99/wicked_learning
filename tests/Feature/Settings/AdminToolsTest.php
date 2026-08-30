@@ -161,6 +161,8 @@ test('admin users can paginate reusable image assets', function () {
         ->assertJsonPath('pagination.total', 4);
 
     expect($response->json('assets'))->toHaveCount(2);
+    expect(array_is_list($response->json('assets')))->toBeTrue()
+        ->and($response->json('assets.0.url'))->toContain('picker-');
 });
 
 test('admin users can filter reusable image assets by tag', function () {

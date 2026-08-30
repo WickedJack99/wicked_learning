@@ -1,7 +1,5 @@
 import { Link, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    ArrowRight,
     GitBranch,
     Map as MapIcon,
     Network,
@@ -11,13 +9,13 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsNestedWorkspace,
     SettingsSectionButton,
     SettingsSectionNavigation,
 } from '@/components/settings-configuration-shell';
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
-import { Button } from '@/components/ui/button';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { WorldBuilderPanel } from '@/pages/settings/worlds';
@@ -263,43 +261,26 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                         </div>
                     </div>
 
-                    <footer className="flex shrink-0 items-center justify-between border-t border-[var(--settings-border-color)] pt-3">
-                        <Button
-                            disabled={currentPage === 0}
-                            onClick={() => setPage((value) => value - 1)}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                        >
-                            <ArrowLeft className="size-4" />
-                            {t(
-                                'settings.world_builder.review_queue.previous',
-                                'Previous',
+                    <footer className="shrink-0 border-t border-[var(--settings-border-color)] pt-3">
+                        <PaginationControls
+                            buttonClassName="text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)]"
+                            currentPage={currentPage + 1}
+                            label={t(
+                                'settings.world_builder.review_queue.pagination',
+                                'Review queue pagination',
                             )}
-                        </Button>
-                        <span className="text-xs text-[var(--settings-muted-text)]">
-                            {t(
-                                'settings.world_builder.review_queue.page',
-                                'Page :current of :total',
-                                {
-                                    current: currentPage + 1,
-                                    total: pageCount,
-                                },
-                            )}
-                        </span>
-                        <Button
-                            disabled={currentPage >= pageCount - 1}
-                            onClick={() => setPage((value) => value + 1)}
-                            size="sm"
-                            type="button"
-                            variant="ghost"
-                        >
-                            {t(
+                            nextLabel={t(
                                 'settings.world_builder.review_queue.next',
                                 'Next',
                             )}
-                            <ArrowRight className="size-4" />
-                        </Button>
+                            onPageChange={(nextPage) => setPage(nextPage - 1)}
+                            pageCount={pageCount}
+                            previousLabel={t(
+                                'settings.world_builder.review_queue.previous',
+                                'Previous',
+                            )}
+                            textClassName="text-xs text-[var(--settings-muted-text)]"
+                        />
                     </footer>
                 </>
             )}

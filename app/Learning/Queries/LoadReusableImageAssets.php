@@ -99,6 +99,7 @@ class LoadReusableImageAssets
                     'url' => $asset['url'],
                 ];
             })
+            ->values()
             ->all();
     }
 

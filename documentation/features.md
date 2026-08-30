@@ -87,7 +87,10 @@ navigation control, while route and revisit collections are paginated so the
 desktop desk does not need one growing collection scroll region. Revisit
 invitations explain both when the learner chose to return and when the item
 became ready, keeping the spacing decision visible without exposing internal
-scheduling details.
+scheduling details. Paginated collection controls keep their navigation
+footprint stable when the last page is shorter and allow a learner or author to
+enter a valid page number directly; values outside the available page range are
+rejected.
 
 ### Activities And Routes
 

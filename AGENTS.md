@@ -32,6 +32,12 @@ conversations as if they were current requirements.
 Scoped `AGENTS.md` files add path-specific engineering guidance. They do not
 override the product/documentation ownership above.
 
+## Repository Git workflow
+
+- Use the Git CLI for repository operations. Do not depend on the optional GitHub CLI or another Git-specific tool.
+- Treat `main` as the canonical branch and push completed requested changes to `main` unless the user explicitly names another branch.
+- Before committing or pushing, inspect the current branch and configured remote/tracking branch. Do not assume the remote is named `origin` or that an older branch such as `master` is active.
+
 ## Performance and scalability
 
 Treat performance as part of implementation quality, not only as a response to

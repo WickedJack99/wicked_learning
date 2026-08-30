@@ -149,7 +149,7 @@ export function AdminPresentationPanel({
     presentation,
 }: Props) {
     const [activeSection, setActiveSection] =
-        useState<PresentationSection>('backgrounds');
+        useState<PresentationSection>('branding');
     const [presentationDraft, setPresentationDraft] =
         useState<PublicPresentationSettings>(() =>
             structuredClone(presentation),

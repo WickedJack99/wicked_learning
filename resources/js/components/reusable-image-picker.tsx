@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -191,6 +192,7 @@ export function ReusableImagePicker({
                             total: payload.assets?.length ?? 0,
                         },
                     );
+                    setPage(payload.pagination?.currentPage ?? page);
                 })
                 .catch((nextError: unknown) => {
                     if (controller.signal.aborted) {
@@ -228,7 +230,7 @@ export function ReusableImagePicker({
             <DialogContent
                 aria-describedby={descriptionId}
                 aria-labelledby={headingId}
-                className="flex max-h-[min(48rem,calc(100svh-1rem))] w-full max-w-6xl flex-col overflow-hidden border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-[#111820]"
+                className="flex h-[calc(100svh-2rem)] max-h-[calc(100svh-2rem)] w-full max-w-6xl flex-col overflow-hidden border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-[#111820]"
                 overlayClassName="bg-slate-950/55 backdrop-blur-sm"
             >
                 <DialogHeader className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200 p-4 text-left dark:border-white/10">
@@ -348,7 +350,7 @@ export function ReusableImagePicker({
                                         normalizeMediaUrl(asset.url)
                                     }
                                     className={[
-                                        'group grid min-w-0 gap-3 rounded-lg border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                                        'group grid min-w-0 gap-2 rounded-lg border p-2 text-left transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
                                         normalizeMediaUrl(currentValue) ===
                                         normalizeMediaUrl(asset.url)
                                             ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_12%,transparent)]'
@@ -361,7 +363,7 @@ export function ReusableImagePicker({
                                     }}
                                     type="button"
                                 >
-                                    <span className="grid h-24 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
+                                    <span className="grid h-20 place-items-center overflow-hidden rounded-md bg-white dark:bg-slate-950/80">
                                         <img
                                             alt=""
                                             className="max-h-full max-w-full object-contain transition group-hover:scale-[1.02]"
@@ -401,62 +403,26 @@ export function ReusableImagePicker({
                 </div>
 
                 {!error && !isLoading && pagination.lastPage > 1 ? (
-                    <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 dark:border-white/10">
-                        <Button
-                            aria-label={t(
-                                'settings.assets.images.previous_page',
-                                'Previous image page',
-                            )}
-                            disabled={pagination.currentPage <= 1}
-                            onClick={() =>
-                                setPage((currentPage) =>
-                                    Math.max(1, currentPage - 1),
-                                )
-                            }
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            <ChevronLeft className="size-4" />
-                            {t('common.previous', 'Previous')}
-                        </Button>
-                        <span
-                            aria-live="polite"
-                            className="text-xs text-slate-500 dark:text-slate-400"
-                        >
-                            {t(
-                                'common.pagination.page',
-                                'Page :current of :total',
-                                {
-                                    current: pagination.currentPage,
-                                    total: pagination.lastPage,
-                                },
-                            )}
-                        </span>
-                        <Button
-                            aria-label={t(
-                                'settings.assets.images.next_page',
-                                'Next image page',
-                            )}
-                            disabled={
-                                pagination.currentPage >= pagination.lastPage
-                            }
-                            onClick={() =>
-                                setPage((currentPage) =>
-                                    Math.min(
-                                        pagination.lastPage,
-                                        currentPage + 1,
-                                    ),
-                                )
-                            }
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                        >
-                            {t('common.next', 'Next')}
-                            <ChevronRight className="size-4" />
-                        </Button>
-                    </div>
+                    <PaginationControls
+                        buttonClassName="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 transition hover:border-[var(--settings-accent)] hover:text-slate-950 focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none dark:border-white/10 dark:text-slate-300 dark:hover:text-white"
+                        className="shrink-0 border-t border-slate-200 px-4 py-3 dark:border-white/10"
+                        currentPage={page}
+                        label={t(
+                            'settings.assets.images.pagination',
+                            'Image pagination',
+                        )}
+                        nextLabel={t(
+                            'settings.assets.images.next_page',
+                            'Next image page',
+                        )}
+                        onPageChange={setPage}
+                        pageCount={pagination.lastPage}
+                        previousLabel={t(
+                            'settings.assets.images.previous_page',
+                            'Previous image page',
+                        )}
+                        textClassName="text-xs text-slate-500 dark:text-slate-400"
+                    />
                 ) : null}
             </DialogContent>
         </Dialog>

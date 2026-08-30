@@ -391,7 +391,7 @@ function writeAssetViewToUrl(section: AssetView): void {
 
 function readLearningSupportViewFromUrl(): LearningSupportView {
     if (typeof window === 'undefined') {
-        return 'support-signals';
+        return 'learner-messages';
     }
 
     const value = new URL(window.location.href).searchParams.get('support');
@@ -403,7 +403,7 @@ function readLearningSupportViewFromUrl(): LearningSupportView {
         value === 'organization-icons' ||
         value === 'competence-topics'
         ? value
-        : 'support-signals';
+        : 'learner-messages';
 }
 
 function writeLearningSupportViewToUrl(section: LearningSupportView): void {

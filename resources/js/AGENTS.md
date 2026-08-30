@@ -96,3 +96,6 @@ Activity playback should run on dedicated pages rather than over the map. Route 
 ## Validation
 
 Use targeted TypeScript, lint or build checks when touching shared UI helpers. For visual changes, verify the affected route in the browser when practical and report what viewport or state was checked.
+
+- After any UI or layout change, verify the rendered result at 100% browser zoom in the affected supported viewport(s), including the smallest relevant layout and the relevant desktop size. Check that primary navigation, pagination, dialogs and controls have usable bounding boxes fully inside their owning viewport or panel and are not clipped, obscured or overlapped. Source or DOM presence alone is not sufficient; repeat the check after state changes such as opening a dialog or changing pages.
+- When a settings menu has no explicit deep link, saved choice or other valid selection, focus its first visible item. Derive fallback selection from the rendered menu order so adding a new first item cannot leave the old default focused.
