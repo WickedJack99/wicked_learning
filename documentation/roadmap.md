@@ -161,8 +161,10 @@ The first bounded slices now let authors add optional response guidance to a
 message wall and let learners describe a response as an explanation, example,
 question or counterexample. The learner who asked a peer question can now mark
 one response as helpful, giving the exchange a learner-controlled
-resolution signal without ranking responses. Broader quality review and mentor
-digests remain future work.
+resolution signal without ranking responses. Learning Support now has a bounded
+needs-attention digest based on those existing resolution signals, without
+exposing additional learner text or ranking topics. Broader quality review and
+mentor digests remain future work.
 
 ## Product development
 

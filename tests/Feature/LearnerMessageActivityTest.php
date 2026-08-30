@@ -232,6 +232,8 @@ test('support requests stay out of peer walls and remain visible to learning sup
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('learningSupportSettings.learnerMessages.topics.0.messageCount', 1)
+            ->where('learningSupportSettings.learnerMessages.topics.0.helpfulMessageCount', 0)
+            ->where('learningSupportSettings.learnerMessages.topics.0.unconfirmedMessageCount', 1)
         );
 
     $this->actingAs($admin)

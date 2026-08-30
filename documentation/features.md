@@ -316,6 +316,10 @@ resolution view or page loads only that slice while preserving the existing
 moderation actions. Response histories are also paged per message, so a busy
 thread does not expand the moderation payload without limit; response hide,
 show and delete actions remain available on each loaded response page.
+The moderation directory also summarizes helpful and unresolved message counts
+per topic. A bounded needs-attention digest links staff directly to up to three
+topics with unresolved exchanges, while the existing topic navigation remains
+available for deliberate review.
 
 ### Journal, Competence And Collaboration
 

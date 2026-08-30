@@ -22,6 +22,16 @@ class LoadLearnerMessageModeration
                 'mapAsset.node:id,title',
             ])
             ->withCount('messages')
+            ->withCount([
+                'messages as helpful_message_count' => fn ($query) => $query->whereHas(
+                    'responses',
+                    fn ($responseQuery) => $responseQuery->whereNotNull('helpful_at'),
+                ),
+                'messages as unconfirmed_message_count' => fn ($query) => $query->whereDoesntHave(
+                    'responses',
+                    fn ($responseQuery) => $responseQuery->whereNotNull('helpful_at'),
+                ),
+            ])
             ->whereHas('messages')
             ->orderBy('title')
             ->get()
@@ -135,7 +145,9 @@ class LoadLearnerMessageModeration
         return [
             'id' => $topic->id,
             'title' => $topic->title,
+            'helpfulMessageCount' => (int) ($topic->helpful_message_count ?? 0),
             'messageCount' => (int) ($topic->messages_count ?? 0),
+            'unconfirmedMessageCount' => (int) ($topic->unconfirmed_message_count ?? 0),
             'mapAsset' => [
                 'id' => $topic->mapAsset->id,
                 'title' => $topic->mapAsset->node?->title

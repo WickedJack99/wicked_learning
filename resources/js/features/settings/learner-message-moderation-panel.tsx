@@ -24,6 +24,7 @@ type PaginationState = {
 };
 
 export type LearnerMessageModerationTopic = {
+    helpfulMessageCount: number;
     id: number;
     mapAsset: {
         id: number;
@@ -32,6 +33,7 @@ export type LearnerMessageModerationTopic = {
     };
     messageCount: number;
     title: string;
+    unconfirmedMessageCount: number;
 };
 
 export type LearnerMessageModerationMessage = {
@@ -327,6 +329,16 @@ export function LearnerMessageModerationPanel({
                             title={selectedTopic.mapAsset.title}
                         />
                     </div>
+
+                    <SupportDigest
+                        onSelectTopic={(topicId) => {
+                            setSelectedTopicId(topicId.toString());
+                            setResponseFilter('unconfirmed');
+                            setPage(1);
+                        }}
+                        t={t}
+                        topics={topics}
+                    />
 
                     <div
                         aria-label={t(
@@ -754,5 +766,102 @@ export function LearnerMessageModerationPanel({
                 </div>
             </SettingsContentPane>
         </SettingsConfigurationLayout>
+    );
+}
+
+function SupportDigest({
+    onSelectTopic,
+    t,
+    topics,
+}: {
+    onSelectTopic: (topicId: number) => void;
+    t: ReturnType<typeof usePlatformTranslation>;
+    topics: LearnerMessageModerationTopic[];
+}) {
+    const attentionTopics = [...topics]
+        .filter((topic) => topic.unconfirmedMessageCount > 0)
+        .sort(
+            (left, right) =>
+                right.unconfirmedMessageCount - left.unconfirmedMessageCount ||
+                right.messageCount - left.messageCount,
+        )
+        .slice(0, 3);
+
+    if (attentionTopics.length === 0) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="learner-message-digest-heading"
+            className="mt-4 rounded-lg border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent-color)_7%,transparent)] p-3"
+        >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                    <h2
+                        className="text-sm font-semibold text-[var(--settings-heading-color)]"
+                        id="learner-message-digest-heading"
+                    >
+                        {t(
+                            'settings.learner_messages.digest_title',
+                            'Needs attention',
+                        )}
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.learner_messages.digest_description',
+                            'Open topics with messages that do not yet have a learner-confirmed resolution.',
+                        )}
+                    </p>
+                </div>
+                <span
+                    aria-live="polite"
+                    className="text-xs font-medium text-[var(--settings-accent)]"
+                >
+                    {t(
+                        attentionTopics.length === 1
+                            ? 'settings.learner_messages.digest_topic_one'
+                            : 'settings.learner_messages.digest_topic_many',
+                        attentionTopics.length === 1
+                            ? ':count topic'
+                            : ':count topics',
+                        { count: attentionTopics.length },
+                    )}
+                </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {attentionTopics.map((topic) => (
+                    <button
+                        aria-label={t(
+                            'settings.learner_messages.digest_open_topic',
+                            'Open :topic; :count messages need learner-confirmed resolution',
+                            {
+                                count: topic.unconfirmedMessageCount,
+                                topic: `${topic.mapAsset.title} — ${topic.title}`,
+                            },
+                        )}
+                        className="rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-3 py-2 text-left text-xs transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                        key={topic.id}
+                        onClick={() => onSelectTopic(topic.id)}
+                        type="button"
+                    >
+                        <span className="block truncate font-medium text-[var(--settings-heading-color)]">
+                            {topic.mapAsset.title} — {topic.title}
+                        </span>
+                        <span className="mt-1 block text-[var(--settings-muted-text)]">
+                            {t(
+                                topic.unconfirmedMessageCount === 1
+                                    ? 'settings.learner_messages.digest_message_one'
+                                    : 'settings.learner_messages.digest_message_many',
+                                topic.unconfirmedMessageCount === 1
+                                    ? ':count message'
+                                    : ':count messages',
+                                { count: topic.unconfirmedMessageCount },
+                            )}
+                        </span>
+                    </button>
+                ))}
+            </div>
+        </section>
     );
 }
