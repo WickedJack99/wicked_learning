@@ -104,7 +104,7 @@
     "settings.activity_sources.concepts_choose": "Choose a concept to add",
     "settings.activity_sources.concepts_helper": "These labels explain which reusable learning ideas the source supports.",
     "settings.activity_sources.search_label": "Search saved sources",
-    "settings.activity_sources.search_placeholder": "Title, URL or publisher",
+    "settings.activity_sources.search_placeholder": "Title, URL, publisher, excerpt or anchor",
     "settings.activity_sources.search": "Search",
     "settings.activity_sources.searching": "Searching…",
     "settings.activity_sources.concept_filter_label": "Filter by concept",

@@ -27,11 +27,14 @@ class LoadEditableSourceRecords
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $like = "%{$search}%";
 
-                $query->where(function (Builder $query) use ($like): void {
+                $query->where(function (Builder $query) use ($like, $search): void {
                     $query
                         ->where('title', 'like', $like)
                         ->orWhere('url', 'like', $like)
-                        ->orWhere('publisher', 'like', $like);
+                        ->orWhere('publisher', 'like', $like)
+                        ->orWhere('anchor', 'like', $like)
+                        ->orWhere('excerpt', 'like', $like)
+                        ->orWhereJsonContains('concepts', $search);
                 });
             })
             ->when($concept !== '', function (Builder $query) use ($concept): void {

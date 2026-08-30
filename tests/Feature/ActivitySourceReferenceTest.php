@@ -184,14 +184,22 @@ test('authors can search and paginate saved source records', function () {
         'url' => 'https://example.com/unique-source',
     ]);
 
+    LearningSourceRecord::query()->create([
+        'anchor' => 'Chapter 4: Spaced retrieval',
+        'concepts' => ['Retrieval practice'],
+        'excerpt' => 'A useful explanation of returning to an idea later.',
+        'title' => 'A source found by its reusable excerpt',
+        'url' => 'https://example.com/reusable-excerpt',
+    ]);
+
     $this->actingAs($admin)
         ->getJson(route('settings.worlds.source-records.index').'?page=2&per_page=12')
         ->assertOk()
-        ->assertJsonCount(2, 'items')
+        ->assertJsonCount(3, 'items')
         ->assertJsonPath('pagination.currentPage', 2)
         ->assertJsonPath('pagination.lastPage', 2)
         ->assertJsonPath('pagination.perPage', 12)
-        ->assertJsonPath('pagination.total', 14);
+        ->assertJsonPath('pagination.total', 15);
 
     $this->actingAs($admin)
         ->getJson(route('settings.worlds.source-records.index').'?search=Unique%20Research')
@@ -199,6 +207,24 @@ test('authors can search and paginate saved source records', function () {
         ->assertJsonCount(1, 'items')
         ->assertJsonPath('items.0.title', 'A differently named source')
         ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?search=reusable%20excerpt')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('items.0.title', 'A source found by its reusable excerpt');
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?search=Chapter%204')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('items.0.title', 'A source found by its reusable excerpt');
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?search=Retrieval%20practice')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('items.0.title', 'A source found by its reusable excerpt');
 
     LearningSourceRecord::query()->create([
         'concepts' => ['Retrieval'],

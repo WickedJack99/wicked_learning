@@ -359,8 +359,9 @@ Authors can save a validated reference to the bounded source catalog from the
 activity editor and copy a saved record into another activity. This is an
 authoring convenience, not a live link: changing a catalog record does not
 rewrite an activity or an existing learner evidence snapshot. The picker
-searches and paginates catalog records so a growing catalog does not have to be
-loaded into every activity editor at once. Catalog records can carry reusable
+searches titles, URLs, publishers, anchors, excerpts and concept labels, and
+paginates catalog records so a growing catalog does not have to be loaded into
+every activity editor at once. Catalog records can carry reusable
 Concept Library labels; authors can filter catalog reuse by those labels while
 searching and paging. Copying a record includes those labels in the
 activity's provenance snapshot, and learners can inspect them alongside the

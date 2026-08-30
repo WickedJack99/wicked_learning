@@ -436,7 +436,7 @@ export function ActivitySourceReferenceFields({
                                 }}
                                 placeholder={t(
                                     'settings.activity_sources.search_placeholder',
-                                    'Title, URL or publisher',
+                                    'Title, URL, publisher, excerpt or anchor',
                                 )}
                                 value={sourceSearchInput}
                             />
