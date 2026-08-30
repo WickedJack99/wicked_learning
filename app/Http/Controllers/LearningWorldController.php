@@ -343,6 +343,16 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function postponeQuestionRecall(Request $request, LearningQuestion $question): JsonResponse
+    {
+        $item = $this->recallItems->postpone($request->user(), $question);
+
+        return response()->json([
+            'nextReviewAt' => $item->next_review_at?->toIso8601String(),
+            'questionId' => $question->id,
+        ]);
+    }
+
     public function answerNpcDialogue(Request $request, NpcDialogueNode $node): JsonResponse
     {
         $data = $request->validate([

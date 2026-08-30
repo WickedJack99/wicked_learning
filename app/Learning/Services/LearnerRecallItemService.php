@@ -46,6 +46,29 @@ class LearnerRecallItemService
     }
 
     /**
+     * Defer the next recall by one day without changing the learner's review
+     * outcome or count.
+     */
+    public function postpone(User $user, LearningQuestion $question): LearnerRecallItem
+    {
+        $question->loadMissing('activity.node.map');
+        abort_unless($this->canUseQuestion($user, $question), 404);
+
+        $item = LearnerRecallItem::query()
+            ->where('user_id', $user->id)
+            ->where('learning_question_id', $question->id)
+            ->firstOrFail();
+        $now = Carbon::now();
+        $nextReviewAt = ($item->next_review_at?->greaterThan($now)
+            ? $item->next_review_at
+            : $now)->addDay();
+
+        $item->forceFill(['next_review_at' => $nextReviewAt])->save();
+
+        return $item;
+    }
+
+    /**
      * @return array{intervalDays: int, nextReviewAt: string}|null
      */
     public function recordRecall(

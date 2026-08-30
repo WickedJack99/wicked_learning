@@ -99,6 +99,39 @@ test('a recall answer records a transparent next review interval', function () {
     Carbon::setTestNow();
 });
 
+test('a learner can defer a queued recall without changing its review history', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $question] = recallQuestionContext();
+    $item = LearnerRecallItem::query()->create([
+        'user_id' => $learner->id,
+        'learning_question_id' => $question->id,
+        'review_count' => 2,
+        'last_outcome' => 'correct',
+        'last_confidence' => 'settled',
+        'next_review_at' => now(),
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.postpone', $question))
+        ->assertOk()
+        ->assertJsonPath('questionId', $question->id)
+        ->assertJsonPath('nextReviewAt', '2026-08-31T14:30:00+00:00');
+
+    expect($item->refresh()->review_count)->toBe(2)
+        ->and($item->last_outcome)->toBe('correct')
+        ->and($item->last_confidence)->toBe('settled')
+        ->and($item->next_review_at?->toIso8601String())->toBe('2026-08-31T14:30:00+00:00');
+
+    $this->actingAs($learner)
+        ->get(route('home'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('desk.recallItems.0.isDue', false)
+            ->where('desk.recallItems.0.nextReviewAt', '2026-08-31T14:30:00+00:00')
+        );
+
+    Carbon::setTestNow();
+});
+
 test('a learner can remove a question from the private recall queue', function () {
     [$learner, $question] = recallQuestionContext();
 

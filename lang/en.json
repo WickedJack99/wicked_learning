@@ -729,6 +729,8 @@
     "home.learning_desk.recall.ready": "Ready to recall",
     "home.learning_desk.recall.next": "Next recall: :date",
     "home.learning_desk.recall.review_count": "Recalled :count times",
+    "home.learning_desk.recall.postpone": "Defer one day",
+    "home.learning_desk.recall.postpone_busy": "Deferring...",
     "learning.recall.next_review": "Next recall in :days days.",
     "learning.reflection.response_focus": "Response focus",
     "learning.reflection.explanation_helper": "Explain the idea in your own words and connect it to a reason or example.",

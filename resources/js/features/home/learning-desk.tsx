@@ -13,7 +13,10 @@ import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import { updateRevisitInvitation } from '@/features/journal/journal-client';
-import { removeRecallQuestion } from '@/features/learning/recall-items';
+import {
+    postponeRecallQuestion,
+    removeRecallQuestion,
+} from '@/features/learning/recall-items';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskSearch } from './learning-desk-search';
@@ -48,9 +51,20 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const [removingRecallQuestionId, setRemovingRecallQuestionId] = useState<
         number | null
     >(null);
-    const recallItems = desk.recallItems.filter(
-        (item) => !removedRecallQuestionIds.includes(item.questionId),
-    );
+    const [postponingRecallQuestionId, setPostponingRecallQuestionId] =
+        useState<number | null>(null);
+    const [postponedRecallDates, setPostponedRecallDates] = useState<
+        Record<number, string>
+    >({});
+    const recallItems = desk.recallItems
+        .filter((item) => !removedRecallQuestionIds.includes(item.questionId))
+        .map((item) => {
+            const nextReviewAt = postponedRecallDates[item.questionId];
+
+            return nextReviewAt
+                ? { ...item, isDue: false, nextReviewAt }
+                : item;
+        });
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
@@ -129,7 +143,10 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     }
 
     async function handleRecallRemoval(questionId: number) {
-        if (removingRecallQuestionId !== null) {
+        if (
+            removingRecallQuestionId !== null ||
+            postponingRecallQuestionId !== null
+        ) {
             return;
         }
 
@@ -143,6 +160,30 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
             setRecallError(true);
         } finally {
             setRemovingRecallQuestionId(null);
+        }
+    }
+
+    async function handleRecallPostpone(questionId: number) {
+        if (
+            removingRecallQuestionId !== null ||
+            postponingRecallQuestionId !== null
+        ) {
+            return;
+        }
+
+        setPostponingRecallQuestionId(questionId);
+        setRecallError(false);
+
+        try {
+            const response = await postponeRecallQuestion(questionId);
+            setPostponedRecallDates((current) => ({
+                ...current,
+                [questionId]: response.nextReviewAt,
+            }));
+        } catch {
+            setRecallError(true);
+        } finally {
+            setPostponingRecallQuestionId(null);
         }
     }
 
@@ -356,8 +397,15 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                 item={item}
                                                 key={item.questionId}
                                                 onRemove={handleRecallRemoval}
+                                                onPostpone={
+                                                    handleRecallPostpone
+                                                }
                                                 removing={
                                                     removingRecallQuestionId ===
+                                                    item.questionId
+                                                }
+                                                postponing={
+                                                    postponingRecallQuestionId ===
                                                     item.questionId
                                                 }
                                             />
@@ -371,7 +419,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         >
                                             {t(
                                                 'home.learning_desk.recall.error',
-                                                'That recall choice could not be removed. Try again.',
+                                                'That recall choice could not be updated. Try again.',
                                             )}
                                         </p>
                                     ) : null}
@@ -866,11 +914,15 @@ function RevisitInvitationRow({
 function RecallItemRow({
     item,
     onRemove,
+    onPostpone,
     removing,
+    postponing,
 }: {
     item: LearningDeskRecallItem;
     onRemove: (questionId: number) => Promise<void>;
+    onPostpone: (questionId: number) => Promise<void>;
     removing: boolean;
+    postponing: boolean;
 }) {
     const t = usePlatformTranslation();
 
@@ -921,12 +973,30 @@ function RecallItemRow({
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <button
+                    aria-busy={postponing}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-50"
+                    disabled={removing || postponing}
+                    onClick={() => void onPostpone(item.questionId)}
+                    type="button"
+                >
+                    <Clock3 aria-hidden="true" className="size-4" />
+                    {postponing
+                        ? t(
+                              'home.learning_desk.recall.postpone_busy',
+                              'Deferring...',
+                          )
+                        : t(
+                              'home.learning_desk.recall.postpone',
+                              'Defer one day',
+                          )}
+                </button>
+                <button
                     aria-label={t(
                         'home.learning_desk.recall.remove_label',
                         'Remove question from recall queue',
                     )}
                     className="inline-flex size-11 items-center justify-center rounded-md text-[var(--learner-muted-text)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-50"
-                    disabled={removing}
+                    disabled={removing || postponing}
                     onClick={() => void onRemove(item.questionId)}
                     type="button"
                 >
