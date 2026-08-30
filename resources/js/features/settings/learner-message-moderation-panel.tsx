@@ -34,6 +34,7 @@ export type LearnerMessageModerationTopic = {
             hiddenAt: string | null;
             hiddenBy: { id: number; name: string } | null;
             id: number;
+            responseType: 'explanation' | 'example' | 'question' | null;
         }>;
     }>;
     title: string;
@@ -329,6 +330,20 @@ export function LearnerMessageModerationPanel({
                                                         <p
                                                             className={`text-sm leading-6 ${response.hiddenAt ? 'text-slate-400 line-through opacity-70' : ''}`}
                                                         >
+                                                            {response.responseType ? (
+                                                                <span className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                                    {t(
+                                                                        `settings.learner_messages.response_kind_${response.responseType}`,
+                                                                        response.responseType ===
+                                                                            'explanation'
+                                                                            ? 'Explained an idea'
+                                                                            : response.responseType ===
+                                                                                'example'
+                                                                              ? 'Shared an example'
+                                                                              : 'Asked a question',
+                                                                    )}
+                                                                </span>
+                                                            ) : null}
                                                             {response.body}
                                                         </p>
                                                     </div>

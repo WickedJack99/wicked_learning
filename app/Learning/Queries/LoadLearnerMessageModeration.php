@@ -49,6 +49,7 @@ class LoadLearnerMessageModeration
                     'responses' => $message->responses->map(fn ($response): array => [
                         'id' => $response->id,
                         'body' => $response->body,
+                        'responseType' => $response->response_type,
                         'createdAt' => $response->created_at?->toIso8601String(),
                         'hiddenAt' => $response->hidden_at?->toIso8601String(),
                         'author' => [

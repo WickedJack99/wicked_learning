@@ -19,8 +19,14 @@ type MessageItem = {
     canRespond: boolean;
     hasResponded: boolean;
     id: number;
-    responses: Array<{ body: string; id: number }>;
+    responses: Array<{
+        body: string;
+        id: number;
+        responseType: 'explanation' | 'example' | 'question' | null;
+    }>;
 };
+
+type ResponseType = 'explanation' | 'example' | 'question';
 
 type ActivityFlowProps = {
     activity: LearningActivity;
@@ -284,6 +290,8 @@ export function MessageWallActivity({
     const [loading, setLoading] = useState(true);
     const [activeMessageId, setActiveMessageId] = useState<number | null>(null);
     const [responseBody, setResponseBody] = useState('');
+    const [responseType, setResponseType] =
+        useState<ResponseType>('explanation');
     const [responseError, setResponseError] = useState('');
     const [responding, setResponding] = useState(false);
 
@@ -324,11 +332,15 @@ export function MessageWallActivity({
         try {
             const response = await postJson<MessageResponse>(
                 `/learning/activities/${activity.id}/messages/${messageId}/responses`,
-                { body: responseBody.trim() },
+                {
+                    body: responseBody.trim(),
+                    response_type: responseType,
+                },
             );
             setState(response);
             setActiveMessageId(null);
             setResponseBody('');
+            setResponseType('explanation');
         } catch {
             setResponseError(
                 t(
@@ -346,6 +358,7 @@ export function MessageWallActivity({
             current === messageId ? null : messageId,
         );
         setResponseBody('');
+        setResponseType('explanation');
         setResponseError('');
     };
     const messages = state?.messages ?? [];
@@ -424,10 +437,12 @@ export function MessageWallActivity({
                                 }
                                 onToggleResponse={toggleResponse}
                                 responseBody={responseBody}
+                                responseType={responseType}
                                 responseError={responseError}
                                 responding={responding}
                                 responsePrompt={responsePrompt}
                                 setResponseBody={setResponseBody}
+                                setResponseType={setResponseType}
                                 theme={theme}
                             />
                         ))}
@@ -448,10 +463,12 @@ export function MessageWallActivity({
                                     }
                                     onToggleResponse={toggleResponse}
                                     responseBody={responseBody}
+                                    responseType={responseType}
                                     responseError={responseError}
                                     responding={responding}
                                     responsePrompt={responsePrompt}
                                     setResponseBody={setResponseBody}
+                                    setResponseType={setResponseType}
                                     theme={theme}
                                 />
                             </div>
@@ -470,10 +487,12 @@ function MessageCard({
     onSubmitResponse,
     onToggleResponse,
     responseBody,
+    responseType,
     responseError,
     responding,
     responsePrompt,
     setResponseBody,
+    setResponseType,
     theme,
 }: {
     allowResponses: boolean;
@@ -482,10 +501,12 @@ function MessageCard({
     onSubmitResponse: (messageId: number) => void;
     onToggleResponse: (messageId: number) => void;
     responseBody: string;
+    responseType: ResponseType;
     responseError: string;
     responding: boolean;
     responsePrompt: string;
     setResponseBody: (value: string) => void;
+    setResponseType: (value: ResponseType) => void;
     theme: MessageTheme;
 }) {
     const t = usePlatformTranslation();
@@ -507,7 +528,22 @@ function MessageCard({
                     style={{ borderColor: theme.border }}
                 >
                     {message.responses.map((response) => (
-                        <p key={response.id}>{response.body}</p>
+                        <div key={response.id}>
+                            {response.responseType ? (
+                                <p className="mb-1 text-xs font-semibold tracking-wide uppercase opacity-70">
+                                    {t(
+                                        `activities.messages.response_kind_${response.responseType}`,
+                                        response.responseType === 'explanation'
+                                            ? 'Explained an idea'
+                                            : response.responseType ===
+                                                'example'
+                                              ? 'Shared an example'
+                                              : 'Asked a question',
+                                    )}
+                                </p>
+                            ) : null}
+                            <p>{response.body}</p>
+                        </div>
                     ))}
                 </div>
             ) : null}
@@ -555,6 +591,52 @@ function MessageCard({
                                             {responsePrompt}
                                         </p>
                                     ) : null}
+                                    <label
+                                        className="grid gap-1 text-xs font-semibold"
+                                        htmlFor={`response-type-${message.id}`}
+                                    >
+                                        {t(
+                                            'activities.messages.response_type_label',
+                                            'What kind of help would you like to offer?',
+                                        )}
+                                        <span className="font-normal opacity-75">
+                                            {t(
+                                                'activities.messages.response_type_hint',
+                                                'Choose a shape for your response; it is not a grade.',
+                                            )}
+                                        </span>
+                                    </label>
+                                    <select
+                                        className="min-h-11 rounded-lg border bg-transparent px-3 py-2 text-sm outline-none focus:ring-2"
+                                        id={`response-type-${message.id}`}
+                                        onChange={(event) =>
+                                            setResponseType(
+                                                event.target
+                                                    .value as ResponseType,
+                                            )
+                                        }
+                                        style={{ borderColor: theme.border }}
+                                        value={responseType}
+                                    >
+                                        <option value="explanation">
+                                            {t(
+                                                'activities.messages.response_type_explanation',
+                                                'Explain an idea',
+                                            )}
+                                        </option>
+                                        <option value="example">
+                                            {t(
+                                                'activities.messages.response_type_example',
+                                                'Share an example',
+                                            )}
+                                        </option>
+                                        <option value="question">
+                                            {t(
+                                                'activities.messages.response_type_question',
+                                                'Ask a question',
+                                            )}
+                                        </option>
+                                    </select>
                                     <textarea
                                         aria-label={t(
                                             'activities.messages.response_label',

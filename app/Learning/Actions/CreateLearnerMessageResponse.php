@@ -8,14 +8,21 @@ use App\Models\User;
 
 class CreateLearnerMessageResponse
 {
-    public function handle(User $user, LearnerMessage $message, string $body): LearnerMessageResponse
-    {
+    public function handle(
+        User $user,
+        LearnerMessage $message,
+        string $body,
+        ?string $responseType = null,
+    ): LearnerMessageResponse {
         return LearnerMessageResponse::query()->firstOrCreate(
             [
                 'learner_message_id' => $message->id,
                 'user_id' => $user->id,
             ],
-            ['body' => trim($body)],
+            [
+                'body' => trim($body),
+                'response_type' => $responseType,
+            ],
         );
     }
 }

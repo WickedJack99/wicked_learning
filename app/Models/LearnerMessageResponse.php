@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learner_message_id',
     'user_id',
     'body',
+    'response_type',
     'hidden_at',
     'hidden_by_user_id',
 ])]

@@ -268,7 +268,10 @@ message. Responses are anonymous to learners, subject to the same moderation
 filtering, and managed by Learning Support alongside the original messages.
 Authors can optionally add short response guidance to help peers explain a clue,
 question or example; this guidance is an invitation, not a grade or required
-rubric.
+rubric. Responding learners can optionally describe their contribution as an
+explanation, an example or a question. The label gives the exchange a little
+orientation without measuring response quality, and older responses without a
+label remain valid.
 
 ### Journal, Competence And Collaboration
 

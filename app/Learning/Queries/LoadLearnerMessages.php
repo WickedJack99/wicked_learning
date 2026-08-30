@@ -70,12 +70,12 @@ class LoadLearnerMessages
 
     /**
      * @param  array<int, int|string>  $messageIds
-     * @return array<int|string, array<int, array{id: int, body: string}>>
+     * @return array<int|string, array<int, array{id: int, body: string, responseType: ?string}>>
      */
     private function visibleResponses(array $messageIds): array
     {
         $rankedResponses = DB::table('learner_message_responses')
-            ->select(['id', 'learner_message_id', 'body', 'created_at'])
+            ->select(['id', 'learner_message_id', 'body', 'response_type', 'created_at'])
             ->selectRaw('ROW_NUMBER() OVER (PARTITION BY learner_message_id ORDER BY created_at DESC, id DESC) AS response_rank')
             ->whereIn('learner_message_id', $messageIds)
             ->whereNull('hidden_at');
@@ -92,6 +92,9 @@ class LoadLearnerMessages
                 ->map(fn (object $response): array => [
                     'id' => (int) $response->id,
                     'body' => (string) $response->body,
+                    'responseType' => $response->response_type !== null
+                        ? (string) $response->response_type
+                        : null,
                 ])
                 ->values()
                 ->all())

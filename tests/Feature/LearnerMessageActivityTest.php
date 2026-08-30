@@ -269,10 +269,13 @@ test('learners can respond once to an opted-in peer message and support can mode
     $this->actingAs($learner)
         ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
             'body' => 'I noticed that too after slowing down.',
+            'response_type' => 'explanation',
         ])
         ->assertCreated()
         ->assertJsonPath('messages.0.hasResponded', true)
-        ->assertJsonPath('messages.0.responses.0.body', 'I noticed that too after slowing down.');
+        ->assertJsonPath('messages.0.responses.0.body', 'I noticed that too after slowing down.')
+        ->assertJsonPath('messages.0.responses.0.responseType', 'explanation')
+        ->assertJsonPath('response.responseType', 'explanation');
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
@@ -282,6 +285,7 @@ test('learners can respond once to an opted-in peer message and support can mode
         ->assertJsonCount(1, 'messages.0.responses');
 
     $response = LearnerMessageResponse::query()->sole();
+    expect($response->response_type)->toBe('explanation');
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,
         'roles' => [User::ROLE_ADMIN],
@@ -304,6 +308,42 @@ test('learners can respond once to an opted-in peer message and support can mode
         ->assertRedirect();
 
     expect($response->refresh()->hidden_at)->not->toBeNull();
+});
+
+test('learner message responses reject unsupported response types', function () {
+    $learner = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'typed-peer-conversation',
+        'title' => 'Typed peer conversation',
+    ]);
+    $wall = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'typed-peer-conversation-wall',
+        'type' => 'message_wall',
+        'title' => 'Typed peer conversation',
+        'config' => [
+            'messageTopicId' => $topic->id,
+            'messageAllowResponses' => true,
+        ],
+    ]);
+    $message = LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $otherLearner->id,
+        'body' => 'Try looking at the quieter detail.',
+        'audience' => 'peers',
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
+            'body' => 'I would like to understand that detail.',
+            'response_type' => 'unsupported',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('response_type');
+
+    expect(LearnerMessageResponse::query()->count())->toBe(0);
 });
 
 test('learner message response loading stays bounded as a wall grows', function () {
@@ -355,9 +395,9 @@ test('learner message response loading stays bounded as a wall grows', function 
         ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 3))->toBeTrue()
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['responses'])
         ->toMatchArray([
-            ['id' => 8, 'body' => 'Response 8'],
-            ['id' => 9, 'body' => 'Response 9'],
-            ['id' => 10, 'body' => 'Response 10'],
+            ['id' => 8, 'body' => 'Response 8', 'responseType' => null],
+            ['id' => 9, 'body' => 'Response 9', 'responseType' => null],
+            ['id' => 10, 'body' => 'Response 10', 'responseType' => null],
         ])
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
 });

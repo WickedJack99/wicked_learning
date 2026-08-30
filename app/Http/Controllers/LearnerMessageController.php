@@ -69,14 +69,21 @@ class LearnerMessageController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'min:2', 'max:280'],
+            'response_type' => ['nullable', 'string', 'in:explanation,example,question'],
         ]);
-        $response = $this->createResponse->handle($request->user(), $message, $data['body']);
+        $response = $this->createResponse->handle(
+            $request->user(),
+            $message,
+            $data['body'],
+            $data['response_type'] ?? null,
+        );
 
         return response()->json([
             ...$this->messages->handle($topic, $request->user(), 'peers', true),
             'response' => [
                 'body' => $response->body,
                 'id' => $response->id,
+                'responseType' => $response->response_type,
             ],
         ], $response->wasRecentlyCreated ? 201 : 200);
     }
