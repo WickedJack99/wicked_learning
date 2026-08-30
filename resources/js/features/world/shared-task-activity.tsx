@@ -30,6 +30,8 @@ export function SharedTaskActivity({
     const t = usePlatformTranslation();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const taskKind = sharedTaskKind(activity.config.taskKind);
+    const kindCopy = sharedTaskKindCopy(taskKind, t);
     const minimumLength = numericConfig(activity.config.minimumLength, 20);
     const prompt = stringValue(
         activity.config.prompt,
@@ -38,7 +40,7 @@ export function SharedTaskActivity({
     const instructions = stringValue(activity.config.instructions);
     const inputLabel = stringValue(
         activity.config.inputLabel,
-        'Your contribution',
+        kindCopy.inputLabel,
     );
     const canSubmit =
         Boolean(playRunId) &&
@@ -89,6 +91,9 @@ export function SharedTaskActivity({
     return (
         <div className="flex flex-1 flex-col gap-4">
             <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
+                <p className="text-xs font-semibold tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
+                    {kindCopy.label}
+                </p>
                 <p className="text-sm leading-6 text-slate-700 dark:text-slate-100">
                     {prompt}
                 </p>
@@ -119,8 +124,8 @@ export function SharedTaskActivity({
                         id={`shared-task-${activity.id}`}
                         onChange={(event) => setBody(event.target.value)}
                         placeholder={t(
-                            'activities.shared_task.placeholder',
-                            'Write a contribution for the shared task.',
+                            kindCopy.placeholderKey,
+                            kindCopy.placeholder,
                         )}
                         value={body}
                     />
@@ -161,6 +166,75 @@ export function SharedTaskActivity({
             )}
         </div>
     );
+}
+
+type SharedTaskKind = 'text' | 'question' | 'reflection';
+
+function sharedTaskKind(value: unknown): SharedTaskKind {
+    return value === 'question' || value === 'reflection' ? value : 'text';
+}
+
+function sharedTaskKindCopy(
+    kind: SharedTaskKind,
+    t: ReturnType<typeof usePlatformTranslation>,
+): {
+    inputLabel: string;
+    label: string;
+    placeholder: string;
+    placeholderKey: string;
+} {
+    if (kind === 'question') {
+        return {
+            inputLabel: t(
+                'activities.shared_task.kind.question.input_label',
+                'Your question',
+            ),
+            label: t(
+                'activities.shared_task.kind.question.label',
+                'Question for the group',
+            ),
+            placeholder: t(
+                'activities.shared_task.kind.question.placeholder',
+                'Ask a question that would help the group think further.',
+            ),
+            placeholderKey: 'activities.shared_task.kind.question.placeholder',
+        };
+    }
+
+    if (kind === 'reflection') {
+        return {
+            inputLabel: t(
+                'activities.shared_task.kind.reflection.input_label',
+                'Your reflection',
+            ),
+            label: t(
+                'activities.shared_task.kind.reflection.label',
+                'Reflection for the group',
+            ),
+            placeholder: t(
+                'activities.shared_task.kind.reflection.placeholder',
+                'Share what changed, surprised you, or remains open.',
+            ),
+            placeholderKey:
+                'activities.shared_task.kind.reflection.placeholder',
+        };
+    }
+
+    return {
+        inputLabel: t(
+            'activities.shared_task.kind.text.input_label',
+            'Your contribution',
+        ),
+        label: t(
+            'activities.shared_task.kind.text.label',
+            'Contribution for the group',
+        ),
+        placeholder: t(
+            'activities.shared_task.placeholder',
+            'Write a contribution for the shared task.',
+        ),
+        placeholderKey: 'activities.shared_task.placeholder',
+    };
 }
 
 function SharedTaskProgress({

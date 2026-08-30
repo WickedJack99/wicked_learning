@@ -65,6 +65,24 @@ test('shared task once per user repeat policy rejects a second accepted contribu
         ->assertStatus(422);
 });
 
+test('shared task submissions preserve the configured contribution kind', function () {
+    [$learner, $activity, $runId] = activeSharedTask([
+        'taskKind' => 'question',
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'What clue should we investigate next?',
+            'play_run_id' => $runId,
+        ])
+        ->assertOk();
+
+    expect(LearningSharedTaskSubmission::query()->firstOrFail()->metadata)
+        ->toMatchArray([
+            'taskKind' => 'question',
+        ]);
+});
+
 /** @return array{0: User, 1: LearningActivity, 2: string} */
 function activeSharedTask(array $config = []): array
 {

@@ -3,6 +3,7 @@
 namespace App\Learning\Actions;
 
 use App\Learning\Services\LearnerActivityAccessService;
+use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\User;
@@ -11,7 +12,10 @@ use Illuminate\Support\Facades\DB;
 /** Records an accepted learner contribution toward shared activity progress. */
 class SubmitSharedTaskContribution
 {
-    public function __construct(private readonly LearnerActivityAccessService $activityAccess) {}
+    public function __construct(
+        private readonly LearnerActivityAccessService $activityAccess,
+        private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
+    ) {}
 
     public function handle(User $user, LearningActivity $activity, string $playRunId, string $body): LearningSharedTaskSubmission
     {
@@ -20,6 +24,7 @@ class SubmitSharedTaskContribution
         $this->activityAccess->assertActive($user, $activity, $playRunId);
 
         $config = is_array($activity->config) ? $activity->config : [];
+        $taskKind = $this->sharedTaskConfig->taskKind($config);
         $validationMode = (string) ($config['validationMode'] ?? 'minimum_length');
         $minimumLength = max(0, (int) ($config['minimumLength'] ?? 20));
         $repeatPolicy = (string) ($config['repeatPolicy'] ?? 'once_per_user');
@@ -32,7 +37,7 @@ class SubmitSharedTaskContribution
             "The contribution must be at least {$minimumLength} characters.",
         );
 
-        return DB::transaction(function () use ($activity, $playRunId, $repeatPolicy, $text, $user, $validationMode): LearningSharedTaskSubmission {
+        return DB::transaction(function () use ($activity, $playRunId, $repeatPolicy, $taskKind, $text, $user, $validationMode): LearningSharedTaskSubmission {
             if ($repeatPolicy === 'once_per_user') {
                 $existing = LearningSharedTaskSubmission::query()
                     ->where('learning_activity_id', $activity->id)
@@ -53,6 +58,7 @@ class SubmitSharedTaskContribution
                 'accepted_at' => now(),
                 'metadata' => [
                     'bodyLength' => mb_strlen($text),
+                    'taskKind' => $taskKind,
                 ],
             ]);
         });

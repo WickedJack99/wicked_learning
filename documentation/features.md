@@ -149,6 +149,11 @@ Implemented activity types are:
 - open practice pauses for learner-directed next steps, with an author-written
   invitation shown before the learner continues
 
+Shared tasks can be authored as a general contribution, a question, or a
+reflection. Playback uses that kind to orient the learner and accepted
+submissions retain the kind as structured context; it does not grade or rank
+the contribution.
+
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or
 the configured default. Spaces remain quiet and unsupported symbols reuse a

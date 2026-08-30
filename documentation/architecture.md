@@ -83,6 +83,11 @@ points to the first Activity and can carry route-card images and colors.
 current Activity, run key, completion counts and completion time. Activity types
 can persist more specific state without putting it into the URL:
 
+Shared-task submissions keep their normalized authored task kind in metadata so
+later cooperation review can distinguish contribution, question and reflection
+without changing the shared-task completion counter or treating the kind as a
+quality judgment.
+
 The learner Paths query evaluates the existing per-user map and node state
 services in bounded candidate chunks, then serializes only the requested page
 of routes and its progress. This keeps the Inertia response and hydrated route

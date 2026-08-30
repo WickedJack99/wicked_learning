@@ -5,15 +5,20 @@ namespace App\Learning\Services;
 /** Normalizes the generic shared task configuration used by learner groups. */
 class SharedTaskActivityConfiguration
 {
+    /** @var list<string> */
+    private const TASK_KINDS = ['text', 'question', 'reflection'];
+
     /** @param array<string, mixed> $data @param array<string, mixed> $existing @return array<string, mixed> */
     public function fromData(array $data, array $existing = []): array
     {
+        $taskKind = $this->choice($data, 'shared_task_kind', $existing, 'taskKind', self::TASK_KINDS, 'text');
+
         return [
             ...$existing,
-            'taskKind' => $this->choice($data, 'shared_task_kind', $existing, 'taskKind', ['text', 'question', 'reflection'], 'text'),
+            'taskKind' => $taskKind,
             'prompt' => $this->string($data, 'shared_task_prompt', $existing, 'prompt', 'Add a useful contribution.'),
             'instructions' => $this->string($data, 'shared_task_instructions', $existing, 'instructions', ''),
-            'inputLabel' => $this->string($data, 'shared_task_input_label', $existing, 'inputLabel', 'Your contribution'),
+            'inputLabel' => $this->inputLabel($data, $existing, $taskKind),
             'threshold' => $this->integer($data, 'shared_task_threshold', $existing, 'threshold', 3, 1, 1000),
             'minimumLength' => $this->integer($data, 'shared_task_minimum_length', $existing, 'minimumLength', 20, 0, 10000),
             'repeatPolicy' => $this->choice($data, 'shared_task_repeat_policy', $existing, 'repeatPolicy', ['once_per_user', 'unlimited'], 'once_per_user'),
@@ -36,6 +41,34 @@ class SharedTaskActivityConfiguration
             'shared_task_validation_mode',
             'shared_task_cycle_mode',
         ])) !== [];
+    }
+
+    /** @param array<string, mixed> $config */
+    public function taskKind(array $config): string
+    {
+        $taskKind = (string) ($config['taskKind'] ?? 'text');
+
+        return in_array($taskKind, self::TASK_KINDS, true) ? $taskKind : 'text';
+    }
+
+    /** @param array<string, mixed> $data @param array<string, mixed> $existing */
+    private function inputLabel(array $data, array $existing, string $taskKind): string
+    {
+        if (array_key_exists('shared_task_input_label', $data)) {
+            return trim((string) $data['shared_task_input_label']);
+        }
+
+        $existingLabel = (string) ($existing['inputLabel'] ?? '');
+
+        if ($existingLabel !== '' && $existingLabel !== 'Your contribution') {
+            return $existingLabel;
+        }
+
+        return match ($taskKind) {
+            'question' => 'Your question',
+            'reflection' => 'Your reflection',
+            default => 'Your contribution',
+        };
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */
