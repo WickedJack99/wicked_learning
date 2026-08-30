@@ -2,6 +2,7 @@
 
 namespace App\Learning\Queries;
 
+use App\Learning\Services\ActivitySourceReferenceConfiguration;
 use App\Learning\Services\CompetenceVisualScale;
 use App\Learning\Services\LearnerEvidenceClaim;
 use App\Models\CompetenceTopicDefinition;
@@ -22,6 +23,7 @@ class LoadLearnerCompetenceMap
         private readonly CompetenceVisualScale $visualScale,
         private readonly LoadLearnerActivityCheckIns $checkIns,
         private readonly LearnerEvidenceClaim $evidenceClaim,
+        private readonly ActivitySourceReferenceConfiguration $sourceReferences,
     ) {}
 
     /**
@@ -180,7 +182,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -200,6 +202,7 @@ class LoadLearnerCompetenceMap
                     'evidenceRubric' => is_array($event->evidence_rubric)
                         ? array_values(array_filter($event->evidence_rubric, 'is_string'))
                         : [],
+                    'sources' => $this->sourceReferences->normalize($event->source_references),
                     'id' => $event->id,
                     'learningPurpose' => $event->learning_purpose,
                     'nodeHref' => $node

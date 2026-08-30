@@ -264,9 +264,11 @@ not create a grade or replace the activity's learning purpose.
 Activity authors can attach up to five source references with a title, URL,
 optional publisher, publication date, rights or licence, stable anchor and a
 short excerpt or location note. Learners can expand the Sources section during
-playback to inspect those references. Source references explain the basis of
-activity content; they are not learner evidence, grades or private learner
-data.
+playback to inspect those references. The competence evidence ledger snapshots
+the bounded references that were active when the learning moment was recorded,
+so later author edits do not rewrite its provenance. Source references explain
+the basis of activity content; they are not learner evidence, grades or private
+learner data.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

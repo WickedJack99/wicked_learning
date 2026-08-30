@@ -48,7 +48,7 @@ class ActivitySourceReferenceConfiguration
     /**
      * @return list<array<string, string|null>>
      */
-    private function normalize(mixed $value): array
+    public function normalize(mixed $value): array
     {
         if (! is_array($value)) {
             return [];

@@ -1,3 +1,5 @@
+import type { LearningSourceReference } from '@/types/learning';
+
 export type TopicSummary = {
     description: string | null;
     href: string;
@@ -64,6 +66,7 @@ export type TopicEvidenceLedgerEntry = {
     evidenceCriterion: string | null;
     evidenceRubric: string[];
     evidenceType: string;
+    sources: LearningSourceReference[];
     objective: string | null;
     learningPurpose: string | null;
     confidence: string | null;

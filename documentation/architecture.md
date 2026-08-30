@@ -180,9 +180,11 @@ outcome, confidence, calibration, attempt and assistance context. For question
 activities, calibration is a descriptive snapshot derived from the submitted
 confidence and answer outcome; it does not contribute a score. For explanation
 and transfer events it also stores up to three normalized rubric cues. The
-objective, purpose, criterion and cues are snapshots of the activity guidance
-at completion time, so later author edits do not rewrite the meaning of an
-earlier learning moment. When a route entry
+objective, purpose, criterion, cues and bounded source references are snapshots
+of the activity guidance at completion time, so later author edits do not
+rewrite the meaning or provenance of an earlier learning moment. Source
+references are normalized again when the evidence ledger is serialized. When a
+route entry
 timestamp is available, `latency_seconds` records elapsed wall-clock time from
 the learner's latest entry into that activity to completion. It is an internal
 observation, not a measure of attention and not a learner score.

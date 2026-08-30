@@ -151,6 +151,12 @@ test('a topic shows competence evidence encountered through its map', function (
         'contribution' => 1,
         'confidence' => 'leaning',
         'attempt_number' => 2,
+        'source_references' => [
+            [
+                'title' => 'Pattern field guide',
+                'url' => 'https://example.test/patterns',
+            ],
+        ],
     ]);
 
     $this->actingAs($learner)
@@ -164,6 +170,8 @@ test('a topic shows competence evidence encountered through its map', function (
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.confidence', 'leaning')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.attemptNumber', 2)
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.title', 'Pattern field guide')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.url', 'https://example.test/patterns')
         );
 });
 
@@ -321,6 +329,67 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
             ->where('user_id', $learner->id)
             ->value('attempt_number'))
         ->toBe(2);
+});
+
+test('activity evidence snapshots its source references', function () {
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([
+        ['topic' => 'Systems Thinking', 'weight' => 1],
+    ]);
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'sourceReferences' => [
+                [
+                    'title' => 'Original field guide',
+                    'url' => 'https://example.test/field-guide',
+                    'publisher' => 'Learning Lab',
+                    'excerpt' => 'The source context present during the activity.',
+                ],
+            ],
+        ],
+    ]);
+
+    app(LearnerCompetenceService::class)->awardActivityCompletion(
+        $learner,
+        $activity,
+        (string) Str::uuid(),
+    );
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'sourceReferences' => [
+                [
+                    'title' => 'Later replacement',
+                    'url' => 'https://example.test/later',
+                ],
+            ],
+        ],
+    ]);
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->firstOrFail()
+        ->source_references)->toBe([
+            [
+                'title' => 'Original field guide',
+                'url' => 'https://example.test/field-guide',
+                'publisher' => 'Learning Lab',
+                'publishedAt' => null,
+                'rights' => null,
+                'anchor' => null,
+                'excerpt' => 'The source context present during the activity.',
+            ],
+        ]);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('competenceMap.topics.0.visual.evidenceLedger.0.sources.0.title', 'Original field guide')
+            ->where('competenceMap.topics.0.visual.evidenceLedger.0.sources.0.url', 'https://example.test/field-guide')
+            ->where('competenceMap.topics.0.visual.evidenceLedger.0.sources.0.excerpt', 'The source context present during the activity.')
+        );
 });
 
 test('explanation and transfer evidence require an observable authored criterion', function () {

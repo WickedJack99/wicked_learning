@@ -1088,21 +1088,56 @@ function CompetenceReading({
 
                             const evidenceHref =
                                 evidence.activityHref ?? evidence.nodeHref;
+                            const sourceLinks =
+                                evidence.sources.length > 0 ? (
+                                    <div className="border-t border-cyan-200/10 px-2.5 pt-2 pb-2 text-xs text-slate-500">
+                                        <span className="mr-1 text-slate-400">
+                                            {translate(
+                                                'competence.evidence.sources',
+                                                'Sources',
+                                            )}
+                                            :
+                                        </span>
+                                        {evidence.sources.map(
+                                            (source, index) => (
+                                                <span
+                                                    key={`${source.url}-${index}`}
+                                                >
+                                                    {index > 0 ? ', ' : null}
+                                                    <a
+                                                        className="text-cyan-200 underline decoration-cyan-200/30 underline-offset-2 transition hover:text-white"
+                                                        href={source.url}
+                                                        rel="noreferrer"
+                                                        target="_blank"
+                                                    >
+                                                        {source.title}
+                                                    </a>
+                                                </span>
+                                            ),
+                                        )}
+                                    </div>
+                                ) : null;
 
                             return evidenceHref ? (
-                                <Link
-                                    className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2 transition hover:border-cyan-200/35 hover:bg-cyan-200/10"
-                                    href={evidenceHref}
+                                <div
+                                    className="rounded-md border border-white/10 bg-black/20 transition hover:border-cyan-200/35 hover:bg-cyan-200/10"
                                     key={evidence.id}
                                 >
-                                    {content}
-                                </Link>
+                                    <Link
+                                        className="block px-2.5 py-2"
+                                        href={evidenceHref}
+                                    >
+                                        {content}
+                                    </Link>
+                                    {sourceLinks}
+                                </div>
                             ) : (
                                 <div
                                     className="rounded-md border border-white/10 bg-black/20 px-2.5 py-2"
                                     key={evidence.id}
                                 >
                                     {content}
+                                    {sourceLinks}
                                 </div>
                             );
                         }}

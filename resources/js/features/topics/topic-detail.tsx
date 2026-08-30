@@ -977,18 +977,57 @@ function TopicCompetenceCard({
                                             ) : null}
                                         </span>
                                     );
+                                    const sourceLinks =
+                                        entry.sources.length > 0 ? (
+                                            <div className="border-t border-[var(--learner-border-color)] px-0 pt-2 pb-2 text-xs text-[var(--learner-muted-text)]">
+                                                <span className="mr-1">
+                                                    {t(
+                                                        'competence.evidence.sources',
+                                                        'Sources',
+                                                    )}
+                                                    :
+                                                </span>
+                                                {entry.sources.map(
+                                                    (source, index) => (
+                                                        <span
+                                                            key={`${source.url}-${index}`}
+                                                        >
+                                                            {index > 0
+                                                                ? ', '
+                                                                : null}
+                                                            <a
+                                                                className="text-[var(--learner-action-accent)] underline decoration-[var(--learner-action-accent)]/30 underline-offset-2 transition hover:text-[var(--learner-heading-text)]"
+                                                                href={
+                                                                    source.url
+                                                                }
+                                                                rel="noreferrer"
+                                                                target="_blank"
+                                                            >
+                                                                {source.title}
+                                                            </a>
+                                                        </span>
+                                                    ),
+                                                )}
+                                            </div>
+                                        ) : null;
 
                                     return entry.activityHref ? (
-                                        <Link
-                                            className="block py-3 transition hover:text-[var(--learner-action-accent)]"
-                                            href={entry.activityHref}
+                                        <div
+                                            className="transition hover:text-[var(--learner-action-accent)]"
                                             key={entry.id}
                                         >
-                                            {content}
-                                        </Link>
+                                            <Link
+                                                className="block py-3"
+                                                href={entry.activityHref}
+                                            >
+                                                {content}
+                                            </Link>
+                                            {sourceLinks}
+                                        </div>
                                     ) : (
                                         <div className="py-3" key={entry.id}>
                                             {content}
+                                            {sourceLinks}
                                         </div>
                                     );
                                 }}

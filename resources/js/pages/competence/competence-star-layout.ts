@@ -1,3 +1,5 @@
+import type { LearningSourceReference } from '@/types/learning';
+
 export type CompetenceTopic = {
     name: string;
     relatedTopic: {
@@ -22,6 +24,7 @@ export type CompetenceTopic = {
             evidenceCriterion: string | null;
             evidenceRubric: string[];
             evidenceType: string;
+            sources: LearningSourceReference[];
             objective: string | null;
             learningPurpose: string | null;
             confidence: string | null;

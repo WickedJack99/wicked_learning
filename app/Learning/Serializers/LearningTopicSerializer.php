@@ -153,6 +153,35 @@ class LearningTopicSerializer
                         'evidenceRubric' => is_array($entry['evidenceRubric'] ?? null)
                             ? array_values(array_filter($entry['evidenceRubric'], 'is_string'))
                             : [],
+                        'sources' => is_array($entry['sources'] ?? null)
+                            ? array_values(array_map(
+                                fn (array $source): array => [
+                                    'anchor' => is_string($source['anchor'] ?? null)
+                                        ? $source['anchor']
+                                        : null,
+                                    'excerpt' => is_string($source['excerpt'] ?? null)
+                                        ? $source['excerpt']
+                                        : null,
+                                    'publishedAt' => is_string($source['publishedAt'] ?? null)
+                                        ? $source['publishedAt']
+                                        : null,
+                                    'publisher' => is_string($source['publisher'] ?? null)
+                                        ? $source['publisher']
+                                        : null,
+                                    'rights' => is_string($source['rights'] ?? null)
+                                        ? $source['rights']
+                                        : null,
+                                    'title' => (string) $source['title'],
+                                    'url' => (string) $source['url'],
+                                ],
+                                array_filter(
+                                    $entry['sources'],
+                                    fn (mixed $source): bool => is_array($source)
+                                        && is_string($source['title'] ?? null)
+                                        && is_string($source['url'] ?? null),
+                                ),
+                            ))
+                            : [],
                         'id' => (int) ($entry['id'] ?? 0),
                         'learningPurpose' => is_string($entry['learningPurpose'] ?? null)
                             ? $entry['learningPurpose']

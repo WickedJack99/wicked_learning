@@ -12,6 +12,7 @@ class LearnerCompetenceService
     public function __construct(
         private readonly ActivityCompetenceConfiguration $activityCompetence,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+        private readonly ActivitySourceReferenceConfiguration $sourceReferences,
     ) {}
 
     public function awardActivityCompletion(
@@ -40,8 +41,9 @@ class LearnerCompetenceService
             : [];
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
         $objective = $this->activityCompetence->objectiveForActivity($activity);
+        $sourceReferences = $this->sourceReferences->forActivity($activity);
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -56,6 +58,9 @@ class LearnerCompetenceService
                     'evidence_rubric' => $evidenceRubric === []
                         ? null
                         : json_encode($evidenceRubric, JSON_THROW_ON_ERROR),
+                    'source_references' => $sourceReferences === []
+                        ? null
+                        : json_encode($sourceReferences, JSON_THROW_ON_ERROR),
                     'contribution' => $topic['weight'],
                     'outcome' => $outcome ?? 'completed',
                     'confidence' => $confidence,
