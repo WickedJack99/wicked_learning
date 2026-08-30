@@ -48,6 +48,7 @@ type NodePlayProps = {
 
 type CompletionOptions = {
     confidence?: QuestionConfidence;
+    confidenceAfterFeedback?: QuestionConfidence;
     endsRoute?: boolean;
     observedCues?: string[];
     outcome?: ReviewOutcome;
@@ -244,6 +245,7 @@ export default function NodePlay({
 
             const payload: {
                 confidence?: QuestionConfidence;
+                confidence_after_feedback?: QuestionConfidence;
                 ends_route?: boolean;
                 is_revisit: boolean;
                 observed_cues?: string[];
@@ -262,6 +264,11 @@ export default function NodePlay({
 
             if (options.confidence) {
                 payload.confidence = options.confidence;
+            }
+
+            if (options.confidenceAfterFeedback) {
+                payload.confidence_after_feedback =
+                    options.confidenceAfterFeedback;
             }
 
             if (options.outcome) {

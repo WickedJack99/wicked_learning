@@ -380,6 +380,7 @@ export function ActivityPlayer({
         activity: LearningActivity,
         options?: {
             confidence?: QuestionConfidence;
+            confidenceAfterFeedback?: QuestionConfidence;
             endsRoute?: boolean;
             observedCues?: string[];
             outcome?: ReviewOutcome;
@@ -405,6 +406,7 @@ export function ActivityPlayer({
             completedActivity: LearningActivity,
             options: {
                 confidence?: QuestionConfidence;
+                confidenceAfterFeedback?: QuestionConfidence;
                 observedCues?: string[];
                 outcome?: ReviewOutcome;
                 progressAlreadyMarked?: boolean;
@@ -412,6 +414,7 @@ export function ActivityPlayer({
         ) =>
             onComplete(completedActivity, {
                 confidence: options.confidence,
+                confidenceAfterFeedback: options.confidenceAfterFeedback,
                 endsRoute: completesRoute,
                 observedCues: options.observedCues,
                 outcome: options.outcome,

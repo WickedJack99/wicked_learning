@@ -30,6 +30,7 @@ export type CompetenceTopic = {
             concepts: string[];
             learningPurpose: string | null;
             confidence: string | null;
+            confidenceAfterFeedback: string | null;
             outcome: string | null;
             assistanceLevel: string | null;
             id: number;

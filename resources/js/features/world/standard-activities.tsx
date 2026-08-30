@@ -693,6 +693,7 @@ export function ReflectionActivity({
         activity: LearningActivity,
         options?: {
             confidence?: QuestionConfidence;
+            confidenceAfterFeedback?: QuestionConfidence;
             observedCues?: string[];
             outcome?: ReviewOutcome;
         },
@@ -709,6 +710,8 @@ export function ReflectionActivity({
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
+    const [confidenceAfterFeedback, setConfidenceAfterFeedback] =
+        useState<QuestionConfidence | null>(null);
     const [outcome, setOutcome] = useState<ReviewOutcome | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const t = usePlatformTranslation();
@@ -822,6 +825,54 @@ export function ReflectionActivity({
                             ))}
                         </ul>
                     </div>
+                ) : null}
+                {responseType && hasPostResponseGuidance ? (
+                    <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
+                        </legend>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            {t(
+                                'learning.reflection.confidence_after_feedback_helper',
+                                'This is a reflection on your understanding, not a grade.',
+                            )}
+                        </p>
+                        <div
+                            aria-label={t(
+                                'learning.reflection.confidence_after_feedback_prompt',
+                                'After comparing, how settled does this feel now? (optional)',
+                            )}
+                            className="mt-2 flex flex-wrap gap-2"
+                            role="group"
+                        >
+                            {questionConfidenceOptions.map((option) => (
+                                <button
+                                    aria-pressed={
+                                        confidenceAfterFeedback === option.value
+                                    }
+                                    className={cn(
+                                        'min-h-11 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition hover:border-cyan-500/60 hover:text-cyan-700 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-300 dark:hover:border-teal-200/60 dark:hover:text-teal-100 dark:focus-visible:ring-teal-200',
+                                        confidenceAfterFeedback ===
+                                            option.value &&
+                                            'border-cyan-500/80 bg-cyan-50 text-cyan-700 dark:border-teal-200/80 dark:bg-teal-100/12 dark:text-teal-100',
+                                    )}
+                                    key={option.value}
+                                    onClick={() =>
+                                        setConfidenceAfterFeedback(option.value)
+                                    }
+                                    type="button"
+                                >
+                                    {t(
+                                        `learning.review.confidence_${option.value}`,
+                                        option.label,
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </fieldset>
                 ) : null}
                 <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
                     {t(
@@ -1057,7 +1108,7 @@ export function ReflectionActivity({
                     </div>
                 </fieldset>
             ) : null}
-            {isReview ? (
+            {isReview && !responseType ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         {t(
@@ -1207,6 +1258,7 @@ export function ReflectionActivity({
         try {
             await onComplete(activity, {
                 confidence: confidence ?? undefined,
+                confidenceAfterFeedback: confidenceAfterFeedback ?? undefined,
                 observedCues,
                 outcome: outcome ?? undefined,
             });

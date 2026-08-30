@@ -176,10 +176,12 @@ Support and reflection models include:
 
 `LearnerEvidenceEvent` records the activity-specific evidence type, authored
 objective, concept-label and learning-purpose snapshots, observable evidence criterion,
-outcome, confidence, calibration, attempt and assistance context. For question
+outcome, starting confidence, optional post-feedback confidence, calibration,
+attempt and assistance context. For question
 activities, calibration is a descriptive snapshot derived from the submitted
 confidence and answer outcome; it does not contribute a score. For explanation
-and transfer events it also stores up to three normalized rubric cues. The
+and transfer events it can also store an optional confidence signal after the
+authored guidance pause, alongside up to three normalized rubric cues. The
 learner's optional selection of cues they noticed is stored separately as an
 observed-cues snapshot; it records self-observation and is not a rubric result.
 objective, purpose, criterion, cues and bounded source references are snapshots

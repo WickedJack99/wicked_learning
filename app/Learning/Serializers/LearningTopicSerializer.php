@@ -201,6 +201,9 @@ class LearningTopicSerializer
                         'confidence' => is_string($entry['confidence'] ?? null)
                             ? $entry['confidence']
                             : null,
+                        'confidenceAfterFeedback' => is_string($entry['confidenceAfterFeedback'] ?? null)
+                            ? $entry['confidenceAfterFeedback']
+                            : null,
                         'outcome' => is_string($entry['outcome'] ?? null)
                             ? $entry['outcome']
                             : null,

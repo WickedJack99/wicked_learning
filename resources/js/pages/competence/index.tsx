@@ -1106,13 +1106,35 @@ function CompetenceReading({
                                         ) : null}
                                         {evidence.confidence ? (
                                             <span className="mt-1 block text-xs text-slate-500">
-                                                Before answering:{' '}
+                                                {evidence.evidenceType ===
+                                                    'explain' ||
+                                                evidence.evidenceType ===
+                                                    'transfer'
+                                                    ? translate(
+                                                          'learning.calibration.before_response',
+                                                          'Before responding:',
+                                                      )
+                                                    : translate(
+                                                          'learning.calibration.before_answer',
+                                                          'Before answering:',
+                                                      )}{' '}
                                                 {confidenceLabel(
                                                     evidence.confidence,
                                                 )}
                                                 {evidence.attemptNumber > 1
                                                     ? ` · attempt ${evidence.attemptNumber}`
                                                     : ''}
+                                            </span>
+                                        ) : null}
+                                        {evidence.confidenceAfterFeedback ? (
+                                            <span className="mt-1 block text-xs text-slate-500">
+                                                {translate(
+                                                    'learning.calibration.after_guidance',
+                                                    'After guidance:',
+                                                )}{' '}
+                                                {confidenceLabel(
+                                                    evidence.confidenceAfterFeedback,
+                                                )}
                                             </span>
                                         ) : null}
                                         {evidence.assistanceLevel ? (

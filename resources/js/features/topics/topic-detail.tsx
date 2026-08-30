@@ -988,13 +988,35 @@ function TopicCompetenceCard({
                                                 ) : null}
                                                 {entry.confidence ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
-                                                        Before answering:{' '}
+                                                        {entry.evidenceType ===
+                                                            'explain' ||
+                                                        entry.evidenceType ===
+                                                            'transfer'
+                                                            ? t(
+                                                                  'learning.calibration.before_response',
+                                                                  'Before responding:',
+                                                              )
+                                                            : t(
+                                                                  'learning.calibration.before_answer',
+                                                                  'Before answering:',
+                                                              )}{' '}
                                                         {confidenceLabel(
                                                             entry.confidence,
                                                         )}
                                                         {entry.attemptNumber > 1
                                                             ? ` · attempt ${entry.attemptNumber}`
                                                             : ''}
+                                                    </span>
+                                                ) : null}
+                                                {entry.confidenceAfterFeedback ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                        {t(
+                                                            'learning.calibration.after_guidance',
+                                                            'After guidance:',
+                                                        )}{' '}
+                                                        {confidenceLabel(
+                                                            entry.confidenceAfterFeedback,
+                                                        )}
                                                     </span>
                                                 ) : null}
                                                 {entry.assistanceLevel ? (

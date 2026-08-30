@@ -25,6 +25,7 @@ class LearnerProgressService
         ?bool $endsRoute = null,
         ?string $outcome = null,
         ?string $confidence = null,
+        ?string $confidenceAfterFeedback = null,
         int $attemptNumber = 1,
         string $assistanceLevel = 'untracked',
         bool $isRevisit = false,
@@ -117,6 +118,7 @@ class LearnerProgressService
                             $latencySeconds,
                             $calibration,
                             $observedCues,
+                            $confidenceAfterFeedback,
                         );
                     }
 

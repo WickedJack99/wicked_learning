@@ -73,9 +73,10 @@ checks first-class where an activity can support them. Question answers now
 preserve and explain a neutral confidence/result relationship after feedback.
 Explanation and transfer activities now also collect optional starting
 confidence before their authored guidance pause. Keep the existing
-feedback-guidance contract, then extend calibration only where the activity
-actually collects meaningful signals and later independent checks can support a
-stronger claim.
+feedback-guidance contract; they may now also collect an optional confidence
+signal after that pause and retain the pair for learner inspection. Continue
+calibration only where the activity actually collects meaningful signals and
+later independent checks can support a stronger claim.
 
 ### 5. Source provenance
 

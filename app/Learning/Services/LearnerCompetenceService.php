@@ -26,6 +26,7 @@ class LearnerCompetenceService
         ?int $latencySeconds = null,
         ?string $calibration = null,
         array $observedCues = [],
+        ?string $confidenceAfterFeedback = null,
     ): void {
         $topics = $this->activityCompetence->topicsForActivity($activity);
 
@@ -48,7 +49,7 @@ class LearnerCompetenceService
             ? $this->feedbackGuidance->observedCuesForActivity($activity, $observedCues)
             : [];
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $concepts, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $confidenceAfterFeedback, $concepts, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -75,6 +76,7 @@ class LearnerCompetenceService
                     'contribution' => $topic['weight'],
                     'outcome' => $outcome ?? 'completed',
                     'confidence' => $confidence,
+                    'confidence_after_feedback' => $confidenceAfterFeedback,
                     'calibration' => $calibration,
                     'attempt_number' => max(1, $attemptNumber),
                     'assistance_level' => $assistanceLevel,

@@ -212,6 +212,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
+            'confidence_after_feedback' => ['nullable', 'string', 'in:exploring,leaning,settled'],
             'ends_route' => ['sometimes', 'boolean'],
             'is_revisit' => ['sometimes', 'boolean'],
             'observed_cues' => ['sometimes', 'array', 'max:3'],
@@ -229,6 +230,9 @@ class LearningWorldController extends Controller
             array_key_exists('ends_route', $data) ? (bool) $data['ends_route'] : null,
             outcome: is_string($data['outcome'] ?? null) ? (string) $data['outcome'] : null,
             confidence: is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
+            confidenceAfterFeedback: is_string($data['confidence_after_feedback'] ?? null)
+                ? (string) $data['confidence_after_feedback']
+                : null,
             observedCues: is_array($data['observed_cues'] ?? null) ? $data['observed_cues'] : [],
             isRevisit: is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
         );

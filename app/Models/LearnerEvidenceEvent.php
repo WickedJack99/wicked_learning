@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'contribution',
     'outcome',
     'confidence',
+    'confidence_after_feedback',
     'calibration',
     'attempt_number',
     'assistance_level',

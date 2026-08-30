@@ -91,6 +91,7 @@ test('a transfer reflection records its changed context as structured private ev
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
             'confidence' => 'leaning',
+            'confidence_after_feedback' => 'settled',
             'play_run_id' => $runId,
             'status' => 'completed',
             'observed_cues' => ['Connects the idea to the new situation.'],
@@ -106,7 +107,21 @@ test('a transfer reflection records its changed context as structured private ev
             ->where('user_id', $learner->id)
             ->firstOrFail()
             ->confidence)
-        ->toBe('leaning');
+        ->toBe('leaning')
+        ->and(LearnerEvidenceEvent::query()
+            ->where('user_id', $learner->id)
+            ->firstOrFail()
+            ->confidence_after_feedback)
+        ->toBe('settled');
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where(
+                'competenceMap.topics.0.visual.evidenceLedger.0.confidenceAfterFeedback',
+                'settled',
+            ));
 });
 
 test('a review activity offers earlier private reflections from the same journal topic', function () {

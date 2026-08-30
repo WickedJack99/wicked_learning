@@ -149,7 +149,9 @@ name the changed context where they tried the idea. These responses are saved
 with the learner's private journal entry; they are structured evidence context,
 not an automatic rubric pass. Explanation and transfer activities can also
 capture an optional starting-confidence signal before their guidance pause;
-this remains a descriptive learner signal rather than an assessment.
+after the pause they may also record how settled the idea feels now. These
+before-and-after values remain descriptive learner signals rather than an
+assessment or score, and either may be left blank.
 
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion
@@ -286,7 +288,9 @@ or create a rubric pass.
 When authored observation guidance is present, saving an explanation or transfer
 response opens a short learner-controlled pause showing the “what to notice”,
 possible next action and observable cues again before the activity continues.
-This is explanatory orientation, not automated critique or grading.
+The learner may optionally record a second confidence signal after that pause;
+the evidence ledger shows both sides of the comparison. This is explanatory
+orientation, not automated critique or grading.
 Review responses with authored guidance use the same pause and show its purpose
 before the learner continues, keeping the review signal descriptive rather than
 turning it into a grade.
