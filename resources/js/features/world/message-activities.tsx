@@ -22,11 +22,16 @@ type MessageItem = {
     responses: Array<{
         body: string;
         id: number;
-        responseType: 'explanation' | 'example' | 'question' | null;
+        responseType:
+            | 'explanation'
+            | 'example'
+            | 'question'
+            | 'counterexample'
+            | null;
     }>;
 };
 
-type ResponseType = 'explanation' | 'example' | 'question';
+type ResponseType = 'explanation' | 'example' | 'question' | 'counterexample';
 
 type ActivityFlowProps = {
     activity: LearningActivity;
@@ -538,7 +543,10 @@ function MessageCard({
                                             : response.responseType ===
                                                 'example'
                                               ? 'Shared an example'
-                                              : 'Asked a question',
+                                              : response.responseType ===
+                                                  'question'
+                                                ? 'Asked a question'
+                                                : 'Offered a counterexample',
                                     )}
                                 </p>
                             ) : null}
@@ -634,6 +642,12 @@ function MessageCard({
                                             {t(
                                                 'activities.messages.response_type_question',
                                                 'Ask a question',
+                                            )}
+                                        </option>
+                                        <option value="counterexample">
+                                            {t(
+                                                'activities.messages.response_type_counterexample',
+                                                'Offer a counterexample',
                                             )}
                                         </option>
                                     </select>

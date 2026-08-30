@@ -157,9 +157,9 @@ explanation, help and counterexample workflows plus mentor digests. Evaluate
 the quality and resolution of intellectual support, not message volume,
 popularity or public status. Participation remains optional.
 The first bounded slices now let authors add optional response guidance to a
-message wall and let learners describe a response as an explanation, example or
-question. Quality review, counterexample workflows and mentor digests remain
-future work.
+message wall and let learners describe a response as an explanation, example,
+question or counterexample. Quality review and mentor digests remain future
+work.
 
 ## Product development
 

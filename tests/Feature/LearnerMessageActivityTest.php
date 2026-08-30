@@ -269,13 +269,13 @@ test('learners can respond once to an opted-in peer message and support can mode
     $this->actingAs($learner)
         ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
             'body' => 'I noticed that too after slowing down.',
-            'response_type' => 'explanation',
+            'response_type' => 'counterexample',
         ])
         ->assertCreated()
         ->assertJsonPath('messages.0.hasResponded', true)
         ->assertJsonPath('messages.0.responses.0.body', 'I noticed that too after slowing down.')
-        ->assertJsonPath('messages.0.responses.0.responseType', 'explanation')
-        ->assertJsonPath('response.responseType', 'explanation');
+        ->assertJsonPath('messages.0.responses.0.responseType', 'counterexample')
+        ->assertJsonPath('response.responseType', 'counterexample');
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.messages.responses.store', [$wall, $message]), [
@@ -285,7 +285,7 @@ test('learners can respond once to an opted-in peer message and support can mode
         ->assertJsonCount(1, 'messages.0.responses');
 
     $response = LearnerMessageResponse::query()->sole();
-    expect($response->response_type)->toBe('explanation');
+    expect($response->response_type)->toBe('counterexample');
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,
         'roles' => [User::ROLE_ADMIN],

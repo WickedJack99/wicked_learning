@@ -69,7 +69,7 @@ class LearnerMessageController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'min:2', 'max:280'],
-            'response_type' => ['nullable', 'string', 'in:explanation,example,question'],
+            'response_type' => ['nullable', 'string', 'in:explanation,example,question,counterexample'],
         ]);
         $response = $this->createResponse->handle(
             $request->user(),
