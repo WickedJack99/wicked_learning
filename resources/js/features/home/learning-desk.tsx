@@ -104,10 +104,10 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         ...(desk.recentRoutes.length > 0 ? (['recent'] as const) : []),
         'continue',
     ];
-    const deskAreas = [
-        defaultArea,
-        ...availableAreas.filter((area) => area !== defaultArea),
-    ].map((id) => ({ id, label: areaLabels[id] }));
+    const deskAreas = availableAreas.map((id) => ({
+        id,
+        label: areaLabels[id],
+    }));
     const initialArea = deskAreaFromUrl() ?? defaultArea;
     const [activeArea, setActiveArea] = useState<LearningDeskArea>(initialArea);
 
