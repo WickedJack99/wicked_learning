@@ -1,10 +1,14 @@
 <?php
 
+use App\Learning\Services\ReusableMediaAssetManager;
+use App\Models\LearningMap;
 use App\Models\LearningSound;
 use App\Models\LearningTool;
+use App\Models\LearningWorld;
 use App\Models\ReusableMediaMetadata;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 
@@ -314,6 +318,48 @@ test('admin users can replace and delete reusable media assets', function () {
     expect($tool->refresh()->image_dark)->toBeNull();
     expect(ReusableMediaMetadata::query()->where('url', $replacedUrl)->exists())
         ->toBeFalse();
+});
+
+test('reusable media reference scans prefilter json rows in the database', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $assetUrl = '/storage/learning/media/reference-target.svg';
+
+    LearningTool::query()->create([
+        'slug' => 'reference-target-tool',
+        'title' => 'Reference target tool',
+        'image_dark' => $assetUrl,
+    ]);
+    LearningTool::query()->create([
+        'slug' => 'reference-unrelated-tool',
+        'title' => 'Reference unrelated tool',
+        'config' => ['image' => '/storage/learning/media/other.svg'],
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => 'reference-world',
+        'title' => 'Reference world',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'reference-map',
+        'title' => 'Reference map',
+        'background_config' => ['dark' => ['imageUrl' => $assetUrl]],
+    ]);
+
+    DB::enableQueryLog();
+    app(ReusableMediaAssetManager::class)->referenceSummaries([$assetUrl]);
+    $queries = DB::getQueryLog();
+    DB::disableQueryLog();
+
+    $configQuery = collect($queries)->first(
+        fn (array $query): bool => str_contains($query['query'], 'learning_maps')
+            && str_contains($query['query'], 'CAST'),
+    );
+
+    expect($configQuery)->not->toBeNull()
+        ->and($configQuery['bindings'])->toContain('%'.$assetUrl.'%');
 });
 
 test('admin users can manage reusable sounds', function () {

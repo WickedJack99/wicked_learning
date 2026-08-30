@@ -10,6 +10,7 @@ use App\Models\LearningNode;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\PlatformPresentationSetting;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -259,7 +260,18 @@ class ReusableMediaAssetManager
         string $group,
         array $urlSet,
     ): void {
-        $modelClass::query()
+        $query = $modelClass::query();
+        $wrappedColumn = $query->getQuery()->getGrammar()->wrap($column);
+
+        $query
+            ->where(function (Builder $query) use ($wrappedColumn, $urlSet): void {
+                foreach (array_keys($urlSet) as $url) {
+                    $query->orWhereRaw(
+                        "CAST({$wrappedColumn} AS TEXT) LIKE ?",
+                        ['%'.$url.'%'],
+                    );
+                }
+            })
             ->get([$column])
             ->each(function (Model $model) use (&$counts, $column, $group, $urlSet): void {
                 $matches = [];
