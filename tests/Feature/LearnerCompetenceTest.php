@@ -563,7 +563,8 @@ test('reflection and review claims require a saved matching learner response', f
     ]);
 
     $service = app(LearnerCompetenceService::class);
-    $service->awardActivityCompletion($learner, $activity, (string) Str::uuid());
+    $playRunId = (string) Str::uuid();
+    $service->awardActivityCompletion($learner, $activity, $playRunId);
 
     expect(LearnerEvidenceEvent::query()
         ->where('user_id', $learner->id)
@@ -588,6 +589,7 @@ test('reflection and review claims require a saved matching learner response', f
         'learner_journal_page_id' => $page->id,
         'learning_node_id' => $node->id,
         'learning_activity_id' => $activity->id,
+        'play_run_id' => (string) Str::uuid(),
         'title' => 'Competence response',
         'question' => 'What did you notice?',
         'reflection' => 'The idea applies when the surrounding conditions change.',
@@ -596,7 +598,29 @@ test('reflection and review claims require a saved matching learner response', f
         'feedback_status' => 'not_requested',
     ]);
 
-    $service->awardActivityCompletion($learner, $activity, (string) Str::uuid());
+    $service->awardActivityCompletion($learner, $activity, $playRunId);
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->where('learning_activity_id', $activity->id)
+        ->orderByDesc('id')
+        ->value('evidence_type'))->toBe('participate');
+
+    LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $page->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => $playRunId,
+        'title' => 'Current competence response',
+        'question' => 'What did you notice?',
+        'reflection' => 'The current response is tied to this play run.',
+        'response_type' => 'explain',
+        'expert_access_requested' => false,
+        'feedback_status' => 'not_requested',
+    ]);
+
+    $service->awardActivityCompletion($learner, $activity, $playRunId);
 
     expect(LearnerEvidenceEvent::query()
         ->where('user_id', $learner->id)

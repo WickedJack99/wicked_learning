@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learner_journal_page_id',
     'learning_node_id',
     'learning_activity_id',
+    'play_run_id',
     'npc_dialogue_node_id',
     'title',
     'question',

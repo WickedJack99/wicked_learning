@@ -37,6 +37,7 @@ class RecordLearnerReflection
             user: $user,
             activity: $activity,
             dialogueNode: null,
+            playRunId: $playRunId,
             data: [
                 ...$data,
                 'topic' => trim((string) ($data['topic'] ?? '')) ?: ($config['topic'] ?? null),
@@ -61,6 +62,7 @@ class RecordLearnerReflection
             user: $user,
             activity: $activity,
             dialogueNode: $dialogueNode,
+            playRunId: $playRunId,
             data: $data,
             question: $dialogueNode->body ?: $dialogueNode->title,
             responseType: 'reflection',
@@ -82,6 +84,7 @@ class RecordLearnerReflection
         User $user,
         LearningActivity $activity,
         ?NpcDialogueNode $dialogueNode,
+        string $playRunId,
         array $data,
         string $question,
         string $responseType,
@@ -100,7 +103,7 @@ class RecordLearnerReflection
             )
             : [];
 
-        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $observedCues, $question, $responseType, $title): LearnerReflection {
+        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $observedCues, $playRunId, $question, $responseType, $title): LearnerReflection {
             $topic = trim((string) ($data['topic'] ?? $activity->node->title)) ?: $activity->node->title;
             $subtopic = trim((string) ($data['subtopic'] ?? $activity->title));
             $page = LearnerJournalPage::query()->firstOrCreate([
@@ -119,6 +122,7 @@ class RecordLearnerReflection
                 'learner_journal_page_id' => $page->id,
                 'learning_node_id' => $activity->learning_node_id,
                 'learning_activity_id' => $activity->id,
+                'play_run_id' => $playRunId,
                 'npc_dialogue_node_id' => $dialogueNode?->id,
                 'title' => $title,
                 'question' => $question,

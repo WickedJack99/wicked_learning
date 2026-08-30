@@ -161,9 +161,10 @@ after the pause they may also record how settled the idea feels now. These
 before-and-after values remain descriptive learner signals rather than an
 assessment or score, and either may be left blank.
 For reflection and review activities, the matching private response must be
-saved before an explanation or transfer evidence entry is recorded; completing
-without that response remains participation evidence. Shared-task contributions
-use their own submission path.
+saved in the same activity play-run before an explanation or transfer evidence
+entry is recorded; an older response from another run does not authorize a new
+claim. Completing without that response remains participation evidence.
+Shared-task contributions use their own submission path.
 
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion

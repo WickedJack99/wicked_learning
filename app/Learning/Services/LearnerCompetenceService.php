@@ -39,7 +39,7 @@ class LearnerCompetenceService
         if (
             in_array($evidenceType, ['explain', 'transfer'], true)
             && in_array($activity->type, ['reflection', 'review'], true)
-            && ! $this->hasRecordedResponse($user, $activity, $evidenceType)
+            && ! $this->hasRecordedResponse($user, $activity, $playRunId, $evidenceType)
         ) {
             $evidenceType = 'participate';
         }
@@ -98,11 +98,16 @@ class LearnerCompetenceService
         });
     }
 
-    private function hasRecordedResponse(User $user, LearningActivity $activity, string $responseType): bool
-    {
+    private function hasRecordedResponse(
+        User $user,
+        LearningActivity $activity,
+        string $playRunId,
+        string $responseType,
+    ): bool {
         return LearnerReflection::query()
             ->where('user_id', $user->id)
             ->where('learning_activity_id', $activity->id)
+            ->where('play_run_id', $playRunId)
             ->where('response_type', $responseType)
             ->whereNotNull('reflection')
             ->exists();

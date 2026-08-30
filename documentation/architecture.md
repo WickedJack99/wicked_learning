@@ -215,6 +215,9 @@ rewrite the meaning or provenance of an earlier learning moment. Source
 references are normalized again when the evidence ledger is serialized. When a
 descriptive review outcome is present, both learner evidence-ledger serializers
 carry it through as a nullable signal without interpreting it as an assessment.
+Reflection responses retain their originating activity play-run, allowing
+explanation and transfer evidence to require the response from the same run
+without exposing private response text in the evidence ledger.
 The shared frontend review-outcome vocabulary supplies localized labels and
 plain-language explanations for the activity selector and learner histories.
 When a route entry timestamp is available, `latency_seconds` records elapsed
