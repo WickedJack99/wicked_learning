@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, Compass } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { LearningCompanionAvatarImage } from '@/components/learning-companion-avatar';
 import { LearningCompanionDialogue } from '@/features/world/learning-companion-dialogue';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -61,15 +62,15 @@ export function LearningCompanionPanel({
                         borderColor: companion.avatarColor,
                     }}
                 >
-                    {companion.avatarUrl ? (
-                        <img
-                            alt=""
-                            className="size-full object-cover"
-                            src={companion.avatarUrl}
-                        />
-                    ) : (
-                        <Compass className="size-5 text-[var(--map-side-control-panel-background)]" />
-                    )}
+                    <LearningCompanionAvatarImage
+                        avatarColor={companion.avatarColor}
+                        avatarPositionX={companion.avatarPositionX}
+                        avatarPositionY={companion.avatarPositionY}
+                        avatarScale={companion.avatarScale}
+                        avatarUrl={companion.avatarUrl}
+                        fallbackClassName="size-5"
+                        fallbackColor="var(--map-side-control-panel-background)"
+                    />
                 </div>
                 <p className="text-sm leading-6 text-[var(--map-side-control-text-color)]">
                     {companion.message}
@@ -248,15 +249,14 @@ export function LearningCompanionLauncher({
                 title={companion.displayName}
                 type="button"
             >
-                {companion.avatarUrl ? (
-                    <img
-                        alt=""
-                        className="size-full object-cover"
-                        src={companion.avatarUrl}
-                    />
-                ) : (
-                    <Compass className="size-6" />
-                )}
+                <LearningCompanionAvatarImage
+                    avatarColor={companion.avatarColor}
+                    avatarPositionX={companion.avatarPositionX}
+                    avatarPositionY={companion.avatarPositionY}
+                    avatarScale={companion.avatarScale}
+                    avatarUrl={companion.avatarUrl}
+                    fallbackClassName="size-6"
+                />
             </button>
         </div>
     );

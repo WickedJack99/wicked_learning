@@ -36,6 +36,9 @@ class AdminCompanionController extends Controller
             'display_name' => ['required', 'string', 'max:80'],
             'avatar_url' => ['nullable', 'string', 'max:2048'],
             'avatar_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'avatar_position_x' => ['sometimes', 'integer', 'between:0,100'],
+            'avatar_position_y' => ['sometimes', 'integer', 'between:0,100'],
+            'avatar_scale' => ['sometimes', 'integer', 'between:80,200'],
             'welcome_message' => ['required', 'string', 'max:1200'],
             'mode' => ['sometimes', 'string', Rule::in(['scripted', 'guided_ai', 'open_ai'])],
             'ai_enabled' => ['sometimes', 'boolean'],
@@ -57,6 +60,12 @@ class AdminCompanionController extends Controller
 
         if (array_key_exists('avatar_color', $data) && $data['avatar_color'] !== null) {
             $companionConfig['avatar_color'] = $data['avatar_color'];
+        }
+
+        foreach (['avatar_position_x', 'avatar_position_y', 'avatar_scale'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $companionConfig[$key] = (int) $data[$key];
+            }
         }
 
         $existingAi = is_array($companionConfig['ai'] ?? null) ? $companionConfig['ai'] : [];

@@ -47,6 +47,8 @@ export function AppSideActionBar() {
     const companionPlacement = url.startsWith('/world')
         ? 'map-search'
         : 'default';
+    const canShowCompanion =
+        Boolean(companion?.enabled) && !url.startsWith('/settings');
     const shouldShow = useMemo(
         () =>
             Boolean(props.auth.user) &&
@@ -148,13 +150,13 @@ export function AppSideActionBar() {
         };
     }, [closeOverlay, overlay]);
 
-    if (!shouldShow && !companion?.enabled) {
+    if (!shouldShow && !canShowCompanion) {
         return null;
     }
 
     return (
         <>
-            {companion?.enabled ? (
+            {canShowCompanion && companion ? (
                 <LearningCompanionLauncher
                     companion={companion}
                     postAttemptAvailable={postAttemptAvailable}

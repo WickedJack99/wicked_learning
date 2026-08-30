@@ -163,6 +163,9 @@ class LearningCompanionContext
             'displayName' => $configuration['displayName'],
             'avatarUrl' => $configuration['avatarUrl'],
             'avatarColor' => $configuration['avatarColor'],
+            'avatarPositionX' => $configuration['avatarPositionX'],
+            'avatarPositionY' => $configuration['avatarPositionY'],
+            'avatarScale' => $configuration['avatarScale'],
             'message' => $configuration['message'],
             'configuration' => [
                 'mode' => $configuration['mode'],

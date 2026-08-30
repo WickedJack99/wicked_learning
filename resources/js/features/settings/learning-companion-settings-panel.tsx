@@ -3,6 +3,7 @@ import { Bot, MessageCircle, Save, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { ConfigImageInput } from '@/components/config-image-input';
+import { LearningCompanionAvatarImage } from '@/components/learning-companion-avatar';
 import {
     SettingsNestedWorkspace,
     SettingsPanelHeader,
@@ -22,6 +23,9 @@ export type LearningCompanionSettings = {
     ai_template_id: number | null;
     ai_template_options: Array<{ enabled: boolean; id: number; name: string }>;
     avatar_color: string;
+    avatar_position_x: number;
+    avatar_position_y: number;
+    avatar_scale: number;
     avatar_url: string | null;
     display_name: string;
     enabled: boolean;
@@ -229,28 +233,184 @@ export function LearningCompanionSettingsPanel({
                                 />
                             </div>
 
-                            <ConfigImageInput
-                                description={t(
-                                    'settings.companion.avatar_description',
-                                    'Upload a new image or reuse an existing visual from the media library.',
-                                )}
-                                error={errors.avatar_url}
-                                id="companion-avatar-url"
-                                label={t(
-                                    'settings.companion.avatar_url',
-                                    'Avatar image (optional)',
-                                )}
-                                onChange={(value) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        avatar_url: value,
-                                    }))
-                                }
-                                onUpload={(file) => void uploadAvatar(file)}
-                                placeholder="/storage/learning/media/companion-avatar.png"
-                                uploading={uploading}
-                                value={form.avatar_url ?? ''}
-                            />
+                            <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+                                <ConfigImageInput
+                                    description={t(
+                                        'settings.companion.avatar_description',
+                                        'Upload a new image or reuse an existing visual from the media library.',
+                                    )}
+                                    error={errors.avatar_url}
+                                    id="companion-avatar-url"
+                                    label={t(
+                                        'settings.companion.avatar_url',
+                                        'Avatar image (optional)',
+                                    )}
+                                    onChange={(value) =>
+                                        setForm((current) => ({
+                                            ...current,
+                                            avatar_url: value,
+                                        }))
+                                    }
+                                    onUpload={(file) => void uploadAvatar(file)}
+                                    placeholder="/storage/learning/media/companion-avatar.png"
+                                    uploading={uploading}
+                                    value={form.avatar_url ?? ''}
+                                />
+
+                                <fieldset className="grid gap-4 rounded-lg border p-4">
+                                    <legend className="px-1 text-sm font-semibold">
+                                        {t(
+                                            'settings.companion.avatar_preview',
+                                            'Avatar preview',
+                                        )}
+                                    </legend>
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-full border-2"
+                                            style={{
+                                                backgroundColor:
+                                                    form.avatar_color,
+                                                borderColor: form.avatar_color,
+                                                borderRadius: '9999px',
+                                            }}
+                                        >
+                                            <LearningCompanionAvatarImage
+                                                avatarColor={form.avatar_color}
+                                                avatarPositionX={
+                                                    form.avatar_position_x
+                                                }
+                                                avatarPositionY={
+                                                    form.avatar_position_y
+                                                }
+                                                avatarScale={form.avatar_scale}
+                                                avatarUrl={form.avatar_url}
+                                                fallbackClassName="size-10"
+                                                fallbackColor="var(--settings-panel-background)"
+                                            />
+                                        </div>
+                                        <p className="text-sm text-[var(--settings-muted-text)]">
+                                            {t(
+                                                'settings.companion.avatar_preview_description',
+                                                'This is how the companion avatar will be framed in the learner launcher and panel.',
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid gap-4 sm:grid-cols-3">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="companion-avatar-position-x">
+                                                {t(
+                                                    'settings.companion.avatar_position_x',
+                                                    'Horizontal position',
+                                                )}
+                                            </Label>
+                                            <input
+                                                aria-label={t(
+                                                    'settings.companion.avatar_position_x',
+                                                    'Horizontal position',
+                                                )}
+                                                className="w-full accent-[var(--settings-accent)]"
+                                                disabled={!form.avatar_url}
+                                                id="companion-avatar-position-x"
+                                                max="100"
+                                                min="0"
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        avatar_position_x:
+                                                            Number(
+                                                                event.target
+                                                                    .value,
+                                                            ),
+                                                    }))
+                                                }
+                                                step="1"
+                                                type="range"
+                                                value={form.avatar_position_x}
+                                            />
+                                            <span className="text-xs text-[var(--settings-muted-text)]">
+                                                {form.avatar_position_x}%
+                                            </span>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="companion-avatar-position-y">
+                                                {t(
+                                                    'settings.companion.avatar_position_y',
+                                                    'Vertical position',
+                                                )}
+                                            </Label>
+                                            <input
+                                                aria-label={t(
+                                                    'settings.companion.avatar_position_y',
+                                                    'Vertical position',
+                                                )}
+                                                className="w-full accent-[var(--settings-accent)]"
+                                                disabled={!form.avatar_url}
+                                                id="companion-avatar-position-y"
+                                                max="100"
+                                                min="0"
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        avatar_position_y:
+                                                            Number(
+                                                                event.target
+                                                                    .value,
+                                                            ),
+                                                    }))
+                                                }
+                                                step="1"
+                                                type="range"
+                                                value={form.avatar_position_y}
+                                            />
+                                            <span className="text-xs text-[var(--settings-muted-text)]">
+                                                {form.avatar_position_y}%
+                                            </span>
+                                        </div>
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="companion-avatar-scale">
+                                                {t(
+                                                    'settings.companion.avatar_scale',
+                                                    'Image size',
+                                                )}
+                                            </Label>
+                                            <input
+                                                aria-label={t(
+                                                    'settings.companion.avatar_scale',
+                                                    'Image size',
+                                                )}
+                                                className="w-full accent-[var(--settings-accent)]"
+                                                disabled={!form.avatar_url}
+                                                id="companion-avatar-scale"
+                                                max="200"
+                                                min="80"
+                                                onChange={(event) =>
+                                                    setForm((current) => ({
+                                                        ...current,
+                                                        avatar_scale: Number(
+                                                            event.target.value,
+                                                        ),
+                                                    }))
+                                                }
+                                                step="1"
+                                                type="range"
+                                                value={form.avatar_scale}
+                                            />
+                                            <span className="text-xs text-[var(--settings-muted-text)]">
+                                                {form.avatar_scale}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.companion.avatar_framing_description',
+                                            'Adjust the focus point and zoom. Upload or select an image first to enable these controls.',
+                                        )}
+                                    </p>
+                                </fieldset>
+                            </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="companion-avatar-color">

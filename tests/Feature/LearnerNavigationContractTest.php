@@ -22,8 +22,40 @@ test('authenticated learners can open every primary learner surface', function (
             ->get(route($routeName))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component($component));
+                ->component($component)
+                ->where('companion.enabled', true)
+                ->where('companion.context.surface', 'desk'));
     }
+});
+
+test('settings does not receive the learner companion shared prop', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('settings.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('settings/index')
+            ->missing('companion'));
+});
+
+test('document surfaces keep the shared learner header outside their scroll region', function () {
+    $surface = file_get_contents(
+        resource_path('js/components/learner-document-surface.tsx'),
+    );
+    $competence = file_get_contents(
+        resource_path('js/pages/competence/index.tsx'),
+    );
+
+    expect($surface)
+        ->toContain('<LearningDeskHeader />')
+        ->toContain("'learner-scroll-pane'")
+        ->toContain("'flex min-h-svh min-w-0 flex-col overflow-hidden");
+    expect($competence)
+        ->toContain(
+            'className="flex min-h-svh min-w-0 flex-col overflow-hidden',
+        )
+        ->toContain(
+            'className="min-h-0 flex-1 overflow-y-auto xl:overflow-hidden',
+        );
 });
 
 test('an authenticated learner can open a published topic detail surface', function () {

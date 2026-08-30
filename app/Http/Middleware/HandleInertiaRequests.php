@@ -8,6 +8,7 @@ use App\Learning\Queries\LoadCurrentMenuMapTheme;
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Serializers\PlatformJournalSettingsSerializer;
+use App\Learning\Services\LearningCompanionContext;
 use App\Localization\Services\PlatformLocaleCatalog;
 use App\Localization\Services\UserLocaleResolver;
 use App\Models\LearningItem;
@@ -29,6 +30,7 @@ class HandleInertiaRequests extends Middleware
         private readonly PlatformLocaleCatalog $localeCatalog,
         private readonly UserLocaleResolver $localeResolver,
         private readonly SoundPreferenceSerializer $soundPreferences,
+        private readonly LearningCompanionContext $companionContext,
     ) {}
 
     /**
@@ -62,7 +64,7 @@ class HandleInertiaRequests extends Middleware
         $appearanceCookie = $request->cookie('appearance');
         $browserAppearance = is_string($appearanceCookie) ? $appearanceCookie : null;
 
-        return [
+        $sharedProps = [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
@@ -108,5 +110,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+
+        if ($request->user() && ! str_starts_with($request->path(), 'settings')) {
+            $sharedProps['companion'] = fn (): ?array => $this->companionContext->forDesk();
+        }
+
+        return $sharedProps;
     }
 }

@@ -73,73 +73,45 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
-    const [activeArea, setActiveArea] = useState<LearningDeskArea>(
+    const initialArea: LearningDeskArea =
         desk.currentRoutes.length > 0
             ? 'continue'
             : desk.checkIns.length > 0
               ? 'reflections'
-              : 'connections',
-    );
-    const deskAreas: { id: LearningDeskArea; label: string }[] = [
-        {
-            id: 'connections',
-            label: t('home.learning_desk.sections.connections', 'Connections'),
-        },
-        ...(desk.checkIns.length > 0
-            ? [
-                  {
-                      id: 'reflections' as const,
-                      label: t(
-                          'home.learning_desk.sections.reflections',
-                          'Recent reflections',
-                      ),
-                  },
-              ]
-            : []),
-        ...(recallItems.length > 0
-            ? [
-                  {
-                      id: 'recall' as const,
-                      label: t(
-                          'home.learning_desk.sections.recall',
-                          'Recall queue',
-                      ),
-                  },
-              ]
-            : []),
-        ...(revisitInvitations.length > 0
-            ? [
-                  {
-                      id: 'revisit' as const,
-                      label: t(
-                          'home.learning_desk.sections.revisit',
-                          'Return when useful',
-                      ),
-                  },
-              ]
-            : []),
-        ...(desk.recentRoutes.length > 0
-            ? [
-                  {
-                      id: 'recent' as const,
-                      label: t(
-                          'home.learning_desk.sections.recent',
-                          'Recent traces',
-                      ),
-                  },
-              ]
-            : []),
-        {
-            id: 'continue',
-            label: t(
-                'home.learning_desk.sections.continue',
-                'Continue learning',
-            ),
-        },
+              : 'connections';
+    const [activeArea, setActiveArea] = useState<LearningDeskArea>(initialArea);
+    const areaLabels: Record<LearningDeskArea, string> = {
+        connections: t(
+            'home.learning_desk.sections.connections',
+            'Connections',
+        ),
+        continue: t(
+            'home.learning_desk.sections.continue',
+            'Continue learning',
+        ),
+        recent: t('home.learning_desk.sections.recent', 'Recent traces'),
+        recall: t('home.learning_desk.sections.recall', 'Recall queue'),
+        reflections: t(
+            'home.learning_desk.sections.reflections',
+            'Recent reflections',
+        ),
+        revisit: t('home.learning_desk.sections.revisit', 'Return when useful'),
+    };
+    const availableAreas: LearningDeskArea[] = [
+        'connections',
+        ...(desk.checkIns.length > 0 ? (['reflections'] as const) : []),
+        ...(recallItems.length > 0 ? (['recall'] as const) : []),
+        ...(revisitInvitations.length > 0 ? (['revisit'] as const) : []),
+        ...(desk.recentRoutes.length > 0 ? (['recent'] as const) : []),
+        'continue',
     ];
+    const deskAreas = [
+        initialArea,
+        ...availableAreas.filter((area) => area !== initialArea),
+    ].map((id) => ({ id, label: areaLabels[id] }));
     const visibleArea = deskAreas.some((area) => area.id === activeArea)
         ? activeArea
-        : 'continue';
+        : (deskAreas[0]?.id ?? 'connections');
 
     async function handleRevisitUpdate(
         activityId: number,

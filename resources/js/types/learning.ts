@@ -9,6 +9,9 @@ export type LearningWorld = {
 
 export type LearningCompanion = {
     avatarColor: string;
+    avatarPositionX: number;
+    avatarPositionY: number;
+    avatarScale: number;
     avatarUrl: string | null;
     configuration: {
         aiEnabled: boolean;

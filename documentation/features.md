@@ -219,10 +219,11 @@ types can add their own interaction sounds and visuals.
 ### Learning Companion
 
 Administrators can enable and configure a small Learning Companion with a
-display name, optional avatar image, avatar color and orientation message. The
-avatar color controls the launcher and fallback avatar treatment. The avatar
-image uses the reusable media workflow for upload, download, selection and
-clearing.
+display name, optional avatar image, avatar color, avatar framing and orientation
+message. Administrators can preview the avatar and adjust its focus point and
+size inside the visible circle. The avatar color controls the launcher and
+fallback avatar treatment. The avatar image uses the reusable media workflow for
+upload, download, selection and clearing.
 Companion settings may inherit from the platform, world, map, place or
 activity, with the most specific valid setting taking precedence. Administrators
 can create and rename reusable dialogue graphs in the Learning Companion's
@@ -249,12 +250,14 @@ server-resolved, plain-text provider turn; the response is transient in the
 open companion panel and cannot navigate, mutate content or read private
 journal, group or unrelated learner history. AI assistance is not independent
 learning evidence.
-Learners can open the companion from the lower-left corner on the Learning Desk,
-bookmarks and activities, or immediately to the right of map search on a world
-map. Without a configured provider or enabled template, the companion keeps its
-deterministic fallback. The companion does not replace map exploration or
-activity playback and does not make independent-competence claims from AI
-assistance.
+Learners can open the companion from the lower-left corner on authenticated
+learner-facing pages, including the Learning Desk, paths, topics, competence
+map, bookmarks, organizations and activities, or immediately to the right of
+map search on a world map. Settings remains an administrator surface and does
+not show the learner companion. Without a configured provider or enabled
+template, the companion keeps its deterministic fallback. The companion does
+not replace map exploration or activity playback and does not make
+independent-competence claims from AI assistance.
 
 ### Learner Messages
 
@@ -469,7 +472,7 @@ Administrative areas are visible according to configurable resource permissions:
 - World Builder
 - Assets & World Objects
 - Access management
-- AI & Integrations
+- AI
 - Translations
 - Color palettes
 - Public pages

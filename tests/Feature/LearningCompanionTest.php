@@ -397,6 +397,9 @@ test('admins can configure the scripted companion', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/index')
             ->where('companionSettings.display_name', 'Learning companion')
+            ->where('companionSettings.avatar_position_x', 50)
+            ->where('companionSettings.avatar_position_y', 50)
+            ->where('companionSettings.avatar_scale', 100)
         );
 
     $this->actingAs($admin)
@@ -405,6 +408,9 @@ test('admins can configure the scripted companion', function () {
             'display_name' => 'Mira',
             'avatar_url' => '/storage/companion/mira.png',
             'avatar_color' => '#f59e0b',
+            'avatar_position_x' => 35,
+            'avatar_position_y' => 65,
+            'avatar_scale' => 140,
             'welcome_message' => 'Take a look around, then choose what calls to you.',
         ])
         ->assertRedirect(route('settings.index', ['panel' => 'admin-learning-companion']));
@@ -420,7 +426,43 @@ test('admins can configure the scripted companion', function () {
         'avatar_url' => '/storage/companion/mira.png',
         'welcome_message' => 'Take a look around, then choose what calls to you.',
     ]);
-    expect(PlatformCompanionSetting::current()->companion_config['avatar_color'])->toBe('#f59e0b');
+    expect(PlatformCompanionSetting::current()->companion_config)->toMatchArray([
+        'avatar_color' => '#f59e0b',
+        'avatar_position_x' => 35,
+        'avatar_position_y' => 65,
+        'avatar_scale' => 140,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('home'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('companion.avatarPositionX', 35)
+            ->where('companion.avatarPositionY', 65)
+            ->where('companion.avatarScale', 140)
+        );
+});
+
+test('companion avatar framing values stay within their supported ranges', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-learning-companion']))
+        ->patch(route('settings.companion.update'), [
+            'enabled' => true,
+            'display_name' => 'Mira',
+            'avatar_position_x' => 101,
+            'avatar_position_y' => -1,
+            'avatar_scale' => 201,
+            'welcome_message' => 'Choose a direction when it feels useful.',
+        ])
+        ->assertSessionHasErrors([
+            'avatar_position_x',
+            'avatar_position_y',
+            'avatar_scale',
+        ]);
 });
 
 test('admins can upload a companion avatar through the reusable media workflow', function () {

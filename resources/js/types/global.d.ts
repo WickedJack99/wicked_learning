@@ -1,9 +1,10 @@
-import type { Appearance } from '@/theme/appearance';
 import type { JournalThemeSettings } from '@/features/journal/theme';
-import type { MapMenuTheme } from '@/features/world/map-control-theme';
 import type { SoundPreferences } from '@/features/sounds/sound-player';
+import type { MapMenuTheme } from '@/features/world/map-control-theme';
+import type { Appearance } from '@/theme/appearance';
 import type { PublicPresentationSettings } from '@/theme/presentation';
 import type { Auth } from '@/types/auth';
+import type { LearningCompanion } from '@/types/learning';
 
 declare global {
     interface Window {
@@ -26,6 +27,7 @@ declare module '@inertiajs/core' {
             name: string;
             appearance: Appearance;
             auth: Auth;
+            companion?: LearningCompanion | null;
             journalTheme: JournalThemeSettings;
             menuTheme: MapMenuTheme | null;
             soundPreferences: SoundPreferences;

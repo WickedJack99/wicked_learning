@@ -128,9 +128,9 @@ alternatives remain open.
 
 ### 7. Effort-preserving learner AI
 
-The Learning Companion now provides optional deterministic orientation on the
-desk, worlds and activities, with inherited scope configuration, reusable
-assigned graphs, a bounded React Flow editor and local traversal of authored
+The Learning Companion now provides optional deterministic orientation across
+authenticated learner-facing surfaces, with inherited scope configuration,
+reusable assigned graphs, a bounded React Flow editor and local traversal of authored
 message, choice and end nodes. It also supports one provider-neutral,
 server-bounded plain-text turn for an authored AI node when an administrator
 enables a guarded learner-companion template. Learners can now choose AI-off,

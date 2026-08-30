@@ -185,6 +185,21 @@ class LoadSettingsIndex
                 && preg_match('/^#[0-9a-fA-F]{6}$/', $configuredColor) === 1
                 ? $configuredColor
                 : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_COLOR,
+            'avatar_position_x' => is_int($companionConfig['avatar_position_x'] ?? null)
+                && $companionConfig['avatar_position_x'] >= 0
+                && $companionConfig['avatar_position_x'] <= 100
+                ? $companionConfig['avatar_position_x']
+                : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_POSITION_X,
+            'avatar_position_y' => is_int($companionConfig['avatar_position_y'] ?? null)
+                && $companionConfig['avatar_position_y'] >= 0
+                && $companionConfig['avatar_position_y'] <= 100
+                ? $companionConfig['avatar_position_y']
+                : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_POSITION_Y,
+            'avatar_scale' => is_int($companionConfig['avatar_scale'] ?? null)
+                && $companionConfig['avatar_scale'] >= 80
+                && $companionConfig['avatar_scale'] <= 200
+                ? $companionConfig['avatar_scale']
+                : LearningCompanionConfigurationResolver::DEFAULT_AVATAR_SCALE,
             'mode' => in_array($companionConfig['mode'] ?? null, ['scripted', 'guided_ai', 'open_ai'], true)
                 ? $companionConfig['mode']
                 : 'scripted',

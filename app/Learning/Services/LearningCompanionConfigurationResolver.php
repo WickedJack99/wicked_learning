@@ -13,6 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class LearningCompanionConfigurationResolver
 {
+    public const DEFAULT_AVATAR_POSITION_X = 50;
+
+    public const DEFAULT_AVATAR_POSITION_Y = 50;
+
+    public const DEFAULT_AVATAR_SCALE = 100;
+
     public const DEFAULT_AVATAR_COLOR = '#5eead4';
 
     public function __construct(private LearningCompanionDialogueGraphValidator $graphValidator) {}
@@ -30,6 +36,9 @@ class LearningCompanionConfigurationResolver
             'displayName' => $setting->display_name,
             'avatarUrl' => $setting->avatar_url,
             'avatarColor' => self::DEFAULT_AVATAR_COLOR,
+            'avatarPositionX' => self::DEFAULT_AVATAR_POSITION_X,
+            'avatarPositionY' => self::DEFAULT_AVATAR_POSITION_Y,
+            'avatarScale' => self::DEFAULT_AVATAR_SCALE,
             'message' => $setting->welcome_message,
             'mode' => 'scripted',
             'dialogue' => null,
@@ -124,6 +133,9 @@ class LearningCompanionConfigurationResolver
             'display_name' => 'displayName',
             'avatar_url' => 'avatarUrl',
             'avatar_color' => 'avatarColor',
+            'avatar_position_x' => 'avatarPositionX',
+            'avatar_position_y' => 'avatarPositionY',
+            'avatar_scale' => 'avatarScale',
             'welcome_message' => 'message',
         ];
 
@@ -138,7 +150,22 @@ class LearningCompanionConfigurationResolver
             } elseif ($key === 'avatar_color' && $this->isHexColor($scopeConfig[$key])) {
                 $configuration[$outputKey] = $scopeConfig[$key];
                 $changed = true;
-            } elseif ($key !== 'enabled' && $key !== 'avatar_color' && is_string($scopeConfig[$key])) {
+            } elseif ($key === 'avatar_position_x' && $this->isBoundedInteger($scopeConfig[$key], 0, 100)) {
+                $configuration[$outputKey] = (int) $scopeConfig[$key];
+                $changed = true;
+            } elseif ($key === 'avatar_position_y' && $this->isBoundedInteger($scopeConfig[$key], 0, 100)) {
+                $configuration[$outputKey] = (int) $scopeConfig[$key];
+                $changed = true;
+            } elseif ($key === 'avatar_scale' && $this->isBoundedInteger($scopeConfig[$key], 80, 200)) {
+                $configuration[$outputKey] = (int) $scopeConfig[$key];
+                $changed = true;
+            } elseif (! in_array($key, [
+                'enabled',
+                'avatar_color',
+                'avatar_position_x',
+                'avatar_position_y',
+                'avatar_scale',
+            ], true) && is_string($scopeConfig[$key])) {
                 $configuration[$outputKey] = $scopeConfig[$key];
                 $changed = true;
             }
@@ -184,5 +211,10 @@ class LearningCompanionConfigurationResolver
     private function isHexColor(mixed $value): bool
     {
         return is_string($value) && preg_match('/^#[0-9a-fA-F]{6}$/', $value) === 1;
+    }
+
+    private function isBoundedInteger(mixed $value, int $minimum, int $maximum): bool
+    {
+        return is_int($value) && $value >= $minimum && $value <= $maximum;
     }
 }
