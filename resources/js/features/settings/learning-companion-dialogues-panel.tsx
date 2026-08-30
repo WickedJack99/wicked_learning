@@ -5,8 +5,9 @@ import {
     Save,
     Search,
     Trash2,
+    X,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { SettingsPanelHeader } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    CompanionGraphEditor,
+    normalizeCompanionDialogueGraph,
+} from '@/features/settings/learning-companion-graph-editor';
+import type { CompanionDialogueGraph } from '@/features/settings/learning-companion-graph-editor';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { readJsonResponse } from '@/lib/json-response';
 
@@ -43,7 +49,7 @@ type DialogueSummary = {
 };
 
 type Dialogue = DialogueSummary & {
-    dialogueGraph: Record<string, unknown>;
+    dialogueGraph: CompanionDialogueGraph;
 };
 
 type DialogueListResponse = {
@@ -108,11 +114,18 @@ export function LearningCompanionDialoguesPanel() {
         null,
     );
     const [name, setName] = useState('');
-    const [graphJson, setGraphJson] = useState('');
+    const [dialogueGraph, setDialogueGraph] = useState<CompanionDialogueGraph>({
+        nodes: [],
+        start: '',
+        version: 1,
+    });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [assignmentOpen, setAssignmentOpen] = useState(false);
+    const [editorOpen, setEditorOpen] = useState(false);
+    const editorCloseButtonRef = useRef<HTMLButtonElement>(null);
+    const editorTriggerRef = useRef<HTMLButtonElement>(null);
 
     const loadDialogues = useCallback(async (page: number, search: string) => {
         setLoading(true);
@@ -177,7 +190,7 @@ export function LearningCompanionDialoguesPanel() {
 
                 setSelectedDialogue(payload);
                 setName(payload.name);
-                setGraphJson(JSON.stringify(payload.dialogueGraph, null, 2));
+                setDialogueGraph(normalizeCompanionDialogueGraph(payload.dialogueGraph));
             })
             .catch((requestError: unknown) => {
                 if (!cancelled) {
@@ -216,7 +229,8 @@ export function LearningCompanionDialoguesPanel() {
             );
             setSelectedDialogue(payload);
             setName(payload.name);
-            setGraphJson(JSON.stringify(payload.dialogueGraph, null, 2));
+            setDialogueGraph(normalizeCompanionDialogueGraph(payload.dialogueGraph));
+            setEditorOpen(true);
             setListPage(1);
             await loadDialogues(1, listSearch);
             setSelectedId(payload.id);
@@ -229,21 +243,6 @@ export function LearningCompanionDialoguesPanel() {
 
     const saveDialogue = async () => {
         if (!selectedDialogue) {
-            return;
-        }
-
-        let dialogueGraph: Record<string, unknown>;
-
-        try {
-            dialogueGraph = JSON.parse(graphJson) as Record<string, unknown>;
-        } catch {
-            setError(
-                t(
-                    'settings.companion.dialogues.invalid_json',
-                    'The graph definition must be valid JSON.',
-                ),
-            );
-
             return;
         }
 
@@ -260,7 +259,7 @@ export function LearningCompanionDialoguesPanel() {
             );
             setSelectedDialogue(payload);
             setName(payload.name);
-            setGraphJson(JSON.stringify(payload.dialogueGraph, null, 2));
+            setDialogueGraph(normalizeCompanionDialogueGraph(payload.dialogueGraph));
             await loadDialogues(listPage, listSearch);
         } catch (requestError) {
             setError(requestError instanceof Error ? requestError.message : '');
@@ -270,7 +269,15 @@ export function LearningCompanionDialoguesPanel() {
     };
 
     const deleteDialogue = async () => {
-        if (!selectedDialogue || !window.confirm('Delete this dialogue graph?')) {
+        if (
+            !selectedDialogue ||
+            !window.confirm(
+                t(
+                    'settings.companion.dialogues.delete_confirm',
+                    'Delete this dialogue graph?',
+                ),
+            )
+        ) {
             return;
         }
 
@@ -282,6 +289,7 @@ export function LearningCompanionDialoguesPanel() {
                 `${DIALOGUE_ENDPOINT}/${selectedDialogue.id}`,
                 { method: 'DELETE' },
             );
+            setEditorOpen(false);
             setSelectedDialogue(null);
             setSelectedId(null);
             await loadDialogues(listPage, listSearch);
@@ -297,9 +305,39 @@ export function LearningCompanionDialoguesPanel() {
         setListSearch(listSearchInput.trim());
     };
 
+    useEffect(() => {
+        if (!editorOpen) {
+            return;
+        }
+
+        const animationFrame = window.requestAnimationFrame(() => {
+            editorCloseButtonRef.current?.focus();
+        });
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setEditorOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.cancelAnimationFrame(animationFrame);
+            document.removeEventListener('keydown', handleKeyDown);
+
+            if (
+                editorTriggerRef.current &&
+                document.contains(editorTriggerRef.current)
+            ) {
+                editorTriggerRef.current.focus();
+            }
+        };
+    }, [editorOpen]);
+
     return (
         <div className="flex h-full min-h-0 flex-col gap-4 p-4 sm:p-5">
-            <div className="flex shrink-0 flex-wrap items-start justify-between gap-3">
+            <div className="shrink-0">
                 <SettingsPanelHeader
                     description={t(
                         'settings.companion.dialogues.description',
@@ -315,10 +353,6 @@ export function LearningCompanionDialoguesPanel() {
                         'Dialogues',
                     )}
                 />
-                <Button disabled={saving} onClick={() => void createDialogue()}>
-                    <Plus className="size-4" />
-                    {t('settings.companion.dialogues.create', 'New graph')}
-                </Button>
             </div>
 
             {error ? (
@@ -327,7 +361,8 @@ export function LearningCompanionDialoguesPanel() {
                 </p>
             ) : null}
 
-            <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(20rem,0.9fr)_minmax(24rem,1.1fr)]">
+            <div className="relative min-h-0 flex-1">
+                <div className="grid h-full min-h-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 <section className="flex min-h-0 flex-col rounded-xl border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
                     <div className="flex shrink-0 items-center justify-between gap-3">
                         <div>
@@ -337,12 +372,6 @@ export function LearningCompanionDialoguesPanel() {
                                     'Selected graph',
                                 )}
                             </h2>
-                            <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
-                                {t(
-                                    'settings.companion.dialogues.selected_description',
-                                    'Edit its name and safe graph definition, then assign it to authored pages.',
-                                )}
-                            </p>
                         </div>
                         {selectedDialogue ? (
                             <Button
@@ -361,45 +390,39 @@ export function LearningCompanionDialoguesPanel() {
                     </div>
 
                     {selectedDialogue ? (
-                        <div className="mt-5 grid min-h-0 gap-4 overflow-auto pr-1">
-                            <div className="grid gap-2">
-                                <Label htmlFor="companion-dialogue-name">
+                        <div className="mt-5 flex min-h-0 flex-1 flex-col gap-4">
+                            <div className="shrink-0 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-active-background)]/40 p-4">
+                                <p className="text-xs font-semibold tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                                     {t(
-                                        'settings.companion.dialogues.name',
-                                        'Graph name',
+                                        'settings.companion.dialogues.selected_label',
+                                        'Selected graph',
                                     )}
-                                </Label>
-                                <Input
-                                    id="companion-dialogue-name"
-                                    maxLength={120}
-                                    onChange={(event) => setName(event.target.value)}
-                                    value={name}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="companion-dialogue-graph">
+                                </p>
+                                <h3 className="mt-2 text-lg font-semibold">
+                                    {selectedDialogue.name}
+                                </h3>
+                                <p className="mt-2 text-sm text-[var(--settings-muted-text)]">
                                     {t(
-                                        'settings.companion.dialogues.definition',
-                                        'Graph definition (JSON)',
-                                    )}
-                                </Label>
-                                <textarea
-                                    className="min-h-52 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] px-3 py-2 font-mono text-xs leading-5 text-foreground outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
-                                    id="companion-dialogue-graph"
-                                    onChange={(event) => setGraphJson(event.target.value)}
-                                    value={graphJson}
-                                />
-                                <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
-                                    {t(
-                                        'settings.companion.dialogues.definition_description',
-                                        'The server validates node limits, targets, AI capabilities and navigation actions before a graph can be used.',
+                                        'settings.companion.dialogues.selected_summary',
+                                        `${dialogueGraph.nodes.length} nodes · ${selectedDialogue.assignmentsCount} authored pages assigned`,
+                                        {
+                                            assignments: selectedDialogue.assignmentsCount,
+                                            nodes: dialogueGraph.nodes.length,
+                                        },
                                     )}
                                 </p>
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button disabled={saving} onClick={() => void saveDialogue()}>
-                                    <Save className="size-4" />
-                                    {t('common.save', 'Save')}
+                            <div className="mt-auto flex shrink-0 flex-wrap gap-2">
+                                <Button
+                                    onClick={(event) => {
+                                        editorTriggerRef.current = event.currentTarget;
+                                        setEditorOpen(true);
+                                    }}
+                                >
+                                    {t(
+                                        'settings.companion.dialogues.open_editor',
+                                        'Open graph editor',
+                                    )}
                                 </Button>
                                 <Button
                                     disabled={saving}
@@ -413,11 +436,10 @@ export function LearningCompanionDialoguesPanel() {
                                     )}
                                 </Button>
                             </div>
-                            <p className="text-xs text-[var(--settings-muted-text)]">
+                            <p className="shrink-0 text-xs text-[var(--settings-muted-text)]">
                                 {t(
-                                    'settings.companion.dialogues.assignment_count',
-                                    `${selectedDialogue.assignmentsCount} authored pages assigned`,
-                                    { count: selectedDialogue.assignmentsCount },
+                                    'settings.companion.dialogues.editor_hint',
+                                    'Open the editor when you want to inspect or change this graph.',
                                 )}
                             </p>
                         </div>
@@ -438,9 +460,20 @@ export function LearningCompanionDialoguesPanel() {
                     )}
                 </section>
 
-                <section className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] rounded-xl border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
+                <section className="relative grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] rounded-xl border border-[var(--settings-border-color)] bg-[var(--settings-panel-background)] p-4">
+                    <Button
+                        className="absolute top-4 right-4"
+                        disabled={saving}
+                        onClick={(event) => {
+                            editorTriggerRef.current = event.currentTarget;
+                            void createDialogue();
+                        }}
+                    >
+                        <Plus className="size-4" />
+                        {t('settings.companion.dialogues.create', 'New graph')}
+                    </Button>
                     <form
-                        className="flex shrink-0 gap-2"
+                        className="flex shrink-0 gap-2 pr-32"
                         onSubmit={(event) => {
                             event.preventDefault();
                             submitSearch();
@@ -538,6 +571,97 @@ export function LearningCompanionDialoguesPanel() {
                         showSinglePage
                     />
                 </section>
+                </div>
+
+                {editorOpen && selectedDialogue ? (
+                    <div className="fixed inset-x-0 top-16 bottom-0 z-20 rounded-xl bg-black/70 p-2 sm:p-3 lg:absolute lg:inset-0">
+                        <section
+                            aria-labelledby="companion-dialogue-editor-title"
+                            aria-modal="true"
+                            className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--settings-accent)]/50 bg-[var(--settings-panel-background)] shadow-2xl"
+                            role="dialog"
+                        >
+                            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--settings-border-color)] p-4">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                                        {t(
+                                            'settings.companion.dialogues.editor_eyebrow',
+                                            'Dialogue graph',
+                                        )}
+                                    </p>
+                                    <h2
+                                        className="mt-1 truncate text-base font-semibold"
+                                        id="companion-dialogue-editor-title"
+                                    >
+                                        {t(
+                                            'settings.companion.dialogues.editor_title',
+                                            'Graph editor',
+                                        )}
+                                    </h2>
+                                    <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
+                                        {selectedDialogue.name}
+                                    </p>
+                                </div>
+                                <Button
+                                    aria-label={t(
+                                        'settings.companion.dialogues.close_editor',
+                                        'Close graph editor',
+                                    )}
+                                    onClick={() => setEditorOpen(false)}
+                                    ref={editorCloseButtonRef}
+                                    size="icon"
+                                    variant="ghost"
+                                >
+                                    <X className="size-4" />
+                                </Button>
+                            </div>
+                            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
+                                <div className="grid shrink-0 gap-2">
+                                    <Label htmlFor="companion-dialogue-name">
+                                        {t(
+                                            'settings.companion.dialogues.name',
+                                            'Graph name',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="companion-dialogue-name"
+                                        maxLength={120}
+                                        onChange={(event) => setName(event.target.value)}
+                                        value={name}
+                                    />
+                                </div>
+                                <CompanionGraphEditor
+                                    graph={dialogueGraph}
+                                    onChange={setDialogueGraph}
+                                />
+                                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                    <Button disabled={saving} onClick={() => void saveDialogue()}>
+                                        <Save className="size-4" />
+                                        {t('common.save', 'Save')}
+                                    </Button>
+                                    <Button
+                                        disabled={saving}
+                                        onClick={() => setAssignmentOpen(true)}
+                                        variant="secondary"
+                                    >
+                                        <Link2 className="size-4" />
+                                        {t(
+                                            'settings.companion.dialogues.assign',
+                                            'Assign pages',
+                                        )}
+                                    </Button>
+                                </div>
+                                <p className="shrink-0 text-xs text-[var(--settings-muted-text)]">
+                                    {t(
+                                        'settings.companion.dialogues.assignment_count',
+                                        `${selectedDialogue.assignmentsCount} authored pages assigned`,
+                                        { count: selectedDialogue.assignmentsCount },
+                                    )}
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+                ) : null}
             </div>
 
             {selectedDialogue ? (

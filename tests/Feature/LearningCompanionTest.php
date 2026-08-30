@@ -319,6 +319,43 @@ test('admins can manage paginated companion graphs and assign them to authored p
 
     $dialogue = LearningCompanionDialogue::query()->firstOrFail();
     $this->actingAs($admin)
+        ->patchJson(route('settings.companion.dialogues.update', $dialogue), [
+            'name' => 'First graph editor',
+            'dialogue_graph' => [
+                'version' => 1,
+                'start' => 'welcome',
+                'nodes' => [
+                    [
+                        'id' => 'welcome',
+                        'type' => 'message',
+                        'title' => 'Welcome',
+                        'message' => 'Choose a direction when you are ready.',
+                        'position' => ['x' => 120, 'y' => 80],
+                        'next' => 'choice',
+                    ],
+                    [
+                        'id' => 'choice',
+                        'type' => 'choice',
+                        'title' => 'Choose a direction',
+                        'prompt' => 'What would help next?',
+                        'position' => ['x' => 420, 'y' => 80],
+                        'choices' => [
+                            [
+                                'key' => 'desk',
+                                'label' => 'Open the learning desk',
+                                'action' => 'learning-desk',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('name', 'First graph editor')
+        ->assertJsonPath('dialogueGraph.nodes.0.title', 'Welcome')
+        ->assertJsonPath('dialogueGraph.nodes.0.position.x', 120);
+
+    $this->actingAs($admin)
         ->postJson(route('settings.companion.dialogues.store'), ['name' => 'Second graph'])
         ->assertCreated();
 

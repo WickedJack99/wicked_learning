@@ -180,8 +180,8 @@ component. Its default lower-left position is shared by desk, bookmark and
 activity surfaces; the world map supplies a map-search placement that reserves
 a slot immediately to the search control's right.
 
-This is a runtime orientation and bounded graph-definition authoring slice, not
-yet a provider AI runtime or visual node editor. Future AI turns must reuse the validated
+This is a runtime orientation and bounded React Flow graph authoring slice, not
+yet a provider AI runtime. Future AI turns must reuse the validated
 capability contract, resolve navigation on the server and keep the deterministic
 fallback usable when no provider is available. AI must not receive direct
 authority to navigate, mutate content or emit arbitrary URLs.

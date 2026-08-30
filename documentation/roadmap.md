@@ -130,8 +130,8 @@ alternatives remain open.
 
 The Learning Companion now provides optional deterministic orientation on the
 desk, worlds and activities, with inherited scope configuration, reusable
-assigned graphs and a bounded graph editor. Continue with a structured node
-authoring UI and a provider-neutral, server-bounded turn flow only after the
+assigned graphs and a bounded React Flow editor. Continue with a
+provider-neutral, server-bounded turn flow only after the
 interaction contract is usable. Define explicit assistance levels such as AI-off, questions-only,
 hints and post-attempt support. Ground responses, disclose uncertainty and
 record assistance so supported performance is not silently interpreted as
