@@ -309,6 +309,9 @@ turning it into a grade.
 Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.
+When Explain or Transfer is selected without observable “What to notice”
+guidance, the editor warns that the activity will remain participation evidence
+until that guidance is added; existing content is not silently rewritten.
 Authors can optionally attach up to eight concept labels, one per line. These
 labels are copied into later evidence records and shown in the competence and
 topic ledgers as context; they do not create a grade or alter the qualitative

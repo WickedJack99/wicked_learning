@@ -26,7 +26,6 @@ import type { SettingsNavigationItem } from '@/components/settings-configuration
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
     Select,
     SelectContent,
@@ -34,6 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { ActivityAmbientSoundFields } from './activity-ambient-sound-fields';
 import { ActivitySourceReferenceFields } from './activity-source-reference-fields';
 import type {
@@ -696,9 +696,7 @@ export function ActivityFormFields({
                             title="Source references"
                         >
                             <ActivitySourceReferenceFields
-                                evidenceConceptOptions={
-                                    evidenceConceptOptions
-                                }
+                                evidenceConceptOptions={evidenceConceptOptions}
                                 errors={errors}
                                 form={form}
                                 onChange={onChange}
@@ -994,6 +992,7 @@ function LearningIntentField({
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
 }) {
+    const t = usePlatformTranslation();
     const intents = [
         {
             description:
@@ -1078,6 +1077,19 @@ function LearningIntentField({
                             (intent) => intent.value === form.learning_intent,
                         )?.description
                     }
+                </p>
+            ) : null}
+            {(form.learning_intent === 'explain' ||
+                form.learning_intent === 'transfer') &&
+            form.feedback_evidence.trim() === '' ? (
+                <p
+                    className="max-w-2xl rounded-md border border-amber-300/50 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950 dark:border-amber-200/20 dark:bg-amber-950/30 dark:text-amber-100"
+                    role="status"
+                >
+                    {t(
+                        'settings.world_builder.activity.learning_intent.evidence_warning',
+                        'Add “What to notice” guidance below to support this as explanation or transfer evidence. Until then, the activity is recorded as participation evidence.',
+                    )}
                 </p>
             ) : null}
             <InputError message={errors.learning_intent} />
