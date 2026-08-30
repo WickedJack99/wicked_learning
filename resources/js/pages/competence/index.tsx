@@ -724,8 +724,32 @@ function LearningPulseTimeline({
                                     </span>
                                     <span className="mt-2 block text-xs text-cyan-100/75">
                                         {attempt.confidence
-                                            ? `Confidence: ${confidenceLabel(attempt.confidence)}`
-                                            : 'Review completed'}
+                                            ? translate(
+                                                  'competence.pulse.review_before_guidance',
+                                                  'Before guidance: :confidence',
+                                                  {
+                                                      confidence:
+                                                          confidenceLabel(
+                                                              attempt.confidence,
+                                                          ),
+                                                  },
+                                              )
+                                            : translate(
+                                                  'competence.pulse.review_completed',
+                                                  'Review completed',
+                                              )}
+                                        {attempt.confidenceAfterFeedback
+                                            ? ` · ${translate(
+                                                  'competence.pulse.review_after_guidance',
+                                                  'After guidance: :confidence',
+                                                  {
+                                                      confidence:
+                                                          confidenceLabel(
+                                                              attempt.confidenceAfterFeedback,
+                                                          ),
+                                                  },
+                                              )}`
+                                            : ''}
                                         {attempt.assistanceLevel
                                             ? ` · ${assistanceLevelLabel(attempt.assistanceLevel, translate)}`
                                             : ''}

@@ -77,6 +77,7 @@ export type CompetenceReviewAttempt = {
     attemptedAt: string | null;
     attemptNumber: number;
     confidence: string | null;
+    confidenceAfterFeedback: string | null;
     nodeTitle: string | null;
     outcome: string | null;
     assistanceLevel: string | null;

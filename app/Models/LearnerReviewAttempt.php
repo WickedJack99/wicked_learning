@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'source',
     'outcome',
     'confidence',
+    'confidence_after_feedback',
     'assistance_level',
     'attempted_at',
     'metadata',

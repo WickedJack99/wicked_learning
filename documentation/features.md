@@ -260,8 +260,9 @@ describes whether the result aligned with, exceeded or challenged the starting
 confidence. This supports calibration and noticing change without presenting a
 grade or changing competence by itself.
 The competence view also offers a bounded review history showing the revisited
-activity, outcome and confidence context; it does not expose private journal
-writing or turn review attempts into a score.
+activity, outcome and confidence context. When guided review is used, it can
+show the learner's optional confidence before and after the guidance; it does
+not expose private journal writing or turn review attempts into a score.
 When a learner completes a due revisit, the review history and the linked
 competence evidence retain the same attempt sequence. For question activities,
 the review record also preserves the answer's correctness and starting

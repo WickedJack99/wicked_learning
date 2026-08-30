@@ -344,6 +344,8 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
+            'confidence' => 'leaning',
+            'confidence_after_feedback' => 'settled',
             'is_revisit' => true,
             'play_run_id' => $runId,
             'status' => 'completed',
@@ -352,6 +354,10 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
 
     expect(LearnerReviewAttempt::query()->firstOrFail()->attempt_number)
         ->toBe(2)
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->confidence)
+        ->toBe('leaning')
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->confidence_after_feedback)
+        ->toBe('settled')
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->value('attempt_number'))
@@ -1087,6 +1093,7 @@ test('competence map shows bounded review history without private journal text',
         'source' => 'revisit',
         'outcome' => 'correct',
         'confidence' => 'leaning',
+        'confidence_after_feedback' => 'settled',
         'assistance_level' => 'independent',
         'attempted_at' => now(),
         'metadata' => [
@@ -1106,6 +1113,7 @@ test('competence map shows bounded review history without private journal text',
             ->where('competenceMap.reviewAttempts.0.nodeTitle', $node->title)
             ->where('competenceMap.reviewAttempts.0.outcome', 'correct')
             ->where('competenceMap.reviewAttempts.0.confidence', 'leaning')
+            ->where('competenceMap.reviewAttempts.0.confidenceAfterFeedback', 'settled')
             ->where('competenceMap.reviewAttempts.0.attemptNumber', 2)
             ->missing('competenceMap.reviewAttempts.0.metadata')
             ->missing('competenceMap.reviewAttempts.0.privateReflection')

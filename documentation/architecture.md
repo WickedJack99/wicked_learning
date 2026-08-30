@@ -218,11 +218,13 @@ When a route entry timestamp is available, `latency_seconds` records elapsed
 wall-clock time from
 the learner's latest entry into that activity to completion. It is an internal
 observation, not a measure of attention and not a learner score.
-The generic activity completion endpoint accepts an optional validated
-confidence value, which review activities use to preserve the learner's own
-post-review signal on evidence and due revisit attempts without inventing an
-outcome. Review activities may also submit one of three descriptive outcome
-values; these remain nullable and are not interpreted as assessment results.
+The generic activity completion endpoint accepts optional validated confidence
+values. Review activities use the first value for the learner's signal before
+the guidance pause and the second for an optional signal after that pause;
+both remain descriptive context on evidence and due revisit attempts, without
+inventing an outcome. Review activities may also submit one of three
+descriptive outcome values; these remain nullable and are not interpreted as
+assessment results.
 `LearnerReviewAttempt` keeps a separate, bounded history for completed learner-
 chosen revisits. The competence query loads only the latest twelve attempts with
 their activity and node context; it intentionally omits review metadata and

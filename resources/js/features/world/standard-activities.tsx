@@ -826,7 +826,7 @@ export function ReflectionActivity({
                         </ul>
                     </div>
                 ) : null}
-                {responseType && hasPostResponseGuidance ? (
+                {(responseType || isReview) && hasPostResponseGuidance ? (
                     <fieldset className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <legend className="px-1 text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
                             {t(
@@ -1113,13 +1113,13 @@ export function ReflectionActivity({
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         {t(
                             'learning.review.confidence_prompt',
-                            'How settled does this feel now? (optional)',
+                            'After your response, how settled does this feel before comparing with the guidance? (optional)',
                         )}
                     </legend>
                     <div
                         aria-label={t(
                             'learning.review.confidence_prompt',
-                            'How settled does this feel now? (optional)',
+                            'After your response, how settled does this feel before comparing with the guidance? (optional)',
                         )}
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"

@@ -86,6 +86,7 @@ class LearnerProgressService
                 'source' => 'revisit',
                 'outcome' => $outcome,
                 'confidence' => $confidence,
+                'confidence_after_feedback' => $confidenceAfterFeedback,
                 'assistance_level' => $assistanceLevel,
                 'attempted_at' => $now,
             ]);
