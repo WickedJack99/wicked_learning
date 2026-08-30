@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Learning\Queries\LoadLearnerTopicReflectionNarrative;
 use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
@@ -14,7 +15,9 @@ use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
@@ -623,6 +626,99 @@ test('a topic page exposes its scoped learning trail', function () {
             ->where('topic.subtopicCompetence.0.name', 'Deep Space')
             ->where('topic.subtopicCompetence.0.topic.title', 'Deep Space')
         );
+});
+
+test('topic reflection narratives load only the bounded latest and earliest rows', function () {
+    Carbon::setTestNow('2026-08-26 10:00:00');
+
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'constellations',
+        'title' => 'Constellations',
+        'position_q' => 0,
+        'position_r' => 0,
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'notice-patterns',
+        'title' => 'Notice patterns',
+        'type' => 'reflection',
+    ]);
+    $journalPage = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Astronomy reflections',
+        'topic' => 'Astronomy',
+        'subtopic' => '',
+        'markdown' => '',
+        'preferred_mode' => 'view',
+    ]);
+
+    for ($index = 1; $index <= 13; $index++) {
+        $reflection = LearnerReflection::query()->create([
+            'user_id' => $learner->id,
+            'learner_journal_page_id' => $journalPage->id,
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'title' => "Reflection {$index}",
+            'question' => "Question {$index}",
+            'reflection' => "Observation {$index}",
+            'feedback_status' => 'not_requested',
+        ]);
+        $reflection->forceFill([
+            'created_at' => now()->subDays(13 - $index),
+            'updated_at' => now()->subDays(13 - $index),
+        ])->save();
+    }
+
+    $reflectionQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$reflectionQueries): void {
+        if (str_contains($query->sql, 'learner_reflections')) {
+            $reflectionQueries[] = $query;
+        }
+    });
+
+    $narrative = app(LoadLearnerTopicReflectionNarrative::class)->handle(
+        $learner,
+        [$topic->slug],
+    );
+
+    $reflectionSelects = collect($reflectionQueries)
+        ->filter(fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learner_reflections"'))
+        ->values();
+
+    expect($narrative['earlier']['question'])->toBe('Question 1')
+        ->and($narrative['later']['question'])->toBe('Question 13')
+        ->and($narrative['entries'])->toHaveCount(12)
+        ->and($narrative['entries'][0]['question'])->toBe('Question 2')
+        ->and($reflectionSelects)->toHaveCount(2)
+        ->and($reflectionSelects->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'limit 1'),
+        ))->toBeTrue()
+        ->and($reflectionSelects->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'limit 12'),
+        ))->toBeTrue();
 });
 
 test('normal users cannot open topic administration', function () {

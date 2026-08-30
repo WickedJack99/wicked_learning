@@ -14,15 +14,18 @@ class LoadLearnerTopicReflectionNarrative
      */
     public function handle(User $user, array $topicSlugs): ?array
     {
-        $reflections = LearnerReflection::query()
+        $matchingReflections = LearnerReflection::query()
             ->where('user_id', $user->id)
             ->whereHas('learningNode.map.topic', function ($query) use ($topicSlugs): void {
                 $query
                     ->where('is_published', true)
                     ->whereIn('slug', $topicSlugs);
             })
-            ->with(['learningNode.map.topic', 'learningActivity'])
+            ->with(['learningNode.map.topic', 'learningActivity']);
+        $latestReflections = (clone $matchingReflections)
             ->latest('created_at')
+            ->latest('id')
+            ->limit(12)
             ->get()
             ->filter(function (LearnerReflection $reflection) use ($topicSlugs): bool {
                 $topic = $reflection->learningNode?->map?->topic;
@@ -30,23 +33,24 @@ class LoadLearnerTopicReflectionNarrative
                 return $topic?->is_published === true
                     && in_array($topic->slug, $topicSlugs, true);
             })
-            ->sortBy('created_at')
             ->values();
+        $earliestReflection = (clone $matchingReflections)
+            ->oldest('created_at')
+            ->oldest('id')
+            ->first();
 
-        if ($reflections->count() < 2) {
+        if (! $earliestReflection instanceof LearnerReflection || $latestReflections->count() < 2) {
             return null;
         }
 
         return [
-            'earlier' => $this->serialize($reflections->first()),
-            'entries' => $reflections
-                ->reverse()
-                ->take(12)
+            'earlier' => $this->serialize($earliestReflection),
+            'entries' => $latestReflections
                 ->sortBy('created_at')
                 ->values()
                 ->map(fn (LearnerReflection $reflection): array => $this->serialize($reflection))
                 ->all(),
-            'later' => $this->serialize($reflections->last()),
+            'later' => $this->serialize($latestReflections->first()),
         ];
     }
 
