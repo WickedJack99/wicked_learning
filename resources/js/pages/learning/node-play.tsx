@@ -29,6 +29,7 @@ import type {
     LearningNode,
     LearningPortalLink,
     LearningProgress,
+    QuestionConfidence,
     QuestionAnswerProgress,
 } from '@/types';
 
@@ -45,6 +46,7 @@ type NodePlayProps = {
 };
 
 type CompletionOptions = {
+    confidence?: QuestionConfidence;
     endsRoute?: boolean;
     progressAlreadyMarked?: boolean;
 };
@@ -238,6 +240,7 @@ export default function NodePlay({
             }
 
             const payload: {
+                confidence?: QuestionConfidence;
                 ends_route?: boolean;
                 is_revisit: boolean;
                 play_run_id: string | null;
@@ -250,6 +253,10 @@ export default function NodePlay({
 
             if (typeof options.endsRoute === 'boolean') {
                 payload.ends_route = options.endsRoute;
+            }
+
+            if (options.confidence) {
+                payload.confidence = options.confidence;
             }
 
             if (!options.progressAlreadyMarked) {

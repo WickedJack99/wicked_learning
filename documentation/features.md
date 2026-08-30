@@ -149,6 +149,11 @@ name the changed context where they tried the idea. These responses are saved
 with the learner's private journal entry; they are structured evidence context,
 not an automatic rubric pass.
 
+Review activities optionally collect the learner's own confidence after the
+review response. The value is stored as a descriptive signal on the completion
+and any due revisit attempt; choosing nothing remains valid and does not block
+completion.
+
 When a learner chooses to return after a review pause, the due activity is
 opened as a review attempt. The Learning Desk and Journal explain when it
 became ready and whether the learner originally paused or postponed the return.

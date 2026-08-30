@@ -22,6 +22,7 @@ import type {
     LearningNode,
     LearningPortalLink,
     LearningProgress,
+    QuestionConfidence,
     QuestionAnswerProgress,
     LearningUnlockRequirement,
 } from '@/types';
@@ -376,7 +377,11 @@ export function ActivityPlayer({
     onRecallChange: (questionId: number, queued: boolean) => void;
     onComplete: (
         activity: LearningActivity,
-        options?: { endsRoute?: boolean; progressAlreadyMarked?: boolean },
+        options?: {
+            confidence?: QuestionConfidence;
+            endsRoute?: boolean;
+            progressAlreadyMarked?: boolean;
+        },
     ) => Promise<void>;
     isRecall: boolean;
     isRevisit: boolean;
@@ -395,9 +400,13 @@ export function ActivityPlayer({
     const completeActivity = useCallback(
         (
             completedActivity: LearningActivity,
-            options: { progressAlreadyMarked?: boolean } = {},
+            options: {
+                confidence?: QuestionConfidence;
+                progressAlreadyMarked?: boolean;
+            } = {},
         ) =>
             onComplete(completedActivity, {
+                confidence: options.confidence,
                 endsRoute: completesRoute,
                 progressAlreadyMarked: options.progressAlreadyMarked,
             }),

@@ -272,6 +272,7 @@ test('completing a reopened activity consumes its revisit invitation', function 
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
+            'confidence' => 'settled',
             'is_revisit' => true,
             'status' => 'completed',
         ])
@@ -291,6 +292,7 @@ test('completing a reopened activity consumes its revisit invitation', function 
         ->attempt_number->toBe(2)
         ->source->toBe('revisit')
         ->outcome->toBeNull()
+        ->confidence->toBe('settled')
         ->assistance_level->toBe('untracked')
         ->attempted_at->toEqual(now());
 });
