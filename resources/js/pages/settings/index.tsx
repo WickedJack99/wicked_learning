@@ -42,9 +42,9 @@ import type {
     AssetsWorldObjectsSettings,
 } from '@/features/settings/assets-world-objects-panel';
 import { ContentApiPanel } from '@/features/settings/content-api-panel';
-import { LearningSupportPanel } from '@/features/settings/learning-support-panel';
 import { LearningCompanionSettingsPanel } from '@/features/settings/learning-companion-settings-panel';
 import type { LearningCompanionSettings } from '@/features/settings/learning-companion-settings-panel';
+import { LearningSupportPanel } from '@/features/settings/learning-support-panel';
 import type {
     LearningSupportSection,
     LearningSupportSettings,
@@ -841,7 +841,8 @@ function SettingsDetail({
                         writePersonalViewToUrl(section);
                     }}
                 />
-            ) : selectedPanel === 'admin-learning-companion' && companionSettings ? (
+            ) : selectedPanel === 'admin-learning-companion' &&
+              companionSettings ? (
                 <LearningCompanionSettingsPanel settings={companionSettings} />
             ) : selectedPanel === 'admin-learning-companion' ? (
                 <SettingsUnavailablePanel label="Learning Companion" />
@@ -858,7 +859,7 @@ function SettingsDetail({
                     />
                 </div>
             ) : selectedPanel === 'admin-ai-integrations' ? (
-                <SettingsUnavailablePanel label="AI & Integrations" />
+                <SettingsUnavailablePanel label="AI" />
             ) : selectedPanel === 'admin-api' ? (
                 <ContentApiPanel />
             ) : selectedPanel === 'admin-learning-support' ? (

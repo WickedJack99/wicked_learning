@@ -165,14 +165,14 @@ export function ContentAuthoringDialog({
 
         try {
             const generated = await generateContentPlan(mapId, {
-                    activity_types: form.activityTypes,
-                    goal: form.goal.trim(),
-                    prior_knowledge: optionalText(form.priorKnowledge),
-                    route_length: Number(form.routeLength),
-                    source_record_ids: form.sourceRecordIds,
-                    target_audience: optionalText(form.targetAudience),
-                    template_id: Number(form.templateId),
-                });
+                activity_types: form.activityTypes,
+                goal: form.goal.trim(),
+                prior_knowledge: optionalText(form.priorKnowledge),
+                route_length: Number(form.routeLength),
+                source_record_ids: form.sourceRecordIds,
+                target_audience: optionalText(form.targetAudience),
+                template_id: Number(form.templateId),
+            });
             setDraft(generated);
             setEditedPlan(null);
             setEditingDraft(false);
@@ -361,7 +361,10 @@ export function ContentAuthoringDialog({
                                 variant="ghost"
                             >
                                 <X className="size-4" />
-                                {t('settings.ai.authoring.cancel_editing', 'Cancel editing')}
+                                {t(
+                                    'settings.ai.authoring.cancel_editing',
+                                    'Cancel editing',
+                                )}
                             </Button>
                         ) : (
                             <div className="flex flex-wrap gap-2">
@@ -381,13 +384,18 @@ export function ContentAuthoringDialog({
                                     )}
                                 </Button>
                                 <Button
-                                    disabled={processing || draft.status !== 'draft'}
+                                    disabled={
+                                        processing || draft.status !== 'draft'
+                                    }
                                     onClick={startEditing}
                                     type="button"
                                     variant="outline"
                                 >
                                     <PenLine className="size-4" />
-                                    {t('settings.ai.authoring.edit_draft', 'Edit draft')}
+                                    {t(
+                                        'settings.ai.authoring.edit_draft',
+                                        'Edit draft',
+                                    )}
                                 </Button>
                             </div>
                         )
@@ -410,12 +418,20 @@ export function ContentAuthoringDialog({
                             >
                                 <Save className="size-4" />
                                 {processing
-                                    ? t('settings.ai.authoring.saving', 'Saving…')
-                                    : t('settings.ai.authoring.save_changes', 'Save changes')}
+                                    ? t(
+                                          'settings.ai.authoring.saving',
+                                          'Saving…',
+                                      )
+                                    : t(
+                                          'settings.ai.authoring.save_changes',
+                                          'Save changes',
+                                      )}
                             </Button>
                         ) : (
                             <Button
-                                disabled={processing || draft.status !== 'draft'}
+                                disabled={
+                                    processing || draft.status !== 'draft'
+                                }
                                 onClick={() => void apply()}
                                 type="button"
                             >
@@ -479,9 +495,7 @@ function AuthoringForm({
     onPageChange: (page: number) => void;
     onSearch: () => void;
     selectedTemplate: ContentAuthoringTemplate | undefined;
-    setSelectedSources: (
-        sources: ContentAuthoringSourceRecord[],
-    ) => void;
+    setSelectedSources: (sources: ContentAuthoringSourceRecord[]) => void;
     setSourceSearchInput: (search: string) => void;
     sourceError: boolean;
     sourceLoading: boolean;
@@ -506,7 +520,7 @@ function AuthoringForm({
                     <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
                         {t(
                             'settings.ai.authoring.no_template_description',
-                            'Enable an Agent template with the purpose Content authoring under AI & Integrations.',
+                            'Enable an Agent template with the purpose Content authoring under AI.',
                         )}
                     </p>
                 </div>
@@ -703,9 +717,7 @@ function SourceContextPicker({
     onPageChange: (page: number) => void;
     onSearch: () => void;
     selectedSources: ContentAuthoringSourceRecord[];
-    setSelectedSources: (
-        sources: ContentAuthoringSourceRecord[],
-    ) => void;
+    setSelectedSources: (sources: ContentAuthoringSourceRecord[]) => void;
     setSourceSearchInput: (search: string) => void;
     sourceError: boolean;
     sourceLoading: boolean;
@@ -783,8 +795,14 @@ function SourceContextPicker({
                     variant="outline"
                 >
                     {sourceLoading
-                        ? t('settings.ai.authoring.source_searching', 'Searching…')
-                        : t('settings.ai.authoring.source_search_action', 'Search')}
+                        ? t(
+                              'settings.ai.authoring.source_searching',
+                              'Searching…',
+                          )
+                        : t(
+                              'settings.ai.authoring.source_search_action',
+                              'Search',
+                          )}
                 </Button>
                 <span className="text-sm text-[var(--settings-muted-text)]">
                     {t(
@@ -794,14 +812,22 @@ function SourceContextPicker({
                 </span>
             </div>
             {sourceLoading && sourceRecords.length === 0 ? (
-                <p aria-live="polite" className="text-sm text-[var(--settings-muted-text)]" role="status">
+                <p
+                    aria-live="polite"
+                    className="text-sm text-[var(--settings-muted-text)]"
+                    role="status"
+                >
                     {t(
                         'settings.ai.authoring.source_loading',
                         'Loading saved sources…',
                     )}
                 </p>
             ) : sourceError ? (
-                <p aria-live="polite" className="text-sm text-red-600 dark:text-red-300" role="alert">
+                <p
+                    aria-live="polite"
+                    className="text-sm text-red-600 dark:text-red-300"
+                    role="alert"
+                >
                     {t(
                         'settings.ai.authoring.source_load_error',
                         'Saved sources could not be loaded. Try again.',
@@ -810,7 +836,9 @@ function SourceContextPicker({
             ) : sourceRecords.length > 0 ? (
                 <div className="grid gap-3 sm:grid-cols-2">
                     {sourceRecords.map((source) => {
-                        const selected = form.sourceRecordIds.includes(source.id);
+                        const selected = form.sourceRecordIds.includes(
+                            source.id,
+                        );
 
                         return (
                             <label
@@ -824,7 +852,10 @@ function SourceContextPicker({
                             >
                                 <Checkbox
                                     checked={selected}
-                                    disabled={!selected && form.sourceRecordIds.length >= 5}
+                                    disabled={
+                                        !selected &&
+                                        form.sourceRecordIds.length >= 5
+                                    }
                                     onCheckedChange={(checked) =>
                                         toggleSource(source, checked === true)
                                     }
@@ -858,29 +889,45 @@ function SourceContextPicker({
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                     <Button
                         className="min-h-10"
-                        disabled={sourceLoading || sourcePagination.currentPage <= 1}
-                        onClick={() => onPageChange(sourcePagination.currentPage - 1)}
+                        disabled={
+                            sourceLoading || sourcePagination.currentPage <= 1
+                        }
+                        onClick={() =>
+                            onPageChange(sourcePagination.currentPage - 1)
+                        }
                         type="button"
                         variant="ghost"
                     >
                         <ArrowLeft className="size-4" />
                         {t('settings.ai.authoring.source_previous', 'Previous')}
                     </Button>
-                    <span aria-live="polite" className="text-[var(--settings-muted-text)]">
+                    <span
+                        aria-live="polite"
+                        className="text-[var(--settings-muted-text)]"
+                    >
                         {t(
                             'settings.ai.authoring.source_page',
                             'Page :page of :pages',
                         )
-                            .replace(':page', String(sourcePagination.currentPage))
-                            .replace(':pages', String(sourcePagination.lastPage))}
+                            .replace(
+                                ':page',
+                                String(sourcePagination.currentPage),
+                            )
+                            .replace(
+                                ':pages',
+                                String(sourcePagination.lastPage),
+                            )}
                     </span>
                     <Button
                         className="min-h-10"
                         disabled={
                             sourceLoading ||
-                            sourcePagination.currentPage >= sourcePagination.lastPage
+                            sourcePagination.currentPage >=
+                                sourcePagination.lastPage
                         }
-                        onClick={() => onPageChange(sourcePagination.currentPage + 1)}
+                        onClick={() =>
+                            onPageChange(sourcePagination.currentPage + 1)
+                        }
                         type="button"
                         variant="ghost"
                     >
@@ -955,7 +1002,9 @@ function DraftEditor({
                     {t('settings.ai.authoring.map_asset', 'MapAsset')}
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label={t('settings.ai.authoring.title_field', 'Title')}>
+                    <Field
+                        label={t('settings.ai.authoring.title_field', 'Title')}
+                    >
                         <Input
                             onChange={(event) =>
                                 onChange({
@@ -997,7 +1046,9 @@ function DraftEditor({
                                 ...plan,
                                 mapAsset: {
                                     ...plan.mapAsset,
-                                    description: nullableText(event.target.value),
+                                    description: nullableText(
+                                        event.target.value,
+                                    ),
                                 },
                             })
                         }
@@ -1033,7 +1084,12 @@ function DraftEditor({
                                 </div>
                             </div>
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <Field label={t('settings.ai.authoring.title_field', 'Title')}>
+                                <Field
+                                    label={t(
+                                        'settings.ai.authoring.title_field',
+                                        'Title',
+                                    )}
+                                >
                                     <Input
                                         onChange={(event) =>
                                             updateActivity(index, {
@@ -1053,7 +1109,8 @@ function DraftEditor({
                                         className="h-10 w-full min-w-0 rounded-md border border-[var(--settings-input-border-color)] bg-[var(--settings-input-background)] px-3 text-sm"
                                         onChange={(event) =>
                                             updateActivity(index, {
-                                                learningIntent: event.target.value,
+                                                learningIntent:
+                                                    event.target.value,
                                             })
                                         }
                                         value={activity.learningIntent}
@@ -1117,8 +1174,8 @@ function DraftEditor({
                                     }
                                     value={
                                         activity.type === 'markdown'
-                                            ? activity.body ?? ''
-                                            : activity.prompt ?? ''
+                                            ? (activity.body ?? '')
+                                            : (activity.prompt ?? '')
                                     }
                                 />
                             </Field>
@@ -1135,11 +1192,15 @@ function DraftEditor({
                                                 competenceTopics:
                                                     event.target.value
                                                         .split(',')
-                                                        .map((topic) => topic.trim())
+                                                        .map((topic) =>
+                                                            topic.trim(),
+                                                        )
                                                         .filter(Boolean),
                                             })
                                         }
-                                        value={activity.competenceTopics.join(', ')}
+                                        value={activity.competenceTopics.join(
+                                            ', ',
+                                        )}
                                     />
                                 </Field>
                                 <Field
@@ -1151,7 +1212,9 @@ function DraftEditor({
                                     <Input
                                         onChange={(event) =>
                                             updateActivity(index, {
-                                                note: nullableText(event.target.value),
+                                                note: nullableText(
+                                                    event.target.value,
+                                                ),
                                             })
                                         }
                                         value={activity.note ?? ''}
@@ -1176,9 +1239,10 @@ function DraftEditor({
                                         {sourceRecords.map((source) => {
                                             const sourceRecordIds =
                                                 activity.sourceRecordIds ?? [];
-                                            const selected = sourceRecordIds.includes(
-                                                source.id,
-                                            );
+                                            const selected =
+                                                sourceRecordIds.includes(
+                                                    source.id,
+                                                );
 
                                             return (
                                                 <label
@@ -1197,11 +1261,14 @@ function DraftEditor({
                                                             sourceRecordIds.length >=
                                                                 5
                                                         }
-                                                        onCheckedChange={(checked) =>
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
                                                             toggleActivitySource(
                                                                 index,
                                                                 source.id,
-                                                                checked === true,
+                                                                checked ===
+                                                                    true,
                                                             )
                                                         }
                                                     />
@@ -1229,21 +1296,35 @@ function DraftEditor({
                             </fieldset>
                             {activity.type === 'message_prompt' ? (
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                    <Field label={t('settings.ai.authoring.shared_topic', 'Shared topic')}>
+                                    <Field
+                                        label={t(
+                                            'settings.ai.authoring.shared_topic',
+                                            'Shared topic',
+                                        )}
+                                    >
                                         <Input
                                             onChange={(event) =>
                                                 updateActivity(index, {
-                                                    topic: nullableText(event.target.value),
+                                                    topic: nullableText(
+                                                        event.target.value,
+                                                    ),
                                                 })
                                             }
                                             value={activity.topic ?? ''}
                                         />
                                     </Field>
-                                    <Field label={t('settings.ai.authoring.input_label', 'Input label')}>
+                                    <Field
+                                        label={t(
+                                            'settings.ai.authoring.input_label',
+                                            'Input label',
+                                        )}
+                                    >
                                         <Input
                                             onChange={(event) =>
                                                 updateActivity(index, {
-                                                    inputLabel: nullableText(event.target.value),
+                                                    inputLabel: nullableText(
+                                                        event.target.value,
+                                                    ),
                                                 })
                                             }
                                             value={activity.inputLabel ?? ''}
@@ -1252,11 +1333,18 @@ function DraftEditor({
                                 </div>
                             ) : null}
                             {activity.type === 'shared_task' ? (
-                                <Field label={t('settings.ai.authoring.input_label', 'Input label')}>
+                                <Field
+                                    label={t(
+                                        'settings.ai.authoring.input_label',
+                                        'Input label',
+                                    )}
+                                >
                                     <Input
                                         onChange={(event) =>
                                             updateActivity(index, {
-                                                inputLabel: nullableText(event.target.value),
+                                                inputLabel: nullableText(
+                                                    event.target.value,
+                                                ),
                                             })
                                         }
                                         value={activity.inputLabel ?? ''}
@@ -1454,7 +1542,9 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                             'Sources attributed: :count',
                                         ).replace(
                                             ':count',
-                                            String(activity.sourceRecordIds.length),
+                                            String(
+                                                activity.sourceRecordIds.length,
+                                            ),
                                         )}
                                     </p>
                                 ) : null}

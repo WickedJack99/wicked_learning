@@ -370,8 +370,7 @@ export default function AiSettings({
     const t = usePlatformTranslation();
     const [localSection, setLocalSection] = useState<AiSection>('providers');
     const activeSection = controlledSection ?? localSection;
-    const requestedPurpose =
-        requestedPurposeProp ?? requestedPurposeFromUrl();
+    const requestedPurpose = requestedPurposeProp ?? requestedPurposeFromUrl();
     const preferredPurpose = purposeOptions.some(
         (option) => option.value === requestedPurpose,
     )
@@ -423,11 +422,11 @@ export default function AiSettings({
     const aiItem: SettingsNavigationItem<'ai'> = {
         description: t(
             'settings.ai.description',
-            'Provider credentials, agent templates and instruction guardrails.',
+            'Provider credentials, content-authoring templates and guardrails.',
         ),
         icon: Bot,
         key: 'ai',
-        label: t('settings.ai.title', 'AI support'),
+        label: t('settings.ai.title', 'AI'),
     };
 
     const content = (
@@ -483,12 +482,12 @@ export default function AiSettings({
 
     return (
         <>
-            <Head title={t('settings.ai.title', 'AI support')} />
+            <Head title={t('settings.ai.title', 'AI')} />
             <SettingsConfigurationShell
                 action={action}
                 eyebrow={t('settings.ai.eyebrow', 'Administration')}
                 sidebar={sidebar}
-                title={t('settings.ai.title', 'AI support')}
+                title={t('settings.ai.title', 'AI')}
             >
                 {content}
             </SettingsConfigurationShell>
@@ -834,7 +833,7 @@ function AgentTemplatesPanel({
     );
     const [selectedId, setSelectedId] = useState<number | 'new'>(
         preferredTemplate?.id ??
-            (preferredPurpose ? 'new' : agentTemplates[0]?.id ?? 'new'),
+            (preferredPurpose ? 'new' : (agentTemplates[0]?.id ?? 'new')),
     );
     const selectedTemplate = agentTemplates.find(
         (template) => template.id === selectedId,
@@ -867,11 +866,7 @@ function AgentTemplatesPanel({
 
     const selectTemplate = (template: AgentTemplate | null) => {
         setSelectedId(template?.id ?? 'new');
-        setForm(
-            template
-                ? templateFormFromTemplate(template)
-                : blankForm,
-        );
+        setForm(template ? templateFormFromTemplate(template) : blankForm);
     };
 
     const submit = () => {

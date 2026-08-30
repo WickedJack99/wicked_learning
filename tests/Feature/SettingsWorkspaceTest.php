@@ -41,3 +41,15 @@ test('settings navigation keeps the detail workspace reachable on small screens'
         ->toContain('<details className="border-t border-[var(--settings-border-color)] lg:hidden">')
         ->toContain('Quick navigation');
 });
+
+test('settings exposes AI as its own administration destination', function () {
+    $navigation = file_get_contents(
+        resource_path('js/features/settings/settings-navigation.ts'),
+    );
+
+    expect($navigation)
+        ->toContain("label: 'AI'")
+        ->toContain("labelKey: 'settings.navigation.ai'")
+        ->not->toContain("label: 'AI & Integrations'")
+        ->not->toContain('settings.navigation.ai_integrations');
+});

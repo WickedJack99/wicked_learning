@@ -6,7 +6,7 @@ change the learning world until an administrator explicitly approves it.
 
 ## Configure A Provider
 
-Open **Settings -> AI & Integrations** and create a provider credential. The
+Open **Settings -> AI** and create a provider credential. The
 current transport expects a Responses-compatible endpoint; OpenAI uses
 `https://api.openai.com/v1` by default. API keys are stored encrypted and are
 never sent to the browser after saving.

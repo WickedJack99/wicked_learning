@@ -259,11 +259,11 @@ export const adminSettings: SettingsListItem[] = [
     },
     {
         key: 'admin-ai-integrations',
-        label: 'AI & Integrations',
-        labelKey: 'settings.navigation.ai_integrations',
+        label: 'AI',
+        labelKey: 'settings.navigation.ai',
         description:
-            'Provider credentials, agent templates, instruction sets and future integrations.',
-        descriptionKey: 'settings.navigation.ai_integrations.description',
+            'Provider credentials, content-authoring templates and guardrails.',
+        descriptionKey: 'settings.navigation.ai.description',
         icon: Bot,
         panel: 'admin-ai-integrations',
         resources: ['ai'],
