@@ -13,12 +13,12 @@ class LearnerRecallItemService
     /** @var list<int> */
     private const REVIEW_INTERVALS = [1, 3, 7, 14, 30];
 
-    public function __construct(private readonly LearningMapAccessService $mapAccess) {}
+    public function __construct(private readonly LearnerActivityAccessService $activityAccess) {}
 
     public function queue(User $user, LearningQuestion $question): LearnerRecallItem
     {
         $question->loadMissing('activity.node.map');
-        abort_unless($this->canUseQuestion($user, $question), 404);
+        $this->assertCanUseQuestion($user, $question);
 
         $item = LearnerRecallItem::query()->firstOrCreate([
             'user_id' => $user->id,
@@ -37,7 +37,7 @@ class LearnerRecallItemService
     public function remove(User $user, LearningQuestion $question): void
     {
         $question->loadMissing('activity.node.map');
-        abort_unless($this->canUseQuestion($user, $question), 404);
+        $this->assertCanUseQuestion($user, $question);
 
         LearnerRecallItem::query()
             ->where('user_id', $user->id)
@@ -52,7 +52,7 @@ class LearnerRecallItemService
     public function postpone(User $user, LearningQuestion $question): LearnerRecallItem
     {
         $question->loadMissing('activity.node.map');
-        abort_unless($this->canUseQuestion($user, $question), 404);
+        $this->assertCanUseQuestion($user, $question);
 
         $item = LearnerRecallItem::query()
             ->where('user_id', $user->id)
@@ -74,7 +74,7 @@ class LearnerRecallItemService
         ?string $confidence,
     ): bool {
         $question->loadMissing('activity.node.map');
-        abort_unless($this->canUseQuestion($user, $question), 404);
+        $this->assertCanUseQuestion($user, $question);
 
         $item = LearnerRecallItem::query()
             ->where('user_id', $user->id)
@@ -131,9 +131,10 @@ class LearnerRecallItemService
         ];
     }
 
-    private function canUseQuestion(User $user, LearningQuestion $question): bool
+    private function assertCanUseQuestion(User $user, LearningQuestion $question): void
     {
-        return $question->activity?->node?->map !== null
-            && $this->mapAccess->canViewMap($question->activity->node->map, $user);
+        $activity = $question->activity;
+        abort_unless($activity !== null, 404);
+        $this->activityAccess->assertCanPlay($user, $activity);
     }
 }

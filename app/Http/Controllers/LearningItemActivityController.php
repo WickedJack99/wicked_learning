@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Learning\Serializers\LearningItemSerializer;
 use App\Learning\Services\ItemObstacleService;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\LearningItemGrantService;
 use App\Learning\Services\LearningPlayRunService;
 use App\Models\LearningActivity;
@@ -18,6 +19,7 @@ class LearningItemActivityController extends Controller
         private readonly ItemObstacleService $itemObstacleService,
         private readonly LearningItemSerializer $itemSerializer,
         private readonly LearningPlayRunService $playRunService,
+        private readonly LearnerActivityAccessService $activityAccess,
     ) {}
 
     public function grantItems(Request $request, LearningActivity $activity): JsonResponse
@@ -26,6 +28,7 @@ class LearningItemActivityController extends Controller
             'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
         $playRunId = is_string($data['play_run_id'] ?? null) ? $data['play_run_id'] : null;
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
 
         abort_unless(
             ! $playRunId || $this->playRunService->canUseRun($request, $playRunId, $activity),
@@ -42,6 +45,7 @@ class LearningItemActivityController extends Controller
 
     public function placeObstacleSlot(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
         $data = $request->validate([
             'item_id' => ['required', 'integer'],
             'slot_index' => ['required', 'integer', 'min:0', 'max:9'],
@@ -62,6 +66,8 @@ class LearningItemActivityController extends Controller
 
     public function continueObstacle(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
+
         return response()->json([
             'state' => $this->itemObstacleService->continue($request->user(), $activity),
         ]);

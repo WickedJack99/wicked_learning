@@ -11,6 +11,7 @@ use App\Learning\Serializers\LearningGroupSerializer;
 use App\Learning\Serializers\LearningNodeSerializer;
 use App\Learning\Serializers\LearningToolSerializer;
 use App\Learning\Serializers\LearningWorldSerializer;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\LearnerActivityPlayStateService;
 use App\Learning\Services\LearnerMapLocationService;
 use App\Learning\Services\LearnerProgressService;
@@ -53,6 +54,7 @@ class LearningWorldController extends Controller
         private readonly LearningNodeSerializer $nodeSerializer,
         private readonly LearningToolSerializer $toolSerializer,
         private readonly LearnerActivityPlayStateService $activityPlayStateService,
+        private readonly LearnerActivityAccessService $activityAccess,
         private readonly LearnerMapLocationService $mapLocationService,
         private readonly LearnerProgressSerializer $progressSerializer,
         private readonly LearnerProgressService $progressService,
@@ -224,12 +226,19 @@ class LearningWorldController extends Controller
             'play_run_id' => ['nullable', 'string', 'uuid'],
             'status' => ['required', 'string', 'in:reached,completed'],
         ]);
+        $playRunId = is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null;
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
+
+        abort_unless(
+            ! $playRunId || $this->playRunService->canUseRun($request, $playRunId, $activity),
+            403,
+        );
 
         $progress = $this->progressService->mark(
             $request->user()->id,
             $activity,
             (string) $data['status'],
-            is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
+            $playRunId,
             array_key_exists('ends_route', $data) ? (bool) $data['ends_route'] : null,
             outcome: is_string($data['outcome'] ?? null) ? (string) $data['outcome'] : null,
             confidence: is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
@@ -252,6 +261,7 @@ class LearningWorldController extends Controller
 
     public function recordActivityCheckIn(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
         $feelingValue = $request->input('feeling');
         $noteValue = $request->input('note');
         $nextDirectionValue = $request->input('next_direction');
@@ -301,6 +311,7 @@ class LearningWorldController extends Controller
 
     public function updateActivityRevisitInvitation(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
         $actionValue = $request->input('action');
         abort_unless(
             is_string($actionValue) && in_array(trim($actionValue), ['dismiss', 'snooze'], true),
@@ -329,13 +340,21 @@ class LearningWorldController extends Controller
             'option_id' => ['required', 'integer'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
+        $question->loadMissing('activity');
+        abort_unless($question->activity !== null, 404);
+        $playRunId = is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null;
+        if ($playRunId) {
+            $this->activityAccess->assertActive($request->user(), $question->activity, $playRunId);
+        } else {
+            $this->activityAccess->assertCanPlay($request->user(), $question->activity);
+        }
 
         return response()->json([
             'answer' => $this->questionAnswerService->answer(
                 $request->user()->id,
                 $question,
                 (int) $data['option_id'],
-                is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
+                $playRunId,
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
                 is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
                 is_bool($data['is_recall'] ?? null) ? $data['is_recall'] : false,
@@ -397,6 +416,9 @@ class LearningWorldController extends Controller
         $data = $request->validate([
             'answer_key' => ['required', 'string', 'max:80'],
         ]);
+        $node->loadMissing('activity');
+        abort_unless($node->activity !== null, 404);
+        $this->activityAccess->assertCanPlay($request->user(), $node->activity);
 
         return response()->json([
             'answer' => $this->npcDialogueAnswerService->answer(
@@ -417,6 +439,7 @@ class LearningWorldController extends Controller
             'history.*' => ['integer'],
             'play_run_id' => ['required', 'string', 'uuid'],
         ]);
+        $this->activityAccess->assertActive($request->user(), $activity, (string) $data['play_run_id']);
 
         return response()->json([
             'state' => $this->activityPlayStateService->updateNpcDialogueState(
@@ -431,6 +454,7 @@ class LearningWorldController extends Controller
 
     public function useObstacleTool(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
         $data = $request->validate([
             'tool_id' => ['required', 'integer'],
         ]);
@@ -446,6 +470,7 @@ class LearningWorldController extends Controller
 
     public function revealNodeWithTool(Request $request, LearningNode $node): JsonResponse
     {
+        $this->activityAccess->assertCanViewNode($request->user(), $node);
         $data = $request->validate([
             'tool_id' => ['required', 'integer'],
         ]);
@@ -461,6 +486,7 @@ class LearningWorldController extends Controller
 
     public function unlockNodeWithTool(Request $request, LearningNode $node): JsonResponse
     {
+        $this->activityAccess->assertCanViewNode($request->user(), $node);
         $data = $request->validate([
             'tool_id' => ['required', 'integer'],
         ]);
@@ -476,6 +502,8 @@ class LearningWorldController extends Controller
 
     public function grantActivityTool(Request $request, LearningActivity $activity): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
+
         return response()->json([
             'tool' => $this->toolSerializer->serialize(
                 $this->toolGrantService->grantFromActivity($request->user(), $activity),
@@ -485,6 +513,10 @@ class LearningWorldController extends Controller
 
     public function grantNpcDialogueTool(Request $request, NpcDialogueNode $node): JsonResponse
     {
+        $node->loadMissing('activity');
+        abort_unless($node->activity !== null, 404);
+        $this->activityAccess->assertCanPlay($request->user(), $node->activity);
+
         return response()->json([
             'tool' => $this->toolSerializer->serialize(
                 $this->toolGrantService->grantFromNpcDialogueNode($request->user(), $node),

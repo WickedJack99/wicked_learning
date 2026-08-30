@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\LearnerRouteProgressService;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivityStart;
@@ -10,10 +11,14 @@ use Illuminate\Http\Request;
 
 class LearningRouteProgressController extends Controller
 {
-    public function __construct(private readonly LearnerRouteProgressService $routeProgress) {}
+    public function __construct(
+        private readonly LearnerActivityAccessService $activityAccess,
+        private readonly LearnerRouteProgressService $routeProgress,
+    ) {}
 
     public function restart(Request $request, LearningActivityStart $start): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $start->activity);
         $progress = $this->routeProgress->restartSameRun($request->user(), $start);
 
         return response()->json([
@@ -23,6 +28,7 @@ class LearningRouteProgressController extends Controller
 
     public function reset(Request $request, LearningActivityStart $start): JsonResponse
     {
+        $this->activityAccess->assertCanPlay($request->user(), $start->activity);
         $progress = $this->routeProgress->resetWithNewRun($request->user(), $start);
 
         return response()->json([

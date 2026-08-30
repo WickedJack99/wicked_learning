@@ -174,7 +174,7 @@ class LearnerRouteProgressService
 
     private function firstOrNew(User $user, LearningActivityStart $start): LearnerRouteProgress
     {
-        return LearnerRouteProgress::query()->firstOrNew([
+        return LearnerRouteProgress::query()->firstOrCreate([
             'user_id' => $user->id,
             'learning_node_id' => $start->learning_node_id,
             'start_learning_activity_id' => $start->learning_activity_id,
