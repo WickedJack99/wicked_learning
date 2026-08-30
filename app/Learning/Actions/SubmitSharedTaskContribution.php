@@ -17,7 +17,7 @@ class SubmitSharedTaskContribution
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
     ) {}
 
-    public function handle(User $user, LearningActivity $activity, string $playRunId, string $body): LearningSharedTaskSubmission
+    public function handle(User $user, LearningActivity $activity, string $playRunId, string $body, bool $shareWithPeers = false): LearningSharedTaskSubmission
     {
         abort_unless($activity->type === 'shared_task', 404);
 
@@ -25,6 +25,7 @@ class SubmitSharedTaskContribution
 
         $config = is_array($activity->config) ? $activity->config : [];
         $taskKind = $this->sharedTaskConfig->taskKind($config);
+        $showContributions = (bool) ($config['showContributions'] ?? false);
         $validationMode = (string) ($config['validationMode'] ?? 'minimum_length');
         $minimumLength = max(0, (int) ($config['minimumLength'] ?? 20));
         $repeatPolicy = (string) ($config['repeatPolicy'] ?? 'once_per_user');
@@ -37,7 +38,7 @@ class SubmitSharedTaskContribution
             "The contribution must be at least {$minimumLength} characters.",
         );
 
-        return DB::transaction(function () use ($activity, $playRunId, $repeatPolicy, $taskKind, $text, $user, $validationMode): LearningSharedTaskSubmission {
+        return DB::transaction(function () use ($activity, $playRunId, $repeatPolicy, $shareWithPeers, $showContributions, $taskKind, $text, $user, $validationMode): LearningSharedTaskSubmission {
             if ($repeatPolicy === 'once_per_user') {
                 $existing = LearningSharedTaskSubmission::query()
                     ->where('learning_activity_id', $activity->id)
@@ -58,6 +59,7 @@ class SubmitSharedTaskContribution
                 'accepted_at' => now(),
                 'metadata' => [
                     'bodyLength' => mb_strlen($text),
+                    'shareWithPeers' => $showContributions && $shareWithPeers,
                     'taskKind' => $taskKind,
                 ],
             ]);

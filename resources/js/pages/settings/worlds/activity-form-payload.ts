@@ -152,6 +152,7 @@ const sharedTaskFields: Array<keyof ActivityForm> = [
     'shared_task_input_label',
     'shared_task_instructions',
     'shared_task_kind',
+    'shared_task_show_contributions',
     'shared_task_minimum_length',
     'shared_task_prompt',
     'shared_task_repeat_policy',

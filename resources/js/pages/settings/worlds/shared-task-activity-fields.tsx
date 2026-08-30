@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -113,10 +114,34 @@ export function SharedTaskFlowFields({
                 }
                 options={[
                     ['none', 'None'],
-                    ['question_response_question', 'Question response question'],
+                    [
+                        'question_response_question',
+                        'Question response question',
+                    ],
                 ]}
                 value={form.shared_task_cycle_mode}
             />
+            <div className="flex items-start gap-3 md:col-span-2">
+                <Checkbox
+                    checked={form.shared_task_show_contributions}
+                    id="shared-task-show-contributions"
+                    onCheckedChange={(checked) =>
+                        onChange((current) => ({
+                            ...current,
+                            shared_task_show_contributions: checked === true,
+                        }))
+                    }
+                />
+                <div className="grid gap-1">
+                    <Label htmlFor="shared-task-show-contributions">
+                        Allow anonymous contributions to be shown
+                    </Label>
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Learners still choose whether to share each
+                        contribution.
+                    </p>
+                </div>
+            </div>
             <div className="grid gap-2 md:col-span-2">
                 <Label htmlFor="shared-task-prompt">Prompt</Label>
                 <textarea

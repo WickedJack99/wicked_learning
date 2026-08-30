@@ -332,6 +332,7 @@ class AdminActivityRules
     {
         return [
             'shared_task_kind' => [$modifier, 'string', Rule::in(['text', 'question', 'reflection'])],
+            'shared_task_show_contributions' => [$modifier, 'boolean'],
             'shared_task_prompt' => $this->optional($modifier, ['string', 'max:4000']),
             'shared_task_instructions' => $this->optional($modifier, ['string', 'max:4000']),
             'shared_task_input_label' => $this->optional($modifier, ['string', 'max:160']),

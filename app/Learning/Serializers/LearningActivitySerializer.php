@@ -15,6 +15,7 @@ use App\Models\LearningSound;
 use App\Models\LearningTool;
 use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class LearningActivitySerializer
@@ -37,6 +38,8 @@ class LearningActivitySerializer
         LearningActivity $activity,
         ?Collection $reviewReflections = null,
         ?Collection $dialogueSoundSets = null,
+        ?User $user = null,
+        bool $includeSharedTaskContext = false,
     ): array {
         return [
             'id' => $activity->id,
@@ -63,7 +66,7 @@ class LearningActivitySerializer
             'question' => $this->question($activity),
             'reviewContext' => $this->reviewContext($activity, $reviewReflections),
             'sharedTaskState' => $activity->type === 'shared_task'
-                ? $this->sharedTaskState->state($activity)
+                ? $this->sharedTaskState->state($activity, $user, $includeSharedTaskContext)
                 : null,
             'transitions' => $activity->transitions
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))

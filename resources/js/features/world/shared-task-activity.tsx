@@ -30,6 +30,7 @@ export function SharedTaskActivity({
     const t = usePlatformTranslation();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [shareWithPeers, setShareWithPeers] = useState(false);
     const taskKind = sharedTaskKind(activity.config.taskKind);
     const kindCopy = sharedTaskKindCopy(taskKind, t);
     const minimumLength = numericConfig(activity.config.minimumLength, 20);
@@ -62,6 +63,7 @@ export function SharedTaskActivity({
                 {
                     body,
                     play_run_id: playRunId,
+                    share_with_peers: shareWithPeers,
                 },
             );
 
@@ -106,6 +108,25 @@ export function SharedTaskActivity({
 
             <SharedTaskProgress state={state} t={t} />
 
+            {state.hasSubmitted ? (
+                <p
+                    aria-live="polite"
+                    className="text-sm text-slate-600 dark:text-slate-300"
+                >
+                    {t(
+                        'activities.shared_task.contribution_recorded',
+                        'Your contribution has been recorded.',
+                    )}
+                </p>
+            ) : null}
+
+            {state.contributions.length > 0 ? (
+                <SharedTaskContributions
+                    contributions={state.contributions}
+                    t={t}
+                />
+            ) : null}
+
             {state.isComplete ? (
                 <Button className="mt-auto" onClick={() => void complete()}>
                     {t('common.continue', 'Continue')}
@@ -129,6 +150,24 @@ export function SharedTaskActivity({
                         )}
                         value={body}
                     />
+                    {state.canShareContributions ? (
+                        <label className="flex items-start gap-3 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                            <input
+                                checked={shareWithPeers}
+                                className="mt-0.5 size-4 accent-cyan-600 dark:accent-teal-300"
+                                onChange={(event) =>
+                                    setShareWithPeers(event.target.checked)
+                                }
+                                type="checkbox"
+                            />
+                            <span>
+                                {t(
+                                    'activities.shared_task.share_with_peers',
+                                    'Share this contribution anonymously with later learners.',
+                                )}
+                            </span>
+                        </label>
+                    ) : null}
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <span>
                             {t(
@@ -169,6 +208,44 @@ export function SharedTaskActivity({
 }
 
 type SharedTaskKind = 'text' | 'question' | 'reflection';
+
+function SharedTaskContributions({
+    contributions,
+    t,
+}: {
+    contributions: SharedTaskState['contributions'];
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    return (
+        <section
+            aria-labelledby="shared-task-contributions-heading"
+            className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6"
+        >
+            <h3
+                className="text-sm font-semibold text-slate-800 dark:text-slate-100"
+                id="shared-task-contributions-heading"
+            >
+                {t(
+                    'activities.shared_task.recent_contributions',
+                    'Recent anonymous contributions',
+                )}
+            </h3>
+            <div className="mt-3 grid gap-2">
+                {contributions.map((contribution, index) => (
+                    <article
+                        className="rounded-md border border-slate-200/80 bg-slate-50 p-3 text-sm leading-6 text-slate-700 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200"
+                        key={`${contribution.submittedAt ?? 'contribution'}-${index}`}
+                    >
+                        <p>
+                            {contribution.body}
+                            {contribution.truncated ? '…' : ''}
+                        </p>
+                    </article>
+                ))}
+            </div>
+        </section>
+    );
+}
 
 function sharedTaskKind(value: unknown): SharedTaskKind {
     return value === 'question' || value === 'reflection' ? value : 'text';
@@ -305,6 +382,9 @@ function fallbackState(activity: LearningActivity): SharedTaskState {
     const threshold = numericConfig(activity.config.threshold, 3);
 
     return {
+        canShareContributions: false,
+        contributions: [],
+        hasSubmitted: false,
         acceptedCount: 0,
         isComplete: false,
         latestSubmissionAt: null,

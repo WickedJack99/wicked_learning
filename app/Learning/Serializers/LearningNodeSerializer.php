@@ -64,6 +64,8 @@ class LearningNodeSerializer
                     $activity,
                     $reviewContexts[$activity->id] ?? null,
                     $dialogueSoundSets,
+                    $user,
+                    $includeLearnerReviewContext,
                 ))
                 ->values(),
         ];

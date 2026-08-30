@@ -20,6 +20,7 @@ class LearningSharedTaskSubmissionController extends Controller
         $data = $request->validate([
             'body' => ['required', 'string', 'max:20000'],
             'play_run_id' => ['required', 'uuid'],
+            'share_with_peers' => ['sometimes', 'boolean'],
         ]);
 
         $submission = $this->submitContribution->handle(
@@ -27,6 +28,7 @@ class LearningSharedTaskSubmissionController extends Controller
             $activity,
             (string) $data['play_run_id'],
             (string) $data['body'],
+            (bool) ($data['share_with_peers'] ?? false),
         );
 
         return response()->json([
@@ -35,7 +37,7 @@ class LearningSharedTaskSubmissionController extends Controller
                 'status' => $submission->status,
                 'acceptedAt' => $submission->accepted_at?->toIso8601String(),
             ],
-            'state' => $this->stateSerializer->state($activity),
+            'state' => $this->stateSerializer->state($activity, $request->user(), true),
         ]);
     }
 }

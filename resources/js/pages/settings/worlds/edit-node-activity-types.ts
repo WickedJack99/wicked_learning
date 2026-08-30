@@ -436,6 +436,7 @@ export type CreateActivityForm = {
     shared_task_input_label: string;
     shared_task_instructions: string;
     shared_task_kind: string;
+    shared_task_show_contributions: boolean;
     shared_task_minimum_length: string;
     shared_task_prompt: string;
     shared_task_repeat_policy: string;

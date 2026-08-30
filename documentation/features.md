@@ -152,7 +152,10 @@ Implemented activity types are:
 Shared tasks can be authored as a general contribution, a question, or a
 reflection. Playback uses that kind to orient the learner and accepted
 submissions retain the kind as structured context; it does not grade or rank
-the contribution.
+the contribution. Authors may also allow an anonymous contribution sample to
+be shown to later learners, but each learner opts in per submission. Playback
+shows only a small, bounded set of opted-in contributions and does not expose
+learner identities.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

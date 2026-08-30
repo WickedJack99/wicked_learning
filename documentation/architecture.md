@@ -86,7 +86,14 @@ can persist more specific state without putting it into the URL:
 Shared-task submissions keep their normalized authored task kind in metadata so
 later cooperation review can distinguish contribution, question and reflection
 without changing the shared-task completion counter or treating the kind as a
-quality judgment.
+quality judgment. An author-controlled sharing flag and a learner-controlled
+submission flag are stored in the same metadata. The learner serializer queries
+only the latest five opted-in accepted submissions and omits user identity,
+keeping the cooperative playback payload bounded and privacy-preserving by
+default. Each displayed contribution is limited to a 500-character excerpt;
+the stored submission is not rewritten by this presentation bound.
+Those contribution details are included only in activity-playback
+serialization, not in broad map-node payloads.
 
 The learner Paths query evaluates the existing per-user map and node state
 services in bounded candidate chunks, then serializes only the requested page

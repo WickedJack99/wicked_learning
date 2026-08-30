@@ -83,6 +83,98 @@ test('shared task submissions preserve the configured contribution kind', functi
         ]);
 });
 
+test('shared task contribution sharing requires author and learner opt in', function () {
+    [$firstLearner, $activity, $firstRunId] = activeSharedTask([
+        'showContributions' => true,
+    ]);
+    [$secondLearner, , $secondRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($firstLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'A contribution shared with later learners.',
+            'play_run_id' => $firstRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.hasSubmitted', true)
+        ->assertJsonPath('state.contributions.0.body', 'A contribution shared with later learners.');
+
+    $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'A private contribution for the shared task.',
+            'play_run_id' => $secondRunId,
+            'share_with_peers' => false,
+        ])
+        ->assertOk()
+        ->assertJsonCount(1, 'state.contributions');
+
+    expect(LearningSharedTaskSubmission::query()->latest('id')->firstOrFail()->metadata)
+        ->toMatchArray(['shareWithPeers' => false]);
+});
+
+test('shared task contributions stay private when the author has not enabled sharing', function () {
+    [$learner, $activity, $runId] = activeSharedTask();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The learner requested sharing but the author did not allow it.',
+            'play_run_id' => $runId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonCount(0, 'state.contributions');
+
+    expect(LearningSharedTaskSubmission::query()->firstOrFail()->metadata)
+        ->toMatchArray(['shareWithPeers' => false]);
+});
+
+test('shared task playback keeps the anonymous contribution sample bounded', function () {
+    [$firstLearner, $activity, $firstRunId] = activeSharedTask([
+        'showContributions' => true,
+        'threshold' => 20,
+        'repeatPolicy' => 'unlimited',
+    ]);
+
+    for ($number = 1; $number <= 7; $number++) {
+        [$learner, , $runId] = $number === 1
+            ? [$firstLearner, $activity, $firstRunId]
+            : activeSharedTaskFor($activity);
+
+        $response = $this->actingAs($learner)
+            ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+                'body' => "Contribution {$number} with enough useful context.",
+                'play_run_id' => $runId,
+                'share_with_peers' => true,
+            ])
+            ->assertOk();
+    }
+
+    $response
+        ->assertJsonCount(5, 'state.contributions')
+        ->assertJsonPath('state.contributions.0.body', 'Contribution 7 with enough useful context.')
+        ->assertJsonPath('state.contributions.4.body', 'Contribution 3 with enough useful context.');
+});
+
+test('shared task contribution samples bound displayed text', function () {
+    [$learner, $activity, $runId] = activeSharedTask([
+        'showContributions' => true,
+    ]);
+    $body = str_repeat('A useful shared observation. ', 40);
+
+    $response = $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => $body,
+            'play_run_id' => $runId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.contributions.0.truncated', true);
+
+    expect($response->json('state.contributions.0.body'))
+        ->toHaveLength(500)
+        ->and(LearningSharedTaskSubmission::query()->firstOrFail()->body)->toBe(trim($body));
+});
+
 /** @return array{0: User, 1: LearningActivity, 2: string} */
 function activeSharedTask(array $config = []): array
 {

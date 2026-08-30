@@ -142,6 +142,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         shared_task_input_label: 'Your contribution',
         shared_task_instructions: '',
         shared_task_kind: 'text',
+        shared_task_show_contributions: false,
         shared_task_minimum_length: '20',
         shared_task_prompt: 'Add a useful contribution.',
         shared_task_repeat_policy: 'once_per_user',
@@ -530,6 +531,10 @@ export function activityFormFromActivity(
         ),
         shared_task_instructions: stringConfig(activity.config.instructions),
         shared_task_kind: stringConfig(activity.config.taskKind, 'text'),
+        shared_task_show_contributions: booleanConfig(
+            activity.config.showContributions,
+            false,
+        ),
         shared_task_minimum_length: stringConfig(
             activity.config.minimumLength,
             '20',

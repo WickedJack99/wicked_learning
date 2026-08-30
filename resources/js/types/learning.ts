@@ -405,6 +405,14 @@ export type SharedTaskState = {
     remaining: number;
     isComplete: boolean;
     latestSubmissionAt: string | null;
+    canShareContributions: boolean;
+    hasSubmitted: boolean;
+    contributions: Array<{
+        body: string;
+        submittedAt: string | null;
+        taskKind: string;
+        truncated: boolean;
+    }>;
 };
 
 export type LearningTool = {

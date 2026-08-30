@@ -16,6 +16,7 @@ class SharedTaskActivityConfiguration
         return [
             ...$existing,
             'taskKind' => $taskKind,
+            'showContributions' => $this->boolean($data, 'shared_task_show_contributions', $existing['showContributions'] ?? false),
             'prompt' => $this->string($data, 'shared_task_prompt', $existing, 'prompt', 'Add a useful contribution.'),
             'instructions' => $this->string($data, 'shared_task_instructions', $existing, 'instructions', ''),
             'inputLabel' => $this->inputLabel($data, $existing, $taskKind),
@@ -32,6 +33,7 @@ class SharedTaskActivityConfiguration
     {
         return array_key_exists('type', $updates) || array_intersect_key($data, array_flip([
             'shared_task_kind',
+            'shared_task_show_contributions',
             'shared_task_prompt',
             'shared_task_instructions',
             'shared_task_input_label',
@@ -69,6 +71,14 @@ class SharedTaskActivityConfiguration
             'reflection' => 'Your reflection',
             default => 'Your contribution',
         };
+    }
+
+    /** @param array<string, mixed> $data */
+    private function boolean(array $data, string $field, mixed $fallback): bool
+    {
+        return array_key_exists($field, $data)
+            ? filter_var($data[$field], FILTER_VALIDATE_BOOLEAN)
+            : (bool) $fallback;
     }
 
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */
