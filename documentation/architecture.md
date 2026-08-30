@@ -181,7 +181,8 @@ activity surfaces; the world map supplies a map-search placement that reserves
 a slot immediately to the search control's right.
 
 The learner launcher traverses assigned message, choice and end nodes locally,
-and resolves graph navigation keys against the server-provided context actions.
+keeps a transient in-panel history for Back and Restart controls, and resolves
+graph navigation keys against the server-provided context actions.
 AI nodes currently disclose that provider execution is unavailable rather than
 pretending to answer. Future AI turns must reuse the validated capability
 contract, resolve navigation on the server and keep this deterministic fallback

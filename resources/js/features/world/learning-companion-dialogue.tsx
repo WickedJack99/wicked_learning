@@ -1,11 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { ArrowRight, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, MessageCircle, RotateCcw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import type {
-    LearningCompanion,
-    LearningCompanionDialogueNode,
-} from '@/types';
+import type { LearningCompanion, LearningCompanionDialogueNode } from '@/types';
 
 export function LearningCompanionDialogue({
     companion,
@@ -15,6 +12,7 @@ export function LearningCompanionDialogue({
     const t = usePlatformTranslation();
     const graph = companion.dialogue;
     const [nodeId, setNodeId] = useState(graph?.start ?? '');
+    const [nodeHistory, setNodeHistory] = useState<string[]>([]);
     const nodeById = useMemo(
         () => new Map(graph?.nodes.map((node) => [node.id, node]) ?? []),
         [graph],
@@ -31,9 +29,26 @@ export function LearningCompanionDialogue({
     }
 
     const moveTo = (target: string | null | undefined): void => {
-        if (target && nodeById.has(target)) {
+        if (target && nodeById.has(target) && target !== nodeId) {
+            setNodeHistory((history) => [...history, nodeId]);
             setNodeId(target);
         }
+    };
+
+    const moveBack = (): void => {
+        const previousNodeId = nodeHistory.at(-1);
+
+        if (!previousNodeId) {
+            return;
+        }
+
+        setNodeHistory((history) => history.slice(0, -1));
+        setNodeId(previousNodeId);
+    };
+
+    const restart = (): void => {
+        setNodeHistory([]);
+        setNodeId(graph.start);
     };
 
     return (
@@ -143,6 +158,41 @@ export function LearningCompanionDialogue({
                     )}
                 </p>
             ) : null}
+
+            {nodeHistory.length > 0 || nodeId !== graph.start ? (
+                <div
+                    aria-label={t(
+                        'learning.companion.dialogue.navigation',
+                        'Conversation navigation',
+                    )}
+                    className="flex flex-wrap gap-2 border-t border-[var(--map-side-control-panel-border-color)] pt-3"
+                    role="group"
+                >
+                    {nodeHistory.length > 0 ? (
+                        <button
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--map-side-control-panel-border-color)] px-3 py-2 text-sm font-semibold text-[var(--map-side-control-text-color)] transition hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
+                            onClick={moveBack}
+                            type="button"
+                        >
+                            <ArrowLeft className="size-4" />
+                            {t('learning.companion.dialogue.back', 'Back')}
+                        </button>
+                    ) : null}
+                    {nodeId !== graph.start ? (
+                        <button
+                            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--map-side-control-panel-border-color)] px-3 py-2 text-sm font-semibold text-[var(--map-side-control-muted-text-color)] transition hover:bg-[var(--map-side-control-hover-background)] hover:text-[var(--map-side-control-text-color)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none"
+                            onClick={restart}
+                            type="button"
+                        >
+                            <RotateCcw className="size-4" />
+                            {t(
+                                'learning.companion.dialogue.restart',
+                                'Restart',
+                            )}
+                        </button>
+                    ) : null}
+                </div>
+            ) : null}
         </section>
     );
 }
@@ -158,7 +208,5 @@ function nodeContent(
         );
     }
 
-    return node.type === 'choice'
-        ? node.prompt ?? ''
-        : node.message ?? '';
+    return node.type === 'choice' ? (node.prompt ?? '') : (node.message ?? '');
 }

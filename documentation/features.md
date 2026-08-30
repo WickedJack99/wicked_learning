@@ -230,8 +230,9 @@ graphs are bounded and validate their node links and terminal actions against a
 small server-owned navigation allowlist. The graph editor opens on demand in a
 bounded overlay so the graph list and selected-graph details remain visible by
 default. When a graph is assigned, the learner launcher can traverse its
-authored message, choice and end nodes locally; navigation choices resolve only
-to server-provided context actions, while AI nodes disclose that provider
+authored message, choice and end nodes locally, with local Back and Restart
+controls for recovering from a branch; navigation choices resolve only to
+server-provided context actions, while AI nodes disclose that provider
 execution is not yet available. Learners can open the companion from
 the lower-left corner on the Learning Desk, bookmarks and activities, or
 immediately to the right of map search on a world map. The current learner
