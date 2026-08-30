@@ -40,6 +40,7 @@ class ApplyAiContentPlan
             $plan = $this->planValidator->validate(
                 $run->plan ?? [],
                 $allowedTypes,
+                $this->selectedSourceRecordIds($context),
             );
             $assetData = $this->assetData($plan);
             Validator::make($assetData, [
@@ -51,7 +52,12 @@ class ApplyAiContentPlan
             $activities = [];
 
             foreach ($plan['activities'] as $index => $activityPlan) {
-                $activityData = $this->activityData($activityPlan, $index, $asset->node->title);
+                $activityData = $this->activityData(
+                    $activityPlan,
+                    $index,
+                    $asset->node->title,
+                    $context['selectedSourceRecords'] ?? [],
+                );
                 $activities[] = $this->createActivity->handle(
                     $asset->node,
                     Validator::make(
@@ -103,8 +109,12 @@ class ApplyAiContentPlan
      * @param  array<string, mixed>  $plan
      * @return array<string, mixed>
      */
-    private function activityData(array $plan, int $index, string $defaultMessageTopic): array
-    {
+    private function activityData(
+        array $plan,
+        int $index,
+        string $defaultMessageTopic,
+        array $selectedSourceRecords,
+    ): array {
         $base = [
             'title' => $plan['title'],
             'type' => $plan['type'],
@@ -113,6 +123,7 @@ class ApplyAiContentPlan
             'learning_intent' => $plan['learningIntent'],
             'graph_position_x' => 120 + ($index * 260),
             'graph_position_y' => 80,
+            'source_references' => $this->sourceReferences($plan, $selectedSourceRecords),
         ];
 
         if ($plan['type'] === 'reflection') {
@@ -173,6 +184,43 @@ class ApplyAiContentPlan
                 'end' => ['x' => 520, 'y' => 80],
             ],
         ];
+    }
+
+    /** @param list<array<string, mixed>> $selectedSourceRecords @return list<array<string, mixed>> */
+    private function sourceReferences(array $plan, array $selectedSourceRecords): array
+    {
+        $recordsById = [];
+
+        foreach ($selectedSourceRecords as $record) {
+            if (is_array($record) && isset($record['id'])) {
+                $recordsById[(int) $record['id']] = $record;
+            }
+        }
+
+        $references = [];
+
+        foreach (($plan['sourceRecordIds'] ?? []) as $sourceRecordId) {
+            $record = $recordsById[(int) $sourceRecordId] ?? null;
+
+            if ($record !== null) {
+                $references[] = $record;
+            }
+        }
+
+        return $references;
+    }
+
+    /** @param array<string, mixed> $context @return list<int> */
+    private function selectedSourceRecordIds(array $context): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (mixed $record): ?int => is_array($record) && isset($record['id'])
+                ? (int) $record['id']
+                : null,
+            is_array($context['selectedSourceRecords'] ?? null)
+                ? $context['selectedSourceRecords']
+                : [],
+        )));
     }
 
     /** @param list<string> $topics @return list<array{topic: string, weight: int}> */

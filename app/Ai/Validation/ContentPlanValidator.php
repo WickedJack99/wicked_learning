@@ -13,10 +13,14 @@ class ContentPlanValidator
     /**
      * @param  array<string, mixed>  $plan
      * @param  list<string>|null  $allowedActivityTypes
+     * @param  list<int>|null  $availableSourceRecordIds
      * @return array<string, mixed>
      */
-    public function validate(array $plan, ?array $allowedActivityTypes = null): array
-    {
+    public function validate(
+        array $plan,
+        ?array $allowedActivityTypes = null,
+        ?array $availableSourceRecordIds = null,
+    ): array {
         $activityTypes = $allowedActivityTypes ?: ContentPlanContract::ACTIVITY_TYPES;
         $validator = Validator::make($plan, [
             'summary' => ['required', 'string', 'max:1200'],
@@ -37,9 +41,14 @@ class ContentPlanValidator
             'activities.*.competenceTopics' => ['required', 'array', 'min:1', 'max:3'],
             'activities.*.competenceTopics.*' => ['required', 'string', 'max:120'],
             'activities.*.learningIntent' => ['required', 'string', Rule::in(ActivityCompetenceConfiguration::LEARNING_INTENTS)],
+            'activities.*.sourceRecordIds' => ['nullable', 'array', 'max:5'],
+            'activities.*.sourceRecordIds.*' => ['integer', 'distinct'],
         ]);
-        $validator->after(function ($validator) use ($plan): void {
+        $validator->after(function ($validator) use ($availableSourceRecordIds, $plan): void {
             $activities = is_array($plan['activities'] ?? null) ? $plan['activities'] : [];
+            $availableSourceRecordIds = $availableSourceRecordIds === null
+                ? null
+                : array_map('intval', $availableSourceRecordIds);
 
             foreach ($activities as $index => $activity) {
                 if (! is_array($activity)) {
@@ -56,6 +65,17 @@ class ContentPlanValidator
                             "activities.{$index}.competenceTopics.{$topicIndex}",
                             'Competence topics need a readable label.',
                         );
+                    }
+                }
+
+                if ($availableSourceRecordIds !== null) {
+                    foreach (($activity['sourceRecordIds'] ?? []) as $sourceIndex => $sourceRecordId) {
+                        if (! in_array((int) $sourceRecordId, $availableSourceRecordIds, true)) {
+                            $validator->errors()->add(
+                                "activities.{$index}.sourceRecordIds.{$sourceIndex}",
+                                'Activity sources must be selected in the draft source context.',
+                            );
+                        }
                     }
                 }
 

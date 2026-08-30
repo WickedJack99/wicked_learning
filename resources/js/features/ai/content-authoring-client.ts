@@ -13,6 +13,7 @@ export type ContentPlanActivity = {
     learningIntent: string;
     note: string | null;
     prompt: string | null;
+    sourceRecordIds?: number[];
     topic: string | null;
     title: string;
     type: ContentPlanActivityType;

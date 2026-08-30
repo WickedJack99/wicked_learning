@@ -24,6 +24,7 @@ class UpdateAiContentPlan
         $validatedPlan = $this->planValidator->validate(
             $plan,
             $brief['activityTypes'] ?? null,
+            $this->selectedSourceRecordIds($context),
         );
 
         $run->forceFill([
@@ -32,5 +33,18 @@ class UpdateAiContentPlan
         ])->save();
 
         return $run->refresh();
+    }
+
+    /** @param array<string, mixed> $context @return list<int> */
+    private function selectedSourceRecordIds(array $context): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (mixed $record): ?int => is_array($record) && isset($record['id'])
+                ? (int) $record['id']
+                : null,
+            is_array($context['selectedSourceRecords'] ?? null)
+                ? $context['selectedSourceRecords']
+                : [],
+        )));
     }
 }

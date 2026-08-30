@@ -37,9 +37,11 @@ task and Open practice Activities. Generation
 receives the selected map's title, description and existing MapAsset summaries
 so the model can avoid obvious duplication. When the administrator selects
 sources, their metadata and excerpts are included as optional grounding and
-remain visible in the draft preview. The flow does not receive learner records
-or hidden answer data, and it does not attach a selected source automatically
-to every generated Activity.
+remain visible in the draft preview. The AI may identify directly supporting
+records per Activity, and the administrator can change those attributions
+during review. The flow does not receive learner records or hidden answer data,
+and it never attaches a selected source to an Activity without an explicit
+attribution in the reviewed draft.
 
 The response must satisfy a strict, versioned JSON schema. A valid draft stores:
 
@@ -65,7 +67,8 @@ Applying a draft:
 2. checks that the draft belongs to that user and has not already been applied;
 3. validates the ContentPlan and normal World Builder rules again;
 4. creates one focusable MapAsset at X/Y 50 with default size 14;
-5. creates the selected Activities and route start;
+5. creates the selected Activities and copies only explicitly attributed source
+   snapshots into each Activity;
 6. connects the linear transitions; and
 7. records who applied the draft and when.
 
@@ -90,7 +93,8 @@ is never included in learner playback.
 - Images are not invented or uploaded by the authoring flow.
 - Administrators may select up to five saved source records as explicit draft
   context. The selected records are snapshotted with the draft for review; an
-  author must still decide how generated Activities should use or cite them.
+  author must still decide which records directly support each Activity before
+  applying it.
 - Administrators can edit the MapAsset and Activity fields in a draft before
   applying it. The edited plan is validated again against the same contract and
   scoped Activity types when it is saved.

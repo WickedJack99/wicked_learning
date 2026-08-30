@@ -98,11 +98,11 @@ learner-visible sources, and authoring reuse can now filter by those labels.
 Add richer concept linkage and reusable excerpts later. Authors can also
 restore a listed revision without losing the current state. AI authoring now
 accepts up to five explicitly selected catalog records as optional grounding
-and stores their metadata and excerpts with the reviewable draft. The draft
-preview makes that context inspectable without attaching it automatically to
-every generated Activity. Continue with per-activity source attribution and
-richer concept linkage when the authoring contract can express which source
-supports which content.
+and stores their metadata and excerpts with the reviewable draft. The author
+can now attribute those selected records per Activity during review, and only
+those attribution snapshots are copied when the draft is applied. Continue
+with richer concept linkage and reusable excerpts when the authoring contract
+can express more precise support relationships.
 
 ### 6. Learner regulation and focus
 

@@ -315,6 +315,7 @@ export function ContentAuthoringDialog({
                             <DraftEditor
                                 onChange={setEditedPlan}
                                 plan={editedPlan}
+                                sourceRecords={draft.sourceRecords}
                             />
                         ) : (
                             <DraftPreview draft={draft} />
@@ -895,9 +896,11 @@ function SourceContextPicker({
 function DraftEditor({
     onChange,
     plan,
+    sourceRecords,
 }: {
     onChange: (plan: ContentPlan) => void;
     plan: ContentPlan;
+    sourceRecords: ContentAuthoringSourceRecord[];
 }) {
     const t = usePlatformTranslation();
     const updateActivity = (
@@ -911,6 +914,25 @@ function DraftEditor({
                     ? { ...activity, ...changes }
                     : activity,
             ),
+        });
+    };
+
+    const toggleActivitySource = (
+        index: number,
+        sourceId: number,
+        checked: boolean,
+    ) => {
+        const activity = plan.activities[index];
+        const sourceRecordIds = activity.sourceRecordIds ?? [];
+
+        if (checked && sourceRecordIds.length >= 5) {
+            return;
+        }
+
+        updateActivity(index, {
+            sourceRecordIds: checked
+                ? [...sourceRecordIds, sourceId]
+                : sourceRecordIds.filter((id) => id !== sourceId),
         });
     };
 
@@ -1136,6 +1158,75 @@ function DraftEditor({
                                     />
                                 </Field>
                             </div>
+                            <fieldset className="grid gap-3 rounded-md border border-[var(--settings-border-color)] p-3">
+                                <legend className="px-1 text-sm font-medium text-slate-950 dark:text-white">
+                                    {t(
+                                        'settings.ai.authoring.activity_sources',
+                                        'Sources supporting this activity',
+                                    )}
+                                </legend>
+                                <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
+                                    {t(
+                                        'settings.ai.authoring.activity_sources_description',
+                                        'Choose only sources that directly support this activity. This attribution is copied into the activity when you apply the draft.',
+                                    )}
+                                </p>
+                                {sourceRecords.length > 0 ? (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {sourceRecords.map((source) => {
+                                            const sourceRecordIds =
+                                                activity.sourceRecordIds ?? [];
+                                            const selected = sourceRecordIds.includes(
+                                                source.id,
+                                            );
+
+                                            return (
+                                                <label
+                                                    className={cn(
+                                                        'flex min-w-0 items-start gap-2 rounded-md border p-2 text-sm',
+                                                        selected
+                                                            ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)]'
+                                                            : 'border-[var(--settings-border-color)]',
+                                                    )}
+                                                    key={source.id}
+                                                >
+                                                    <Checkbox
+                                                        checked={selected}
+                                                        disabled={
+                                                            !selected &&
+                                                            sourceRecordIds.length >=
+                                                                5
+                                                        }
+                                                        onCheckedChange={(checked) =>
+                                                            toggleActivitySource(
+                                                                index,
+                                                                source.id,
+                                                                checked === true,
+                                                            )
+                                                        }
+                                                    />
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate font-medium text-slate-950 dark:text-white">
+                                                            {source.title}
+                                                        </span>
+                                                        <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
+                                                            {source.publisher ??
+                                                                source.url}
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.ai.authoring.activity_sources_empty',
+                                            'No source context was selected for this draft.',
+                                        )}
+                                    </p>
+                                )}
+                            </fieldset>
                             {activity.type === 'message_prompt' ? (
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <Field label={t('settings.ai.authoring.shared_topic', 'Shared topic')}>
@@ -1355,6 +1446,18 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                                     · Topics:{' '}
                                     {activity.competenceTopics.join(', ')}
                                 </p>
+                                {activity.sourceRecordIds &&
+                                activity.sourceRecordIds.length > 0 ? (
+                                    <p className="mt-2 text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.ai.authoring.activity_sources_preview',
+                                            'Sources attributed: :count',
+                                        ).replace(
+                                            ':count',
+                                            String(activity.sourceRecordIds.length),
+                                        )}
+                                    </p>
+                                ) : null}
                                 {(activity.type === 'message_prompt' ||
                                     activity.type === 'shared_task') &&
                                 (activity.topic || activity.inputLabel) ? (

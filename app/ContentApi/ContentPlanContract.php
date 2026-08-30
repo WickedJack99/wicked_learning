@@ -6,7 +6,7 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 
 class ContentPlanContract
 {
-    public const VERSION = '1.4';
+    public const VERSION = '1.5';
 
     public const ACTIVITY_TYPES = ['markdown', 'reflection', 'message_prompt', 'shared_task', 'open_practice'];
 
@@ -69,7 +69,7 @@ class ContentPlanContract
                     'items' => [
                         'type' => 'object',
                         'additionalProperties' => false,
-                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note', 'topic', 'inputLabel', 'competenceTopics', 'learningIntent'],
+                        'required' => ['type', 'title', 'introduction', 'body', 'prompt', 'note', 'topic', 'inputLabel', 'competenceTopics', 'learningIntent', 'sourceRecordIds'],
                         'properties' => [
                             'type' => ['type' => 'string', 'enum' => self::ACTIVITY_TYPES],
                             'title' => ['type' => 'string', 'maxLength' => 120],
@@ -110,6 +110,12 @@ class ContentPlanContract
                                 'type' => 'string',
                                 'description' => 'The primary learning purpose of this activity, not a grade or performance judgment.',
                                 'enum' => ActivityCompetenceConfiguration::LEARNING_INTENTS,
+                            ],
+                            'sourceRecordIds' => [
+                                'type' => 'array',
+                                'description' => 'IDs of selected source records that directly support this activity; use an empty array when none are directly attributed.',
+                                'maxItems' => 5,
+                                'items' => ['type' => 'integer'],
                             ],
                         ],
                     ],

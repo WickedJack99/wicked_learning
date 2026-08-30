@@ -160,6 +160,71 @@ test('an administrator can ground an AI draft with explicitly selected source re
     ) && ! str_contains((string) $request['input'], 'Unselected source'));
 });
 
+test('an administrator can attribute selected source records to individual activities', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    $selectedSource = LearningSourceRecord::query()->create([
+        'excerpt' => 'Energy changes form while remaining part of the system.',
+        'title' => 'Energy field guide',
+        'url' => 'https://example.com/energy-field-guide',
+    ]);
+    $unselectedSource = LearningSourceRecord::query()->create([
+        'title' => 'Unselected source',
+        'url' => 'https://example.com/unselected',
+    ]);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_activity_attribution',
+            'output_text' => json_encode(aiContentPlan()),
+        ]),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Explain energy conversion.',
+            'route_length' => 2,
+            'activity_types' => ['markdown', 'reflection'],
+            'source_record_ids' => [$selectedSource->id],
+        ])
+        ->assertCreated();
+    $run = AiContentAuthoringRun::query()->findOrFail($response->json('data.id'));
+    $plan = $run->plan;
+    $plan['activities'][0]['sourceRecordIds'] = [$selectedSource->id];
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.ai-content-plans.update', $run), [
+            'plan' => $plan,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.plan.activities.0.sourceRecordIds', [$selectedSource->id]);
+
+    $invalidPlan = $plan;
+    $invalidPlan['activities'][0]['sourceRecordIds'] = [$unselectedSource->id];
+    $this->actingAs($admin)
+        ->patchJson(route('settings.ai-content-plans.update', $run), [
+            'plan' => $invalidPlan,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonFragment([
+            'Activity sources must be selected in the draft source context.',
+        ]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.ai-content-plans.apply', $run))
+        ->assertCreated();
+
+    expect(LearningActivity::query()->firstOrFail()->config['sourceReferences'])->toBe([[
+        'title' => 'Energy field guide',
+        'url' => 'https://example.com/energy-field-guide',
+        'publisher' => null,
+        'publishedAt' => null,
+        'rights' => null,
+        'anchor' => null,
+        'excerpt' => 'Energy changes form while remaining part of the system.',
+    ]]);
+});
+
 test('AI source context is limited to five records', function () {
     $admin = aiAuthoringUser();
     [$map, $template] = aiAuthoringContext($admin);

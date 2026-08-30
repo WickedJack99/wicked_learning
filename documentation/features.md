@@ -489,8 +489,10 @@ MapAsset, linear route, warnings and token usage and explicitly applies it.
 
 The authoring slice proposes a focusable MapAsset, activities and route
 connections. Applying the draft revalidates the plan before creating content.
-The draft can be edited before approval, and edited plans receive the same
-validation before application.
+The draft can be edited before approval, including explicit per-Activity
+attribution of selected source records. Edited plans receive the same
+validation before application, and only attributed source snapshots are copied
+into the created Activities.
 See [AI-assisted authoring](ai-authoring.md).
 
 ### Content API
