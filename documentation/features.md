@@ -95,7 +95,10 @@ trail. Each entry links back to its activity and retains the learner's optional
 feeling, note and chosen next direction without turning them into a score or
 recommendation.
 This keeps the desk from adding a separate progression panel. Desk areas are
-switched through a local navigation control, while route and revisit
+switched through a local navigation control. The selected area is also kept in
+the page URL, so a learner can refresh, share or return to the same desk
+direction without losing that choice. When no area is specified, the desk
+uses its existing context-aware default. Route and revisit
 collections are paginated so the desktop desk does not need one growing
 collection scroll region. Revisit
 invitations explain both when the learner chose to return and when the item

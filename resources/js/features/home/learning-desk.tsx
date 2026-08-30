@@ -8,7 +8,7 @@ import {
     Pin,
     Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
@@ -73,13 +73,12 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const revisitInvitations = desk.revisitInvitations.filter(
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
-    const initialArea: LearningDeskArea =
+    const defaultArea: LearningDeskArea =
         desk.currentRoutes.length > 0
             ? 'continue'
             : desk.checkIns.length > 0
               ? 'reflections'
               : 'connections';
-    const [activeArea, setActiveArea] = useState<LearningDeskArea>(initialArea);
     const areaLabels: Record<LearningDeskArea, string> = {
         connections: t(
             'home.learning_desk.sections.connections',
@@ -106,9 +105,36 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         'continue',
     ];
     const deskAreas = [
-        initialArea,
-        ...availableAreas.filter((area) => area !== initialArea),
+        defaultArea,
+        ...availableAreas.filter((area) => area !== defaultArea),
     ].map((id) => ({ id, label: areaLabels[id] }));
+    const initialArea = deskAreaFromUrl() ?? defaultArea;
+    const [activeArea, setActiveArea] = useState<LearningDeskArea>(initialArea);
+
+    useEffect(() => {
+        const handlePopState = () => {
+            setActiveArea(deskAreaFromUrl() ?? defaultArea);
+        };
+
+        window.addEventListener('popstate', handlePopState);
+
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [defaultArea]);
+
+    function selectArea(area: LearningDeskArea) {
+        setActiveArea(area);
+
+        const url = new URL(window.location.href);
+
+        if (area === 'connections') {
+            url.searchParams.delete('area');
+        } else {
+            url.searchParams.set('area', area);
+        }
+
+        window.history.pushState(window.history.state, '', url);
+    }
+
     const visibleArea = deskAreas.some((area) => area.id === activeArea)
         ? activeArea
         : (deskAreas[0]?.id ?? 'connections');
@@ -227,7 +253,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                 : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
                                         ].join(' ')}
                                         key={area.id}
-                                        onClick={() => setActiveArea(area.id)}
+                                        onClick={() => selectArea(area.id)}
                                         type="button"
                                     >
                                         {area.label}
@@ -1299,6 +1325,23 @@ function greeting(t: ReturnType<typeof usePlatformTranslation>): string {
     }
 
     return t('home.learning_desk.greeting.evening', 'Good evening');
+}
+
+function deskAreaFromUrl(): LearningDeskArea | null {
+    const area = new URL(window.location.href).searchParams.get('area');
+
+    if (
+        area === 'connections' ||
+        area === 'continue' ||
+        area === 'recent' ||
+        area === 'recall' ||
+        area === 'reflections' ||
+        area === 'revisit'
+    ) {
+        return area;
+    }
+
+    return null;
 }
 
 function formatDate(value: string, locale: string): string {
