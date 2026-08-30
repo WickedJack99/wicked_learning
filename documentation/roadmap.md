@@ -79,6 +79,9 @@ or cues as a rubric pass.
 Reflection and review completion also now stays at participation until the
 matching private response is saved, so the evidence label reflects the learner
 action that actually occurred.
+Authors can also provide an optional response-feedback note for that pause; it
+offers a bounded explanatory comparison without grading the learner. Richer
+individualized feedback and independent checks remain open.
 
 ### 4. Explanatory feedback and calibration
 

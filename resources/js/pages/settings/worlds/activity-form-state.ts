@@ -18,6 +18,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         feedback_evidence: '',
         feedback_next_action: '',
         feedback_purpose: '',
+        feedback_response: '',
         feedback_rubric: '',
         introduction: '',
         learning_intent: '',
@@ -203,6 +204,10 @@ export function activityFormFromActivity(
         feedback_purpose: feedbackGuidanceField(
             activity.config.feedbackGuidance,
             'purpose',
+        ),
+        feedback_response: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'responseFeedback',
         ),
         feedback_rubric: feedbackGuidanceField(
             activity.config.feedbackGuidance,
@@ -647,7 +652,12 @@ function sourceReferences(value: unknown): SourceReferenceForm[] {
 
 function feedbackGuidanceField(
     value: unknown,
-    field: 'purpose' | 'evidence' | 'nextAction' | 'rubric',
+    field:
+        | 'purpose'
+        | 'evidence'
+        | 'nextAction'
+        | 'responseFeedback'
+        | 'rubric',
 ): string {
     if (!isRecord(value)) {
         return '';

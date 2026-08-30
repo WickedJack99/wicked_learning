@@ -115,7 +115,9 @@ queue control.
 conservative: their authored learning purpose is only emitted as that evidence
 type when feedback guidance includes an observable criterion. Otherwise the
 completion is recorded as participation while the activity itself remains
-usable.
+usable. The optional response-feedback note is serialized as author guidance and
+shown only in the post-response comparison pause for explanation, transfer, and
+review activities; it is not copied into evidence as an automated judgment.
 
 `ActivitySourceReferenceConfiguration` stores up to five normalized source
 references, including an optional 800-character excerpt or location note, in

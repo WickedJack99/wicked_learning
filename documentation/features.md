@@ -151,6 +151,10 @@ learner's competence ledger; older moments without a purpose remain valid.
 Explanation and transfer evidence also require an authored observable “what to
 notice” criterion; without one, completion remains represented as
 participation rather than making a stronger claim than the activity supports.
+Authors may also add a short response-feedback note. For explanation, transfer,
+and review responses, it appears in the post-response comparison pause so the
+learner can relate their response to the authored guidance. It is explanatory
+author guidance, not automated critique, a grade, or a rubric result.
 Reflection activities configured for explanation use a clearly labelled
 explanation response. Transfer reflections additionally ask the learner to
 name the changed context where they tried the idea. These responses are saved

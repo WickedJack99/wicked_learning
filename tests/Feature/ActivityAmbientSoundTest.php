@@ -85,6 +85,7 @@ test('admins can add optional feedback guidance to any activity', function () {
         ->post(route('settings.worlds.nodes.activities.store', $node), [
             'feedback_purpose' => 'Connect an observation to a reason.',
             'feedback_evidence' => 'Look for a reason grounded in the observation.',
+            'feedback_response' => 'Compare your explanation with the observation before continuing.',
             'feedback_next_action' => 'Try the same idea with a new example.',
             'feedback_rubric' => "Names the observation.\nConnects it to a reason.\nUses a new example.",
             'evidence_concepts' => "Pattern recognition\nCognitive load",
@@ -101,6 +102,7 @@ test('admins can add optional feedback guidance to any activity', function () {
         'purpose' => 'Connect an observation to a reason.',
         'evidence' => 'Look for a reason grounded in the observation.',
         'nextAction' => 'Try the same idea with a new example.',
+        'responseFeedback' => 'Compare your explanation with the observation before continuing.',
         'rubric' => [
             'Names the observation.',
             'Connects it to a reason.',
@@ -121,6 +123,7 @@ test('admins can add optional feedback guidance to any activity', function () {
             'feedback_evidence' => '',
             'feedback_next_action' => '',
             'feedback_purpose' => '',
+            'feedback_response' => '',
             'feedback_rubric' => '',
         ])
         ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));

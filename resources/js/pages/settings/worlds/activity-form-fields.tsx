@@ -1172,6 +1172,15 @@ function FeedbackGuidanceFields({
         },
         {
             description:
+                'Optional: add a short comparison note to show after the learner responds. This is explanatory guidance, not automated critique or a grade.',
+            id: 'activity-feedback-response',
+            label: 'Response feedback',
+            name: 'feedback_response' as const,
+            placeholder:
+                'e.g. Compare your explanation with the observation and notice whether the reason accounts for the change.',
+        },
+        {
+            description:
                 form.learning_intent === 'explain' ||
                 form.learning_intent === 'transfer'
                     ? 'Optional: add up to three observable cues, one per line. These guide noticing; they do not produce a grade.'

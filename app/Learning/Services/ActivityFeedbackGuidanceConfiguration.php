@@ -24,6 +24,7 @@ class ActivityFeedbackGuidanceConfiguration
         $guidance = $this->normalize([
             'purpose' => $data['feedback_purpose'] ?? null,
             'evidence' => $data['feedback_evidence'] ?? null,
+            'responseFeedback' => $data['feedback_response'] ?? null,
             'nextAction' => $data['feedback_next_action'] ?? null,
             'rubric' => $data['feedback_rubric'] ?? null,
         ]);
@@ -42,11 +43,12 @@ class ActivityFeedbackGuidanceConfiguration
     {
         return array_key_exists('feedback_purpose', $data)
             || array_key_exists('feedback_evidence', $data)
+            || array_key_exists('feedback_response', $data)
             || array_key_exists('feedback_next_action', $data)
             || array_key_exists('feedback_rubric', $data);
     }
 
-    /** @return array{purpose: string|null, evidence: string|null, nextAction: string|null, rubric?: list<string>}|null */
+    /** @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, rubric?: list<string>}|null */
     public function forActivity(LearningActivity $activity): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -90,7 +92,7 @@ class ActivityFeedbackGuidanceConfiguration
 
     /**
      * @param  array<string, mixed>  $guidance
-     * @return array{purpose: string|null, evidence: string|null, nextAction: string|null, rubric?: list<string>}|null
+     * @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, rubric?: list<string>}|null
      */
     private function normalize(array $guidance): ?array
     {
@@ -100,10 +102,16 @@ class ActivityFeedbackGuidanceConfiguration
             'evidence' => $this->text($guidance['evidence'] ?? null),
             'nextAction' => $this->text($guidance['nextAction'] ?? null),
         ];
+        $responseFeedback = $this->text($guidance['responseFeedback'] ?? null);
+
+        if ($responseFeedback !== null) {
+            $normalized['responseFeedback'] = $responseFeedback;
+        }
 
         return $normalized['purpose'] === null
             && $normalized['evidence'] === null
             && $normalized['nextAction'] === null
+            && $responseFeedback === null
             && $rubric === []
             ? null
             : ($rubric === [] ? $normalized : [...$normalized, 'rubric' => $rubric]);

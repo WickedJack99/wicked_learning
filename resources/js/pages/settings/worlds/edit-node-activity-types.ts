@@ -317,6 +317,7 @@ export type CreateActivityForm = {
     feedback_evidence: string;
     feedback_next_action: string;
     feedback_purpose: string;
+    feedback_response: string;
     feedback_rubric: string;
     introduction: string;
     learning_intent: string;

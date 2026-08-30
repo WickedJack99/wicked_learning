@@ -862,6 +862,7 @@ export function ReflectionActivity({
         activity.feedbackGuidance &&
         (activity.feedbackGuidance.purpose ||
             activity.feedbackGuidance.evidence ||
+            activity.feedbackGuidance.responseFeedback ||
             activity.feedbackGuidance.nextAction ||
             activity.feedbackGuidance.rubric?.length),
     );
@@ -915,6 +916,19 @@ export function ReflectionActivity({
                         </p>
                         <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
                             {activity.feedbackGuidance.evidence}
+                        </p>
+                    </div>
+                ) : null}
+                {activity.feedbackGuidance?.responseFeedback ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.feedback_response_label',
+                                'Compare your response',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.responseFeedback}
                         </p>
                     </div>
                 ) : null}
