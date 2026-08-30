@@ -156,6 +156,9 @@ class LearningTopicSerializer
                         'evidenceRubric' => is_array($entry['evidenceRubric'] ?? null)
                             ? array_values(array_filter($entry['evidenceRubric'], 'is_string'))
                             : [],
+                        'observedCues' => is_array($entry['observedCues'] ?? null)
+                            ? array_values(array_filter($entry['observedCues'], 'is_string'))
+                            : [],
                         'sources' => is_array($entry['sources'] ?? null)
                             ? array_values(array_map(
                                 fn (array $source): array => [

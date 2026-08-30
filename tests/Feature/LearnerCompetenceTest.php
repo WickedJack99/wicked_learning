@@ -467,6 +467,7 @@ test('explanation and transfer evidence require an observable authored criterion
         $learner,
         $transfer,
         (string) Str::uuid(),
+        observedCues: ['Connects the idea to the new situation.'],
     );
     $transfer->update([
         'config' => [
@@ -492,6 +493,11 @@ test('explanation and transfer evidence require an observable authored criterion
             'Names the changed context.',
             'Connects the idea to the new situation.',
         ])
+        ->and(LearnerEvidenceEvent::query()
+            ->where('learning_activity_id', $transfer->id)
+            ->firstOrFail()
+            ->observed_cues)
+        ->toBe(['Connects the idea to the new situation.'])
         ->and(LearnerEvidenceEvent::query()
             ->where('learning_activity_id', $transfer->id)
             ->firstOrFail()

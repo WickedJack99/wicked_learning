@@ -693,6 +693,7 @@ export function ReflectionActivity({
         activity: LearningActivity,
         options?: {
             confidence?: QuestionConfidence;
+            observedCues?: string[];
             outcome?: ReviewOutcome;
         },
     ) => Promise<void>;
@@ -702,6 +703,7 @@ export function ReflectionActivity({
 }) {
     const [reflection, setReflection] = useState('');
     const [responseContext, setResponseContext] = useState('');
+    const [observedCues, setObservedCues] = useState<string[]>([]);
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
@@ -856,6 +858,51 @@ export function ReflectionActivity({
                     />
                 </div>
             ) : null}
+            {responseType && activity.feedbackGuidance?.rubric?.length ? (
+                <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
+                    <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
+                        {t(
+                            'learning.reflection.observed_cues_prompt',
+                            'What did you notice in your response? (optional)',
+                        )}
+                    </legend>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {t(
+                            'learning.reflection.observed_cues_helper',
+                            'Select any cues that feel visible in your explanation. This records your observation, not a grade.',
+                        )}
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {activity.feedbackGuidance.rubric.map((cue) => {
+                            const checked = observedCues.includes(cue);
+
+                            return (
+                                <label
+                                    className="flex min-h-11 items-start gap-2 rounded-md border border-slate-200 bg-white/60 px-2.5 py-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:bg-slate-950/20 dark:text-slate-300"
+                                    key={cue}
+                                >
+                                    <input
+                                        checked={checked}
+                                        className="mt-1 size-4 accent-cyan-600 dark:accent-teal-200"
+                                        onChange={() =>
+                                            setObservedCues((current) =>
+                                                checked
+                                                    ? current.filter(
+                                                          (value) =>
+                                                              value !== cue,
+                                                      )
+                                                    : [...current, cue],
+                                            )
+                                        }
+                                        type="checkbox"
+                                    />
+                                    <span>{cue}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </fieldset>
+            ) : null}
             {isReview ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
@@ -973,6 +1020,9 @@ export function ReflectionActivity({
                 play_run_id: playRunId,
                 reflection,
                 ...(isTransfer ? { response_context: responseContext } : {}),
+                ...(observedCues.length > 0
+                    ? { observed_cues: observedCues }
+                    : {}),
                 subtopic:
                     typeof activity.config.subtopic === 'string'
                         ? activity.config.subtopic
@@ -984,6 +1034,7 @@ export function ReflectionActivity({
             });
             await onComplete(activity, {
                 confidence: confidence ?? undefined,
+                observedCues,
                 outcome: outcome ?? undefined,
             });
             onMoveToActivity(transition?.toActivityId ?? null);

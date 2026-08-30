@@ -25,6 +25,7 @@ class LearnerCompetenceService
         string $assistanceLevel = 'untracked',
         ?int $latencySeconds = null,
         ?string $calibration = null,
+        array $observedCues = [],
     ): void {
         $topics = $this->activityCompetence->topicsForActivity($activity);
 
@@ -43,8 +44,11 @@ class LearnerCompetenceService
         $objective = $this->activityCompetence->objectiveForActivity($activity);
         $concepts = $this->activityCompetence->conceptsForActivity($activity);
         $sourceReferences = $this->sourceReferences->forActivity($activity);
+        $observedCues = in_array($evidenceType, ['explain', 'transfer'], true)
+            ? $this->feedbackGuidance->observedCuesForActivity($activity, $observedCues)
+            : [];
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $concepts, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $concepts, $confidence, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
@@ -62,6 +66,9 @@ class LearnerCompetenceService
                     'evidence_rubric' => $evidenceRubric === []
                         ? null
                         : json_encode($evidenceRubric, JSON_THROW_ON_ERROR),
+                    'observed_cues' => $observedCues === []
+                        ? null
+                        : json_encode($observedCues, JSON_THROW_ON_ERROR),
                     'source_references' => $sourceReferences === []
                         ? null
                         : json_encode($sourceReferences, JSON_THROW_ON_ERROR),

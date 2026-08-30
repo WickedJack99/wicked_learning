@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerEvidenceEvent;
 use App\Models\LearnerJournalFeedbackRequest;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
@@ -48,6 +49,10 @@ test('a transfer reflection records its changed context as structured private ev
             'learningIntent' => 'transfer',
             'feedbackGuidance' => [
                 'evidence' => 'Connects the idea to a changed context.',
+                'rubric' => [
+                    'Names the changed context.',
+                    'Connects the idea to the new situation.',
+                ],
             ],
         ],
     ]);
@@ -65,16 +70,37 @@ test('a transfer reflection records its changed context as structured private ev
             'play_run_id' => $runId,
             'reflection' => 'I used the idea to interpret a new example.',
             'response_context' => 'A different example from my current project.',
+            'observed_cues' => [
+                'Connects the idea to the new situation.',
+                'Not an authored cue.',
+            ],
         ])
         ->assertOk()
         ->assertJsonPath('reflection.responseType', 'transfer')
-        ->assertJsonPath('reflection.responseContext', 'A different example from my current project.');
+        ->assertJsonPath('reflection.responseContext', 'A different example from my current project.')
+        ->assertJsonPath('reflection.observedCues', ['Connects the idea to the new situation.']);
 
     $reflection = LearnerReflection::query()->firstOrFail();
 
     expect($reflection->response_type)->toBe('transfer')
         ->and($reflection->response_context)->toBe('A different example from my current project.')
+        ->and($reflection->observed_cues)->toBe(['Connects the idea to the new situation.'])
+        ->and($reflection->page->markdown)->toContain('**What I noticed**')
         ->and($reflection->page->markdown)->toContain('**Changed context**');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'play_run_id' => $runId,
+            'status' => 'completed',
+            'observed_cues' => ['Connects the idea to the new situation.'],
+        ])
+        ->assertOk();
+
+    expect(LearnerEvidenceEvent::query()
+        ->where('user_id', $learner->id)
+        ->firstOrFail()
+        ->observed_cues)
+        ->toBe(['Connects the idea to the new situation.']);
 });
 
 test('a review activity offers earlier private reflections from the same journal topic', function () {

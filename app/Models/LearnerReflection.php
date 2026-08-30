@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'reflection',
     'response_type',
     'response_context',
+    'observed_cues',
     'expert_access_requested',
     'feedback_status',
     'expert_feedback',
@@ -26,7 +27,10 @@ class LearnerReflection extends Model
 {
     protected function casts(): array
     {
-        return ['expert_access_requested' => 'boolean'];
+        return [
+            'expert_access_requested' => 'boolean',
+            'observed_cues' => 'array',
+        ];
     }
 
     /** @return BelongsTo<User, $this> */

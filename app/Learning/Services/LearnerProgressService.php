@@ -29,6 +29,7 @@ class LearnerProgressService
         string $assistanceLevel = 'untracked',
         bool $isRevisit = false,
         ?string $calibration = null,
+        array $observedCues = [],
     ): LearnerActivityProgress {
         $now = Carbon::now();
         $progress = LearnerActivityProgress::query()->firstOrCreate([
@@ -115,6 +116,7 @@ class LearnerProgressService
                             $assistanceLevel,
                             $latencySeconds,
                             $calibration,
+                            $observedCues,
                         );
                     }
 

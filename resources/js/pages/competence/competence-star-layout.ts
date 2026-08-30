@@ -23,6 +23,7 @@ export type CompetenceTopic = {
             evidenceClaim: string;
             evidenceCriterion: string | null;
             evidenceRubric: string[];
+            observedCues: string[];
             evidenceType: string;
             sources: LearningSourceReference[];
             objective: string | null;

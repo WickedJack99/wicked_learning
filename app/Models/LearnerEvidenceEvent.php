@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learning_purpose',
     'evidence_criterion',
     'evidence_rubric',
+    'observed_cues',
     'source_references',
     'contribution',
     'outcome',
@@ -36,6 +37,7 @@ class LearnerEvidenceEvent extends Model
             'attempt_number' => 'integer',
             'latency_seconds' => 'integer',
             'evidence_rubric' => 'array',
+            'observed_cues' => 'array',
             'concepts' => 'array',
             'source_references' => 'array',
         ];

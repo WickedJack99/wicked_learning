@@ -57,6 +57,9 @@ class LearnerJournalSerializer
             'reflection' => $reflection->reflection,
             'responseContext' => $reflection->response_context,
             'responseType' => $reflection->response_type,
+            'observedCues' => is_array($reflection->observed_cues)
+                ? array_values(array_filter($reflection->observed_cues, 'is_string'))
+                : [],
             'feedbackStatus' => $reflection->feedback_status,
             'expertFeedback' => $reflection->expert_feedback,
             'createdAt' => $reflection->created_at?->toIso8601String(),

@@ -180,6 +180,8 @@ outcome, confidence, calibration, attempt and assistance context. For question
 activities, calibration is a descriptive snapshot derived from the submitted
 confidence and answer outcome; it does not contribute a score. For explanation
 and transfer events it also stores up to three normalized rubric cues. The
+learner's optional selection of cues they noticed is stored separately as an
+observed-cues snapshot; it records self-observation and is not a rubric result.
 objective, purpose, criterion, cues and bounded source references are snapshots
 of the activity guidance at completion time, so later author edits do not
 rewrite the meaning or provenance of an earlier learning moment. Source

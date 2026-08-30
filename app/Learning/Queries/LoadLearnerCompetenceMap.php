@@ -183,7 +183,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int, assistanceLevel: string|null}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, observedCues: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int, assistanceLevel: string|null}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -205,6 +205,9 @@ class LoadLearnerCompetenceMap
                     'evidenceCriterion' => $event->evidence_criterion,
                     'evidenceRubric' => is_array($event->evidence_rubric)
                         ? array_values(array_filter($event->evidence_rubric, 'is_string'))
+                        : [],
+                    'observedCues' => is_array($event->observed_cues)
+                        ? array_values(array_filter($event->observed_cues, 'is_string'))
                         : [],
                     'sources' => $this->sourceReferences->normalize($event->source_references),
                     'id' => $event->id,

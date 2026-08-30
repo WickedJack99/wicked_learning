@@ -19,6 +19,10 @@ class JournalMarkdownComposer
             $parts[] = '**Changed context**  '.trim((string) $reflection->response_context);
         }
 
+        if (is_array($reflection->observed_cues) && $reflection->observed_cues !== []) {
+            $parts[] = '**What I noticed**  '.implode(' · ', $reflection->observed_cues);
+        }
+
         $entry = implode("\n\n", $parts);
 
         return trim($markdown) === '' ? $entry."\n" : rtrim($markdown)."\n\n".$entry."\n";

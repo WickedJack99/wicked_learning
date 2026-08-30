@@ -73,6 +73,21 @@ class ActivityFeedbackGuidanceConfiguration
         return $this->forActivity($activity)['rubric'] ?? [];
     }
 
+    /** @return list<string> */
+    public function observedCuesForActivity(LearningActivity $activity, mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $rubric = $this->rubricForActivity($activity);
+
+        return array_values(array_filter(
+            $rubric,
+            static fn (string $cue): bool => in_array($cue, $value, true),
+        ));
+    }
+
     /**
      * @param  array<string, mixed>  $guidance
      * @return array{purpose: string|null, evidence: string|null, nextAction: string|null, rubric?: list<string>}|null

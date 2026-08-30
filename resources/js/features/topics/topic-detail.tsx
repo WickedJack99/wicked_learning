@@ -956,6 +956,18 @@ function TopicCompetenceCard({
                                                         )}
                                                     </span>
                                                 ) : null}
+                                                {entry.observedCues.length >
+                                                0 ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        {t(
+                                                            'learning.reflection.observed_cues_label',
+                                                            'Noticed: ',
+                                                        )}
+                                                        {entry.observedCues.join(
+                                                            ' · ',
+                                                        )}
+                                                    </span>
+                                                ) : null}
                                                 <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
                                                     {evidenceClaimLabel(
                                                         entry.evidenceClaim,

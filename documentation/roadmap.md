@@ -58,9 +58,10 @@ observable response and invite a useful next action.
 The current evidence-guidance slice preserves up to three author-written
 observable cues for explanation and transfer moments. Reflection activities now
 connect those cues to a task-specific learner response, with transfer also
-recording the changed context named by the learner. Continue by adding richer
-feedback and review contracts; do not treat these responses or cues as an
-automated assessment.
+recording the changed context named by the learner. Learners can also mark the
+cues they noticed in their own response; this is a private self-observation
+snapshot, not an automated assessment. Continue by adding richer feedback and
+review contracts without treating these responses or cues as a rubric pass.
 
 ### 4. Explanatory feedback and calibration
 

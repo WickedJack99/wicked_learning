@@ -1093,6 +1093,17 @@ function CompetenceReading({
                                                 )}
                                             </span>
                                         ) : null}
+                                        {evidence.observedCues.length > 0 ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                {translate(
+                                                    'learning.reflection.observed_cues_label',
+                                                    'Noticed: ',
+                                                )}
+                                                {evidence.observedCues.join(
+                                                    ' · ',
+                                                )}
+                                            </span>
+                                        ) : null}
                                         {evidence.confidence ? (
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 Before answering:{' '}

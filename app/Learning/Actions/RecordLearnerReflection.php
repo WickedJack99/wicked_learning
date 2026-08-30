@@ -4,6 +4,7 @@ namespace App\Learning\Actions;
 
 use App\Learning\Services\ActiveLearningActivityResolver;
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\JournalMarkdownComposer;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
@@ -21,11 +22,12 @@ class RecordLearnerReflection
     public function __construct(
         private readonly ActiveLearningActivityResolver $activeActivity,
         private readonly ActivityCompetenceConfiguration $activityCompetence,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
         private readonly JournalMarkdownComposer $markdown,
     ) {}
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     public function forActivity(User $user, LearningActivity $activity, string $playRunId, array $data): LearnerReflection
     {
@@ -75,7 +77,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     private function record(
         User $user,
@@ -92,7 +94,14 @@ class RecordLearnerReflection
             ]);
         }
 
-        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $question, $responseType, $title): LearnerReflection {
+        $observedCues = in_array($responseType, ['explain', 'transfer'], true)
+            ? $this->feedbackGuidance->observedCuesForActivity(
+                $activity,
+                $data['observed_cues'] ?? null,
+            )
+            : [];
+
+        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $observedCues, $question, $responseType, $title): LearnerReflection {
             $topic = trim((string) ($data['topic'] ?? $activity->node->title)) ?: $activity->node->title;
             $subtopic = trim((string) ($data['subtopic'] ?? $activity->title));
             $expertAccess = (bool) ($data['request_expert_access'] ?? false)
@@ -126,6 +135,7 @@ class RecordLearnerReflection
                 'response_context' => $responseType === 'transfer'
                     ? trim((string) ($data['response_context'] ?? ''))
                     : null,
+                'observed_cues' => $observedCues === [] ? null : $observedCues,
                 'expert_access_requested' => $expertAccess,
                 'feedback_status' => $expertAccess ? 'pending' : 'not_requested',
             ]);

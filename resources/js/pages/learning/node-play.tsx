@@ -49,6 +49,7 @@ type NodePlayProps = {
 type CompletionOptions = {
     confidence?: QuestionConfidence;
     endsRoute?: boolean;
+    observedCues?: string[];
     outcome?: ReviewOutcome;
     progressAlreadyMarked?: boolean;
 };
@@ -245,6 +246,7 @@ export default function NodePlay({
                 confidence?: QuestionConfidence;
                 ends_route?: boolean;
                 is_revisit: boolean;
+                observed_cues?: string[];
                 outcome?: ReviewOutcome;
                 play_run_id: string | null;
                 status: 'completed';
@@ -264,6 +266,10 @@ export default function NodePlay({
 
             if (options.outcome) {
                 payload.outcome = options.outcome;
+            }
+
+            if (options.observedCues?.length) {
+                payload.observed_cues = options.observedCues;
             }
 
             if (!options.progressAlreadyMarked) {
