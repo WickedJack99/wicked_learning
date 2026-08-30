@@ -189,6 +189,7 @@ class AdminActivityRules
             'source_references.*.publishedAt' => $this->optional($modifier, ['nullable', 'date_format:Y-m-d']),
             'source_references.*.rights' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
             'source_references.*.anchor' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
+            'source_references.*.excerpt' => $this->optional($modifier, ['nullable', 'string', 'max:800']),
         ];
     }
 

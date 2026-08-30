@@ -828,7 +828,10 @@ function ActivitySources({
             </summary>
             <ul className="mt-3 grid gap-3 border-t border-[var(--learner-border-color)] pt-3">
                 {sources.map((source) => (
-                    <li className="grid gap-1 text-sm" key={`${source.url}-${source.title}`}>
+                    <li
+                        className="grid gap-1 text-sm"
+                        key={`${source.url}-${source.title}`}
+                    >
                         <a
                             className="inline-flex w-fit max-w-full items-start gap-1.5 font-medium text-[var(--learner-action-accent)] underline decoration-[color-mix(in_srgb,var(--learner-action-accent)_40%,transparent)] underline-offset-2 hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
                             href={source.url}
@@ -843,11 +846,21 @@ function ActivitySources({
                                 className="mt-0.5 size-3.5 shrink-0"
                             />
                         </a>
-                        <p className="[overflow-wrap:anywhere] text-xs leading-5 text-[var(--learner-muted-text)]">
-                            {[source.publisher, source.publishedAt, source.rights, source.anchor]
+                        <p className="text-xs leading-5 [overflow-wrap:anywhere] text-[var(--learner-muted-text)]">
+                            {[
+                                source.publisher,
+                                source.publishedAt,
+                                source.rights,
+                                source.anchor,
+                            ]
                                 .filter(Boolean)
                                 .join(' · ')}
                         </p>
+                        {source.excerpt ? (
+                            <p className="border-l-2 border-[var(--learner-action-accent)]/50 pl-2 text-sm leading-6 [overflow-wrap:anywhere] text-[var(--learner-body-text)]">
+                                “{source.excerpt}”
+                            </p>
+                        ) : null}
                     </li>
                 ))}
             </ul>

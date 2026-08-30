@@ -75,15 +75,20 @@ class ActivitySourceReferenceConfiguration
                 'publishedAt' => $this->text($reference['publishedAt'] ?? null),
                 'rights' => $this->text($reference['rights'] ?? null),
                 'anchor' => $this->text($reference['anchor'] ?? null),
+                'excerpt' => $this->text($reference['excerpt'] ?? null, 800),
             ];
         }
 
         return $references;
     }
 
-    private function text(mixed $value): ?string
+    private function text(mixed $value, ?int $limit = null): ?string
     {
         $text = trim((string) ($value ?? ''));
+
+        if ($limit !== null) {
+            $text = mb_substr($text, 0, $limit);
+        }
 
         return $text === '' ? null : $text;
     }

@@ -77,6 +77,7 @@ export type CompetenceTopicForm = {
 
 export type SourceReferenceForm = {
     anchor: string;
+    excerpt: string;
     publishedAt: string;
     publisher: string;
     rights: string;

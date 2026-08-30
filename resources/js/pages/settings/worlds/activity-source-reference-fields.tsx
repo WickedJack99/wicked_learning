@@ -11,6 +11,7 @@ import type {
 
 const emptyReference = (): SourceReferenceForm => ({
     anchor: '',
+    excerpt: '',
     publishedAt: '',
     publisher: '',
     rights: '',
@@ -132,6 +133,35 @@ export function ActivitySourceReferenceFields({
                                 type="url"
                                 value={reference.url}
                             />
+                            <div className="grid gap-2 md:col-span-2">
+                                <Label
+                                    htmlFor={`source-reference-${index}-excerpt`}
+                                >
+                                    Short excerpt or location note (optional)
+                                </Label>
+                                <textarea
+                                    className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 md:text-sm"
+                                    id={`source-reference-${index}-excerpt`}
+                                    maxLength={800}
+                                    onChange={(event) =>
+                                        updateReference(
+                                            index,
+                                            'excerpt',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="A short passage or a precise place to look"
+                                    rows={3}
+                                    value={reference.excerpt}
+                                />
+                                <InputError
+                                    message={
+                                        errors[
+                                            `source_references.${index}.excerpt`
+                                        ]
+                                    }
+                                />
+                            </div>
                             <SourceField
                                 error={
                                     errors[

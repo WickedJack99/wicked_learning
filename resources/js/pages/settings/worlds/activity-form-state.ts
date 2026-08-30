@@ -623,14 +623,18 @@ function sourceReferences(value: unknown): SourceReferenceForm[] {
         return [];
     }
 
-    return value.filter(isRecord).slice(0, 5).map((reference) => ({
-        anchor: stringConfig(reference.anchor),
-        publishedAt: stringConfig(reference.publishedAt),
-        publisher: stringConfig(reference.publisher),
-        rights: stringConfig(reference.rights),
-        title: stringConfig(reference.title),
-        url: stringConfig(reference.url),
-    }));
+    return value
+        .filter(isRecord)
+        .slice(0, 5)
+        .map((reference) => ({
+            anchor: stringConfig(reference.anchor),
+            excerpt: stringConfig(reference.excerpt),
+            publishedAt: stringConfig(reference.publishedAt),
+            publisher: stringConfig(reference.publisher),
+            rights: stringConfig(reference.rights),
+            title: stringConfig(reference.title),
+            url: stringConfig(reference.url),
+        }));
 }
 
 function feedbackGuidanceField(

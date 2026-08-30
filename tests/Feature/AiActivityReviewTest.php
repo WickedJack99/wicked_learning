@@ -53,6 +53,7 @@ test('an administrator can request a scoped activity review', function () {
             && str_contains($input, 'Try the same idea with a changed example.')
             && str_contains($input, 'A source for systems thinking')
             && str_contains($input, 'https://example.com/systems-thinking')
+            && str_contains($input, 'A short systems-thinking passage.')
             && ! str_contains($input, 'Unrelated private draft');
     });
 
@@ -247,6 +248,7 @@ function activityReviewContext(User $admin): array
                 'publishedAt' => '2026-08-30',
                 'rights' => 'CC BY 4.0',
                 'anchor' => 'Section 2',
+                'excerpt' => 'A short systems-thinking passage.',
             ]],
         ],
         'sort_order' => 20,

@@ -118,9 +118,10 @@ completion is recorded as participation while the activity itself remains
 usable.
 
 `ActivitySourceReferenceConfiguration` stores up to five normalized source
-references in the activity's existing JSON configuration. The learner activity
-serializer exposes them as a separate bounded `sources` collection and removes
-the authoring-shaped config key from the learner config. This keeps the first
+references, including an optional 800-character excerpt or location note, in
+the activity's existing JSON configuration. The learner activity serializer
+exposes them as a separate bounded `sources` collection and removes the
+authoring-shaped config key from the learner config. This keeps the first
 provenance slice small and inspectable. The scoped activity-review context also
 passes those references to the reviewed authoring request without including
 learner data; versioned reusable source records, excerpts and AI-draft linkage

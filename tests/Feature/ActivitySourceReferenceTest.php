@@ -20,6 +20,7 @@ test('admins can attach bounded source references to activities', function () {
                 'rights' => 'CC BY 4.0',
                 'title' => 'A useful learning source',
                 'url' => 'https://example.com/learning-source',
+                'excerpt' => 'A short passage that anchors the activity.',
             ]],
             'title' => 'Explain the source',
             'type' => 'open_practice',
@@ -37,6 +38,7 @@ test('admins can attach bounded source references to activities', function () {
         'publishedAt' => '2026-08-30',
         'rights' => 'CC BY 4.0',
         'anchor' => 'Section 2',
+        'excerpt' => 'A short passage that anchors the activity.',
     ]]);
 
     $payload = app(LearningActivitySerializer::class)->serialize($activity);
