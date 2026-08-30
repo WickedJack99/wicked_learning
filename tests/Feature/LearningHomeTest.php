@@ -390,6 +390,8 @@ test('the learning desk shows recent private learning check-ins without treating
         'metadata' => [
             'learningCheckIn' => [
                 'feeling' => 'forming',
+                'note' => 'The quiet example helped me notice the pattern.',
+                'nextDirection' => 'revisit',
                 'recordedAt' => now()->toIso8601String(),
             ],
         ],
@@ -403,6 +405,8 @@ test('the learning desk shows recent private learning check-ins without treating
             ->has('desk.checkIns', 1)
             ->where('desk.checkIns.0.activityTitle', 'Pulse Activity')
             ->where('desk.checkIns.0.feeling', 'forming')
+            ->where('desk.checkIns.0.note', 'The quiet example helped me notice the pattern.')
+            ->where('desk.checkIns.0.nextDirection', 'revisit')
             ->where('desk.checkIns.0.activityHref', route('learning.nodes.play', [
                 'activity_id' => $activity->id,
                 'node' => $node,

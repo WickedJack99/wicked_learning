@@ -17,11 +17,15 @@ import {
     postponeRecallQuestion,
     removeRecallQuestion,
 } from '@/features/learning/recall-items';
-import { learningIntentLabel } from '@/features/world/activity-utils';
+import {
+    learningCheckInDirectionLabel,
+    learningIntentLabel,
+} from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { LearningDeskSearch } from './learning-desk-search';
 import type {
     LearningDeskBookmark,
+    LearningDeskCheckIn,
     LearningDeskData,
     LearningDeskRevisitInvitation,
     LearningDeskRecallItem,
@@ -30,6 +34,7 @@ import type {
 
 type LearningDeskArea =
     | 'connections'
+    | 'reflections'
     | 'recall'
     | 'revisit'
     | 'recent'
@@ -69,13 +74,28 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         (invitation) => !handledRevisitIds.includes(invitation.activityId),
     );
     const [activeArea, setActiveArea] = useState<LearningDeskArea>(
-        desk.currentRoutes.length > 0 ? 'continue' : 'connections',
+        desk.currentRoutes.length > 0
+            ? 'continue'
+            : desk.checkIns.length > 0
+              ? 'reflections'
+              : 'connections',
     );
     const deskAreas: { id: LearningDeskArea; label: string }[] = [
         {
             id: 'connections',
             label: t('home.learning_desk.sections.connections', 'Connections'),
         },
+        ...(desk.checkIns.length > 0
+            ? [
+                  {
+                      id: 'reflections' as const,
+                      label: t(
+                          'home.learning_desk.sections.reflections',
+                          'Recent reflections',
+                      ),
+                  },
+              ]
+            : []),
         ...(recallItems.length > 0
             ? [
                   {
@@ -307,6 +327,45 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             )}
                                         />
                                     )}
+                                </section>
+                            ) : null}
+
+                            {visibleArea === 'reflections' &&
+                            desk.checkIns.length > 0 ? (
+                                <section
+                                    aria-labelledby="reflections-heading"
+                                    className="mt-4"
+                                >
+                                    <SectionHeading
+                                        id="reflections-heading"
+                                        label={t(
+                                            'home.learning_desk.reflections.title',
+                                            'Recent reflections',
+                                        )}
+                                    />
+                                    <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                        {t(
+                                            'home.learning_desk.reflections.body',
+                                            'A quiet trail of what you noticed and where you chose to go next. Open an activity whenever the thread feels useful again.',
+                                        )}
+                                    </p>
+                                    <LearnerPaginatedItems
+                                        className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                        items={desk.checkIns}
+                                        pageSize={1}
+                                        paginationLabel={t(
+                                            'home.learning_desk.reflections.pagination',
+                                            'Recent reflections',
+                                        )}
+                                        paginationClassName="mt-2 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3"
+                                        renderItem={(checkIn) => (
+                                            <CheckInRow
+                                                checkIn={checkIn}
+                                                key={`${checkIn.activityId}:${checkIn.recordedAt}`}
+                                                locale={localization.locale}
+                                            />
+                                        )}
+                                    />
                                 </section>
                             ) : null}
 
@@ -815,6 +874,88 @@ function RecentRouteRow({
                 </Link>
             </span>
         </div>
+    );
+}
+
+function CheckInRow({
+    checkIn,
+    locale,
+}: {
+    checkIn: LearningDeskCheckIn;
+    locale: string;
+}) {
+    const t = usePlatformTranslation();
+    const feelingLabel =
+        {
+            clearer: t(
+                'home.learning_desk.reflections.feeling_clearer',
+                'Something clicked',
+            ),
+            forming: t(
+                'home.learning_desk.reflections.feeling_forming',
+                'Still taking shape',
+            ),
+            stretched: t(
+                'home.learning_desk.reflections.feeling_stretched',
+                'It stretched me',
+            ),
+            stuck: t(
+                'home.learning_desk.reflections.feeling_stuck',
+                'I got stuck',
+            ),
+        }[checkIn.feeling ?? ''] ??
+        t('home.learning_desk.reflections.feeling_default', 'A reflection');
+    const directionLabel = learningCheckInDirectionLabel(checkIn.nextDirection);
+
+    return (
+        <article className="grid gap-4 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">
+            <BookOpenText
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-medium text-[var(--learner-heading-text)]">
+                        {feelingLabel}
+                    </span>
+                    <time
+                        className="text-xs text-[var(--learner-muted-text)]"
+                        dateTime={checkIn.recordedAt}
+                    >
+                        {formatDate(checkIn.recordedAt, locale)}
+                    </time>
+                </div>
+                <Link
+                    className="mt-1 block truncate text-sm text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] hover:underline"
+                    href={checkIn.activityHref}
+                >
+                    {checkIn.activityTitle} · {checkIn.nodeTitle}
+                </Link>
+                {checkIn.note ? (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {checkIn.note}
+                    </p>
+                ) : null}
+                {directionLabel ? (
+                    <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                        {t(
+                            'home.learning_desk.reflections.next_direction',
+                            'Next direction:',
+                        )}{' '}
+                        <span className="text-[var(--learner-action-accent)]">
+                            {directionLabel}
+                        </span>
+                    </p>
+                ) : null}
+            </div>
+            <Link
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] sm:justify-self-end"
+                href={checkIn.activityHref}
+            >
+                {t('home.learning_desk.reflections.open', 'Open activity')}
+                <ArrowRight className="size-4" />
+            </Link>
+        </article>
     );
 }
 

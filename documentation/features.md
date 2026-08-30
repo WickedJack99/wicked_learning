@@ -90,9 +90,14 @@ confidence reflection after feedback, separately from the initial confidence
 and correctness result. These reasons describe placement rather than making an
 opaque recommendation, and the learner can choose another desk area whenever
 it is more useful.
-adding a separate progression panel. Desk areas are switched through a local
-navigation control, while route and revisit collections are paginated so the
-desktop desk does not need one growing collection scroll region. Revisit
+Recent private check-ins are also available as a bounded, paginated reflection
+trail. Each entry links back to its activity and retains the learner's optional
+feeling, note and chosen next direction without turning them into a score or
+recommendation.
+This keeps the desk from adding a separate progression panel. Desk areas are
+switched through a local navigation control, while route and revisit
+collections are paginated so the desktop desk does not need one growing
+collection scroll region. Revisit
 invitations explain both when the learner chose to return and when the item
 became ready, keeping the spacing decision visible without exposing internal
 scheduling details. Paginated collection controls keep their navigation
