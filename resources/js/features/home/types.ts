@@ -36,6 +36,7 @@ export type LearningDeskCheckIn = {
     nextDirection: 'revisit' | 'related' | 'settle' | null;
     nodeHref: string;
     nodeTitle: string;
+    originTopicSlug: string | null;
     recordedAt: string;
     topics: { name: string; slug: string }[];
 };

@@ -123,7 +123,8 @@ reasons with alternatives, an optional focus workspace and authoring checks for
 meaningful segmentation and accessible alternatives. These controls must reduce
 friction without becoming deadlines, attention traps or opaque personalization.
 The Learning Desk now exposes source-specific reasons for its active, recent,
-revisit and recall areas; richer recommendation reasons and learner-selected
+revisit and recall areas, and a related check-in can lead to its authored
+connected competence areas; richer recommendation reasons and learner-selected
 alternatives remain open.
 
 ### 7. Effort-preserving learner AI

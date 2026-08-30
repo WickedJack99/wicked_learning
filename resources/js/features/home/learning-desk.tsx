@@ -945,6 +945,29 @@ function CheckInRow({
                         </span>
                     </p>
                 ) : null}
+                {checkIn.nextDirection === 'related' &&
+                checkIn.topics.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                        <span className="text-[var(--learner-muted-text)]">
+                            {t(
+                                'home.learning_desk.reflections.related',
+                                'Explore a connected learning area:',
+                            )}
+                        </span>
+                        {checkIn.topics.map((topic) => (
+                            <Link
+                                className="underline decoration-[var(--learner-border-color)] underline-offset-2 hover:text-[var(--learner-heading-text)]"
+                                href={competenceTopicHref(
+                                    topic.slug,
+                                    checkIn.originTopicSlug,
+                                )}
+                                key={topic.slug}
+                            >
+                                {topic.name}
+                            </Link>
+                        ))}
+                    </div>
+                ) : null}
             </div>
             <Link
                 className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] sm:justify-self-end"

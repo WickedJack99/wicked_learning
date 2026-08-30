@@ -93,7 +93,9 @@ it is more useful.
 Recent private check-ins are also available as a bounded, paginated reflection
 trail. Each entry links back to its activity and retains the learner's optional
 feeling, note and chosen next direction without turning them into a score or
-recommendation.
+recommendation. When the learner chooses to look for something related and the
+activity has authored competence areas, those areas become direct links to the
+competence map; the desk does not invent or rank additional recommendations.
 This keeps the desk from adding a separate progression panel. Desk areas are
 switched through a local navigation control. The selected area is also kept in
 the page URL, so a learner can refresh, share or return to the same desk

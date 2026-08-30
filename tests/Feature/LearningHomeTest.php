@@ -417,6 +417,81 @@ test('the learning desk shows recent private learning check-ins without treating
         );
 });
 
+test('the learning desk links a related check-in to its authored competence areas', function () {
+    Carbon::setTestNow('2026-08-26 16:00:00');
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'investigation-area',
+        'title' => 'Investigation',
+    ]);
+    $originTopic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'pattern-investigation',
+        'title' => 'Pattern investigation',
+        'is_published' => true,
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $originTopic->id,
+        'slug' => 'pulse-map',
+        'title' => 'Pulse Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'pulse-node',
+        'title' => 'Pulse Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'pulse-activity',
+        'title' => 'Pulse Activity',
+        'type' => 'markdown',
+        'config' => [
+            'competenceTopics' => [[
+                'topic' => 'Pattern recognition',
+                'weight' => 1,
+            ]],
+        ],
+        'sort_order' => 10,
+    ]);
+    LearnerActivityProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'status' => 'completed',
+        'attempt_count' => 1,
+        'reached_at' => now()->subMinute(),
+        'completed_at' => now()->subMinute(),
+        'metadata' => [
+            'learningCheckIn' => [
+                'feeling' => 'forming',
+                'note' => 'The quiet example helped me notice the pattern.',
+                'nextDirection' => 'related',
+                'recordedAt' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('home')
+            ->where('desk.checkIns.0.nextDirection', 'related')
+            ->where('desk.checkIns.0.originTopicSlug', 'pattern-investigation')
+            ->where('desk.checkIns.0.topics.0.slug', 'pattern-recognition')
+            ->where('desk.checkIns.0.topics.0.name', 'Pattern recognition')
+        );
+});
+
 test('recent check-in loading is bounded to the newest check-in progress rows', function () {
     $user = User::factory()->create();
     $world = LearningWorld::query()->create([
