@@ -138,7 +138,7 @@ test('group chat blocks a third consecutive message inside one minute', function
         ->postJson(route('learning.groups.messages.store', $group), [
             'body' => 'Third.',
         ])
-        ->assertSessionHasErrors('body');
+        ->assertJsonValidationErrors('body');
 
     $this->actingAs($second)
         ->postJson(route('learning.groups.messages.store', $group), [

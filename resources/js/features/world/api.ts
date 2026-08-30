@@ -1,3 +1,42 @@
+export class JsonRequestError extends Error {
+    constructor(
+        message: string,
+        public readonly status: number,
+    ) {
+        super(message);
+        this.name = 'JsonRequestError';
+    }
+}
+
+async function requestErrorFromResponse(
+    response: Response,
+): Promise<JsonRequestError> {
+    const fallbackMessage = `Request failed with status ${response.status}`;
+
+    try {
+        const payload = (await response.json()) as {
+            errors?: Record<string, unknown>;
+            message?: unknown;
+        };
+        const validationMessage = Object.values(payload.errors ?? {})
+            .flatMap((value) => (Array.isArray(value) ? value : [value]))
+            .find(
+                (value): value is string =>
+                    typeof value === 'string' && value.trim() !== '',
+            );
+
+        return new JsonRequestError(
+            validationMessage ??
+                (typeof payload.message === 'string'
+                    ? payload.message
+                    : fallbackMessage),
+            response.status,
+        );
+    } catch {
+        return new JsonRequestError(fallbackMessage, response.status);
+    }
+}
+
 export async function postJson<T>(
     url: string,
     payload: Record<string, unknown>,
@@ -17,7 +56,7 @@ export async function postJson<T>(
     });
 
     if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw await requestErrorFromResponse(response);
     }
 
     return response.json() as Promise<T>;
@@ -37,7 +76,7 @@ export async function getJson<T>(
     });
 
     if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw await requestErrorFromResponse(response);
     }
 
     return response.json() as Promise<T>;
@@ -57,7 +96,7 @@ export async function deleteJson<T>(url: string): Promise<T> {
     });
 
     if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw await requestErrorFromResponse(response);
     }
 
     return response.json() as Promise<T>;
@@ -83,7 +122,7 @@ export async function patchJson<T>(
     });
 
     if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+        throw await requestErrorFromResponse(response);
     }
 
     return response.json() as Promise<T>;

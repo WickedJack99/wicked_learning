@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatMessageTime } from '@/features/messages/message-time';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import { postJson } from './api';
+import { JsonRequestError, postJson } from './api';
 
 type GroupMessage = {
     body: string;
@@ -153,8 +153,12 @@ function GroupChatCard({
             );
             onGroupUpdated(response.group);
             setBody('');
-        } catch {
-            setError('The message could not be sent.');
+        } catch (error) {
+            setError(
+                error instanceof JsonRequestError
+                    ? error.message
+                    : 'The message could not be sent.',
+            );
         } finally {
             setIsSending(false);
         }
@@ -251,7 +255,10 @@ function GroupChatCard({
                 </Button>
             </div>
             {error ? (
-                <p className="text-sm text-red-600 dark:text-red-300">
+                <p
+                    className="text-sm text-red-600 dark:text-red-300"
+                    role="alert"
+                >
                     {error}
                 </p>
             ) : null}
