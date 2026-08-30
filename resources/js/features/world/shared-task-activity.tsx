@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityTransition,
     LearningActivity,
@@ -26,6 +27,7 @@ export function SharedTaskActivity({
     const [state, setState] = useState<SharedTaskState>(
         activity.sharedTaskState ?? fallbackState(activity),
     );
+    const t = usePlatformTranslation();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const minimumLength = numericConfig(activity.config.minimumLength, 20);
@@ -68,7 +70,12 @@ export function SharedTaskActivity({
                 await complete();
             }
         } catch {
-            setError('This contribution could not be accepted.');
+            setError(
+                t(
+                    'activities.shared_task.submit_error',
+                    'This contribution could not be accepted.',
+                ),
+            );
         } finally {
             setIsSubmitting(false);
         }
@@ -92,11 +99,11 @@ export function SharedTaskActivity({
                 ) : null}
             </div>
 
-            <SharedTaskProgress state={state} />
+            <SharedTaskProgress state={state} t={t} />
 
             {state.isComplete ? (
                 <Button className="mt-auto" onClick={() => void complete()}>
-                    Continue
+                    {t('common.continue', 'Continue')}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             ) : (
@@ -111,15 +118,29 @@ export function SharedTaskActivity({
                         className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
                         id={`shared-task-${activity.id}`}
                         onChange={(event) => setBody(event.target.value)}
-                        placeholder="Write a contribution for the shared task."
+                        placeholder={t(
+                            'activities.shared_task.placeholder',
+                            'Write a contribution for the shared task.',
+                        )}
                         value={body}
                     />
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <span>
-                            {body.trim().length} / {minimumLength} characters
+                            {t(
+                                'activities.shared_task.character_count',
+                                ':current / :minimum characters',
+                                {
+                                    current: body.trim().length,
+                                    minimum: minimumLength,
+                                },
+                            )}
                         </span>
                         {error ? (
-                            <span className="font-medium text-red-600 dark:text-red-300">
+                            <span
+                                aria-live="assertive"
+                                className="font-medium text-red-600 dark:text-red-300"
+                                role="alert"
+                            >
                                 {error}
                             </span>
                         ) : null}
@@ -131,7 +152,10 @@ export function SharedTaskActivity({
                         type="button"
                     >
                         <Send className="size-4" />
-                        Submit contribution
+                        {t(
+                            'activities.shared_task.submit',
+                            'Submit contribution',
+                        )}
                     </Button>
                 </div>
             )}
@@ -139,7 +163,13 @@ export function SharedTaskActivity({
     );
 }
 
-function SharedTaskProgress({ state }: { state: SharedTaskState }) {
+function SharedTaskProgress({
+    state,
+    t,
+}: {
+    state: SharedTaskState;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
     const percent =
         state.threshold > 0
             ? Math.min(100, (state.acceptedCount / state.threshold) * 100)
@@ -149,7 +179,7 @@ function SharedTaskProgress({ state }: { state: SharedTaskState }) {
         <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
             <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    Shared progress
+                    {t('activities.shared_task.progress', 'Shared progress')}
                 </span>
                 <span className="inline-flex items-center gap-1 text-sm text-cyan-700 dark:text-teal-200">
                     {state.isComplete ? (
@@ -158,16 +188,40 @@ function SharedTaskProgress({ state }: { state: SharedTaskState }) {
                     {state.acceptedCount} / {state.threshold}
                 </span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+            <div
+                aria-label={t(
+                    'activities.shared_task.progress_label',
+                    'Shared task progress',
+                )}
+                aria-valuemax={state.threshold}
+                aria-valuemin={0}
+                aria-valuenow={state.acceptedCount}
+                className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10"
+                role="progressbar"
+            >
                 <div
                     className="h-full rounded-full bg-cyan-600 dark:bg-teal-300"
                     style={{ width: `${percent}%` }}
                 />
             </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            <p
+                aria-live="polite"
+                className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400"
+            >
                 {state.isComplete
-                    ? 'Threshold reached.'
-                    : `${state.remaining} more accepted contribution${state.remaining === 1 ? '' : 's'} needed.`}
+                    ? t(
+                          'activities.shared_task.threshold_reached',
+                          'Threshold reached.',
+                      )
+                    : t(
+                          state.remaining === 1
+                              ? 'activities.shared_task.one_more_needed'
+                              : 'activities.shared_task.more_needed',
+                          state.remaining === 1
+                              ? ':count more accepted contribution needed.'
+                              : ':count more accepted contributions needed.',
+                          { count: state.remaining },
+                      )}
             </p>
         </div>
     );
