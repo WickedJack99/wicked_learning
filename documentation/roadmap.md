@@ -42,8 +42,10 @@ attempt sequence as its corresponding review-attempt record, and question
 revisits preserve their correctness and confidence in that record. Question
 activities now provide a private, learner-controlled recall queue that
 links back to the existing activity without introducing a second scheduler.
-Transparent timing for those items and richer review outcomes for other
-activity types remain open.
+The first transparent timing baseline for question recall is now implemented:
+the desk distinguishes ready items from future items and explicit recall answers
+record the next interval. Richer review outcomes for other activity types,
+learner-controlled postponement and adaptive scheduling remain open.
 
 ### 3. Self-explanation and transfer
 

@@ -9,9 +9,26 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'user_id',
     'learning_question_id',
+    'last_reviewed_at',
+    'next_review_at',
+    'review_count',
+    'last_outcome',
+    'last_confidence',
 ])]
 class LearnerRecallItem extends Model
 {
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'last_reviewed_at' => 'datetime',
+            'next_review_at' => 'datetime',
+            'review_count' => 'integer',
+        ];
+    }
+
     /**
      * @return BelongsTo<User, $this>
      */

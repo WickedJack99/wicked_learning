@@ -153,7 +153,12 @@ Question activities also let learners explicitly keep an answered question in a
 private recall queue. The queue is shown as its own paginated Learning Desk
 area, links back to the originating activity and can be cleared by the learner;
 it has no deadline and does not alter route progress. This is a reusable
-question-level recall affordance, not an adaptive schedule or a score.
+question-level recall affordance, not an adaptive schedule or a score. The desk
+shows whether a question is ready or when it is expected next. Answering from
+that queue records the learner's correctness, confidence and review count and
+shows the next interval using a transparent baseline schedule; only an explicit
+recall answer changes that schedule. It remains private and learner-controlled,
+not an adaptive or AI-generated recommendation.
 
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.

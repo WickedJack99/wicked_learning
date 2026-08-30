@@ -11,6 +11,7 @@ class QuestionAnswerService
 {
     public function __construct(
         private readonly LearnerProgressService $progressService,
+        private readonly LearnerRecallItemService $recallItems,
         private readonly QuestionTransitionResolver $transitionResolver,
     ) {}
 
@@ -24,6 +25,7 @@ class QuestionAnswerService
         ?string $playRunId = null,
         ?string $confidence = null,
         bool $isRevisit = false,
+        bool $isRecall = false,
     ): array {
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
@@ -54,6 +56,14 @@ class QuestionAnswerService
             assistanceLevel: 'independent',
             isRevisit: $isRevisit,
         );
+        $recall = $isRecall
+            ? $this->recallItems->recordRecall(
+                $userId,
+                $question,
+                $option->is_correct,
+                $confidence,
+            )
+            : null;
         $transition = $this->transitionResolver->for($question, $option);
 
         return [
@@ -66,6 +76,7 @@ class QuestionAnswerService
             'explanation' => $question->explanation,
             'nextActivityId' => $transition?->to_activity_id,
             'earlierAttempts' => $this->earlierAttempts($userId, $question->id, $answer->id),
+            'recall' => $recall,
         ];
     }
 

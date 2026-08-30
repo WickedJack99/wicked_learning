@@ -10,6 +10,7 @@ use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 
 test('a learner can keep a question in a private recall queue', function () {
@@ -38,6 +39,8 @@ test('a learner can keep a question in a private recall queue', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('desk.recallItems', 1)
             ->where('desk.recallItems.0.questionId', $question->id)
+            ->where('desk.recallItems.0.isDue', true)
+            ->where('desk.recallItems.0.nextReviewAt', fn ($value) => is_string($value))
             ->where('desk.recallItems.0.prompt', 'What changed?')
             ->where('desk.recallItems.0.activityTitle', $activity->title)
             ->where('desk.recallItems.0.nodeTitle', $node->title)
@@ -48,6 +51,52 @@ test('a learner can keep a question in a private recall queue', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('progress.recallQuestionIds', [$question->id])
         );
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'node' => $node,
+            'activity_id' => $activity->id,
+            'recall_question' => $question->id,
+        ]))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('recallQuestionId', $question->id)
+        );
+});
+
+test('a recall answer records a transparent next review interval', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    [$learner, $question] = recallQuestionContext();
+    $option = $question->options()->firstOrFail();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.store', $question))
+        ->assertOk();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'settled',
+            'is_recall' => true,
+            'option_id' => $option->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.recall.intervalDays', 1)
+        ->assertJsonPath('answer.recall.nextReviewAt', '2026-08-31T14:30:00+00:00');
+
+    $item = LearnerRecallItem::query()->firstOrFail();
+
+    expect($item->review_count)->toBe(1)
+        ->and($item->last_outcome)->toBe('correct')
+        ->and($item->last_confidence)->toBe('settled')
+        ->and($item->next_review_at?->toIso8601String())->toBe('2026-08-31T14:30:00+00:00');
+
+    $this->actingAs($learner)
+        ->get(route('home'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('desk.recallItems.0.isDue', false)
+            ->where('desk.recallItems.0.reviewCount', 1)
+        );
+
+    Carbon::setTestNow();
 });
 
 test('a learner can remove a question from the private recall queue', function () {

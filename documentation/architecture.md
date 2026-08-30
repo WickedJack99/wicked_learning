@@ -181,6 +181,15 @@ so the two records cannot describe different positions in the revisit sequence.
 Question answers pass revisit intent into this same completion transaction and
 snapshot their correctness and confidence on the review attempt. Their player
 does not submit a second generic completion request after the answer is saved.
+`LearnerRecallItem` stores the learner-selected question queue separately from
+route progress. It keeps the last review outcome and confidence plus a next
+review timestamp and bounded review count. The recall query orders due items
+first and returns only the fields needed by the Learning Desk. A play request
+may identify one queued question as recall context; the answer service updates
+its schedule only when that explicit context is submitted. The baseline uses
+fixed intervals of one, three, seven, fourteen and thirty days for correct
+answers, and returns to one day after an incorrect answer. This is intentionally
+transparent infrastructure rather than an adaptive competence score.
 
 Roles are configurable permission bundles. Administrative resources use `RO`,
 `RU` and `RUD` levels, and map edit access is additionally scoped by the map.

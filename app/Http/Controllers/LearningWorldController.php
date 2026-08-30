@@ -25,6 +25,7 @@ use App\Learning\Services\NodeUnlockService;
 use App\Learning\Services\NpcDialogueAnswerService;
 use App\Learning\Services\ObstacleToolService;
 use App\Learning\Services\QuestionAnswerService;
+use App\Models\LearnerRecallItem;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -105,6 +106,9 @@ class LearningWorldController extends Controller
     {
         $user = $request->user();
         $requestedActivity = $this->requestedActivityFromRequest($request, $node);
+        $recallQuestionId = $user
+            ? $this->recallQuestionId($request, $user, $requestedActivity)
+            : null;
         $route = $user ? $this->routeFromRequest($request, $node) : null;
         $playRunId = $user ? $this->playRunService->currentRunId($request, $node) : null;
         $runProgress = $user
@@ -152,6 +156,7 @@ class LearningWorldController extends Controller
             'playRouteId' => $route?->id,
             'playRunId' => $playRunId,
             'revisitActivityId' => $request->boolean('revisit') ? $requestedActivity?->id : null,
+            'recallQuestionId' => $recallQuestionId,
             'playState' => $this->activityPlayStateService->activityStatesForRun($runProgress),
             'progress' => $user
                 ? $this->progressSerializer->forUser($user->id)
@@ -299,6 +304,7 @@ class LearningWorldController extends Controller
     {
         $data = $request->validate([
             'confidence' => ['nullable', 'string', 'in:exploring,leaning,settled'],
+            'is_recall' => ['sometimes', 'boolean'],
             'is_revisit' => ['sometimes', 'boolean'],
             'option_id' => ['required', 'integer'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
@@ -312,6 +318,7 @@ class LearningWorldController extends Controller
                 is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null,
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
                 is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,
+                is_bool($data['is_recall'] ?? null) ? $data['is_recall'] : false,
             ),
         ]);
     }
@@ -477,6 +484,32 @@ class LearningWorldController extends Controller
         }
 
         return $node->activities()->whereKey((int) $activityId)->first();
+    }
+
+    private function recallQuestionId(
+        Request $request,
+        User $user,
+        ?LearningActivity $activity,
+    ): ?int {
+        $questionId = $request->query('recall_question');
+
+        if ($activity === null || ! is_numeric($questionId)) {
+            return null;
+        }
+
+        $question = LearningQuestion::query()
+            ->whereKey((int) $questionId)
+            ->where('learning_activity_id', $activity->id)
+            ->first();
+
+        if ($question === null || ! LearnerRecallItem::query()
+            ->where('user_id', $user->id)
+            ->where('learning_question_id', $question->id)
+            ->exists()) {
+            return null;
+        }
+
+        return $question->id;
     }
 
     private function progressForPlayRequest(

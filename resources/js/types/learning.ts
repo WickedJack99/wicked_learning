@@ -451,6 +451,10 @@ export type QuestionAnswerProgress = {
     feedback: string | null;
     explanation?: string | null;
     nextActivityId?: number | null;
+    recall?: {
+        intervalDays: number;
+        nextReviewAt: string;
+    } | null;
 };
 
 export type QuestionAnswerAttempt = {

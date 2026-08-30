@@ -38,6 +38,7 @@ type NodePlayProps = {
     playActivityId: number | null;
     playRouteId: number | null;
     playRunId: string | null;
+    recallQuestionId: number | null;
     revisitActivityId: number | null;
     playState: Record<string, unknown>;
     progress: LearningProgress;
@@ -67,6 +68,7 @@ export default function NodePlay({
     playActivityId,
     playRouteId,
     playRunId,
+    recallQuestionId,
     revisitActivityId,
     playState: initialPlayState,
     progress,
@@ -129,7 +131,13 @@ export default function NodePlay({
         }
 
         persistActiveActivity(node, activeActivity, { useCleanPlayHref: true });
-        replacePlayUrl(node.id);
+        replacePlayUrl(
+            node.id,
+            activeActivity.id,
+            activeActivity.question?.id === recallQuestionId
+                ? recallQuestionId
+                : null,
+        );
 
         if (isAuthenticated) {
             void postJson(
@@ -159,7 +167,7 @@ export default function NodePlay({
                 // longer match the active activity. Both should keep source copy.
                 .catch(() => undefined);
         }
-    }, [activeActivity, isAuthenticated, node, playRunId]);
+    }, [activeActivity, isAuthenticated, node, playRunId, recallQuestionId]);
 
     const returnToMap = useCallback(() => {
         router.visit(
@@ -609,6 +617,10 @@ export default function NodePlay({
                                 isRevisit={
                                     displayedActivity.id === revisitActivityId
                                 }
+                                isRecall={
+                                    displayedActivity.question?.id ===
+                                    recallQuestionId
+                                }
                                 onMoveToActivity={moveToActivity}
                                 onRestart={() => void restartFromBeginning()}
                                 playState={activityPlayState}
@@ -658,12 +670,17 @@ function withoutActivityPlayState(
     return nextPlayState;
 }
 
-function replacePlayUrl(nodeId: number) {
-    window.history.replaceState(
-        window.history.state,
-        '',
-        `/learning/nodes/${nodeId}/play`,
-    );
+function replacePlayUrl(
+    nodeId: number,
+    activityId: number,
+    recallQuestionId: number | null,
+) {
+    const href =
+        recallQuestionId === null
+            ? `/learning/nodes/${nodeId}/play`
+            : `/learning/nodes/${nodeId}/play?activity_id=${activityId}&recall_question=${recallQuestionId}`;
+
+    window.history.replaceState(window.history.state, '', href);
 }
 
 function getStartActivity(node: LearningNode): LearningActivity | null {

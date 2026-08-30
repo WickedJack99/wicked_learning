@@ -890,6 +890,27 @@ function RecallItemRow({
                 <span className="mt-1 block truncate text-sm text-[var(--learner-muted-text)]">
                     {item.activityTitle} · {item.nodeTitle} · {item.mapTitle}
                 </span>
+                <span className="mt-1 block text-xs text-[var(--learner-action-accent)]">
+                    {item.isDue
+                        ? t(
+                              'home.learning_desk.recall.ready',
+                              'Ready to recall',
+                          )
+                        : t(
+                              'home.learning_desk.recall.next',
+                              'Next recall: :date',
+                              {
+                                  date: formatRecallDate(item.nextReviewAt),
+                              },
+                          )}
+                    {item.reviewCount > 0
+                        ? ` · ${t(
+                              'home.learning_desk.recall.review_count',
+                              'Recalled :count times',
+                              { count: item.reviewCount },
+                          )}`
+                        : ''}
+                </span>
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link
@@ -914,6 +935,16 @@ function RecallItemRow({
             </span>
         </div>
     );
+}
+
+function formatRecallDate(value: string | null): string {
+    if (!value) {
+        return 'soon';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+    }).format(new Date(value));
 }
 
 function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {

@@ -357,6 +357,7 @@ export function ActivityPlayer({
     onAnswer,
     onRecallChange,
     onComplete,
+    isRecall,
     isRevisit,
     onMoveToActivity,
     onRestart,
@@ -376,6 +377,7 @@ export function ActivityPlayer({
         activity: LearningActivity,
         options?: { endsRoute?: boolean; progressAlreadyMarked?: boolean },
     ) => Promise<void>;
+    isRecall: boolean;
     isRevisit: boolean;
     onMoveToActivity: (activityId: number | null) => void;
     onRestart: () => void;
@@ -420,6 +422,7 @@ export function ActivityPlayer({
                     onAnswer={onAnswer}
                     onComplete={completeActivity}
                     onRecallChange={onRecallChange}
+                    isRecall={isRecall}
                     isRevisit={isRevisit}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}

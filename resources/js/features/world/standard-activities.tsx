@@ -13,6 +13,7 @@ import {
     removeRecallQuestion,
 } from '@/features/learning/recall-items';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
     ActivityTransition,
@@ -357,6 +358,7 @@ export function QuestionActivity({
     onAnswer,
     onComplete,
     onRecallChange,
+    isRecall,
     isRevisit,
     onMoveToActivity,
     playRunId,
@@ -371,6 +373,7 @@ export function QuestionActivity({
         activity: LearningActivity,
         options?: { progressAlreadyMarked?: boolean },
     ) => Promise<void>;
+    isRecall: boolean;
     isRevisit: boolean;
     onMoveToActivity: (activityId: number | null) => void;
     playRunId: string | null;
@@ -383,6 +386,7 @@ export function QuestionActivity({
     );
     const [isRecallUpdating, setIsRecallUpdating] = useState(false);
     const [recallError, setRecallError] = useState(false);
+    const t = usePlatformTranslation();
 
     if (!question) {
         return null;
@@ -397,6 +401,7 @@ export function QuestionActivity({
                 {
                     option_id: optionId,
                     confidence,
+                    is_recall: isRecall,
                     is_revisit: isRevisit,
                     play_run_id: playRunId,
                 },
@@ -510,6 +515,15 @@ export function QuestionActivity({
                     {answer.explanation ? (
                         <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
                             {answer.explanation}
+                        </p>
+                    ) : null}
+                    {isRecall && answer.recall ? (
+                        <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {t(
+                                'learning.recall.next_review',
+                                'Next recall in :days days.',
+                                { days: answer.recall.intervalDays },
+                            )}
                         </p>
                     ) : null}
                     {canRecall ? (

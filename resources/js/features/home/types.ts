@@ -56,11 +56,15 @@ export type LearningDeskRecallItem = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
+    isDue: boolean;
+    lastReviewedAt: string | null;
     mapTitle: string;
+    nextReviewAt: string | null;
     nodeHref: string;
     nodeTitle: string;
     prompt: string;
     questionId: number;
+    reviewCount: number;
 };
 
 export type LearningDeskData = {
