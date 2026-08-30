@@ -202,6 +202,9 @@ class LearningTopicSerializer
                             ? $entry['outcome']
                             : null,
                         'attemptNumber' => (int) ($entry['attemptNumber'] ?? 1),
+                        'assistanceLevel' => is_string($entry['assistanceLevel'] ?? null)
+                            ? $entry['assistanceLevel']
+                            : null,
                     ],
                     array_filter(
                         $visual['evidenceLedger'],

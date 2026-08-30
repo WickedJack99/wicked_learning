@@ -30,6 +30,7 @@ export type CompetenceTopic = {
             learningPurpose: string | null;
             confidence: string | null;
             outcome: string | null;
+            assistanceLevel: string | null;
             id: number;
             attemptNumber: number;
             nodeHref: string | null;
@@ -76,6 +77,7 @@ export type CompetenceReviewAttempt = {
     confidence: string | null;
     nodeTitle: string | null;
     outcome: string | null;
+    assistanceLevel: string | null;
 };
 
 export type CompetenceMap = {

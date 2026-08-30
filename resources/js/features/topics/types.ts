@@ -72,6 +72,7 @@ export type TopicEvidenceLedgerEntry = {
     learningPurpose: string | null;
     confidence: string | null;
     outcome: string | null;
+    assistanceLevel: string | null;
     id: number;
     attemptNumber: number;
     nodeTitle: string | null;

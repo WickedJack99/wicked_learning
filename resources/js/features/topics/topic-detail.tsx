@@ -985,6 +985,14 @@ function TopicCompetenceCard({
                                                             : ''}
                                                     </span>
                                                 ) : null}
+                                                {entry.assistanceLevel ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                        {assistanceLevelLabel(
+                                                            entry.assistanceLevel,
+                                                            t,
+                                                        )}
+                                                    </span>
+                                                ) : null}
                                             </span>
                                             {entry.recordedAt ? (
                                                 <time
@@ -1143,6 +1151,22 @@ function confidenceLabel(confidence: string): string {
             leaning: 'I have a hunch',
             settled: 'settled',
         }[confidence] ?? confidence
+    );
+}
+
+function assistanceLevelLabel(
+    level: string,
+    translate: ReturnType<typeof usePlatformTranslation>,
+): string {
+    return translate(
+        `learning.evidence.assistance_${level}`,
+        {
+            independent: 'Support context: independent',
+            supported: 'Support context: supported',
+            'ai-off': 'Support context: AI off',
+            hints: 'Support context: hints used',
+            'post-attempt': 'Support context: post-attempt help',
+        }[level] ?? `Support context: ${level}`,
     );
 }
 

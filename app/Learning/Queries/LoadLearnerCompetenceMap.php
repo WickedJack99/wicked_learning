@@ -27,7 +27,7 @@ class LoadLearnerCompetenceMap
     ) {}
 
     /**
-     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, reviewAttempts: list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null}>, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
+     * @return array{checkIns: list<array{activityId: int, activityTitle: string, feeling: string|null, note: string|null, nodeTitle: string, nodeHref: string, recordedAt: string, topics: list<array{slug: string, name: string}>}>, monthKey: string, recentWindowDays: int, reviewAttempts: list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null}>, topics: list<array<string, mixed>>, transitions: list<array<string, mixed>>}
      */
     public function handle(User $user): array
     {
@@ -131,7 +131,7 @@ class LoadLearnerCompetenceMap
      * text, so this serializer only exposes the learning context and signal
      * captured by the review record.
      *
-     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null}>
+     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null}>
      */
     private function reviewAttempts(User $user): array
     {
@@ -153,6 +153,7 @@ class LoadLearnerCompetenceMap
                     'confidence' => $attempt->confidence,
                     'nodeTitle' => $activity?->node?->title,
                     'outcome' => $attempt->outcome,
+                    'assistanceLevel' => $this->assistanceLevel($attempt->assistance_level),
                 ];
             })
             ->values()
@@ -182,7 +183,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int, assistanceLevel: string|null}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -216,10 +217,18 @@ class LoadLearnerCompetenceMap
                     'confidence' => $event->confidence,
                     'outcome' => $event->outcome,
                     'attemptNumber' => (int) $event->attempt_number,
+                    'assistanceLevel' => $this->assistanceLevel($event->assistance_level),
                 ];
             })
             ->values()
             ->all());
+    }
+
+    private function assistanceLevel(?string $level): ?string
+    {
+        return $level !== null && $level !== '' && $level !== 'untracked'
+            ? $level
+            : null;
     }
 
     /**

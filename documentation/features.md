@@ -246,7 +246,8 @@ signals for orientation and support conversations rather than ranking; they do
 not receive private journal text through this view.
 Question activities also retain the learner's pre-answer confidence, the
 correctness outcome, attempt order and independent-assistance context. The
-learner can see the confidence and attempt context in the competence reading;
+learner can see the confidence, attempt and recorded assistance context in the
+competence reading;
 after an answer, the activity also offers a neutral confidence reflection that
 describes whether the result aligned with, exceeded or challenged the starting
 confidence. This supports calibration and noticing change without presenting a
@@ -265,6 +266,10 @@ turning them into a shared score.
 When a learner records an optional descriptive review outcome, the competence
 map and topic evidence ledgers show that signal alongside the learning moment;
 it remains a learner reflection, not a grade or score.
+When assistance context is recorded, the learner's own competence and topic
+ledgers label it as independent or supported context. Legacy events without a
+recorded assistance level stay unlabeled; this context is not exposed through
+the staff support-signals view or used as a score.
 For explanation and transfer moments, the evidence ledger also retains the
 author's observable “what to notice” criterion that was active when the moment
 was recorded. Authors can add up to three optional observable rubric cues, one

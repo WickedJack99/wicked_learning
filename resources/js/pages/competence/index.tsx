@@ -726,6 +726,9 @@ function LearningPulseTimeline({
                                         {attempt.confidence
                                             ? `Confidence: ${confidenceLabel(attempt.confidence)}`
                                             : 'Review completed'}
+                                        {attempt.assistanceLevel
+                                            ? ` · ${assistanceLevelLabel(attempt.assistanceLevel, translate)}`
+                                            : ''}
                                         {attempt.attemptNumber > 1
                                             ? ` · attempt ${attempt.attemptNumber}`
                                             : ''}
@@ -1101,6 +1104,14 @@ function CompetenceReading({
                                                     : ''}
                                             </span>
                                         ) : null}
+                                        {evidence.assistanceLevel ? (
+                                            <span className="mt-1 block text-xs text-slate-500">
+                                                {assistanceLevelLabel(
+                                                    evidence.assistanceLevel,
+                                                    translate,
+                                                )}
+                                            </span>
+                                        ) : null}
                                     </span>
                                     {evidence.recordedAt ? (
                                         <span className="shrink-0 text-xs text-slate-500">
@@ -1290,6 +1301,22 @@ function confidenceLabel(confidence: string): string {
             leaning: 'I have a hunch',
             settled: 'settled',
         }[confidence] ?? confidence
+    );
+}
+
+function assistanceLevelLabel(
+    level: string,
+    translate: ReturnType<typeof usePlatformTranslation>,
+): string {
+    return translate(
+        `learning.evidence.assistance_${level}`,
+        {
+            independent: 'Support context: independent',
+            supported: 'Support context: supported',
+            'ai-off': 'Support context: AI off',
+            hints: 'Support context: hints used',
+            'post-attempt': 'Support context: post-attempt help',
+        }[level] ?? `Support context: ${level}`,
     );
 }
 

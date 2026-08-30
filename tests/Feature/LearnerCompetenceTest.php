@@ -152,6 +152,7 @@ test('a topic shows competence evidence encountered through its map', function (
         'confidence' => 'leaning',
         'outcome' => 'clearer',
         'attempt_number' => 2,
+        'assistance_level' => 'independent',
         'concepts' => ['Pattern recognition'],
         'source_references' => [
             [
@@ -172,6 +173,7 @@ test('a topic shows competence evidence encountered through its map', function (
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.confidence', 'leaning')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.outcome', 'clearer')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.assistanceLevel', 'independent')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.concepts', ['Pattern recognition'])
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.attemptNumber', 2)
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.title', 'Pattern field guide')
