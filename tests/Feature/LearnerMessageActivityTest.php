@@ -1,5 +1,6 @@
 <?php
 
+use App\Learning\Queries\LoadLearnerMessages;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Models\LearnerMessage;
 use App\Models\LearnerMessageResponse;
@@ -10,6 +11,7 @@ use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 beforeEach(function (): void {
@@ -298,6 +300,51 @@ test('learners can respond once to an opted-in peer message and support can mode
         ->assertRedirect();
 
     expect($response->refresh()->hidden_at)->not->toBeNull();
+});
+
+test('learner message response loading stays bounded as a wall grows', function () {
+    $learner = User::factory()->create();
+    $messageAuthors = User::factory()->count(12)->create();
+    $responseAuthors = User::factory()->count(4)->create();
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'bounded-wall',
+        'title' => 'Bounded wall',
+    ]);
+
+    $messages = collect(range(0, 11))->map(fn (int $number): LearnerMessage => LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $messageAuthors[$number]->id,
+        'body' => 'Contribution '.($number + 1),
+        'audience' => 'peers',
+    ]));
+
+    $messages->each(function (LearnerMessage $message) use ($responseAuthors): void {
+        foreach (range(0, 3) as $number) {
+            LearnerMessageResponse::query()->create([
+                'learner_message_id' => $message->id,
+                'user_id' => $responseAuthors[$number]->id,
+                'body' => 'Response '.($number + 1),
+            ]);
+        }
+    });
+    LearnerMessageResponse::query()->create([
+        'learner_message_id' => $messages->first()->id,
+        'user_id' => $learner->id,
+        'body' => 'I already responded.',
+        'hidden_at' => now(),
+    ]);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $payload = app(LoadLearnerMessages::class)->handle($topic, $learner, 'peers', true);
+    $queryCount = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($queryCount)->toBe(4)
+        ->and($payload['messages'])->toHaveCount(12)
+        ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 3))->toBeTrue()
+        ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
 });
 
 test('admins can hide restore and delete learner messages', function () {
