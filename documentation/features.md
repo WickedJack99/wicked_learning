@@ -162,10 +162,11 @@ it has no deadline and does not alter route progress. This is a reusable
 question-level recall affordance, not an adaptive schedule or a score. The desk
 shows whether a question is ready or when it is expected next. Answering from
 that queue records the learner's correctness, confidence and review count and
-shows the next interval using a transparent baseline schedule. Learners can
-defer a queued question by one day without changing its outcome or review count;
-only an explicit recall answer changes that schedule. It remains private and
-learner-controlled, not an adaptive or AI-generated recommendation.
+shows the latest result and confidence plus the next interval using a
+transparent baseline schedule. Learners can defer a queued question by one day
+without changing its outcome or review count; only an explicit recall answer
+changes that schedule. It remains private and learner-controlled, not an
+adaptive or AI-generated recommendation.
 
 Every activity type can reference optional reusable ambience. More specialized
 types can add their own interaction sounds and visuals.

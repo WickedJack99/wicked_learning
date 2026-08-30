@@ -17,7 +17,7 @@ class LoadLearnerRecallItems
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /**
-     * @return list<array{activityHref: string, activityId: int, activityTitle: string, isDue: bool, lastReviewedAt: string|null, mapTitle: string, nextReviewAt: string|null, nodeHref: string, nodeTitle: string, prompt: string, questionId: int, reviewCount: int}>
+     * @return list<array{activityHref: string, activityId: int, activityTitle: string, isDue: bool, lastConfidence: string|null, lastOutcome: string|null, lastReviewedAt: string|null, mapTitle: string, nextReviewAt: string|null, nodeHref: string, nodeTitle: string, prompt: string, questionId: int, reviewCount: int}>
      */
     public function handle(User $user): array
     {
@@ -59,6 +59,8 @@ class LoadLearnerRecallItems
                     'activityTitle' => $activity->title,
                     'isDue' => $item->next_review_at === null
                         || $item->next_review_at->lessThanOrEqualTo($now),
+                    'lastConfidence' => $item->last_confidence,
+                    'lastOutcome' => $item->last_outcome,
                     'lastReviewedAt' => $item->last_reviewed_at?->toIso8601String(),
                     'mapTitle' => $map->title,
                     'nextReviewAt' => $item->next_review_at?->toIso8601String(),

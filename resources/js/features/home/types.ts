@@ -57,6 +57,8 @@ export type LearningDeskRecallItem = {
     activityId: number;
     activityTitle: string;
     isDue: boolean;
+    lastConfidence: string | null;
+    lastOutcome: string | null;
     lastReviewedAt: string | null;
     mapTitle: string;
     nextReviewAt: string | null;

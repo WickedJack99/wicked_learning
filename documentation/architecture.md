@@ -200,7 +200,8 @@ does not submit a second generic completion request after the answer is saved.
 `LearnerRecallItem` stores the learner-selected question queue separately from
 route progress. It keeps the last review outcome and confidence plus a next
 review timestamp and bounded review count. The recall query orders due items
-first and returns only the fields needed by the Learning Desk. A learner can
+first and returns the question context plus those private review signals needed
+by the Learning Desk. A learner can
 postpone an item through the same scoped service; this moves its next review
 one day later while preserving its review outcome and count. A play request
 may identify one queued question as recall context; the answer service updates

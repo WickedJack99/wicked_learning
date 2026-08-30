@@ -925,6 +925,12 @@ function RecallItemRow({
     postponing: boolean;
 }) {
     const t = usePlatformTranslation();
+    const confidenceLabel = item.lastConfidence
+        ? t(
+              `home.learning_desk.recall.confidence_${item.lastConfidence}`,
+              item.lastConfidence,
+          )
+        : null;
 
     return (
         <div className="group grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
@@ -963,6 +969,31 @@ function RecallItemRow({
                           )}`
                         : ''}
                 </span>
+                {item.lastOutcome || item.lastConfidence ? (
+                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                        {item.lastOutcome
+                            ? t(
+                                  item.lastOutcome === 'correct'
+                                      ? 'home.learning_desk.recall.last_result_correct'
+                                      : 'home.learning_desk.recall.last_result_incorrect',
+                                  item.lastOutcome === 'correct'
+                                      ? 'Last result: correct'
+                                      : 'Last result: not correct',
+                              )
+                            : null}
+                        {item.lastConfidence
+                            ? ` · ${t(
+                                  'home.learning_desk.recall.last_confidence',
+                                  'Confidence: :confidence',
+                                  {
+                                      confidence:
+                                          confidenceLabel ??
+                                          item.lastConfidence,
+                                  },
+                              )}`
+                            : null}
+                    </span>
+                ) : null}
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link

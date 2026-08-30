@@ -94,6 +94,8 @@ test('a recall answer records a transparent next review interval', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('desk.recallItems.0.isDue', false)
             ->where('desk.recallItems.0.reviewCount', 1)
+            ->where('desk.recallItems.0.lastOutcome', 'correct')
+            ->where('desk.recallItems.0.lastConfidence', 'settled')
         );
 
     Carbon::setTestNow();
