@@ -12,6 +12,7 @@ class ActivityReviewContext
         private readonly ActivityCompetenceConfiguration $competence,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
+        private readonly ActivitySourceReferenceConfiguration $sourceReferences,
         private readonly ActivityCompletionChoiceConfiguration $completionChoice,
     ) {}
 
@@ -39,6 +40,7 @@ class ActivityReviewContext
                 'learningIntent' => $this->competence->learningIntentForActivity($activity),
                 'competenceTopics' => $this->competence->topicsForActivity($activity),
                 'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
+                'sources' => $this->sourceReferences->forActivity($activity),
                 'completionChoicePrompt' => $this->completionChoice->forActivity($activity),
                 'content' => $this->content($activity),
             ],

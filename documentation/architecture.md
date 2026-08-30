@@ -121,8 +121,10 @@ usable.
 references in the activity's existing JSON configuration. The learner activity
 serializer exposes them as a separate bounded `sources` collection and removes
 the authoring-shaped config key from the learner config. This keeps the first
-provenance slice small and inspectable; versioned reusable source records,
-excerpts and AI-draft linkage remain roadmap work.
+provenance slice small and inspectable. The scoped activity-review context also
+passes those references to the reviewed authoring request without including
+learner data; versioned reusable source records, excerpts and AI-draft linkage
+remain roadmap work.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

@@ -72,11 +72,11 @@ checks can support a stronger claim.
 ### 5. Source provenance
 
 The first slice now lets authors attach up to five bounded source references to
-an activity and lets learners inspect them during playback. Add versioned
-reusable source records and excerpts with authorship, publication metadata,
-rights and stable anchors later. Link those records to activities, concepts
-and AI-generated drafts so authors and learners can inspect the basis of
-factual content and feedback.
+an activity, lets learners inspect them during playback, and includes them in
+the scoped activity-review context. Add versioned reusable source records and
+excerpts with authorship, publication metadata, rights and stable anchors later.
+Link those records to activities, concepts and AI-generated drafts so authors
+and learners can inspect the basis of factual content and feedback.
 
 ### 6. Learner regulation and focus
 

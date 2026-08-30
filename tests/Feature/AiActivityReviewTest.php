@@ -51,6 +51,8 @@ test('an administrator can request a scoped activity review', function () {
             && str_contains($input, 'availableCompetenceTopics')
             && str_contains($input, 'Systems Thinking')
             && str_contains($input, 'Try the same idea with a changed example.')
+            && str_contains($input, 'A source for systems thinking')
+            && str_contains($input, 'https://example.com/systems-thinking')
             && ! str_contains($input, 'Unrelated private draft');
     });
 
@@ -238,6 +240,14 @@ function activityReviewContext(User $admin): array
                 'evidence' => 'Look for a reason that connects the observation to the explanation.',
                 'nextAction' => 'Try the same idea with a changed example.',
             ],
+            'sourceReferences' => [[
+                'title' => 'A source for systems thinking',
+                'url' => 'https://example.com/systems-thinking',
+                'publisher' => 'Open Learning Press',
+                'publishedAt' => '2026-08-30',
+                'rights' => 'CC BY 4.0',
+                'anchor' => 'Section 2',
+            ]],
         ],
         'sort_order' => 20,
     ]);

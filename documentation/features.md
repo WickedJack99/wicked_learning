@@ -135,8 +135,9 @@ through their existing sound preferences.
 Activity authors can optionally add feedback guidance for any activity: its
 purpose, what to notice in a learner response or action, and one possible next
 action. Playback presents this as a compact orientation aid, and the scoped AI
-activity review inspects the guidance for clarity. It is not a score or a
-learner assessment. When a purpose is configured, it is captured with the
+activity review inspects the guidance and attached source references within the
+same scoped authoring context. It is not a score or a learner assessment. When
+a purpose is configured, it is captured with the
 resulting evidence event and shown alongside that learning moment in the
 learner's competence ledger; older moments without a purpose remain valid.
 Explanation and transfer evidence also require an authored observable “what to
