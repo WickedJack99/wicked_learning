@@ -85,6 +85,10 @@ export type SourceReferenceForm = {
     url: string;
 };
 
+export type EditableSourceRecord = SourceReferenceForm & {
+    id: number;
+};
+
 export type PortalActivityLink = {
     description: string | null;
     id: number;
@@ -156,6 +160,7 @@ export type ActivityGraphPayload = {
         title: string;
     };
     portalCandidates: PortalCandidate[];
+    sourceRecords: EditableSourceRecord[];
     transitions: ActivityTransitionSummary[];
     world: {
         id: number;

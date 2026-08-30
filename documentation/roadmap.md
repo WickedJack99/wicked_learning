@@ -82,9 +82,10 @@ later independent checks can support a stronger claim.
 
 The first slice now lets authors attach up to five bounded source references to
 an activity, lets learners inspect them during playback, and includes them in
-the scoped activity-review context. Short excerpts or location notes are
-bounded per reference; add versioned reusable source records and excerpts with
-authorship, publication metadata, rights and stable anchors later.
+the scoped activity-review context. Authors can also save a validated source
+reference to a bounded catalog and reuse it in another activity; the reuse
+copies metadata into the activity so existing evidence snapshots remain stable.
+Add editing, version history, concept linkage and reusable excerpts later.
 Link those records to activities, concepts and AI-generated drafts so authors
 and learners can inspect the basis of factual content and feedback.
 

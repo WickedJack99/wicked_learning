@@ -1,11 +1,14 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityForm,
+    EditableSourceRecord,
     SourceReferenceForm,
 } from './edit-node-activity-types';
 
@@ -23,11 +26,20 @@ export function ActivitySourceReferenceFields({
     errors,
     form,
     onChange,
+    onSaveSourceRecord,
+    sourceRecords,
 }: {
     errors: Record<string, string>;
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
+    onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
+    sourceRecords: EditableSourceRecord[];
 }) {
+    const t = usePlatformTranslation();
+    const [selectedSourceId, setSelectedSourceId] = useState('');
+    const [savingIndex, setSavingIndex] = useState<number | null>(null);
+    const [saveError, setSaveError] = useState(false);
+
     function addReference() {
         if (form.source_references.length >= 5) {
             return;
@@ -64,6 +76,53 @@ export function ActivitySourceReferenceFields({
         }));
     }
 
+    function addSavedSource() {
+        const source = sourceRecords.find(
+            (candidate) => candidate.id.toString() === selectedSourceId,
+        );
+
+        if (!source || form.source_references.length >= 5) {
+            return;
+        }
+
+        onChange((current) => ({
+            ...current,
+            source_references: [
+                ...current.source_references,
+                {
+                    anchor: source.anchor ?? '',
+                    excerpt: source.excerpt ?? '',
+                    publishedAt: source.publishedAt ?? '',
+                    publisher: source.publisher ?? '',
+                    rights: source.rights ?? '',
+                    title: source.title,
+                    url: source.url,
+                },
+            ],
+        }));
+        setSelectedSourceId('');
+    }
+
+    async function saveReference(
+        reference: SourceReferenceForm,
+        index: number,
+    ) {
+        if (!reference.title.trim() || !reference.url.trim()) {
+            return;
+        }
+
+        setSavingIndex(index);
+        setSaveError(false);
+
+        try {
+            await onSaveSourceRecord(reference);
+        } catch {
+            setSaveError(true);
+        } finally {
+            setSavingIndex(null);
+        }
+    }
+
     return (
         <div className="grid gap-4">
             <div className="flex items-start justify-between gap-4 rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 dark:border-white/15 dark:bg-slate-950/30">
@@ -86,6 +145,62 @@ export function ActivitySourceReferenceFields({
                 </Button>
             </div>
 
+            {sourceRecords.length > 0 ? (
+                <div className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-white/10">
+                    <Label htmlFor="saved-source-record">
+                        {t(
+                            'settings.activity_sources.reuse_label',
+                            'Reuse a saved source',
+                        )}
+                    </Label>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <select
+                            aria-label="Saved source records"
+                            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            id="saved-source-record"
+                            onChange={(event) =>
+                                setSelectedSourceId(event.target.value)
+                            }
+                            value={selectedSourceId}
+                        >
+                            <option value="">
+                                {t(
+                                    'settings.activity_sources.choose',
+                                    'Choose a source',
+                                )}
+                            </option>
+                            {sourceRecords.map((source) => (
+                                <option key={source.id} value={source.id}>
+                                    {source.title}
+                                </option>
+                            ))}
+                        </select>
+                        <Button
+                            disabled={
+                                selectedSourceId === '' ||
+                                form.source_references.length >= 5
+                            }
+                            onClick={addSavedSource}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            <Plus className="size-4" />
+                            {t(
+                                'settings.activity_sources.add',
+                                'Add saved source',
+                            )}
+                        </Button>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {t(
+                            'settings.activity_sources.helper',
+                            'This copies the saved metadata into the activity. Later edits to the catalog do not rewrite existing learner evidence snapshots.',
+                        )}
+                    </p>
+                </div>
+            ) : null}
+
             {form.source_references.length === 0 ? (
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                     No sources attached yet.
@@ -100,15 +215,42 @@ export function ActivitySourceReferenceFields({
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
                                 Source {index + 1}
                             </p>
-                            <Button
-                                aria-label={`Remove source ${index + 1}`}
-                                onClick={() => removeReference(index)}
-                                size="icon"
-                                type="button"
-                                variant="ghost"
-                            >
-                                <Trash2 className="size-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    aria-label={`Save source ${index + 1} to library`}
+                                    disabled={
+                                        savingIndex !== null ||
+                                        !reference.title.trim() ||
+                                        !reference.url.trim()
+                                    }
+                                    onClick={() =>
+                                        saveReference(reference, index)
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <Save className="size-4" />
+                                    {savingIndex === index
+                                        ? t(
+                                              'settings.activity_sources.saving',
+                                              'Saving…',
+                                          )
+                                        : t(
+                                              'settings.activity_sources.save',
+                                              'Save to library',
+                                          )}
+                                </Button>
+                                <Button
+                                    aria-label={`Remove source ${index + 1}`}
+                                    onClick={() => removeReference(index)}
+                                    size="icon"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    <Trash2 className="size-4" />
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="grid gap-3 md:grid-cols-2">
@@ -215,6 +357,18 @@ export function ActivitySourceReferenceFields({
                     </div>
                 ))
             )}
+            {saveError ? (
+                <p
+                    aria-live="polite"
+                    className="text-sm text-red-600 dark:text-red-300"
+                    role="status"
+                >
+                    {t(
+                        'settings.activity_sources.error',
+                        'The source could not be saved. Try again.',
+                    )}
+                </p>
+            ) : null}
         </div>
     );
 }

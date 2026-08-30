@@ -39,10 +39,12 @@ import type {
     ActivityForm,
     ActivityTypeDefinition,
     EditableItem,
+    EditableSourceRecord,
     EditableSound,
     EditableTool,
     MessageTopicOption,
     PortalCandidate,
+    SourceReferenceForm,
 } from './edit-node-activity-types';
 import {
     ItemGrantFlowFields,
@@ -88,9 +90,11 @@ export function ActivityFormFields({
     messageTopics,
     onChange,
     onUploadPortalImage,
+    onSaveSourceRecord,
     portalCandidates,
     selectedType,
     sounds,
+    sourceRecords,
     items,
     tools,
     uploadingImageKey,
@@ -111,9 +115,11 @@ export function ActivityFormFields({
     portalCandidates: PortalCandidate[];
     selectedType: ActivityTypeDefinition | undefined;
     sounds: EditableSound[];
+    sourceRecords: EditableSourceRecord[];
     items: EditableItem[];
     tools: EditableTool[];
     uploadingImageKey: string | null;
+    onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
 }) {
     const [activeSection, setActiveSection] =
         useState<ActivitySettingsSection>('basics');
@@ -661,6 +667,8 @@ export function ActivityFormFields({
                                 errors={errors}
                                 form={form}
                                 onChange={onChange}
+                                onSaveSourceRecord={onSaveSourceRecord}
+                                sourceRecords={sourceRecords}
                             />
                         </SettingsConfigurationSection>
                     ) : null}

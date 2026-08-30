@@ -310,6 +310,11 @@ the bounded references that were active when the learning moment was recorded,
 so later author edits do not rewrite its provenance. Source references explain
 the basis of activity content; they are not learner evidence, grades or private
 learner data.
+Authors can save a validated reference to the bounded source catalog from the
+activity editor and copy a saved record into another activity. This is an
+authoring convenience, not a live link: changing a catalog record does not
+rewrite an activity or an existing learner evidence snapshot. Full source
+record editing, version history and excerpt reuse remain future work.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

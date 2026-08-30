@@ -1,8 +1,10 @@
 <?php
 
+use App\Learning\Serializers\AdminActivityGraphSerializer;
 use App\Learning\Serializers\LearningActivitySerializer;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
+use App\Models\LearningSourceRecord;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 
@@ -92,4 +94,47 @@ test('source references reject invalid urls and dates', function () {
             'source_references.0.publishedAt',
             'source_references.0.url',
         ]);
+});
+
+test('admins can save source references for authoring reuse', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.source-records.store'), [
+            'anchor' => 'Chapter 3',
+            'excerpt' => 'A reusable source note.',
+            'publishedAt' => '2026-08-30',
+            'publisher' => 'Open Learning Press',
+            'rights' => 'CC BY 4.0',
+            'title' => 'A reusable source',
+            'url' => 'https://example.com/reusable-source',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('sourceRecord.title', 'A reusable source')
+        ->assertJsonPath('sourceRecord.publishedAt', '2026-08-30');
+
+    expect(LearningSourceRecord::query()->where('title', 'A reusable source')->exists())->toBeTrue();
+});
+
+test('the activity graph exposes a bounded source catalog', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    LearningSourceRecord::query()->create([
+        'title' => 'Catalog source',
+        'url' => 'https://example.com/catalog-source',
+    ]);
+
+    $payload = app(AdminActivityGraphSerializer::class)->serialize($node);
+
+    expect($payload['sourceRecords'])->toContain([
+        'anchor' => null,
+        'excerpt' => null,
+        'id' => LearningSourceRecord::query()->where('title', 'Catalog source')->value('id'),
+        'publishedAt' => null,
+        'publisher' => null,
+        'rights' => null,
+        'title' => 'Catalog source',
+        'url' => 'https://example.com/catalog-source',
+    ]);
 });

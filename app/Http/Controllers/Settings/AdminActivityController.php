@@ -16,6 +16,7 @@ use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
+use App\Learning\Serializers\EditableSourceRecordSerializer;
 use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminActivityRules;
@@ -24,6 +25,7 @@ use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
+use App\Models\LearningSourceRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -45,6 +47,7 @@ class AdminActivityController extends Controller
         private readonly UpdateActivityTransition $updateActivityTransition,
         private readonly DeleteActivityTransition $deleteActivityTransition,
         private readonly LearningMapEditAccessService $mapEditAccess,
+        private readonly EditableSourceRecordSerializer $sourceRecordSerializer,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -70,6 +73,28 @@ class AdminActivityController extends Controller
         );
 
         return $this->redirectToActivities($node);
+    }
+
+    public function storeSourceRecord(Request $request): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $data = $request->validate($this->rules->sourceRecord());
+
+        $source = LearningSourceRecord::query()->firstOrCreate([
+            'anchor' => $data['anchor'] ?? null,
+            'excerpt' => $data['excerpt'] ?? null,
+            'published_at' => $data['publishedAt'] ?? null,
+            'publisher' => $data['publisher'] ?? null,
+            'rights' => $data['rights'] ?? null,
+            'title' => $data['title'],
+            'url' => $data['url'],
+        ], [
+            'created_by' => $request->user()?->id,
+        ]);
+
+        return response()->json([
+            'sourceRecord' => $this->sourceRecordSerializer->serialize($source),
+        ], 201);
     }
 
     public function update(Request $request, LearningActivity $activity): RedirectResponse
@@ -279,5 +304,10 @@ class AdminActivityController extends Controller
     private function authorizeNodeEdit(Request $request, LearningNode $node): void
     {
         abort_unless($request->user() && $this->mapEditAccess->canEditActivitiesOnNode($request->user(), $node), 403);
+    }
+
+    private function authorizeGlobalActivityEdit(Request $request): void
+    {
+        abort_unless($request->user()?->hasAccess(PermissionCatalog::WORLD_ACTIVITIES, AccessLevel::UPDATE) ?? false, 403);
     }
 }

@@ -96,6 +96,20 @@ class AdminActivityRules
         return ['activity_id' => ['required', 'integer']];
     }
 
+    /** @return array<string, mixed> */
+    public function sourceRecord(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:160'],
+            'url' => ['required', 'url', 'max:2048'],
+            'publisher' => ['nullable', 'string', 'max:160'],
+            'publishedAt' => ['nullable', 'date_format:Y-m-d'],
+            'rights' => ['nullable', 'string', 'max:240'],
+            'anchor' => ['nullable', 'string', 'max:240'],
+            'excerpt' => ['nullable', 'string', 'max:800'],
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */

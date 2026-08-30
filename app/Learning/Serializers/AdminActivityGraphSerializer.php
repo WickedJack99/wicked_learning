@@ -4,12 +4,14 @@ namespace App\Learning\Serializers;
 
 use App\Learning\ActivityTypeRegistry;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Queries\LoadEditableSourceRecords;
 use App\Learning\Services\ActivityRouteEligibility;
 use App\Learning\Services\PortalLinkService;
 use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
+use App\Models\LearningSourceRecord;
 
 class AdminActivityGraphSerializer
 {
@@ -19,6 +21,8 @@ class AdminActivityGraphSerializer
         private readonly ActivityRouteEligibility $routeEligibility,
         private readonly LearningActivityStartSerializer $startSerializer,
         private readonly PortalLinkService $portalLinkService,
+        private readonly LoadEditableSourceRecords $sourceRecords,
+        private readonly EditableSourceRecordSerializer $sourceRecordSerializer,
     ) {}
 
     /**
@@ -42,6 +46,11 @@ class AdminActivityGraphSerializer
                 ])
                 ->values()
                 ->all() ?? [],
+            'sourceRecords' => $this->sourceRecords
+                ->handle()
+                ->map(fn (LearningSourceRecord $source): array => $this->sourceRecordSerializer->serialize($source))
+                ->values()
+                ->all(),
             'activities' => $node->activities
                 ->values()
                 ->map(fn (LearningActivity $activity): array => $this->activity($activity))

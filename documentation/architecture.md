@@ -124,8 +124,10 @@ exposes them as a separate bounded `sources` collection and removes the
 authoring-shaped config key from the learner config. This keeps the first
 provenance slice small and inspectable. The scoped activity-review context also
 passes those references to the reviewed authoring request without including
-learner data; versioned reusable source records, excerpts and AI-draft linkage
-remain roadmap work.
+learner data. `LearningSourceRecord` stores a bounded authoring catalog with
+the same publication metadata. The activity editor loads at most 100 records,
+and copying one into an activity remains a snapshot rather than a live link;
+version history and AI-draft linkage remain roadmap work.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

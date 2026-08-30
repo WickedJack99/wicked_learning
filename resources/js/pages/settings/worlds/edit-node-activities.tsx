@@ -63,6 +63,7 @@ import type {
     ActivityStartRoute,
     ActivityTransitionSummary,
     ActivitySummary,
+    EditableSourceRecord,
     EditableItem,
     EditableSound,
     EditableTool,
@@ -102,6 +103,9 @@ export default function EditNodeActivities({
         emptyCreateForm(firstType),
     );
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+    const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
+        () => activityGraph.sourceRecords,
+    );
     const [updating, setUpdating] = useState(false);
     const [pendingDelete, setPendingDelete] = useState<ActivitySummary | null>(
         null,
@@ -158,6 +162,49 @@ export default function EditNodeActivities({
         uploadNodeImage,
         uploadingImageKey,
     } = useNodeImageUpload(activityGraph.map.id);
+
+    const saveSourceRecord = useCallback(
+        async (reference: {
+            anchor: string;
+            excerpt: string;
+            publishedAt: string;
+            publisher: string;
+            rights: string;
+            title: string;
+            url: string;
+        }): Promise<void> => {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch('/settings/worlds/source-records', {
+                body: JSON.stringify(reference),
+                credentials: 'same-origin',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                method: 'POST',
+            });
+
+            if (!response.ok) {
+                throw new Error('The source could not be saved.');
+            }
+
+            const payload = (await response.json()) as {
+                sourceRecord: EditableSourceRecord;
+            };
+            setSourceRecords((current) => [
+                payload.sourceRecord,
+                ...current.filter(
+                    (source) => source.id !== payload.sourceRecord.id,
+                ),
+            ]);
+        },
+        [],
+    );
 
     const openEdit = useCallback(
         (activity: ActivitySummary) => {
@@ -962,7 +1009,9 @@ export default function EditNodeActivities({
                             selectedType={selectedType}
                             items={items}
                             sounds={sounds}
+                            sourceRecords={sourceRecords}
                             tools={tools}
+                            onSaveSourceRecord={saveSourceRecord}
                             uploadingImageKey={uploadingImageKey}
                         />
 
@@ -1011,7 +1060,9 @@ export default function EditNodeActivities({
                             selectedType={selectedEditType}
                             items={items}
                             sounds={sounds}
+                            sourceRecords={sourceRecords}
                             tools={tools}
+                            onSaveSourceRecord={saveSourceRecord}
                             uploadingImageKey={uploadingImageKey}
                         />
                     </div>
