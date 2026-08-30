@@ -2,16 +2,15 @@
 
 namespace App\Learning\Actions;
 
-use App\Learning\Services\ActiveLearningActivityResolver;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\JournalMarkdownComposer;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\NpcDialogueNode;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -19,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 class RecordLearnerReflection
 {
     public function __construct(
-        private readonly ActiveLearningActivityResolver $activeActivity,
+        private readonly LearnerActivityAccessService $activityAccess,
         private readonly ActivityCompetenceConfiguration $activityCompetence,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
         private readonly JournalMarkdownComposer $markdown,
@@ -56,6 +55,7 @@ class RecordLearnerReflection
     {
         $dialogueNode->loadMissing('activity.node');
         $activity = $dialogueNode->activity;
+        abort_unless($activity !== null, 404);
         $this->ensureActive($user, $activity, $playRunId);
 
         return $this->record(
@@ -72,9 +72,7 @@ class RecordLearnerReflection
 
     private function ensureActive(User $user, LearningActivity $activity, string $playRunId): void
     {
-        if (! $this->activeActivity->isActive($user, $activity, $playRunId)) {
-            throw (new ModelNotFoundException)->setModel(LearningActivity::class);
-        }
+        $this->activityAccess->assertActive($user, $activity, $playRunId);
     }
 
     /**

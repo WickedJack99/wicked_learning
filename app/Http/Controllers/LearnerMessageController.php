@@ -5,8 +5,7 @@ namespace App\Http\Controllers;
 use App\Learning\Actions\CreateLearnerMessage;
 use App\Learning\Actions\CreateLearnerMessageResponse;
 use App\Learning\Queries\LoadLearnerMessages;
-use App\Learning\Services\LearningMapAccessService;
-use App\Learning\Services\LearningNodeStateResolver;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\MessageTopicForActivity;
 use App\Models\LearnerMessage;
@@ -22,8 +21,7 @@ class LearnerMessageController extends Controller
         private readonly CreateLearnerMessage $createMessage,
         private readonly CreateLearnerMessageResponse $createResponse,
         private readonly MessageActivityConfiguration $messageConfiguration,
-        private readonly LearningMapAccessService $mapAccess,
-        private readonly LearningNodeStateResolver $nodeState,
+        private readonly LearnerActivityAccessService $activityAccess,
     ) {}
 
     public function index(Request $request, LearningActivity $activity): JsonResponse
@@ -85,8 +83,6 @@ class LearnerMessageController extends Controller
 
     private function authorizeActivity(Request $request, LearningActivity $activity): void
     {
-        $activity->loadMissing('node.map');
-        abort_unless($this->mapAccess->canViewMap($activity->node->map, $request->user()), 404);
-        abort_unless($this->nodeState->canPlay($activity->node, $request->user()->id), 404);
+        $this->activityAccess->assertCanPlay($request->user(), $activity);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningNodeBookmark;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
@@ -28,7 +29,12 @@ test('learner mutations reject activities on maps outside the learners access', 
         ])
         ->assertNotFound();
 
+    $this->actingAs($learner)
+        ->postJson(route('learning.nodes.bookmark.store', $activity->node), [])
+        ->assertNotFound();
+
     expect(LearnerQuestionAnswer::query()->count())->toBe(0)
+        ->and(LearningNodeBookmark::query()->count())->toBe(0)
         ->and($activity->fresh()->id)->toBe($activity->id);
 });
 

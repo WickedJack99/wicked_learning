@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Learning\Queries\LoadLearnerBookmarks;
 use App\Learning\Serializers\BookmarkMapSerializer;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\LearningBookmarkService;
 use App\Models\LearningNode;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class LearningBookmarkController extends Controller
         private readonly LoadLearnerBookmarks $loadLearnerBookmarks,
         private readonly BookmarkMapSerializer $bookmarkMapSerializer,
         private readonly LearningBookmarkService $bookmarkService,
+        private readonly LearnerActivityAccessService $activityAccess,
     ) {}
 
     public function index(Request $request): Response
@@ -33,6 +35,7 @@ class LearningBookmarkController extends Controller
 
     public function store(Request $request, LearningNode $node): JsonResponse
     {
+        $this->activityAccess->assertCanViewNode($request->user(), $node);
         $userId = $request->user()->id;
         $this->bookmarkService->bookmark($userId, $node);
 

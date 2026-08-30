@@ -2,25 +2,22 @@
 
 namespace App\Learning\Actions;
 
-use App\Learning\Services\ActiveLearningActivityResolver;
+use App\Learning\Services\LearnerActivityAccessService;
 use App\Models\LearningActivity;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 /** Records an accepted learner contribution toward shared activity progress. */
 class SubmitSharedTaskContribution
 {
-    public function __construct(private readonly ActiveLearningActivityResolver $activeActivity) {}
+    public function __construct(private readonly LearnerActivityAccessService $activityAccess) {}
 
     public function handle(User $user, LearningActivity $activity, string $playRunId, string $body): LearningSharedTaskSubmission
     {
         abort_unless($activity->type === 'shared_task', 404);
 
-        if (! $this->activeActivity->isActive($user, $activity, $playRunId)) {
-            throw (new ModelNotFoundException)->setModel(LearningActivity::class);
-        }
+        $this->activityAccess->assertActive($user, $activity, $playRunId);
 
         $config = is_array($activity->config) ? $activity->config : [];
         $validationMode = (string) ($config['validationMode'] ?? 'minimum_length');
