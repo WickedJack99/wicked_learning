@@ -753,6 +753,7 @@
     "learning.reflection.observed_cues_label": "Noticed: ",
     "learning.reflection.response_saved": "Response saved privately",
     "learning.reflection.feedback_pause": "Take a moment to compare your response with the observation guidance before you continue.",
+    "learning.reflection.feedback_purpose_label": "Purpose",
     "learning.reflection.feedback_evidence_label": "What to notice",
     "learning.reflection.feedback_next_action_label": "A possible next action",
     "learning.reflection.feedback_rubric_label": "Observable cues",

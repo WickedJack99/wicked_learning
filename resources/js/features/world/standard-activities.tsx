@@ -730,9 +730,10 @@ export function ReflectionActivity({
     const isTransfer = responseType === 'transfer';
     const isExplanation = responseType === 'explain';
     const hasPostResponseGuidance = Boolean(
-        responseType &&
+        (responseType || isReview) &&
         activity.feedbackGuidance &&
-        (activity.feedbackGuidance.evidence ||
+        (activity.feedbackGuidance.purpose ||
+            activity.feedbackGuidance.evidence ||
             activity.feedbackGuidance.nextAction ||
             activity.feedbackGuidance.rubric?.length),
     );
@@ -763,6 +764,19 @@ export function ReflectionActivity({
                         </p>
                     </div>
                 </div>
+                {activity.feedbackGuidance?.purpose ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.feedback_purpose_label',
+                                'Purpose',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.purpose}
+                        </p>
+                    </div>
+                ) : null}
                 {activity.feedbackGuidance?.evidence ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                         <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">

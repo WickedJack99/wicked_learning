@@ -285,6 +285,9 @@ When authored observation guidance is present, saving an explanation or transfer
 response opens a short learner-controlled pause showing the “what to notice”,
 possible next action and observable cues again before the activity continues.
 This is explanatory orientation, not automated critique or grading.
+Review responses with authored guidance use the same pause and show its purpose
+before the learner continues, keeping the review signal descriptive rather than
+turning it into a grade.
 Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.

@@ -110,6 +110,9 @@ test('a review activity offers earlier private reflections from the same journal
             'learningIntent' => 'review',
             'prompt' => 'What feels different now?',
             'topic' => 'Systems Thinking',
+            'feedbackGuidance' => [
+                'purpose' => 'Notice what changed in your understanding.',
+            ],
         ],
     ]);
 
@@ -158,6 +161,7 @@ test('a review activity offers earlier private reflections from the same journal
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('learning/node-play')
             ->has('node.activities.0.reviewContext', 1)
+            ->where('node.activities.0.feedbackGuidance.purpose', 'Notice what changed in your understanding.')
             ->where('node.activities.0.reviewContext.0.question', 'What did you notice before?')
             ->where('node.activities.0.reviewContext.0.reflection', 'I noticed the parts were connected.')
         );

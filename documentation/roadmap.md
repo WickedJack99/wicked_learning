@@ -61,10 +61,10 @@ connect those cues to a task-specific learner response, with transfer also
 recording the changed context named by the learner. Learners can also mark the
 cues they noticed in their own response; this is a private self-observation
 snapshot, not an automated assessment. Continue by adding richer feedback and
-review contracts. Explanation and transfer responses with authored guidance now
-also pause for a learner-controlled comparison with the “what to notice” cues
-and possible next action, without treating these responses or cues as a rubric
-pass.
+review contracts. Explanation, transfer and review responses with authored
+guidance now also pause for a learner-controlled comparison with the purpose,
+“what to notice” cues and possible next action, without treating these responses
+or cues as a rubric pass.
 
 ### 4. Explanatory feedback and calibration
 
