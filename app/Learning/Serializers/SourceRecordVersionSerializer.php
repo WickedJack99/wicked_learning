@@ -11,6 +11,7 @@ class SourceRecordVersionSerializer
     {
         return [
             'anchor' => $version->anchor,
+            'concepts' => array_values($version->concepts ?? []),
             'excerpt' => $version->excerpt,
             'id' => $version->id,
             'publishedAt' => $version->published_at?->format('Y-m-d'),

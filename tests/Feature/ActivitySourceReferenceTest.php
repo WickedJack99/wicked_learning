@@ -103,6 +103,7 @@ test('admins can save source references for authoring reuse', function () {
     $this->actingAs($admin)
         ->postJson(route('settings.worlds.source-records.store'), [
             'anchor' => 'Chapter 3',
+            'concepts' => ['Retrieval', 'Spacing'],
             'excerpt' => 'A reusable source note.',
             'publishedAt' => '2026-08-30',
             'publisher' => 'Open Learning Press',
@@ -112,9 +113,32 @@ test('admins can save source references for authoring reuse', function () {
         ])
         ->assertCreated()
         ->assertJsonPath('sourceRecord.title', 'A reusable source')
-        ->assertJsonPath('sourceRecord.publishedAt', '2026-08-30');
+        ->assertJsonPath('sourceRecord.publishedAt', '2026-08-30')
+        ->assertJsonPath('sourceRecord.concepts', ['Retrieval', 'Spacing']);
 
     expect(LearningSourceRecord::query()->where('title', 'A reusable source')->exists())->toBeTrue();
+});
+
+test('source-linked concepts remain in activity provenance snapshots', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = $node->activities()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'source_references' => [[
+                'concepts' => ['Retrieval', 'Spacing'],
+                'title' => 'A source with learning context',
+                'url' => 'https://example.com/contextual-source',
+            ]],
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($activity->refresh()->config['sourceReferences'][0]['concepts'])
+        ->toBe(['Retrieval', 'Spacing']);
+    expect(app(LearningActivitySerializer::class)->serialize($activity)['sources'][0]['concepts'])
+        ->toBe(['Retrieval', 'Spacing']);
 });
 
 test('the activity graph exposes a bounded source catalog', function () {
@@ -129,6 +153,7 @@ test('the activity graph exposes a bounded source catalog', function () {
 
     expect($payload['sourceRecords'])->toContain([
         'anchor' => null,
+        'concepts' => [],
         'excerpt' => null,
         'id' => LearningSourceRecord::query()->where('title', 'Catalog source')->value('id'),
         'publishedAt' => null,
@@ -212,12 +237,14 @@ test('authors can restore a source record version without losing the current ver
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $source = LearningSourceRecord::query()->create([
+        'concepts' => ['Retrieval'],
         'title' => 'Source before restore',
         'url' => 'https://example.com/source-before-restore',
     ]);
 
     $this->actingAs($admin)
         ->patchJson(route('settings.worlds.source-records.update', $source), [
+            'concepts' => ['Transfer'],
             'title' => 'Source to restore over',
             'url' => 'https://example.com/source-to-restore-over',
         ])
@@ -232,9 +259,11 @@ test('authors can restore a source record version without losing the current ver
         ]))
         ->assertOk()
         ->assertJsonPath('sourceRecord.title', 'Source before restore')
+        ->assertJsonPath('sourceRecord.concepts', ['Retrieval'])
         ->assertJsonPath('sourceRecord.url', 'https://example.com/source-before-restore');
 
     expect($source->refresh()->title)->toBe('Source before restore')
+        ->and($source->concepts)->toBe(['Retrieval'])
         ->and($source->versions()->count())->toBe(2);
 });
 

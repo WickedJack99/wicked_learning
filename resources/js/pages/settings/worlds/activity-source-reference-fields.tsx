@@ -6,6 +6,7 @@ import {
     RotateCcw,
     Save,
     Trash2,
+    X,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -24,6 +25,7 @@ import type {
 
 const emptyReference = (): SourceReferenceForm => ({
     anchor: '',
+    concepts: [],
     excerpt: '',
     publishedAt: '',
     publisher: '',
@@ -33,6 +35,7 @@ const emptyReference = (): SourceReferenceForm => ({
 });
 
 export function ActivitySourceReferenceFields({
+    evidenceConceptOptions,
     errors,
     form,
     onChange,
@@ -43,6 +46,7 @@ export function ActivitySourceReferenceFields({
     onUpdateSourceRecord,
     sourceRecords,
 }: {
+    evidenceConceptOptions: string[];
     errors: Record<string, string>;
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
@@ -102,7 +106,7 @@ export function ActivitySourceReferenceFields({
 
     function updateReference(
         index: number,
-        field: keyof SourceReferenceForm,
+        field: Exclude<keyof SourceReferenceForm, 'concepts'>,
         value: string,
     ) {
         onChange((current) => ({
@@ -131,6 +135,7 @@ export function ActivitySourceReferenceFields({
                 ...current.source_references,
                 {
                     anchor: source.anchor ?? '',
+                    concepts: source.concepts ?? [],
                     excerpt: source.excerpt ?? '',
                     publishedAt: source.publishedAt ?? '',
                     publisher: source.publisher ?? '',
@@ -224,12 +229,41 @@ export function ActivitySourceReferenceFields({
     }
 
     function updateCatalogField(
-        field: keyof SourceReferenceForm,
+        field: Exclude<keyof SourceReferenceForm, 'concepts'>,
         value: string,
     ) {
         setCatalogForm((current) =>
             current ? { ...current, [field]: value } : current,
         );
+    }
+
+    function addCatalogConcept(concept: string) {
+        if (
+            !concept ||
+            !catalogForm ||
+            catalogForm.concepts.some(
+                (value) => value.toLowerCase() === concept.toLowerCase(),
+            ) ||
+            catalogForm.concepts.length >= 8
+        ) {
+            return;
+        }
+
+        setCatalogForm({
+            ...catalogForm,
+            concepts: [...catalogForm.concepts, concept],
+        });
+    }
+
+    function removeCatalogConcept(concept: string) {
+        if (!catalogForm) {
+            return;
+        }
+
+        setCatalogForm({
+            ...catalogForm,
+            concepts: catalogForm.concepts.filter((value) => value !== concept),
+        });
     }
 
     async function updateSavedSource() {
@@ -508,6 +542,76 @@ export function ActivitySourceReferenceFields({
                                     value={catalogForm.anchor}
                                 />
                             </div>
+                            {evidenceConceptOptions.length > 0 ? (
+                                <div className="grid gap-2">
+                                    <Label htmlFor="saved-source-concept">
+                                        {t(
+                                            'settings.activity_sources.concepts_label',
+                                            'Concepts linked to this source',
+                                        )}
+                                    </Label>
+                                    <select
+                                        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                        id="saved-source-concept"
+                                        onChange={(event) =>
+                                            addCatalogConcept(event.target.value)
+                                        }
+                                        value=""
+                                    >
+                                        <option value="">
+                                            {t(
+                                                'settings.activity_sources.concepts_choose',
+                                                'Choose a concept to add',
+                                            )}
+                                        </option>
+                                        {evidenceConceptOptions
+                                            .filter(
+                                                (concept) =>
+                                                    !catalogForm.concepts.some(
+                                                        (value) =>
+                                                            value.toLowerCase() ===
+                                                            concept.toLowerCase(),
+                                                    ),
+                                            )
+                                            .map((concept) => (
+                                                <option
+                                                    key={concept}
+                                                    value={concept}
+                                                >
+                                                    {concept}
+                                                </option>
+                                            ))}
+                                    </select>
+                                    {catalogForm.concepts.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {catalogForm.concepts.map((concept) => (
+                                                <button
+                                                    className="inline-flex min-h-8 items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 text-xs text-cyan-700 transition hover:bg-cyan-500/20 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:text-cyan-200"
+                                                    key={concept}
+                                                    onClick={() =>
+                                                        removeCatalogConcept(
+                                                            concept,
+                                                        )
+                                                    }
+                                                    type="button"
+                                                >
+                                                    {concept}
+                                                    <X
+                                                        aria-hidden="true"
+                                                        className="size-3.5"
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.activity_sources.concepts_helper',
+                                            'These labels explain which reusable learning ideas the source supports.',
+                                        )}
+                                    </p>
+                                </div>
+                            ) : null}
                             <div className="flex justify-end">
                                 <Button
                                     disabled={
@@ -938,6 +1042,7 @@ function sourceFormFromRecord(
 ): SourceReferenceForm {
     return {
         anchor: source.anchor ?? '',
+        concepts: source.concepts ?? [],
         excerpt: source.excerpt ?? '',
         publishedAt: source.publishedAt ?? '',
         publisher: source.publisher ?? '',

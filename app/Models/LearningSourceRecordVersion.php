@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 #[Fillable([
     'anchor',
     'changed_by',
+    'concepts',
     'excerpt',
     'learning_source_record_id',
     'published_at',
@@ -20,6 +21,9 @@ class LearningSourceRecordVersion extends Model
 {
     protected function casts(): array
     {
-        return ['published_at' => 'date:Y-m-d'];
+        return [
+            'concepts' => 'array',
+            'published_at' => 'date:Y-m-d',
+        ];
     }
 }

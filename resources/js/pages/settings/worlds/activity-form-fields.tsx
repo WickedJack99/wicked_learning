@@ -688,6 +688,9 @@ export function ActivityFormFields({
                             title="Source references"
                         >
                             <ActivitySourceReferenceFields
+                                evidenceConceptOptions={
+                                    evidenceConceptOptions
+                                }
                                 errors={errors}
                                 form={form}
                                 onChange={onChange}

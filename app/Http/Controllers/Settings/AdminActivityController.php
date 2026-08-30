@@ -98,6 +98,7 @@ class AdminActivityController extends Controller
             'title' => $data['title'],
             'url' => $data['url'],
         ], [
+            'concepts' => $data['concepts'] ?? [],
             'created_by' => $request->user()?->id,
         ]);
 
@@ -159,6 +160,7 @@ class AdminActivityController extends Controller
 
         $sourceRecord = $this->updateSourceRecord->handle($user, $sourceRecord, [
             'anchor' => $version->anchor,
+            'concepts' => $version->concepts ?? [],
             'excerpt' => $version->excerpt,
             'publishedAt' => $version->published_at?->format('Y-m-d'),
             'publisher' => $version->publisher,

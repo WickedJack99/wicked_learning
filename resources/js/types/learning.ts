@@ -320,6 +320,7 @@ export type LearningFeedbackGuidance = {
 
 export type LearningSourceReference = {
     anchor: string | null;
+    concepts?: string[];
     excerpt: string | null;
     publishedAt: string | null;
     publisher: string | null;

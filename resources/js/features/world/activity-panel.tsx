@@ -836,6 +836,8 @@ function ActivitySources({
 }: {
     sources: LearningActivity['sources'];
 }) {
+    const t = usePlatformTranslation();
+
     if (sources.length === 0) {
         return null;
     }
@@ -875,6 +877,24 @@ function ActivitySources({
                                 .filter(Boolean)
                                 .join(' · ')}
                         </p>
+                        {source.concepts?.length ? (
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--learner-muted-text)]">
+                                <span>
+                                    {t(
+                                        'learning.activity_sources.linked_concepts',
+                                        'Linked concepts:',
+                                    )}
+                                </span>
+                                {source.concepts.map((concept) => (
+                                    <span
+                                        className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
+                                        key={concept}
+                                    >
+                                        {concept}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
                         {source.excerpt ? (
                             <p className="border-l-2 border-[var(--learner-action-accent)]/50 pl-2 text-sm leading-6 [overflow-wrap:anywhere] text-[var(--learner-body-text)]">
                                 “{source.excerpt}”

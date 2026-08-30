@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class UpdateLearningSourceRecord
 {
     /**
-     * @param  array{anchor?: string|null, excerpt?: string|null, publishedAt?: string|null, publisher?: string|null, rights?: string|null, title: string, url: string}  $data
+     * @param  array{anchor?: string|null, concepts?: list<string>, excerpt?: string|null, publishedAt?: string|null, publisher?: string|null, rights?: string|null, title: string, url: string}  $data
      */
     public function handle(User $user, LearningSourceRecord $sourceRecord, array $data): LearningSourceRecord
     {
@@ -17,6 +17,7 @@ class UpdateLearningSourceRecord
             $sourceRecord->versions()->create([
                 'anchor' => $sourceRecord->anchor,
                 'changed_by' => $user->id,
+                'concepts' => $sourceRecord->concepts ?? [],
                 'excerpt' => $sourceRecord->excerpt,
                 'published_at' => $sourceRecord->published_at,
                 'publisher' => $sourceRecord->publisher,
@@ -27,6 +28,7 @@ class UpdateLearningSourceRecord
 
             $sourceRecord->update([
                 'anchor' => $data['anchor'] ?? null,
+                'concepts' => $data['concepts'] ?? [],
                 'excerpt' => $data['excerpt'] ?? null,
                 'published_at' => $data['publishedAt'] ?? null,
                 'publisher' => $data['publisher'] ?? null,

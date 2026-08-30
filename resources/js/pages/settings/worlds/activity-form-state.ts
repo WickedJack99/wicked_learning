@@ -630,6 +630,12 @@ function sourceReferences(value: unknown): SourceReferenceForm[] {
         .slice(0, 5)
         .map((reference) => ({
             anchor: stringConfig(reference.anchor),
+            concepts: Array.isArray(reference.concepts)
+                ? reference.concepts.filter(
+                      (concept): concept is string =>
+                          typeof concept === 'string',
+                  )
+                : [],
             excerpt: stringConfig(reference.excerpt),
             publishedAt: stringConfig(reference.publishedAt),
             publisher: stringConfig(reference.publisher),

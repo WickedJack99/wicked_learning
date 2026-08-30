@@ -68,7 +68,7 @@ class ActivitySourceReferenceConfiguration
                 continue;
             }
 
-            $references[] = [
+            $normalized = [
                 'title' => $title,
                 'url' => $url,
                 'publisher' => $this->text($reference['publisher'] ?? null),
@@ -77,6 +77,14 @@ class ActivitySourceReferenceConfiguration
                 'anchor' => $this->text($reference['anchor'] ?? null),
                 'excerpt' => $this->text($reference['excerpt'] ?? null, 800),
             ];
+
+            $concepts = $this->concepts($reference['concepts'] ?? null);
+
+            if ($concepts !== []) {
+                $normalized['concepts'] = $concepts;
+            }
+
+            $references[] = $normalized;
         }
 
         return $references;
@@ -91,5 +99,30 @@ class ActivitySourceReferenceConfiguration
         }
 
         return $text === '' ? null : $text;
+    }
+
+    /** @return list<string> */
+    private function concepts(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $concepts = [];
+        $seen = [];
+
+        foreach (array_slice($value, 0, 8) as $concept) {
+            $name = $this->text($concept, 120);
+            $key = $name === null ? null : mb_strtolower($name);
+
+            if ($name === null || $key === null || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $concepts[] = $name;
+        }
+
+        return $concepts;
     }
 }

@@ -11,6 +11,7 @@ class EditableSourceRecordSerializer
     {
         return [
             'anchor' => $source->anchor,
+            'concepts' => array_values($source->concepts ?? []),
             'excerpt' => $source->excerpt,
             'id' => $source->id,
             'publishedAt' => $source->published_at?->format('Y-m-d'),

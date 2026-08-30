@@ -125,15 +125,18 @@ authoring-shaped config key from the learner config. This keeps the first
 provenance slice small and inspectable. The scoped activity-review context also
 passes those references to the reviewed authoring request without including
 learner data. `LearningSourceRecord` stores a bounded authoring catalog with
-the same publication metadata. The activity editor loads at most 100 records,
+the same publication metadata plus bounded Concept Library labels. The activity
+editor loads at most 100 records,
 and copying one into an activity remains a snapshot rather than a live link.
 Authorized activity authors can update or delete catalog records through the
 same bounded editor path; those operations do not mutate activity JSON. Source
 updates create an immutable `LearningSourceRecordVersion` snapshot before the
 current record changes, and the editor can load the latest revisions through a
 bounded paginated endpoint. Deleting a catalog record also removes its private
-revision history; copied activity references remain unchanged. AI-draft linkage
-remains roadmap work.
+revision history; copied activity references remain unchanged. Source concepts
+are stored as bounded JSON labels on the catalog record and copied into
+activity reference snapshots; they do not create competence claims or a live
+dependency on later catalog changes. AI-draft linkage remains roadmap work.
 Restoring a revision uses the same transactional update path, so the
 pre-restore current record is also retained in that history.
 
@@ -142,7 +145,9 @@ Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog
 upserts normalized names and removes omitted records; activity configuration
 continues to store concept labels as a snapshot, so deleting or renaming a
-catalog entry cannot change earlier activity or learner evidence data.
+catalog entry cannot change earlier activity or learner evidence data. Source
+records may carry the same bounded labels, which are copied into activity
+provenance snapshots when a saved source is reused.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

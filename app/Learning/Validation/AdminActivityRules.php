@@ -107,6 +107,8 @@ class AdminActivityRules
             'rights' => ['nullable', 'string', 'max:240'],
             'anchor' => ['nullable', 'string', 'max:240'],
             'excerpt' => ['nullable', 'string', 'max:800'],
+            'concepts' => ['nullable', 'array', 'max:8'],
+            'concepts.*' => ['string', 'max:120'],
         ];
     }
 
@@ -205,6 +207,8 @@ class AdminActivityRules
             'source_references.*.rights' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
             'source_references.*.anchor' => $this->optional($modifier, ['nullable', 'string', 'max:240']),
             'source_references.*.excerpt' => $this->optional($modifier, ['nullable', 'string', 'max:800']),
+            'source_references.*.concepts' => $this->optional($modifier, ['array', 'max:8']),
+            'source_references.*.concepts.*' => $this->optional($modifier, ['string', 'max:120']),
         ];
     }
 

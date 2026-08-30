@@ -25,8 +25,10 @@ question calibration slice, optional completion-latency observation and
 conservative learner evidence-claim layer are now the foundation. Retrieval
 support can build on this without collapsing participation, retrieval and
 transfer into a single hidden score. The first bounded reusable concept catalog
-now supports stable authoring vocabulary without changing evidence snapshots;
-richer concept relationships and source-to-concept linkage remain open parts of
+now supports stable authoring vocabulary without changing evidence snapshots.
+Saved source records can now carry those labels, and copied activity provenance
+snapshots retain the source concept context. Richer concept relationships and
+source-to-concept linkage beyond this bounded snapshot remain open parts of
 this contract.
 
 ### 2. Retrieval and spacing
@@ -89,7 +91,9 @@ reference to a bounded catalog and reuse it in another activity; the reuse
 copies metadata into the activity so existing evidence snapshots remain stable.
 The catalog now supports bounded author-side editing and deletion without
 rewriting copied references, and each update preserves a paginated immutable
-revision history for authors. Add concept linkage and reusable excerpts later.
+revision history for authors. The source catalog also supports Concept Library
+labels that are copied into activity provenance snapshots and shown with
+learner-visible sources. Add richer concept linkage and reusable excerpts later.
 Authors can also restore a listed revision without losing the current state.
 Link those records to activities, concepts and AI-generated drafts so authors
 and learners can inspect the basis of factual content and feedback.

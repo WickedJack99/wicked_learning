@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['anchor', 'created_by', 'excerpt', 'published_at', 'publisher', 'rights', 'title', 'url'])]
+#[Fillable(['anchor', 'concepts', 'created_by', 'excerpt', 'published_at', 'publisher', 'rights', 'title', 'url'])]
 class LearningSourceRecord extends Model
 {
     protected function casts(): array
     {
         return [
+            'concepts' => 'array',
             'published_at' => 'date:Y-m-d',
         ];
     }
