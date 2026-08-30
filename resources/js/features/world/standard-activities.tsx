@@ -20,6 +20,7 @@ import type {
     LearningActivity,
     LearningNode,
     LearningPortalLink,
+    QuestionCalibration,
     QuestionConfidence,
     QuestionAnswerProgress,
 } from '@/types';
@@ -517,6 +518,18 @@ export function QuestionActivity({
                             {answer.explanation}
                         </p>
                     ) : null}
+                    {answer.calibration ? (
+                        <p className="mt-3 rounded-md border border-cyan-500/15 bg-cyan-50/60 p-3 text-xs leading-5 text-cyan-950 dark:border-teal-100/15 dark:bg-teal-100/6 dark:text-teal-50">
+                            <span className="font-medium">
+                                {t(
+                                    'learning.question.confidence_reflection',
+                                    'Confidence reflection',
+                                )}
+                                :{' '}
+                            </span>
+                            {questionCalibrationMessage(t, answer.calibration)}
+                        </p>
+                    ) : null}
                     {isRecall && answer.recall ? (
                         <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                             {t(
@@ -637,6 +650,24 @@ function questionConfidenceLabel(value: QuestionConfidence): string {
     return (
         questionConfidenceOptions.find((option) => option.value === value)
             ?.label ?? value
+    );
+}
+
+function questionCalibrationMessage(
+    t: ReturnType<typeof usePlatformTranslation>,
+    calibration: QuestionCalibration,
+): string {
+    return t(
+        `learning.question.calibration.${calibration}`,
+        {
+            aligned: 'Your confidence matched this result.',
+            stronger_than_expected:
+                'This result was stronger than your starting sense.',
+            higher_than_result:
+                'Your starting confidence was higher than this result. Compare the explanation with your reasoning.',
+            uncertainty_made_gap_visible:
+                'Your uncertainty helped make this gap visible. Use the explanation to adjust your reasoning.',
+        }[calibration],
     );
 }
 

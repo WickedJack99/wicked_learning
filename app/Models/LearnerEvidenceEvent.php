@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'contribution',
     'outcome',
     'confidence',
+    'calibration',
     'attempt_number',
     'assistance_level',
     'latency_seconds',

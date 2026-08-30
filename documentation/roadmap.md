@@ -63,9 +63,11 @@ automated assessment.
 ### 4. Explanatory feedback and calibration
 
 Make confidence-before-feedback, explanatory critique and later independent
-checks first-class where an activity can support them. Keep the existing
-feedback-guidance contract and question calibration work, then extend the
-pattern only where the activity actually collects meaningful signals.
+checks first-class where an activity can support them. Question answers now
+preserve and explain a neutral confidence/result relationship after feedback.
+Keep the existing feedback-guidance contract, then extend calibration only
+where the activity actually collects meaningful signals and later independent
+checks can support a stronger claim.
 
 ### 5. Source provenance
 

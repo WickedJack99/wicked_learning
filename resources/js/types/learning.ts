@@ -447,6 +447,7 @@ export type QuestionAnswerProgress = {
     isCorrect: boolean;
     attemptNumber?: number;
     confidence?: QuestionConfidence | null;
+    calibration?: QuestionCalibration | null;
     earlierAttempts?: QuestionAnswerAttempt[];
     feedback: string | null;
     explanation?: string | null;
@@ -459,9 +460,16 @@ export type QuestionAnswerProgress = {
 
 export type QuestionAnswerAttempt = {
     answeredAt: string | null;
+    calibration?: QuestionCalibration | null;
     confidence: QuestionConfidence | null;
     isCorrect: boolean;
     optionLabel: string | null;
 };
 
 export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';
+
+export type QuestionCalibration =
+    | 'aligned'
+    | 'stronger_than_expected'
+    | 'higher_than_result'
+    | 'uncertainty_made_gap_visible';

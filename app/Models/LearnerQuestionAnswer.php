@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learning_question_option_id',
     'is_correct',
     'confidence',
+    'calibration',
     'selected_option_ids',
     'feedback',
 ])]

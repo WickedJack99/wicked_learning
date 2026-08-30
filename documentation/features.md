@@ -237,7 +237,10 @@ not receive private journal text through this view.
 Question activities also retain the learner's pre-answer confidence, the
 correctness outcome, attempt order and independent-assistance context. The
 learner can see the confidence and attempt context in the competence reading;
-this supports calibration and noticing change without presenting a grade.
+after an answer, the activity also offers a neutral confidence reflection that
+describes whether the result aligned with, exceeded or challenged the starting
+confidence. This supports calibration and noticing change without presenting a
+grade or changing competence by itself.
 The competence view also offers a bounded review history showing the revisited
 activity, outcome and confidence context; it does not expose private journal
 writing or turn review attempts into a score.

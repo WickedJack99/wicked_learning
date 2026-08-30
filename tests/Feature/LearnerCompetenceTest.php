@@ -422,6 +422,13 @@ test('question answers complete the active route and record retrieval evidence',
         'is_correct' => true,
         'sort_order' => 10,
     ]);
+    $incorrectOption = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'B',
+        'body' => 'A tempting alternative.',
+        'is_correct' => false,
+        'sort_order' => 20,
+    ]);
     $activity->update([
         'config' => [
             'learningIntent' => 'retrieve',
@@ -455,6 +462,7 @@ test('question answers complete the active route and record retrieval evidence',
         ->assertOk()
         ->assertJsonPath('answer.isCorrect', true)
         ->assertJsonPath('answer.confidence', 'settled')
+        ->assertJsonPath('answer.calibration', 'aligned')
         ->assertJsonPath('answer.attemptNumber', 1)
         ->assertJsonPath('answer.earlierAttempts', []);
 
@@ -466,15 +474,30 @@ test('question answers complete the active route and record retrieval evidence',
         ])
         ->assertOk()
         ->assertJsonPath('answer.confidence', 'leaning')
+        ->assertJsonPath('answer.calibration', 'stronger_than_expected')
         ->assertJsonPath('answer.attemptNumber', 2)
-        ->assertJsonPath('answer.earlierAttempts.0.confidence', 'settled');
+        ->assertJsonPath('answer.earlierAttempts.0.confidence', 'settled')
+        ->assertJsonPath('answer.earlierAttempts.0.calibration', 'aligned');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'settled',
+            'option_id' => $incorrectOption->id,
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.isCorrect', false)
+        ->assertJsonPath('answer.calibration', 'higher_than_result')
+        ->assertJsonPath('answer.attemptNumber', 3);
 
     $this->actingAs($learner)
         ->get(route('learning.nodes.play', $node))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where("progress.answers.{$question->id}.confidence", 'leaning')
-            ->where("progress.answers.{$question->id}.earlierAttempts.0.confidence", 'settled')
+            ->where("progress.answers.{$question->id}.confidence", 'settled')
+            ->where("progress.answers.{$question->id}.calibration", 'higher_than_result')
+            ->where("progress.answers.{$question->id}.earlierAttempts.0.confidence", 'leaning')
+            ->where("progress.answers.{$question->id}.earlierAttempts.0.calibration", 'stronger_than_expected')
             ->where("progress.answers.{$question->id}.explanation", 'The first idea fits the evidence.')
         );
 
@@ -485,13 +508,14 @@ test('question answers complete the active route and record retrieval evidence',
         ->orderBy('attempt_number')
         ->get();
 
-    expect($evidence)->toHaveCount(2)
-        ->and($evidence->pluck('evidence_type')->all())->toBe(['retrieve', 'retrieve'])
-        ->and($evidence->pluck('outcome')->all())->toBe(['correct', 'correct'])
-        ->and($evidence->pluck('confidence')->all())->toBe(['settled', 'leaning'])
-        ->and($evidence->pluck('attempt_number')->all())->toBe([1, 2])
-        ->and($evidence->pluck('assistance_level')->all())->toBe(['independent', 'independent'])
-        ->and($evidence->pluck('contribution')->map(fn (mixed $value): float => (float) $value)->all())->toBe([2.0, 2.0])
+    expect($evidence)->toHaveCount(3)
+        ->and($evidence->pluck('evidence_type')->all())->toBe(['retrieve', 'retrieve', 'retrieve'])
+        ->and($evidence->pluck('outcome')->all())->toBe(['correct', 'correct', 'incorrect'])
+        ->and($evidence->pluck('confidence')->all())->toBe(['settled', 'leaning', 'settled'])
+        ->and($evidence->pluck('calibration')->all())->toBe(['aligned', 'stronger_than_expected', 'higher_than_result'])
+        ->and($evidence->pluck('attempt_number')->all())->toBe([1, 2, 3])
+        ->and($evidence->pluck('assistance_level')->all())->toBe(['independent', 'independent', 'independent'])
+        ->and($evidence->pluck('contribution')->map(fn (mixed $value): float => (float) $value)->all())->toBe([2.0, 2.0, 2.0])
         ->and(LearnerRouteProgress::query()
             ->where('user_id', $learner->id)
             ->where('learning_node_id', $node->id)

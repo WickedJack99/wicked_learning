@@ -30,6 +30,7 @@ class QuestionAnswerService
         $question->loadMissing('activity.node', 'activity.transitions', 'options');
         $option = $this->optionForQuestion($question, $optionId);
         $feedback = $this->feedbackFor($question, $option);
+        $calibration = $this->calibrationFor($option->is_correct, $confidence);
         $attemptNumber = LearnerQuestionAnswer::query()
             ->where('user_id', $userId)
             ->where('learning_question_id', $question->id)
@@ -41,6 +42,7 @@ class QuestionAnswerService
             'learning_question_option_id' => $option->id,
             'is_correct' => $option->is_correct,
             'confidence' => $confidence,
+            'calibration' => $calibration,
             'selected_option_ids' => [$option->id],
             'feedback' => $feedback,
         ]);
@@ -55,6 +57,7 @@ class QuestionAnswerService
             attemptNumber: $attemptNumber,
             assistanceLevel: 'independent',
             isRevisit: $isRevisit,
+            calibration: $calibration,
         );
         $recall = $isRecall
             ? $this->recallItems->recordRecall(
@@ -71,6 +74,7 @@ class QuestionAnswerService
             'optionId' => $option->id,
             'isCorrect' => $option->is_correct,
             'confidence' => $confidence,
+            'calibration' => $calibration,
             'attemptNumber' => $attemptNumber,
             'feedback' => $feedback,
             'explanation' => $question->explanation,
@@ -81,7 +85,7 @@ class QuestionAnswerService
     }
 
     /**
-     * @return list<array{answeredAt: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}>
+     * @return list<array{answeredAt: string|null, calibration: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}>
      */
     private function earlierAttempts(int $userId, int $questionId, int $answerId): array
     {
@@ -99,7 +103,7 @@ class QuestionAnswerService
     }
 
     /**
-     * @return array{answeredAt: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
+     * @return array{answeredAt: string|null, calibration: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
      */
     private function attempt(LearnerQuestionAnswer $answer): array
     {
@@ -107,6 +111,7 @@ class QuestionAnswerService
             'answeredAt' => $answer->created_at instanceof DateTimeInterface
                 ? $answer->created_at->format(DateTimeInterface::ATOM)
                 : null,
+            'calibration' => $answer->calibration,
             'confidence' => $answer->confidence,
             'isCorrect' => (bool) $answer->is_correct,
             'optionLabel' => $answer->selectedOption?->label,
@@ -124,5 +129,19 @@ class QuestionAnswerService
     {
         return $option->feedback
             ?: ($option->is_correct ? $question->feedback_correct : $question->feedback_incorrect);
+    }
+
+    private function calibrationFor(bool $isCorrect, ?string $confidence): ?string
+    {
+        if ($confidence === null) {
+            return null;
+        }
+
+        return match (true) {
+            $isCorrect && $confidence === 'settled' => 'aligned',
+            $isCorrect => 'stronger_than_expected',
+            $confidence === 'settled' => 'higher_than_result',
+            default => 'uncertainty_made_gap_visible',
+        };
     }
 }

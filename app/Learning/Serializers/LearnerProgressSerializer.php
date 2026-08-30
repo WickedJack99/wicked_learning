@@ -92,6 +92,7 @@ class LearnerProgressSerializer
                     'optionId' => $answer->learning_question_option_id,
                     'isCorrect' => $answer->is_correct,
                     'confidence' => $answer->confidence,
+                    'calibration' => $answer->calibration,
                     'feedback' => $answer->feedback,
                     'explanation' => $answer->question?->explanation,
                     'nextActivityId' => $this->nextActivityId($answer),
@@ -106,7 +107,7 @@ class LearnerProgressSerializer
     }
 
     /**
-     * @return array{answeredAt: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
+     * @return array{answeredAt: string|null, calibration: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
      */
     private function attempt(LearnerQuestionAnswer $answer): array
     {
@@ -114,6 +115,7 @@ class LearnerProgressSerializer
             'answeredAt' => $answer->created_at instanceof DateTimeInterface
                 ? $answer->created_at->format(DateTimeInterface::ATOM)
                 : null,
+            'calibration' => $answer->calibration,
             'confidence' => $answer->confidence,
             'isCorrect' => (bool) $answer->is_correct,
             'optionLabel' => $answer->selectedOption?->label,

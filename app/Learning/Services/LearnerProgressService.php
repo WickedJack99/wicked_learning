@@ -28,6 +28,7 @@ class LearnerProgressService
         int $attemptNumber = 1,
         string $assistanceLevel = 'untracked',
         bool $isRevisit = false,
+        ?string $calibration = null,
     ): LearnerActivityProgress {
         $now = Carbon::now();
         $progress = LearnerActivityProgress::query()->firstOrCreate([
@@ -113,6 +114,7 @@ class LearnerProgressService
                             $evidenceAttemptNumber,
                             $assistanceLevel,
                             $latencySeconds,
+                            $calibration,
                         );
                     }
 
