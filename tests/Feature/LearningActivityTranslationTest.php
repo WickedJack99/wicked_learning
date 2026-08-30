@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Models\UserPreference;
 use Illuminate\Support\Str;
 
-function translatedLearningActivity(): LearningActivity
+function translatedLearningActivity(array $accessRoles = []): LearningActivity
 {
     $world = LearningWorld::query()->create([
         'slug' => 'translation-world',
@@ -23,6 +23,7 @@ function translatedLearningActivity(): LearningActivity
         'learning_world_id' => $world->id,
         'slug' => 'translation-map',
         'title' => 'Translation map',
+        'access_roles' => $accessRoles,
     ]);
     $node = LearningNode::query()->create([
         'learning_map_id' => $map->id,
@@ -87,6 +88,44 @@ test('an activity translation cannot be read outside the current activity run', 
         ->getJson(route('learning.activities.translation.show', [
             'activity' => $activity,
             'play_run_id' => (string) Str::uuid(),
+        ]))
+        ->assertNotFound();
+});
+
+test('an activity translation cannot be read after map access is removed', function () {
+    $user = User::factory()->create();
+    $activity = translatedLearningActivity([User::ROLE_ADMIN]);
+    $runId = (string) Str::uuid();
+
+    UserPreference::query()->create([
+        'user_id' => $user->id,
+        'appearance' => 'dark',
+        'settings' => ['locale' => 'ja'],
+    ]);
+    PlatformLanguage::query()->create([
+        'code' => 'ja',
+        'name' => 'Japanese',
+        'native_name' => '日本語',
+        'is_enabled' => true,
+    ]);
+    LearningActivityTranslation::query()->create([
+        'learning_activity_id' => $activity->id,
+        'locale' => 'ja',
+        'content' => ['title' => '日本語の題名'],
+    ]);
+    LearnerRouteProgress::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $activity->learning_node_id,
+        'start_learning_activity_id' => $activity->id,
+        'current_learning_activity_id' => $activity->id,
+        'current_play_run_id' => $runId,
+        'status' => 'in_progress',
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('learning.activities.translation.show', [
+            'activity' => $activity,
+            'play_run_id' => $runId,
         ]))
         ->assertNotFound();
 });
