@@ -207,6 +207,9 @@ explicitly request feedback for one page from an eligible journal, group or
 organization domain. The request is shown in the permission-controlled
 feedback queue; this explicit request is the supported sharing path, and
 journals are not a general staff-reading surface.
+Reflections created while playing an activity remain private and do not create
+feedback requests; learners can share the resulting journal page explicitly
+from the Journal when they choose a permitted feedback domain.
 
 Recent journal check-ins retain their related learning areas. Each area can
 open its focused competence-map reading, while the activity itself remains a

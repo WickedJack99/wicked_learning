@@ -290,9 +290,9 @@ test('a reflection cannot be recorded outside the active route step', function (
     expect(LearnerReflection::query()->count())->toBe(0);
 });
 
-test('journal expert access remains off when the platform policy is disabled', function () {
+test('activity reflections stay private even when journal review requests are enabled', function () {
     [$learner, $activity, $runId] = activeReflectionActivity();
-    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => false]);
+    PlatformJournalSetting::current()->update(['allow_expert_access_requests' => true]);
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.reflection.store', $activity), [
@@ -303,7 +303,9 @@ test('journal expert access remains off when the platform policy is disabled', f
         ->assertOk();
 
     expect(LearnerReflection::query()->firstOrFail()->expert_access_requested)->toBeFalse()
-        ->and(LearnerJournalPage::query()->firstOrFail()->expert_access_requested)->toBeFalse();
+        ->and(LearnerReflection::query()->firstOrFail()->feedback_status)->toBe('not_requested')
+        ->and(LearnerJournalPage::query()->firstOrFail()->expert_access_requested)->toBeFalse()
+        ->and(LearnerJournalFeedbackRequest::query()->count())->toBe(0);
 });
 
 test('manual journal pages keep a title separate from their shared category', function () {

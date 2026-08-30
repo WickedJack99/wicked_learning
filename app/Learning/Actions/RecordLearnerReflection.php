@@ -10,7 +10,6 @@ use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
 use App\Models\NpcDialogueNode;
-use App\Models\PlatformJournalSetting;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +26,7 @@ class RecordLearnerReflection
     ) {}
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null}  $data
      */
     public function forActivity(User $user, LearningActivity $activity, string $playRunId, array $data): LearnerReflection
     {
@@ -50,7 +49,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null}  $data
      */
     public function forDialogueNode(User $user, NpcDialogueNode $dialogueNode, string $playRunId, array $data): LearnerReflection
     {
@@ -77,7 +76,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null}  $data
      */
     private function record(
         User $user,
@@ -104,9 +103,6 @@ class RecordLearnerReflection
         return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $observedCues, $question, $responseType, $title): LearnerReflection {
             $topic = trim((string) ($data['topic'] ?? $activity->node->title)) ?: $activity->node->title;
             $subtopic = trim((string) ($data['subtopic'] ?? $activity->title));
-            $expertAccess = (bool) ($data['request_expert_access'] ?? false)
-                && PlatformJournalSetting::current()->allow_expert_access_requests;
-
             $page = LearnerJournalPage::query()->firstOrCreate([
                 'user_id' => $user->id,
                 'topic' => $topic,
@@ -115,12 +111,8 @@ class RecordLearnerReflection
                 'title' => $this->pageTitle($topic, $subtopic),
                 'markdown' => '',
                 'preferred_mode' => 'view',
-                'expert_access_requested' => $expertAccess,
+                'expert_access_requested' => false,
             ]);
-
-            if ($expertAccess && ! $page->expert_access_requested) {
-                $page->forceFill(['expert_access_requested' => true])->save();
-            }
 
             $reflection = LearnerReflection::query()->create([
                 'user_id' => $user->id,
@@ -136,8 +128,8 @@ class RecordLearnerReflection
                     ? trim((string) ($data['response_context'] ?? ''))
                     : null,
                 'observed_cues' => $observedCues === [] ? null : $observedCues,
-                'expert_access_requested' => $expertAccess,
-                'feedback_status' => $expertAccess ? 'pending' : 'not_requested',
+                'expert_access_requested' => false,
+                'feedback_status' => 'not_requested',
             ]);
 
             $page->forceFill([
