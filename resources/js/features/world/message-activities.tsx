@@ -274,6 +274,11 @@ export function MessageWallActivity({
     const t = usePlatformTranslation();
     const theme = useMessageTheme(activity);
     const allowResponses = activity.config.messageAllowResponses === true;
+    const responsePrompt = messageConfigString(
+        activity,
+        'messageResponsePrompt',
+        '',
+    );
     const [state, setState] = useState<MessageResponse | null>(null);
     const [closing, setClosing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -421,6 +426,7 @@ export function MessageWallActivity({
                                 responseBody={responseBody}
                                 responseError={responseError}
                                 responding={responding}
+                                responsePrompt={responsePrompt}
                                 setResponseBody={setResponseBody}
                                 theme={theme}
                             />
@@ -444,6 +450,7 @@ export function MessageWallActivity({
                                     responseBody={responseBody}
                                     responseError={responseError}
                                     responding={responding}
+                                    responsePrompt={responsePrompt}
                                     setResponseBody={setResponseBody}
                                     theme={theme}
                                 />
@@ -465,6 +472,7 @@ function MessageCard({
     responseBody,
     responseError,
     responding,
+    responsePrompt,
     setResponseBody,
     theme,
 }: {
@@ -476,6 +484,7 @@ function MessageCard({
     responseBody: string;
     responseError: string;
     responding: boolean;
+    responsePrompt: string;
     setResponseBody: (value: string) => void;
     theme: MessageTheme;
 }) {
@@ -534,6 +543,18 @@ function MessageCard({
                             </Button>
                             {isResponding ? (
                                 <div className="mt-3 grid gap-2">
+                                    {responsePrompt ? (
+                                        <p className="text-xs leading-5 opacity-80">
+                                            <span className="font-semibold">
+                                                {t(
+                                                    'activities.messages.response_guidance',
+                                                    'Response guidance',
+                                                )}
+                                                :{' '}
+                                            </span>
+                                            {responsePrompt}
+                                        </p>
+                                    ) : null}
                                     <textarea
                                         aria-label={t(
                                             'activities.messages.response_label',

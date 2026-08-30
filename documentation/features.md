@@ -260,6 +260,9 @@ moderation surface.
 Peer message walls may also invite one optional response per learner and
 message. Responses are anonymous to learners, subject to the same moderation
 filtering, and managed by Learning Support alongside the original messages.
+Authors can optionally add short response guidance to help peers explain a clue,
+question or example; this guidance is an invitation, not a grade or required
+rubric.
 
 ### Journal, Competence And Collaboration
 

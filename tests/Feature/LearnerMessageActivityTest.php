@@ -57,6 +57,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
     $wallConfig = $configuration->fromData($this->node, [
         'message_topic_id' => $topic->id,
         'message_allow_responses' => true,
+        'message_response_prompt' => 'Name the clue that changed your interpretation.',
         'message_accent_color_light' => '#123abc',
     ]);
 
@@ -67,6 +68,7 @@ test('message activities reuse a map asset topic and persist their ui colors', f
         ->and($promptConfig['messageUi']['cardColorLight'])->toBe('#fefefe')
         ->and($wallConfig['messageUi']['accentColorLight'])->toBe('#123abc')
         ->and($wallConfig['messageAllowResponses'])->toBeTrue()
+        ->and($wallConfig['messageResponsePrompt'])->toBe('Name the clue that changed your interpretation.')
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
 });
 
@@ -106,6 +108,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
             'type' => 'message_wall',
             'message_topic_id' => $topic->id,
             'message_allow_responses' => true,
+            'message_response_prompt' => 'Add a useful example or question for the next learner.',
         ])
         ->assertRedirect();
 
@@ -117,6 +120,7 @@ test('admins configure prompt and wall activities through the map asset flow', f
         ->and($prompt->config['messageUi']['surfaceColorDark'])->toBe('#102030')
         ->and($wall->config['messageTopicId'])->toBe($topic->id)
         ->and($wall->config['messageAllowResponses'])->toBeTrue()
+        ->and($wall->config['messageResponsePrompt'])->toBe('Add a useful example or question for the next learner.')
         ->and($this->mapAsset->messageTopics()->count())->toBe(1);
 });
 

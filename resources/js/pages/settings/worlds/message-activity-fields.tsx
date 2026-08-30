@@ -142,6 +142,40 @@ export function MessageActivityFlowFields({
                 </div>
             ) : null}
 
+            {!isPrompt && form.message_allow_responses ? (
+                <div className="grid gap-2">
+                    <Label htmlFor="message-response-prompt">
+                        {t(
+                            'settings.activities.messages.response_prompt',
+                            'Response guidance',
+                        )}
+                    </Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-300 bg-white p-3 text-sm dark:border-white/20 dark:bg-slate-950/60"
+                        id="message-response-prompt"
+                        maxLength={280}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                message_response_prompt: event.target.value,
+                            }))
+                        }
+                        placeholder={t(
+                            'settings.activities.messages.response_prompt_placeholder',
+                            'Invite a helpful explanation, question or example.',
+                        )}
+                        value={form.message_response_prompt}
+                    />
+                    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        {t(
+                            'settings.activities.messages.response_prompt_description',
+                            'Optional guidance helps peers respond usefully. It is not a grade or a required rubric.',
+                        )}
+                    </p>
+                    <InputError message={errors.message_response_prompt} />
+                </div>
+            ) : null}
+
             {isPrompt ? (
                 <>
                     <div className="grid gap-2">

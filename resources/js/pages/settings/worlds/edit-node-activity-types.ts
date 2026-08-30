@@ -368,6 +368,7 @@ export type CreateActivityForm = {
     message_card_color_light: string;
     message_audience: string;
     message_allow_responses: boolean;
+    message_response_prompt: string;
     message_input_label: string;
     message_prompt_text: string;
     message_surface_color_dark: string;

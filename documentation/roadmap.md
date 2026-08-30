@@ -152,6 +152,9 @@ Extend the existing shared-task and message foundations into structured peer
 explanation, help and counterexample workflows plus mentor digests. Evaluate
 the quality and resolution of intellectual support, not message volume,
 popularity or public status. Participation remains optional.
+The first bounded slice now lets authors add optional response guidance to a
+message wall; structured response types, quality review and mentor digests remain
+future work.
 
 ## Product development
 

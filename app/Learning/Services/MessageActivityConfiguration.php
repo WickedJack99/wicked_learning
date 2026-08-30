@@ -24,6 +24,7 @@ class MessageActivityConfiguration
             'messageTopicId' => $this->topic($node, $data, $existing)->id,
             'messageAudience' => $this->audience($data, $existing),
             'messageAllowResponses' => $this->allowResponses($data, $existing),
+            'messageResponsePrompt' => $this->string($data, 'message_response_prompt', $existing, 'messageResponsePrompt', ''),
             'messagePrompt' => $this->string($data, 'message_prompt_text', $existing, 'messagePrompt', 'Leave a helpful note or an encouraging thought for the next learner.'),
             'messageInputLabel' => $this->string($data, 'message_input_label', $existing, 'messageInputLabel', 'Your message'),
             'messageUi' => [
@@ -49,6 +50,7 @@ class MessageActivityConfiguration
             'message_topic_title',
             'message_audience',
             'message_allow_responses',
+            'message_response_prompt',
             'message_prompt_text',
             'message_input_label',
             'message_surface_color_dark',

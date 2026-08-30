@@ -98,6 +98,7 @@ const messageFields: Array<keyof ActivityForm> = [
     'message_topic_title',
     'message_audience',
     'message_allow_responses',
+    'message_response_prompt',
     'message_prompt_text',
     'message_input_label',
     'message_surface_color_dark',

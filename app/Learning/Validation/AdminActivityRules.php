@@ -236,6 +236,7 @@ class AdminActivityRules
             'message_topic_title' => [$modifier, Rule::requiredIf($needsNewTopic), 'nullable', 'string', 'max:120'],
             'message_audience' => [$modifier, 'nullable', Rule::in(MessageActivityConfiguration::AUDIENCES)],
             'message_allow_responses' => [$modifier, 'nullable', 'boolean'],
+            'message_response_prompt' => [$modifier, 'nullable', 'string', 'max:280'],
             'message_prompt_text' => [$modifier, 'nullable', 'string', 'max:1000'],
             'message_input_label' => [$modifier, 'nullable', 'string', 'max:120'],
             'message_surface_color_dark' => $this->optional($modifier, $color),
