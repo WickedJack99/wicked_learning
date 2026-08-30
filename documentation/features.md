@@ -234,9 +234,12 @@ authored message, choice and end nodes locally, with local Back and Restart
 controls for recovering from a branch; navigation choices resolve only to
 server-provided context actions. An administrator may enable authored AI nodes
 with a guarded `learner_companion` template and a maximum of three allowlisted
-context capabilities. Each AI node makes one server-resolved, plain-text turn;
-the response is transient in the open companion panel and cannot navigate,
-mutate content or read private journal, group or unrelated learner history.
+context capabilities. Before a turn, the learner chooses no AI support, one
+reflective question or one small hint. Only the selected question or hint makes
+one server-resolved, plain-text provider turn; the response is transient in the
+open companion panel and cannot navigate, mutate content or read private
+journal, group or unrelated learner history. AI assistance is not independent
+learning evidence.
 Learners can open the companion from the lower-left corner on the Learning Desk,
 bookmarks and activities, or immediately to the right of map search on a world
 map. Without a configured provider or enabled template, the companion keeps its

@@ -27,6 +27,7 @@ class LearningCompanionTurnRequest extends FormRequest
         return [
             'surface' => ['required', 'string', Rule::in(['activity', 'desk', 'world'])],
             'dialogue_node_id' => ['required', 'string', 'max:80'],
+            'assistance_level' => ['required', 'string', Rule::in(['off', 'question', 'hint'])],
             'map_id' => ['nullable', 'integer', 'min:1'],
             'node_id' => ['nullable', 'integer', 'min:1'],
             'activity_id' => ['nullable', 'integer', 'min:1'],

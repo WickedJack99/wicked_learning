@@ -133,11 +133,13 @@ desk, worlds and activities, with inherited scope configuration, reusable
 assigned graphs, a bounded React Flow editor and local traversal of authored
 message, choice and end nodes. It also supports one provider-neutral,
 server-bounded plain-text turn for an authored AI node when an administrator
-enables a guarded learner-companion template. Continue by defining explicit assistance levels such as AI-off, questions-only,
-hints and post-attempt support. Ground responses, disclose uncertainty and
-record assistance so supported performance is not silently interpreted as
-independent capability; the assistant must never emit arbitrary navigation or
-mutate content directly.
+enables a guarded learner-companion template. Learners can now choose AI-off,
+one reflective question or one small hint before a transient turn. Continue by
+adding post-attempt support, grounded uncertainty disclosure and explicit
+assistance evidence only where the learner has consented and the interaction
+can support that interpretation; supported performance must not silently be
+interpreted as independent capability. The assistant must never emit arbitrary
+navigation or mutate content directly.
 
 ### 8. Privacy-conscious evaluation
 

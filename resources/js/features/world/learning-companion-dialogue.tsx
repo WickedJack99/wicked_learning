@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, MessageCircle, RotateCcw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { readJsonResponse } from '@/lib/json-response';
 import type { LearningCompanion, LearningCompanionDialogueNode } from '@/types';
@@ -11,6 +11,8 @@ type CompanionTurnResponse = {
     node_id: string;
     text: string;
 };
+
+type CompanionAssistanceLevel = 'off' | 'question' | 'hint';
 
 export function LearningCompanionDialogue({
     companion,
@@ -23,6 +25,12 @@ export function LearningCompanionDialogue({
     const [nodeHistory, setNodeHistory] = useState<string[]>([]);
     const [aiResponses, setAiResponses] = useState<Record<string, string>>({});
     const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
+    const [aiAssistance, setAiAssistance] = useState<
+        Record<string, CompanionAssistanceLevel>
+    >({});
+    const [aiSubmitting, setAiSubmitting] = useState<Record<string, boolean>>(
+        {},
+    );
     const nodeById = useMemo(
         () => new Map(graph?.nodes.map((node) => [node.id, node]) ?? []),
         [graph],
@@ -30,83 +38,6 @@ export function LearningCompanionDialogue({
 
     const node = nodeById.get(nodeId);
     const aiEnabled = companion.configuration.aiEnabled;
-
-    useEffect(() => {
-        if (
-            !aiEnabled ||
-            !node ||
-            node.type !== 'ai' ||
-            aiResponses[node.id] !== undefined
-        ) {
-            return;
-        }
-
-        const controller = new AbortController();
-        // The request is intentionally one turn per node; cached responses avoid
-        // repeated provider work when a learner revisits a branch.
-
-        const context = companion.context;
-        const body = {
-            activity_id: context.activity?.id ?? undefined,
-            dialogue_node_id: node.id,
-            map_id: context.map?.id ?? undefined,
-            node_id: context.node?.id ?? undefined,
-            surface: context.surface,
-        };
-        const csrfToken =
-            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-                ?.content ?? '';
-
-        void fetch('/learning/companion/turn', {
-            body: JSON.stringify(body),
-            credentials: 'same-origin',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            method: 'POST',
-            signal: controller.signal,
-        })
-            .then((response) =>
-                readJsonResponse<CompanionTurnResponse>(
-                    response,
-                    t(
-                        'learning.companion.dialogue.ai_error',
-                        'The companion could not answer this turn. You can continue exploring without it.',
-                    ),
-                ),
-            )
-            .then((payload) => {
-                if (controller.signal.aborted) {
-                    return;
-                }
-
-                setAiResponses((current) => ({
-                    ...current,
-                    [node.id]: payload.text,
-                }));
-            })
-            .catch((error: unknown) => {
-                if (controller.signal.aborted) {
-                    return;
-                }
-
-                setAiErrors((current) => ({
-                    ...current,
-                    [node.id]:
-                        error instanceof Error
-                            ? error.message
-                            : t(
-                                  'learning.companion.dialogue.ai_error',
-                                  'The companion could not answer this turn. You can continue exploring without it.',
-                              ),
-                }));
-            });
-
-        return () => controller.abort();
-    }, [aiEnabled, aiResponses, companion.context, node, t]);
 
     if (!graph || graph.nodes.length === 0) {
         return null;
@@ -139,6 +70,88 @@ export function LearningCompanionDialogue({
         setNodeId(graph.start);
     };
 
+    const requestAi = (assistanceLevel: CompanionAssistanceLevel): void => {
+        if (!aiEnabled || node.type !== 'ai' || aiSubmitting[node.id]) {
+            return;
+        }
+
+        setAiErrors((current) => {
+            const next = { ...current };
+            delete next[node.id];
+
+            return next;
+        });
+
+        if (assistanceLevel === 'off') {
+            setAiResponses((current) => ({ ...current, [node.id]: '' }));
+
+            return;
+        }
+
+        setAiSubmitting((current) => ({ ...current, [node.id]: true }));
+
+        const context = companion.context;
+        const body = {
+            activity_id: context.activity?.id ?? undefined,
+            assistance_level: assistanceLevel,
+            dialogue_node_id: node.id,
+            map_id: context.map?.id ?? undefined,
+            node_id: context.node?.id ?? undefined,
+            surface: context.surface,
+        };
+        const csrfToken =
+            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                ?.content ?? '';
+
+        void fetch('/learning/companion/turn', {
+            body: JSON.stringify(body),
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            method: 'POST',
+        })
+            .then((response) =>
+                readJsonResponse<CompanionTurnResponse>(
+                    response,
+                    t(
+                        'learning.companion.dialogue.ai_error',
+                        'The companion could not answer this turn. You can continue exploring without it.',
+                    ),
+                ),
+            )
+            .then((payload) => {
+                setAiResponses((current) => ({
+                    ...current,
+                    [node.id]: payload.text,
+                }));
+            })
+            .catch((error: unknown) => {
+                setAiErrors((current) => ({
+                    ...current,
+                    [node.id]:
+                        error instanceof Error
+                            ? error.message
+                            : t(
+                                  'learning.companion.dialogue.ai_error',
+                                  'The companion could not answer this turn. You can continue exploring without it.',
+                              ),
+                }));
+            })
+            .finally(() => {
+                setAiSubmitting((current) => ({
+                    ...current,
+                    [node.id]: false,
+                }));
+            });
+    };
+
+    const selectedAssistance = aiAssistance[node.id] ?? 'question';
+    const hasAiResponse = aiResponses[node.id] !== undefined;
+
     return (
         <section
             aria-labelledby="learning-companion-dialogue-title"
@@ -165,15 +178,127 @@ export function LearningCompanionDialogue({
                 ) : null}
                 <p className="text-sm leading-6 text-[var(--map-side-control-text-color)]">
                     {node.type === 'ai'
-                        ? aiResponses[node.id] ||
-                          aiErrors[node.id] ||
-                          t(
-                              'learning.companion.dialogue.ai_loading',
-                              'The companion is considering this context...',
-                          )
+                        ? hasAiResponse
+                            ? aiResponses[node.id] ||
+                              t(
+                                  'learning.companion.dialogue.ai_off',
+                                  'AI assistance is off for this turn.',
+                              )
+                            : aiErrors[node.id] ||
+                              (aiEnabled
+                                  ? t(
+                                        'learning.companion.dialogue.ai_choose',
+                                        'Choose how much support you want before asking the companion.',
+                                    )
+                                  : nodeContent(node, t))
                         : nodeContent(node, t)}
                 </p>
             </div>
+
+            {node.type === 'ai' && aiEnabled && !hasAiResponse ? (
+                <div className="grid gap-3 rounded-lg border border-[var(--map-side-control-panel-border-color)] p-3">
+                    <fieldset className="grid gap-2">
+                        <legend className="text-xs font-semibold text-[var(--map-side-control-muted-text-color)]">
+                            {t(
+                                'learning.companion.dialogue.assistance_label',
+                                'Choose AI assistance',
+                            )}
+                        </legend>
+                        <div className="grid gap-2 sm:grid-cols-3">
+                            {(
+                                [
+                                    [
+                                        'off',
+                                        t(
+                                            'learning.companion.dialogue.assistance_off',
+                                            'No AI',
+                                        ),
+                                        t(
+                                            'learning.companion.dialogue.assistance_off_description',
+                                            'Continue without assistance.',
+                                        ),
+                                    ],
+                                    [
+                                        'question',
+                                        t(
+                                            'learning.companion.dialogue.assistance_question',
+                                            'Ask a question',
+                                        ),
+                                        t(
+                                            'learning.companion.dialogue.assistance_question_description',
+                                            'Prompt your own thinking.',
+                                        ),
+                                    ],
+                                    [
+                                        'hint',
+                                        t(
+                                            'learning.companion.dialogue.assistance_hint',
+                                            'Give me a hint',
+                                        ),
+                                        t(
+                                            'learning.companion.dialogue.assistance_hint_description',
+                                            'Offer one small clue.',
+                                        ),
+                                    ],
+                                ] as [
+                                    CompanionAssistanceLevel,
+                                    string,
+                                    string,
+                                ][]
+                            ).map(([value, label, description]) => (
+                                <label
+                                    className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg border border-[var(--map-side-control-panel-border-color)] px-3 py-2 text-left transition hover:bg-[var(--map-side-control-hover-background)] has-[:checked]:border-[var(--map-floating-accent-color)] has-[:checked]:bg-[var(--map-side-control-hover-background)]"
+                                    key={value}
+                                >
+                                    <input
+                                        checked={selectedAssistance === value}
+                                        className="mt-1 accent-[var(--map-floating-accent-color)]"
+                                        name={`companion-assistance-${node.id}`}
+                                        onChange={() =>
+                                            setAiAssistance((current) => ({
+                                                ...current,
+                                                [node.id]: value,
+                                            }))
+                                        }
+                                        type="radio"
+                                        value={value}
+                                    />
+                                    <span className="grid gap-0.5">
+                                        <span className="text-sm font-semibold text-[var(--map-side-control-text-color)]">
+                                            {label}
+                                        </span>
+                                        <span className="text-xs text-[var(--map-side-control-muted-text-color)]">
+                                            {description}
+                                        </span>
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </fieldset>
+                    <p className="text-xs leading-5 text-[var(--map-side-control-muted-text-color)]">
+                        {t(
+                            'learning.companion.dialogue.assistance_disclosure',
+                            'AI support is optional and transient. It is not independent learning evidence.',
+                        )}
+                    </p>
+                    <button
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--map-floating-accent-color)] px-3 py-2 text-sm font-semibold text-[var(--map-side-control-text-color)] transition hover:bg-[var(--map-side-control-hover-background)] focus-visible:ring-2 focus-visible:ring-[var(--map-floating-accent-color)] focus-visible:outline-none disabled:cursor-wait disabled:opacity-60"
+                        disabled={aiSubmitting[node.id] === true}
+                        onClick={() => requestAi(selectedAssistance)}
+                        type="button"
+                    >
+                        {aiSubmitting[node.id]
+                            ? t(
+                                  'learning.companion.dialogue.ai_loading',
+                                  'The companion is considering this context...',
+                              )
+                            : t(
+                                  'learning.companion.dialogue.ai_request',
+                                  'Use this level of support',
+                              )}
+                    </button>
+                </div>
+            ) : null}
 
             {node.type === 'choice' && node.choices?.length ? (
                 <div

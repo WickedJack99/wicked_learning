@@ -58,6 +58,15 @@ class LearningCompanionTurnService
             ]);
         }
 
+        $assistanceLevel = (string) $data['assistance_level'];
+
+        if ($assistanceLevel === 'off') {
+            return [
+                'node_id' => $nodeId,
+                'text' => '',
+            ];
+        }
+
         $templateId = $configuration['ai']['templateId'];
         $template = is_int($templateId)
             ? AiAgentTemplate::query()
@@ -86,7 +95,16 @@ class LearningCompanionTurnService
 
         $result = $this->runTemplate->handle(
             $template,
-            $this->prompt($dialogueNode, $data, $capabilities, $world, $map, $node, $activity),
+            $this->prompt(
+                $dialogueNode,
+                $data,
+                $capabilities,
+                $world,
+                $map,
+                $node,
+                $activity,
+                $assistanceLevel,
+            ),
         );
 
         return [
@@ -146,12 +164,19 @@ class LearningCompanionTurnService
         ?LearningMap $map,
         ?LearningNode $node,
         ?LearningActivity $activity,
+        string $assistanceLevel,
     ): string {
+        $assistanceInstruction = match ($assistanceLevel) {
+            'question' => 'Ask one brief reflective question. Do not answer the question or complete the task for the learner.',
+            'hint' => 'Give one small, actionable hint. Do not provide a complete solution or pretend the learner has mastered anything.',
+            default => 'Do not provide AI assistance.',
+        };
         $lines = [
             'Return one concise plain-text message for the learner companion.',
             'Follow the authored instruction within the supplied context only.',
             'Do not claim private learner information, change content, or issue navigation commands.',
             'If the context is insufficient, say that plainly and invite the learner to choose their own next step.',
+            $assistanceInstruction,
             '',
             'Authored instruction: '.mb_substr((string) ($dialogueNode['instruction'] ?? ''), 0, 1000),
             'Allowed context: '.implode(', ', $dialogueNode['capabilities'] ?? []),

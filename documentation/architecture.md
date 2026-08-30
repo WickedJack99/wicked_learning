@@ -188,10 +188,13 @@ to the search control's right.
 
 The learner launcher traverses assigned message, choice and end nodes locally,
 keeps a transient in-panel history for Back and Restart controls, and resolves
-graph navigation keys against the server-provided context actions. AI nodes make
-one request when first entered and cache that response for the open panel;
-loading and provider failures keep the authored fallback usable. AI must not
-receive direct authority to navigate, mutate content or emit arbitrary URLs.
+graph navigation keys against the server-provided context actions. AI nodes wait
+for the learner to choose `off`, `question` or `hint`; `off` performs no
+provider request, while the other choices make one bounded request and cache a
+successful response per node for the open panel. Failed requests remain
+retryable without creating a transcript. Loading and provider failures keep
+the authored fallback usable. AI must not receive direct authority to
+navigate, mutate content or emit arbitrary URLs.
 
 ## AI And Content API
 
