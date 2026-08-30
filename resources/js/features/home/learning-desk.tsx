@@ -715,6 +715,7 @@ function RouteRow({
                         {route.currentActivityTitle}
                     </span>
                 ) : null}
+                <DeskReason reason={route.deskReason} />
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastEnteredAt ? (
@@ -797,6 +798,7 @@ function RecentRouteRow({
                     </Link>
                 ) : null}
                 <RouteLearningAreas route={route} />
+                <DeskReason reason={route.deskReason} />
             </span>
             <span className="flex items-center gap-4 sm:justify-end">
                 {route.lastCompletedAt ? (
@@ -877,6 +879,7 @@ function RevisitInvitationRow({
                               { days: invitation.availableAfterDays },
                           )}
                 </span>
+                <DeskReason reason={invitation.deskReason} />
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link
@@ -994,6 +997,7 @@ function RecallItemRow({
                             : null}
                     </span>
                 ) : null}
+                <DeskReason reason={item.deskReason} />
             </span>
             <span className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Link
@@ -1066,6 +1070,41 @@ function RouteLearningAreas({ route }: { route: LearningDeskRoute }) {
                 </Link>
             ))}
         </div>
+    );
+}
+
+function DeskReason({
+    reason,
+}: {
+    reason:
+        | LearningDeskRoute['deskReason']
+        | LearningDeskRevisitInvitation['deskReason']
+        | LearningDeskRecallItem['deskReason'];
+}) {
+    const t = usePlatformTranslation();
+    const copy = {
+        active_route: [
+            'home.learning_desk.reason.active_route',
+            'Why here: this route is still in progress.',
+        ],
+        recently_completed: [
+            'home.learning_desk.reason.recently_completed',
+            'Why here: you completed this route recently.',
+        ],
+        chosen_to_return: [
+            'home.learning_desk.reason.chosen_to_return',
+            'Why here: you chose to return to this activity.',
+        ],
+        saved_for_recall: [
+            'home.learning_desk.reason.saved_for_recall',
+            'Why here: you kept this question for another recall attempt.',
+        ],
+    }[reason];
+
+    return (
+        <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
+            {t(copy[0], copy[1])}
+        </span>
     );
 }
 

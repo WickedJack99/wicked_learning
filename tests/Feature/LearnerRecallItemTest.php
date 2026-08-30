@@ -39,6 +39,7 @@ test('a learner can keep a question in a private recall queue', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('desk.recallItems', 1)
             ->where('desk.recallItems.0.questionId', $question->id)
+            ->where('desk.recallItems.0.deskReason', 'saved_for_recall')
             ->where('desk.recallItems.0.isDue', true)
             ->where('desk.recallItems.0.nextReviewAt', fn ($value) => is_string($value))
             ->where('desk.recallItems.0.prompt', 'What changed?')

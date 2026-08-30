@@ -112,6 +112,7 @@ class LearningDeskSerializer
 
         return [
             'currentActivityTitle' => $currentActivityTitle,
+            'deskReason' => 'active_route',
             'href' => route('learning.nodes.play', [
                 'node' => $node->id,
                 'route' => $route?->id,
@@ -147,6 +148,7 @@ class LearningDeskSerializer
 
         return [
             'currentActivityTitle' => null,
+            'deskReason' => 'recently_completed',
             'href' => route('learning.nodes.play', [
                 'node' => $node->id,
                 'route' => $route?->id,

@@ -97,6 +97,7 @@ test('the learning desk surfaces learner-chosen revisit invitations', function (
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('desk.revisitInvitations', 1)
             ->where('desk.revisitInvitations.0.activityTitle', 'Revisit Activity')
+            ->where('desk.revisitInvitations.0.deskReason', 'chosen_to_return')
             ->where('desk.revisitInvitations.0.availableAfterDays', 3)
             ->where('desk.revisitInvitations.0.availableAt', now()->subDay()->toIso8601String())
             ->where('desk.revisitInvitations.0.availableSince', $recordedAt)
@@ -190,6 +191,7 @@ test('the learning desk presents current work and saved topics', function () {
             ->component('home')
             ->has('desk.currentRoutes', 1)
             ->where('desk.currentRoutes.0.nodeTitle', 'Heart valves')
+            ->where('desk.currentRoutes.0.deskReason', 'active_route')
             ->where('desk.currentRoutes.0.routeLabel', 'Follow the blood flow')
             ->where('desk.currentRoutes.0.currentActivityTitle', 'Observe the flow')
             ->where('desk.currentRoutes.0.imageUrl', '/images/heart.png')
@@ -265,6 +267,7 @@ test('the learning desk keeps a quiet trail of recently completed routes', funct
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->has('desk.recentRoutes', 1)
             ->where('desk.recentRoutes.0.routeLabel', 'Explore again')
+            ->where('desk.recentRoutes.0.deskReason', 'recently_completed')
             ->where('desk.recentRoutes.0.nodeTitle', 'Recent Node')
             ->where('desk.recentRoutes.0.learningIntent', 'participate')
             ->where('desk.recentRoutes.0.topic.title', 'Recent Topic')

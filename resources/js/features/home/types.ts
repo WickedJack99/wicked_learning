@@ -11,6 +11,7 @@ export type LearningDeskBookmark = {
 
 export type LearningDeskRoute = {
     currentActivityTitle: string | null;
+    deskReason: 'active_route' | 'recently_completed';
     href: string;
     id: number;
     imageUrl: string | null;
@@ -46,6 +47,7 @@ export type LearningDeskRevisitInvitation = {
     availableAfterDays: number;
     availableAt: string;
     availableSince: string;
+    deskReason: 'chosen_to_return';
     mapTitle: string;
     nodeHref: string;
     nodeTitle: string;
@@ -56,6 +58,7 @@ export type LearningDeskRecallItem = {
     activityHref: string;
     activityId: number;
     activityTitle: string;
+    deskReason: 'saved_for_recall';
     isDue: boolean;
     lastConfidence: string | null;
     lastOutcome: string | null;
