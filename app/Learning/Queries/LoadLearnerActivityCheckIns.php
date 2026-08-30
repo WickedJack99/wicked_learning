@@ -6,10 +6,13 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 /** Loads the current learner's recent private check-in history. */
 class LoadLearnerActivityCheckIns
 {
+    private const MAX_PROGRESS_ROWS = 30;
+
     public function __construct(private readonly ActivityCompetenceConfiguration $competence) {}
 
     /**
@@ -22,8 +25,16 @@ class LoadLearnerActivityCheckIns
         LearnerActivityProgress::query()
             ->where('user_id', $user->id)
             ->where('status', 'completed')
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNotNull('metadata->learningCheckIns')
+                    ->orWhereNotNull('metadata->learningCheckIn');
+            })
+            ->select(['id', 'learning_activity_id', 'metadata', 'updated_at'])
             ->with('activity.node.map.topic')
             ->latest('updated_at')
+            ->latest('id')
+            ->limit(self::MAX_PROGRESS_ROWS)
             ->get()
             ->each(function (LearnerActivityProgress $progress) use (&$checkIns): void {
                 $metadata = is_array($progress->metadata) ? $progress->metadata : [];

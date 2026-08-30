@@ -1,6 +1,7 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Learning\Queries\LoadLearnerActivityCheckIns;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
@@ -13,7 +14,9 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 test('guests are sent to the public welcome page instead of the learning desk', function () {
@@ -412,4 +415,72 @@ test('the learning desk shows recent private learning check-ins without treating
                 'node' => $node,
             ]))
         );
+});
+
+test('recent check-in loading is bounded to the newest check-in progress rows', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'bounded-check-ins-map',
+        'title' => 'Bounded Check-ins Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'bounded-check-ins-node',
+        'title' => 'Bounded Check-ins Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+
+    for ($index = 1; $index <= 31; $index++) {
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => "bounded-check-in-{$index}",
+            'title' => "Reflection {$index}",
+            'type' => 'markdown',
+            'sort_order' => $index,
+        ]);
+        LearnerActivityProgress::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'status' => 'completed',
+            'attempt_count' => 1,
+            'reached_at' => now(),
+            'completed_at' => now(),
+            'metadata' => [
+                'learningCheckIn' => [
+                    'note' => "Note {$index}",
+                    'recordedAt' => now()->subMinutes(31 - $index)->toIso8601String(),
+                ],
+            ],
+        ]);
+    }
+
+    $progressQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$progressQueries): void {
+        if (str_contains($query->sql, 'learner_activity_progress')) {
+            $progressQueries[] = $query;
+        }
+    });
+
+    $checkIns = app(LoadLearnerActivityCheckIns::class)->handle($user);
+
+    $progressQuery = collect($progressQueries)
+        ->first(fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learner_activity_progress"'));
+
+    expect($checkIns)->toHaveCount(30);
+    expect($checkIns[0]['note'])->toBe('Note 31')
+        ->and($checkIns[1]['note'])->toBe('Note 30');
+    expect($progressQuery)->not->toBeNull();
+    expect(
+        preg_match('/limit 30/i', (string) $progressQuery?->sql) === 1
+            || in_array(30, $progressQuery?->bindings ?? [], true),
+    )->toBeTrue();
 });
