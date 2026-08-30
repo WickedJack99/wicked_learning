@@ -38,7 +38,7 @@ class LoadLearningSupportSettings
     ) {}
 
     /**
-     * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array<int, array<string, mixed>>|null, supportSignals: array<string, mixed>|null}
+     * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array{topics: array<int, array<string, mixed>>}|null, supportSignals: array<string, mixed>|null}
      */
     public function handle(User $user): array
     {
@@ -50,11 +50,11 @@ class LoadLearningSupportSettings
         ];
     }
 
-    /** @return array<int, array<string, mixed>>|null */
+    /** @return array{topics: array<int, array<string, mixed>>}|null */
     private function learnerMessages(User $user): ?array
     {
         return $user->can(PermissionCatalog::ability(PermissionCatalog::LEARNER_MESSAGES, AccessLevel::READ))
-            ? $this->learnerMessages->handle()
+            ? ['topics' => $this->learnerMessages->topics()]
             : null;
     }
 

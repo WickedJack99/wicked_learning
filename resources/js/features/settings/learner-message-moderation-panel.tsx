@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { Eye, EyeOff, MessageSquareText, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsConfigurationLayout,
     SettingsContentPane,
@@ -10,6 +11,7 @@ import {
 } from '@/components/settings-configuration-shell';
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
+import { getJson } from '@/features/world/api';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
@@ -21,39 +23,51 @@ export type LearnerMessageModerationTopic = {
         mapTitle: string;
         title: string;
     };
-    messages: Array<{
-        audience: 'peers' | 'support' | string;
+    messageCount: number;
+    title: string;
+};
+
+export type LearnerMessageModerationMessage = {
+    audience: 'peers' | 'support' | string;
+    author: { email: string; id: number; name: string };
+    body: string;
+    createdAt: string | null;
+    hiddenAt: string | null;
+    hiddenBy: { id: number; name: string } | null;
+    id: number;
+    responses: Array<{
         author: { email: string; id: number; name: string };
         body: string;
         createdAt: string | null;
         hiddenAt: string | null;
         hiddenBy: { id: number; name: string } | null;
         id: number;
-        responses: Array<{
-            author: { email: string; id: number; name: string };
-            body: string;
-            createdAt: string | null;
-            hiddenAt: string | null;
-            hiddenBy: { id: number; name: string } | null;
-            id: number;
-            isHelpful: boolean;
-            responseType:
-                | 'counterexample'
-                | 'explanation'
-                | 'example'
-                | 'question'
-                | null;
-        }>;
+        isHelpful: boolean;
+        responseType:
+            | 'counterexample'
+            | 'explanation'
+            | 'example'
+            | 'question'
+            | null;
     }>;
-    title: string;
 };
 
-type LearnerMessageModerationMessage =
-    LearnerMessageModerationTopic['messages'][number];
+type LearnerMessageModerationPage = {
+    counts: {
+        all: number;
+        helpful: number;
+        unconfirmed: number;
+    };
+    messages: LearnerMessageModerationMessage[];
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+};
 
-function hasHelpfulResponse(message: LearnerMessageModerationMessage): boolean {
-    return message.responses.some((response) => response.isHelpful);
-}
+const MESSAGE_PAGE_SIZE = 6;
 
 export function LearnerMessageModerationPanel({
     topics,
@@ -68,36 +82,111 @@ export function LearnerMessageModerationPanel({
         topics.find((topic) => topic.id.toString() === selectedTopicId) ??
         topics[0];
     const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
-    const visibleMessages = useMemo(() => {
-        const messages = selectedTopic?.messages ?? [];
+    const [messages, setMessages] = useState<LearnerMessageModerationMessage[]>(
+        [],
+    );
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: MESSAGE_PAGE_SIZE,
+        total: 0,
+    });
+    const [counts, setCounts] = useState({
+        all: 0,
+        helpful: 0,
+        unconfirmed: 0,
+    });
+    const [page, setPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const loadMessages = useCallback(
+        async (
+            topicId: number,
+            requestedPage: number,
+            filter: ResponseFilter,
+            signal?: AbortSignal,
+        ): Promise<void> => {
+            setIsLoading(true);
+            setError('');
+            const params = new URLSearchParams({
+                filter,
+                page: String(requestedPage),
+                per_page: String(MESSAGE_PAGE_SIZE),
+            });
 
-        if (responseFilter === 'helpful') {
-            return messages.filter((message) => hasHelpfulResponse(message));
+            try {
+                const payload = await getJson<LearnerMessageModerationPage>(
+                    `/settings/learning-support/message-topics/${topicId}/messages?${params.toString()}`,
+                    signal,
+                );
+                setMessages(payload.messages);
+                setPagination(payload.pagination);
+                setCounts(payload.counts);
+                setPage((currentPage) =>
+                    Math.min(currentPage, payload.pagination.lastPage),
+                );
+            } catch (requestError) {
+                if (
+                    requestError instanceof DOMException &&
+                    requestError.name === 'AbortError'
+                ) {
+                    return;
+                }
+
+                setMessages([]);
+                setError(
+                    requestError instanceof Error
+                        ? requestError.message
+                        : t(
+                              'settings.learner_messages.load_error',
+                              'The selected message topic could not be loaded.',
+                          ),
+                );
+            } finally {
+                if (!signal?.aborted) {
+                    setIsLoading(false);
+                }
+            }
+        },
+        [t],
+    );
+    useEffect(() => {
+        if (selectedTopicId === null) {
+            return;
         }
 
-        if (responseFilter === 'unconfirmed') {
-            return messages.filter((message) => !hasHelpfulResponse(message));
+        const controller = new AbortController();
+
+        // Loading the selected topic synchronizes local state with the API.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadMessages(
+            Number(selectedTopicId),
+            page,
+            responseFilter,
+            controller.signal,
+        );
+
+        return () => controller.abort();
+    }, [loadMessages, page, responseFilter, selectedTopicId]);
+    const refreshMessages = useCallback(() => {
+        if (selectedTopicId === null) {
+            return;
         }
 
-        return messages;
-    }, [responseFilter, selectedTopic]);
-    const helpfulMessageCount =
-        selectedTopic?.messages.filter((message) => hasHelpfulResponse(message))
-            .length ?? 0;
-    const unconfirmedMessageCount =
-        (selectedTopic?.messages.length ?? 0) - helpfulMessageCount;
+        void loadMessages(Number(selectedTopicId), page, responseFilter);
+    }, [loadMessages, page, responseFilter, selectedTopicId]);
     const items = useMemo(
         () =>
             topics.map(
                 (topic): SettingsNavigationItem<string> => ({
                     description: `${topic.mapAsset.mapTitle} · ${t(
-                        topic.messages.length === 1
+                        topic.messageCount === 1
                             ? 'settings.learner_messages.count_one'
                             : 'settings.learner_messages.count_many',
-                        topic.messages.length === 1
+                        topic.messageCount === 1
                             ? ':count message'
                             : ':count messages',
-                        { count: topic.messages.length },
+                        { count: topic.messageCount },
                     )}`,
                     icon: MessageSquareText,
                     key: topic.id.toString(),
@@ -152,7 +241,11 @@ export function LearnerMessageModerationPanel({
                             'Message topics',
                         )}
                         items={items}
-                        onChange={setSelectedTopicId}
+                        onChange={(topicId) => {
+                            setSelectedTopicId(topicId);
+                            setResponseFilter('all');
+                            setPage(1);
+                        }}
                     />
                 </SettingsSidebar>
             }
@@ -187,7 +280,7 @@ export function LearnerMessageModerationPanel({
                                 label: t(
                                     'settings.learner_messages.filter_all',
                                     'All (:count)',
-                                    { count: selectedTopic.messages.length },
+                                    { count: counts.all },
                                 ),
                             },
                             {
@@ -195,7 +288,7 @@ export function LearnerMessageModerationPanel({
                                 label: t(
                                     'settings.learner_messages.filter_unconfirmed',
                                     'Needs learner confirmation (:count)',
-                                    { count: unconfirmedMessageCount },
+                                    { count: counts.unconfirmed },
                                 ),
                             },
                             {
@@ -203,7 +296,7 @@ export function LearnerMessageModerationPanel({
                                 label: t(
                                     'settings.learner_messages.filter_helpful',
                                     'Learner-confirmed helpful (:count)',
-                                    { count: helpfulMessageCount },
+                                    { count: counts.helpful },
                                 ),
                             },
                         ].map((option) => (
@@ -211,7 +304,10 @@ export function LearnerMessageModerationPanel({
                                 aria-pressed={responseFilter === option.filter}
                                 className={`min-h-9 rounded-md border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent-color)] focus-visible:outline-none ${responseFilter === option.filter ? 'border-[var(--settings-accent-color)] bg-[color-mix(in_srgb,var(--settings-accent-color)_14%,transparent)] text-[var(--settings-heading-color)]' : 'border-[var(--settings-border-color)] text-slate-500 hover:border-[var(--settings-accent-color)] hover:text-[var(--settings-heading-color)] dark:text-slate-400'}`}
                                 key={option.filter}
-                                onClick={() => setResponseFilter(option.filter)}
+                                onClick={() => {
+                                    setResponseFilter(option.filter);
+                                    setPage(1);
+                                }}
                                 type="button"
                             >
                                 {option.label}
@@ -219,246 +315,298 @@ export function LearnerMessageModerationPanel({
                         ))}
                     </div>
 
-                    <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-                        <div className="grid gap-3">
-                            {visibleMessages.map((message) => (
-                                <article
-                                    className="border-b border-[var(--settings-border-color)] px-1 py-4 first:pt-0"
-                                    key={message.id}
-                                >
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="font-semibold">
-                                                {message.author.name}
-                                            </p>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                {message.author.email}
-                                                {message.createdAt
-                                                    ? ` · ${new Date(message.createdAt).toLocaleString()}`
-                                                    : ''}
-                                            </p>
-                                        </div>
-                                        {message.audience === 'support' ? (
-                                            <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
-                                                {t(
-                                                    'settings.learner_messages.support_request',
-                                                    'Support request',
-                                                )}
-                                            </span>
-                                        ) : null}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() =>
-                                                    router.patch(
-                                                        `/settings/learning-support/messages/${message.id}/visibility`,
-                                                        {
-                                                            hidden:
-                                                                message.hiddenAt ===
-                                                                null,
-                                                        },
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    )
-                                                }
-                                                size="sm"
-                                                type="button"
-                                                variant="outline"
-                                            >
-                                                {message.hiddenAt ? (
-                                                    <Eye className="size-4" />
-                                                ) : (
-                                                    <EyeOff className="size-4" />
-                                                )}
-                                                {message.hiddenAt
-                                                    ? t(
-                                                          'settings.learner_messages.show',
-                                                          'Show',
-                                                      )
-                                                    : t(
-                                                          'settings.learner_messages.hide',
-                                                          'Hide',
-                                                      )}
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    if (
-                                                        window.confirm(
-                                                            t(
-                                                                'settings.learner_messages.delete_confirm',
-                                                                'Permanently delete this learner message?',
-                                                            ),
-                                                        )
-                                                    ) {
-                                                        router.delete(
-                                                            `/settings/learning-support/messages/${message.id}`,
-                                                            {
-                                                                preserveScroll: true,
-                                                            },
-                                                        );
-                                                    }
-                                                }}
-                                                size="sm"
-                                                type="button"
-                                                variant="destructive"
-                                            >
-                                                <Trash2 className="size-4" />
-                                                {t(
-                                                    'settings.learner_messages.delete',
-                                                    'Delete',
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <p
-                                        className={`mt-3 max-w-3xl text-sm leading-6 ${message.hiddenAt ? 'text-slate-400 line-through opacity-70' : ''}`}
-                                    >
-                                        {message.body}
-                                    </p>
-                                    {message.hiddenAt ? (
-                                        <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
-                                            {t(
-                                                'settings.learner_messages.hidden_note',
-                                                'Hidden from learners',
-                                            )}
-                                            {message.hiddenBy
-                                                ? ` · ${message.hiddenBy.name}`
-                                                : ''}
-                                        </p>
-                                    ) : null}
-                                    {message.responses.length > 0 ? (
-                                        <div className="mt-4 grid gap-3 border-l-2 border-[var(--settings-border-color)] pl-4">
-                                            {message.responses.map(
-                                                (response) => (
-                                                    <div
-                                                        className="grid gap-2"
-                                                        key={response.id}
-                                                    >
-                                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                                            <div>
-                                                                <p className="text-sm font-semibold">
-                                                                    {
-                                                                        response
-                                                                            .author
-                                                                            .name
-                                                                    }
-                                                                </p>
-                                                                <p className="text-xs text-slate-500 dark:text-slate-400">
-                                                                    {
-                                                                        response
-                                                                            .author
-                                                                            .email
-                                                                    }
-                                                                    {response.createdAt
-                                                                        ? ` · ${new Date(response.createdAt).toLocaleString()}`
-                                                                        : ''}
-                                                                </p>
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <Button
-                                                                    onClick={() =>
-                                                                        router.patch(
-                                                                            `/settings/learning-support/message-responses/${response.id}/visibility`,
-                                                                            {
-                                                                                hidden:
-                                                                                    response.hiddenAt ===
-                                                                                    null,
-                                                                            },
-                                                                            {
-                                                                                preserveScroll: true,
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                    size="sm"
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                >
-                                                                    {response.hiddenAt
-                                                                        ? t(
-                                                                              'settings.learner_messages.show',
-                                                                              'Show',
-                                                                          )
-                                                                        : t(
-                                                                              'settings.learner_messages.hide',
-                                                                              'Hide',
-                                                                          )}
-                                                                </Button>
-                                                                <Button
-                                                                    onClick={() => {
-                                                                        if (
-                                                                            window.confirm(
-                                                                                t(
-                                                                                    'settings.learner_messages.delete_response_confirm',
-                                                                                    'Permanently delete this learner response?',
-                                                                                ),
-                                                                            )
-                                                                        ) {
-                                                                            router.delete(
-                                                                                `/settings/learning-support/message-responses/${response.id}`,
-                                                                                {
-                                                                                    preserveScroll: true,
-                                                                                },
-                                                                            );
-                                                                        }
-                                                                    }}
-                                                                    size="sm"
-                                                                    type="button"
-                                                                    variant="destructive"
-                                                                >
-                                                                    <Trash2 className="size-4" />
-                                                                    {t(
-                                                                        'settings.learner_messages.delete',
-                                                                        'Delete',
-                                                                    )}
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                        <p
-                                                            className={`text-sm leading-6 ${response.hiddenAt ? 'text-slate-400 line-through opacity-70' : ''}`}
-                                                        >
-                                                            {response.responseType ? (
-                                                                <span className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
-                                                                    {t(
-                                                                        `settings.learner_messages.response_kind_${response.responseType}`,
-                                                                        response.responseType ===
-                                                                            'explanation'
-                                                                            ? 'Explained an idea'
-                                                                            : response.responseType ===
-                                                                                'example'
-                                                                              ? 'Shared an example'
-                                                                              : response.responseType ===
-                                                                                  'counterexample'
-                                                                                ? 'Shared a counterexample'
-                                                                                : 'Asked a question',
-                                                                    )}
-                                                                </span>
-                                                            ) : null}
-                                                            {response.body}
-                                                        </p>
-                                                        {response.isHelpful ? (
-                                                            <span className="mt-2 inline-flex rounded-full border border-teal-500/30 px-2 py-1 text-xs font-medium text-teal-700 dark:border-teal-300/30 dark:text-teal-200">
-                                                                {t(
-                                                                    'settings.learner_messages.helpful_signal',
-                                                                    'Marked helpful by learner',
-                                                                )}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                ),
-                                            )}
-                                        </div>
-                                    ) : null}
-                                </article>
-                            ))}
-                            {visibleMessages.length === 0 ? (
-                                <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-slate-500 dark:text-slate-400">
+                    <div
+                        aria-busy={isLoading}
+                        className="mt-4 flex min-h-0 flex-1 flex-col"
+                    >
+                        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                            {isLoading ? (
+                                <p className="py-8 text-sm text-slate-500 dark:text-slate-400">
                                     {t(
-                                        'settings.learner_messages.filter_empty',
-                                        'No messages match this view.',
+                                        'settings.learner_messages.loading',
+                                        'Loading messages...',
                                     )}
                                 </p>
-                            ) : null}
+                            ) : error ? (
+                                <p
+                                    className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-200"
+                                    role="alert"
+                                >
+                                    {error}
+                                </p>
+                            ) : (
+                                <div className="grid gap-3">
+                                    {messages.map((message) => (
+                                        <article
+                                            className="border-b border-[var(--settings-border-color)] px-1 py-4 first:pt-0"
+                                            key={message.id}
+                                        >
+                                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold">
+                                                        {message.author.name}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                        {message.author.email}
+                                                        {message.createdAt
+                                                            ? ` · ${new Date(message.createdAt).toLocaleString()}`
+                                                            : ''}
+                                                    </p>
+                                                </div>
+                                                {message.audience ===
+                                                'support' ? (
+                                                    <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
+                                                        {t(
+                                                            'settings.learner_messages.support_request',
+                                                            'Support request',
+                                                        )}
+                                                    </span>
+                                                ) : null}
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() =>
+                                                            router.patch(
+                                                                `/settings/learning-support/messages/${message.id}/visibility`,
+                                                                {
+                                                                    hidden:
+                                                                        message.hiddenAt ===
+                                                                        null,
+                                                                },
+                                                                {
+                                                                    preserveScroll: true,
+                                                                    onSuccess:
+                                                                        refreshMessages,
+                                                                },
+                                                            )
+                                                        }
+                                                        size="sm"
+                                                        type="button"
+                                                        variant="outline"
+                                                    >
+                                                        {message.hiddenAt ? (
+                                                            <Eye className="size-4" />
+                                                        ) : (
+                                                            <EyeOff className="size-4" />
+                                                        )}
+                                                        {message.hiddenAt
+                                                            ? t(
+                                                                  'settings.learner_messages.show',
+                                                                  'Show',
+                                                              )
+                                                            : t(
+                                                                  'settings.learner_messages.hide',
+                                                                  'Hide',
+                                                              )}
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            if (
+                                                                window.confirm(
+                                                                    t(
+                                                                        'settings.learner_messages.delete_confirm',
+                                                                        'Permanently delete this learner message?',
+                                                                    ),
+                                                                )
+                                                            ) {
+                                                                router.delete(
+                                                                    `/settings/learning-support/messages/${message.id}`,
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                        onSuccess:
+                                                                            refreshMessages,
+                                                                    },
+                                                                );
+                                                            }
+                                                        }}
+                                                        size="sm"
+                                                        type="button"
+                                                        variant="destructive"
+                                                    >
+                                                        <Trash2 className="size-4" />
+                                                        {t(
+                                                            'settings.learner_messages.delete',
+                                                            'Delete',
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                            <p
+                                                className={`mt-3 max-w-3xl text-sm leading-6 ${message.hiddenAt ? 'text-slate-400 line-through opacity-70' : ''}`}
+                                            >
+                                                {message.body}
+                                            </p>
+                                            {message.hiddenAt ? (
+                                                <p className="mt-2 text-xs text-amber-600 dark:text-amber-300">
+                                                    {t(
+                                                        'settings.learner_messages.hidden_note',
+                                                        'Hidden from learners',
+                                                    )}
+                                                    {message.hiddenBy
+                                                        ? ` · ${message.hiddenBy.name}`
+                                                        : ''}
+                                                </p>
+                                            ) : null}
+                                            {message.responses.length > 0 ? (
+                                                <div className="mt-4 grid gap-3 border-l-2 border-[var(--settings-border-color)] pl-4">
+                                                    {message.responses.map(
+                                                        (response) => (
+                                                            <div
+                                                                className="grid gap-2"
+                                                                key={
+                                                                    response.id
+                                                                }
+                                                            >
+                                                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                                                    <div>
+                                                                        <p className="text-sm font-semibold">
+                                                                            {
+                                                                                response
+                                                                                    .author
+                                                                                    .name
+                                                                            }
+                                                                        </p>
+                                                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                                            {
+                                                                                response
+                                                                                    .author
+                                                                                    .email
+                                                                            }
+                                                                            {response.createdAt
+                                                                                ? ` · ${new Date(response.createdAt).toLocaleString()}`
+                                                                                : ''}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <Button
+                                                                            onClick={() =>
+                                                                                router.patch(
+                                                                                    `/settings/learning-support/message-responses/${response.id}/visibility`,
+                                                                                    {
+                                                                                        hidden:
+                                                                                            response.hiddenAt ===
+                                                                                            null,
+                                                                                    },
+                                                                                    {
+                                                                                        preserveScroll: true,
+                                                                                        onSuccess:
+                                                                                            refreshMessages,
+                                                                                    },
+                                                                                )
+                                                                            }
+                                                                            size="sm"
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                        >
+                                                                            {response.hiddenAt
+                                                                                ? t(
+                                                                                      'settings.learner_messages.show',
+                                                                                      'Show',
+                                                                                  )
+                                                                                : t(
+                                                                                      'settings.learner_messages.hide',
+                                                                                      'Hide',
+                                                                                  )}
+                                                                        </Button>
+                                                                        <Button
+                                                                            onClick={() => {
+                                                                                if (
+                                                                                    window.confirm(
+                                                                                        t(
+                                                                                            'settings.learner_messages.delete_response_confirm',
+                                                                                            'Permanently delete this learner response?',
+                                                                                        ),
+                                                                                    )
+                                                                                ) {
+                                                                                    router.delete(
+                                                                                        `/settings/learning-support/message-responses/${response.id}`,
+                                                                                        {
+                                                                                            preserveScroll: true,
+                                                                                            onSuccess:
+                                                                                                refreshMessages,
+                                                                                        },
+                                                                                    );
+                                                                                }
+                                                                            }}
+                                                                            size="sm"
+                                                                            type="button"
+                                                                            variant="destructive"
+                                                                        >
+                                                                            <Trash2 className="size-4" />
+                                                                            {t(
+                                                                                'settings.learner_messages.delete',
+                                                                                'Delete',
+                                                                            )}
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                                <p
+                                                                    className={`text-sm leading-6 ${response.hiddenAt ? 'text-slate-400 line-through opacity-70' : ''}`}
+                                                                >
+                                                                    {response.responseType ? (
+                                                                        <span className="mb-1 block text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                                                                            {t(
+                                                                                `settings.learner_messages.response_kind_${response.responseType}`,
+                                                                                response.responseType ===
+                                                                                    'explanation'
+                                                                                    ? 'Explained an idea'
+                                                                                    : response.responseType ===
+                                                                                        'example'
+                                                                                      ? 'Shared an example'
+                                                                                      : response.responseType ===
+                                                                                          'counterexample'
+                                                                                        ? 'Shared a counterexample'
+                                                                                        : 'Asked a question',
+                                                                            )}
+                                                                        </span>
+                                                                    ) : null}
+                                                                    {
+                                                                        response.body
+                                                                    }
+                                                                </p>
+                                                                {response.isHelpful ? (
+                                                                    <span className="mt-2 inline-flex rounded-full border border-teal-500/30 px-2 py-1 text-xs font-medium text-teal-700 dark:border-teal-300/30 dark:text-teal-200">
+                                                                        {t(
+                                                                            'settings.learner_messages.helpful_signal',
+                                                                            'Marked helpful by learner',
+                                                                        )}
+                                                                    </span>
+                                                                ) : null}
+                                                            </div>
+                                                        ),
+                                                    )}
+                                                </div>
+                                            ) : null}
+                                        </article>
+                                    ))}
+                                    {messages.length === 0 ? (
+                                        <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-slate-500 dark:text-slate-400">
+                                            {t(
+                                                'settings.learner_messages.filter_empty',
+                                                'No messages match this view.',
+                                            )}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            )}
                         </div>
+                        <PaginationControls
+                            className="mt-4 border-t border-[var(--settings-border-color)] pt-3"
+                            currentPage={pagination.currentPage}
+                            label={t(
+                                'settings.learner_messages.pagination',
+                                'Message pages',
+                            )}
+                            nextLabel={t(
+                                'settings.learner_messages.next_page',
+                                'Next message page',
+                            )}
+                            onPageChange={setPage}
+                            pageCount={pagination.lastPage}
+                            previousLabel={t(
+                                'settings.learner_messages.previous_page',
+                                'Previous message page',
+                            )}
+                        />
                     </div>
                 </div>
             </SettingsContentPane>

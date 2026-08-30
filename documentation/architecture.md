@@ -232,6 +232,11 @@ Account and access models include:
 - `Organization`, `OrganizationMembership` and organization messages
 - `LearningGroup`, group messages and shared-task submissions
 
+Learning Support moderation loads topic summaries in the settings payload and
+uses the permission-protected message-topic endpoint for paginated message
+records and resolution counts. Nested response details are loaded only for the
+current message page; response-level pagination remains a separate concern.
+
 Support and reflection models include:
 
 - `LearnerJournalPage` and `LearnerJournalFeedbackRequest`

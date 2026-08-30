@@ -184,6 +184,10 @@ test('a learner contributes once and a message wall only returns visible message
 
 test('support requests stay out of peer walls and remain visible to learning support', function () {
     $learner = User::factory()->create();
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
     $supportPrompt = LearningActivity::query()->create([
         'learning_node_id' => $this->node->id,
         'slug' => 'ask-for-help',
@@ -220,18 +224,71 @@ test('support requests stay out of peer walls and remain visible to learning sup
         ->assertOk()
         ->assertJsonCount(0, 'messages');
 
-    $this->actingAs(User::factory()->create([
-        'role' => User::ROLE_ADMIN,
-        'roles' => [User::ROLE_ADMIN],
-    ]))
+    $this->actingAs($admin)
         ->get(route('settings.index', [
             'panel' => 'admin-learning-support',
             'support' => 'learner-messages',
         ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.audience', 'support')
+            ->where('learningSupportSettings.learnerMessages.topics.0.messageCount', 1)
         );
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic))
+        ->assertOk()
+        ->assertJsonPath('messages.0.audience', 'support')
+        ->assertJsonPath('pagination.total', 1);
+});
+
+test('support can page and filter learner message moderation results', function () {
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'paged-support-topic',
+        'title' => 'Paged support topic',
+    ]);
+    $messages = collect(range(1, 13))->map(function (int $number) use ($topic): LearnerMessage {
+        return LearnerMessage::query()->create([
+            'learning_message_topic_id' => $topic->id,
+            'user_id' => User::factory()->create()->id,
+            'body' => "Moderation message {$number}.",
+            'audience' => 'peers',
+        ]);
+    });
+    LearnerMessageResponse::query()->create([
+        'learner_message_id' => $messages->first()->id,
+        'user_id' => $admin->id,
+        'body' => 'A helpful response.',
+        'helpful_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic).'?page=2&per_page=5')
+        ->assertOk()
+        ->assertJsonCount(5, 'messages')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 3)
+        ->assertJsonPath('pagination.total', 13)
+        ->assertJsonPath('counts.all', 13)
+        ->assertJsonPath('counts.helpful', 1)
+        ->assertJsonPath('counts.unconfirmed', 12);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic).'?filter=helpful')
+        ->assertOk()
+        ->assertJsonCount(1, 'messages')
+        ->assertJsonPath('pagination.total', 1)
+        ->assertJsonPath('messages.0.responses.0.body', 'A helpful response.');
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic).'?filter=unconfirmed')
+        ->assertOk()
+        ->assertJsonCount(6, 'messages')
+        ->assertJsonPath('pagination.total', 12);
 });
 
 test('learners can respond once to an opted-in peer message and support can moderate it', function () {
@@ -298,9 +355,14 @@ test('learners can respond once to an opted-in peer message and support can mode
         ]))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.body', 'I noticed that too after slowing down.')
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.responseType', 'counterexample')
+            ->where('learningSupportSettings.learnerMessages.topics.0.messageCount', 1)
         );
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic))
+        ->assertOk()
+        ->assertJsonPath('messages.0.responses.0.body', 'I noticed that too after slowing down.')
+        ->assertJsonPath('messages.0.responses.0.responseType', 'counterexample');
 
     $this->actingAs($admin)
         ->patch(route('settings.learning-support.message-responses.visibility.update', $response), [
@@ -547,11 +609,16 @@ test('admins can hide restore and delete learner messages', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('settings/index')
-            ->where('learningSupportSettings.learnerMessages.0.mapAsset.title', 'Message MapAsset')
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.author.email', $learner->email)
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.id', $response->id)
-            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.isHelpful', true)
+            ->where('learningSupportSettings.learnerMessages.topics.0.mapAsset.title', 'Message MapAsset')
+            ->where('learningSupportSettings.learnerMessages.topics.0.messageCount', 1)
         );
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.learning-support.message-topics.messages.index', $topic))
+        ->assertOk()
+        ->assertJsonPath('messages.0.author.email', $learner->email)
+        ->assertJsonPath('messages.0.responses.0.id', $response->id)
+        ->assertJsonPath('messages.0.responses.0.isHelpful', true);
 
     $this->actingAs($admin)
         ->patch(route('settings.learning-support.messages.visibility.update', $message), [

@@ -33,7 +33,7 @@ export type LearningSupportSection =
 export type LearningSupportSettings = {
     adminPanel: Omit<AdminPanelProps, 'embedded'> | null;
     journal: Omit<JournalSettingsProps, 'embedded'> | null;
-    learnerMessages: LearnerMessageModerationTopic[] | null;
+    learnerMessages: { topics: LearnerMessageModerationTopic[] } | null;
     supportSignals: SupportSignalsSettings | null;
 };
 
@@ -180,7 +180,7 @@ export function LearningSupportPanel({
             {resolvedSection === 'learner-messages' &&
             settings.learnerMessages ? (
                 <LearnerMessageModerationPanel
-                    topics={settings.learnerMessages}
+                    topics={settings.learnerMessages.topics}
                 />
             ) : null}
 

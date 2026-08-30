@@ -298,6 +298,10 @@ the marker is shown as a resolution signal without exposing identities or
 turning responses into a popularity measure. Authorized Learning Support staff
 can see that resolution signal while moderating the exchange and can filter the
 selected topic's threads with or without learner-confirmed help.
+Learning Support keeps the topic directory lightweight and retrieves one
+selected topic's moderation messages in bounded pages; changing the topic,
+resolution view or page loads only that slice while preserving the existing
+moderation actions.
 
 ### Journal, Competence And Collaboration
 
