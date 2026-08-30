@@ -3,6 +3,7 @@
 namespace App\Learning\Services;
 
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerReflection;
 use App\Models\LearnerReviewAttempt;
 use App\Models\LearningActivity;
 use App\Models\User;
@@ -101,11 +102,21 @@ class LearnerProgressService
                 : null;
         }
 
+        $reviewReflection = $recordsReviewAttempt && $playRunId !== null
+            ? LearnerReflection::query()
+                ->where('user_id', $userId)
+                ->where('learning_activity_id', $activity->id)
+                ->where('play_run_id', $playRunId)
+                ->latest('id')
+                ->first()
+            : null;
+
         if ($recordsReviewAttempt) {
             LearnerReviewAttempt::query()->create([
                 'user_id' => $userId,
                 'learning_activity_id' => $activity->id,
                 'learner_activity_progress_id' => $progress->id,
+                'learner_reflection_id' => $reviewReflection?->id,
                 'attempt_number' => $progress->attempt_count,
                 'source' => 'revisit',
                 'outcome' => $outcome,

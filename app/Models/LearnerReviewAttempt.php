@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'learning_activity_id',
     'learner_activity_progress_id',
+    'learner_reflection_id',
     'attempt_number',
     'source',
     'outcome',
@@ -44,6 +45,12 @@ class LearnerReviewAttempt extends Model
     public function progress(): BelongsTo
     {
         return $this->belongsTo(LearnerActivityProgress::class, 'learner_activity_progress_id');
+    }
+
+    /** @return BelongsTo<LearnerReflection, $this> */
+    public function reflection(): BelongsTo
+    {
+        return $this->belongsTo(LearnerReflection::class, 'learner_reflection_id');
     }
 
     /**

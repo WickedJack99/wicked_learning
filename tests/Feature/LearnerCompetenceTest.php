@@ -332,8 +332,10 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ['topic' => 'Retrieval practice', 'weight' => 1],
     ]);
     $activity->update([
+        'type' => 'reflection',
         'config' => [
             ...$activity->config,
+            'learningIntent' => 'explain',
             'feedbackGuidance' => [
                 'rubric' => [
                     'Names the changed pattern.',
@@ -343,6 +345,28 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ],
     ]);
     $runId = (string) Str::uuid();
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Retrieval practice',
+        'topic' => 'Retrieval practice',
+        'subtopic' => 'Competence Activity',
+        'markdown' => '',
+        'preferred_mode' => 'view',
+        'expert_access_requested' => false,
+    ]);
+    $reflection = LearnerReflection::query()->create([
+        'user_id' => $learner->id,
+        'learner_journal_page_id' => $page->id,
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'play_run_id' => $runId,
+        'title' => 'Revisit response',
+        'question' => 'What did you notice?',
+        'reflection' => 'The pattern still holds when I revisit it.',
+        'response_type' => 'explain',
+        'expert_access_requested' => false,
+        'feedback_status' => 'not_requested',
+    ]);
 
     LearnerActivityProgress::query()->create([
         'user_id' => $learner->id,
@@ -393,6 +417,8 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ->toBe(['Names the changed pattern.'])
         ->and(LearnerReviewAttempt::query()->firstOrFail()->metadata)
         ->toBe(['revisitReason' => 'pause'])
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->learner_reflection_id)
+        ->toBe($reflection->id)
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->value('attempt_number'))
@@ -923,6 +949,7 @@ test('a revisited question records its outcome and confidence in review history'
         ->and($review->outcome)->toBe('correct')
         ->and($review->confidence)->toBe('leaning')
         ->and($review->assistance_level)->toBe('independent')
+        ->and($review->learner_reflection_id)->toBeNull()
         ->and($evidence->attempt_number)->toBe(2)
         ->and($evidence->outcome)->toBe('correct')
         ->and($evidence->confidence)->toBe('leaning')

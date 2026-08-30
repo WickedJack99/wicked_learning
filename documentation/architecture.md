@@ -242,6 +242,8 @@ chosen revisits. The competence query loads only the latest twelve attempts with
 their activity and node context; it intentionally omits review metadata and
 private journal content from the learner-facing serializer. It includes only
 the normalized cues the learner chose to notice, not private review text.
+A review attempt may retain a nullable internal link to the matching run's
+private reflection, while the serializer continues to omit the response text.
 Reopened activity
 evidence uses the same incremented attempt number as its review-attempt record,
 so the two records cannot describe different positions in the revisit sequence.

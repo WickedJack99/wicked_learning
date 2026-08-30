@@ -183,6 +183,8 @@ opened as a review attempt. The Learning Desk and Journal explain when it
 became ready and whether the learner originally paused or postponed the return.
 Completing it records that attempt separately from route completion and does
 not by itself claim independent competence.
+When the reviewed activity saves a private response during that run, the attempt
+retains an internal link to it; the response text remains private.
 
 Question activities show their feedback before route completion is recorded,
 giving learners an optional pause to reflect on how settled their understanding
