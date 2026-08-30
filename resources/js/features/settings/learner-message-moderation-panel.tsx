@@ -12,6 +12,8 @@ import type { SettingsNavigationItem } from '@/components/settings-configuration
 import { Button } from '@/components/ui/button';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
+type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
+
 export type LearnerMessageModerationTopic = {
     id: number;
     mapAsset: {
@@ -41,6 +43,13 @@ export type LearnerMessageModerationTopic = {
     title: string;
 };
 
+type LearnerMessageModerationMessage =
+    LearnerMessageModerationTopic['messages'][number];
+
+function hasHelpfulResponse(message: LearnerMessageModerationMessage): boolean {
+    return message.responses.some((response) => response.isHelpful);
+}
+
 export function LearnerMessageModerationPanel({
     topics,
 }: {
@@ -53,6 +62,25 @@ export function LearnerMessageModerationPanel({
     const selectedTopic =
         topics.find((topic) => topic.id.toString() === selectedTopicId) ??
         topics[0];
+    const [responseFilter, setResponseFilter] = useState<ResponseFilter>('all');
+    const visibleMessages = useMemo(() => {
+        const messages = selectedTopic?.messages ?? [];
+
+        if (responseFilter === 'helpful') {
+            return messages.filter((message) => hasHelpfulResponse(message));
+        }
+
+        if (responseFilter === 'unconfirmed') {
+            return messages.filter((message) => !hasHelpfulResponse(message));
+        }
+
+        return messages;
+    }, [responseFilter, selectedTopic]);
+    const helpfulMessageCount =
+        selectedTopic?.messages.filter((message) => hasHelpfulResponse(message))
+            .length ?? 0;
+    const unconfirmedMessageCount =
+        (selectedTopic?.messages.length ?? 0) - helpfulMessageCount;
     const items = useMemo(
         () =>
             topics.map(
@@ -134,9 +162,61 @@ export function LearnerMessageModerationPanel({
                         />
                     </div>
 
+                    <div
+                        aria-label={t(
+                            'settings.learner_messages.filter_label',
+                            'Resolution view',
+                        )}
+                        className="mt-4 flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--settings-border-color)] pb-3"
+                        role="group"
+                    >
+                        <span className="mr-1 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400">
+                            {t(
+                                'settings.learner_messages.filter_label',
+                                'Resolution view',
+                            )}
+                        </span>
+                        {[
+                            {
+                                filter: 'all' as const,
+                                label: t(
+                                    'settings.learner_messages.filter_all',
+                                    'All (:count)',
+                                    { count: selectedTopic.messages.length },
+                                ),
+                            },
+                            {
+                                filter: 'unconfirmed' as const,
+                                label: t(
+                                    'settings.learner_messages.filter_unconfirmed',
+                                    'Needs learner confirmation (:count)',
+                                    { count: unconfirmedMessageCount },
+                                ),
+                            },
+                            {
+                                filter: 'helpful' as const,
+                                label: t(
+                                    'settings.learner_messages.filter_helpful',
+                                    'Learner-confirmed helpful (:count)',
+                                    { count: helpfulMessageCount },
+                                ),
+                            },
+                        ].map((option) => (
+                            <button
+                                aria-pressed={responseFilter === option.filter}
+                                className={`min-h-9 rounded-md border px-3 text-xs font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent-color)] focus-visible:outline-none ${responseFilter === option.filter ? 'border-[var(--settings-accent-color)] bg-[color-mix(in_srgb,var(--settings-accent-color)_14%,transparent)] text-[var(--settings-heading-color)]' : 'border-[var(--settings-border-color)] text-slate-500 hover:border-[var(--settings-accent-color)] hover:text-[var(--settings-heading-color)] dark:text-slate-400'}`}
+                                key={option.filter}
+                                onClick={() => setResponseFilter(option.filter)}
+                                type="button"
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+
                     <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
                         <div className="grid gap-3">
-                            {selectedTopic.messages.map((message) => (
+                            {visibleMessages.map((message) => (
                                 <article
                                     className="border-b border-[var(--settings-border-color)] px-1 py-4 first:pt-0"
                                     key={message.id}
@@ -362,6 +442,14 @@ export function LearnerMessageModerationPanel({
                                     ) : null}
                                 </article>
                             ))}
+                            {visibleMessages.length === 0 ? (
+                                <p className="border-b border-[var(--settings-border-color)] px-1 py-8 text-sm text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'settings.learner_messages.filter_empty',
+                                        'No messages match this view.',
+                                    )}
+                                </p>
+                            ) : null}
                         </div>
                     </div>
                 </div>

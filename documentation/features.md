@@ -295,7 +295,8 @@ quality, and older responses without a label remain valid. The learner who
 started a message can mark one visible response as helpful, or clear that mark;
 the marker is shown as a resolution signal without exposing identities or
 turning responses into a popularity measure. Authorized Learning Support staff
-can see that resolution signal while moderating the exchange.
+can see that resolution signal while moderating the exchange and can filter the
+selected topic's threads with or without learner-confirmed help.
 
 ### Journal, Competence And Collaboration
 
