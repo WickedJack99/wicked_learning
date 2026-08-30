@@ -40,6 +40,43 @@ test('an active reflection activity writes a private journal entry', function ()
         ->and($page->markdown)->toContain('I can connect the idea to my own practice.');
 });
 
+test('a transfer reflection records its changed context as structured private evidence', function () {
+    [$learner, $activity, $runId] = activeReflectionActivity();
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'transfer',
+            'feedbackGuidance' => [
+                'evidence' => 'Connects the idea to a changed context.',
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'play_run_id' => $runId,
+            'reflection' => 'I used the idea to interpret a new example.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('response_context');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'play_run_id' => $runId,
+            'reflection' => 'I used the idea to interpret a new example.',
+            'response_context' => 'A different example from my current project.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('reflection.responseType', 'transfer')
+        ->assertJsonPath('reflection.responseContext', 'A different example from my current project.');
+
+    $reflection = LearnerReflection::query()->firstOrFail();
+
+    expect($reflection->response_type)->toBe('transfer')
+        ->and($reflection->response_context)->toBe('A different example from my current project.')
+        ->and($reflection->page->markdown)->toContain('**Changed context**');
+});
+
 test('a review activity offers earlier private reflections from the same journal topic', function () {
     [$learner, $activity] = activeReflectionActivity();
     $activity->update([

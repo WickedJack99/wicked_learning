@@ -16,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'title',
     'question',
     'reflection',
+    'response_type',
+    'response_context',
     'expert_access_requested',
     'feedback_status',
     'expert_feedback',

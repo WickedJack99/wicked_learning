@@ -654,7 +654,9 @@ export function ReflectionActivity({
     transition: ActivityTransition | null;
 }) {
     const [reflection, setReflection] = useState('');
+    const [responseContext, setResponseContext] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const t = usePlatformTranslation();
     const prompt =
         typeof activity.config.prompt === 'string'
             ? activity.config.prompt
@@ -664,6 +666,14 @@ export function ReflectionActivity({
     const isReview =
         activity.type === 'review' ||
         activity.config.learningIntent === 'review';
+    const responseType =
+        (activity.type === 'reflection' || activity.type === 'review') &&
+        (activity.config.learningIntent === 'explain' ||
+            activity.config.learningIntent === 'transfer')
+            ? activity.config.learningIntent
+            : null;
+    const isTransfer = responseType === 'transfer';
+    const isExplanation = responseType === 'explain';
 
     return (
         <div className="flex flex-1 flex-col gap-4">
@@ -704,19 +714,108 @@ export function ReflectionActivity({
                     </div>
                 </div>
             ) : null}
+            {responseType ? (
+                <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
+                    <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
+                        {t(
+                            'learning.reflection.response_focus',
+                            'Response focus',
+                        )}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
+                        {isTransfer
+                            ? t(
+                                  'learning.reflection.transfer_helper',
+                                  'Name the changed context and explain how the idea worked there.',
+                              )
+                            : t(
+                                  'learning.reflection.explanation_helper',
+                                  'Explain the idea in your own words and connect it to a reason or example.',
+                              )}
+                    </p>
+                </div>
+            ) : null}
             <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {prompt}
             </p>
+            {responseType ? (
+                <label
+                    className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
+                    htmlFor="activity-reflection-response"
+                >
+                    {isExplanation || isTransfer
+                        ? t(
+                              'learning.reflection.explanation_label',
+                              'Your explanation',
+                          )
+                        : t(
+                              'learning.reflection.response_label',
+                              'Your response',
+                          )}
+                </label>
+            ) : null}
             <textarea
+                aria-describedby={
+                    responseType ? 'activity-response-help' : undefined
+                }
                 className="min-h-32 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                id="activity-reflection-response"
                 onChange={(event) => setReflection(event.target.value)}
                 placeholder={
-                    isReview
-                        ? 'Write what feels clearer or still open.'
-                        : 'Write a short note for yourself.'
+                    isTransfer
+                        ? t(
+                              'learning.reflection.transfer_placeholder',
+                              'Explain how the idea worked in the changed context.',
+                          )
+                        : isExplanation
+                          ? t(
+                                'learning.reflection.explanation_placeholder',
+                                'Write the idea in your own words.',
+                            )
+                          : isReview
+                            ? 'Write what feels clearer or still open.'
+                            : 'Write a short note for yourself.'
                 }
                 value={reflection}
             />
+            {isTransfer ? (
+                <div>
+                    <label
+                        className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200"
+                        htmlFor="activity-reflection-context"
+                    >
+                        {t(
+                            'learning.reflection.context_label',
+                            'Changed context',
+                        )}
+                    </label>
+                    <textarea
+                        aria-describedby="activity-response-help"
+                        className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                        id="activity-reflection-context"
+                        onChange={(event) =>
+                            setResponseContext(event.target.value)
+                        }
+                        placeholder={t(
+                            'learning.reflection.context_placeholder',
+                            'Where did you try the idea?',
+                        )}
+                        required
+                        value={responseContext}
+                    />
+                </div>
+            ) : null}
+            {responseType ? (
+                <p
+                    className="text-xs leading-5 text-slate-500 dark:text-slate-400"
+                    id="activity-response-help"
+                >
+                    {t(
+                        'learning.reflection.private_response_hint',
+                        'This response stays in your private journal.',
+                    )}
+                </p>
+            ) : null}
             {note ? (
                 <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
                     {note}
@@ -725,7 +824,10 @@ export function ReflectionActivity({
             <Button
                 className="mt-auto"
                 disabled={
-                    reflection.trim().length === 0 || isSaving || !playRunId
+                    reflection.trim().length === 0 ||
+                    (isTransfer && responseContext.trim().length === 0) ||
+                    isSaving ||
+                    !playRunId
                 }
                 onClick={() => void saveReflection()}
             >
@@ -745,6 +847,7 @@ export function ReflectionActivity({
             await postJson(`/learning/activities/${activity.id}/reflection`, {
                 play_run_id: playRunId,
                 reflection,
+                ...(isTransfer ? { response_context: responseContext } : {}),
                 subtopic:
                     typeof activity.config.subtopic === 'string'
                         ? activity.config.subtopic

@@ -3,6 +3,7 @@
 namespace App\Learning\Actions;
 
 use App\Learning\Services\ActiveLearningActivityResolver;
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\JournalMarkdownComposer;
 use App\Models\LearnerJournalPage;
 use App\Models\LearnerReflection;
@@ -12,17 +13,19 @@ use App\Models\PlatformJournalSetting;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /** Records a reflection only while the learner is at its authenticated activity. */
 class RecordLearnerReflection
 {
     public function __construct(
         private readonly ActiveLearningActivityResolver $activeActivity,
+        private readonly ActivityCompetenceConfiguration $activityCompetence,
         private readonly JournalMarkdownComposer $markdown,
     ) {}
 
     /**
-     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     public function forActivity(User $user, LearningActivity $activity, string $playRunId, array $data): LearnerReflection
     {
@@ -39,6 +42,7 @@ class RecordLearnerReflection
                 'subtopic' => trim((string) ($data['subtopic'] ?? '')) ?: ($config['subtopic'] ?? null),
             ],
             question: (string) ($config['prompt'] ?? 'What feels clearer now?'),
+            responseType: $this->responseTypeForActivity($activity),
             title: $activity->node->title.' - '.$activity->title,
         );
     }
@@ -58,6 +62,7 @@ class RecordLearnerReflection
             dialogueNode: $dialogueNode,
             data: $data,
             question: $dialogueNode->body ?: $dialogueNode->title,
+            responseType: 'reflection',
             title: $activity->node->title.' - '.$dialogueNode->title,
         );
     }
@@ -70,7 +75,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param  array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
+     * @param  array{reflection: string, response_context?: string|null, topic?: string|null, subtopic?: string|null, request_expert_access?: bool}  $data
      */
     private function record(
         User $user,
@@ -78,9 +83,16 @@ class RecordLearnerReflection
         ?NpcDialogueNode $dialogueNode,
         array $data,
         string $question,
+        string $responseType,
         string $title,
     ): LearnerReflection {
-        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $question, $title): LearnerReflection {
+        if ($responseType === 'transfer' && trim((string) ($data['response_context'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'response_context' => 'Name the changed context where you tried the idea.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $question, $responseType, $title): LearnerReflection {
             $topic = trim((string) ($data['topic'] ?? $activity->node->title)) ?: $activity->node->title;
             $subtopic = trim((string) ($data['subtopic'] ?? $activity->title));
             $expertAccess = (bool) ($data['request_expert_access'] ?? false)
@@ -110,6 +122,10 @@ class RecordLearnerReflection
                 'title' => $title,
                 'question' => $question,
                 'reflection' => (string) $data['reflection'],
+                'response_type' => $responseType,
+                'response_context' => $responseType === 'transfer'
+                    ? trim((string) ($data['response_context'] ?? ''))
+                    : null,
                 'expert_access_requested' => $expertAccess,
                 'feedback_status' => $expertAccess ? 'pending' : 'not_requested',
             ]);
@@ -127,5 +143,16 @@ class RecordLearnerReflection
         $title = $subtopic === '' ? $topic : "{$topic} - {$subtopic}";
 
         return mb_strimwidth($title, 0, 240);
+    }
+
+    private function responseTypeForActivity(LearningActivity $activity): string
+    {
+        if (! in_array($activity->type, ['reflection', 'review'], true)) {
+            return 'reflection';
+        }
+
+        $intent = $this->activityCompetence->learningIntentForActivity($activity);
+
+        return in_array($intent, ['explain', 'transfer'], true) ? $intent : 'reflection';
     }
 }

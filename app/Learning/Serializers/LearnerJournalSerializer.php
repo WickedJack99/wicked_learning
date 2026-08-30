@@ -55,6 +55,8 @@ class LearnerJournalSerializer
             'title' => $reflection->title,
             'question' => $reflection->question,
             'reflection' => $reflection->reflection,
+            'responseContext' => $reflection->response_context,
+            'responseType' => $reflection->response_type,
             'feedbackStatus' => $reflection->feedback_status,
             'expertFeedback' => $reflection->expert_feedback,
             'createdAt' => $reflection->created_at?->toIso8601String(),

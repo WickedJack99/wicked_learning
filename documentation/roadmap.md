@@ -53,10 +53,12 @@ Add explicit authorable self-explanation and transfer task contracts with
 observable rubrics. A reflection or completed activity must not silently count
 as an explanation or a transfer demonstration. Feedback should describe the
 observable response and invite a useful next action.
-The current evidence-guidance slice can preserve up to three author-written
-observable cues for explanation and transfer moments. Continue by connecting
-those cues to task-specific response and feedback contracts; do not treat the
-cues alone as an automated assessment.
+The current evidence-guidance slice preserves up to three author-written
+observable cues for explanation and transfer moments. Reflection activities now
+connect those cues to a task-specific learner response, with transfer also
+recording the changed context named by the learner. Continue by adding richer
+feedback and review contracts; do not treat these responses or cues as an
+automated assessment.
 
 ### 4. Explanatory feedback and calibration
 

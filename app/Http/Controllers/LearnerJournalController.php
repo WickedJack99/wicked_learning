@@ -75,7 +75,7 @@ class LearnerJournalController extends Controller
             $request->user(),
             $activity->loadMissing('node'),
             $request->string('play_run_id')->toString(),
-            $this->reflectionData($request),
+            $this->reflectionData($request, true),
         );
 
         return response()->json(['reflection' => $this->serializer->reflection($reflection)]);
@@ -151,15 +151,21 @@ class LearnerJournalController extends Controller
         );
     }
 
-    /** @return array{reflection: string, topic?: string|null, subtopic?: string|null, request_expert_access?: bool} */
-    private function reflectionData(Request $request): array
+    /** @return array{reflection: string, response_context?: string|null, topic?: string|null, subtopic?: string|null, request_expert_access?: bool} */
+    private function reflectionData(Request $request, bool $supportsResponseContext = false): array
     {
-        return $request->validate([
+        $rules = [
             'play_run_id' => ['required', 'uuid'],
             'reflection' => ['required', 'string', 'max:20000'],
             'topic' => ['nullable', 'string', 'max:160'],
             'subtopic' => ['nullable', 'string', 'max:160'],
             'request_expert_access' => ['nullable', 'boolean'],
-        ]);
+        ];
+
+        if ($supportsResponseContext) {
+            $rules['response_context'] = ['nullable', 'string', 'max:20000'];
+        }
+
+        return $request->validate($rules);
     }
 }

@@ -142,6 +142,11 @@ learner's competence ledger; older moments without a purpose remain valid.
 Explanation and transfer evidence also require an authored observable “what to
 notice” criterion; without one, completion remains represented as
 participation rather than making a stronger claim than the activity supports.
+Reflection activities configured for explanation use a clearly labelled
+explanation response. Transfer reflections additionally ask the learner to
+name the changed context where they tried the idea. These responses are saved
+with the learner's private journal entry; they are structured evidence context,
+not an automatic rubric pass.
 
 When a learner chooses to return after a review pause, the due activity is
 opened as a review attempt. The Learning Desk and Journal explain when it
