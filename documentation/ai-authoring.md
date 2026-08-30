@@ -30,12 +30,16 @@ and choose **Create with AI**. The brief asks for:
 - optional prior knowledge
 - one to three Activities
 - allowed Activity types
+- optional administrator-selected source records from the source catalog
 
 The current ContentPlan supports Markdown, Reflection, Message prompt, Shared
 task and Open practice Activities. Generation
 receives the selected map's title, description and existing MapAsset summaries
-so the model can avoid obvious duplication. It does not receive learner records
-or hidden answer data.
+so the model can avoid obvious duplication. When the administrator selects
+sources, their metadata and excerpts are included as optional grounding and
+remain visible in the draft preview. The flow does not receive learner records
+or hidden answer data, and it does not attach a selected source automatically
+to every generated Activity.
 
 The response must satisfy a strict, versioned JSON schema. A valid draft stores:
 
@@ -84,6 +88,9 @@ is never included in learner playback.
 - Generation is synchronous; it is not a queued background job yet.
 - A draft creates one MapAsset and a short linear route, not a complete world.
 - Images are not invented or uploaded by the authoring flow.
+- Administrators may select up to five saved source records as explicit draft
+  context. The selected records are snapshotted with the draft for review; an
+  author must still decide how generated Activities should use or cite them.
 - Administrators can edit the MapAsset and Activity fields in a draft before
   applying it. The edited plan is validated again against the same contract and
   scoped Activity types when it is saved.

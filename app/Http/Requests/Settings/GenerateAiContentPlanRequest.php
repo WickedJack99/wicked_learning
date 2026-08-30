@@ -19,6 +19,8 @@ class GenerateAiContentPlanRequest extends FormRequest
             'route_length' => ['required', 'integer', 'min:1', 'max:3'],
             'activity_types' => ['required', 'array', 'min:1', 'max:3'],
             'activity_types.*' => ['required', 'string', 'distinct', Rule::in(ContentPlanContract::ACTIVITY_TYPES)],
+            'source_record_ids' => ['sometimes', 'array', 'max:5'],
+            'source_record_ids.*' => ['required', 'integer', 'distinct', 'exists:learning_source_records,id'],
         ];
     }
 }

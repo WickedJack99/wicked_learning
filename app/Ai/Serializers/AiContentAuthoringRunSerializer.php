@@ -14,6 +14,7 @@ class AiContentAuthoringRunSerializer
             'status' => $run->status,
             'contractVersion' => $run->contract_version,
             'plan' => $run->plan,
+            'sourceRecords' => $run->context['selectedSourceRecords'] ?? [],
             'warnings' => $run->warnings ?? [],
             'provider' => $run->provider,
             'model' => $run->model,

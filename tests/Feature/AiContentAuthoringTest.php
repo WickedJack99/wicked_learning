@@ -8,6 +8,7 @@ use App\Models\CompetenceTopicDefinition;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningSourceRecord;
 use App\Models\LearningWorld;
 use App\Models\User;
 use Illuminate\Http\Client\Request;
@@ -106,6 +107,77 @@ test('content plans reject unsupported or semantically incomplete activities', f
 
     expect(AiContentAuthoringRun::query()->count())->toBe(0)
         ->and(LearningMapAsset::query()->count())->toBe(0);
+});
+
+test('an administrator can ground an AI draft with explicitly selected source records', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    $selectedSource = LearningSourceRecord::query()->create([
+        'concepts' => ['Energy systems'],
+        'excerpt' => 'Energy changes form while remaining part of the system.',
+        'publisher' => 'Open Learning Press',
+        'title' => 'Energy field guide',
+        'url' => 'https://example.com/energy-field-guide',
+    ]);
+    $unselectedSource = LearningSourceRecord::query()->create([
+        'title' => 'Unselected source',
+        'url' => 'https://example.com/unselected',
+    ]);
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_source_context',
+            'output_text' => json_encode(aiContentPlan()),
+        ]),
+    ]);
+
+    $response = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Explain energy conversion.',
+            'route_length' => 2,
+            'activity_types' => ['markdown', 'reflection'],
+            'source_record_ids' => [$selectedSource->id],
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.sourceRecords.0.id', $selectedSource->id)
+        ->assertJsonPath('data.sourceRecords.0.title', 'Energy field guide');
+
+    $run = AiContentAuthoringRun::query()->findOrFail($response->json('data.id'));
+
+    expect($run->context['selectedSourceRecords'])->toHaveCount(1)
+        ->and($run->context['selectedSourceRecords'][0]['id'])->toBe($selectedSource->id)
+        ->and($run->context['selectedSourceRecords'][0]['excerpt'])
+        ->toBe('Energy changes form while remaining part of the system.')
+        ->and(collect($run->context['selectedSourceRecords'])->pluck('id'))
+        ->not->toContain($unselectedSource->id);
+
+    Http::assertSent(fn (Request $request): bool => str_contains(
+        (string) $request['input'],
+        'Energy field guide',
+    ) && str_contains(
+        (string) $request['input'],
+        'Energy changes form while remaining part of the system.',
+    ) && ! str_contains((string) $request['input'], 'Unselected source'));
+});
+
+test('AI source context is limited to five records', function () {
+    $admin = aiAuthoringUser();
+    [$map, $template] = aiAuthoringContext($admin);
+    $sourceIds = collect(range(1, 6))->map(fn (int $index): int => LearningSourceRecord::query()->create([
+        'title' => "Source {$index}",
+        'url' => "https://example.com/source-{$index}",
+    ])->id)->all();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.ai-content-plans.generate', $map), [
+            'template_id' => $template->id,
+            'goal' => 'Explain energy conversion.',
+            'route_length' => 1,
+            'activity_types' => ['markdown'],
+            'source_record_ids' => $sourceIds,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['source_record_ids']);
 });
 
 test('an administrator can include a learner message prompt in a content plan', function () {

@@ -28,6 +28,28 @@ export type ContentPlan = {
     summary: string;
 };
 
+export type ContentAuthoringSourceRecord = {
+    anchor: string | null;
+    concepts: string[];
+    excerpt: string | null;
+    id: number;
+    publishedAt: string | null;
+    publisher: string | null;
+    rights: string | null;
+    title: string;
+    url: string;
+};
+
+export type SourceRecordPage = {
+    items: ContentAuthoringSourceRecord[];
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+};
+
 export type ContentAuthoringRun = {
     appliedAt: string | null;
     contractVersion: string;
@@ -40,6 +62,7 @@ export type ContentAuthoringRun = {
     model: string;
     plan: ContentPlan;
     provider: string;
+    sourceRecords: ContentAuthoringSourceRecord[];
     status: 'applied' | 'draft';
     usage: {
         inputTokens: number | null;
@@ -54,9 +77,30 @@ export type GenerateContentPlanInput = {
     goal: string;
     prior_knowledge: string | null;
     route_length: number;
+    source_record_ids: number[];
     target_audience: string | null;
     template_id: number;
 };
+
+export async function loadSourceRecords(
+    page = 1,
+    search = '',
+): Promise<SourceRecordPage> {
+    const params = new URLSearchParams({
+        page: String(page),
+        per_page: '12',
+    });
+
+    if (search.trim() !== '') {
+        params.set('search', search.trim());
+    }
+
+    return requestJson<SourceRecordPage>(
+        `/settings/worlds/source-records?${params.toString()}`,
+        undefined,
+        'GET',
+    );
+}
 
 export async function generateContentPlan(
     mapId: number,
@@ -95,17 +139,17 @@ async function postJson<T>(url: string, payload: unknown): Promise<T> {
 async function requestJson<T>(
     url: string,
     payload: unknown,
-    method: 'PATCH' | 'POST',
+    method: 'GET' | 'PATCH' | 'POST',
 ): Promise<T> {
     const csrfToken =
         document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
             ?.content ?? '';
     const response = await fetch(url, {
-        body: JSON.stringify(payload),
+        ...(method === 'GET' ? {} : { body: JSON.stringify(payload) }),
         credentials: 'same-origin',
         headers: {
             Accept: 'application/json',
-            'Content-Type': 'application/json',
+            ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }),
             'X-CSRF-TOKEN': csrfToken,
             'X-Requested-With': 'XMLHttpRequest',
         },

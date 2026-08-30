@@ -6,10 +6,12 @@ use App\Ai\Validation\ContentPlanValidator;
 use App\ContentApi\ContentApiContract;
 use App\ContentApi\ContentPlanContract;
 use App\Learning\Queries\LoadCompetenceTopicDefinitions;
+use App\Learning\Serializers\EditableSourceRecordSerializer;
 use App\Models\AiAgentTemplate;
 use App\Models\AiContentAuthoringRun;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningSourceRecord;
 use App\Models\User;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -20,6 +22,7 @@ class GenerateAiContentPlan
         private readonly ContentPlanContract $planContract,
         private readonly ContentPlanValidator $validator,
         private readonly LoadCompetenceTopicDefinitions $competenceTopics,
+        private readonly EditableSourceRecordSerializer $sourceRecordSerializer,
     ) {}
 
     /**
@@ -95,6 +98,7 @@ class GenerateAiContentPlan
                 ->values()
                 ->all(),
             'availableCompetenceTopics' => $this->competenceTopics->names(),
+            'selectedSourceRecords' => $this->selectedSourceRecords($brief['source_record_ids'] ?? []),
             'brief' => [
                 'goal' => $brief['goal'],
                 'targetAudience' => $brief['target_audience'] ?? null,
@@ -103,6 +107,29 @@ class GenerateAiContentPlan
                 'activityTypes' => array_values($brief['activity_types']),
             ],
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function selectedSourceRecords(mixed $sourceRecordIds): array
+    {
+        if (! is_array($sourceRecordIds) || $sourceRecordIds === []) {
+            return [];
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $sourceRecordIds)));
+        $sources = LearningSourceRecord::query()
+            ->whereKey($ids)
+            ->get()
+            ->keyBy('id');
+
+        return array_values(array_filter(array_map(
+            fn (int $id): ?array => $sources->has($id)
+                ? $this->sourceRecordSerializer->serialize($sources->get($id))
+                : null,
+            $ids,
+        )));
     }
 
     /**
@@ -117,6 +144,7 @@ class GenerateAiContentPlan
             'Use exactly '.(int) $brief['route_length'].' Activities and only these Activity types: '.implode(', ', $brief['activity_types']).'.',
             'For every Activity, provide one to three concise competenceTopics labels drawn from the learning goal, and choose one learningIntent from apply, explain, participate, reflect, retrieve, review or transfer. Reuse an available competence topic label exactly when it fits; propose a concise new label only when none fits. These are teaching design metadata, not learner scores, and you must not output topic weights or thresholds. For markdown Activities, set body and use null for prompt, note, topic and inputLabel. For reflection Activities, set prompt, optionally note, and use null for body, topic and inputLabel. For message_prompt Activities, set prompt, topic and optionally inputLabel, and use null for body and note. For shared_task Activities, set prompt, optionally note and inputLabel, use null for body and topic, and invite a concrete learner contribution without scores or rankings. For open_practice Activities, set prompt to a concrete invitation for a learner-owned next step, and use null for body, note, topic and inputLabel.',
             'Do not invent image paths, user data, IDs, scores, rewards, rankings, or claims about learner performance.',
+            'If selected source records are provided, use them as optional factual grounding. Preserve their titles, URLs, publishers, anchors and excerpts accurately; do not invent citations or imply that an unselected source supports the draft.',
             'Keep the route supportive, concrete, and appropriate for the stated audience and prior knowledge.',
             'Map and authoring context:\n'.json_encode($context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'ContentPlan contract:\n'.json_encode($this->planContract->document(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

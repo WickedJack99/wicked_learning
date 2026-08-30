@@ -29,13 +29,16 @@ import { Label } from '@/components/ui/label';
 import {
     applyContentPlan,
     generateContentPlan,
+    loadSourceRecords,
     updateContentPlan,
 } from '@/features/ai/content-authoring-client';
 import type {
     ContentAuthoringRun,
+    ContentAuthoringSourceRecord,
     ContentPlan,
     ContentPlanActivity,
     ContentPlanActivityType,
+    SourceRecordPage,
 } from '@/features/ai/content-authoring-client';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -54,6 +57,7 @@ type FormState = {
     goal: string;
     priorKnowledge: string;
     routeLength: string;
+    sourceRecordIds: number[];
     targetAudience: string;
     templateId: string;
 };
@@ -88,6 +92,19 @@ export function ContentAuthoringDialog({
     const [editingDraft, setEditingDraft] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [sourceRecords, setSourceRecords] = useState<
+        ContentAuthoringSourceRecord[]
+    >([]);
+    const [sourcePagination, setSourcePagination] = useState(
+        emptySourcePagination(),
+    );
+    const [sourceSearchInput, setSourceSearchInput] = useState('');
+    const [sourceSearch, setSourceSearch] = useState('');
+    const [sourceLoading, setSourceLoading] = useState(false);
+    const [sourceError, setSourceError] = useState(false);
+    const [selectedSources, setSelectedSources] = useState<
+        ContentAuthoringSourceRecord[]
+    >([]);
     const [form, setForm] = useState<FormState>(() => initialForm(templates));
     const canGenerate =
         form.goal.trim() !== '' &&
@@ -100,6 +117,37 @@ export function ContentAuthoringDialog({
             ),
         [form.templateId, templates],
     );
+
+    async function loadSourceRecordsPage(
+        page: number,
+        search = sourceSearch,
+    ): Promise<void> {
+        if (sourceLoading) {
+            return;
+        }
+
+        setSourceLoading(true);
+        setSourceError(false);
+
+        try {
+            const result = await loadSourceRecords(page, search);
+            setSourceRecords(result.items);
+            setSourcePagination(result.pagination);
+            setSourceSearch(search);
+        } catch {
+            setSourceError(true);
+        } finally {
+            setSourceLoading(false);
+        }
+    }
+
+    function openAuthoring(): void {
+        setOpen(true);
+
+        if (sourceRecords.length === 0 && !sourceLoading) {
+            void loadSourceRecordsPage(1, sourceSearch);
+        }
+    }
 
     const close = (nextOpen: boolean) => {
         if (!processing) {
@@ -121,6 +169,7 @@ export function ContentAuthoringDialog({
                     goal: form.goal.trim(),
                     prior_knowledge: optionalText(form.priorKnowledge),
                     route_length: Number(form.routeLength),
+                    source_record_ids: form.sourceRecordIds,
                     target_audience: optionalText(form.targetAudience),
                     template_id: Number(form.templateId),
                 });
@@ -230,7 +279,7 @@ export function ContentAuthoringDialog({
         <Dialog onOpenChange={close} open={open}>
             <Button
                 className="shadow-xl"
-                onClick={() => setOpen(true)}
+                onClick={openAuthoring}
                 type="button"
                 variant="secondary"
             >
@@ -274,7 +323,23 @@ export function ContentAuthoringDialog({
                         <AuthoringForm
                             form={form}
                             onChange={setForm}
+                            onPageChange={(page) =>
+                                void loadSourceRecordsPage(page)
+                            }
+                            onSearch={() =>
+                                void loadSourceRecordsPage(
+                                    1,
+                                    sourceSearchInput.trim(),
+                                )
+                            }
                             selectedTemplate={selectedTemplate}
+                            setSelectedSources={setSelectedSources}
+                            setSourceSearchInput={setSourceSearchInput}
+                            sourceError={sourceError}
+                            sourceLoading={sourceLoading}
+                            sourcePagination={sourcePagination}
+                            sourceRecords={sourceRecords}
+                            selectedSources={selectedSources}
                             templates={templates}
                         />
                     )}
@@ -396,12 +461,32 @@ export function ContentAuthoringDialog({
 function AuthoringForm({
     form,
     onChange,
+    onPageChange,
+    onSearch,
     selectedTemplate,
+    setSelectedSources,
+    setSourceSearchInput,
+    sourceError,
+    sourceLoading,
+    sourcePagination,
+    sourceRecords,
+    selectedSources,
     templates,
 }: {
     form: FormState;
     onChange: (form: FormState) => void;
+    onPageChange: (page: number) => void;
+    onSearch: () => void;
     selectedTemplate: ContentAuthoringTemplate | undefined;
+    setSelectedSources: (
+        sources: ContentAuthoringSourceRecord[],
+    ) => void;
+    setSourceSearchInput: (search: string) => void;
+    sourceError: boolean;
+    sourceLoading: boolean;
+    sourcePagination: SourceRecordPage['pagination'];
+    sourceRecords: ContentAuthoringSourceRecord[];
+    selectedSources: ContentAuthoringSourceRecord[];
     templates: ContentAuthoringTemplate[];
 }) {
     const t = usePlatformTranslation();
@@ -582,7 +667,228 @@ function AuthoringForm({
                     ))}
                 </fieldset>
             </aside>
+            <SourceContextPicker
+                form={form}
+                onChange={onChange}
+                onPageChange={onPageChange}
+                onSearch={onSearch}
+                selectedSources={selectedSources}
+                setSelectedSources={setSelectedSources}
+                setSourceSearchInput={setSourceSearchInput}
+                sourceError={sourceError}
+                sourceLoading={sourceLoading}
+                sourcePagination={sourcePagination}
+                sourceRecords={sourceRecords}
+            />
         </div>
+    );
+}
+
+function SourceContextPicker({
+    form,
+    onChange,
+    onPageChange,
+    onSearch,
+    selectedSources,
+    setSelectedSources,
+    setSourceSearchInput,
+    sourceError,
+    sourceLoading,
+    sourcePagination,
+    sourceRecords,
+}: {
+    form: FormState;
+    onChange: (form: FormState) => void;
+    onPageChange: (page: number) => void;
+    onSearch: () => void;
+    selectedSources: ContentAuthoringSourceRecord[];
+    setSelectedSources: (
+        sources: ContentAuthoringSourceRecord[],
+    ) => void;
+    setSourceSearchInput: (search: string) => void;
+    sourceError: boolean;
+    sourceLoading: boolean;
+    sourcePagination: SourceRecordPage['pagination'];
+    sourceRecords: ContentAuthoringSourceRecord[];
+}) {
+    const t = usePlatformTranslation();
+
+    const toggleSource = (
+        source: ContentAuthoringSourceRecord,
+        checked: boolean,
+    ) => {
+        if (checked && form.sourceRecordIds.length >= 5) {
+            return;
+        }
+
+        const sourceIds = checked
+            ? [...form.sourceRecordIds, source.id]
+            : form.sourceRecordIds.filter((id) => id !== source.id);
+        const nextSources = checked
+            ? [...selectedSources, source]
+            : selectedSources.filter((candidate) => candidate.id !== source.id);
+
+        onChange({ ...form, sourceRecordIds: sourceIds });
+        setSelectedSources(nextSources);
+    };
+
+    return (
+        <section className="grid min-w-0 gap-4 border-t border-[var(--settings-border-color)] pt-5 lg:col-span-2">
+            <div className="grid gap-1">
+                <h3 className="font-semibold text-slate-950 dark:text-white">
+                    {t(
+                        'settings.ai.authoring.source_context',
+                        'Optional source context',
+                    )}
+                </h3>
+                <p className="text-sm leading-6 text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.ai.authoring.source_context_description',
+                        'Select up to five saved sources to ground this draft. Selected metadata and excerpts are sent to the configured provider and remain visible for review.',
+                    )}
+                </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+                <Label className="grid min-w-52 flex-1 gap-2 text-sm font-medium">
+                    {t(
+                        'settings.ai.authoring.source_search',
+                        'Search saved sources',
+                    )}
+                    <Input
+                        aria-label={t(
+                            'settings.ai.authoring.source_search',
+                            'Search saved sources',
+                        )}
+                        onChange={(event) =>
+                            setSourceSearchInput(event.target.value)
+                        }
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                onSearch();
+                            }
+                        }}
+                        placeholder={t(
+                            'settings.ai.authoring.source_search_placeholder',
+                            'Title, URL or publisher',
+                        )}
+                    />
+                </Label>
+                <Button
+                    className="min-h-10"
+                    disabled={sourceLoading}
+                    onClick={onSearch}
+                    type="button"
+                    variant="outline"
+                >
+                    {sourceLoading
+                        ? t('settings.ai.authoring.source_searching', 'Searching…')
+                        : t('settings.ai.authoring.source_search_action', 'Search')}
+                </Button>
+                <span className="text-sm text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.ai.authoring.source_selected_count',
+                        ':count of 5 selected',
+                    ).replace(':count', String(form.sourceRecordIds.length))}
+                </span>
+            </div>
+            {sourceLoading && sourceRecords.length === 0 ? (
+                <p aria-live="polite" className="text-sm text-[var(--settings-muted-text)]" role="status">
+                    {t(
+                        'settings.ai.authoring.source_loading',
+                        'Loading saved sources…',
+                    )}
+                </p>
+            ) : sourceError ? (
+                <p aria-live="polite" className="text-sm text-red-600 dark:text-red-300" role="alert">
+                    {t(
+                        'settings.ai.authoring.source_load_error',
+                        'Saved sources could not be loaded. Try again.',
+                    )}
+                </p>
+            ) : sourceRecords.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                    {sourceRecords.map((source) => {
+                        const selected = form.sourceRecordIds.includes(source.id);
+
+                        return (
+                            <label
+                                className={cn(
+                                    'flex min-w-0 cursor-pointer gap-3 rounded-md border p-3 transition-colors',
+                                    selected
+                                        ? 'border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_8%,transparent)]'
+                                        : 'border-[var(--settings-border-color)]',
+                                )}
+                                key={source.id}
+                            >
+                                <Checkbox
+                                    checked={selected}
+                                    disabled={!selected && form.sourceRecordIds.length >= 5}
+                                    onCheckedChange={(checked) =>
+                                        toggleSource(source, checked === true)
+                                    }
+                                />
+                                <span className="min-w-0">
+                                    <span className="block truncate text-sm font-medium text-slate-950 dark:text-white">
+                                        {source.title}
+                                    </span>
+                                    <span className="mt-1 block truncate text-xs text-[var(--settings-muted-text)]">
+                                        {source.publisher ?? source.url}
+                                    </span>
+                                    {source.excerpt ? (
+                                        <span className="mt-2 line-clamp-2 block text-xs leading-5 text-[var(--settings-muted-text)]">
+                                            {source.excerpt}
+                                        </span>
+                                    ) : null}
+                                </span>
+                            </label>
+                        );
+                    })}
+                </div>
+            ) : (
+                <p className="text-sm text-[var(--settings-muted-text)]">
+                    {t(
+                        'settings.ai.authoring.source_empty',
+                        'No saved sources match this search.',
+                    )}
+                </p>
+            )}
+            {sourcePagination.lastPage > 1 ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                    <Button
+                        className="min-h-10"
+                        disabled={sourceLoading || sourcePagination.currentPage <= 1}
+                        onClick={() => onPageChange(sourcePagination.currentPage - 1)}
+                        type="button"
+                        variant="ghost"
+                    >
+                        <ArrowLeft className="size-4" />
+                        {t('settings.ai.authoring.source_previous', 'Previous')}
+                    </Button>
+                    <span aria-live="polite" className="text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.ai.authoring.source_page',
+                            'Page :page of :pages',
+                        )
+                            .replace(':page', String(sourcePagination.currentPage))
+                            .replace(':pages', String(sourcePagination.lastPage))}
+                    </span>
+                    <Button
+                        className="min-h-10"
+                        disabled={
+                            sourceLoading ||
+                            sourcePagination.currentPage >= sourcePagination.lastPage
+                        }
+                        onClick={() => onPageChange(sourcePagination.currentPage + 1)}
+                        type="button"
+                        variant="ghost"
+                    >
+                        {t('settings.ai.authoring.source_next', 'Next')}
+                        <ArrowLeft className="size-4 rotate-180" />
+                    </Button>
+                </div>
+            ) : null}
+        </section>
     );
 }
 
@@ -937,6 +1243,42 @@ function DraftPreview({ draft }: { draft: ContentAuthoringRun }) {
                 </section>
             ) : null}
 
+            {draft.sourceRecords.length > 0 ? (
+                <section className="grid gap-2 border-l-2 border-[var(--settings-accent)] pl-4">
+                    <h4 className="font-semibold text-slate-950 dark:text-white">
+                        {t(
+                            'settings.ai.authoring.sources',
+                            'Selected source context',
+                        )}
+                    </h4>
+                    <p className="text-sm leading-6 text-[var(--settings-muted-text)]">
+                        {t(
+                            'settings.ai.authoring.sources_description',
+                            'These saved sources were explicitly provided as optional grounding for the draft. Review how the generated content uses them before applying it.',
+                        )}
+                    </p>
+                    <ul className="grid gap-2 text-sm">
+                        {draft.sourceRecords.map((source) => (
+                            <li className="min-w-0" key={source.id}>
+                                <a
+                                    className="font-medium text-[var(--settings-accent)] underline-offset-2 hover:underline"
+                                    href={source.url}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                >
+                                    {source.title}
+                                </a>
+                                {source.excerpt ? (
+                                    <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                        {source.excerpt}
+                                    </p>
+                                ) : null}
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            ) : null}
+
             <section className="grid gap-2">
                 <h4 className="font-semibold text-slate-950 dark:text-white">
                     {t('settings.ai.authoring.map_asset', 'MapAsset')}
@@ -1079,8 +1421,18 @@ function initialForm(templates: ContentAuthoringTemplate[]): FormState {
         goal: '',
         priorKnowledge: '',
         routeLength: '2',
+        sourceRecordIds: [],
         targetAudience: '',
         templateId: templates[0]?.id.toString() ?? '',
+    };
+}
+
+function emptySourcePagination(): SourceRecordPage['pagination'] {
+    return {
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 12,
+        total: 0,
     };
 }
 

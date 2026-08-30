@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * @property array{brief?: array{activityTypes?: list<string>}}|null $context
+ * @property array{brief?: array{activityTypes?: list<string>}, selectedSourceRecords?: list<array<string, mixed>>}|null $context
  * @property array<string, mixed>|null $plan
  * @property list<string>|null $warnings
  * @property Carbon|null $created_at
