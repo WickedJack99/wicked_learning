@@ -934,6 +934,12 @@ function RecallItemRow({
               item.lastConfidence,
           )
         : null;
+    const confidenceAfterFeedbackLabel = item.lastConfidenceAfterFeedback
+        ? t(
+              `home.learning_desk.recall.confidence_${item.lastConfidenceAfterFeedback}`,
+              item.lastConfidenceAfterFeedback,
+          )
+        : null;
 
     return (
         <div className="group grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
@@ -972,7 +978,9 @@ function RecallItemRow({
                           )}`
                         : ''}
                 </span>
-                {item.lastOutcome || item.lastConfidence ? (
+                {item.lastOutcome ||
+                item.lastConfidence ||
+                item.lastConfidenceAfterFeedback ? (
                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                         {item.lastOutcome
                             ? t(
@@ -992,6 +1000,17 @@ function RecallItemRow({
                                       confidence:
                                           confidenceLabel ??
                                           item.lastConfidence,
+                                  },
+                              )}`
+                            : null}
+                        {item.lastConfidenceAfterFeedback
+                            ? ` · ${t(
+                                  'home.learning_desk.recall.last_confidence_after_feedback',
+                                  'After feedback: :confidence',
+                                  {
+                                      confidence:
+                                          confidenceAfterFeedbackLabel ??
+                                          item.lastConfidenceAfterFeedback,
                                   },
                               )}`
                             : null}

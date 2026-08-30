@@ -53,7 +53,8 @@ later postponement, keeping the learner's spacing choice inspectable without
 turning it into a performance measure.
 The first transparent timing baseline for question recall is now implemented:
 the desk distinguishes ready items from future items and explicit recall answers
-record the next interval. Richer review outcomes for other activity types,
+record the next interval. Recall history also retains the optional confidence
+reflection made after feedback. Richer review outcomes for other activity types,
 including optional learner confidence before and after a review response and
 learner-selected observable cues, are now partly supported; a small descriptive
 review-outcome vocabulary is now also supported. Richer outcome contracts and

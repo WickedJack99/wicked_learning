@@ -68,6 +68,30 @@ class LearnerRecallItemService
         return $item;
     }
 
+    public function updatePostFeedbackConfidence(
+        User $user,
+        LearningQuestion $question,
+        ?string $confidence,
+    ): bool {
+        $question->loadMissing('activity.node.map');
+        abort_unless($this->canUseQuestion($user, $question), 404);
+
+        $item = LearnerRecallItem::query()
+            ->where('user_id', $user->id)
+            ->where('learning_question_id', $question->id)
+            ->first();
+
+        if (! $item) {
+            return false;
+        }
+
+        $item->forceFill([
+            'last_confidence_after_feedback' => $confidence,
+        ])->save();
+
+        return true;
+    }
+
     /**
      * @return array{intervalDays: int, nextReviewAt: string}|null
      */

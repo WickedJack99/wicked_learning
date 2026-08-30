@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import {
     queueRecallQuestion,
     removeRecallQuestion,
+    saveRecallFeedback,
 } from '@/features/learning/recall-items';
 import {
     reviewOutcomeDescription,
@@ -446,6 +447,23 @@ export function QuestionActivity({
         }
 
         if (isCompleted) {
+            if (isRecall && confidenceAfterFeedback) {
+                setIsCompleting(true);
+
+                try {
+                    await saveRecallFeedback(
+                        question.id,
+                        confidenceAfterFeedback,
+                    );
+                } catch {
+                    setRecallError(true);
+
+                    return;
+                } finally {
+                    setIsCompleting(false);
+                }
+            }
+
             onMoveToActivity(answer.nextActivityId ?? null);
 
             return;
@@ -454,6 +472,10 @@ export function QuestionActivity({
         setIsCompleting(true);
 
         try {
+            if (isRecall && confidenceAfterFeedback) {
+                await saveRecallFeedback(question.id, confidenceAfterFeedback);
+            }
+
             await onComplete(activity, {
                 confidence: answer.confidence ?? undefined,
                 confidenceAfterFeedback: confidenceAfterFeedback ?? undefined,
@@ -463,6 +485,12 @@ export function QuestionActivity({
                 outcome: answer.isCorrect ? 'correct' : 'incorrect',
             });
             onMoveToActivity(answer.nextActivityId ?? null);
+        } catch (error) {
+            if (isRecall && confidenceAfterFeedback) {
+                setRecallError(true);
+            }
+
+            throw error;
         } finally {
             setIsCompleting(false);
         }
@@ -728,7 +756,10 @@ export function QuestionActivity({
                             ref={continueButtonRef}
                         >
                             {isCompleting
-                                ? t('learning.question.saving_feedback', 'Saving...')
+                                ? t(
+                                      'learning.question.saving_feedback',
+                                      'Saving...',
+                                  )
                                 : answer.nextActivityId
                                   ? 'Continue'
                                   : 'Finish'}

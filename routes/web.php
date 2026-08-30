@@ -135,6 +135,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.questions.recall.destroy');
     Route::post('learning/questions/{question}/recall/postpone', [LearningWorldController::class, 'postponeQuestionRecall'])
         ->name('learning.questions.recall.postpone');
+    Route::post('learning/questions/{question}/recall/feedback', [LearningWorldController::class, 'updateQuestionRecallFeedback'])
+        ->name('learning.questions.recall.feedback');
     Route::post('learning/npc-dialogue-nodes/{node}/answer', [LearningWorldController::class, 'answerNpcDialogue'])
         ->name('learning.npc-dialogue-nodes.answer');
     Route::post('learning/npc-dialogue-nodes/{node}/grant-tool', [LearningWorldController::class, 'grantNpcDialogueTool'])

@@ -374,6 +374,24 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function updateQuestionRecallFeedback(Request $request, LearningQuestion $question): JsonResponse
+    {
+        $data = $request->validate([
+            'confidence_after_feedback' => ['nullable', 'string', 'in:exploring,leaning,settled'],
+        ]);
+
+        return response()->json([
+            'questionId' => $question->id,
+            'updated' => $this->recallItems->updatePostFeedbackConfidence(
+                $request->user(),
+                $question,
+                is_string($data['confidence_after_feedback'] ?? null)
+                    ? (string) $data['confidence_after_feedback']
+                    : null,
+            ),
+        ]);
+    }
+
     public function answerNpcDialogue(Request $request, NpcDialogueNode $node): JsonResponse
     {
         $data = $request->validate([

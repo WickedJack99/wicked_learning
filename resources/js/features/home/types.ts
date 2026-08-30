@@ -61,6 +61,7 @@ export type LearningDeskRecallItem = {
     deskReason: 'saved_for_recall';
     isDue: boolean;
     lastConfidence: string | null;
+    lastConfidenceAfterFeedback: string | null;
     lastOutcome: string | null;
     lastReviewedAt: string | null;
     mapTitle: string;

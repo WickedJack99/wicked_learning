@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'review_count',
     'last_outcome',
     'last_confidence',
+    'last_confidence_after_feedback',
 ])]
 class LearnerRecallItem extends Model
 {

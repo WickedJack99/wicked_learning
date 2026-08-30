@@ -16,3 +16,13 @@ export async function postponeRecallQuestion(
         {},
     );
 }
+
+export async function saveRecallFeedback(
+    questionId: number,
+    confidenceAfterFeedback: string,
+): Promise<{ updated: boolean }> {
+    return postJson<{ updated: boolean }>(
+        `/learning/questions/${questionId}/recall/feedback`,
+        { confidence_after_feedback: confidenceAfterFeedback },
+    );
+}

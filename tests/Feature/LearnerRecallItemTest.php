@@ -83,11 +83,20 @@ test('a recall answer records a transparent next review interval', function () {
         ->assertJsonPath('answer.recall.intervalDays', 1)
         ->assertJsonPath('answer.recall.nextReviewAt', '2026-08-31T14:30:00+00:00');
 
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.feedback', $question), [
+            'confidence_after_feedback' => 'leaning',
+        ])
+        ->assertOk()
+        ->assertJsonPath('questionId', $question->id)
+        ->assertJsonPath('updated', true);
+
     $item = LearnerRecallItem::query()->firstOrFail();
 
     expect($item->review_count)->toBe(1)
         ->and($item->last_outcome)->toBe('correct')
         ->and($item->last_confidence)->toBe('settled')
+        ->and($item->last_confidence_after_feedback)->toBe('leaning')
         ->and($item->next_review_at?->toIso8601String())->toBe('2026-08-31T14:30:00+00:00');
 
     $this->actingAs($learner)
@@ -97,6 +106,7 @@ test('a recall answer records a transparent next review interval', function () {
             ->where('desk.recallItems.0.reviewCount', 1)
             ->where('desk.recallItems.0.lastOutcome', 'correct')
             ->where('desk.recallItems.0.lastConfidence', 'settled')
+            ->where('desk.recallItems.0.lastConfidenceAfterFeedback', 'leaning')
         );
 
     Carbon::setTestNow();
@@ -133,6 +143,19 @@ test('a learner can defer a queued recall without changing its review history', 
         );
 
     Carbon::setTestNow();
+});
+
+test('recall feedback does not create a missing queue item', function () {
+    [$learner, $question] = recallQuestionContext();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.recall.feedback', $question), [
+            'confidence_after_feedback' => 'settled',
+        ])
+        ->assertOk()
+        ->assertJsonPath('updated', false);
+
+    expect(LearnerRecallItem::query()->count())->toBe(0);
 });
 
 test('a learner can remove a question from the private recall queue', function () {

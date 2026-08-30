@@ -85,7 +85,9 @@ so the desk can lead directly to the corresponding competence reading without
 presenting the route as a score. Each desk entry also explains its source in
 plain language: active work is still in progress, recent work was completed
 recently, a revisit was chosen by the learner, and a recall question was kept
-for another attempt. These reasons describe placement rather than making an
+for another attempt. Recall rows also retain and show the learner's optional
+confidence reflection after feedback, separately from the initial confidence
+and correctness result. These reasons describe placement rather than making an
 opaque recommendation, and the learner can choose another desk area whenever
 it is more useful.
 adding a separate progression panel. Desk areas are switched through a local
