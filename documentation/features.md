@@ -294,7 +294,8 @@ label gives the exchange a little orientation without measuring response
 quality, and older responses without a label remain valid. The learner who
 started a message can mark one visible response as helpful, or clear that mark;
 the marker is shown as a resolution signal without exposing identities or
-turning responses into a popularity measure.
+turning responses into a popularity measure. Authorized Learning Support staff
+can see that resolution signal while moderating the exchange.
 
 ### Journal, Competence And Collaboration
 

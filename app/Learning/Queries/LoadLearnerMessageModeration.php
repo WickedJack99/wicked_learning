@@ -50,6 +50,7 @@ class LoadLearnerMessageModeration
                         'id' => $response->id,
                         'body' => $response->body,
                         'responseType' => $response->response_type,
+                        'isHelpful' => $response->helpful_at !== null,
                         'createdAt' => $response->created_at?->toIso8601String(),
                         'hiddenAt' => $response->hidden_at?->toIso8601String(),
                         'author' => [

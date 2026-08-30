@@ -531,6 +531,12 @@ test('admins can hide restore and delete learner messages', function () {
         'user_id' => $learner->id,
         'body' => 'A message for moderation.',
     ]);
+    $response = LearnerMessageResponse::query()->create([
+        'learner_message_id' => $message->id,
+        'user_id' => $admin->id,
+        'body' => 'A response that resolved the question.',
+        'helpful_at' => now(),
+    ]);
 
     $this->actingAs($admin)
         ->get(route('settings.index', [
@@ -542,6 +548,8 @@ test('admins can hide restore and delete learner messages', function () {
             ->component('settings/index')
             ->where('learningSupportSettings.learnerMessages.0.mapAsset.title', 'Message MapAsset')
             ->where('learningSupportSettings.learnerMessages.0.messages.0.author.email', $learner->email)
+            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.id', $response->id)
+            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.isHelpful', true)
         );
 
     $this->actingAs($admin)

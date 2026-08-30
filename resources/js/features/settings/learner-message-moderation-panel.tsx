@@ -34,6 +34,7 @@ export type LearnerMessageModerationTopic = {
             hiddenAt: string | null;
             hiddenBy: { id: number; name: string } | null;
             id: number;
+            isHelpful: boolean;
             responseType: 'explanation' | 'example' | 'question' | null;
         }>;
     }>;
@@ -346,6 +347,14 @@ export function LearnerMessageModerationPanel({
                                                             ) : null}
                                                             {response.body}
                                                         </p>
+                                                        {response.isHelpful ? (
+                                                            <span className="mt-2 inline-flex rounded-full border border-teal-500/30 px-2 py-1 text-xs font-medium text-teal-700 dark:border-teal-300/30 dark:text-teal-200">
+                                                                {t(
+                                                                    'settings.learner_messages.helpful_signal',
+                                                                    'Marked helpful by learner',
+                                                                )}
+                                                            </span>
+                                                        ) : null}
                                                     </div>
                                                 ),
                                             )}
