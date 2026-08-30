@@ -953,6 +953,19 @@ function TopicCompetenceCard({
                                                         entry.evidenceClaim,
                                                     )}
                                                 </span>
+                                                {entry.outcome ? (
+                                                    <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
+                                                        {t(
+                                                            'learning.review.outcome_signal',
+                                                            'Review signal',
+                                                        )}
+                                                        :{' '}
+                                                        {reviewOutcomeLabel(
+                                                            entry.outcome,
+                                                            t,
+                                                        )}
+                                                    </span>
+                                                ) : null}
                                                 {entry.confidence ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                         Before answering:{' '}
@@ -1096,6 +1109,22 @@ function evidenceClaimLabel(claim: string): string {
             review: 'A review was recorded.',
             transfer_attempt: 'A transfer attempt was recorded.',
         }[claim] ?? 'A learning encounter was recorded.'
+    );
+}
+
+function reviewOutcomeLabel(
+    outcome: string,
+    translate: ReturnType<typeof usePlatformTranslation>,
+): string {
+    return translate(
+        `learning.review.outcome_${outcome}`,
+        {
+            clearer: 'Clearer now',
+            connected: 'More connected',
+            open: 'Still open',
+            correct: 'Useful clue found',
+            incorrect: 'Adjust the hypothesis',
+        }[outcome] ?? 'Review completed',
     );
 }
 

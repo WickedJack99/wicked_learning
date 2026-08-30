@@ -184,8 +184,10 @@ objective, purpose, criterion, cues and bounded source references are snapshots
 of the activity guidance at completion time, so later author edits do not
 rewrite the meaning or provenance of an earlier learning moment. Source
 references are normalized again when the evidence ledger is serialized. When a
-route entry
-timestamp is available, `latency_seconds` records elapsed wall-clock time from
+descriptive review outcome is present, both learner evidence-ledger serializers
+carry it through as a nullable signal without interpreting it as an assessment.
+When a route entry timestamp is available, `latency_seconds` records elapsed
+wall-clock time from
 the learner's latest entry into that activity to completion. It is an internal
 observation, not a measure of attention and not a learner score.
 The generic activity completion endpoint accepts an optional validated

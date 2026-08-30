@@ -1046,6 +1046,19 @@ function CompetenceReading({
                                                 evidence.evidenceClaim,
                                             )}
                                         </span>
+                                        {evidence.outcome ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                {translate(
+                                                    'learning.review.outcome_signal',
+                                                    'Review signal',
+                                                )}
+                                                :{' '}
+                                                {reviewOutcomeLabel(
+                                                    evidence.outcome,
+                                                    translate,
+                                                )}
+                                            </span>
+                                        ) : null}
                                         {evidence.objective ? (
                                             <span className="mt-1 block text-xs text-cyan-100/70">
                                                 Objective: {evidence.objective}

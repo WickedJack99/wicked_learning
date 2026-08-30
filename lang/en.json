@@ -759,6 +759,7 @@
     "learning.review.outcome_open": "Still open",
     "learning.review.outcome_correct": "Useful clue found",
     "learning.review.outcome_incorrect": "Adjust the hypothesis",
+    "learning.review.outcome_signal": "Review signal",
     "learning.question.calibration.aligned": "Your confidence matched this result.",
     "learning.question.calibration.stronger_than_expected": "This result was stronger than your starting sense.",
     "learning.question.calibration.higher_than_result": "Your starting confidence was higher than this result. Compare the explanation with your reasoning.",

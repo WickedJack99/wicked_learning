@@ -262,6 +262,9 @@ The evidence reading also distinguishes a successful independent recall from a
 generic attempt or encounter, while keeping application, explanation,
 reflection, review and transfer as the kinds of activity they were rather than
 turning them into a shared score.
+When a learner records an optional descriptive review outcome, the competence
+map and topic evidence ledgers show that signal alongside the learning moment;
+it remains a learner reflection, not a grade or score.
 For explanation and transfer moments, the evidence ledger also retains the
 author's observable “what to notice” criterion that was active when the moment
 was recorded. Authors can add up to three optional observable rubric cues, one

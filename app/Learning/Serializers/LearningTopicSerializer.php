@@ -195,6 +195,9 @@ class LearningTopicSerializer
                         'confidence' => is_string($entry['confidence'] ?? null)
                             ? $entry['confidence']
                             : null,
+                        'outcome' => is_string($entry['outcome'] ?? null)
+                            ? $entry['outcome']
+                            : null,
                         'attemptNumber' => (int) ($entry['attemptNumber'] ?? 1),
                     ],
                     array_filter(

@@ -150,6 +150,7 @@ test('a topic shows competence evidence encountered through its map', function (
         'evidence_type' => 'explain',
         'contribution' => 1,
         'confidence' => 'leaning',
+        'outcome' => 'clearer',
         'attempt_number' => 2,
         'source_references' => [
             [
@@ -169,6 +170,7 @@ test('a topic shows competence evidence encountered through its map', function (
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.activityTitle', $activity->title)
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.evidenceType', 'explain')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.confidence', 'leaning')
+            ->where('topic.subtopicCompetence.0.evidenceLedger.0.outcome', 'clearer')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.attemptNumber', 2)
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.title', 'Pattern field guide')
             ->where('topic.subtopicCompetence.0.evidenceLedger.0.sources.0.url', 'https://example.test/patterns')
@@ -942,6 +944,7 @@ test('competence star map shows studied topics and transitions', function () {
         'learning_purpose' => 'Recall the central relationship before reviewing it.',
         'contribution' => 3,
         'confidence' => 'settled',
+        'outcome' => 'connected',
         'attempt_number' => 2,
     ]);
     $olderEvent->forceFill([
@@ -1008,6 +1011,7 @@ test('competence star map shows studied topics and transitions', function () {
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeTitle', $activity->node->title)
             ->where('competenceMap.topics.0.visual.evidenceLedger.0.nodeHref', route('learning.nodes.play', ['node' => $activity->node]))
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.confidence', 'settled')
+            ->where('competenceMap.topics.0.visual.evidenceLedger.1.outcome', 'connected')
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.evidenceClaim', 'retrieval_attempt')
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.attemptNumber', 2)
             ->where('competenceMap.topics.0.visual.evidenceLedger.1.learningPurpose', 'Recall the central relationship before reviewing it.')

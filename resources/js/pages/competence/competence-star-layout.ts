@@ -28,6 +28,7 @@ export type CompetenceTopic = {
             objective: string | null;
             learningPurpose: string | null;
             confidence: string | null;
+            outcome: string | null;
             id: number;
             attemptNumber: number;
             nodeHref: string | null;

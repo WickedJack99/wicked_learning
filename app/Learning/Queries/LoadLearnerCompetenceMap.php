@@ -182,7 +182,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, attemptNumber: int}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, outcome: string|null, attemptNumber: int}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -211,6 +211,7 @@ class LoadLearnerCompetenceMap
                     'nodeTitle' => $node?->title,
                     'recordedAt' => $event->created_at?->toIso8601String(),
                     'confidence' => $event->confidence,
+                    'outcome' => $event->outcome,
                     'attemptNumber' => (int) $event->attempt_number,
                 ];
             })
