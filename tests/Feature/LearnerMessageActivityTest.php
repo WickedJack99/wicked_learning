@@ -299,6 +299,7 @@ test('learners can respond once to an opted-in peer message and support can mode
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.body', 'I noticed that too after slowing down.')
+            ->where('learningSupportSettings.learnerMessages.0.messages.0.responses.0.responseType', 'counterexample')
         );
 
     $this->actingAs($admin)

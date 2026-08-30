@@ -876,6 +876,7 @@
     "settings.learner_messages.empty_description": "Messages appear here after learners contribute through a Message prompt activity.",
     "settings.learner_messages.empty_title": "No learner messages yet",
     "settings.learner_messages.eyebrow": "Learner Messages",
+    "settings.learner_messages.response_kind_counterexample": "Shared a counterexample",
     "settings.learner_messages.filter_all": "All (:count)",
     "settings.learner_messages.filter_empty": "No messages match this view.",
     "settings.learner_messages.filter_helpful": "Learner-confirmed helpful (:count)",

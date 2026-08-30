@@ -37,7 +37,12 @@ export type LearnerMessageModerationTopic = {
             hiddenBy: { id: number; name: string } | null;
             id: number;
             isHelpful: boolean;
-            responseType: 'explanation' | 'example' | 'question' | null;
+            responseType:
+                | 'counterexample'
+                | 'explanation'
+                | 'example'
+                | 'question'
+                | null;
         }>;
     }>;
     title: string;
@@ -421,7 +426,10 @@ export function LearnerMessageModerationPanel({
                                                                             : response.responseType ===
                                                                                 'example'
                                                                               ? 'Shared an example'
-                                                                              : 'Asked a question',
+                                                                              : response.responseType ===
+                                                                                  'counterexample'
+                                                                                ? 'Shared a counterexample'
+                                                                                : 'Asked a question',
                                                                     )}
                                                                 </span>
                                                             ) : null}
