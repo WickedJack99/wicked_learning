@@ -14,13 +14,18 @@ class LearningGroupSerializer
      */
     public function forLearner(LearningGroup $group, User $user): array
     {
-        $group->loadMissing(['members:id,name,email', 'messages.user:id,name,email', 'adminChatVotes']);
+        $group->loadMissing([
+            'members:id,name,email',
+            'messages.user:id,name,email',
+            'messages.resolvedBy:id,name,email',
+            'adminChatVotes',
+        ]);
 
         return [
             ...$this->base($group),
             'messages' => $group->messages
                 ->sortBy('created_at')
-                ->map(fn (LearningGroupMessage $message): array => $this->message($message))
+                ->map(fn (LearningGroupMessage $message): array => $this->message($message, $user))
                 ->values()
                 ->all(),
             'currentUserVotedForAdminChat' => $group->adminChatVotes->contains('user_id', $user->id),
@@ -32,7 +37,12 @@ class LearningGroupSerializer
      */
     public function forAdmin(LearningGroup $group): array
     {
-        $group->loadMissing(['members:id,name,email', 'messages.user:id,name,email', 'adminChatVotes']);
+        $group->loadMissing([
+            'members:id,name,email',
+            'messages.user:id,name,email',
+            'messages.resolvedBy:id,name,email',
+            'adminChatVotes',
+        ]);
 
         return [
             ...$this->base($group),
@@ -101,11 +111,18 @@ class LearningGroupSerializer
     /**
      * @return array<string, mixed>
      */
-    private function message(LearningGroupMessage $message): array
+    private function message(LearningGroupMessage $message, ?User $viewer = null): array
     {
         return [
             'id' => $message->id,
             'body' => $message->body,
+            'isHelpRequest' => $message->is_help_request,
+            'resolvedAt' => $this->date($message->resolved_at),
+            'resolvedBy' => $message->resolvedBy ? $this->user($message->resolvedBy) : null,
+            'canResolve' => $viewer !== null
+                && $message->is_help_request
+                && $message->resolved_at === null
+                && $message->user_id !== $viewer->id,
             'createdAt' => $this->date($message->created_at),
             'user' => $message->user ? $this->user($message->user) : null,
         ];

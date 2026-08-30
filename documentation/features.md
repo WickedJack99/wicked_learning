@@ -384,7 +384,9 @@ a competence area also relates to another published topic.
 
 Organizations, learning groups, group chat and shared-task activities form an
 early collaboration slice. Their purpose is contribution and coordination, not
-public scoring.
+public scoring. Group members can label a message as a help request and mark
+that request resolved; this records that the request no longer needs attention,
+not that a response was correct or that a learner earned a result.
 
 ### Tools, Items And Portals
 

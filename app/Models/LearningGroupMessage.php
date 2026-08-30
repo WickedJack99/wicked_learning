@@ -10,9 +10,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learning_group_id',
     'user_id',
     'body',
+    'is_help_request',
 ])]
 class LearningGroupMessage extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'is_help_request' => 'boolean',
+            'resolved_at' => 'datetime',
+        ];
+    }
+
     /**
      * @return BelongsTo<LearningGroup, $this>
      */
@@ -27,5 +36,13 @@ class LearningGroupMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
     }
 }

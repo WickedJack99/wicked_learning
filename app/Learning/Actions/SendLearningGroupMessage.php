@@ -12,8 +12,12 @@ class SendLearningGroupMessage
 {
     public function __construct(private readonly ConsecutiveMessageRateLimiter $rateLimiter) {}
 
-    public function handle(LearningGroup $group, User $user, string $body): LearningGroupMessage
-    {
+    public function handle(
+        LearningGroup $group,
+        User $user,
+        string $body,
+        bool $isHelpRequest = false,
+    ): LearningGroupMessage {
         if (! $this->isMember($group, $user)) {
             throw ValidationException::withMessages([
                 'group' => 'You are not a member of this group.',
@@ -25,6 +29,7 @@ class SendLearningGroupMessage
         return $group->messages()->create([
             'user_id' => $user->id,
             'body' => trim($body),
+            'is_help_request' => $isHelpRequest,
         ])->load('user');
     }
 

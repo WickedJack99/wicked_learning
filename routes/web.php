@@ -85,6 +85,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.groups.index');
     Route::post('learning/groups/{group}/messages', [LearningGroupController::class, 'storeMessage'])
         ->name('learning.groups.messages.store');
+    Route::post('learning/groups/{group}/messages/{message}/resolve', [LearningGroupController::class, 'resolveHelpRequest'])
+        ->name('learning.groups.messages.resolve');
     Route::post('learning/groups/{group}/admin-chat-vote', [LearningGroupController::class, 'voteForAdminChatAccess'])
         ->name('learning.groups.admin-chat-vote');
     Route::post('learning/nodes/{node}/bookmark', [LearningBookmarkController::class, 'store'])

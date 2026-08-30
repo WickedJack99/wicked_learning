@@ -109,6 +109,54 @@ test('group members can chat and vote to let admins view chat history', function
     expect($group->refresh()->admin_chat_visible_enabled)->toBeTrue();
 });
 
+test('group members can mark a help request resolved without treating it as a result', function () {
+    [$first, $second, $outsider] = User::factory()->count(3)->create();
+    $group = LearningGroup::query()->create([
+        'name' => 'Help Circle',
+        'slug' => 'help-circle',
+    ]);
+    $group->members()->attach([
+        $first->id => ['joined_at' => now()],
+        $second->id => ['joined_at' => now()],
+    ]);
+
+    $this->actingAs($first)
+        ->postJson(route('learning.groups.messages.store', $group), [
+            'body' => 'Could someone help me understand this connection?',
+            'is_help_request' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('group.messages.0.isHelpRequest', true)
+        ->assertJsonPath('group.messages.0.resolvedAt', null);
+
+    $message = $group->messages()->firstOrFail();
+
+    $this->actingAs($first)
+        ->postJson(route('learning.groups.messages.resolve', [$group, $message]))
+        ->assertJsonValidationErrors('message');
+
+    $resolveResponse = $this->actingAs($second)
+        ->postJson(route('learning.groups.messages.resolve', [$group, $message]))
+        ->assertOk()
+        ->assertJsonPath('group.messages.0.isHelpRequest', true)
+        ->assertJsonPath('group.messages.0.resolvedBy.id', $second->id);
+
+    expect($resolveResponse->json('group.messages.0.resolvedAt'))->toBeString();
+
+    $this->actingAs($outsider)
+        ->postJson(route('learning.groups.messages.resolve', [$group, $message]))
+        ->assertJsonValidationErrors('group');
+
+    $ordinaryMessage = $group->messages()->create([
+        'user_id' => $first->id,
+        'body' => 'A regular contribution.',
+    ]);
+
+    $this->actingAs($second)
+        ->postJson(route('learning.groups.messages.resolve', [$group, $ordinaryMessage]))
+        ->assertJsonValidationErrors('message');
+});
+
 test('group chat blocks a third consecutive message inside one minute', function () {
     Carbon::setTestNow('2026-07-21 12:00:00');
 

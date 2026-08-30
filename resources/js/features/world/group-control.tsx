@@ -8,8 +8,16 @@ import { JsonRequestError, postJson } from './api';
 
 type GroupMessage = {
     body: string;
+    canResolve: boolean;
     createdAt: string | null;
     id: number;
+    isHelpRequest: boolean;
+    resolvedAt: string | null;
+    resolvedBy: {
+        email: string;
+        id: number;
+        name: string;
+    } | null;
     user: {
         email: string;
         id: number;
@@ -132,7 +140,12 @@ function GroupChatCard({
     group: LearningGroup;
     onGroupUpdated: (group: LearningGroup) => void;
 }) {
+    const t = usePlatformTranslation();
     const [body, setBody] = useState('');
+    const [isHelpRequest, setIsHelpRequest] = useState(false);
+    const [isResolvingMessageId, setIsResolvingMessageId] = useState<
+        number | null
+    >(null);
     const [isSending, setIsSending] = useState(false);
     const [error, setError] = useState('');
 
@@ -149,10 +162,11 @@ function GroupChatCard({
         try {
             const response = await postJson<{ group: LearningGroup }>(
                 `/learning/groups/${group.id}/messages`,
-                { body: message },
+                { body: message, is_help_request: isHelpRequest },
             );
             onGroupUpdated(response.group);
             setBody('');
+            setIsHelpRequest(false);
         } catch (error) {
             setError(
                 error instanceof JsonRequestError
@@ -161,6 +175,30 @@ function GroupChatCard({
             );
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const resolveHelpRequest = async (messageId: number) => {
+        setError('');
+        setIsResolvingMessageId(messageId);
+
+        try {
+            const response = await postJson<{ group: LearningGroup }>(
+                `/learning/groups/${group.id}/messages/${messageId}/resolve`,
+                {},
+            );
+            onGroupUpdated(response.group);
+        } catch (error) {
+            setError(
+                error instanceof JsonRequestError
+                    ? error.message
+                    : t(
+                          'world.groups.help.resolve_error',
+                          'The help request could not be updated.',
+                      ),
+            );
+        } finally {
+            setIsResolvingMessageId(null);
         }
     };
 
@@ -219,9 +257,24 @@ function GroupChatCard({
                         key={message.id}
                     >
                         <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-                            <p className="font-medium">
-                                {message.user?.name ?? 'Unknown user'}
-                            </p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-medium">
+                                    {message.user?.name ?? 'Unknown user'}
+                                </p>
+                                {message.isHelpRequest ? (
+                                    <span className="rounded-full border border-amber-300/70 px-2 py-0.5 text-[0.7rem] font-semibold text-amber-700 dark:border-amber-200/30 dark:text-amber-200">
+                                        {message.resolvedAt
+                                            ? t(
+                                                  'world.groups.help.resolved',
+                                                  'Help request resolved',
+                                              )
+                                            : t(
+                                                  'world.groups.help.request',
+                                                  'Help requested',
+                                              )}
+                                    </span>
+                                ) : null}
+                            </div>
                             <time dateTime={message.createdAt ?? undefined}>
                                 {formatMessageTime(message.createdAt)}
                             </time>
@@ -229,8 +282,62 @@ function GroupChatCard({
                         <p className="mt-1 leading-6 whitespace-pre-wrap">
                             {message.body}
                         </p>
+                        {message.isHelpRequest && message.resolvedAt ? (
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                {t(
+                                    'world.groups.help.resolved_by',
+                                    'Marked resolved by :name.',
+                                    {
+                                        name:
+                                            message.resolvedBy?.name ??
+                                            t('common.unknown', 'Unknown'),
+                                    },
+                                )}
+                            </p>
+                        ) : null}
+                        {message.canResolve ? (
+                            <Button
+                                className="mt-2"
+                                disabled={isResolvingMessageId === message.id}
+                                onClick={() =>
+                                    void resolveHelpRequest(message.id)
+                                }
+                                size="sm"
+                                type="button"
+                                variant="ghost"
+                            >
+                                {isResolvingMessageId === message.id
+                                    ? t(
+                                          'world.groups.help.resolving',
+                                          'Updating...',
+                                      )
+                                    : t(
+                                          'world.groups.help.mark_resolved',
+                                          'Mark resolved',
+                                      )}
+                            </Button>
+                        ) : null}
                     </div>
                 ))}
+            </div>
+            <div className="grid gap-1">
+                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+                    <input
+                        checked={isHelpRequest}
+                        className="size-4 accent-teal-500"
+                        onChange={(event) =>
+                            setIsHelpRequest(event.target.checked)
+                        }
+                        type="checkbox"
+                    />
+                    {t('world.groups.help.checkbox', 'Ask the group for help')}
+                </label>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {t(
+                        'world.groups.help.helper',
+                        'This labels your message as a request that another member can mark resolved.',
+                    )}
+                </p>
             </div>
             <div className="flex gap-2">
                 <Input
