@@ -196,6 +196,10 @@ test('route play completion records configured evidence once per play run', func
             'evidenceObjective' => 'Reconnect the observation to its underlying reason.',
             'feedbackGuidance' => [
                 'purpose' => 'Return to the idea and notice what changed.',
+                'rubric' => [
+                    'Names the changed pattern.',
+                    'Connects the clue to a reason.',
+                ],
             ],
         ],
     ]);
@@ -218,6 +222,10 @@ test('route play completion records configured evidence once per play run', func
         ->postJson(route('learning.activities.progress', $activity), [
             'confidence' => 'settled',
             'outcome' => 'clearer',
+            'observed_cues' => [
+                'Connects the clue to a reason.',
+                'This cue was not authored.',
+            ],
             'play_run_id' => $runId,
             'status' => 'completed',
         ])
@@ -270,6 +278,11 @@ test('route play completion records configured evidence once per play run', func
         ->toBe('settled')
         ->and(LearnerEvidenceEvent::query()
             ->where('play_run_id', $runId)
+            ->where('topic_slug', 'algebra')
+            ->value('observed_cues'))
+        ->toBe(['Connects the clue to a reason.'])
+        ->and(LearnerEvidenceEvent::query()
+            ->where('play_run_id', $runId)
             ->pluck('latency_seconds')
             ->map(fn (mixed $value): int => (int) $value)
             ->all())
@@ -315,6 +328,17 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
     [$node, $activity, $start] = competenceRoute([
         ['topic' => 'Retrieval practice', 'weight' => 1],
     ]);
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'feedbackGuidance' => [
+                'rubric' => [
+                    'Names the changed pattern.',
+                    'Connects the clue to a reason.',
+                ],
+            ],
+        ],
+    ]);
     $runId = (string) Str::uuid();
 
     LearnerActivityProgress::query()->create([
@@ -346,6 +370,7 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ->postJson(route('learning.activities.progress', $activity), [
             'confidence' => 'leaning',
             'confidence_after_feedback' => 'settled',
+            'observed_cues' => ['Names the changed pattern.'],
             'is_revisit' => true,
             'play_run_id' => $runId,
             'status' => 'completed',
@@ -358,6 +383,8 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
         ->toBe('leaning')
         ->and(LearnerReviewAttempt::query()->firstOrFail()->confidence_after_feedback)
         ->toBe('settled')
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->observed_cues)
+        ->toBe(['Names the changed pattern.'])
         ->and(LearnerEvidenceEvent::query()
             ->where('user_id', $learner->id)
             ->value('attempt_number'))
@@ -1094,6 +1121,7 @@ test('competence map shows bounded review history without private journal text',
         'outcome' => 'correct',
         'confidence' => 'leaning',
         'confidence_after_feedback' => 'settled',
+        'observed_cues' => ['Names the changed pattern.'],
         'assistance_level' => 'independent',
         'attempted_at' => now(),
         'metadata' => [
@@ -1114,6 +1142,7 @@ test('competence map shows bounded review history without private journal text',
             ->where('competenceMap.reviewAttempts.0.outcome', 'correct')
             ->where('competenceMap.reviewAttempts.0.confidence', 'leaning')
             ->where('competenceMap.reviewAttempts.0.confidenceAfterFeedback', 'settled')
+            ->where('competenceMap.reviewAttempts.0.observedCues', ['Names the changed pattern.'])
             ->where('competenceMap.reviewAttempts.0.attemptNumber', 2)
             ->missing('competenceMap.reviewAttempts.0.metadata')
             ->missing('competenceMap.reviewAttempts.0.privateReflection')

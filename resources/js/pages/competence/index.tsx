@@ -750,6 +750,17 @@ function LearningPulseTimeline({
                                                   },
                                               )}`
                                             : ''}
+                                        {attempt.observedCues.length > 0
+                                            ? ` · ${translate(
+                                                  'competence.pulse.review_noticed_cues',
+                                                  'Noticed: :cues',
+                                                  {
+                                                      cues: attempt.observedCues.join(
+                                                          ', ',
+                                                      ),
+                                                  },
+                                              )}`
+                                            : ''}
                                         {attempt.assistanceLevel
                                             ? ` · ${assistanceLevelLabel(attempt.assistanceLevel, translate)}`
                                             : ''}

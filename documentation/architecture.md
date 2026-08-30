@@ -203,10 +203,11 @@ objective, concept-label and learning-purpose snapshots, observable evidence cri
 outcome, starting confidence, optional post-feedback confidence, calibration,
 attempt and assistance context. For question
 activities, calibration is a descriptive snapshot derived from the submitted
-confidence and answer outcome; it does not contribute a score. For explanation
-and transfer events it can also store an optional confidence signal after the
-authored guidance pause, alongside up to three normalized rubric cues. The
-learner's optional selection of cues they noticed is stored separately as an
+confidence and answer outcome; it does not contribute a score. For explanation,
+review and transfer events it can also store an optional confidence signal
+after the authored guidance pause, alongside up to three normalized rubric
+cues. Review activities can use the same cues as a learner self-observation
+signal. The learner's optional selection of cues they noticed is stored separately as an
 observed-cues snapshot; it records self-observation and is not a rubric result.
 objective, purpose, criterion, cues and bounded source references are snapshots
 of the activity guidance at completion time, so later author edits do not
@@ -228,7 +229,9 @@ assessment results.
 `LearnerReviewAttempt` keeps a separate, bounded history for completed learner-
 chosen revisits. The competence query loads only the latest twelve attempts with
 their activity and node context; it intentionally omits review metadata and
-private journal content from the learner-facing serializer. Reopened activity
+private journal content from the learner-facing serializer. It includes only
+the normalized cues the learner chose to notice, not private review text.
+Reopened activity
 evidence uses the same incremented attempt number as its review-attempt record,
 so the two records cannot describe different positions in the revisit sequence.
 Question answers pass revisit intent into this same completion transaction and

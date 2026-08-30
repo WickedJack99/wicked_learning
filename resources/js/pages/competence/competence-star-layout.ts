@@ -81,6 +81,7 @@ export type CompetenceReviewAttempt = {
     nodeTitle: string | null;
     outcome: string | null;
     assistanceLevel: string | null;
+    observedCues: string[];
 };
 
 export type CompetenceMap = {

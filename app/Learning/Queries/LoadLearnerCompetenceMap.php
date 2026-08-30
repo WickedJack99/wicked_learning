@@ -131,7 +131,7 @@ class LoadLearnerCompetenceMap
      * text, so this serializer only exposes the learning context and signal
      * captured by the review record.
      *
-     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, confidenceAfterFeedback: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null}>
+     * @return list<array{activityHref: string|null, activityTitle: string|null, attemptedAt: string|null, attemptNumber: int, confidence: string|null, confidenceAfterFeedback: string|null, nodeTitle: string|null, outcome: string|null, assistanceLevel: string|null, observedCues: list<string>}>
      */
     private function reviewAttempts(User $user): array
     {
@@ -155,6 +155,9 @@ class LoadLearnerCompetenceMap
                     'nodeTitle' => $activity?->node?->title,
                     'outcome' => $attempt->outcome,
                     'assistanceLevel' => $this->assistanceLevel($attempt->assistance_level),
+                    'observedCues' => is_array($attempt->observed_cues)
+                        ? array_values(array_filter($attempt->observed_cues, 'is_string'))
+                        : [],
                 ];
             })
             ->values()

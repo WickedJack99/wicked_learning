@@ -1063,7 +1063,7 @@ export function ReflectionActivity({
                     />
                 </div>
             ) : null}
-            {responseType && activity.feedbackGuidance?.rubric?.length ? (
+            {(responseType || isReview) && activity.feedbackGuidance?.rubric?.length ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         {t(
@@ -1073,8 +1073,12 @@ export function ReflectionActivity({
                     </legend>
                     <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                         {t(
-                            'learning.reflection.observed_cues_helper',
-                            'Select any cues that feel visible in your explanation. This records your observation, not a grade.',
+                            isReview
+                                ? 'learning.reflection.observed_cues_review_helper'
+                                : 'learning.reflection.observed_cues_helper',
+                            isReview
+                                ? 'Select any cues that feel visible in your response. This records your observation, not a grade.'
+                                : 'Select any cues that feel visible in your explanation. This records your observation, not a grade.',
                         )}
                     </p>
                     <div className="mt-2 grid gap-2">

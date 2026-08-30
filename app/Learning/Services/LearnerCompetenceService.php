@@ -35,17 +35,18 @@ class LearnerCompetenceService
         }
 
         $evidenceType = $this->activityCompetence->evidenceTypeForActivity($activity);
-        $evidenceCriterion = in_array($evidenceType, ['explain', 'transfer'], true)
+        $hasObservableGuidance = in_array($evidenceType, ['explain', 'review', 'transfer'], true);
+        $evidenceCriterion = $hasObservableGuidance
             ? $this->feedbackGuidance->evidenceCriterionForActivity($activity)
             : null;
-        $evidenceRubric = in_array($evidenceType, ['explain', 'transfer'], true)
+        $evidenceRubric = $hasObservableGuidance
             ? $this->feedbackGuidance->rubricForActivity($activity)
             : [];
         $learningPurpose = $this->feedbackGuidance->purposeForActivity($activity);
         $objective = $this->activityCompetence->objectiveForActivity($activity);
         $concepts = $this->activityCompetence->conceptsForActivity($activity);
         $sourceReferences = $this->sourceReferences->forActivity($activity);
-        $observedCues = in_array($evidenceType, ['explain', 'transfer'], true)
+        $observedCues = $hasObservableGuidance
             ? $this->feedbackGuidance->observedCuesForActivity($activity, $observedCues)
             : [];
 

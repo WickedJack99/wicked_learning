@@ -15,6 +15,7 @@ class LearnerProgressService
         private readonly LearnerRouteProgressService $routeProgress,
         private readonly LearnerActivityPlayStateService $activityPlayState,
         private readonly LearnerCompetenceService $competence,
+        private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
     ) {}
 
     public function mark(
@@ -76,6 +77,10 @@ class LearnerProgressService
         $evidenceAttemptNumber = $recordsReviewAttempt
             ? (int) $progress->attempt_count
             : $attemptNumber;
+        $reviewObservedCues = $this->feedbackGuidance->observedCuesForActivity(
+            $activity,
+            $observedCues,
+        );
 
         if ($recordsReviewAttempt) {
             LearnerReviewAttempt::query()->create([
@@ -88,6 +93,7 @@ class LearnerProgressService
                 'confidence' => $confidence,
                 'confidence_after_feedback' => $confidenceAfterFeedback,
                 'assistance_level' => $assistanceLevel,
+                'observed_cues' => $reviewObservedCues === [] ? null : $reviewObservedCues,
                 'attempted_at' => $now,
             ]);
         }

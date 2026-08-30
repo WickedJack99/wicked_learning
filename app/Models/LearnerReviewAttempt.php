@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** @property array<string, mixed>|null $metadata */
+/**
+ * @property array<string, mixed>|null $metadata
+ * @property list<string>|null $observed_cues
+ */
 #[Fillable([
     'user_id',
     'learning_activity_id',
@@ -17,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'confidence',
     'confidence_after_feedback',
     'assistance_level',
+    'observed_cues',
     'attempted_at',
     'metadata',
 ])]
@@ -49,6 +53,7 @@ class LearnerReviewAttempt extends Model
             'attempt_number' => 'integer',
             'attempted_at' => 'datetime',
             'metadata' => 'array',
+            'observed_cues' => 'array',
         ];
     }
 }

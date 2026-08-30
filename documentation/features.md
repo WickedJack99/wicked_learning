@@ -278,15 +278,17 @@ When assistance context is recorded, the learner's own competence and topic
 ledgers label it as independent or supported context. Legacy events without a
 recorded assistance level stay unlabeled; this context is not exposed through
 the staff support-signals view or used as a score.
-For explanation and transfer moments, the evidence ledger also retains the
+For explanation, review and transfer moments, the evidence ledger also retains the
 author's observable “what to notice” criterion that was active when the moment
 was recorded. Authors can add up to three optional observable rubric cues, one
 per line; these are learner-facing prompts for noticing, not pass/fail grades.
-Learners may optionally mark the cues they noticed in their own explanation or
-transfer response. The selection is saved as private reflection context and a
-snapshot in the learner's evidence ledger; it does not determine correctness
-or create a rubric pass.
-When authored observation guidance is present, saving an explanation or transfer
+Learners may optionally mark the cues they noticed in their own explanation,
+review response or transfer response. The selection is saved as private
+self-observation context and a snapshot in the learner's evidence ledger and,
+for due revisits, in review history; it does not determine correctness or
+create a rubric pass.
+When authored observation guidance is present, saving an explanation, review or
+transfer
 response opens a short learner-controlled pause showing the “what to notice”,
 possible next action and observable cues again before the activity continues.
 The learner may optionally record a second confidence signal after that pause;
