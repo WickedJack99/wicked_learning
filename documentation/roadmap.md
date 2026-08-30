@@ -158,8 +158,10 @@ the quality and resolution of intellectual support, not message volume,
 popularity or public status. Participation remains optional.
 The first bounded slices now let authors add optional response guidance to a
 message wall and let learners describe a response as an explanation, example,
-question or counterexample. Quality review and mentor digests remain future
-work.
+question or counterexample. The learner who asked a peer question can now mark
+one response as helpful, giving the exchange a learner-controlled
+resolution signal without ranking responses. Broader quality review and mentor
+digests remain future work.
 
 ## Product development
 

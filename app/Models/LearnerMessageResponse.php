@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'body',
     'response_type',
+    'helpful_at',
     'hidden_at',
     'hidden_by_user_id',
 ])]
@@ -18,7 +19,10 @@ class LearnerMessageResponse extends Model
 {
     protected function casts(): array
     {
-        return ['hidden_at' => 'datetime'];
+        return [
+            'helpful_at' => 'datetime',
+            'hidden_at' => 'datetime',
+        ];
     }
 
     /** @return BelongsTo<LearnerMessage, $this> */

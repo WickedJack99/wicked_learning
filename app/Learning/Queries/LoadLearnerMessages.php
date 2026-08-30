@@ -6,6 +6,7 @@ use App\Models\LearnerMessage;
 use App\Models\LearnerMessageResponse;
 use App\Models\LearningMessageTopic;
 use App\Models\User;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +29,9 @@ class LoadLearnerMessages
             ->paginate(min(max($perPage, 1), 12), ['*'], 'page', max($page, 1));
         $loadedMessages = $messagePage->getCollection()->shuffle()->values();
         $messageIds = $loadedMessages->modelKeys();
+        $messageAuthors = $loadedMessages->mapWithKeys(
+            fn (LearnerMessage $message): array => [$message->id => $message->user_id],
+        );
         $respondedMessageIds = $allowResponses && $messageIds !== []
             ? LearnerMessageResponse::query()
                 ->whereIn('learner_message_id', $messageIds)
@@ -36,7 +40,7 @@ class LoadLearnerMessages
                 ->map(fn (int|string $id): int => (int) $id)
             : collect();
         $responsesByMessage = $allowResponses && $messageIds !== []
-            ? $this->visibleResponses($messageIds)
+            ? $this->visibleResponses($messageIds, $messageAuthors, $user->id)
             : [];
 
         return [
@@ -77,19 +81,24 @@ class LoadLearnerMessages
 
     /**
      * @param  array<int, int|string>  $messageIds
-     * @return array<int|string, array<int, array{id: int, body: string, responseType: ?string}>>
+     * @param  Collection<int|string, int|string>  $messageAuthors
+     * @return array<int|string, array<int, array{id: int, body: string, canMarkHelpful: bool, isHelpful: bool, responseType: ?string}>>
      */
-    private function visibleResponses(array $messageIds): array
+    private function visibleResponses(array $messageIds, Collection $messageAuthors, int $userId): array
     {
         $rankedResponses = DB::table('learner_message_responses')
-            ->select(['id', 'learner_message_id', 'body', 'response_type', 'created_at'])
+            ->select(['id', 'learner_message_id', 'body', 'response_type', 'created_at', 'helpful_at'])
             ->selectRaw('ROW_NUMBER() OVER (PARTITION BY learner_message_id ORDER BY created_at DESC, id DESC) AS response_rank')
             ->whereIn('learner_message_id', $messageIds)
             ->whereNull('hidden_at');
 
         return DB::query()
             ->fromSub($rankedResponses, 'ranked_responses')
-            ->where('response_rank', '<=', 3)
+            ->where(function (Builder $query): void {
+                $query
+                    ->where('response_rank', '<=', 3)
+                    ->orWhereNotNull('helpful_at');
+            })
             ->orderBy('learner_message_id')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
@@ -99,6 +108,8 @@ class LoadLearnerMessages
                 ->map(fn (object $response): array => [
                     'id' => (int) $response->id,
                     'body' => (string) $response->body,
+                    'canMarkHelpful' => ($messageAuthors[$response->learner_message_id] ?? null) === $userId,
+                    'isHelpful' => $response->helpful_at !== null,
                     'responseType' => $response->response_type !== null
                         ? (string) $response->response_type
                         : null,

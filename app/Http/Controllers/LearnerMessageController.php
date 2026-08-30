@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Learning\Actions\CreateLearnerMessage;
 use App\Learning\Actions\CreateLearnerMessageResponse;
+use App\Learning\Actions\MarkLearnerMessageResponseHelpful;
 use App\Learning\Queries\LoadLearnerMessages;
 use App\Learning\Services\LearnerActivityAccessService;
 use App\Learning\Services\MessageActivityConfiguration;
 use App\Learning\Services\MessageTopicForActivity;
 use App\Models\LearnerMessage;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearningActivity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class LearnerMessageController extends Controller
         private readonly LoadLearnerMessages $messages,
         private readonly CreateLearnerMessage $createMessage,
         private readonly CreateLearnerMessageResponse $createResponse,
+        private readonly MarkLearnerMessageResponseHelpful $markResponseHelpful,
         private readonly MessageActivityConfiguration $messageConfiguration,
         private readonly LearnerActivityAccessService $activityAccess,
     ) {}
@@ -97,6 +100,36 @@ class LearnerMessageController extends Controller
                 'responseType' => $response->response_type,
             ],
         ], $response->wasRecentlyCreated ? 201 : 200);
+    }
+
+    public function updateHelpfulness(
+        Request $request,
+        LearningActivity $activity,
+        LearnerMessage $message,
+        LearnerMessageResponse $response,
+    ): JsonResponse {
+        $this->authorizeActivity($request, $activity);
+        abort_unless($this->messageConfiguration->allowsResponsesFor($activity), 404);
+
+        $topic = $this->topicForActivity->resolve($activity);
+        abort_unless($message->learning_message_topic_id === $topic->id, 404);
+        abort_unless($message->audience === 'peers' && $message->hidden_at === null, 404);
+
+        $data = $request->validate([
+            'helpful' => ['required', 'boolean'],
+        ]);
+        $updatedResponse = $this->markResponseHelpful->handle(
+            $request->user(),
+            $message,
+            $response,
+            (bool) $data['helpful'],
+        );
+
+        return response()->json([
+            'helpful' => $updatedResponse->helpful_at !== null,
+            'messageId' => $message->id,
+            'responseId' => $updatedResponse->id,
+        ]);
     }
 
     private function authorizeActivity(Request $request, LearningActivity $activity): void

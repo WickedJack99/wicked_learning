@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { ActivityTransition, LearningActivity } from '@/types';
-import { getJson, postJson } from './api';
+import { getJson, patchJson, postJson } from './api';
 
 type MessageResponse = {
     hasContributed: boolean;
@@ -35,8 +35,10 @@ type MessageItem = {
             | 'explanation'
             | 'example'
             | 'question'
-            | 'counterexample'
-            | null;
+        | 'counterexample'
+        | null;
+        canMarkHelpful: boolean;
+        isHelpful: boolean;
     }>;
 };
 
@@ -307,6 +309,12 @@ export function MessageWallActivity({
     const [responseType, setResponseType] =
         useState<ResponseType>('explanation');
     const [responseError, setResponseError] = useState('');
+    const [helpfulError, setHelpfulError] = useState('');
+    const [helpfulErrorMessageId, setHelpfulErrorMessageId] = useState<
+        number | null
+    >(null);
+    const [markingHelpfulResponseId, setMarkingHelpfulResponseId] =
+        useState<number | null>(null);
     const [responding, setResponding] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(() =>
@@ -362,6 +370,8 @@ export function MessageWallActivity({
 
         setResponding(true);
         setResponseError('');
+        setHelpfulError('');
+        setHelpfulErrorMessageId(null);
 
         try {
             await postJson<MessageResponse>(
@@ -387,6 +397,56 @@ export function MessageWallActivity({
             );
         } finally {
             setResponding(false);
+        }
+    };
+
+    const markHelpful = async (
+        messageId: number,
+        responseId: number,
+        helpful: boolean,
+    ) => {
+        setMarkingHelpfulResponseId(responseId);
+        setHelpfulError('');
+        setHelpfulErrorMessageId(null);
+
+        try {
+            const result = await patchJson<{ helpful: boolean }>(
+                `/learning/activities/${activity.id}/messages/${messageId}/responses/${responseId}/helpfulness`,
+                { helpful },
+            );
+            setState((current) =>
+                current === null
+                    ? current
+                    : {
+                          ...current,
+                          messages: current.messages.map((message) =>
+                              message.id !== messageId
+                                  ? message
+                                  : {
+                                        ...message,
+                                        responses: message.responses.map(
+                                            (response) => ({
+                                                ...response,
+                                                isHelpful:
+                                                    response.id === responseId
+                                                        ? result.helpful
+                                                        : false,
+                                            }),
+                                        ),
+                                    },
+                          ),
+                      },
+            );
+        } catch {
+            setHelpfulError(
+                t(
+                    'activities.messages.helpful_save_error',
+                    'The helpful response mark could not be saved yet.',
+                ),
+            );
+            setHelpfulErrorMessageId(messageId);
+        } finally {
+            setMarkingHelpfulResponseId(null);
         }
     };
 
@@ -480,6 +540,14 @@ export function MessageWallActivity({
                                 responseBody={responseBody}
                                 responseType={responseType}
                                 responseError={responseError}
+                                helpfulError={helpfulError}
+                                helpfulErrorMessageId={helpfulErrorMessageId}
+                                markingHelpfulResponseId={
+                                    markingHelpfulResponseId
+                                }
+                                onMarkHelpful={(messageId, responseId, helpful) =>
+                                    void markHelpful(messageId, responseId, helpful)
+                                }
                                 responding={responding}
                                 responsePrompt={responsePrompt}
                                 setResponseBody={setResponseBody}
@@ -506,6 +574,14 @@ export function MessageWallActivity({
                                     responseBody={responseBody}
                                     responseType={responseType}
                                     responseError={responseError}
+                                    helpfulError={helpfulError}
+                                    helpfulErrorMessageId={helpfulErrorMessageId}
+                                    markingHelpfulResponseId={
+                                        markingHelpfulResponseId
+                                    }
+                                    onMarkHelpful={(messageId, responseId, helpful) =>
+                                        void markHelpful(messageId, responseId, helpful)
+                                    }
                                     responding={responding}
                                     responsePrompt={responsePrompt}
                                     setResponseBody={setResponseBody}
@@ -548,10 +624,14 @@ function MessageCard({
     activeMessageId,
     message,
     onSubmitResponse,
+    onMarkHelpful,
     onToggleResponse,
     responseBody,
     responseType,
     responseError,
+    helpfulError,
+    helpfulErrorMessageId,
+    markingHelpfulResponseId,
     responding,
     responsePrompt,
     setResponseBody,
@@ -562,10 +642,18 @@ function MessageCard({
     activeMessageId: number | null;
     message: MessageItem;
     onSubmitResponse: (messageId: number) => void;
+    onMarkHelpful: (
+        messageId: number,
+        responseId: number,
+        helpful: boolean,
+    ) => void;
     onToggleResponse: (messageId: number) => void;
     responseBody: string;
     responseType: ResponseType;
     responseError: string;
+    helpfulError: string;
+    helpfulErrorMessageId: number | null;
+    markingHelpfulResponseId: number | null;
     responding: boolean;
     responsePrompt: string;
     setResponseBody: (value: string) => void;
@@ -591,7 +679,7 @@ function MessageCard({
                     style={{ borderColor: theme.border }}
                 >
                     {message.responses.map((response) => (
-                        <div key={response.id}>
+                        <div className="grid gap-1" key={response.id}>
                             {response.responseType ? (
                                 <p className="mb-1 text-xs font-semibold tracking-wide uppercase opacity-70">
                                     {t(
@@ -609,9 +697,56 @@ function MessageCard({
                                 </p>
                             ) : null}
                             <p>{response.body}</p>
+                            {response.isHelpful ? (
+                                <p className="flex items-center gap-1 text-xs font-semibold opacity-80">
+                                    <Check className="size-3.5" />
+                                    {t(
+                                        'activities.messages.marked_helpful',
+                                        'The learner marked this response helpful.',
+                                    )}
+                                </p>
+                            ) : null}
+                            {response.canMarkHelpful ? (
+                                <Button
+                                    className="w-fit"
+                                    disabled={
+                                        markingHelpfulResponseId !== null
+                                    }
+                                    onClick={() =>
+                                        onMarkHelpful(
+                                            message.id,
+                                            response.id,
+                                            !response.isHelpful,
+                                        )
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    {markingHelpfulResponseId === response.id
+                                        ? t(
+                                              'activities.messages.saving_helpful',
+                                              'Saving...',
+                                          )
+                                        : response.isHelpful
+                                          ? t(
+                                                'activities.messages.unmark_helpful',
+                                                'Clear helpful mark',
+                                            )
+                                          : t(
+                                                'activities.messages.mark_helpful',
+                                                'This helped me',
+                                            )}
+                                </Button>
+                            ) : null}
                         </div>
                     ))}
                 </div>
+            ) : null}
+            {helpfulError && helpfulErrorMessageId === message.id ? (
+                <p className="mt-2 text-xs text-red-300" role="alert">
+                    {helpfulError}
+                </p>
             ) : null}
             {allowResponses && message.canRespond ? (
                 <div

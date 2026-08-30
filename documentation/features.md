@@ -285,7 +285,10 @@ question, example or counterexample; this guidance is an invitation, not a grade
 or required rubric. Responding learners can optionally describe their
 contribution as an explanation, an example, a question or a counterexample. The
 label gives the exchange a little orientation without measuring response
-quality, and older responses without a label remain valid.
+quality, and older responses without a label remain valid. The learner who
+started a message can mark one visible response as helpful, or clear that mark;
+the marker is shown as a resolution signal without exposing identities or
+turning responses into a popularity measure.
 
 ### Journal, Competence And Collaboration
 

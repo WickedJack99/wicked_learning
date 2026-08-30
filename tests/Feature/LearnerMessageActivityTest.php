@@ -346,6 +346,84 @@ test('learner message responses reject unsupported response types', function () 
     expect(LearnerMessageResponse::query()->count())->toBe(0);
 });
 
+test('the learner who asked can mark one peer response helpful', function () {
+    $learner = User::factory()->create();
+    $responders = User::factory()->count(5)->create();
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'resolved-peer-conversation',
+        'title' => 'Resolved peer conversation',
+    ]);
+    $wall = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'resolved-peer-conversation-wall',
+        'type' => 'message_wall',
+        'title' => 'Resolved peer conversation',
+        'config' => [
+            'messageTopicId' => $topic->id,
+            'messageAllowResponses' => true,
+        ],
+    ]);
+    $message = LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $learner->id,
+        'body' => 'Which detail should I look at next?',
+        'audience' => 'peers',
+    ]);
+    $firstResponse = LearnerMessageResponse::query()->create([
+        'learner_message_id' => $message->id,
+        'user_id' => $responders[0]->id,
+        'body' => 'Try comparing the two quieter shapes.',
+    ]);
+    $secondResponse = LearnerMessageResponse::query()->create([
+        'learner_message_id' => $message->id,
+        'user_id' => $responders[1]->id,
+        'body' => 'Notice what changes when you slow down.',
+    ]);
+    foreach ([2, 3, 4] as $number) {
+        LearnerMessageResponse::query()->create([
+            'learner_message_id' => $message->id,
+            'user_id' => $responders[$number]->id,
+            'body' => 'Another useful observation.',
+        ]);
+    }
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $wall))
+        ->assertOk()
+        ->assertJsonPath('messages.0.responses.0.canMarkHelpful', true)
+        ->assertJsonPath('messages.0.responses.0.isHelpful', false);
+
+    $this->actingAs($learner)
+        ->patchJson(route('learning.activities.messages.responses.helpfulness.update', [$wall, $message, $firstResponse]), [
+            'helpful' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('helpful', true);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $wall))
+        ->assertJsonCount(4, 'messages.0.responses')
+        ->assertJsonPath('messages.0.responses.0.id', $firstResponse->id)
+        ->assertJsonPath('messages.0.responses.0.isHelpful', true);
+
+    $this->actingAs($learner)
+        ->patchJson(route('learning.activities.messages.responses.helpfulness.update', [$wall, $message, $secondResponse]), [
+            'helpful' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('helpful', true);
+
+    expect($firstResponse->refresh()->helpful_at)->toBeNull()
+        ->and($secondResponse->refresh()->helpful_at)->not->toBeNull();
+
+    $this->actingAs($responders[0])
+        ->patchJson(route('learning.activities.messages.responses.helpfulness.update', [$wall, $message, $firstResponse]), [
+            'helpful' => true,
+        ])
+        ->assertUnprocessable();
+});
+
 test('learner message response loading stays bounded as a wall grows', function () {
     $learner = User::factory()->create();
     $messageAuthors = User::factory()->count(12)->create();
@@ -395,9 +473,9 @@ test('learner message response loading stays bounded as a wall grows', function 
         ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 3))->toBeTrue()
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['responses'])
         ->toMatchArray([
-            ['id' => 8, 'body' => 'Response 8', 'responseType' => null],
-            ['id' => 9, 'body' => 'Response 9', 'responseType' => null],
-            ['id' => 10, 'body' => 'Response 10', 'responseType' => null],
+            ['id' => 8, 'body' => 'Response 8', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
+            ['id' => 9, 'body' => 'Response 9', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
+            ['id' => 10, 'body' => 'Response 10', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
         ])
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
 });
