@@ -159,6 +159,9 @@ and any due revisit attempt; choosing nothing remains valid and does not block
 completion. They can also optionally describe the result as clearer now, more
 connected, or still open. These are private learner observations, not scores,
 correctness judgments, or automatic rubric decisions.
+The three signals have short plain-language explanations during review and in
+the competence and topic histories, so their meaning stays visible without
+turning them into an assessment scale.
 
 When a learner chooses to return after a review pause, the due activity is
 opened as a review attempt. The Learning Desk and Journal explain when it

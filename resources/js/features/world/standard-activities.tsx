@@ -12,6 +12,10 @@ import {
     queueRecallQuestion,
     removeRecallQuestion,
 } from '@/features/learning/recall-items';
+import {
+    reviewOutcomeDescription,
+    reviewOutcomeOptions,
+} from '@/features/learning/review-outcomes';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
@@ -647,15 +651,6 @@ const questionConfidenceOptions: Array<{
     { label: 'Settled', value: 'settled' },
 ];
 
-const reviewOutcomeOptions: Array<{
-    label: string;
-    value: ReviewOutcome;
-}> = [
-    { label: 'Clearer now', value: 'clearer' },
-    { label: 'More connected', value: 'connected' },
-    { label: 'Still open', value: 'open' },
-];
-
 function questionConfidenceLabel(value: QuestionConfidence): string {
     return (
         questionConfidenceOptions.find((option) => option.value === value)
@@ -1063,7 +1058,8 @@ export function ReflectionActivity({
                     />
                 </div>
             ) : null}
-            {(responseType || isReview) && activity.feedbackGuidance?.rubric?.length ? (
+            {(responseType || isReview) &&
+            activity.feedbackGuidance?.rubric?.length ? (
                 <fieldset className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                     <legend className="px-1 text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         {t(
@@ -1162,6 +1158,7 @@ export function ReflectionActivity({
                             'learning.review.outcome_prompt',
                             'What changed for you? (optional)',
                         )}
+                        aria-describedby="activity-review-outcome-help"
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"
                     >
@@ -1177,13 +1174,21 @@ export function ReflectionActivity({
                                 onClick={() => setOutcome(option.value)}
                                 type="button"
                             >
-                                {t(
-                                    `learning.review.outcome_${option.value}`,
-                                    option.label,
-                                )}
+                                {t(option.labelKey, option.label)}
                             </button>
                         ))}
                     </div>
+                    <p
+                        className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400"
+                        id="activity-review-outcome-help"
+                    >
+                        {outcome
+                            ? reviewOutcomeDescription(outcome, t)
+                            : t(
+                                  'learning.review.outcome_helper',
+                                  'Choose only if one of these descriptions fits. No choice is required, and none is a grade.',
+                              )}
+                    </p>
                 </fieldset>
             ) : null}
             {responseType ? (

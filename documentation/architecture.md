@@ -215,6 +215,8 @@ rewrite the meaning or provenance of an earlier learning moment. Source
 references are normalized again when the evidence ledger is serialized. When a
 descriptive review outcome is present, both learner evidence-ledger serializers
 carry it through as a nullable signal without interpreting it as an assessment.
+The shared frontend review-outcome vocabulary supplies localized labels and
+plain-language explanations for the activity selector and learner histories.
 When a route entry timestamp is available, `latency_seconds` records elapsed
 wall-clock time from
 the learner's latest entry into that activity to completion. It is an internal

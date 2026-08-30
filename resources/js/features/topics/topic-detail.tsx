@@ -14,6 +14,10 @@ import {
     competenceContextHref,
     competenceTopicHref,
 } from '@/features/competence/competence-links';
+import {
+    reviewOutcomeDescription,
+    reviewOutcomeLabel,
+} from '@/features/learning/review-outcomes';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { learningIntentLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -975,15 +979,28 @@ function TopicCompetenceCard({
                                                 </span>
                                                 {entry.outcome ? (
                                                     <span className="mt-1 block text-xs text-[var(--learner-action-accent)]/80">
-                                                        {t(
-                                                            'learning.review.outcome_signal',
-                                                            'Review signal',
-                                                        )}
-                                                        :{' '}
-                                                        {reviewOutcomeLabel(
+                                                        <span className="block">
+                                                            {t(
+                                                                'learning.review.outcome_signal',
+                                                                'Review signal',
+                                                            )}
+                                                            :{' '}
+                                                            {reviewOutcomeLabel(
+                                                                entry.outcome,
+                                                                t,
+                                                            )}
+                                                        </span>
+                                                        {reviewOutcomeDescription(
                                                             entry.outcome,
                                                             t,
-                                                        )}
+                                                        ) ? (
+                                                            <span className="mt-1 block text-[var(--learner-muted-text)]">
+                                                                {reviewOutcomeDescription(
+                                                                    entry.outcome,
+                                                                    t,
+                                                                )}
+                                                            </span>
+                                                        ) : null}
                                                     </span>
                                                 ) : null}
                                                 {entry.confidence ? (
@@ -1159,22 +1176,6 @@ function evidenceClaimLabel(claim: string): string {
             review: 'A review was recorded.',
             transfer_attempt: 'A transfer attempt was recorded.',
         }[claim] ?? 'A learning encounter was recorded.'
-    );
-}
-
-function reviewOutcomeLabel(
-    outcome: string,
-    translate: ReturnType<typeof usePlatformTranslation>,
-): string {
-    return translate(
-        `learning.review.outcome_${outcome}`,
-        {
-            clearer: 'Clearer now',
-            connected: 'More connected',
-            open: 'Still open',
-            correct: 'Useful clue found',
-            incorrect: 'Adjust the hypothesis',
-        }[outcome] ?? 'Review completed',
     );
 }
 

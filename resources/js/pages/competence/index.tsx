@@ -12,6 +12,10 @@ import { AccentHeading } from '@/components/accent-heading';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { Button } from '@/components/ui/button';
 import { LearningDeskHeader } from '@/features/home/learning-desk-header';
+import {
+    reviewOutcomeDescription,
+    reviewOutcomeLabel,
+} from '@/features/learning/review-outcomes';
 import { learningCheckInDirectionLabel } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import {
@@ -710,6 +714,18 @@ function LearningPulseTimeline({
                                                     ? ` · ${reviewOutcomeLabel(attempt.outcome, translate)}`
                                                     : ''}
                                             </span>
+                                            {attempt.outcome &&
+                                            reviewOutcomeDescription(
+                                                attempt.outcome,
+                                                translate,
+                                            ) ? (
+                                                <span className="mt-1 block text-xs text-slate-500">
+                                                    {reviewOutcomeDescription(
+                                                        attempt.outcome,
+                                                        translate,
+                                                    )}
+                                                </span>
+                                            ) : null}
                                         </span>
                                         {attempt.attemptedAt ? (
                                             <time
@@ -803,22 +819,6 @@ function checkInFeelingLabel(feeling: string | null): string {
             stretched: 'It stretched me',
             stuck: 'I got stuck',
         }[feeling ?? ''] ?? 'A reflection'
-    );
-}
-
-function reviewOutcomeLabel(
-    outcome: string,
-    translate: ReturnType<typeof usePlatformTranslation>,
-): string {
-    return translate(
-        `learning.review.outcome_${outcome}`,
-        {
-            clearer: 'Clearer now',
-            connected: 'More connected',
-            open: 'Still open',
-            correct: 'Useful clue found',
-            incorrect: 'Adjust the hypothesis',
-        }[outcome] ?? 'Review completed',
     );
 }
 
@@ -1092,6 +1092,18 @@ function CompetenceReading({
                                                 )}
                                                 :{' '}
                                                 {reviewOutcomeLabel(
+                                                    evidence.outcome,
+                                                    translate,
+                                                )}
+                                            </span>
+                                        ) : null}
+                                        {evidence.outcome &&
+                                        reviewOutcomeDescription(
+                                            evidence.outcome,
+                                            translate,
+                                        ) ? (
+                                            <span className="mt-1 block text-xs text-slate-500">
+                                                {reviewOutcomeDescription(
                                                     evidence.outcome,
                                                     translate,
                                                 )}
