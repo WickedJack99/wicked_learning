@@ -317,15 +317,16 @@ learner data.
 Authors can save a validated reference to the bounded source catalog from the
 activity editor and copy a saved record into another activity. This is an
 authoring convenience, not a live link: changing a catalog record does not
-rewrite an activity or an existing learner evidence snapshot. Catalog records
-can carry reusable Concept Library labels; copying a record includes those
-labels in the activity's provenance snapshot, and learners can inspect them
-alongside the source. Authors can also
-edit or delete catalog records from the same picker; deleting a catalog entry
-does not remove copied activity references. Version history is available for
-author inspection through the same picker: each update keeps the prior metadata
-as an immutable, paginated revision. Richer concept linkage and reusable
-excerpt workflows remain future work.
+rewrite an activity or an existing learner evidence snapshot. The picker
+searches and paginates catalog records so a growing catalog does not have to be
+loaded into every activity editor at once. Catalog records can carry reusable
+Concept Library labels; copying a record includes those labels in the
+activity's provenance snapshot, and learners can inspect them alongside the
+source. Authors can also edit or delete catalog records from the same picker;
+deleting a catalog entry does not remove copied activity references. Version
+history is available for author inspection through the same picker: each
+update keeps the prior metadata as an immutable, paginated revision. Richer
+concept linkage and reusable excerpt workflows remain future work.
 Authors can restore a listed revision; the current record is preserved as a
 new revision first, and copied activity references still do not change.
 

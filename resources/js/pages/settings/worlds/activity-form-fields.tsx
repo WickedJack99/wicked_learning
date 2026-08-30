@@ -46,6 +46,7 @@ import type {
     MessageTopicOption,
     PortalCandidate,
     SourceRecordVersionPage,
+    SourceRecordPage,
     SourceReferenceForm,
 } from './edit-node-activity-types';
 import {
@@ -94,6 +95,7 @@ export function ActivityFormFields({
     onChange,
     onDeleteSourceRecord,
     onLoadSourceRecordVersions,
+    onLoadSourceRecords,
     onUploadPortalImage,
     onRestoreSourceRecordVersion,
     onSaveSourceRecord,
@@ -102,6 +104,7 @@ export function ActivityFormFields({
     selectedType,
     sounds,
     sourceRecords,
+    sourceRecordsPagination,
     items,
     tools,
     uploadingImageKey,
@@ -120,6 +123,10 @@ export function ActivityFormFields({
         id: number,
         page: number,
     ) => Promise<SourceRecordVersionPage>;
+    onLoadSourceRecords: (
+        page: number,
+        search: string,
+    ) => Promise<SourceRecordPage>;
     onRestoreSourceRecordVersion: (
         sourceId: number,
         versionId: number,
@@ -133,6 +140,7 @@ export function ActivityFormFields({
     selectedType: ActivityTypeDefinition | undefined;
     sounds: EditableSound[];
     sourceRecords: EditableSourceRecord[];
+    sourceRecordsPagination: SourceRecordPage['pagination'];
     items: EditableItem[];
     tools: EditableTool[];
     uploadingImageKey: string | null;
@@ -698,12 +706,16 @@ export function ActivityFormFields({
                                 onLoadSourceRecordVersions={
                                     onLoadSourceRecordVersions
                                 }
+                                onLoadSourceRecords={onLoadSourceRecords}
                                 onRestoreSourceRecordVersion={
                                     onRestoreSourceRecordVersion
                                 }
                                 onSaveSourceRecord={onSaveSourceRecord}
                                 onUpdateSourceRecord={onUpdateSourceRecord}
                                 sourceRecords={sourceRecords}
+                                sourceRecordsPagination={
+                                    sourceRecordsPagination
+                                }
                             />
                         </SettingsConfigurationSection>
                     ) : null}

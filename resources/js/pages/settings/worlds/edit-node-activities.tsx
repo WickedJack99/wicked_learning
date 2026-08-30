@@ -67,6 +67,7 @@ import type {
     EditableItem,
     EditableSound,
     EditableTool,
+    SourceRecordPage,
     SourceReferenceForm,
     SourceRecordVersionPage,
     StartRouteForm,
@@ -107,6 +108,9 @@ export default function EditNodeActivities({
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
     const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
         () => activityGraph.sourceRecords,
+    );
+    const [sourceRecordsPagination, setSourceRecordsPagination] = useState(
+        () => activityGraph.sourceRecordsPagination,
     );
     const [updating, setUpdating] = useState(false);
     const [pendingDelete, setPendingDelete] = useState<ActivitySummary | null>(
@@ -166,15 +170,7 @@ export default function EditNodeActivities({
     } = useNodeImageUpload(activityGraph.map.id);
 
     const saveSourceRecord = useCallback(
-        async (reference: {
-            anchor: string;
-            excerpt: string;
-            publishedAt: string;
-            publisher: string;
-            rights: string;
-            title: string;
-            url: string;
-        }): Promise<void> => {
+        async (reference: SourceReferenceForm): Promise<void> => {
             const csrfToken =
                 document.querySelector<HTMLMetaElement>(
                     'meta[name="csrf-token"]',
@@ -204,6 +200,41 @@ export default function EditNodeActivities({
                     (source) => source.id !== payload.sourceRecord.id,
                 ),
             ]);
+        },
+        [],
+    );
+
+    const loadSourceRecords = useCallback(
+        async (page: number, search: string): Promise<SourceRecordPage> => {
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: '12',
+            });
+
+            if (search.trim() !== '') {
+                params.set('search', search.trim());
+            }
+
+            const response = await fetch(
+                `/settings/worlds/source-records?${params.toString()}`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The source records could not be loaded.');
+            }
+
+            const payload = (await response.json()) as SourceRecordPage;
+            setSourceRecords(payload.items);
+            setSourceRecordsPagination(payload.pagination);
+
+            return payload;
         },
         [],
     );
@@ -1147,6 +1178,7 @@ export default function EditNodeActivities({
                             onLoadSourceRecordVersions={
                                 loadSourceRecordVersions
                             }
+                            onLoadSourceRecords={loadSourceRecords}
                             onRestoreSourceRecordVersion={
                                 restoreSourceRecordVersion
                             }
@@ -1156,6 +1188,7 @@ export default function EditNodeActivities({
                             items={items}
                             sounds={sounds}
                             sourceRecords={sourceRecords}
+                            sourceRecordsPagination={sourceRecordsPagination}
                             tools={tools}
                             onSaveSourceRecord={saveSourceRecord}
                             onUpdateSourceRecord={updateSourceRecord}
@@ -1209,6 +1242,7 @@ export default function EditNodeActivities({
                             onLoadSourceRecordVersions={
                                 loadSourceRecordVersions
                             }
+                            onLoadSourceRecords={loadSourceRecords}
                             onRestoreSourceRecordVersion={
                                 restoreSourceRecordVersion
                             }
@@ -1218,6 +1252,7 @@ export default function EditNodeActivities({
                             items={items}
                             sounds={sounds}
                             sourceRecords={sourceRecords}
+                            sourceRecordsPagination={sourceRecordsPagination}
                             tools={tools}
                             onSaveSourceRecord={saveSourceRecord}
                             onUpdateSourceRecord={updateSourceRecord}

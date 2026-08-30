@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import type {
     ActivityForm,
     EditableSourceRecord,
     SourceRecordVersion,
+    SourceRecordPage,
     SourceRecordVersionPage,
     SourceReferenceForm,
 } from './edit-node-activity-types';
@@ -41,10 +43,12 @@ export function ActivitySourceReferenceFields({
     onChange,
     onDeleteSourceRecord,
     onLoadSourceRecordVersions,
+    onLoadSourceRecords,
     onRestoreSourceRecordVersion,
     onSaveSourceRecord,
     onUpdateSourceRecord,
     sourceRecords,
+    sourceRecordsPagination,
 }: {
     evidenceConceptOptions: string[];
     errors: Record<string, string>;
@@ -55,6 +59,10 @@ export function ActivitySourceReferenceFields({
         id: number,
         page: number,
     ) => Promise<SourceRecordVersionPage>;
+    onLoadSourceRecords: (
+        page: number,
+        search: string,
+    ) => Promise<SourceRecordPage>;
     onRestoreSourceRecordVersion: (
         sourceId: number,
         versionId: number,
@@ -65,6 +73,7 @@ export function ActivitySourceReferenceFields({
         reference: SourceReferenceForm,
     ) => Promise<void>;
     sourceRecords: EditableSourceRecord[];
+    sourceRecordsPagination: SourceRecordPage['pagination'];
 }) {
     const t = usePlatformTranslation();
     const [selectedSourceId, setSelectedSourceId] = useState('');
@@ -83,6 +92,10 @@ export function ActivitySourceReferenceFields({
     );
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [saveError, setSaveError] = useState(false);
+    const [sourceSearchInput, setSourceSearchInput] = useState('');
+    const [sourceSearch, setSourceSearch] = useState('');
+    const [sourceRecordsLoading, setSourceRecordsLoading] = useState(false);
+    const [sourceRecordsError, setSourceRecordsError] = useState(false);
 
     function addReference() {
         if (form.source_references.length >= 5) {
@@ -340,6 +353,32 @@ export function ActivitySourceReferenceFields({
         }
     }
 
+    async function loadSourceRecordsPage(
+        page: number,
+        search = sourceSearch,
+    ): Promise<void> {
+        if (sourceRecordsLoading) {
+            return;
+        }
+
+        setSourceRecordsLoading(true);
+        setSourceRecordsError(false);
+
+        try {
+            await onLoadSourceRecords(page, search);
+            setSourceSearch(search);
+            setSelectedSourceId('');
+        } catch {
+            setSourceRecordsError(true);
+        } finally {
+            setSourceRecordsLoading(false);
+        }
+    }
+
+    function searchSourceRecords() {
+        void loadSourceRecordsPage(1, sourceSearchInput.trim());
+    }
+
     return (
         <div className="grid gap-4">
             <div className="flex items-start justify-between gap-4 rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 dark:border-white/15 dark:bg-slate-950/30">
@@ -362,7 +401,9 @@ export function ActivitySourceReferenceFields({
                 </Button>
             </div>
 
-            {sourceRecords.length > 0 ? (
+            {sourceRecords.length > 0 ||
+            sourceRecordsPagination.total > 0 ||
+            sourceSearch !== '' ? (
                 <div className="grid gap-2 rounded-md border border-slate-200 p-3 dark:border-white/10">
                     <Label htmlFor="saved-source-record">
                         {t(
@@ -370,9 +411,52 @@ export function ActivitySourceReferenceFields({
                             'Reuse a saved source',
                         )}
                     </Label>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-end gap-2">
+                        <div className="grid min-w-52 flex-1 gap-1">
+                            <Label htmlFor="saved-source-search">
+                                {t(
+                                    'settings.activity_sources.search_label',
+                                    'Search saved sources',
+                                )}
+                            </Label>
+                            <Input
+                                id="saved-source-search"
+                                onChange={(event) =>
+                                    setSourceSearchInput(event.target.value)
+                                }
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        searchSourceRecords();
+                                    }
+                                }}
+                                placeholder={t(
+                                    'settings.activity_sources.search_placeholder',
+                                    'Title, URL or publisher',
+                                )}
+                                value={sourceSearchInput}
+                            />
+                        </div>
+                        <Button
+                            disabled={sourceRecordsLoading}
+                            onClick={searchSourceRecords}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                        >
+                            {sourceRecordsLoading
+                                ? t(
+                                      'settings.activity_sources.searching',
+                                      'Searching…',
+                                  )
+                                : t(
+                                      'settings.activity_sources.search',
+                                      'Search',
+                                  )}
+                        </Button>
                         <select
                             aria-label="Saved source records"
+                            disabled={sourceRecordsLoading}
                             className="h-9 min-w-0 flex-1 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
                             id="saved-source-record"
                             onChange={(event) =>
@@ -443,6 +527,61 @@ export function ActivitySourceReferenceFields({
                             )}
                         </Button>
                     </div>
+                    {sourceRecordsLoading ? (
+                        <p
+                            aria-live="polite"
+                            className="text-sm text-slate-500 dark:text-slate-400"
+                            role="status"
+                        >
+                            {t(
+                                'settings.activity_sources.loading',
+                                'Loading saved sources…',
+                            )}
+                        </p>
+                    ) : sourceRecordsError ? (
+                        <p
+                            aria-live="polite"
+                            className="text-sm text-red-600 dark:text-red-300"
+                            role="status"
+                        >
+                            {t(
+                                'settings.activity_sources.catalog_load_error',
+                                'The saved sources could not be loaded. Try again.',
+                            )}
+                        </p>
+                    ) : sourceRecords.length === 0 ? (
+                        <p
+                            aria-live="polite"
+                            className="text-sm text-slate-500 dark:text-slate-400"
+                            role="status"
+                        >
+                            {t(
+                                'settings.activity_sources.no_matches',
+                                'No saved sources match this search.',
+                            )}
+                        </p>
+                    ) : null}
+                    {sourceRecordsPagination.lastPage > 1 ? (
+                        <PaginationControls
+                            currentPage={sourceRecordsPagination.currentPage}
+                            label={t(
+                                'settings.activity_sources.pagination',
+                                'Saved source pages',
+                            )}
+                            nextLabel={t(
+                                'settings.activity_sources.next_page',
+                                'Next saved sources',
+                            )}
+                            onPageChange={(page) =>
+                                void loadSourceRecordsPage(page)
+                            }
+                            pageCount={sourceRecordsPagination.lastPage}
+                            previousLabel={t(
+                                'settings.activity_sources.previous_page',
+                                'Previous saved sources',
+                            )}
+                        />
+                    ) : null}
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                         {t(
                             'settings.activity_sources.helper',

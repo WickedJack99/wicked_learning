@@ -141,7 +141,7 @@ test('source-linked concepts remain in activity provenance snapshots', function 
         ->toBe(['Retrieval', 'Spacing']);
 });
 
-test('the activity graph exposes a bounded source catalog', function () {
+test('the activity graph exposes a paginated source catalog', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
     LearningSourceRecord::query()->create([
@@ -151,7 +151,7 @@ test('the activity graph exposes a bounded source catalog', function () {
 
     $payload = app(AdminActivityGraphSerializer::class)->serialize($node);
 
-    expect($payload['sourceRecords'])->toContain([
+    expect($payload['sourceRecords']['items'])->toContain([
         'anchor' => null,
         'concepts' => [],
         'excerpt' => null,
@@ -161,7 +161,44 @@ test('the activity graph exposes a bounded source catalog', function () {
         'rights' => null,
         'title' => 'Catalog source',
         'url' => 'https://example.com/catalog-source',
+    ])->and($payload['sourceRecords']['pagination'])->toMatchArray([
+        'currentPage' => 1,
+        'perPage' => 12,
     ]);
+});
+
+test('authors can search and paginate saved source records', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    foreach (range(1, 13) as $index) {
+        LearningSourceRecord::query()->create([
+            'title' => "Catalog source {$index}",
+            'url' => "https://example.com/catalog-source-{$index}",
+        ]);
+    }
+
+    LearningSourceRecord::query()->create([
+        'publisher' => 'Unique Research Press',
+        'title' => 'A differently named source',
+        'url' => 'https://example.com/unique-source',
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?page=2&per_page=12')
+        ->assertOk()
+        ->assertJsonCount(2, 'items')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 2)
+        ->assertJsonPath('pagination.perPage', 12)
+        ->assertJsonPath('pagination.total', 14);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.index').'?search=Unique%20Research')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('items.0.title', 'A differently named source')
+        ->assertJsonPath('pagination.total', 1);
 });
 
 test('admins can maintain saved sources without changing copied activity references', function () {

@@ -153,6 +153,8 @@ Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function ()
 Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(function () {
     Route::post('settings/worlds/source-records', [AdminActivityController::class, 'storeSourceRecord'])
         ->name('settings.worlds.source-records.store');
+    Route::get('settings/worlds/source-records', [AdminActivityController::class, 'sourceRecords'])
+        ->name('settings.worlds.source-records.index');
 
     Route::patch('settings/worlds/source-records/{sourceRecord}', [AdminActivityController::class, 'updateSourceRecord'])
         ->name('settings.worlds.source-records.update');

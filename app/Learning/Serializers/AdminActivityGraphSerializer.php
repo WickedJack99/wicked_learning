@@ -49,11 +49,7 @@ class AdminActivityGraphSerializer
                 ])
                 ->values()
                 ->all() ?? [],
-            'sourceRecords' => $this->sourceRecords
-                ->handle()
-                ->map(fn (LearningSourceRecord $source): array => $this->sourceRecordSerializer->serialize($source))
-                ->values()
-                ->all(),
+            'sourceRecords' => $this->sourceRecords(),
             'activities' => $node->activities
                 ->values()
                 ->map(fn (LearningActivity $activity): array => $this->activity($activity))
@@ -63,6 +59,27 @@ class AdminActivityGraphSerializer
                 ->values()
                 ->map(fn (ActivityTransition $transition): array => $this->transition($transition))
                 ->all(),
+        ];
+    }
+
+    /**
+     * @return array{items: list<array<string, mixed>>, pagination: array{currentPage: int, lastPage: int, perPage: int, total: int}}
+     */
+    private function sourceRecords(): array
+    {
+        $sources = $this->sourceRecords->paginate();
+
+        return [
+            'items' => $sources->getCollection()
+                ->map(fn (LearningSourceRecord $source): array => $this->sourceRecordSerializer->serialize($source))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'currentPage' => $sources->currentPage(),
+                'lastPage' => $sources->lastPage(),
+                'perPage' => $sources->perPage(),
+                'total' => $sources->total(),
+            ],
         ];
     }
 

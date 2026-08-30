@@ -105,6 +105,16 @@ export type SourceRecordVersionPage = {
     };
 };
 
+export type SourceRecordPage = {
+    items: EditableSourceRecord[];
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
+};
+
 export type PortalActivityLink = {
     description: string | null;
     id: number;
@@ -178,6 +188,7 @@ export type ActivityGraphPayload = {
     };
     portalCandidates: PortalCandidate[];
     sourceRecords: EditableSourceRecord[];
+    sourceRecordsPagination: SourceRecordPage['pagination'];
     transitions: ActivityTransitionSummary[];
     world: {
         id: number;

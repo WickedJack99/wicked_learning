@@ -16,6 +16,7 @@ use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
+use App\Learning\Queries\LoadEditableSourceRecords;
 use App\Learning\Queries\LoadSourceRecordVersions;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
 use App\Learning\Serializers\EditableSourceRecordSerializer;
@@ -57,6 +58,7 @@ class AdminActivityController extends Controller
         private readonly UpdateLearningSourceRecord $updateSourceRecord,
         private readonly LoadSourceRecordVersions $sourceRecordVersions,
         private readonly SourceRecordVersionSerializer $sourceRecordVersionSerializer,
+        private readonly LoadEditableSourceRecords $sourceRecords,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -105,6 +107,34 @@ class AdminActivityController extends Controller
         return response()->json([
             'sourceRecord' => $this->sourceRecordSerializer->serialize($source),
         ], 201);
+    }
+
+    public function sourceRecords(Request $request): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'search' => ['nullable', 'string', 'max:160'],
+        ]);
+        $sources = $this->sourceRecords->paginate(
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 12,
+            search: $data['search'] ?? null,
+        );
+
+        return response()->json([
+            'items' => $sources->getCollection()
+                ->map(fn (LearningSourceRecord $source): array => $this->sourceRecordSerializer->serialize($source))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'currentPage' => $sources->currentPage(),
+                'lastPage' => $sources->lastPage(),
+                'perPage' => $sources->perPage(),
+                'total' => $sources->total(),
+            ],
+        ]);
     }
 
     public function updateSourceRecord(Request $request, LearningSourceRecord $sourceRecord): JsonResponse
