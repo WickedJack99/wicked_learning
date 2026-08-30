@@ -704,6 +704,8 @@ export function ReflectionActivity({
     const [reflection, setReflection] = useState('');
     const [responseContext, setResponseContext] = useState('');
     const [observedCues, setObservedCues] = useState<string[]>([]);
+    const [reflectionSaved, setReflectionSaved] = useState(false);
+    const postResponseContinueRef = useRef<HTMLButtonElement>(null);
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
@@ -727,6 +729,107 @@ export function ReflectionActivity({
             : null;
     const isTransfer = responseType === 'transfer';
     const isExplanation = responseType === 'explain';
+    const hasPostResponseGuidance = Boolean(
+        responseType &&
+        activity.feedbackGuidance &&
+        (activity.feedbackGuidance.evidence ||
+            activity.feedbackGuidance.nextAction ||
+            activity.feedbackGuidance.rubric?.length),
+    );
+
+    useEffect(() => {
+        if (reflectionSaved) {
+            postResponseContinueRef.current?.focus();
+        }
+    }, [reflectionSaved]);
+
+    if (reflectionSaved) {
+        return (
+            <div className="flex flex-1 flex-col gap-4 rounded-lg border border-cyan-500/25 bg-cyan-50/60 p-4 dark:border-teal-200/20 dark:bg-teal-100/6">
+                <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-cyan-700 dark:text-teal-200" />
+                    <div>
+                        <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.response_saved',
+                                'Response saved privately',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {t(
+                                'learning.reflection.feedback_pause',
+                                'Take a moment to compare your response with the observation guidance before you continue.',
+                            )}
+                        </p>
+                    </div>
+                </div>
+                {activity.feedbackGuidance?.evidence ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.feedback_evidence_label',
+                                'What to notice',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.evidence}
+                        </p>
+                    </div>
+                ) : null}
+                {activity.feedbackGuidance?.nextAction ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.feedback_next_action_label',
+                                'A possible next action',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.nextAction}
+                        </p>
+                    </div>
+                ) : null}
+                {activity.feedbackGuidance?.rubric?.length ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.feedback_rubric_label',
+                                'Observable cues',
+                            )}
+                        </p>
+                        <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.rubric.map((cue) => (
+                                <li
+                                    className="pl-4 before:mr-2 before:text-cyan-700 before:content-['•'] dark:before:text-teal-200"
+                                    key={cue}
+                                >
+                                    {cue}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : null}
+                <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
+                    {t(
+                        'learning.reflection.private_response_hint',
+                        'This response stays in your private journal.',
+                    )}
+                </p>
+                <Button
+                    className="mt-auto"
+                    disabled={isSaving || !playRunId}
+                    onClick={() => void completeReflection()}
+                    ref={postResponseContinueRef}
+                >
+                    {t(
+                        'learning.reflection.continue_after_feedback',
+                        'Continue',
+                    )}
+                    <ArrowRight className="ml-2 size-4" />
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-1 flex-col gap-4">
@@ -1032,6 +1135,25 @@ export function ReflectionActivity({
                         ? activity.config.topic
                         : '',
             });
+
+            if (hasPostResponseGuidance) {
+                setReflectionSaved(true);
+            } else {
+                await completeReflection();
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    async function completeReflection() {
+        if (!playRunId) {
+            return;
+        }
+
+        setIsSaving(true);
+
+        try {
             await onComplete(activity, {
                 confidence: confidence ?? undefined,
                 observedCues,

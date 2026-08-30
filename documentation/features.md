@@ -278,6 +278,10 @@ Learners may optionally mark the cues they noticed in their own explanation or
 transfer response. The selection is saved as private reflection context and a
 snapshot in the learner's evidence ledger; it does not determine correctness
 or create a rubric pass.
+When authored observation guidance is present, saving an explanation or transfer
+response opens a short learner-controlled pause showing the “what to notice”,
+possible next action and observable cues again before the activity continues.
+This is explanatory orientation, not automated critique or grading.
 Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.
