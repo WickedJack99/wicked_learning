@@ -293,6 +293,7 @@ test('completing a reopened activity consumes its revisit invitation', function 
         ->source->toBe('revisit')
         ->outcome->toBeNull()
         ->confidence->toBe('settled')
+        ->latency_seconds->toBeNull()
         ->assistance_level->toBe('untracked')
         ->attempted_at->toEqual(now());
 });

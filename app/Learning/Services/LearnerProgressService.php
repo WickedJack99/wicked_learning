@@ -82,6 +82,20 @@ class LearnerProgressService
             $observedCues,
         );
 
+        $routeUser = $playRunId
+            ? User::query()->find($userId)
+            : null;
+        $runProgress = null;
+        $latencySeconds = null;
+
+        if ($routeUser && $status === 'completed') {
+            $runProgress = $this->routeProgress->progressForRun($routeUser, $activity, $playRunId);
+
+            $latencySeconds = $runProgress?->last_entered_at
+                ? max(0, (int) $runProgress->last_entered_at->diffInSeconds($now))
+                : null;
+        }
+
         if ($recordsReviewAttempt) {
             LearnerReviewAttempt::query()->create([
                 'user_id' => $userId,
@@ -94,26 +108,19 @@ class LearnerProgressService
                 'confidence_after_feedback' => $confidenceAfterFeedback,
                 'assistance_level' => $assistanceLevel,
                 'observed_cues' => $reviewObservedCues === [] ? null : $reviewObservedCues,
+                'latency_seconds' => $latencySeconds,
                 'attempted_at' => $now,
             ]);
         }
 
         if ($playRunId) {
-            $routeUser = User::query()->find($userId);
-
             if ($routeUser) {
                 if ($status === 'reached') {
                     $this->routeProgress->enterActivity($routeUser, $activity, $playRunId);
                 }
 
                 if ($status === 'completed') {
-                    $runProgress = $this->routeProgress->progressForRun($routeUser, $activity, $playRunId);
-
                     if ($runProgress) {
-                        $latencySeconds = $runProgress->last_entered_at
-                            ? max(0, (int) $runProgress->last_entered_at->diffInSeconds($now))
-                            : null;
-
                         $this->competence->awardActivityCompletion(
                             $routeUser,
                             $activity,

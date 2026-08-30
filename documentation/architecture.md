@@ -221,6 +221,10 @@ When a route entry timestamp is available, `latency_seconds` records elapsed
 wall-clock time from
 the learner's latest entry into that activity to completion. It is an internal
 observation, not a measure of attention and not a learner score.
+Due revisit attempts preserve the same optional observation on their bounded
+review record when the completion belongs to a tracked route run. A review
+submitted without a route-entry timestamp leaves it null; the system does not
+infer elapsed time from unrelated requests.
 The generic activity completion endpoint accepts optional validated confidence
 values. Review activities use the first value for the learner's signal before
 the guidance pause and the second for an optional signal after that pause;

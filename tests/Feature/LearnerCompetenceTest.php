@@ -379,6 +379,9 @@ test('a reopened activity keeps review and evidence attempt numbers aligned', fu
 
     expect(LearnerReviewAttempt::query()->firstOrFail()->attempt_number)
         ->toBe(2)
+        ->and(LearnerReviewAttempt::query()->firstOrFail()->latency_seconds)
+        ->toBeGreaterThanOrEqual(59)
+        ->toBeLessThanOrEqual(61)
         ->and(LearnerReviewAttempt::query()->firstOrFail()->confidence)
         ->toBe('leaning')
         ->and(LearnerReviewAttempt::query()->firstOrFail()->confidence_after_feedback)

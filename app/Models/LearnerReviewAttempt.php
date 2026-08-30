@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * @property array<string, mixed>|null $metadata
  * @property list<string>|null $observed_cues
+ * @property int|null $latency_seconds
  */
 #[Fillable([
     'user_id',
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'source',
     'outcome',
     'confidence',
+    'latency_seconds',
     'confidence_after_feedback',
     'assistance_level',
     'observed_cues',
@@ -51,6 +53,7 @@ class LearnerReviewAttempt extends Model
     {
         return [
             'attempt_number' => 'integer',
+            'latency_seconds' => 'integer',
             'attempted_at' => 'datetime',
             'metadata' => 'array',
             'observed_cues' => 'array',
