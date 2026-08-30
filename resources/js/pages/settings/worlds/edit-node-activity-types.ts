@@ -89,6 +89,21 @@ export type EditableSourceRecord = SourceReferenceForm & {
     id: number;
 };
 
+export type SourceRecordVersion = SourceReferenceForm & {
+    createdAt: string | null;
+    id: number;
+};
+
+export type SourceRecordVersionPage = {
+    items: SourceRecordVersion[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
 export type PortalActivityLink = {
     description: string | null;
     id: number;

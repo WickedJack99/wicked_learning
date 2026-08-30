@@ -1,4 +1,11 @@
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Pencil,
+    Plus,
+    Save,
+    Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
@@ -9,6 +16,7 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityForm,
     EditableSourceRecord,
+    SourceRecordVersionPage,
     SourceReferenceForm,
 } from './edit-node-activity-types';
 
@@ -27,6 +35,7 @@ export function ActivitySourceReferenceFields({
     form,
     onChange,
     onDeleteSourceRecord,
+    onLoadSourceRecordVersions,
     onSaveSourceRecord,
     onUpdateSourceRecord,
     sourceRecords,
@@ -35,6 +44,10 @@ export function ActivitySourceReferenceFields({
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
     onDeleteSourceRecord: (id: number) => Promise<void>;
+    onLoadSourceRecordVersions: (
+        id: number,
+        page: number,
+    ) => Promise<SourceRecordVersionPage>;
     onSaveSourceRecord: (reference: SourceReferenceForm) => Promise<void>;
     onUpdateSourceRecord: (
         id: number,
@@ -50,6 +63,10 @@ export function ActivitySourceReferenceFields({
     );
     const [catalogBusy, setCatalogBusy] = useState(false);
     const [catalogError, setCatalogError] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState(false);
+    const [sourceHistory, setSourceHistory] =
+        useState<SourceRecordVersionPage | null>(null);
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [saveError, setSaveError] = useState(false);
 
@@ -128,12 +145,41 @@ export function ActivitySourceReferenceFields({
         setEditingSourceId(source.id);
         setCatalogForm(sourceFormFromRecord(source));
         setCatalogError(false);
+        setSourceHistory(null);
+        setHistoryLoading(true);
+        setHistoryError(false);
+        void onLoadSourceRecordVersions(source.id, 1)
+            .then(setSourceHistory)
+            .catch(() => setHistoryError(true))
+            .finally(() => setHistoryLoading(false));
     }
 
     function cancelEditingSource() {
         setEditingSourceId(null);
         setCatalogForm(null);
         setCatalogError(false);
+        setSourceHistory(null);
+        setHistoryError(false);
+        setHistoryLoading(false);
+    }
+
+    async function loadSourceHistoryPage(page: number) {
+        if (editingSourceId === null) {
+            return;
+        }
+
+        setHistoryLoading(true);
+        setHistoryError(false);
+
+        try {
+            setSourceHistory(
+                await onLoadSourceRecordVersions(editingSourceId, page),
+            );
+        } catch {
+            setHistoryError(true);
+        } finally {
+            setHistoryLoading(false);
+        }
     }
 
     function updateCatalogField(
@@ -444,6 +490,12 @@ export function ActivitySourceReferenceFields({
                                           )}
                                 </Button>
                             </div>
+                            <SourceHistory
+                                history={sourceHistory}
+                                loading={historyLoading}
+                                error={historyError}
+                                onPageChange={loadSourceHistoryPage}
+                            />
                         </div>
                     ) : null}
                     {catalogError ? (
@@ -660,6 +712,156 @@ function SourceField({
             <InputError message={error} />
         </div>
     );
+}
+
+function SourceHistory({
+    error,
+    history,
+    loading,
+    onPageChange,
+}: {
+    error: boolean;
+    history: SourceRecordVersionPage | null;
+    loading: boolean;
+    onPageChange: (page: number) => void;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <div className="grid min-h-48 gap-3 rounded-md border border-slate-200/80 bg-slate-950/20 p-3 dark:border-white/10">
+            <div>
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                    {t(
+                        'settings.activity_sources.history',
+                        'Previous versions',
+                    )}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.activity_sources.history_helper',
+                        'Earlier metadata is kept so authors can inspect what an activity could have pointed to at the time.',
+                    )}
+                </p>
+            </div>
+
+            {loading ? (
+                <p
+                    aria-live="polite"
+                    className="text-sm text-slate-500 dark:text-slate-400"
+                    role="status"
+                >
+                    {t(
+                        'settings.activity_sources.history_loading',
+                        'Loading source history…',
+                    )}
+                </p>
+            ) : error ? (
+                <p
+                    aria-live="polite"
+                    className="text-sm text-red-600 dark:text-red-300"
+                    role="status"
+                >
+                    {t(
+                        'settings.activity_sources.history_error',
+                        'The source history could not be loaded. Try again.',
+                    )}
+                </p>
+            ) : history && history.items.length > 0 ? (
+                <div className="grid gap-2">
+                    {history.items.map((version) => (
+                        <div
+                            className="grid gap-1 rounded-md border border-slate-200/80 p-2 dark:border-white/10"
+                            key={version.id}
+                        >
+                            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                                    {version.title}
+                                </p>
+                                <time
+                                    className="text-xs text-slate-500 dark:text-slate-400"
+                                    dateTime={version.createdAt ?? undefined}
+                                >
+                                    {formatVersionDate(version.createdAt)}
+                                </time>
+                            </div>
+                            <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                                {version.url}
+                            </p>
+                            {version.excerpt ? (
+                                <p className="text-xs text-slate-600 dark:text-slate-300">
+                                    {version.excerpt}
+                                </p>
+                            ) : null}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.activity_sources.history_empty',
+                        'No earlier versions yet. The first update will create one.',
+                    )}
+                </p>
+            )}
+
+            {history && history.pagination.lastPage > 1 ? (
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 pt-2 dark:border-white/10">
+                    <Button
+                        disabled={loading || history.pagination.page <= 1}
+                        onClick={() =>
+                            onPageChange(history.pagination.page - 1)
+                        }
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <ChevronLeft className="size-4" />
+                        {t(
+                            'settings.activity_sources.history_previous',
+                            'Previous',
+                        )}
+                    </Button>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {t('settings.activity_sources.history_page', 'Page')}{' '}
+                        {history.pagination.page}{' '}
+                        {t('settings.activity_sources.history_of', 'of')}{' '}
+                        {history.pagination.lastPage}
+                    </span>
+                    <Button
+                        disabled={
+                            loading ||
+                            history.pagination.page >=
+                                history.pagination.lastPage
+                        }
+                        onClick={() =>
+                            onPageChange(history.pagination.page + 1)
+                        }
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                    >
+                        {t('settings.activity_sources.history_next', 'Next')}
+                        <ChevronRight className="size-4" />
+                    </Button>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+function formatVersionDate(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(date);
 }
 
 function sourceFormFromRecord(

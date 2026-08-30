@@ -315,8 +315,10 @@ activity editor and copy a saved record into another activity. This is an
 authoring convenience, not a live link: changing a catalog record does not
 rewrite an activity or an existing learner evidence snapshot. Authors can also
 edit or delete catalog records from the same picker; deleting a catalog entry
-does not remove copied activity references. Version history and excerpt reuse
-remain future work.
+does not remove copied activity references. Version history is available for
+author inspection through the same picker: each update keeps the prior metadata
+as an immutable, paginated revision. Concept linkage and reusable excerpt
+workflows remain future work.
 
 Published topic pages also show the authored learning areas woven through their
 accessible map activities, with links into the corresponding focused

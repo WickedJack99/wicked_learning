@@ -68,6 +68,7 @@ import type {
     EditableSound,
     EditableTool,
     SourceReferenceForm,
+    SourceRecordVersionPage,
     StartRouteForm,
 } from './edit-node-activity-types';
 import { useNodeImageUpload } from './use-node-image-upload';
@@ -272,6 +273,28 @@ export default function EditNodeActivities({
             setSourceRecords((current) =>
                 current.filter((source) => source.id !== id),
             );
+        },
+        [],
+    );
+
+    const loadSourceRecordVersions = useCallback(
+        async (id: number, page: number): Promise<SourceRecordVersionPage> => {
+            const response = await fetch(
+                `/settings/worlds/source-records/${id}/versions?page=${page}&per_page=8`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The source history could not be loaded.');
+            }
+
+            return (await response.json()) as SourceRecordVersionPage;
         },
         [],
     );
@@ -1075,6 +1098,9 @@ export default function EditNodeActivities({
                             messageTopics={activityGraph.messageTopics}
                             onChange={setForm}
                             onDeleteSourceRecord={deleteSourceRecord}
+                            onLoadSourceRecordVersions={
+                                loadSourceRecordVersions
+                            }
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedType}
@@ -1128,6 +1154,9 @@ export default function EditNodeActivities({
                             messageTopics={activityGraph.messageTopics}
                             onChange={setEditForm}
                             onDeleteSourceRecord={deleteSourceRecord}
+                            onLoadSourceRecordVersions={
+                                loadSourceRecordVersions
+                            }
                             onUploadPortalImage={uploadNodeImage}
                             portalCandidates={activityGraph.portalCandidates}
                             selectedType={selectedEditType}

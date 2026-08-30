@@ -157,6 +157,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::patch('settings/worlds/source-records/{sourceRecord}', [AdminActivityController::class, 'updateSourceRecord'])
         ->name('settings.worlds.source-records.update');
 
+    Route::get('settings/worlds/source-records/{sourceRecord}/versions', [AdminActivityController::class, 'sourceRecordVersions'])
+        ->name('settings.worlds.source-records.versions');
+
     Route::delete('settings/worlds/source-records/{sourceRecord}', [AdminActivityController::class, 'destroySourceRecord'])
         ->name('settings.worlds.source-records.destroy');
 

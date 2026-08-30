@@ -129,7 +129,11 @@ the same publication metadata. The activity editor loads at most 100 records,
 and copying one into an activity remains a snapshot rather than a live link.
 Authorized activity authors can update or delete catalog records through the
 same bounded editor path; those operations do not mutate activity JSON. Source
-version history and AI-draft linkage remain roadmap work.
+updates create an immutable `LearningSourceRecordVersion` snapshot before the
+current record changes, and the editor can load the latest revisions through a
+bounded paginated endpoint. Deleting a catalog record also removes its private
+revision history; copied activity references remain unchanged. AI-draft linkage
+remains roadmap work.
 
 Activity types are registered as small data-shaped definitions in
 `ActivityTypeRegistry`, allowing the graph editor and Content API to discover

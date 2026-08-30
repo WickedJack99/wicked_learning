@@ -14,9 +14,12 @@ use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
+use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
+use App\Learning\Queries\LoadSourceRecordVersions;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
 use App\Learning\Serializers\EditableSourceRecordSerializer;
+use App\Learning\Serializers\SourceRecordVersionSerializer;
 use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\AdminActivityRules;
@@ -26,6 +29,8 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
 use App\Models\LearningSourceRecord;
+use App\Models\LearningSourceRecordVersion;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +54,9 @@ class AdminActivityController extends Controller
         private readonly DeleteActivityTransition $deleteActivityTransition,
         private readonly LearningMapEditAccessService $mapEditAccess,
         private readonly EditableSourceRecordSerializer $sourceRecordSerializer,
+        private readonly UpdateLearningSourceRecord $updateSourceRecord,
+        private readonly LoadSourceRecordVersions $sourceRecordVersions,
+        private readonly SourceRecordVersionSerializer $sourceRecordVersionSerializer,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -102,19 +110,40 @@ class AdminActivityController extends Controller
     {
         $this->authorizeGlobalActivityEdit($request);
         $data = $request->validate($this->rules->sourceRecord());
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
-        $sourceRecord->update([
-            'anchor' => $data['anchor'] ?? null,
-            'excerpt' => $data['excerpt'] ?? null,
-            'published_at' => $data['publishedAt'] ?? null,
-            'publisher' => $data['publisher'] ?? null,
-            'rights' => $data['rights'] ?? null,
-            'title' => $data['title'],
-            'url' => $data['url'],
-        ]);
+        $sourceRecord = $this->updateSourceRecord->handle($user, $sourceRecord, $data);
 
         return response()->json([
             'sourceRecord' => $this->sourceRecordSerializer->serialize($sourceRecord->refresh()),
+        ]);
+    }
+
+    public function sourceRecordVersions(Request $request, LearningSourceRecord $sourceRecord): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->sourceRecordVersions->paginate(
+            $sourceRecord,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 8,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningSourceRecordVersion $version): array => $this->sourceRecordVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
         ]);
     }
 

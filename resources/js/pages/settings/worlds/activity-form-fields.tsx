@@ -44,6 +44,7 @@ import type {
     EditableTool,
     MessageTopicOption,
     PortalCandidate,
+    SourceRecordVersionPage,
     SourceReferenceForm,
 } from './edit-node-activity-types';
 import {
@@ -90,6 +91,7 @@ export function ActivityFormFields({
     messageTopics,
     onChange,
     onDeleteSourceRecord,
+    onLoadSourceRecordVersions,
     onUploadPortalImage,
     onSaveSourceRecord,
     onUpdateSourceRecord,
@@ -110,6 +112,10 @@ export function ActivityFormFields({
     messageTopics: MessageTopicOption[];
     onChange: Dispatch<SetStateAction<ActivityForm>>;
     onDeleteSourceRecord: (id: number) => Promise<void>;
+    onLoadSourceRecordVersions: (
+        id: number,
+        page: number,
+    ) => Promise<SourceRecordVersionPage>;
     onUploadPortalImage: (
         key: string,
         file: File,
@@ -675,6 +681,9 @@ export function ActivityFormFields({
                                 form={form}
                                 onChange={onChange}
                                 onDeleteSourceRecord={onDeleteSourceRecord}
+                                onLoadSourceRecordVersions={
+                                    onLoadSourceRecordVersions
+                                }
                                 onSaveSourceRecord={onSaveSourceRecord}
                                 onUpdateSourceRecord={onUpdateSourceRecord}
                                 sourceRecords={sourceRecords}

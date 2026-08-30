@@ -176,3 +176,34 @@ test('admins can maintain saved sources without changing copied activity referen
 
     expect(LearningSourceRecord::query()->find($source->id))->toBeNull();
 });
+
+test('source record updates preserve paginated previous versions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $source = LearningSourceRecord::query()->create([
+        'anchor' => 'Before section',
+        'excerpt' => 'The earlier source note.',
+        'title' => 'Source before editing',
+        'url' => 'https://example.com/source-before-editing',
+    ]);
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.source-records.update', $source), [
+            'anchor' => 'After section',
+            'excerpt' => 'The updated source note.',
+            'title' => 'Source after editing',
+            'url' => 'https://example.com/source-after-editing',
+        ])
+        ->assertOk();
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.source-records.versions', $source).'?page=1&per_page=8')
+        ->assertOk()
+        ->assertJsonPath('items.0.anchor', 'Before section')
+        ->assertJsonPath('items.0.title', 'Source before editing')
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 8)
+        ->assertJsonPath('pagination.total', 1);
+
+    expect($source->versions()->count())->toBe(1);
+});
