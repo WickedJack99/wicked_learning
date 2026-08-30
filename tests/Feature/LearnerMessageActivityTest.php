@@ -305,7 +305,7 @@ test('learners can respond once to an opted-in peer message and support can mode
 test('learner message response loading stays bounded as a wall grows', function () {
     $learner = User::factory()->create();
     $messageAuthors = User::factory()->count(12)->create();
-    $responseAuthors = User::factory()->count(4)->create();
+    $responseAuthors = User::factory()->count(10)->create();
     $topic = LearningMessageTopic::query()->create([
         'learning_map_asset_id' => $this->mapAsset->id,
         'slug' => 'bounded-wall',
@@ -320,7 +320,7 @@ test('learner message response loading stays bounded as a wall grows', function 
     ]));
 
     $messages->each(function (LearnerMessage $message) use ($responseAuthors): void {
-        foreach (range(0, 3) as $number) {
+        foreach (range(0, 9) as $number) {
             LearnerMessageResponse::query()->create([
                 'learner_message_id' => $message->id,
                 'user_id' => $responseAuthors[$number]->id,
@@ -339,11 +339,22 @@ test('learner message response loading stays bounded as a wall grows', function 
     DB::enableQueryLog();
     $payload = app(LoadLearnerMessages::class)->handle($topic, $learner, 'peers', true);
     $queryCount = count(DB::getQueryLog());
+    $responseQuery = collect(DB::getQueryLog())
+        ->first(fn (array $query): bool => str_contains($query['query'], 'response_rank'));
     DB::disableQueryLog();
 
     expect($queryCount)->toBe(4)
+        ->and($responseQuery)->not->toBeNull()
+        ->and(strtolower($responseQuery['query']))->toContain('response_rank" <= ?')
+        ->and($responseQuery['bindings'])->toContain(3)
         ->and($payload['messages'])->toHaveCount(12)
         ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 3))->toBeTrue()
+        ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['responses'])
+        ->toMatchArray([
+            ['id' => 8, 'body' => 'Response 8'],
+            ['id' => 9, 'body' => 'Response 9'],
+            ['id' => 10, 'body' => 'Response 10'],
+        ])
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
 });
 

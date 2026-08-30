@@ -74,16 +74,19 @@ class LoadLearnerMessages
      */
     private function visibleResponses(array $messageIds): array
     {
-        return DB::table('learner_message_responses')
+        $rankedResponses = DB::table('learner_message_responses')
             ->select(['id', 'learner_message_id', 'body', 'created_at'])
             ->selectRaw('ROW_NUMBER() OVER (PARTITION BY learner_message_id ORDER BY created_at DESC, id DESC) AS response_rank')
             ->whereIn('learner_message_id', $messageIds)
-            ->whereNull('hidden_at')
+            ->whereNull('hidden_at');
+
+        return DB::query()
+            ->fromSub($rankedResponses, 'ranked_responses')
+            ->where('response_rank', '<=', 3)
             ->orderBy('learner_message_id')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
-            ->filter(fn (object $response): bool => (int) $response->response_rank <= 3)
             ->groupBy('learner_message_id')
             ->map(fn (Collection $responses): array => $responses
                 ->map(fn (object $response): array => [
