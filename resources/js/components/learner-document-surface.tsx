@@ -23,15 +23,21 @@ export function LearnerDocumentSurface({
             id="learner-main-content"
             tabIndex={-1}
             className={cn(
-                scrollable
-                    ? 'learner-scroll-pane'
-                    : 'flex min-h-0 flex-1 flex-col overflow-hidden',
-                'bg-[var(--learner-page-background)] text-[var(--learner-heading-text)] focus:outline-none',
+                'flex min-h-svh min-w-0 flex-col overflow-hidden bg-[var(--learner-page-background)] text-[var(--learner-heading-text)] focus:outline-none',
                 className,
             )}
         >
             <LearningDeskHeader />
-            {children}
+            <div
+                className={cn(
+                    'min-h-0 flex-1',
+                    scrollable
+                        ? 'learner-scroll-pane'
+                        : 'flex flex-col overflow-hidden',
+                )}
+            >
+                {children}
+            </div>
         </main>
     );
 }
