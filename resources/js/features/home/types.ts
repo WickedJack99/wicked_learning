@@ -24,6 +24,7 @@ export type LearningDeskRoute = {
     nodeHref: string;
     nodeTitle: string;
     routeLabel: string | null;
+    timeGuideMinutes: number | null;
     topic: { href: string; slug: string; title: string } | null;
 };
 

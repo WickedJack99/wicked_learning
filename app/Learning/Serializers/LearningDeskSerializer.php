@@ -3,6 +3,7 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningNodeBookmark;
@@ -15,6 +16,7 @@ class LearningDeskSerializer
 {
     public function __construct(
         private readonly ActivityCompetenceConfiguration $competence,
+        private readonly ActivityTimeGuideConfiguration $timeGuide,
     ) {}
 
     /**
@@ -97,6 +99,7 @@ class LearningDeskSerializer
     {
         $node = $progress->node;
         $route = $progress->activityStart;
+        $activity = $progress->currentActivity ?? $route?->activity;
         $activityId = $progress->current_learning_activity_id;
 
         if ($activityId === null && $route !== null) {
@@ -104,7 +107,7 @@ class LearningDeskSerializer
         }
 
         $activityId ??= $progress->start_learning_activity_id;
-        $currentActivityTitle = $progress->currentActivity?->title;
+        $currentActivityTitle = $activity?->title;
 
         if ($currentActivityTitle === null && $route !== null) {
             $currentActivityTitle = $route->activity?->title;
@@ -120,12 +123,8 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
-            'learningAreas' => $this->learningAreas(
-                $progress->currentActivity ?? $route?->activity,
-            ),
-            'learningIntent' => $this->learningIntent(
-                $progress->currentActivity ?? $route?->activity,
-            ),
+            'learningAreas' => $this->learningAreas($activity),
+            'learningIntent' => $this->learningIntent($activity),
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
@@ -136,6 +135,7 @@ class LearningDeskSerializer
             ], false),
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
+            'timeGuideMinutes' => $this->timeGuideMinutes($activity),
             'topic' => $this->topic($node->map->topic),
         ];
     }
@@ -145,6 +145,7 @@ class LearningDeskSerializer
     {
         $node = $progress->node;
         $route = $progress->activityStart;
+        $activity = $route?->activity;
 
         return [
             'currentActivityTitle' => null,
@@ -155,8 +156,8 @@ class LearningDeskSerializer
             ], false),
             'id' => $progress->id,
             'imageUrl' => $node->mapAsset?->image_url,
-            'learningAreas' => $this->learningAreas($route?->activity),
-            'learningIntent' => $this->learningIntent($route?->activity),
+            'learningAreas' => $this->learningAreas($activity),
+            'learningIntent' => $this->learningIntent($activity),
             'lastCompletedAt' => $this->dateTimeString($progress->last_completed_at),
             'lastEnteredAt' => $this->dateTimeString($progress->last_entered_at),
             'mapHref' => route('world', ['map' => $node->map->slug], false),
@@ -167,6 +168,7 @@ class LearningDeskSerializer
             ], false),
             'nodeTitle' => $node->title,
             'routeLabel' => $route?->label ?: $route?->activity?->title,
+            'timeGuideMinutes' => $this->timeGuideMinutes($activity),
             'topic' => $this->topic($node->map->topic),
         ];
     }
@@ -202,6 +204,11 @@ class LearningDeskSerializer
         return $activity
             ? $this->competence->learningIntentForActivity($activity)
             : null;
+    }
+
+    private function timeGuideMinutes(?LearningActivity $activity): ?int
+    {
+        return $activity ? $this->timeGuide->forActivity($activity) : null;
     }
 
     private function dateTimeString(mixed $value): ?string

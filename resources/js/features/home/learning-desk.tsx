@@ -41,11 +41,14 @@ type LearningDeskArea =
     | 'recent'
     | 'continue';
 
+type DeskTimeBudget = 'any' | 15 | 30;
+
 export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
     const [focusView, setFocusView] = useState(false);
+    const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>('any');
     const [handledRevisitIds, setHandledRevisitIds] = useState<number[]>([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
         null,
@@ -114,6 +117,32 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     }));
     const initialArea = deskAreaFromUrl() ?? defaultArea;
     const [activeArea, setActiveArea] = useState<LearningDeskArea>(initialArea);
+    const timeBudgetOptions: { label: string; value: DeskTimeBudget }[] = [
+        {
+            label: t('home.learning_desk.time_budget.any', 'Any time'),
+            value: 'any',
+        },
+        {
+            label: t(
+                'home.learning_desk.time_budget.short',
+                'Up to 15 minutes',
+            ),
+            value: 15,
+        },
+        {
+            label: t(
+                'home.learning_desk.time_budget.medium',
+                'Up to 30 minutes',
+            ),
+            value: 30,
+        },
+    ];
+    const visibleCurrentRoutes = desk.currentRoutes.filter((route) =>
+        fitsTimeBudget(route.timeGuideMinutes, timeBudget),
+    );
+    const hasTimeGuides = desk.currentRoutes.some(
+        (route) => route.timeGuideMinutes !== null,
+    );
 
     useEffect(() => {
         const handlePopState = () => {
@@ -566,10 +595,54 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             'Continue learning',
                                         )}
                                     />
-                                    {desk.currentRoutes.length > 0 ? (
+                                    {hasTimeGuides ? (
+                                        <fieldset className="mt-4 border-b border-[var(--learner-border-color)] pb-4">
+                                            <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'home.learning_desk.time_budget.label',
+                                                    'Plan by suggested time',
+                                                )}
+                                            </legend>
+                                            <div className="mt-2 flex flex-wrap gap-2">
+                                                {timeBudgetOptions.map(
+                                                    (option) => (
+                                                        <button
+                                                            aria-pressed={
+                                                                timeBudget ===
+                                                                option.value
+                                                            }
+                                                            className={[
+                                                                'min-h-11 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
+                                                                timeBudget ===
+                                                                option.value
+                                                                    ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
+                                                                    : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
+                                                            ].join(' ')}
+                                                            key={option.value}
+                                                            onClick={() =>
+                                                                setTimeBudget(
+                                                                    option.value,
+                                                                )
+                                                            }
+                                                            type="button"
+                                                        >
+                                                            {option.label}
+                                                        </button>
+                                                    ),
+                                                )}
+                                            </div>
+                                            <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'home.learning_desk.time_budget.helper',
+                                                    'This only narrows routes with an author-provided guide; it is not a deadline.',
+                                                )}
+                                            </p>
+                                        </fieldset>
+                                    ) : null}
+                                    {visibleCurrentRoutes.length > 0 ? (
                                         <LearnerPaginatedItems
                                             className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
-                                            items={desk.currentRoutes}
+                                            items={visibleCurrentRoutes}
                                             pageSize={2}
                                             paginationLabel="Current routes"
                                             renderItem={(route) => (
@@ -579,13 +652,13 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                     route={route}
                                                     emphasized={
                                                         route.id ===
-                                                        desk.currentRoutes[0]
+                                                        visibleCurrentRoutes[0]
                                                             ?.id
                                                     }
                                                 />
                                             )}
                                         />
-                                    ) : (
+                                    ) : timeBudget === 'any' ? (
                                         <EmptyState
                                             body={t(
                                                 'home.learning_desk.continue.empty_body',
@@ -601,6 +674,33 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                 'Nothing is currently in progress',
                                             )}
                                         />
+                                    ) : (
+                                        <div className="border-b border-[var(--learner-border-color)] py-7">
+                                            <p className="font-medium">
+                                                {t(
+                                                    'home.learning_desk.time_budget.empty_title',
+                                                    'No guided routes fit that time yet',
+                                                )}
+                                            </p>
+                                            <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                                {t(
+                                                    'home.learning_desk.time_budget.empty_body',
+                                                    'Routes without a suggested time remain available when you choose Any time.',
+                                                )}
+                                            </p>
+                                            <button
+                                                className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                                                onClick={() =>
+                                                    setTimeBudget('any')
+                                                }
+                                                type="button"
+                                            >
+                                                {t(
+                                                    'home.learning_desk.time_budget.show_all',
+                                                    'Show all routes',
+                                                )}
+                                            </button>
+                                        </div>
                                     )}
                                 </section>
                             ) : null}
@@ -812,6 +912,15 @@ function RouteRow({
                     <span className="mt-2 block truncate text-xs font-medium text-[var(--learner-action-accent)]">
                         {t('home.learning_desk.continue.next', 'Current step')}:{' '}
                         {route.currentActivityTitle}
+                    </span>
+                ) : null}
+                {route.timeGuideMinutes ? (
+                    <span className="mt-2 block text-xs text-[var(--learner-muted-text)]">
+                        {t(
+                            'learning.activity.time_guide',
+                            'Suggested time: :minutes minutes',
+                            { minutes: route.timeGuideMinutes },
+                        )}
                     </span>
                 ) : null}
                 <DeskReason reason={route.deskReason} />
@@ -1407,6 +1516,16 @@ function deskAreaFromUrl(): LearningDeskArea | null {
     }
 
     return null;
+}
+
+function fitsTimeBudget(
+    timeGuideMinutes: number | null,
+    timeBudget: DeskTimeBudget,
+): boolean {
+    return (
+        timeBudget === 'any' ||
+        (timeGuideMinutes !== null && timeGuideMinutes <= timeBudget)
+    );
 }
 
 function formatDate(value: string, locale: string): string {

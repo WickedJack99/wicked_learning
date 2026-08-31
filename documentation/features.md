@@ -157,6 +157,9 @@ Implemented activity types are:
 Authors can optionally add a suggested duration in minutes to any activity.
 Learners see it as a quiet planning cue before the activity content; it is not
 a countdown, deadline, completion condition or timing-based learner measure.
+On the Learning Desk, learners can optionally narrow current routes to those
+with an authored guide of up to 15 or 30 minutes. Routes without a guide remain
+available under Any time; the choice is temporary and does not change progress.
 
 Shared tasks can be authored as a general contribution, a question, or a
 reflection. Playback uses that kind to orient the learner and accepted

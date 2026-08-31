@@ -160,6 +160,7 @@ test('the learning desk presents current work and saved topics', function () {
         'title' => 'Observe the flow',
         'type' => 'markdown',
         'config' => [
+            'timeGuideMinutes' => 25,
             'competenceTopics' => [[
                 'topic' => 'Circulation',
                 'weight' => 1,
@@ -199,6 +200,7 @@ test('the learning desk presents current work and saved topics', function () {
             ->where('desk.currentRoutes.0.currentActivityTitle', 'Observe the flow')
             ->where('desk.currentRoutes.0.imageUrl', '/images/heart.png')
             ->where('desk.currentRoutes.0.learningIntent', 'participate')
+            ->where('desk.currentRoutes.0.timeGuideMinutes', 25)
             ->where('desk.currentRoutes.0.learningAreas.0.name', 'Circulation')
             ->where('desk.currentRoutes.0.learningAreas.0.slug', 'circulation')
             ->where('desk.currentRoutes.0.nodeHref', '/world?map=circulation&focused=heart-valves')

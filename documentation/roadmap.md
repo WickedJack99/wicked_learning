@@ -140,7 +140,9 @@ rail without changing the selected area or learning state; persistent intent
 and focus preferences remain open.
 Activities can also carry an optional author-provided suggested duration,
 shown as a planning cue without a countdown, deadline or timing-based learner
-measure. Learner-controlled intent and focus settings remain open.
+measure. The Learning Desk can use that guide for a temporary learner-selected
+up-to-15 or up-to-30-minute route view; persistent intent and focus settings
+remain open.
 
 ### 7. Effort-preserving learner AI
 

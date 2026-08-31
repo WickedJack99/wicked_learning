@@ -81,6 +81,18 @@ test('the learning desk can temporarily hide its secondary rail', function () {
         ->toContain('{!focusView ? <LearningDeskRail desk={desk} /> : null}');
 });
 
+test('the learning desk offers a bounded time budget for guided routes', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+
+    expect($learningDesk)
+        ->toContain("type DeskTimeBudget = 'any' | 15 | 30;")
+        ->toContain('fitsTimeBudget(route.timeGuideMinutes, timeBudget)')
+        ->toContain("'home.learning_desk.time_budget.helper'")
+        ->toContain('items={visibleCurrentRoutes}');
+});
+
 test('node route choices use pagination instead of a growing scroll region', function () {
     $activityPanel = file_get_contents(
         resource_path('js/features/world/activity-panel.tsx'),
