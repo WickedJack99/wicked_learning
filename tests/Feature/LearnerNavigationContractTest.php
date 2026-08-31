@@ -244,6 +244,19 @@ test('markdown playback copy uses the platform translation catalog', function ()
         ->not->toContain('aria-label="Previous page"');
 });
 
+test('item obstacle playback copy uses the platform translation catalog', function () {
+    $itemObstacle = file_get_contents(
+        resource_path('js/features/world/item-obstacle-activity.tsx'),
+    );
+
+    expect($itemObstacle)
+        ->toContain("'learning.item_obstacle.item_not_accepted'")
+        ->toContain("'learning.item_obstacle.not_ready'")
+        ->toContain("'learning.item_obstacle.locked_until'")
+        ->toContain("t('common.continue', 'Continue')")
+        ->not->toContain('Locked until {lockedUntil?.toLocaleString()}.');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { setLearningItems } from '@/features/items/item-inventory';
 import { useLayeredSoundPlayer } from '@/features/sounds/sound-player';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     ActivityTransition,
     LearningActivity,
@@ -40,6 +41,7 @@ export function ItemObstacleActivity({
     transition: ActivityTransition | null;
 }) {
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const soundPlayer = useLayeredSoundPlayer();
     const [state, setState] = useState<ItemObstacleState>(() =>
         initialState(progress),
@@ -132,7 +134,12 @@ export function ItemObstacleActivity({
             setLearningItems(response.inventory);
             setState(response.state);
         } catch {
-            setError('That item cannot be placed there.');
+            setError(
+                t(
+                    'learning.item_obstacle.item_not_accepted',
+                    'That item cannot be placed there.',
+                ),
+            );
         }
     };
 
@@ -152,7 +159,12 @@ export function ItemObstacleActivity({
                 onMoveToActivity(transition?.toActivityId ?? null);
             }
         } catch {
-            setError('This obstacle cannot continue yet.');
+            setError(
+                t(
+                    'learning.item_obstacle.not_ready',
+                    'This obstacle cannot continue yet.',
+                ),
+            );
         }
     };
 
@@ -212,7 +224,13 @@ export function ItemObstacleActivity({
                 {isLocked ? (
                     <p className="rounded-lg border border-amber-400/40 bg-amber-100 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-300/30 dark:bg-amber-300/10 dark:text-amber-100">
                         <Lock className="mr-2 inline size-4" />
-                        Locked until {lockedUntil?.toLocaleString()}.
+                        {t(
+                            'learning.item_obstacle.locked_until',
+                            'Locked until :date.',
+                            {
+                                date: lockedUntil?.toLocaleString() ?? '',
+                            },
+                        )}
                     </p>
                 ) : null}
                 {error ? (
@@ -226,7 +244,10 @@ export function ItemObstacleActivity({
                     onClick={() => void continueActivity()}
                     type="button"
                 >
-                    {activityTransitionLabel(transition, 'Continue')}
+                    {activityTransitionLabel(
+                        transition,
+                        t('common.continue', 'Continue'),
+                    )}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             </div>
