@@ -195,11 +195,20 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::delete('settings/worlds/source-records/{sourceRecord}', [AdminActivityController::class, 'destroySourceRecord'])
         ->name('settings.worlds.source-records.destroy');
 
+    Route::get('settings/worlds/activity-templates', [AdminActivityController::class, 'activityTemplates'])
+        ->name('settings.worlds.activity-templates.index');
+
+    Route::get('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'activityTemplate'])
+        ->name('settings.worlds.activity-templates.show');
+
     Route::get('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'edit'])
         ->name('settings.worlds.nodes.activities.edit');
 
     Route::post('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'store'])
         ->name('settings.worlds.nodes.activities.store');
+
+    Route::post('settings/worlds/activities/{activity}/templates', [AdminActivityController::class, 'storeActivityTemplate'])
+        ->name('settings.worlds.activities.templates.store');
 
     Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
         ->name('settings.worlds.activities.update');

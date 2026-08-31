@@ -611,8 +611,13 @@ opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and
 media, while message topics and portal destinations are cleared when the
 destination changes so source-context references cannot be carried across by
-accident. A shared, versioned template library is not yet part of the
-prototype.
+accident. Authors can also save an eligible activity as a private, named
+template and browse their templates through a bounded paginated picker when
+creating an activity. Template metadata is listed separately from its full
+authored configuration, which is loaded only after selection. Learner
+responses, evidence and the separate NPC dialogue graph are not included.
+Shared, versioned templates and richer asset-resolution controls remain future
+authoring work.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an

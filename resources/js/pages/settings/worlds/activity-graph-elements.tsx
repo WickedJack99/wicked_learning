@@ -5,6 +5,7 @@ import {
     CircleCheck,
     CircleStop,
     Copy,
+    BookmarkPlus,
     FileText,
     MessageCircle,
     Pencil,
@@ -170,6 +171,21 @@ function ActivityGraphNodeCard({
                         variant="ghost"
                     >
                         <Copy className="size-3.5" />
+                    </Button>
+                ) : null}
+                {activity.type !== 'npc_dialogue' ? (
+                    <Button
+                        aria-label={`Save ${activity.title} as a reusable template`}
+                        className="h-8 w-8 px-0 text-slate-500"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onSaveTemplate(activity);
+                        }}
+                        title="Save reusable template"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <BookmarkPlus className="size-3.5" />
                     </Button>
                 ) : null}
                 <Button
@@ -340,6 +356,7 @@ export function buildGraphNodes(
     onDelete: (activity: ActivitySummary) => void,
     onDuplicate: (activity: ActivitySummary) => void,
     onReview: (activity: ActivitySummary) => void,
+    onSaveTemplate: (activity: ActivitySummary) => void,
 ): ActivityGraphNode[] {
     const activities = payload.activities.map((activity, index) => ({
         id: activity.id.toString(),
@@ -351,6 +368,7 @@ export function buildGraphNodes(
             onDelete,
             onEdit,
             onReview,
+            onSaveTemplate,
         },
         ariaLabel: `${activity.type}: ${activity.title}`,
         position:

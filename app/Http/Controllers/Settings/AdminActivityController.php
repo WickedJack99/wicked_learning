@@ -12,16 +12,19 @@ use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\RestoreLearningActivityVersion;
+use App\Learning\Actions\SaveLearningActivityTemplate;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Queries\LoadEditableSourceRecords;
+use App\Learning\Queries\LoadLearningActivityTemplates;
 use App\Learning\Queries\LoadLearningActivityVersions;
 use App\Learning\Queries\LoadSourceRecordVersions;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
 use App\Learning\Serializers\EditableSourceRecordSerializer;
+use App\Learning\Serializers\LearningActivityTemplateSerializer;
 use App\Learning\Serializers\LearningActivityVersionSerializer;
 use App\Learning\Serializers\SourceRecordVersionSerializer;
 use App\Learning\Services\ActivityStartRouteService;
@@ -31,6 +34,7 @@ use App\Models\ActivityTransition;
 use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningActivityTemplate;
 use App\Models\LearningActivityVersion;
 use App\Models\LearningNode;
 use App\Models\LearningSourceRecord;
@@ -66,6 +70,9 @@ class AdminActivityController extends Controller
         private readonly LoadLearningActivityVersions $activityVersions,
         private readonly LearningActivityVersionSerializer $activityVersionSerializer,
         private readonly RestoreLearningActivityVersion $restoreActivityVersion,
+        private readonly SaveLearningActivityTemplate $saveActivityTemplate,
+        private readonly LoadLearningActivityTemplates $activityTemplates,
+        private readonly LearningActivityTemplateSerializer $activityTemplateSerializer,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -108,6 +115,70 @@ class AdminActivityController extends Controller
         $this->createLearningActivity->handle($targetNode, $data);
 
         return $this->redirectToActivities($targetNode);
+    }
+
+    public function activityTemplates(Request $request): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+            'search' => ['nullable', 'string', 'max:120'],
+        ]);
+        $templates = $this->activityTemplates->paginate(
+            $user,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 8,
+            search: $data['search'] ?? null,
+        );
+
+        return response()->json([
+            'items' => $templates->getCollection()
+                ->map(fn (LearningActivityTemplate $template): array => $this->activityTemplateSerializer->serialize($template))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $templates->currentPage(),
+                'perPage' => $templates->perPage(),
+                'total' => $templates->total(),
+                'lastPage' => $templates->lastPage(),
+            ],
+        ]);
+    }
+
+    public function storeActivityTemplate(
+        Request $request,
+        LearningActivity $activity,
+    ): JsonResponse {
+        $this->authorizeActivityEdit($request, $activity);
+        abort_unless($activity->type !== 'npc_dialogue', 422);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serialize(
+                $this->saveActivityTemplate->handle($user, $activity, $data['name']),
+            ),
+        ], 201);
+    }
+
+    public function activityTemplate(
+        Request $request,
+        LearningActivityTemplate $template,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serializeDetails($template),
+        ]);
     }
 
     public function storeSourceRecord(Request $request): JsonResponse

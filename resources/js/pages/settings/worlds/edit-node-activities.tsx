@@ -21,6 +21,7 @@ import {
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
+import { PaginationControls } from '@/components/pagination-controls';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { SettingsConfigurationSection } from '@/components/settings-configuration-section';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,9 @@ import type {
     ActivityStartRoute,
     ActivityTransitionSummary,
     ActivitySummary,
+    ActivityTemplateDetails,
+    ActivityTemplatePage,
+    ActivityTemplateSummary,
     EditableSourceRecord,
     EditableItem,
     EditableSound,
@@ -115,6 +119,29 @@ export default function EditNodeActivities({
     );
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
     const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
+    const [templateSaveActivity, setTemplateSaveActivity] =
+        useState<ActivitySummary | null>(null);
+    const [templateName, setTemplateName] = useState('');
+    const [savingTemplate, setSavingTemplate] = useState(false);
+    const [activityTemplates, setActivityTemplates] = useState<
+        ActivityTemplateSummary[]
+    >([]);
+    const [activityTemplatesPagination, setActivityTemplatesPagination] =
+        useState<ActivityTemplatePage['pagination']>({
+            lastPage: 1,
+            page: 1,
+            perPage: 4,
+            total: 0,
+        });
+    const [activityTemplateSearch, setActivityTemplateSearch] = useState('');
+    const [loadingActivityTemplates, setLoadingActivityTemplates] =
+        useState(false);
+    const [activityTemplateError, setActivityTemplateError] = useState<
+        string | null
+    >(null);
+    const [loadingTemplateId, setLoadingTemplateId] = useState<number | null>(
+        null,
+    );
     const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
         () => activityGraph.sourceRecords,
     );
@@ -421,6 +448,167 @@ export default function EditNodeActivities({
         [activityGraph.node.id, firstType, resetImageUploadErrors],
     );
 
+    const requestSaveTemplate = useCallback((activity: ActivitySummary) => {
+        setTemplateSaveActivity(activity);
+        setTemplateName(activity.title);
+    }, []);
+
+    const loadActivityTemplates = useCallback(
+        async (page = 1, search = ''): Promise<void> => {
+            setLoadingActivityTemplates(true);
+            setActivityTemplateError(null);
+            const params = new URLSearchParams({
+                page: String(page),
+                per_page: '4',
+            });
+
+            if (search.trim() !== '') {
+                params.set('search', search.trim());
+            }
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates?${params.toString()}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error('The activity templates could not be loaded.');
+                }
+
+                const payload = (await response.json()) as ActivityTemplatePage;
+                setActivityTemplates(payload.items);
+                setActivityTemplatesPagination(payload.pagination);
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The activity templates could not be loaded.',
+                );
+            } finally {
+                setLoadingActivityTemplates(false);
+            }
+        },
+        [],
+    );
+
+    const applySavedTemplate = useCallback(
+        async (template: ActivityTemplateSummary): Promise<void> => {
+            setLoadingTemplateId(template.id);
+            setActivityTemplateError(null);
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${template.id}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error('The selected template could not be loaded.');
+                }
+
+                const payload = (await response.json()) as {
+                    template: ActivityTemplateDetails;
+                };
+                const snapshot = payload.template.snapshot;
+                const formSource = {
+                    config: snapshot.config,
+                    introduction: snapshot.introduction,
+                    portalLink: null,
+                    slug: '',
+                    title: snapshot.title,
+                    type: snapshot.type,
+                };
+
+                setForm({
+                    ...activityFormFromActivity(formSource, firstType),
+                    slug: '',
+                    title: `${snapshot.title} (copy)`,
+                });
+                setDuplicateSourceTitle(payload.template.name);
+                setTargetNodeId(String(activityGraph.node.id));
+                setErrors({});
+                resetImageUploadErrors();
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The selected template could not be loaded.',
+                );
+            } finally {
+                setLoadingTemplateId(null);
+            }
+        },
+        [activityGraph.node.id, firstType, resetImageUploadErrors],
+    );
+
+    const saveActivityTemplate = useCallback(async (): Promise<void> => {
+        if (!templateSaveActivity || templateName.trim() === '') {
+            return;
+        }
+
+        setSavingTemplate(true);
+        setActivityTemplateError(null);
+        const csrfToken =
+            document.querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )?.content ?? '';
+
+        try {
+            const response = await fetch(
+                `/settings/worlds/activities/${templateSaveActivity.id}/templates`,
+                {
+                    body: JSON.stringify({ name: templateName.trim() }),
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'POST',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The activity template could not be saved.');
+            }
+
+            setTemplateSaveActivity(null);
+            setTemplateName('');
+
+            if (createOpen && !duplicateSourceTitle) {
+                await loadActivityTemplates(1);
+            }
+        } catch (error) {
+            setActivityTemplateError(
+                error instanceof Error
+                    ? error.message
+                    : 'The activity template could not be saved.',
+            );
+        } finally {
+            setSavingTemplate(false);
+        }
+    }, [
+        createOpen,
+        duplicateSourceTitle,
+        loadActivityTemplates,
+        templateName,
+        templateSaveActivity,
+    ]);
+
     const requestReview = useCallback((activity: ActivitySummary) => {
         setReviewingActivity(activity);
     }, []);
@@ -473,12 +661,14 @@ export default function EditNodeActivities({
                 requestDelete,
                 useAsStartingPoint,
                 requestReview,
+                requestSaveTemplate,
             ),
         [
             activityGraph,
             openEdit,
             requestDelete,
             requestReview,
+            requestSaveTemplate,
             useAsStartingPoint,
         ],
     );
@@ -596,8 +786,11 @@ export default function EditNodeActivities({
         setForm(emptyCreateForm(firstType));
         setDuplicateSourceTitle(null);
         setTargetNodeId(String(activityGraph.node.id));
+        setActivityTemplateSearch('');
+        setActivityTemplateError(null);
         setErrors({});
         resetImageUploadErrors();
+        void loadActivityTemplates(1);
         setCreateOpen(true);
     };
 
@@ -1171,6 +1364,108 @@ export default function EditNodeActivities({
                         </DialogDescription>
                     </DialogHeader>
 
+                    {!duplicateSourceTitle ? (
+                        <section className="shrink-0 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-sm font-semibold">
+                                        Start from a saved template
+                                    </h2>
+                                    <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                        Your templates are private and editable
+                                        starting points. The full configuration
+                                        loads only after you choose one.
+                                    </p>
+                                </div>
+                                <Input
+                                    aria-label="Search saved activity templates"
+                                    className="h-8 w-full sm:w-56"
+                                    onChange={(event) =>
+                                        setActivityTemplateSearch(
+                                            event.target.value,
+                                        )
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter') {
+                                            event.preventDefault();
+                                            void loadActivityTemplates(
+                                                1,
+                                                activityTemplateSearch,
+                                            );
+                                        }
+                                    }}
+                                    placeholder="Search templates"
+                                    value={activityTemplateSearch}
+                                />
+                            </div>
+                            {loadingActivityTemplates ? (
+                                <p className="mt-3 text-xs text-[var(--settings-muted-text)]">
+                                    Loading saved templates…
+                                </p>
+                            ) : activityTemplates.length > 0 ? (
+                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                    {activityTemplates.map((template) => (
+                                        <Button
+                                            className="h-auto min-h-16 justify-between gap-3 whitespace-normal border-[var(--settings-border-color)] px-3 py-2 text-left"
+                                            disabled={loadingTemplateId !== null}
+                                            key={template.id}
+                                            onClick={() =>
+                                                void applySavedTemplate(template)
+                                            }
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-medium">
+                                                    {template.name}
+                                                </span>
+                                                <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
+                                                    {template.type} · {template.title}
+                                                </span>
+                                            </span>
+                                            <ArrowRight className="size-4 shrink-0 text-[var(--settings-accent)]" />
+                                        </Button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="mt-3 text-xs text-[var(--settings-muted-text)]">
+                                    {activityTemplateSearch.trim() === ''
+                                        ? 'No saved templates yet. Save one from an activity card.'
+                                        : 'No saved templates match this search.'}
+                                </p>
+                            )}
+                            {activityTemplateError ? (
+                                <p
+                                    className="mt-2 text-xs text-red-600 dark:text-red-400"
+                                    role="alert"
+                                >
+                                    {activityTemplateError}
+                                </p>
+                            ) : null}
+                            <PaginationControls
+                                buttonClassName="text-xs text-[var(--settings-accent)] hover:text-[var(--settings-accent-foreground)]"
+                                className="mt-3 border-t border-[var(--settings-border-color)] pt-2"
+                                currentPage={activityTemplatesPagination.page}
+                                disabled={
+                                    loadingActivityTemplates ||
+                                    loadingTemplateId !== null
+                                }
+                                label="Saved activity template pagination"
+                                nextLabel="Next saved template page"
+                                onPageChange={(page) =>
+                                    void loadActivityTemplates(
+                                        page,
+                                        activityTemplateSearch,
+                                    )
+                                }
+                                pageCount={
+                                    activityTemplatesPagination.lastPage
+                                }
+                                previousLabel="Previous saved template page"
+                            />
+                        </section>
+                    ) : null}
+
                     {copiedTemplateContext ? (
                         <div className="grid gap-2 rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-300/20 dark:bg-amber-400/10 dark:text-amber-100">
                             <p className="flex items-start gap-2 font-medium">
@@ -1323,6 +1618,71 @@ export default function EditNodeActivities({
                         </DialogFooter>
                     </form>
                 </SettingsConfigurationDialog>
+            </Dialog>
+
+            <Dialog
+                open={templateSaveActivity !== null}
+                onOpenChange={(open) => {
+                    if (!open && !savingTemplate) {
+                        setTemplateSaveActivity(null);
+                        setTemplateName('');
+                        setActivityTemplateError(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Save reusable activity template</DialogTitle>
+                        <DialogDescription>
+                            Save the authored configuration as a private,
+                            editable starting point. Learner responses and
+                            evidence are never included.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <Label htmlFor="activity-template-name">
+                            Template name
+                        </Label>
+                        <Input
+                            autoFocus
+                            id="activity-template-name"
+                            maxLength={120}
+                            onChange={(event) =>
+                                setTemplateName(event.target.value)
+                            }
+                            value={templateName}
+                        />
+                        {activityTemplateError ? (
+                            <p
+                                className="text-sm text-red-600 dark:text-red-400"
+                                role="alert"
+                            >
+                                {activityTemplateError}
+                            </p>
+                        ) : null}
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            disabled={savingTemplate}
+                            onClick={() => {
+                                setTemplateSaveActivity(null);
+                                setTemplateName('');
+                                setActivityTemplateError(null);
+                            }}
+                            type="button"
+                            variant="outline"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            disabled={savingTemplate || templateName.trim() === ''}
+                            onClick={() => void saveActivityTemplate()}
+                            type="button"
+                        >
+                            Save template
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
             </Dialog>
 
             <Dialog open={editOpen} onOpenChange={setEditOpen}>

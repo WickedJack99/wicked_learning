@@ -7,6 +7,11 @@ import type {
     PortalAssetForm,
     SourceReferenceForm,
 } from './edit-node-activity-types';
+
+type ActivityFormSource = Pick<
+    ActivitySummary,
+    'config' | 'introduction' | 'portalLink' | 'slug' | 'title' | 'type'
+>;
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
         activity_sound_enabled: false,
@@ -180,7 +185,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
 }
 
 export function activityFormFromActivity(
-    activity: ActivitySummary,
+    activity: ActivityFormSource,
     fallbackType: string,
 ): ActivityForm {
     const portalMode = activity.config.portalMode;

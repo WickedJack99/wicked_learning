@@ -62,6 +62,34 @@ export type ActivitySummary = {
     updatedAt: string | null;
 };
 
+export type ActivityTemplateSummary = {
+    id: number;
+    name: string;
+    title: string;
+    type: string;
+    updatedAt: string | null;
+};
+
+export type ActivityTemplateDetails = ActivityTemplateSummary & {
+    snapshot: {
+        companionConfig?: Record<string, unknown>;
+        config: ActivitySummary['config'];
+        introduction: string | null;
+        title: string;
+        type: string;
+    };
+};
+
+export type ActivityTemplatePage = {
+    items: ActivityTemplateSummary[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
 export type ActivityReviewHistoryEntry = {
     id: number;
     model: string | null;
@@ -302,6 +330,7 @@ export type ActivityNodeData = {
     onDelete: (activity: ActivitySummary) => void;
     onEdit: (activity: ActivitySummary) => void;
     onReview: (activity: ActivitySummary) => void;
+    onSaveTemplate: (activity: ActivitySummary) => void;
 };
 
 export type SpecialNodeData = {

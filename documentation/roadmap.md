@@ -186,9 +186,10 @@ workflows remain future work.
 - Expand the single-map export manifest into bulk import/export for maps and
   MapAssets with explicit reference handling.
 - Add configuration profiles with visible inherited values and local overrides.
-- Expand activity templates into a shared, versioned library with richer
-  context and asset resolution controls; the current copy flow supports an
-  explicit MapAsset destination and clears source-scoped references.
+- Expand the current private activity-template library into a shared, versioned
+  library with richer context and asset-resolution controls. The current flow
+  supports named private templates, an explicit MapAsset destination and
+  clearing source-scoped references.
 
 ### Collaboration
 
