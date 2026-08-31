@@ -137,6 +137,46 @@ test('world maps expose published topic context without exposing draft topics', 
         );
 });
 
+test('world loading scopes inaccessible maps before eager hydration', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-world-map',
+        'title' => 'Visible world map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-world-map',
+        'title' => 'Restricted world map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+
+    $mapQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$mapQueries): void {
+        if (str_contains($query->sql, 'from "learning_maps"')) {
+            $mapQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('world.maps', fn ($maps): bool => $maps->count() === 1
+                && $maps->first()['slug'] === 'visible-world-map')
+        );
+
+    expect(collect($mapQueries)->first(
+        fn (QueryExecuted $query): bool => str_contains($query->sql, 'access_roles'),
+    ))->not->toBeNull();
+});
+
 test('authenticated users return to the last world map stored on their account', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();

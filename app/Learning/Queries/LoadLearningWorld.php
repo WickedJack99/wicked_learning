@@ -4,8 +4,10 @@ namespace App\Learning\Queries;
 
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningMapAccessService;
+use App\Models\LearningMap;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class LoadLearningWorld
 {
@@ -19,6 +21,10 @@ class LoadLearningWorld
         $world = $this->worldResolver
             ->query()
             ->with([
+                'maps' => /** @param Relation<LearningMap, LearningWorld, mixed> $relation */
+                function (Relation $relation) use ($user): void {
+                    $this->mapAccess->constrainVisibleQuery($relation->getQuery(), $user);
+                },
                 'maps.topic',
                 'maps.assets.node',
                 'maps.nodes.activities.question.options',
