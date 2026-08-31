@@ -90,7 +90,8 @@ Authors may also provide a separate comparison note shown after the fresh
 response, making the independent attempt more useful without grading it. The
 pause also shows the first and fresh private responses together so learners can
 notice what changed or stayed consistent; this remains self-inspection rather
-than automated assessment.
+than automated assessment. The optional confidence reflection follows the
+comparison and author guidance, keeping its timing aligned with its wording.
 
 ### 4. Explanatory feedback and calibration
 

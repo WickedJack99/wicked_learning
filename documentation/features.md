@@ -215,7 +215,9 @@ author guidance, not automated critique, a grade, or a rubric result.
 When an explanation or transfer activity includes an independent check, the
 pause also places the first and fresh private responses side by side. This
 supports learner inspection of what changed or stayed consistent without
-automatically judging either response.
+automatically judging either response. The optional confidence reflection is
+shown after that comparison and any author guidance, so it describes the
+learner's current understanding at the point the question is asked.
 Reflection activities configured for explanation use a clearly labelled
 explanation response. Transfer reflections additionally ask the learner to
 name the changed context where they tried the idea. These responses are saved
