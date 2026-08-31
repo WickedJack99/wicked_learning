@@ -360,6 +360,10 @@ The Learning Desk loads at most 12 recent visible private support responses for
 the current learner, eager-loading their topic and place navigation context in
 that bounded query. Map visibility is checked before serialization, and the
 Desk exposes only the response body and a return-to-place link.
+An explicitly remembered desk time or learning-purpose lens is stored in the
+learner's existing `UserPreference.settings.learning` JSON alongside other
+preferences; saving it preserves unrelated preference keys and does not alter
+learning state.
 
 Support and reflection models include:
 

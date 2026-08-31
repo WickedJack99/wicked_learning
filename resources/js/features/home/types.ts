@@ -95,7 +95,26 @@ export type LearningDeskData = {
     revisitInvitations: LearningDeskRevisitInvitation[];
     featuredBookmark: LearningDeskBookmark | null;
     supportResponses: LearningDeskSupportResponse[];
+    planningPreference: DeskPlanningPreference;
 };
+
+export type DeskPlanningPreference = {
+    isSaved: boolean;
+    purposeFilter: DeskPurposeFilter;
+    timeBudget: DeskTimeBudget;
+};
+
+export type DeskTimeBudget = 'any' | 15 | 30;
+
+export type DeskPurposeFilter =
+    | 'any'
+    | 'apply'
+    | 'explain'
+    | 'participate'
+    | 'reflect'
+    | 'retrieve'
+    | 'review'
+    | 'transfer';
 
 export type LearningSearchResult = {
     href: string;

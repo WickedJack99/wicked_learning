@@ -147,8 +147,11 @@ completion and evidence; richer recommendation reasons and learner-selected
 alternatives remain open.
 The desk also offers a focus view that hides its secondary pinned rail without
 changing the selected area or learning state; that presentation preference is
-retained locally per signed-in account and browser. Persistent intent settings
-and learner-selected alternatives remain open.
+retained locally per signed-in account and browser. Learners can now explicitly
+remember their selected time or learning-purpose lens on their account so it
+can seed the desk on another device; this remains a view preference rather than
+a persistent learning intention. Learner-selected alternatives and richer
+intent settings remain open.
 Activities can also carry an optional author-provided suggested duration,
 shown as a planning cue without a countdown, deadline or timing-based learner
 measure. The Learning Desk can use that guide for a temporary learner-selected

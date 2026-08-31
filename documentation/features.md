@@ -119,10 +119,10 @@ primary navigation available. The choice is retained locally per signed-in
 account and browser, so a refresh does not undo a deliberate presentation
 preference; it is not synced learning state, a recommendation or a progress
 signal. The normal desk layout returns when focus view is turned off. When time
-and purpose filters are selected, the desk remembers that planning lens on the
-same device for the signed-in learner and provides a clear action to reset it.
-These choices are only a view preference, not synced learning state, a
-recommendation or a progress signal. If time and purpose filters leave no
+and purpose filters are selected, the learner may explicitly remember that
+planning choice on their account so it can seed the desk on another device.
+This remains only a view preference, not a learning intention, recommendation
+or progress signal. If time and purpose filters leave no
 current route visible, the
 Show all routes action clears both planning filters so the learner can recover
 the complete current-route view in one step.
@@ -207,10 +207,12 @@ Learners see it as a quiet planning cue before the activity content; it is not
 a countdown, deadline, completion condition or timing-based learner measure.
 On the Learning Desk, learners can optionally narrow current routes to those
 with an authored guide of up to 15 or 30 minutes. Routes without a guide remain
-available under Any time; the choice is temporary and does not change progress.
-Learners can also temporarily filter current routes by their authored learning
-purpose, such as applying, explaining or retrieving an idea. These filters only
-change the desk view and do not rank routes or alter progress.
+available under Any time; the choice changes only the current view unless the
+learner explicitly chooses to remember it on their account. Learners can also
+filter current routes by their authored learning purpose, such as applying,
+explaining or retrieving an idea. These filters only change the desk view and
+do not rank routes or alter progress; an account-level planning choice only
+sets the initial view on a later visit.
 
 Shared tasks can be authored as a general contribution, a question, or a
 reflection. Playback uses that kind to orient the learner and accepted

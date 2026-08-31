@@ -2,6 +2,7 @@
 
 namespace App\Learning\Queries;
 
+use App\Learning\Services\LearningDeskPlanningPreference;
 use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearnerMessageResponse;
 use App\Models\LearnerRouteProgress;
@@ -17,6 +18,7 @@ class LoadLearningDesk
         private readonly LoadLearnerRecallItems $recallItems,
         private readonly LoadLearnerRevisitInvitations $revisitInvitations,
         private readonly LoadLearnerSupportResponses $supportResponses,
+        private readonly LearningDeskPlanningPreference $planningPreference,
         private readonly LearningMapAccessService $mapAccess,
     ) {}
 
@@ -29,7 +31,8 @@ class LoadLearningDesk
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     revisitInvitations: list<array<string, mixed>>,
      *     supportResponses: Collection<int, LearnerMessageResponse>,
-     *     featuredBookmark: LearningNodeBookmark|null
+     *     featuredBookmark: LearningNodeBookmark|null,
+     *     planningPreference: array{purposeFilter: string, timeBudget: int|string, isSaved: bool}
      * }
      */
     public function handle(User $user): array
@@ -59,6 +62,7 @@ class LoadLearningDesk
             'revisitInvitations' => $this->revisitInvitations->handle($user),
             'supportResponses' => $this->supportResponses->handle($user),
             'featuredBookmark' => $featuredBookmark,
+            'planningPreference' => $this->planningPreference->forUser($user),
         ];
     }
 

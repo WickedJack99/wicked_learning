@@ -7,6 +7,7 @@ use App\Http\Controllers\LearnerMessageController;
 use App\Http\Controllers\LearningActivityTranslationController;
 use App\Http\Controllers\LearningBookmarkController;
 use App\Http\Controllers\LearningCompanionController;
+use App\Http\Controllers\LearningDeskPlanningPreferenceController;
 use App\Http\Controllers\LearningGroupController;
 use App\Http\Controllers\LearningHomeController;
 use App\Http\Controllers\LearningItemActivityController;
@@ -48,6 +49,8 @@ Route::get('protected-media/maps/{map}/{path}', [ProtectedMapMediaController::cl
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('home', LearningHomeController::class)->name('home');
+    Route::patch('learning/desk/preferences', [LearningDeskPlanningPreferenceController::class, 'update'])
+        ->name('learning.desk.preferences.update');
     Route::redirect('journal', '/home?journal=1')->name('journal');
     Route::get('paths', LearningPathController::class)->name('paths.index');
     Route::get('topics', [LearningTopicController::class, 'index'])->name('topics.index');

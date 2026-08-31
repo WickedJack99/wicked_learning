@@ -89,14 +89,14 @@ test('the learning desk offers a bounded time budget for guided routes', functio
     );
 
     expect($learningDesk)
-        ->toContain("type DeskTimeBudget = 'any' | 15 | 30;")
+        ->toContain('type DeskPlanningSelection = {')
         ->toContain('fitsDeskFilters(')
         ->toContain("'home.learning_desk.purpose_filter.label'")
         ->toContain("'home.learning_desk.time_budget.helper'")
         ->toContain('items={visibleCurrentRoutes}');
 });
 
-test('the learning desk remembers explicit planning choices locally', function () {
+test('the learning desk can remember explicit planning choices on the account', function () {
     $learningDesk = file_get_contents(
         resource_path('js/features/home/learning-desk.tsx'),
     );
@@ -104,9 +104,10 @@ test('the learning desk remembers explicit planning choices locally', function (
     expect($learningDesk)
         ->toContain('wicked-learning:desk-planning:${auth.user.id}')
         ->toContain('readDeskPlanningPreference(planningPreferenceKey)')
-        ->toContain('writeDeskPlanningPreference(planningPreferenceKey')
-        ->toContain('clearDeskPlanningPreference(planningPreferenceKey)')
-        ->toContain("'home.learning_desk.planning.saved_locally'")
+        ->toContain('desk.planningPreference.isSaved')
+        ->toContain('learning.desk.preferences.update.url()')
+        ->toContain("'home.learning_desk.planning.account_preference'")
+        ->toContain("'home.learning_desk.planning.save'")
         ->toContain("'home.learning_desk.planning.clear'");
 });
 

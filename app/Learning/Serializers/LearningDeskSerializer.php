@@ -29,7 +29,8 @@ class LearningDeskSerializer
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     revisitInvitations: list<array<string, mixed>>,
      *     supportResponses: Collection<int, LearnerMessageResponse>,
-     *     featuredBookmark: LearningNodeBookmark|null
+     *     featuredBookmark: LearningNodeBookmark|null,
+     *     planningPreference: array{purposeFilter: string, timeBudget: int|string, isSaved: bool}
      * }  $desk
      * @return array<string, mixed>
      */
@@ -71,6 +72,7 @@ class LearningDeskSerializer
             'featuredBookmark' => $desk['featuredBookmark']
                 ? $this->bookmark($desk['featuredBookmark'])
                 : null,
+            'planningPreference' => $desk['planningPreference'],
         ];
     }
 

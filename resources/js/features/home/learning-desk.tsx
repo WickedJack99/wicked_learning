@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     Bookmark,
@@ -24,11 +24,14 @@ import {
     learningIntentLabel,
 } from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import learning from '@/routes/learning';
 import { LearningDeskSearch } from './learning-desk-search';
 import type {
     LearningDeskBookmark,
     LearningDeskCheckIn,
     LearningDeskData,
+    DeskPurposeFilter,
+    DeskTimeBudget,
     LearningDeskRevisitInvitation,
     LearningDeskRecallItem,
     LearningDeskRoute,
@@ -44,8 +47,6 @@ type LearningDeskArea =
     | 'support'
     | 'continue';
 
-type DeskTimeBudget = 'any' | 15 | 30;
-
 type DeskLearningPurpose =
     | 'apply'
     | 'explain'
@@ -55,9 +56,7 @@ type DeskLearningPurpose =
     | 'review'
     | 'transfer';
 
-type DeskPurposeFilter = 'any' | DeskLearningPurpose;
-
-type DeskPlanningPreference = {
+type DeskPlanningSelection = {
     purposeFilter: DeskPurposeFilter;
     timeBudget: DeskTimeBudget;
 };
@@ -83,9 +82,17 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const planningPreferenceKey = auth.user
         ? `wicked-learning:desk-planning:${auth.user.id}`
         : null;
-    const [savedPlanningPreference] = useState(() =>
-        readDeskPlanningPreference(planningPreferenceKey),
-    );
+    const [savedPlanningPreference, setSavedPlanningPreference] =
+        useState<DeskPlanningSelection>(() =>
+            desk.planningPreference.isSaved
+                ? {
+                      purposeFilter: desk.planningPreference.purposeFilter,
+                      timeBudget: desk.planningPreference.timeBudget,
+                  }
+                : readDeskPlanningPreference(planningPreferenceKey),
+        );
+    const [planningPreferenceSaveState, setPlanningPreferenceSaveState] =
+        useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [focusView, setFocusView] = useState(() =>
         readFocusViewPreference(focusPreferenceKey),
     );
@@ -120,24 +127,41 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
 
     function updateTimeBudget(nextTimeBudget: DeskTimeBudget) {
         setTimeBudget(nextTimeBudget);
-        writeDeskPlanningPreference(planningPreferenceKey, {
-            purposeFilter,
-            timeBudget: nextTimeBudget,
-        });
+        setPlanningPreferenceSaveState('idle');
     }
 
     function updatePurposeFilter(nextPurposeFilter: DeskPurposeFilter) {
         setPurposeFilter(nextPurposeFilter);
-        writeDeskPlanningPreference(planningPreferenceKey, {
-            purposeFilter: nextPurposeFilter,
-            timeBudget,
-        });
+        setPlanningPreferenceSaveState('idle');
     }
 
     function clearPlanningChoices() {
         setTimeBudget('any');
         setPurposeFilter('any');
-        clearDeskPlanningPreference(planningPreferenceKey);
+        setPlanningPreferenceSaveState('idle');
+    }
+
+    function savePlanningChoices() {
+        setPlanningPreferenceSaveState('saving');
+
+        router.patch(
+            learning.desk.preferences.update.url(),
+            {
+                purposeFilter,
+                timeBudget,
+            },
+            {
+                onCancel: () => setPlanningPreferenceSaveState('idle'),
+                onError: () => setPlanningPreferenceSaveState('error'),
+                onStart: () => setPlanningPreferenceSaveState('saving'),
+                onSuccess: () => {
+                    setSavedPlanningPreference({ purposeFilter, timeBudget });
+                    setPlanningPreferenceSaveState('saved');
+                },
+                preserveScroll: true,
+                preserveState: true,
+            },
+        );
     }
 
     const recallItems = desk.recallItems
@@ -239,6 +263,9 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     );
     const hasActiveRouteFilter =
         activeTimeBudget !== 'any' || activePurposeFilter !== 'any';
+    const hasUnsavedPlanningChoices =
+        timeBudget !== savedPlanningPreference.timeBudget ||
+        purposeFilter !== savedPlanningPreference.purposeFilter;
 
     useEffect(() => {
         const handlePopState = () => {
@@ -753,8 +780,8 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
                                             <p className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
                                                 {t(
-                                                    'home.learning_desk.planning.saved_locally',
-                                                    'Your planning choices are remembered on this device.',
+                                                    'home.learning_desk.planning.account_preference',
+                                                    'Planning choices are optional and can be remembered for your account.',
                                                 )}
                                             </p>
                                             {hasTimeGuides ? (
@@ -877,6 +904,54 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                         'Clear planning choices',
                                                     )}
                                                 </button>
+                                            ) : null}
+                                            {hasUnsavedPlanningChoices ? (
+                                                <button
+                                                    className="min-h-11 text-left text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none md:col-span-2 md:justify-self-end"
+                                                    disabled={
+                                                        planningPreferenceSaveState ===
+                                                        'saving'
+                                                    }
+                                                    onClick={
+                                                        savePlanningChoices
+                                                    }
+                                                    type="button"
+                                                >
+                                                    {planningPreferenceSaveState ===
+                                                    'saving'
+                                                        ? t(
+                                                              'home.learning_desk.planning.saving',
+                                                              'Remembering choices...',
+                                                          )
+                                                        : t(
+                                                              'home.learning_desk.planning.save',
+                                                              'Remember these choices',
+                                                          )}
+                                                </button>
+                                            ) : null}
+                                            {planningPreferenceSaveState ===
+                                            'saved' ? (
+                                                <p
+                                                    aria-live="polite"
+                                                    className="text-xs text-[var(--learner-muted-text)] md:col-span-2 md:justify-self-end"
+                                                >
+                                                    {t(
+                                                        'home.learning_desk.planning.saved',
+                                                        'Planning choices remembered for your account.',
+                                                    )}
+                                                </p>
+                                            ) : null}
+                                            {planningPreferenceSaveState ===
+                                            'error' ? (
+                                                <p
+                                                    aria-live="polite"
+                                                    className="text-xs text-[var(--learner-muted-text)] md:col-span-2 md:justify-self-end"
+                                                >
+                                                    {t(
+                                                        'home.learning_desk.planning.error',
+                                                        'Could not remember these choices. The current view still works.',
+                                                    )}
+                                                </p>
                                             ) : null}
                                         </div>
                                     ) : null}
@@ -1843,22 +1918,8 @@ function formatDate(value: string, locale: string): string {
     }).format(new Date(value));
 }
 
-function readFocusViewPreference(key: string | null): boolean {
-    if (!key || typeof window === 'undefined') {
-        return false;
-    }
-
-    try {
-        return window.localStorage.getItem(key) === 'true';
-    } catch {
-        return false;
-    }
-}
-
-function readDeskPlanningPreference(
-    key: string | null,
-): DeskPlanningPreference {
-    const fallback: DeskPlanningPreference = {
+function readDeskPlanningPreference(key: string | null): DeskPlanningSelection {
+    const fallback: DeskPlanningSelection = {
         purposeFilter: 'any',
         timeBudget: 'any',
     };
@@ -1887,30 +1948,15 @@ function readDeskPlanningPreference(
     }
 }
 
-function writeDeskPlanningPreference(
-    key: string | null,
-    preference: DeskPlanningPreference,
-): void {
+function readFocusViewPreference(key: string | null): boolean {
     if (!key || typeof window === 'undefined') {
-        return;
+        return false;
     }
 
     try {
-        window.localStorage.setItem(key, JSON.stringify(preference));
+        return window.localStorage.getItem(key) === 'true';
     } catch {
-        // Browser storage may be unavailable; the in-memory choices still work.
-    }
-}
-
-function clearDeskPlanningPreference(key: string | null): void {
-    if (!key || typeof window === 'undefined') {
-        return;
-    }
-
-    try {
-        window.localStorage.removeItem(key);
-    } catch {
-        // Browser storage may be unavailable; the in-memory choices still work.
+        return false;
     }
 }
 
