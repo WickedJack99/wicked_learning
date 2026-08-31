@@ -97,6 +97,17 @@ test('learners can discover accessible authored routes with topic context', func
             ->where('paths.0.nodeTitle', 'Constellations')
             ->where('paths.0.href', '/learning/nodes/'.$node->id.'/play?route='.$start->id)
         );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['purpose' => 'review']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 1)
+            ->where('selectedPurpose', 'review')
+            ->where('pagination.total', 1)
+            ->where('paths.0.id', $start->id)
+        );
 });
 
 test('learning paths paginate long route collections on the server', function () {
@@ -138,6 +149,9 @@ test('learning paths paginate long route collections on the server', function ()
             'title' => 'Long route activity '.$index,
             'introduction' => 'A route activity for collection coverage.',
             'type' => 'markdown',
+            'config' => [
+                'learningIntent' => $index === 7 ? 'review' : 'participate',
+            ],
         ]);
         LearningActivityStart::query()->create([
             'learning_node_id' => $node->id,
@@ -178,6 +192,19 @@ test('learning paths paginate long route collections on the server', function ()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->component('paths')
             ->where('pagination.currentPage', 2)
+            ->where('paths.0.label', 'Long route 7')
+        );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['purpose' => 'review']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 1)
+            ->where('selectedPurpose', 'review')
+            ->where('pagination.currentPage', 1)
+            ->where('pagination.lastPage', 1)
+            ->where('pagination.total', 1)
             ->where('paths.0.label', 'Long route 7')
         );
 });

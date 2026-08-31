@@ -3,7 +3,10 @@ import { ArrowRight, Compass, Map as MapIcon, Route } from 'lucide-react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { PaginationControls } from '@/components/pagination-controls';
 import { competenceTopicHref } from '@/features/competence/competence-links';
-import { learningIntentLabel } from '@/features/world/activity-utils';
+import {
+    LEARNING_INTENTS,
+    learningIntentLabel,
+} from '@/features/world/activity-utils';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type LearningPath = {
@@ -36,14 +39,27 @@ type PathsPagination = {
     total: number;
 };
 
+function pathsUrl(page: number, purpose: string | null): string {
+    const params = new URLSearchParams({ page: String(page) });
+
+    if (purpose) {
+        params.set('purpose', purpose);
+    }
+
+    return `/paths?${params.toString()}`;
+}
+
 export default function Paths({
     paths,
     pagination,
+    selectedPurpose,
 }: {
     paths: LearningPath[];
     pagination: PathsPagination;
+    selectedPurpose: string | null;
 }) {
     const t = usePlatformTranslation();
+    const hasSelectedPurpose = selectedPurpose !== null;
 
     return (
         <LearnerDocumentSurface>
@@ -62,39 +78,129 @@ export default function Paths({
                     )}
                 </p>
 
-                {paths.length > 0 ? (
+                {paths.length > 0 || hasSelectedPurpose ? (
                     <section className="mt-12" aria-labelledby="paths-heading">
-                        <div className="flex items-center gap-4 border-b border-[var(--learner-border-color)] pb-3">
-                            <Route className="size-5 text-[var(--learner-action-accent)]" />
-                            <h2
-                                className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-muted-text)] uppercase"
-                                id="paths-heading"
-                            >
-                                {t('paths.available.title', 'Available routes')}
-                            </h2>
+                        <div className="flex flex-col gap-4 border-b border-[var(--learner-border-color)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+                            <div className="flex items-center gap-4">
+                                <Route className="size-5 text-[var(--learner-action-accent)]" />
+                                <h2
+                                    className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-muted-text)] uppercase"
+                                    id="paths-heading"
+                                >
+                                    {t(
+                                        'paths.available.title',
+                                        'Available routes',
+                                    )}
+                                </h2>
+                            </div>
+                            <div className="sm:max-w-xs sm:min-w-64">
+                                <label
+                                    className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                    htmlFor="paths-purpose"
+                                >
+                                    {t(
+                                        'paths.filters.purpose.label',
+                                        'Learning purpose',
+                                    )}
+                                </label>
+                                <select
+                                    className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                    id="paths-purpose"
+                                    onChange={(event) =>
+                                        router.visit(
+                                            pathsUrl(
+                                                1,
+                                                event.target.value || null,
+                                            ),
+                                            {
+                                                preserveScroll: true,
+                                                replace: true,
+                                            },
+                                        )
+                                    }
+                                    value={selectedPurpose ?? ''}
+                                >
+                                    <option value="">
+                                        {t(
+                                            'paths.filters.purpose.any',
+                                            'Any purpose',
+                                        )}
+                                    </option>
+                                    {LEARNING_INTENTS.map((intent) => (
+                                        <option key={intent} value={intent}>
+                                            {learningIntentLabel(intent, t) ??
+                                                intent}
+                                        </option>
+                                    ))}
+                                </select>
+                                <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'paths.filters.purpose.description',
+                                        'Narrow the starting points by what the route invites you to do.',
+                                    )}
+                                </p>
+                            </div>
                         </div>
-                        <div className="mt-6 grid min-h-[89rem] gap-4 md:min-h-[44rem] md:grid-cols-2">
-                            {paths.map((path) => (
-                                <PathCard key={path.id} path={path} />
-                            ))}
-                        </div>
-                        <PaginationControls
-                            buttonClassName="text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
-                            className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3"
-                            currentPage={pagination.currentPage}
-                            label={t(
-                                'paths.pagination.label',
-                                'Learning paths',
-                            )}
-                            onPageChange={(page) =>
-                                router.visit('/paths?page=' + page, {
-                                    preserveScroll: true,
-                                    replace: true,
-                                })
-                            }
-                            pageCount={pagination.lastPage}
-                            textClassName="text-xs text-[var(--learner-muted-text)]"
-                        />
+                        {paths.length > 0 ? (
+                            <>
+                                <div className="mt-6 grid min-h-[89rem] gap-4 md:min-h-[44rem] md:grid-cols-2">
+                                    {paths.map((path) => (
+                                        <PathCard key={path.id} path={path} />
+                                    ))}
+                                </div>
+                                <PaginationControls
+                                    buttonClassName="text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)]"
+                                    className="mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3"
+                                    currentPage={pagination.currentPage}
+                                    label={t(
+                                        'paths.pagination.label',
+                                        'Learning paths',
+                                    )}
+                                    onPageChange={(page) =>
+                                        router.visit(
+                                            pathsUrl(page, selectedPurpose),
+                                            {
+                                                preserveScroll: true,
+                                                replace: true,
+                                            },
+                                        )
+                                    }
+                                    pageCount={pagination.lastPage}
+                                    textClassName="text-xs text-[var(--learner-muted-text)]"
+                                />
+                            </>
+                        ) : (
+                            <div className="border-b border-[var(--learner-border-color)] py-10">
+                                <Compass className="size-7 text-[var(--learner-action-accent)]" />
+                                <h3 className="mt-5 text-sm font-semibold">
+                                    {t(
+                                        'paths.filtered_empty.title',
+                                        'No routes match this purpose yet',
+                                    )}
+                                </h3>
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'paths.filtered_empty.description',
+                                        'Try another purpose or return to all available routes.',
+                                    )}
+                                </p>
+                                <button
+                                    className="mt-5 text-sm font-medium text-[var(--learner-action-accent)] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]"
+                                    onClick={() =>
+                                        router.visit(pathsUrl(1, null), {
+                                            preserveScroll: true,
+                                            replace: true,
+                                        })
+                                    }
+                                    type="button"
+                                >
+                                    {t(
+                                        'paths.filtered_empty.clear',
+                                        'Show all routes',
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </section>
                 ) : (
                     <section className="mt-12 border-y border-[var(--learner-border-color)] py-10">

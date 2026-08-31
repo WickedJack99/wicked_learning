@@ -17,6 +17,16 @@ export function activityTransitionLabel(
 
 type PlatformTranslate = (key: string, fallback?: string) => string;
 
+export const LEARNING_INTENTS = [
+    'apply',
+    'explain',
+    'participate',
+    'reflect',
+    'retrieve',
+    'review',
+    'transfer',
+] as const;
+
 const learningFocusCopy: Record<string, [string, string]> = {
     apply: ['activities.focus.apply', 'Apply an idea'],
     explain: ['activities.focus.explain', 'Explain an idea in your own words'],
@@ -152,10 +162,7 @@ export function learningCheckInDirectionLabel(
     return directionCopy ? translate(...directionCopy) : null;
 }
 
-function activityTypeLabel(
-    type: string,
-    translate: PlatformTranslate,
-): string {
+function activityTypeLabel(type: string, translate: PlatformTranslate): string {
     const typeCopy = learningActivityTypeCopy[type];
 
     if (typeCopy) {

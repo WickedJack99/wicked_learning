@@ -181,9 +181,11 @@ activity and run in its deep link so a refresh returns to the same place
 instead of falling back to the node's first route.
 
 The Paths directory shows each route's authored learning areas and links those
-areas to the focused competence reading. Routes are returned in bounded server
-pages with stable controls as the directory grows. The route remains a
-suggested way in, not a required sequence.
+areas to the focused competence reading. Learners can optionally narrow the
+directory by the route's learning purpose, while keeping an explicit way back
+to all routes. Routes are returned in bounded server pages with stable controls
+as the directory grows. The route remains a suggested way in, not a required
+sequence, and the purpose filter changes only the view.
 
 Implemented activity types are:
 
