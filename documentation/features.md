@@ -113,11 +113,13 @@ became ready, keeping the spacing decision visible without exposing internal
 scheduling details. Paginated collection controls keep their navigation
 footprint stable when the last page is shorter and allow a learner or author to
 enter a valid page number directly; values outside the available page range are
-rejected. Learners can also temporarily enter a focus view that hides the
+rejected. Learners can also enter a focus view that hides the
 secondary pinned-and-bookmarks rail while keeping the selected desk area and
-primary navigation available. The normal desk layout returns when focus view is
-turned off; this is a presentation choice, not a new recommendation or saved
-learning state. If time and purpose filters leave no current route visible, the
+primary navigation available. The choice is retained locally per signed-in
+account and browser, so a refresh does not undo a deliberate presentation
+preference; it is not synced learning state, a recommendation or a progress
+signal. The normal desk layout returns when focus view is turned off. If time
+and purpose filters leave no current route visible, the
 Show all routes action clears both planning filters so the learner can recover
 the complete current-route view in one step.
 

@@ -72,7 +72,12 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
     const shouldFocusAreaHeadingRef = useRef(false);
-    const [focusView, setFocusView] = useState(false);
+    const focusPreferenceKey = auth.user
+        ? `wicked-learning:desk-focus-view:${auth.user.id}`
+        : null;
+    const [focusView, setFocusView] = useState(() =>
+        readFocusViewPreference(focusPreferenceKey),
+    );
     const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>('any');
     const [purposeFilter, setPurposeFilter] =
         useState<DeskPurposeFilter>('any');
@@ -93,6 +98,12 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const [postponedRecallDates, setPostponedRecallDates] = useState<
         Record<number, string>
     >({});
+
+    function updateFocusView(nextFocusView: boolean) {
+        setFocusView(nextFocusView);
+        writeFocusViewPreference(focusPreferenceKey, nextFocusView);
+    }
+
     const recallItems = desk.recallItems
         .filter((item) => !removedRecallQuestionIds.includes(item.questionId))
         .map((item) => {
@@ -334,9 +345,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
                                             : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
                                     ].join(' ')}
-                                    onClick={() =>
-                                        setFocusView((current) => !current)
-                                    }
+                                    onClick={() => updateFocusView(!focusView)}
                                     type="button"
                                 >
                                     <Focus
@@ -1766,4 +1775,35 @@ function formatDate(value: string, locale: string): string {
         day: 'numeric',
         month: 'short',
     }).format(new Date(value));
+}
+
+function readFocusViewPreference(key: string | null): boolean {
+    if (!key || typeof window === 'undefined') {
+        return false;
+    }
+
+    try {
+        return window.localStorage.getItem(key) === 'true';
+    } catch {
+        return false;
+    }
+}
+
+function writeFocusViewPreference(
+    key: string | null,
+    enabled: boolean,
+): void {
+    if (!key || typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        if (enabled) {
+            window.localStorage.setItem(key, 'true');
+        } else {
+            window.localStorage.removeItem(key);
+        }
+    } catch {
+        // Browser storage may be unavailable; the in-memory toggle still works.
+    }
 }
