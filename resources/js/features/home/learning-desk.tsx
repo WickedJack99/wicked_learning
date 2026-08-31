@@ -835,9 +835,10 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             </p>
                                             <button
                                                 className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
-                                                onClick={() =>
-                                                    setTimeBudget('any')
-                                                }
+                                                onClick={() => {
+                                                    setTimeBudget('any');
+                                                    setPurposeFilter('any');
+                                                }}
                                                 type="button"
                                             >
                                                 {t(

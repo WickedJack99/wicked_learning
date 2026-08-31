@@ -115,7 +115,9 @@ rejected. Learners can also temporarily enter a focus view that hides the
 secondary pinned-and-bookmarks rail while keeping the selected desk area and
 primary navigation available. The normal desk layout returns when focus view is
 turned off; this is a presentation choice, not a new recommendation or saved
-learning state.
+learning state. If time and purpose filters leave no current route visible, the
+Show all routes action clears both planning filters so the learner can recover
+the complete current-route view in one step.
 
 ### Activities And Routes
 
