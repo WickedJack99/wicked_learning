@@ -1,5 +1,6 @@
 import { Send, Users, X } from 'lucide-react';
 import { useState } from 'react';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatMessageTime } from '@/features/messages/message-time';
@@ -24,6 +25,8 @@ type GroupMessage = {
         name: string;
     } | null;
 };
+
+const GROUP_PAGE_SIZE = 1;
 
 export type LearningGroup = {
     adminChatRequiredVotes: number;
@@ -56,6 +59,16 @@ export function GroupControl({
     onOpen: () => void;
 }) {
     const t = usePlatformTranslation();
+    const [groupPage, setGroupPage] = useState(0);
+    const groupPageCount = Math.ceil(groups.length / GROUP_PAGE_SIZE);
+    const currentGroupPage = Math.min(
+        groupPage,
+        Math.max(0, groupPageCount - 1),
+    );
+    const visibleGroups = groups.slice(
+        currentGroupPage * GROUP_PAGE_SIZE,
+        (currentGroupPage + 1) * GROUP_PAGE_SIZE,
+    );
 
     return (
         <>
@@ -107,7 +120,7 @@ export function GroupControl({
                             <X className="size-5" />
                         </Button>
                     </div>
-                    <div className="min-h-0 overflow-y-auto">
+                    <div>
                         {groups.length === 0 ? (
                             <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
                                 {t(
@@ -117,7 +130,7 @@ export function GroupControl({
                             </p>
                         ) : (
                             <div className="grid gap-3">
-                                {groups.map((group) => (
+                                {visibleGroups.map((group) => (
                                     <GroupChatCard
                                         group={group}
                                         key={group.id}
@@ -127,6 +140,15 @@ export function GroupControl({
                             </div>
                         )}
                     </div>
+                    <PaginationControls
+                        buttonClassName="min-h-11 text-[var(--map-floating-accent-color)] transition hover:text-[var(--map-floating-text-color)]"
+                        className="border-t border-[var(--map-floating-border-color)] pt-3"
+                        currentPage={currentGroupPage + 1}
+                        label={t('world.groups.pagination', 'Group chats')}
+                        onPageChange={(page) => setGroupPage(page - 1)}
+                        pageCount={groupPageCount}
+                        textClassName="text-[var(--map-floating-text-color)]"
+                    />
                 </section>
             ) : null}
         </>

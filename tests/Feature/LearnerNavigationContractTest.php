@@ -80,6 +80,18 @@ test('node route choices use pagination instead of a growing scroll region', fun
         ->not->toContain('route-options-scroll');
 });
 
+test('learner group chats paginate distinct groups instead of scrolling the group list', function () {
+    $groupControl = file_get_contents(
+        resource_path('js/features/world/group-control.tsx'),
+    );
+
+    expect($groupControl)
+        ->toContain('const GROUP_PAGE_SIZE = 1;')
+        ->toContain('const visibleGroups = groups.slice(')
+        ->toContain('<PaginationControls')
+        ->not->toContain('min-h-0 overflow-y-auto');
+});
+
 test('an authenticated learner can open a published topic detail surface', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([

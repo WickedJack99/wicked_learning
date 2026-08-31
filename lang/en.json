@@ -27,6 +27,7 @@
     "common.unknown": "Unknown",
     "common.upload": "Upload",
     "common.uploading": "Uploading...",
+    "world.groups.pagination": "Group chats",
     "world.groups.help.checkbox": "Ask the group for help",
     "world.groups.help.helper": "This labels your message as a request that another member can mark resolved.",
     "world.groups.help.mark_resolved": "Mark resolved",
