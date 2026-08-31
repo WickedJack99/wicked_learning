@@ -122,6 +122,26 @@ test('node route choices use pagination instead of a growing scroll region', fun
         ->not->toContain('route-options-scroll');
 });
 
+test('activity orientation copy uses the platform translation catalog', function () {
+    $activityPanel = file_get_contents(
+        resource_path('js/features/world/activity-panel.tsx'),
+    );
+    $activityPage = file_get_contents(
+        resource_path('js/pages/learning/node-play.tsx'),
+    );
+
+    expect($activityPanel)
+        ->toContain("usePlatformTranslation()")
+        ->toContain("'learning.map.completed_count'")
+        ->toContain("'learning.activity.related_areas'")
+        ->not->toContain("return 'In progress';");
+    expect($activityPage)
+        ->toContain("'learning.activity.context.aria_label'")
+        ->toContain("'learning.activity.bookmark.add'")
+        ->toContain("'learning.activity.back_to_map'")
+        ->not->toContain('aria-label="Learning context"');
+});
+
 test('learner group chats paginate distinct groups instead of scrolling the group list', function () {
     $groupControl = file_get_contents(
         resource_path('js/features/world/group-control.tsx'),

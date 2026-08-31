@@ -137,7 +137,9 @@ rules. When a node offers more than three route starts, the learner sees them in
 bounded pages with stable controls rather than an expanding route scroll area.
 The activity page keeps the global header focused on navigation and shows
 the current topic, map, route and place in a compact context panel beside the
-player.
+player. Its fixed orientation, route-progress, bookmark and empty-state copy
+uses the platform translation catalog; authored activity content remains
+separate from that generic UI catalog.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

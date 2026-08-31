@@ -70,6 +70,8 @@ export function ActivityPanel({
     ) => void;
     onToggleBookmark: (node: LearningNode) => void;
 }) {
+    const translate = usePlatformTranslation();
+
     if (!node) {
         return null;
     }
@@ -77,7 +79,7 @@ export function ActivityPanel({
     if (node.state === 'locked') {
         return (
             <PanelShell
-                eyebrow="Location"
+                eyebrow={translate('learning.map.location', 'Location')}
                 headerAction={
                     <PanelNodeActions
                         isBookmarked={isBookmarked}
@@ -98,7 +100,7 @@ export function ActivityPanel({
 
     return (
         <PanelShell
-            eyebrow="Location"
+            eyebrow={translate('learning.map.location', 'Location')}
             headerAction={
                 <PanelNodeActions
                     isBookmarked={isBookmarked}
@@ -137,6 +139,7 @@ function RouteStartButtons({
         page: 1,
     });
     const { resolvedAppearance } = useAppearance();
+    const translate = usePlatformTranslation();
 
     const routes =
         node.startRoutes.length > 0
@@ -151,7 +154,7 @@ function RouteStartButtons({
                       id: 0,
                       imageDark: null,
                       imageLight: null,
-                      label: 'Start node',
+                      label: translate('learning.map.start_node', 'Start node'),
                       progress: null,
                       sortOrder: 0,
                   },
@@ -185,6 +188,7 @@ function RouteStartButtons({
                         node={node}
                         onStart={onStart}
                         route={route}
+                        translate={translate}
                     />
                 ))}
             </div>
@@ -207,6 +211,7 @@ function RouteStartOption({
     node,
     onStart,
     route,
+    translate,
 }: {
     mode: 'dark' | 'light';
     node: LearningNode;
@@ -216,6 +221,7 @@ function RouteStartOption({
         routeId?: number | null,
     ) => void;
     route: LearningNode['startRoutes'][number];
+    translate: ReturnType<typeof usePlatformTranslation>;
 }) {
     const image = mode === 'light' ? route.imageLight : route.imageDark;
     const buttonColor =
@@ -248,7 +254,7 @@ function RouteStartOption({
 
         router.visit(response.url);
     };
-    const progressText = routeProgressText(route);
+    const progressText = routeProgressText(route, translate);
 
     if (image) {
         return (
@@ -285,6 +291,7 @@ function RouteStartOption({
                     onReset={() => void resetRoute()}
                     progressText={progressText}
                     route={route}
+                    resetLabel={translate('learning.map.reset', 'Reset')}
                 />
             </div>
         );
@@ -309,6 +316,7 @@ function RouteStartOption({
                 onReset={() => void resetRoute()}
                 progressText={progressText}
                 route={route}
+                resetLabel={translate('learning.map.reset', 'Reset')}
             />
         </div>
     );
@@ -318,10 +326,12 @@ function RouteProgressActions({
     onReset,
     progressText,
     route,
+    resetLabel,
 }: {
     onReset: () => void;
     progressText: string | null;
     route: LearningNode['startRoutes'][number];
+    resetLabel: string;
 }) {
     if (!progressText && !route.progress) {
         return null;
@@ -336,7 +346,7 @@ function RouteProgressActions({
                 type="button"
             >
                 <RotateCcw className="size-3" />
-                Reset
+                {resetLabel}
             </button>
         </div>
     );
@@ -344,6 +354,7 @@ function RouteProgressActions({
 
 function routeProgressText(
     route: LearningNode['startRoutes'][number],
+    translate: ReturnType<typeof usePlatformTranslation>,
 ): string | null {
     const progress = route.progress;
 
@@ -352,11 +363,20 @@ function routeProgressText(
     }
 
     if (progress.completionCount > 0) {
-        return `Completed ${progress.completionCount}x${progress.lastCompletedAt ? ` · ${new Date(progress.lastCompletedAt).toLocaleDateString()}` : ''}`;
+        return translate(
+            'learning.map.completed_count',
+            'Completed :count×:date',
+            {
+                count: progress.completionCount,
+                date: progress.lastCompletedAt
+                    ? ` · ${new Date(progress.lastCompletedAt).toLocaleDateString()}`
+                    : '',
+            },
+        );
     }
 
     if (progress.status === 'in_progress') {
-        return 'In progress';
+        return translate('learning.map.in_progress', 'In progress');
     }
 
     return null;
@@ -634,14 +654,21 @@ function NodeSummary({ node }: { node: LearningNode }) {
 }
 
 function EmptyActivityState() {
+    const translate = usePlatformTranslation();
+
     return (
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-slate-950/24">
             <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                No activity configured yet
+                {translate(
+                    'learning.map.empty_activity.title',
+                    'No activity configured yet',
+                )}
             </p>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                This panel is ready for future actions such as starting a first
-                activity, opening a portal or showing unlock requirements.
+                {translate(
+                    'learning.map.empty_activity.body',
+                    'This panel is ready for future actions such as starting a first activity, opening a portal or showing unlock requirements.',
+                )}
             </p>
         </div>
     );
@@ -837,7 +864,10 @@ function ActivityFrame({
                     {relatedLearningAreas.length > 0 ? (
                         <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
                             <span className="font-medium">
-                                Related learning areas:
+                                {translate(
+                                    'learning.activity.related_areas',
+                                    'Related learning areas:',
+                                )}
                             </span>
                             {relatedLearningAreas.map((area) =>
                                 area.slug ? (
@@ -873,7 +903,10 @@ function ActivityFrame({
                     type="button"
                     variant="ghost"
                 >
-                    From beginning
+                    {translate(
+                        'learning.activity.from_beginning',
+                        'From beginning',
+                    )}
                 </Button>
             </div>
         </section>
@@ -894,7 +927,9 @@ function ActivitySources({
     return (
         <details className="rounded-lg border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_78%,transparent)] p-3">
             <summary className="cursor-pointer list-inside text-sm font-medium text-[var(--learner-heading-text)] outline-none marker:text-[var(--learner-action-accent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-panel-background)]">
-                Sources ({sources.length})
+                {t('learning.activity.sources', 'Sources (:count)', {
+                    count: sources.length,
+                })}
             </summary>
             <ul className="mt-3 grid gap-3 border-t border-[var(--learner-border-color)] pt-3">
                 {sources.map((source) => (
@@ -961,14 +996,22 @@ function FeedbackGuidance({
 }: {
     guidance: LearningActivity['feedbackGuidance'];
 }) {
+    const t = usePlatformTranslation();
+
     if (!guidance) {
         return null;
     }
 
     const entries = [
-        ['Purpose', guidance.purpose],
-        ['What to notice', guidance.evidence],
-        ['Next action', guidance.nextAction],
+        [t('learning.activity.feedback.purpose', 'Purpose'), guidance.purpose],
+        [
+            t('learning.activity.feedback.evidence', 'What to notice'),
+            guidance.evidence,
+        ],
+        [
+            t('learning.activity.feedback.next_action', 'Next action'),
+            guidance.nextAction,
+        ],
     ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
     if (entries.length === 0 && !guidance.rubric?.length) {
@@ -990,7 +1033,10 @@ function FeedbackGuidance({
             {guidance.rubric?.length ? (
                 <div className="md:col-span-3">
                     <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
-                        Observable cues
+                        {t(
+                            'learning.activity.feedback.observable_cues',
+                            'Observable cues',
+                        )}
                     </p>
                     <ul className="mt-1 grid gap-1 text-sm leading-6 text-[var(--learner-body-text)]">
                         {guidance.rubric.map((cue) => (
@@ -1050,6 +1096,8 @@ function PanelShell({
     onClose?: () => void;
     title: string;
 }) {
+    const translate = usePlatformTranslation();
+
     return (
         <div className="flex h-full min-h-[44vh] flex-col gap-5 overflow-y-auto overscroll-contain p-5 md:p-7">
             <div className="flex items-start gap-4">
@@ -1064,7 +1112,10 @@ function PanelShell({
                 {headerAction}
                 {onClose ? (
                     <Button
-                        aria-label="Close node panel"
+                        aria-label={translate(
+                            'learning.map.close_node_panel',
+                            'Close node panel',
+                        )}
                         onClick={onClose}
                         size="icon"
                         variant="ghost"
@@ -1087,9 +1138,21 @@ function BookmarkButton({
     node: LearningNode;
     onToggleBookmark: (node: LearningNode) => void;
 }) {
+    const translate = usePlatformTranslation();
+
     return (
         <Button
-            aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this tile'}
+            aria-label={
+                isBookmarked
+                    ? translate(
+                          'learning.map.bookmark.remove',
+                          'Remove bookmark',
+                      )
+                    : translate(
+                          'learning.map.bookmark.add',
+                          'Bookmark this tile',
+                      )
+            }
             onClick={() => onToggleBookmark(node)}
             size="icon"
             type="button"
@@ -1119,13 +1182,18 @@ function PanelNodeActions({
     node: LearningNode;
     onToggleBookmark: (node: LearningNode) => void;
 }) {
+    const translate = usePlatformTranslation();
+
     return (
         <div className="flex shrink-0 items-center gap-1">
             {isCompleted ? (
                 <span
-                    aria-label="Node completed"
+                    aria-label={translate(
+                        'learning.map.node_completed',
+                        'Node completed',
+                    )}
                     className="grid size-9 place-items-center rounded-md text-emerald-600 dark:text-emerald-300"
-                    title="Completed"
+                    title={translate('learning.map.completed', 'Completed')}
                 >
                     <CheckCircle2 className="size-4" />
                 </span>

@@ -496,41 +496,52 @@ export default function NodePlay({
         [],
     );
 
-    const travel = useCallback((portalLink: LearningPortalLink) => {
-        if (
-            portalLink.targetNodeState === 'locked' ||
-            portalLink.targetNodeState === 'hidden'
-        ) {
-            setTravelBlockedMessage(
-                portalLink.targetNodeState === 'locked'
-                    ? `${portalLink.targetNodeTitle} is still locked.`
-                    : `${portalLink.targetNodeTitle} has not been discovered yet.`,
+    const travel = useCallback(
+        (portalLink: LearningPortalLink) => {
+            if (
+                portalLink.targetNodeState === 'locked' ||
+                portalLink.targetNodeState === 'hidden'
+            ) {
+                setTravelBlockedMessage(
+                    portalLink.targetNodeState === 'locked'
+                        ? translate(
+                              'learning.activity.travel.locked',
+                              ':title is still locked.',
+                              { title: portalLink.targetNodeTitle },
+                          )
+                        : translate(
+                              'learning.activity.travel.undiscovered',
+                              ':title has not been discovered yet.',
+                              { title: portalLink.targetNodeTitle },
+                          ),
+                );
+
+                return;
+            }
+
+            setTravelBlockedMessage('');
+
+            if (pendingLearningCheckInRef.current) {
+                const checkIn: PendingLearningCheckIn = {
+                    ...pendingLearningCheckInRef.current,
+                    destination: { kind: 'portal', portalLink },
+                } satisfies PendingLearningCheckIn;
+                pendingLearningCheckInRef.current = checkIn;
+                setPendingLearningCheckIn(checkIn);
+
+                return;
+            }
+
+            const activityQuery = portalLink.targetActivityId
+                ? `?activity=${portalLink.targetActivityId}`
+                : '';
+
+            router.visit(
+                `/learning/nodes/${portalLink.targetNodeId}/play${activityQuery}`,
             );
-
-            return;
-        }
-
-        setTravelBlockedMessage('');
-
-        if (pendingLearningCheckInRef.current) {
-            const checkIn: PendingLearningCheckIn = {
-                ...pendingLearningCheckInRef.current,
-                destination: { kind: 'portal', portalLink },
-            } satisfies PendingLearningCheckIn;
-            pendingLearningCheckInRef.current = checkIn;
-            setPendingLearningCheckIn(checkIn);
-
-            return;
-        }
-
-        const activityQuery = portalLink.targetActivityId
-            ? `?activity=${portalLink.targetActivityId}`
-            : '';
-
-        router.visit(
-            `/learning/nodes/${portalLink.targetNodeId}/play${activityQuery}`,
-        );
-    }, []);
+        },
+        [translate],
+    );
 
     const continueAfterCheckIn = useCallback(
         async (
@@ -618,11 +629,17 @@ export default function NodePlay({
 
                 <section className="mx-auto grid min-h-0 w-full flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 px-3 pt-3 pb-6 sm:px-4 sm:pt-4 md:w-[85vw] md:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] md:grid-rows-1 md:px-6 md:pt-6">
                     <aside
-                        aria-label="Learning context"
+                        aria-label={translate(
+                            'learning.activity.context.aria_label',
+                            'Learning context',
+                        )}
                         className="flex min-h-0 flex-col rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4"
                     >
                         <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
-                            Learning context
+                            {translate(
+                                'learning.activity.context.eyebrow',
+                                'Learning context',
+                            )}
                         </p>
                         <h1 className="mt-2 text-base font-semibold text-[var(--learner-heading-text)]">
                             {node.title}
@@ -631,7 +648,10 @@ export default function NodePlay({
                             {node.topic ? (
                                 <div>
                                     <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                                        Topic
+                                        {translate(
+                                            'learning.activity.context.topic',
+                                            'Topic',
+                                        )}
                                     </dt>
                                     <dd className="mt-1 text-sm">
                                         <Link
@@ -645,7 +665,10 @@ export default function NodePlay({
                             ) : null}
                             <div>
                                 <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                                    Map
+                                    {translate(
+                                        'learning.activity.context.map',
+                                        'Map',
+                                    )}
                                 </dt>
                                 <dd className="mt-1 text-sm text-[var(--learner-body-text)]">
                                     <Link
@@ -659,7 +682,10 @@ export default function NodePlay({
                             {activeRouteLabel ? (
                                 <div>
                                     <dt className="text-xs font-medium tracking-[0.12em] text-[var(--learner-muted-text)] uppercase">
-                                        Route
+                                        {translate(
+                                            'learning.activity.context.route',
+                                            'Route',
+                                        )}
                                     </dt>
                                     <dd className="mt-1 text-sm text-[var(--learner-action-accent)]">
                                         {activeRouteLabel}
@@ -685,8 +711,14 @@ export default function NodePlay({
                                     }
                                 />
                                 {isBookmarked
-                                    ? 'Remove place bookmark'
-                                    : 'Bookmark this place'}
+                                    ? translate(
+                                          'learning.activity.bookmark.remove',
+                                          'Remove place bookmark',
+                                      )
+                                    : translate(
+                                          'learning.activity.bookmark.add',
+                                          'Bookmark this place',
+                                      )}
                             </Button>
                         ) : null}
                     </aside>
@@ -739,7 +771,10 @@ export default function NodePlay({
                                 type="button"
                                 variant="outline"
                             >
-                                Show conclusion
+                                {translate(
+                                    'learning.activity.conclusion.show',
+                                    'Show conclusion',
+                                )}
                             </Button>
                         ) : null}
 
@@ -771,18 +806,26 @@ export default function NodePlay({
                             <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center dark:border-white/15 dark:bg-white/6">
                                 <div>
                                     <p className="text-base font-semibold">
-                                        No activity path configured
+                                        {translate(
+                                            'learning.activity.empty.title',
+                                            'No activity path configured',
+                                        )}
                                     </p>
                                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                                        This node exists, but an admin has not
-                                        added a playable activity yet.
+                                        {translate(
+                                            'learning.activity.empty.body',
+                                            'This node exists, but an admin has not added a playable activity yet.',
+                                        )}
                                     </p>
                                     <Button
                                         className="mt-5"
                                         onClick={returnToMap}
                                         type="button"
                                     >
-                                        Back to map
+                                        {translate(
+                                            'learning.activity.back_to_map',
+                                            'Back to map',
+                                        )}
                                     </Button>
                                 </div>
                             </div>
