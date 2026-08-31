@@ -158,8 +158,9 @@ shows only a small, bounded set of opted-in contributions and does not expose
 learner identities.
 Authors may optionally add a project brief with a shared goal, a useful outcome
 and up to six suggested steps. Learners see this orientation beside the shared
-task prompt; it does not assign roles, evaluate the outcome or replace learner
-choice about how to contribute.
+task prompt and can optionally mark those steps as private planning notes for
+the current play run; the checklist does not assign roles, affect completion or
+replace learner choice about how to contribute.
 Authors may also invite one anonymous peer review. A learner who has contributed
 can respond once to one other learner's explicitly shared contribution using the
 author's prompt. The interaction exposes no learner identities and provides no

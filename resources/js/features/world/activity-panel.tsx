@@ -529,6 +529,8 @@ export function ActivityPlayer({
             {activity.type === 'shared_task' ? (
                 <SharedTaskActivity
                     activity={activity}
+                    initialState={playState[activity.id]}
+                    key={`${activity.id}:${playRunId ?? 'local'}`}
                     onComplete={completeActivity}
                     onMoveToActivity={onMoveToActivity}
                     playRunId={playRunId}

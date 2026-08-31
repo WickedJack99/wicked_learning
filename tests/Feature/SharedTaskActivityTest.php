@@ -51,6 +51,35 @@ test('shared task configuration normalizes an optional project brief', function 
         ->and($config['projectSteps'][0])->toBe('Collect clues');
 });
 
+test('learners can keep a private project checklist for the active run', function () {
+    [$learner, $activity, $runId] = activeSharedTask([
+        'projectSteps' => ['Collect clues', 'Compare interpretations', 'Write a conclusion'],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-checklist.update', $activity), [
+            'completed_step_indexes' => [2, 0, 2],
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.completedStepIndexes', [0, 2]);
+
+    expect(LearnerRouteProgress::query()
+        ->where('user_id', $learner->id)
+        ->where('current_play_run_id', $runId)
+        ->firstOrFail()
+        ->metadata['activityStates'][(string) $activity->id]['sharedTask']['completedStepIndexes'] ?? null)
+        ->toBe([0, 2]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-checklist.update', $activity), [
+            'completed_step_indexes' => [3],
+            'play_run_id' => $runId,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('completed_step_indexes');
+});
+
 test('shared task submissions enforce configured minimum length', function () {
     [$learner, $activity, $runId] = activeSharedTask(['minimumLength' => 10]);
 

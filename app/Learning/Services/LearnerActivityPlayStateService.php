@@ -5,6 +5,7 @@ namespace App\Learning\Services;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class LearnerActivityPlayStateService
 {
@@ -65,6 +66,65 @@ class LearnerActivityPlayStateService
         $activityStates[(string) $activity->id] = [
             'npcDialogue' => $state,
         ];
+        $metadata['activityStates'] = $activityStates;
+        $progress->metadata = $metadata;
+        $progress->save();
+
+        return $state;
+    }
+
+    /**
+     * @param  array<int, int>  $completedStepIndexes
+     * @return array{completedStepIndexes: list<int>}
+     */
+    public function updateSharedTaskChecklist(
+        User $user,
+        LearningActivity $activity,
+        string $playRunId,
+        array $completedStepIndexes,
+    ): array {
+        $progress = LearnerRouteProgress::query()
+            ->where('user_id', $user->id)
+            ->where('learning_node_id', $activity->learning_node_id)
+            ->where('current_play_run_id', $playRunId)
+            ->firstOrFail();
+
+        $config = is_array($activity->config) ? $activity->config : [];
+        $projectSteps = is_array($config['projectSteps'] ?? null)
+            ? array_values(array_filter(
+                $config['projectSteps'],
+                fn (mixed $step): bool => is_string($step) && trim($step) !== '',
+            ))
+            : [];
+        $stepCount = count($projectSteps);
+        $normalizedIndexes = array_values(array_unique(array_map('intval', $completedStepIndexes)));
+        $invalidIndexes = array_values(array_filter(
+            $normalizedIndexes,
+            fn (int $index): bool => $index < 0 || $index >= $stepCount,
+        ));
+
+        if ($invalidIndexes !== []) {
+            throw ValidationException::withMessages([
+                'completed_step_indexes' => 'Choose only steps from this project brief.',
+            ]);
+        }
+
+        $safeIndexes = $normalizedIndexes;
+        sort($safeIndexes);
+
+        $state = [
+            'completedStepIndexes' => $safeIndexes,
+        ];
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $activityStates = is_array($metadata['activityStates'] ?? null)
+            ? $metadata['activityStates']
+            : [];
+        $activityState = is_array($activityStates[(string) $activity->id] ?? null)
+            ? $activityStates[(string) $activity->id]
+            : [];
+
+        $activityState['sharedTask'] = $state;
+        $activityStates[(string) $activity->id] = $activityState;
         $metadata['activityStates'] = $activityStates;
         $progress->metadata = $metadata;
         $progress->save();

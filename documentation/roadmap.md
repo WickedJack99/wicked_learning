@@ -124,7 +124,9 @@ meaningful segmentation and accessible alternatives. These controls must reduce
 friction without becoming deadlines, attention traps or opaque personalization.
 The Learning Desk now exposes source-specific reasons for its active, recent,
 revisit and recall areas, and a related check-in can lead to its authored
-connected competence areas; richer recommendation reasons and learner-selected
+connected competence areas. Shared-task project briefs now also offer an
+optional private checklist for the current run, keeping planning separate from
+completion and evidence; richer recommendation reasons and learner-selected
 alternatives remain open.
 
 ### 7. Effort-preserving learner AI
@@ -188,7 +190,8 @@ workflows remain future work.
 
 - Expand shared tasks into project briefs, decomposition and assignment. The
   current project-brief and one-response anonymous peer-review slices remain
-  intentionally bounded; decomposition and assignment are future work.
+  intentionally bounded; the project brief can now hold an optional private
+  learner checklist, while decomposition and assignment are future work.
 - Support richer peer review, revision and presentation of group work.
 - Allow scoped group authoring of worlds, maps and routes with clear ownership
   and moderation boundaries.

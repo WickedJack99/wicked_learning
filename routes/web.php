@@ -153,6 +153,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.npc-dialogue-nodes.grant-tool');
     Route::post('learning/activities/{activity}/npc-dialogue-state', [LearningWorldController::class, 'updateNpcDialogueState'])
         ->name('learning.activities.npc-dialogue-state');
+    Route::post('learning/activities/{activity}/shared-task-checklist', [LearningWorldController::class, 'updateSharedTaskChecklist'])
+        ->name('learning.activities.shared-task-checklist.update');
     Route::post('learning/activities/{activity}/obstacle-tool', [LearningWorldController::class, 'useObstacleTool'])
         ->name('learning.activities.obstacle-tool');
     Route::post('learning/activities/{activity}/grant-tool', [LearningWorldController::class, 'grantActivityTool'])

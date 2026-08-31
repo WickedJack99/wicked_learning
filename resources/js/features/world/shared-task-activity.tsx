@@ -12,12 +12,14 @@ import { patchJson, postJson } from './api';
 
 export function SharedTaskActivity({
     activity,
+    initialState,
     onComplete,
     onMoveToActivity,
     playRunId,
     transition,
 }: {
     activity: LearningActivity;
+    initialState?: unknown;
     onComplete: (activity: LearningActivity) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
     playRunId: string | null;
@@ -38,6 +40,15 @@ export function SharedTaskActivity({
     const [peerReviewError, setPeerReviewError] = useState('');
     const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(null);
     const [shareWithPeers, setShareWithPeers] = useState(false);
+    const projectSteps = Array.isArray(activity.config.projectSteps)
+        ? activity.config.projectSteps.filter(
+              (step): step is string => typeof step === 'string' && step.trim() !== '',
+          )
+        : [];
+    const [completedProjectStepIndexes, setCompletedProjectStepIndexes] =
+        useState(() => sharedTaskChecklistFromState(initialState, projectSteps.length));
+    const [updatingProjectStepIndex, setUpdatingProjectStepIndex] = useState<number | null>(null);
+    const [projectChecklistError, setProjectChecklistError] = useState('');
     const taskKind = sharedTaskKind(activity.config.taskKind);
     const kindCopy = sharedTaskKindCopy(taskKind, t);
     const minimumLength = numericConfig(activity.config.minimumLength, 20);
@@ -48,11 +59,6 @@ export function SharedTaskActivity({
     const instructions = stringValue(activity.config.instructions);
     const projectGoal = stringValue(activity.config.projectGoal);
     const projectDeliverable = stringValue(activity.config.projectDeliverable);
-    const projectSteps = Array.isArray(activity.config.projectSteps)
-        ? activity.config.projectSteps.filter(
-              (step): step is string => typeof step === 'string',
-          )
-        : [];
     const inputLabel = stringValue(
         activity.config.inputLabel,
         kindCopy.inputLabel,
@@ -171,6 +177,50 @@ export function SharedTaskActivity({
         }
     }
 
+    async function toggleProjectStep(index: number) {
+        if (updatingProjectStepIndex !== null) {
+            return;
+        }
+
+        const previousIndexes = completedProjectStepIndexes;
+        const nextIndexes = previousIndexes.includes(index)
+            ? previousIndexes.filter((stepIndex) => stepIndex !== index)
+            : [...previousIndexes, index].sort((left, right) => left - right);
+
+        setCompletedProjectStepIndexes(nextIndexes);
+        setProjectChecklistError('');
+
+        if (!playRunId) {
+            return;
+        }
+
+        setUpdatingProjectStepIndex(index);
+
+        try {
+            const response = await postJson<{
+                state: { completedStepIndexes: number[] };
+            }>(
+                `/learning/activities/${activity.id}/shared-task-checklist`,
+                {
+                    completed_step_indexes: nextIndexes,
+                    play_run_id: playRunId,
+                },
+            );
+
+            setCompletedProjectStepIndexes(response.state.completedStepIndexes);
+        } catch {
+            setCompletedProjectStepIndexes(previousIndexes);
+            setProjectChecklistError(
+                t(
+                    'activities.shared_task.project_checklist_error',
+                    'The project step could not be saved yet.',
+                ),
+            );
+        } finally {
+            setUpdatingProjectStepIndex(null);
+        }
+    }
+
     async function complete() {
         await onComplete(activity);
         onMoveToActivity(transition?.toActivityId ?? null);
@@ -194,8 +244,12 @@ export function SharedTaskActivity({
 
             {projectGoal || projectDeliverable || projectSteps.length > 0 ? (
                 <SharedTaskProjectBrief
+                    completedStepIndexes={completedProjectStepIndexes}
                     deliverable={projectDeliverable}
                     goal={projectGoal}
+                    isUpdating={updatingProjectStepIndex !== null}
+                    onToggleStep={(index) => void toggleProjectStep(index)}
+                    error={projectChecklistError}
                     steps={projectSteps}
                     t={t}
                 />
@@ -323,13 +377,21 @@ export function SharedTaskActivity({
 }
 
 function SharedTaskProjectBrief({
+    completedStepIndexes,
     deliverable,
+    error,
     goal,
+    isUpdating,
+    onToggleStep,
     steps,
     t,
 }: {
+    completedStepIndexes: number[];
     deliverable: string;
+    error: string;
     goal: string;
+    isUpdating: boolean;
+    onToggleStep: (index: number) => void;
     steps: string[];
     t: ReturnType<typeof usePlatformTranslation>;
 }) {
@@ -367,11 +429,36 @@ function SharedTaskProjectBrief({
                     <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
                         {t('activities.shared_task.project_steps', 'Suggested steps')}
                     </p>
-                    <ol className="mt-1 list-inside list-decimal text-sm leading-6 text-slate-700 dark:text-slate-200">
-                        {steps.map((step) => (
-                            <li key={step}>{step}</li>
+                    <ol className="mt-2 grid gap-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                        {steps.map((step, index) => (
+                            <li key={`${index}-${step}`}>
+                                <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-cyan-200/70 bg-white/65 px-3 py-2 transition hover:border-cyan-400 dark:border-teal-200/15 dark:bg-slate-950/30 dark:hover:border-teal-200/40">
+                                    <input
+                                        aria-label={step}
+                                        checked={completedStepIndexes.includes(index)}
+                                        className="mt-1 size-4 accent-cyan-600 dark:accent-teal-300"
+                                        disabled={isUpdating}
+                                        onChange={() => onToggleStep(index)}
+                                        type="checkbox"
+                                    />
+                                    <span className={completedStepIndexes.includes(index) ? 'text-slate-500 line-through dark:text-slate-400' : undefined}>
+                                        {step}
+                                    </span>
+                                </label>
+                            </li>
                         ))}
                     </ol>
+                    <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {t(
+                            'activities.shared_task.project_checklist_hint',
+                            'Optional private planning notes for this run. They do not affect completion.',
+                        )}
+                    </p>
+                    {error ? (
+                        <p aria-live="assertive" className="text-xs font-medium text-red-600 dark:text-red-300" role="alert">
+                            {error}
+                        </p>
+                    ) : null}
                 </div>
             ) : null}
         </section>
@@ -705,6 +792,37 @@ function peerReviewResponseTypeLabel(
 
 function sharedTaskKind(value: unknown): SharedTaskKind {
     return value === 'question' || value === 'reflection' ? value : 'text';
+}
+
+function sharedTaskChecklistFromState(
+    value: unknown,
+    stepCount: number,
+): number[] {
+    if (!value || typeof value !== 'object') {
+        return [];
+    }
+
+    const sharedTaskState = (value as { sharedTask?: unknown }).sharedTask;
+
+    if (!sharedTaskState || typeof sharedTaskState !== 'object') {
+        return [];
+    }
+
+    const indexes = (sharedTaskState as { completedStepIndexes?: unknown })
+        .completedStepIndexes;
+
+    if (!Array.isArray(indexes)) {
+        return [];
+    }
+
+    return Array.from(
+        new Set(
+            indexes.filter(
+                (index): index is number =>
+                    Number.isInteger(index) && index >= 0 && index < stepCount,
+            ),
+        ),
+    ).sort((left, right) => left - right);
 }
 
 function sharedTaskKindCopy(

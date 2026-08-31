@@ -471,6 +471,27 @@ class LearningWorldController extends Controller
         ]);
     }
 
+    public function updateSharedTaskChecklist(Request $request, LearningActivity $activity): JsonResponse
+    {
+        abort_unless($activity->type === 'shared_task', 404);
+
+        $data = $request->validate([
+            'completed_step_indexes' => ['required', 'array', 'max:6'],
+            'completed_step_indexes.*' => ['integer', 'min:0', 'max:5'],
+            'play_run_id' => ['required', 'string', 'uuid'],
+        ]);
+        $this->activityAccess->assertActive($request->user(), $activity, (string) $data['play_run_id']);
+
+        return response()->json([
+            'state' => $this->activityPlayStateService->updateSharedTaskChecklist(
+                $request->user(),
+                $activity,
+                (string) $data['play_run_id'],
+                array_map('intval', $data['completed_step_indexes']),
+            ),
+        ]);
+    }
+
     public function useObstacleTool(Request $request, LearningActivity $activity): JsonResponse
     {
         $this->activityAccess->assertCanPlay($request->user(), $activity);
