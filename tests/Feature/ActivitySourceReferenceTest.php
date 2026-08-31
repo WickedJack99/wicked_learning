@@ -49,6 +49,25 @@ test('admins can attach bounded source references to activities', function () {
         ->and($payload['config'])->not->toHaveKey('sourceReferences');
 });
 
+test('learner activity payload exposes authored evidence context separately from results', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = $node->activities()->firstOrFail();
+    $activity->forceFill([
+        'config' => [
+            ...$activity->config,
+            'evidenceConcepts' => ['Pattern recognition', 'Observation'],
+            'evidenceObjective' => 'Notice the relationship before choosing a next step.',
+        ],
+    ])->save();
+
+    expect(app(LearningActivitySerializer::class)->serialize($activity)['evidenceContext'])
+        ->toBe([
+            'objective' => 'Notice the relationship before choosing a next step.',
+            'concepts' => ['Pattern recognition', 'Observation'],
+        ]);
+});
+
 test('clearing source references preserves the rest of activity configuration', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ActivitySourceReferenceConfiguration;
@@ -28,6 +29,7 @@ class LearningActivitySerializer
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
         private readonly ActivitySourceReferenceConfiguration $sourceReferences,
         private readonly ActivityCompletionChoiceConfiguration $completionChoice,
+        private readonly ActivityCompetenceConfiguration $competence,
         private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
         private readonly ActivityTimeGuideConfiguration $timeGuide,
     ) {}
@@ -51,6 +53,10 @@ class LearningActivitySerializer
             'introduction' => $activity->introduction,
             'timeGuideMinutes' => $this->timeGuide->forActivity($activity),
             'config' => $this->learnerConfig($activity),
+            'evidenceContext' => [
+                'objective' => $this->competence->objectiveForActivity($activity),
+                'concepts' => $this->competence->conceptsForActivity($activity),
+            ],
             'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
             'sources' => $this->sourceReferences->forActivity($activity),
             'completionChoicePrompt' => $this->completionChoice->forActivity($activity),

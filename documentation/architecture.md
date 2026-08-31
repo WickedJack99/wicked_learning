@@ -87,7 +87,10 @@ activity identifier so the learner can see the authored branch without resolving
 navigation in the browser. NPC dialogue applies the same contract to the selected
 end-node exit: the player resolves the server-provided transition locally and
 passes its label into the existing conclusion pause without gaining navigation
-authority.
+authority. The learner activity serializer also exposes the existing authored
+evidence objective and concept labels as a separate `evidenceContext` payload;
+the client presents these as orientation only and does not derive a result from
+them.
 
 The administrator activity editor can copy an activity to another editable
 MapAsset from the already-loaded world graph. The create action authorizes the

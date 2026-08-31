@@ -134,6 +134,8 @@ test('activity orientation copy uses the platform translation catalog', function
         ->toContain('usePlatformTranslation()')
         ->toContain("'learning.map.completed_count'")
         ->toContain("'learning.activity.related_areas'")
+        ->toContain('<ActivityEvidenceContext')
+        ->toContain("'learning.activity.evidence_context.title'")
         ->not->toContain("return 'In progress';");
     expect($activityPage)
         ->toContain("'learning.activity.context.aria_label'")

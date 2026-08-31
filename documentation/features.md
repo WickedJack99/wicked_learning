@@ -142,6 +142,10 @@ uses the platform translation catalog; authored activity content remains
 separate from that generic UI catalog. When the place offers other authored
 routes, the context panel can disclose them as a small paginated set; choosing
 one starts or resumes that route while leaving the current route saved.
+When an author has configured an evidence objective or concept labels, the
+activity orientation also shows that learning focus as authored context. It
+describes what the activity invites without claiming that completion proves the
+objective or turning the labels into a score.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

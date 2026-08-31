@@ -874,6 +874,9 @@ function ActivityFrame({
                             )}
                         </p>
                     ) : null}
+                    <ActivityEvidenceContext
+                        context={activity.evidenceContext}
+                    />
                     {relatedLearningAreas.length > 0 ? (
                         <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
                             <span className="font-medium">
@@ -923,6 +926,60 @@ function ActivityFrame({
                 </Button>
             </div>
         </section>
+    );
+}
+
+function ActivityEvidenceContext({
+    context,
+}: {
+    context: LearningActivity['evidenceContext'];
+}) {
+    const t = usePlatformTranslation();
+
+    if (!context.objective && context.concepts.length === 0) {
+        return null;
+    }
+
+    return (
+        <div
+            aria-label={t(
+                'learning.activity.evidence_context.title',
+                'Learning focus',
+            )}
+            className="mt-3 grid gap-2 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_5%,transparent)] px-3 py-2"
+        >
+            {context.objective ? (
+                <div>
+                    <p className="text-xs font-medium text-[var(--learner-action-accent)]">
+                        {t(
+                            'learning.activity.evidence_context.objective',
+                            'What this activity invites',
+                        )}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {context.objective}
+                    </p>
+                </div>
+            ) : null}
+            {context.concepts.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-[var(--learner-muted-text)]">
+                    <span className="font-medium">
+                        {t(
+                            'learning.activity.evidence_context.concepts',
+                            'Concepts',
+                        )}
+                    </span>
+                    {context.concepts.map((concept) => (
+                        <span
+                            className="rounded-full border border-[var(--learner-border-color)] px-2 py-0.5 text-[var(--learner-body-text)]"
+                            key={concept}
+                        >
+                            {concept}
+                        </span>
+                    ))}
+                </div>
+            ) : null}
+        </div>
     );
 }
 

@@ -366,6 +366,7 @@ export type LearningActivity = {
     configuredSounds: LearningSound[];
     configuredTool: LearningTool | null;
     dialogueTypingSoundSets: DialogueTypingSoundSet[];
+    evidenceContext: LearningEvidenceContext;
     sources: LearningSourceReference[];
     completionChoicePrompt: string | null;
     feedbackGuidance: LearningFeedbackGuidance | null;
@@ -380,6 +381,11 @@ export type LearningActivity = {
     }> | null;
     sharedTaskState: SharedTaskState | null;
     transitions: ActivityTransition[];
+};
+
+export type LearningEvidenceContext = {
+    concepts: string[];
+    objective: string | null;
 };
 
 export type LearningFeedbackGuidance = {
