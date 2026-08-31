@@ -183,6 +183,9 @@ Authors may also invite one anonymous peer review. A learner who has contributed
 can respond once to one other learner's explicitly shared contribution using the
 author's prompt. The interaction exposes no learner identities and provides no
 ratings, rankings or public quality score.
+The Shared Task editor includes a compact learner preview so authors can check
+the prompt, project orientation, contribution affordance and optional review
+handoff before saving; it does not simulate submissions or change learner state.
 The contributor can later see a bounded set of anonymous responses to their own
 contribution; other learners cannot see those responses. Reviewers may
 optionally describe a response as an explanation, example, question or
