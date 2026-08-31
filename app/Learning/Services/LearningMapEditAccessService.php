@@ -8,6 +8,7 @@ use App\Access\PermissionCatalog;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 class LearningMapEditAccessService
 {
@@ -78,6 +79,56 @@ class LearningMapEditAccessService
         return $user->hasScopedAccess(PermissionCatalog::WORLD_MAPS, AccessLevel::UPDATE, AccessScope::ALL)
             || $user->hasScopedAccess(PermissionCatalog::WORLD_NODES, AccessLevel::UPDATE, AccessScope::ALL)
             || $user->hasScopedAccess(PermissionCatalog::WORLD_ACTIVITIES, AccessLevel::UPDATE, AccessScope::ALL);
+    }
+
+    /**
+     * Scope a map query to the maps this user may edit.
+     *
+     * Keeping this as a database scope lets list endpoints apply the same
+     * authorization boundary without loading every map before filtering it.
+     *
+     * @param  Builder<LearningMap>  $query
+     * @return Builder<LearningMap>
+     */
+    public function scopeEditableMaps(Builder $query, User $user): Builder
+    {
+        if ($this->canSeeAllEditableMaps($user)) {
+            return $query;
+        }
+
+        $query->where(function (Builder $query) use ($user): void {
+            foreach ([
+                PermissionCatalog::WORLD_MAPS,
+                PermissionCatalog::WORLD_NODES,
+                PermissionCatalog::WORLD_ACTIVITIES,
+            ] as $resource) {
+                if (! $user->hasAccess($resource, AccessLevel::UPDATE)) {
+                    continue;
+                }
+
+                $scope = $user->accessScopeFor($resource, AccessLevel::UPDATE);
+
+                if (AccessScope::allows($scope, AccessScope::OWN)) {
+                    $query->orWhere('learning_maps.created_by_user_id', $user->id);
+                }
+
+                if (AccessScope::allows($scope, AccessScope::ASSIGNED)) {
+                    $query->orWhereHas(
+                        'editingGroups.members',
+                        fn (Builder $memberQuery) => $memberQuery->whereKey($user->id),
+                    );
+                }
+            }
+
+            // Group-assigned maps are also editable through the explicit
+            // group relationship, even without a scoped resource grant.
+            $query->orWhereHas(
+                'editingGroups.members',
+                fn (Builder $memberQuery) => $memberQuery->whereKey($user->id),
+            );
+        });
+
+        return $query;
     }
 
     private function canUseMapScope(User $user, LearningMap $map, string $resource, string $level): bool

@@ -457,6 +457,10 @@ Important React entry points and feature modules are:
   learner feature areas
 - `resources/js/theme` - appearance and presentation resolution
 
+The World Builder review queue is loaded separately from the full world graph,
+so review pagination bounds the activity rows returned to the authoring surface
+while preserving map-level review counts in the graph payload.
+
 Pages should stay focused on route-level composition. Shared configuration
 shells, image/sound pickers, graph transformations, map interaction math and API
 state belong in reusable components, hooks or feature modules.

@@ -17,13 +17,13 @@ class AdminWorldGraphSerializer
      */
     public function serialize(LearningWorld $world): array
     {
-        $reviewActivities = $this->reviewActivities($world);
+        $reviewCounts = $this->reviewCounts($world);
 
         return [
             'world' => $this->summary->world($world),
             'maps' => $world->maps
                 ->values()
-                ->map(fn (LearningMap $map): array => $this->map($map, $reviewActivities))
+                ->map(fn (LearningMap $map): array => $this->map($map, $reviewCounts))
                 ->all(),
             'portalCandidates' => $this->portalCandidates($world),
             'portalLinks' => $this->portalLinks($world),
@@ -31,9 +31,9 @@ class AdminWorldGraphSerializer
     }
 
     /**
-     * @return array<int, list<array{id: int, title: string, type: string}>>
+     * @return array<int, int>
      */
-    private function reviewActivities(LearningWorld $world): array
+    private function reviewCounts(LearningWorld $world): array
     {
         $nodeIds = $world->maps
             ->flatMap(fn (LearningMap $map) => $map->nodes->pluck('id'))
@@ -50,32 +50,24 @@ class AdminWorldGraphSerializer
                     ->whereNull('ai_review_status')
                     ->orWhere('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED);
             })
-            ->orderBy('id')
-            ->get(['id', 'learning_node_id', 'title', 'type'])
+            ->selectRaw('learning_node_id, COUNT(*) as review_count')
             ->groupBy('learning_node_id')
-            ->map(fn ($activities): array => $activities
-                ->map(fn (LearningActivity $activity): array => [
-                    'id' => $activity->id,
-                    'title' => $activity->title,
-                    'type' => $activity->type,
-                ])
-                ->values()
-                ->all())
+            ->pluck('review_count', 'learning_node_id')
+            ->map(fn (mixed $count): int => (int) $count)
             ->all();
     }
 
     /**
-     * @param  array<int, array<int, array{id: int, title: string, type: string}>>  $reviewActivities
+     * @param  array<int, int>  $reviewCounts
      * @return array<string, mixed>
      */
-    private function map(LearningMap $map, array $reviewActivities): array
+    private function map(LearningMap $map, array $reviewCounts): array
     {
         $summary = $this->summary->map($map);
         $nodes = array_map(
             fn (array $node): array => [
                 ...$node,
-                'activityReviewCount' => count($reviewActivities[$node['id']] ?? []),
-                'pendingReviewActivities' => $reviewActivities[$node['id']] ?? [],
+                'activityReviewCount' => $reviewCounts[$node['id']] ?? 0,
             ],
             $summary['nodes'],
         );

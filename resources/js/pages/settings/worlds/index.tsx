@@ -65,17 +65,10 @@ export type MapSummary = {
     title: string;
 };
 
-export type ReviewActivitySummary = {
-    id: number;
-    title: string;
-    type: string;
-};
-
 export type NodeSummary = {
     description: string | null;
     id: number;
     activityReviewCount: number;
-    pendingReviewActivities: ReviewActivitySummary[];
     slug: string;
     title: string;
 };

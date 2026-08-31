@@ -99,6 +99,7 @@ class LoadSettingsIndex
         ?int $selectedNodeId = null,
         ?string $panel = null,
         ?int $feedbackPage = null,
+        ?string $worldSection = null,
     ): array {
         $hasExplicitPanel = $panel !== null;
         $panel = $this->normalizePanel($panel);
@@ -116,6 +117,7 @@ class LoadSettingsIndex
         $loadsLearningSupport = $panel === 'admin-learning-support';
         $loadsPublicPages = $panel === 'admin-public-pages';
         $loadsWorldBuilder = $panel === 'admin-world-builder';
+        $loadsWorldGraph = $loadsWorldBuilder && $worldSection !== 'review';
 
         return [
             'canManageUsers' => $canManageUsers,
@@ -154,13 +156,13 @@ class LoadSettingsIndex
             'publicPresentation' => PlatformPresentationSetting::current(),
             'createdRegistrationToken' => $createdRegistrationToken,
             'settingsNotifications' => $this->settingsNotifications($accessCapabilities),
-            'worldGraph' => $loadsWorldBuilder
+            'worldGraph' => $loadsWorldGraph
                 ? $this->worldGraph($user, $accessCapabilities)
                 : null,
-            'selectedWorldMap' => $loadsWorldBuilder
+            'selectedWorldMap' => $loadsWorldGraph
                 ? $this->selectedWorldMap($user, $selectedMapId, $accessCapabilities)
                 : null,
-            'selectedWorldNode' => $loadsWorldBuilder
+            'selectedWorldNode' => $loadsWorldGraph
                 ? $this->selectedWorldNode($user, $selectedNodeId, $accessCapabilities)
                 : null,
         ];

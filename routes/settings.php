@@ -80,6 +80,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('settings.admin-panel.index');
 });
 
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('settings/worlds/review-queue', [AdminWorldController::class, 'reviewQueue'])
+        ->name('settings.worlds.review-queue.index');
+});
+
 Route::middleware(['auth', 'verified', 'can:learner_messages.ru'])->group(function () {
     Route::get('settings/learning-support/message-topics/{topic}/messages', [LearnerMessageModerationController::class, 'messages'])
         ->name('settings.learning-support.message-topics.messages.index');

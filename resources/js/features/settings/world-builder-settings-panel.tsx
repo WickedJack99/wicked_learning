@@ -7,7 +7,7 @@ import {
     SlidersHorizontal,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import {
@@ -18,11 +18,9 @@ import {
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { WorldMapManagementPanel } from '@/features/settings/world-map-management-panel';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { readJsonResponse } from '@/lib/json-response';
 import { WorldBuilderPanel } from '@/pages/settings/worlds';
-import type {
-    ReviewActivitySummary,
-    WorldGraph,
-} from '@/pages/settings/worlds';
+import type { WorldGraph } from '@/pages/settings/worlds';
 
 export type WorldBuilderSection = 'graph' | 'review' | 'structural';
 export type WorldBuilderMapView = 'configure' | 'nodes';
@@ -136,10 +134,9 @@ export function WorldBuilderSettingsPanel({
                 ) : null}
 
                 {(!selectedMapDetail || resolvedSection !== 'graph') &&
-                resolvedSection === 'review' &&
-                worldGraph ? (
+                resolvedSection === 'review' ? (
                     <WorldBuilderSectionWorkspace>
-                        <WorldBuilderReviewQueue worldGraph={worldGraph} />
+                        <WorldBuilderReviewQueue />
                     </WorldBuilderSectionWorkspace>
                 ) : null}
 
@@ -153,6 +150,7 @@ export function WorldBuilderSettingsPanel({
                 ) : null}
 
                 {(!selectedMapDetail || resolvedSection !== 'graph') &&
+                resolvedSection !== 'review' &&
                 !worldGraph ? (
                     <UnavailableWorldBuilder />
                 ) : null}
@@ -161,27 +159,103 @@ export function WorldBuilderSettingsPanel({
     );
 }
 
-function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
+type ReviewQueueItem = {
+    activity: {
+        id: number;
+        title: string;
+        type: string;
+    };
+    map: {
+        id: number;
+        title: string;
+    };
+    node: {
+        id: number;
+        title: string;
+    };
+};
+
+type ReviewQueueResponse = {
+    errors?: Record<string, string[]>;
+    items: ReviewQueueItem[];
+    message?: string;
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
+function WorldBuilderReviewQueue() {
     const t = usePlatformTranslation();
-    const reviewItems = worldGraph.maps.flatMap((map) =>
-        map.nodes.flatMap((node) =>
-            node.pendingReviewActivities.map(
-                (activity: ReviewActivitySummary) => ({
-                    activity,
-                    map,
-                    node,
-                }),
-            ),
-        ),
-    );
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(1);
+    const [reviewItems, setReviewItems] = useState<ReviewQueueItem[]>([]);
+    const [pageCount, setPageCount] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [requestVersion, setRequestVersion] = useState(0);
     const pageSize = 4;
-    const pageCount = Math.max(1, Math.ceil(reviewItems.length / pageSize));
-    const currentPage = Math.min(page, pageCount - 1);
-    const visibleItems = reviewItems.slice(
-        currentPage * pageSize,
-        (currentPage + 1) * pageSize,
-    );
+
+    useEffect(() => {
+        const controller = new AbortController();
+        const params = new URLSearchParams({
+            page: String(page),
+            per_page: String(pageSize),
+        });
+
+        void fetch('/settings/worlds/review-queue?' + params.toString(), {
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            signal: controller.signal,
+        })
+            .then((response) =>
+                readJsonResponse<ReviewQueueResponse>(
+                    response,
+                    'The review queue could not be loaded.',
+                ),
+            )
+            .then((payload) => {
+                setReviewItems(payload.items);
+                setPageCount(Math.max(1, payload.pagination.lastPage));
+                setTotal(payload.pagination.total);
+                setPage((currentPage) =>
+                    Math.min(
+                        currentPage,
+                        Math.max(1, payload.pagination.lastPage),
+                    ),
+                );
+            })
+            .catch((requestError: unknown) => {
+                if (
+                    requestError instanceof DOMException &&
+                    requestError.name === 'AbortError'
+                ) {
+                    return;
+                }
+
+                setReviewItems([]);
+                setTotal(0);
+                setError(
+                    requestError instanceof Error
+                        ? requestError.message
+                        : 'The review queue could not be loaded.',
+                );
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) {
+                    setIsLoading(false);
+                }
+            });
+
+        return () => controller.abort();
+    }, [page, requestVersion]);
+
+    const currentPage = Math.min(page, pageCount);
 
     return (
         <section className="flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-6">
@@ -199,15 +273,15 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                     )}
                 </h2>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
-                    {reviewItems.length > 0
+                    {total > 0
                         ? t(
-                              reviewItems.length === 1
+                              total === 1
                                   ? 'settings.world_builder.review_queue.waiting_one'
                                   : 'settings.world_builder.review_queue.waiting_many',
-                              reviewItems.length === 1
+                              total === 1
                                   ? '1 activity is waiting for review.'
                                   : ':count activities are waiting for review.',
-                              { count: reviewItems.length },
+                              { count: total },
                           )
                         : t(
                               'settings.world_builder.review_queue.empty',
@@ -216,7 +290,29 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                 </p>
             </header>
 
-            {reviewItems.length === 0 ? (
+            {isLoading ? (
+                <div className="grid min-h-0 flex-1 place-items-center p-6 text-center">
+                    <p className="text-sm text-[var(--settings-muted-text)]">
+                        Loading review queue…
+                    </p>
+                </div>
+            ) : error ? (
+                <div className="grid min-h-0 flex-1 place-items-center gap-3 p-6 text-center">
+                    <p className="max-w-md text-sm leading-6 text-red-400">
+                        {error}
+                    </p>
+                    <button
+                        className="text-sm font-semibold text-[var(--settings-accent)] underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none"
+                        onClick={() => {
+                            setIsLoading(true);
+                            setRequestVersion((version) => version + 1);
+                        }}
+                        type="button"
+                    >
+                        Try again
+                    </button>
+                </div>
+            ) : total === 0 ? (
                 <div className="grid min-h-0 flex-1 place-items-center p-6 text-center">
                     <p className="max-w-md text-sm leading-6 text-[var(--settings-muted-text)]">
                         {t(
@@ -229,7 +325,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                 <>
                     <div className="min-h-0 flex-1 overflow-hidden py-4 pr-1">
                         <div className="grid gap-3 sm:grid-cols-2">
-                            {visibleItems.map(({ activity, map, node }) => (
+                            {reviewItems.map(({ activity, map, node }) => (
                                 <Link
                                     aria-label={`Review ${activity.title}`}
                                     className="group min-w-0 rounded-lg border border-[var(--settings-border-color)] p-3 transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--settings-content-background)] focus-visible:outline-none"
@@ -264,7 +360,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                     <footer className="shrink-0 border-t border-[var(--settings-border-color)] pt-3">
                         <PaginationControls
                             buttonClassName="text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)]"
-                            currentPage={currentPage + 1}
+                            currentPage={currentPage}
                             label={t(
                                 'settings.world_builder.review_queue.pagination',
                                 'Review queue pagination',
@@ -273,7 +369,11 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                                 'settings.world_builder.review_queue.next',
                                 'Next',
                             )}
-                            onPageChange={(nextPage) => setPage(nextPage - 1)}
+                            onPageChange={(nextPage) => {
+                                setIsLoading(true);
+                                setError(null);
+                                setPage(nextPage);
+                            }}
                             pageCount={pageCount}
                             previousLabel={t(
                                 'settings.world_builder.review_queue.previous',

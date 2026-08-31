@@ -25,7 +25,9 @@ use App\Models\NpcDialogueTransition;
 use App\Models\User;
 use App\Models\UserPreference;
 use Database\Seeders\DemoLearningWorldSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia;
@@ -45,11 +47,6 @@ test('admin users can see the world graph with portal links', function () {
         ->whereHas('node', fn ($query) => $query->where('learning_map_id', $map->id))
         ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
         ->count();
-    $portalReview = LearningActivity::query()
-        ->whereHas('node', fn ($query) => $query->where('slug', 'portal-foundation'))
-        ->where('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED)
-        ->firstOrFail();
-
     $this->actingAs($admin)
         ->get(route('settings.index', [
             'panel' => 'admin-world-builder',
@@ -63,8 +60,7 @@ test('admin users can see the world graph with portal links', function () {
             ->where('worldGraph.maps.0.reviewCount', $reviewCount)
             ->where('worldGraph.maps.0.nodes.0.slug', 'portal-foundation')
             ->where('worldGraph.maps.0.nodes.0.activityReviewCount', 1)
-            ->where('worldGraph.maps.0.nodes.0.pendingReviewActivities.0.id', $portalReview->id)
-            ->where('worldGraph.maps.0.nodes.0.pendingReviewActivities.0.title', $portalReview->title)
+            ->missing('worldGraph.maps.0.nodes.0.pendingReviewActivities')
             ->has('worldGraph.portalCandidates', 5)
             ->has('worldGraph.portalLinks', 1)
             ->where('worldGraph.portalLinks.0.sourceNode.slug', 'portal-foundation')
@@ -84,6 +80,61 @@ test('admin users can see the world graph with portal links', function () {
         ->assertRedirect(route('settings.index', [
             'panel' => 'admin-world-builder',
         ]));
+});
+
+test('admin users receive only one page of world builder review activities', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $reviewCount = LearningActivity::query()
+        ->whereHas('node.map')
+        ->where(function ($query): void {
+            $query
+                ->whereNull('ai_review_status')
+                ->orWhere('ai_review_status', '!=', LearningActivity::AI_REVIEW_STATUS_REVIEWED);
+        })
+        ->count();
+    $activityQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$activityQueries): void {
+        if (str_contains($query->sql, 'learning_activities')) {
+            $activityQueries[] = strtolower($query->sql);
+        }
+    });
+
+    $this->actingAs($admin)
+        ->get(route('settings.worlds.review-queue.index', [
+            'page' => 1,
+            'per_page' => 4,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('pagination.total', $reviewCount)
+        ->assertJsonPath('pagination.perPage', 4)
+        ->assertJsonCount(min(4, $reviewCount), 'items')
+        ->assertJsonStructure([
+            'items' => [[
+                'activity' => ['id', 'title', 'type'],
+                'map' => ['id', 'title'],
+                'node' => ['id', 'title'],
+            ]],
+            'pagination' => ['page', 'perPage', 'total', 'lastPage'],
+        ]);
+
+    if ($reviewCount > 4) {
+        $this->actingAs($admin)
+            ->get(route('settings.worlds.review-queue.index', [
+                'page' => 2,
+                'per_page' => 4,
+            ]))
+            ->assertOk()
+            ->assertJsonPath('pagination.page', 2)
+            ->assertJsonCount(min(4, $reviewCount - 4), 'items');
+    }
+
+    expect(collect($activityQueries)->some(
+        fn (string $query): bool => str_contains($query, 'select')
+            && str_contains($query, 'limit 4'),
+    ))->toBeTrue();
 });
 
 test('admin users can open world builder map configuration and node inside settings workspace', function () {

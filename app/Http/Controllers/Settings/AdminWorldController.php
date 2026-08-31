@@ -26,6 +26,7 @@ use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Queries\LoadLearningMapAssetVersions;
 use App\Learning\Queries\LoadLearningMapVersions;
+use App\Learning\Queries\LoadWorldBuilderReviewQueue;
 use App\Learning\Serializers\LearningMapAssetSerializer;
 use App\Learning\Serializers\LearningMapAssetVersionSerializer;
 use App\Learning\Serializers\LearningMapExportSerializer;
@@ -35,6 +36,7 @@ use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
 use App\Learning\Validation\LearningMapExportValidator;
+use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningMapAssetVersion;
@@ -80,6 +82,7 @@ class AdminWorldController extends Controller
         private readonly NodeImageUploadService $nodeImages,
         private readonly LearningMapEditAccessService $mapEditAccess,
         private readonly LoadLearnerSupportSignals $learnerSupportSignals,
+        private readonly LoadWorldBuilderReviewQueue $reviewQueue,
     ) {}
 
     public function index(Request $request): RedirectResponse
@@ -88,6 +91,49 @@ class AdminWorldController extends Controller
 
         return redirect()->route('settings.index', [
             'panel' => 'admin-world-builder',
+        ]);
+    }
+
+    public function reviewQueue(Request $request): JsonResponse
+    {
+        $this->authorizeGlobalWorldRead($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:12'],
+        ]);
+        $activities = $this->reviewQueue->paginate(
+            $user,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? LoadWorldBuilderReviewQueue::DEFAULT_PAGE_SIZE,
+        );
+
+        return response()->json([
+            'items' => collect($activities->items())
+                ->map(fn (LearningActivity $activity): array => [
+                    'activity' => [
+                        'id' => $activity->id,
+                        'title' => $activity->title,
+                        'type' => $activity->type,
+                    ],
+                    'map' => [
+                        'id' => $activity->node->map->id,
+                        'title' => $activity->node->map->title,
+                    ],
+                    'node' => [
+                        'id' => $activity->node->id,
+                        'title' => $activity->node->title,
+                    ],
+                ])
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $activities->currentPage(),
+                'perPage' => $activities->perPage(),
+                'total' => $activities->total(),
+                'lastPage' => $activities->lastPage(),
+            ],
         ]);
     }
 

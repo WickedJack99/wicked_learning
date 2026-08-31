@@ -6,6 +6,7 @@ use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LoadEditableWorldGraph
 {
@@ -16,20 +17,17 @@ class LoadEditableWorldGraph
 
     public function handle(?User $user = null): LearningWorld
     {
-        $world = $this->worldResolver
+        return $this->worldResolver
             ->query()
-            ->with(['maps.nodes'])
+            ->with([
+                'maps' => function (HasMany $query) use ($user): void {
+                    if ($user) {
+                        $this->mapEditAccess->scopeEditableMaps($query->getQuery(), $user);
+                    }
+
+                    $query->with('nodes');
+                },
+            ])
             ->firstOrFail();
-
-        if ($user && ! $this->mapEditAccess->canSeeAllEditableMaps($user)) {
-            $world->setRelation(
-                'maps',
-                $world->maps
-                    ->filter(fn ($map): bool => $this->mapEditAccess->canEditMap($user, $map))
-                    ->values(),
-            );
-        }
-
-        return $world;
     }
 }

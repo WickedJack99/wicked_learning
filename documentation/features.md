@@ -781,10 +781,11 @@ with waiting activity reviews link directly to the first affected node, so an
 author can discover and enter the scoped review queue without opening maps one
 by one.
 World Builder also has a world-level Review queue section that gathers waiting
-MapAssets across the current world and paginates them as the collection grows.
-The queue shows a compact four-card page inside the available panel and avoids a
-second scroll region; review execution remains scoped to one activity at a time,
-so the list is an entry point rather than batch approval.
+activity reviews across the current world through a bounded server-side
+pagination request. The queue shows a compact four-card page inside the
+available panel and avoids a second scroll region; review execution remains
+scoped to one activity at a time, so the list is an entry point rather than
+batch approval.
 Review results can open the affected Activity editor directly, so content
 suggestions and optional metadata suggestions can be considered in the same
 scoped authoring flow.

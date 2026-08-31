@@ -930,7 +930,8 @@ function SettingsDetail({
                 </div>
             ) : selectedPanel === 'admin-translations' ? (
                 <SettingsUnavailablePanel label="Translations" />
-            ) : selectedPanel === 'admin-world-builder' && worldGraph ? (
+            ) : selectedPanel === 'admin-world-builder' &&
+              (worldGraph || worldBuilderRootView === 'review') ? (
                 <WorldBuilderSettingsPanel
                     activeSection={worldBuilderRootView}
                     canViewGraph={
