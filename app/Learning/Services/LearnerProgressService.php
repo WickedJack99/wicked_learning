@@ -184,7 +184,7 @@ class LearnerProgressService
         int $userId,
         LearningActivity $activity,
         string $assistanceLevel,
-        ?string $playRunId = null,
+        string $playRunId,
     ): void {
         if (! in_array($assistanceLevel, ['hint', 'questions_only'], true)) {
             return;
@@ -208,7 +208,7 @@ class LearnerProgressService
         $records = is_array($metadata[self::COMPANION_ASSISTANCE_KEY] ?? null)
             ? $metadata[self::COMPANION_ASSISTANCE_KEY]
             : [];
-        $recordKey = $playRunId ?? 'unbound';
+        $recordKey = $playRunId;
         $existingLevel = is_array($records[$recordKey] ?? null)
             ? ($records[$recordKey]['level'] ?? null)
             : null;
@@ -249,7 +249,11 @@ class LearnerProgressService
         $records = is_array($metadata[self::COMPANION_ASSISTANCE_KEY] ?? null)
             ? $metadata[self::COMPANION_ASSISTANCE_KEY]
             : [];
-        $record = $records[$playRunId ?? 'unbound'] ?? null;
+        if ($playRunId === null) {
+            return null;
+        }
+
+        $record = $records[$playRunId] ?? null;
         $level = is_array($record) ? ($record['level'] ?? null) : null;
 
         return in_array($level, ['hint', 'questions_only'], true) ? $level : null;

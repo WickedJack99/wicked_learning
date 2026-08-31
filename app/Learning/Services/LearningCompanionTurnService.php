@@ -78,6 +78,13 @@ class LearningCompanionTurnService
 
         $assistanceLevel = (string) $data['assistance_level'];
 
+        if ($activity !== null && in_array($assistanceLevel, ['question', 'hint'], true)
+            && $playRunId === null) {
+            throw ValidationException::withMessages([
+                'play_run_id' => 'Pre-completion activity assistance needs an active play run.',
+            ]);
+        }
+
         if ($assistanceLevel === 'post-attempt' && ! $this->hasCompletedActivity($user, $activity)) {
             throw ValidationException::withMessages([
                 'assistance_level' => 'Post-attempt support is available after completing this activity.',
