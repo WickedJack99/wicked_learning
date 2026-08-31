@@ -966,6 +966,7 @@ export function ReflectionActivity({
     const [isSavingIndependentResponse, setIsSavingIndependentResponse] =
         useState(false);
     const postResponseContinueRef = useRef<HTMLButtonElement>(null);
+    const independentComparisonRef = useRef<HTMLHeadingElement>(null);
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
     );
@@ -1012,6 +1013,12 @@ export function ReflectionActivity({
             postResponseContinueRef.current?.focus();
         }
     }, [reflectionSaved]);
+
+    useEffect(() => {
+        if (independentResponseSaved) {
+            independentComparisonRef.current?.focus();
+        }
+    }, [independentResponseSaved]);
 
     if (reflectionSaved) {
         return (
@@ -1204,8 +1211,10 @@ export function ReflectionActivity({
                         className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20"
                     >
                         <h3
-                            className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                            className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase outline-none focus:ring-2 focus:ring-cyan-500 dark:text-teal-100 dark:focus:ring-teal-200"
                             id="activity-independent-comparison"
+                            ref={independentComparisonRef}
+                            tabIndex={-1}
                         >
                             {t(
                                 'learning.reflection.independent_check_comparison_label',
