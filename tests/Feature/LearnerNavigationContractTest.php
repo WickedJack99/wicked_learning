@@ -170,6 +170,9 @@ test('learner activity actions preserve authored transition labels', function ()
     $obstacleActivity = file_get_contents(
         resource_path('js/features/world/obstacle-activity.tsx'),
     );
+    $npcDialogue = file_get_contents(
+        resource_path('js/features/world/npc-dialogue-player.tsx'),
+    );
 
     expect($activityUtils)
         ->toContain('function activityTransitionLabel(')
@@ -184,6 +187,11 @@ test('learner activity actions preserve authored transition labels', function ()
         ->toContain("activityTransitionLabel(transition, 'Continue')");
     expect($obstacleActivity)
         ->toContain("activityTransitionLabel(transition, 'Continue')");
+    expect($npcDialogue)
+        ->toContain('npcExitTransition(activity, nextNode.id)')
+        ->toContain('transitionLabel: exitTransition?.label');
+    expect(file_get_contents(base_path('lang/en.json')))
+        ->toContain('"learning.activity.conclusion.next_step": "Next step"');
 });
 
 test('learner group chats paginate distinct groups instead of scrolling the group list', function () {

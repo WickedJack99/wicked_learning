@@ -84,7 +84,10 @@ them, and activity playback uses them for the relevant completion action without
 changing the transition resolver or navigation authority. Branching question
 responses include the selected transition label alongside the existing next
 activity identifier so the learner can see the authored branch without resolving
-navigation in the browser.
+navigation in the browser. NPC dialogue applies the same contract to the selected
+end-node exit: the player resolves the server-provided transition locally and
+passes its label into the existing conclusion pause without gaining navigation
+authority.
 
 The administrator activity editor can copy an activity to another editable
 MapAsset from the already-loaded world graph. The create action authorizes the

@@ -59,6 +59,7 @@ type CompletionOptions = {
     observedCues?: string[];
     outcome?: ActivityCompletionOutcome;
     progressAlreadyMarked?: boolean;
+    transitionLabel?: string | null;
 };
 
 type RecordedAssistanceLevel =
@@ -77,6 +78,7 @@ type PendingLearningCheckIn = {
     destination: CheckInDestination | null;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug: string | null;
+    transitionLabel: string | null;
 };
 
 export default function NodePlay({
@@ -414,6 +416,7 @@ export default function NodePlay({
                 destination: null,
                 learningAreas: learningAreaNames(activity),
                 originTopicSlug,
+                transitionLabel: options.transitionLabel?.trim() || null,
             } satisfies PendingLearningCheckIn;
             pendingLearningCheckInRef.current = checkIn;
             setHiddenCheckInActivityId(null);
@@ -842,6 +845,9 @@ export default function NodePlay({
                                     }
                                     originTopicSlug={
                                         pendingLearningCheckIn.originTopicSlug
+                                    }
+                                    transitionLabel={
+                                        pendingLearningCheckIn.transitionLabel
                                     }
                                     onContinue={continueAfterCheckIn}
                                     onHide={() =>

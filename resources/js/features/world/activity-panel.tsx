@@ -429,6 +429,7 @@ export function ActivityPlayer({
             observedCues?: string[];
             outcome?: ActivityCompletionOutcome;
             progressAlreadyMarked?: boolean;
+            transitionLabel?: string | null;
         },
     ) => Promise<void>;
     isRecall: boolean;
@@ -457,6 +458,7 @@ export function ActivityPlayer({
                 attemptNumber?: number;
                 assistanceLevel?: string;
                 progressAlreadyMarked?: boolean;
+                transitionLabel?: string | null;
             } = {},
         ) =>
             onComplete(completedActivity, {
@@ -469,6 +471,7 @@ export function ActivityPlayer({
                 observedCues: options.observedCues,
                 outcome: options.outcome,
                 progressAlreadyMarked: options.progressAlreadyMarked,
+                transitionLabel: options.transitionLabel,
             }),
         [completesRoute, onComplete],
     );

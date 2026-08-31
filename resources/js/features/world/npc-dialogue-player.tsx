@@ -12,6 +12,7 @@ import {
 import { useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import type {
+    ActivityTransition,
     DialogueTypingSoundSet,
     LearningActivity,
     LearningTool,
@@ -22,7 +23,10 @@ import { postJson } from './api';
 type NpcDialogueActivityProps = {
     activity: LearningActivity;
     initialState: unknown;
-    onComplete: (activity: LearningActivity) => Promise<void>;
+    onComplete: (
+        activity: LearningActivity,
+        options?: { transitionLabel?: string | null },
+    ) => Promise<void>;
     onMoveToActivity: (activityId: number | null) => void;
     playRunId: string | null;
 };
@@ -135,8 +139,11 @@ export function NpcDialogueActivity({
             }
 
             if (!nextNodeId) {
-                await onComplete(activity);
-                onMoveToActivity(nextActivityForNpcExit(activity, null));
+                const exitTransition = npcExitTransition(activity, null);
+                await onComplete(activity, {
+                    transitionLabel: exitTransition?.label,
+                });
+                onMoveToActivity(exitTransition?.toActivityId ?? null);
 
                 return;
             }
@@ -144,8 +151,11 @@ export function NpcDialogueActivity({
             const nextNode = npcDialogueNodeById(activity, nextNodeId);
 
             if (nextNode?.type === 'end') {
-                await onComplete(activity);
-                onMoveToActivity(nextActivityForNpcExit(activity, nextNode.id));
+                const exitTransition = npcExitTransition(activity, nextNode.id);
+                await onComplete(activity, {
+                    transitionLabel: exitTransition?.label,
+                });
+                onMoveToActivity(exitTransition?.toActivityId ?? null);
 
                 return;
             }
@@ -880,10 +890,10 @@ function nextDialogueNodeId(
     );
 }
 
-function nextActivityForNpcExit(
+function npcExitTransition(
     activity: LearningActivity,
     endNodeId: number | null,
-): number | null {
+): ActivityTransition | null {
     const connector = endNodeId ? `dialogue-end-${endNodeId}` : null;
     const exitTransition = connector
         ? activity.transitions.find(
@@ -891,13 +901,11 @@ function nextActivityForNpcExit(
           )
         : null;
 
-    return (
-        exitTransition?.toActivityId ??
+    return exitTransition ??
         activity.transitions.find(
             (transition) => transition.trigger === 'completed',
-        )?.toActivityId ??
-        null
-    );
+        ) ??
+        null;
 }
 
 function answerOptions(

@@ -37,6 +37,7 @@
     "learning.activity.bookmark.add": "Bookmark this place",
     "learning.activity.bookmark.remove": "Remove place bookmark",
     "learning.activity.conclusion.show": "Show conclusion",
+    "learning.activity.conclusion.next_step": "Next step",
     "learning.activity.back_to_map": "Back to map",
     "learning.activity.empty.title": "No activity path configured",
     "learning.activity.empty.body": "This node exists, but an admin has not added a playable activity yet.",

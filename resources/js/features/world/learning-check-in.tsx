@@ -3,6 +3,7 @@ import { ArrowRight, EyeOff, Heart } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     LearningCheckInFeeling,
     LearningCheckInNextDirection,
@@ -64,6 +65,7 @@ export function LearningCheckIn({
     originTopicSlug,
     onContinue,
     onHide,
+    transitionLabel,
 }: {
     activityTitle: string;
     choicePrompt: string | null;
@@ -75,7 +77,9 @@ export function LearningCheckIn({
         nextDirection: LearningCheckInNextDirection | null,
     ) => Promise<void>;
     onHide: () => void;
+    transitionLabel?: string | null;
 }) {
+    const t = usePlatformTranslation();
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [note, setNote] = useState('');
@@ -145,6 +149,18 @@ export function LearningCheckIn({
                     Hide
                 </Button>
             </div>
+            {transitionLabel ? (
+                <p className="mt-3 rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-page-background)] px-3 py-2 text-sm leading-6 text-[var(--learner-body-text)]">
+                    <span className="font-medium">
+                        {t(
+                            'learning.activity.conclusion.next_step',
+                            'Next step',
+                        )}
+                        :
+                    </span>{' '}
+                    {transitionLabel}
+                </p>
+            ) : null}
             {learningAreas.length > 0 ? (
                 <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_25%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-panel-background)_70%,transparent)] px-3 py-2">
                     <p className="text-xs font-medium text-[var(--learner-action-accent)]">
