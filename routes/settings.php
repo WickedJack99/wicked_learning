@@ -207,6 +207,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::get('settings/worlds/activities/{activity}/versions', [AdminActivityController::class, 'activityVersions'])
         ->name('settings.worlds.activities.versions.index');
 
+    Route::get('settings/worlds/activities/{activity}/versions/{version}', [AdminActivityController::class, 'activityVersion'])
+        ->name('settings.worlds.activities.versions.show');
+
     Route::post('settings/worlds/activities/{activity}/versions/{version}/restore', [AdminActivityController::class, 'restoreActivityVersion'])
         ->name('settings.worlds.activities.versions.restore');
 

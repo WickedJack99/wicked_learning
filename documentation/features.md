@@ -215,8 +215,10 @@ auditability, while learner ledgers and support signals continue to exclude its
 text. Shared-task contributions use their own submission path.
 
 Authors can open a bounded, paginated history for an activity's details and
-type-specific configuration and restore an earlier version. Restoring first
-preserves the current configuration and returns the activity to authoring
+type-specific configuration, inspect a selected revision on demand, and restore
+an earlier version. The inspection view includes the stored activity fields,
+type-specific settings, companion override state and graph position. Restoring
+first preserves the current configuration and returns the activity to authoring
 review. Route connections and separate NPC dialogue graph records are not
 changed by this first activity-history slice.
 

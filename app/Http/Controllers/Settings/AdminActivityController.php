@@ -283,6 +283,19 @@ class AdminActivityController extends Controller
         ]);
     }
 
+    public function activityVersion(
+        Request $request,
+        LearningActivity $activity,
+        LearningActivityVersion $version,
+    ): JsonResponse {
+        $this->authorizeActivityEdit($request, $activity);
+        abort_unless($version->learning_activity_id === $activity->id, 404);
+
+        return response()->json([
+            'version' => $this->activityVersionSerializer->serializeDetails($version),
+        ]);
+    }
+
     public function restoreActivityVersion(
         Request $request,
         LearningActivity $activity,

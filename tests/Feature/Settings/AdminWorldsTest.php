@@ -2715,6 +2715,15 @@ test('authors can browse and restore activity configuration versions without los
         ->assertJsonPath('pagination.total', 1);
 
     $this->actingAs($admin)
+        ->getJson(route('settings.worlds.activities.versions.show', [
+            'activity' => $activity,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('version.snapshot.title', $originalTitle)
+        ->assertJsonPath('version.snapshot.config.prompt', $originalPrompt);
+
+    $this->actingAs($admin)
         ->postJson(route('settings.worlds.activities.versions.restore', [
             'activity' => $activity,
             'version' => $version,
