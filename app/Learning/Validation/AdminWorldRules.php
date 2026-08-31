@@ -36,6 +36,23 @@ class AdminWorldRules
     /**
      * @return array<string, mixed>
      */
+    public function duplicateMap(LearningMap $map): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:120'],
+            'slug' => [
+                'nullable',
+                'string',
+                'max:140',
+                Rule::unique('learning_maps', 'slug')
+                    ->where('learning_world_id', $map->learning_world_id),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function portalLink(): array
     {
         return [

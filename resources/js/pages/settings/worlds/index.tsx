@@ -42,6 +42,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { DuplicateMapDialog } from '@/features/settings/duplicate-map-dialog';
 import { MapExportValidationDialog } from '@/features/settings/map-export-validation-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -672,6 +673,7 @@ function MapDetails({ map }: { map: MapSummary }) {
                     Configure map
                 </Link>
             </Button>
+            <DuplicateMapDialog mapId={map.id} mapTitle={map.title} />
         </div>
     );
 }

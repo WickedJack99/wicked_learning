@@ -9,9 +9,12 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningCompanionDialogue;
+use App\Models\LearningCompanionDialogueAssignment;
 use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\LearningTool;
@@ -237,6 +240,112 @@ test('map export validation reports malformed manifests', function () {
         ->assertOk()
         ->assertJsonPath('valid', false)
         ->assertJsonPath('errors.0', 'format must be "wicked-learning-map".');
+});
+
+test('map authors can duplicate a complete authored map without learner state', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $sourceNodeIds = $source->nodes()->pluck('id');
+    $sourceActivityIds = LearningActivity::query()
+        ->whereIn('learning_node_id', $sourceNodeIds)
+        ->pluck('id');
+    $dialogue = LearningCompanionDialogue::query()->create([
+        'created_by_user_id' => $admin->id,
+        'dialogue_graph' => [
+            'version' => 1,
+            'start' => 'welcome',
+            'nodes' => [['id' => 'welcome', 'type' => 'message', 'message' => 'Hello.']],
+        ],
+        'name' => 'Map guide',
+        'updated_by_user_id' => $admin->id,
+    ]);
+    LearningCompanionDialogueAssignment::query()->create([
+        'learning_companion_dialogue_id' => $dialogue->id,
+        'scope_id' => $source->id,
+        'scope_type' => 'map',
+    ]);
+    $counts = [
+        'activities' => $sourceActivityIds->count(),
+        'assets' => LearningMapAsset::query()->where('learning_map_id', $source->id)->count(),
+        'dialogueNodes' => NpcDialogueNode::query()->whereIn('learning_activity_id', $sourceActivityIds)->count(),
+        'dialogueTransitions' => NpcDialogueTransition::query()->whereIn('learning_activity_id', $sourceActivityIds)->count(),
+        'messageTopics' => LearningMessageTopic::query()->whereIn(
+            'learning_map_asset_id',
+            LearningMapAsset::query()->where('learning_map_id', $source->id)->pluck('id'),
+        )->count(),
+        'nodes' => $sourceNodeIds->count(),
+        'questions' => LearningActivity::query()->whereIn('id', $sourceActivityIds)->whereHas('question')->count(),
+        'starts' => LearningActivityStart::query()->whereIn('learning_node_id', $sourceNodeIds)->count(),
+        'transitions' => ActivityTransition::query()->whereIn('from_activity_id', $sourceActivityIds)->count(),
+    ];
+    $sourcePortal = LearningPortalLink::query()
+        ->whereIn('source_learning_node_id', $sourceNodeIds)
+        ->firstOrFail();
+
+    $response = $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.duplicate', $source), [
+            'slug' => 'first-sector-copy',
+            'title' => 'First Sector Copy',
+        ]);
+
+    $duplicate = LearningMap::query()->where('slug', 'first-sector-copy')->firstOrFail();
+    $duplicateNodeIds = $duplicate->nodes()->pluck('id');
+    $duplicateActivityIds = LearningActivity::query()
+        ->whereIn('learning_node_id', $duplicateNodeIds)
+        ->pluck('id');
+    $duplicatePortal = LearningPortalLink::query()
+        ->whereIn('source_learning_node_id', $duplicateNodeIds)
+        ->firstOrFail();
+
+    $response->assertRedirect(route('settings.worlds.maps.edit', $duplicate));
+
+    expect($duplicate->id)->not->toBe($source->id)
+        ->and($duplicateNodeIds->intersect($sourceNodeIds))->toBeEmpty()
+        ->and($duplicateActivityIds->intersect($sourceActivityIds))->toBeEmpty()
+        ->and($duplicate->nodes()->count())->toBe($counts['nodes'])
+        ->and(LearningActivity::query()->whereIn('learning_node_id', $duplicateNodeIds)->count())->toBe($counts['activities'])
+        ->and(LearningMapAsset::query()->where('learning_map_id', $duplicate->id)->count())->toBe($counts['assets'])
+        ->and(LearningMessageTopic::query()->whereIn(
+            'learning_map_asset_id',
+            LearningMapAsset::query()->where('learning_map_id', $duplicate->id)->pluck('id'),
+        )->count())->toBe($counts['messageTopics'])
+        ->and(NpcDialogueNode::query()->whereIn('learning_activity_id', $duplicateActivityIds)->count())->toBe($counts['dialogueNodes'])
+        ->and(NpcDialogueTransition::query()->whereIn('learning_activity_id', $duplicateActivityIds)->count())->toBe($counts['dialogueTransitions'])
+        ->and(LearningActivity::query()->whereIn('learning_node_id', $duplicateNodeIds)->whereHas('question')->count())->toBe($counts['questions'])
+        ->and(LearningActivityStart::query()->whereIn('learning_node_id', $duplicateNodeIds)->count())->toBe($counts['starts'])
+        ->and(ActivityTransition::query()->whereIn('from_activity_id', $duplicateActivityIds)->count())->toBe($counts['transitions'])
+        ->and(LearningActivity::query()->whereIn('id', $duplicateActivityIds)->pluck('ai_review_status')->unique()->all())
+        ->toBe([LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW])
+        ->and(LearningActivity::query()->whereIn('id', $duplicateActivityIds)->whereNotNull('ai_review')->count())->toBe(0)
+        ->and($duplicatePortal->target_learning_node_id)->toBe($sourcePortal->target_learning_node_id)
+        ->and(LearningCompanionDialogueAssignment::query()
+            ->where('learning_companion_dialogue_id', $dialogue->id)
+            ->where('scope_type', 'map')
+            ->where('scope_id', $duplicate->id)
+            ->exists())->toBeTrue()
+        ->and(LearningMap::query()->whereKey($source->id)->exists())->toBeTrue();
+});
+
+test('map duplication rejects an existing world slug before creating content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $source = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $mapCount = LearningMap::query()->count();
+
+    $this->actingAs($admin)
+        ->from(route('settings.index', ['panel' => 'admin-world-builder']))
+        ->post(route('settings.worlds.maps.duplicate', $source), [
+            'slug' => 'signal-archive',
+            'title' => 'Should not be created',
+        ])
+        ->assertSessionHasErrors('slug');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
 test('admin users must select an item for an item unlock condition', function () {

@@ -188,6 +188,14 @@ of the export contract. The matching readiness validator caps collection sizes,
 checks slugs and graph links in memory, and performs only bounded workspace
 lookups; it never imports or mutates the submitted manifest.
 
+Same-workspace map duplication is a separate transactional authoring action from
+portable import. It remaps internal node, activity, MapAsset message-topic,
+question, dialogue-node, route and companion-assignment references while keeping
+external portal destinations pointed at their existing workspace records. It
+copies authored configuration but excludes learner progress, map history,
+activity review runs and editor groups; duplicated activities are marked for a
+new authoring review pass.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog

@@ -11,6 +11,7 @@ use App\Learning\Actions\CreateLearningNode;
 use App\Learning\Actions\DeleteLearningMap;
 use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
+use App\Learning\Actions\DuplicateLearningMap;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\SetLearnerNodeManualUnlock;
@@ -59,6 +60,7 @@ class AdminWorldController extends Controller
         private readonly AdminWorldRules $rules,
         private readonly LearningMapExportValidator $mapExportValidator,
         private readonly CreateLearningMap $createLearningMap,
+        private readonly DuplicateLearningMap $duplicateLearningMap,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
         private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
@@ -151,6 +153,21 @@ class AdminWorldController extends Controller
         );
 
         return $this->redirectToWorldGraph($request);
+    }
+
+    public function duplicateMap(Request $request, LearningMap $map): RedirectResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $creator = $request->user();
+        abort_unless($creator instanceof User, 401);
+
+        $duplicate = $this->duplicateLearningMap->handle(
+            $map,
+            $request->validate($this->rules->duplicateMap($map)),
+            $creator,
+        );
+
+        return $this->redirectToMap($duplicate);
     }
 
     public function storeMapAsset(Request $request, LearningMap $map): RedirectResponse

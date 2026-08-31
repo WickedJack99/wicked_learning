@@ -105,6 +105,9 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::post('settings/worlds/maps', [AdminWorldController::class, 'storeMap'])
         ->name('settings.worlds.maps.store');
 
+    Route::post('settings/worlds/maps/{map}/duplicate', [AdminWorldController::class, 'duplicateMap'])
+        ->name('settings.worlds.maps.duplicate');
+
     Route::post('settings/worlds/maps/{map}/assets', [AdminWorldController::class, 'storeMapAsset'])
         ->name('settings.worlds.maps.assets.store');
 
