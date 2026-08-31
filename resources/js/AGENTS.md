@@ -52,6 +52,19 @@ Wicked Learning must not automatically be treated as UX defects.
 Prefer adapting the skill's guidance to the existing product over redesigning
 the product around the skill.
 
+## DevTools markers
+
+- Add stable `data-wl-id` markers to meaningful route regions, panels, feature
+  components, overlays, collection containers, forms and important controls.
+- Use human-readable product paths such as
+  `learner.competence.learning-pulse`; do not derive markers from CSS classes,
+  generated IDs or localized copy.
+- Skip decorative nodes and layout-only wrappers. Prefer marking the component
+  boundary that owns a behavior, state or layout area.
+- Apply markers progressively to shared UI and touched feature surfaces; do not
+  flood every DOM node or use ordinary `id` attributes when a DevTools marker
+  is the only need.
+
 ## Collection and viewport decisions
 
 - Decide viewport ownership, bounded collection behavior and keyboard paths

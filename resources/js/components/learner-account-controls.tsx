@@ -81,6 +81,7 @@ export function LearnerAccountControls({
                     'ml-auto flex shrink-0 items-center gap-2',
                     className,
                 )}
+                data-wl-id="learner.navigation.account-controls"
             >
                 <Button
                     asChild
@@ -92,6 +93,7 @@ export function LearnerAccountControls({
                     size="icon"
                     variant="ghost"
                     style={{ borderColor: 'var(--learner-border-color)' }}
+                    data-wl-id="learner.navigation.notifications"
                 >
                     <Link href="/settings?panel=personal&personal=notifications">
                         <Bell className="size-4" />
@@ -117,6 +119,7 @@ export function LearnerAccountControls({
                         size="icon"
                         variant="ghost"
                         style={{ borderColor: 'var(--learner-border-color)' }}
+                        data-wl-id="learner.navigation.journal"
                     >
                         <NotebookPen className="size-4" />
                     </Button>
@@ -130,6 +133,7 @@ export function LearnerAccountControls({
                             style={{
                                 borderColor: 'var(--learner-border-color)',
                             }}
+                            data-wl-id="learner.navigation.account-menu"
                         >
                             <Avatar className="size-7">
                                 <AvatarImage
@@ -173,7 +177,11 @@ export function LearnerBrand() {
     const { props } = usePage();
 
     return (
-        <Link className="flex shrink-0 items-center gap-3" href="/home">
+        <Link
+            className="flex shrink-0 items-center gap-3"
+            data-wl-id="learner.navigation.brand"
+            href="/home"
+        >
             <PlatformLogo
                 className="size-8 object-contain"
                 aria-hidden="true"

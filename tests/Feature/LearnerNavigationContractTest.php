@@ -61,6 +61,30 @@ test('document surfaces keep the shared learner header outside their scroll regi
     );
 });
 
+test('shared learner surfaces expose stable DevTools markers', function () {
+    $header = file_get_contents(
+        resource_path('js/components/learner-navigation-header.tsx'),
+    );
+    $accountControls = file_get_contents(
+        resource_path('js/components/learner-account-controls.tsx'),
+    );
+    $competence = file_get_contents(
+        resource_path('js/pages/competence/index.tsx'),
+    );
+
+    expect($header)
+        ->toContain('data-wl-id="learner.navigation.header"')
+        ->toContain('data-wl-id="learner.navigation.primary"')
+        ->toContain('learner.navigation.item.${item.id ?? \'custom\'}');
+    expect($accountControls)
+        ->toContain('data-wl-id="learner.navigation.account-controls"')
+        ->toContain('data-wl-id="learner.navigation.journal"');
+    expect($competence)
+        ->toContain('data-wl-id="learner.competence.star-map"')
+        ->toContain('data-wl-id="learner.competence.learning-pulse"')
+        ->toContain('data-wl-id="learner.competence.map-guide.toggle"');
+});
+
 test('the learning desk defaults to a useful populated area', function () {
     $learningDesk = file_get_contents(
         resource_path('js/features/home/learning-desk.tsx'),

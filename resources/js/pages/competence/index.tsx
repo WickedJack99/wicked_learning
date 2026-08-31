@@ -77,10 +77,17 @@ export default function CompetenceStarMap({
                 id="learner-main-content"
                 tabIndex={-1}
                 className="flex min-h-svh min-w-0 flex-col overflow-hidden bg-black text-white focus:outline-none"
+                data-wl-id="learner.competence.page"
             >
                 <LearningDeskHeader />
-                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden">
-                    <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-20">
+                <div
+                    className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden"
+                    data-wl-id="learner.competence.content"
+                >
+                    <div
+                        className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-20"
+                        data-wl-id="learner.competence.workspace"
+                    >
                         <AccentHeading
                             className="shrink-0"
                             action={
@@ -123,7 +130,10 @@ export default function CompetenceStarMap({
                         />
 
                         <div className="mt-5 grid w-full gap-5 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
-                            <section className="relative min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-full xl:min-h-0">
+                            <section
+                                className="relative min-h-[32rem] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-2xl xl:h-full xl:min-h-0"
+                                data-wl-id="learner.competence.star-map"
+                            >
                                 {positionedTopics.length === 0 ? (
                                     <div className="grid h-full place-items-center p-6 text-center">
                                         <div>
@@ -532,7 +542,10 @@ function CompetenceMapGuide({
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <div className="absolute top-4 right-4 z-10 flex w-[min(36rem,calc(100%-2rem))] flex-col items-end text-slate-100">
+        <div
+            className="absolute top-4 right-4 z-10 flex w-[min(36rem,calc(100%-2rem))] flex-col items-end text-slate-100"
+            data-wl-id="learner.competence.map-guide"
+        >
             <Button
                 aria-controls="competence-map-guide"
                 aria-expanded={isOpen}
@@ -540,6 +553,7 @@ function CompetenceMapGuide({
                 onClick={() => setIsOpen((open) => !open)}
                 type="button"
                 variant="outline"
+                data-wl-id="learner.competence.map-guide.toggle"
             >
                 How to read this map
                 <ChevronDown
@@ -550,6 +564,7 @@ function CompetenceMapGuide({
                 className="mt-2 grid max-h-[calc(100%-4.5rem)] w-full gap-3 overflow-y-auto rounded-xl border border-cyan-200/20 bg-slate-950/95 px-3 py-3 text-xs leading-5 text-slate-300 shadow-xl backdrop-blur"
                 hidden={!isOpen}
                 id="competence-map-guide"
+                data-wl-id="learner.competence.map-guide.content"
             >
                 <p>
                     Each light represents a competence area you have explored.
@@ -609,7 +624,10 @@ function LearningPulseTimeline({
     const translate = usePlatformTranslation();
 
     return (
-        <aside className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-full xl:min-h-0 xl:overflow-y-auto">
+        <aside
+            className="rounded-2xl border border-cyan-200/15 bg-slate-950/80 p-5 shadow-2xl xl:h-full xl:min-h-0 xl:overflow-y-auto"
+            data-wl-id="learner.competence.learning-pulse"
+        >
             <div className="flex items-start gap-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan-200/10 text-cyan-200">
                     <Heart className="size-4" />

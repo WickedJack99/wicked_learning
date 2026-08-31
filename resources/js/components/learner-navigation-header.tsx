@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 export type LearnerNavigationItem = {
     active: boolean;
     href: string;
+    id?: string;
     label: string;
     onClick?: () => void;
     icon?: ReactNode;
@@ -43,6 +44,7 @@ export function LearnerNavigationHeader({
                 background: 'var(--learner-header-background)',
                 borderColor: 'var(--learner-border-color)',
             }}
+            data-wl-id="learner.navigation.header"
         >
             <a
                 className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-[80] focus:rounded-md focus:bg-[var(--learner-panel-background)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--learner-heading-text)] focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
@@ -69,6 +71,7 @@ export function LearnerNavigationHeader({
                     )}
                     className="order-3 -mx-4 flex w-[calc(100%+2rem)] basis-full flex-wrap gap-0 overflow-visible border-t px-4 xl:order-none xl:mx-0 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:overflow-visible xl:border-t-0 xl:px-0 2xl:gap-1"
                     style={{ borderColor: 'var(--learner-border-color)' }}
+                    data-wl-id="learner.navigation.primary"
                 >
                     {items.map((item) => (
                         <LearnerNavigationItem item={item} key={item.label} />
@@ -96,6 +99,7 @@ function LearnerNavigationItem({ item }: { item: LearnerNavigationItem }) {
                 className={className}
                 onClick={item.onClick}
                 type="button"
+                data-wl-id={`learner.navigation.item.${item.id ?? 'custom'}`}
             >
                 {item.icon}
                 {item.label}
@@ -110,6 +114,7 @@ function LearnerNavigationItem({ item }: { item: LearnerNavigationItem }) {
             className={className}
             href={item.href}
             style={{ cursor: 'var(--platform-action-cursor)' }}
+            data-wl-id={`learner.navigation.item.${item.id ?? 'custom'}`}
         >
             {item.icon}
             {item.label}

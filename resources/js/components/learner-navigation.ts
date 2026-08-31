@@ -73,6 +73,7 @@ export function appendLearnerContextNavigation(
     items.push({
         active: options.currentMapActive ?? false,
         href: options.currentMapHref,
+        id: 'current-map',
         label: t('navigation.primary.current_map', 'Current map'),
     });
 
@@ -80,6 +81,7 @@ export function appendLearnerContextNavigation(
         items.push({
             active: options.continueActive ?? false,
             href: options.continueHref,
+            id: 'continue-activity',
             label: t('navigation.activity.continue', 'Continue activity'),
         });
     }
