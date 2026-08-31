@@ -8,7 +8,7 @@ import {
     RotateCcw,
     X,
 } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
@@ -791,6 +791,17 @@ function ActivityFrame({
 }) {
     const relatedLearningAreas = learningAreaNames(activity);
     const translate = usePlatformTranslation();
+    const activityHeadingRef = useRef<HTMLHeadingElement>(null);
+    const previousActivityIdRef = useRef(activity.id);
+
+    useEffect(() => {
+        if (previousActivityIdRef.current === activity.id) {
+            return;
+        }
+
+        previousActivityIdRef.current = activity.id;
+        activityHeadingRef.current?.focus();
+    }, [activity.id]);
 
     return (
         <section className="flex min-h-0 flex-1 flex-col gap-4 rounded-lg border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] p-4">
@@ -802,7 +813,11 @@ function ActivityFrame({
                     <p className="text-xs font-medium tracking-[0.16em] text-[var(--learner-action-accent)] uppercase">
                         {learningFocusLabel(activity, translate)}
                     </p>
-                    <h3 className="mt-1 text-base font-semibold text-[var(--learner-heading-text)]">
+                    <h3
+                        className="mt-1 scroll-mt-4 rounded-sm text-base font-semibold text-[var(--learner-heading-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-page-background)]"
+                        ref={activityHeadingRef}
+                        tabIndex={-1}
+                    >
                         {activity.title}
                     </h3>
                     {activity.introduction ? (

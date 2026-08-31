@@ -432,6 +432,10 @@ The check-in opens as a bounded overlay above the activity rather than pushing
 the activity below the viewport. Learners can hide it and reopen it with the
 Show conclusion control; keyboard focus moves into the conclusion when it opens
 and returns to that control when the overlay is hidden.
+When a graph route or activity transition changes the active activity, focus
+moves to the new activity heading so keyboard and screen-reader users are
+oriented at the beginning of the new activity without changing route or
+progress behavior.
 Authors can optionally add a short context sentence explaining why one of these
 directions may be useful after a particular activity. The choice set remains
 bounded and optional.
