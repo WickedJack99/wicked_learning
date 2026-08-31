@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    Download,
     History,
     Image,
     LayoutPanelTop,
@@ -600,6 +601,7 @@ export default function ConfigureMap({
                 <MapDetailsSection
                     action={action}
                     errors={errors}
+                    exportHref={`/settings/worlds/maps/${map.id}/export`}
                     form={detailsForm}
                     onOpenHistory={openDetailsHistory}
                     onChange={setDetailsForm}
@@ -827,6 +829,7 @@ export default function ConfigureMap({
 function MapDetailsSection({
     action,
     errors,
+    exportHref,
     form,
     onChange,
     onOpenHistory,
@@ -835,6 +838,7 @@ function MapDetailsSection({
 }: {
     action: ReactNode;
     errors: Record<string, string>;
+    exportHref: string;
     form: DetailsForm;
     onChange: (form: DetailsForm) => void;
     onOpenHistory: () => void;
@@ -845,14 +849,22 @@ function MapDetailsSection({
         <div className="flex h-full min-h-0 flex-col">
             <ConfigureMapSectionHeader
                 action={
-                    <Button
-                        onClick={onOpenHistory}
-                        type="button"
-                        variant="outline"
-                    >
-                        <History className="size-4" />
-                        History
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                            onClick={onOpenHistory}
+                            type="button"
+                            variant="outline"
+                        >
+                            <History className="size-4" />
+                            History
+                        </Button>
+                        <Button asChild variant="outline">
+                            <a download href={exportHref}>
+                                <Download className="size-4" />
+                                Download export
+                            </a>
+                        </Button>
+                    </div>
                 }
                 description="These fields are shown in the top-left map title panel."
                 title="Map details"

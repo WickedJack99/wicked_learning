@@ -27,6 +27,7 @@ use App\Learning\Queries\LoadLearningMapAssetVersions;
 use App\Learning\Queries\LoadLearningMapVersions;
 use App\Learning\Serializers\LearningMapAssetSerializer;
 use App\Learning\Serializers\LearningMapAssetVersionSerializer;
+use App\Learning\Serializers\LearningMapExportSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
@@ -42,6 +43,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWorldController extends Controller
 {
@@ -51,6 +53,7 @@ class AdminWorldController extends Controller
         private readonly LoadLearningMapAssetVersions $mapAssetVersions,
         private readonly LearningMapAssetSerializer $mapAssetSerializer,
         private readonly LearningMapAssetVersionSerializer $mapAssetVersionSerializer,
+        private readonly LearningMapExportSerializer $mapExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
@@ -104,6 +107,23 @@ class AdminWorldController extends Controller
             'map' => $map->id,
             'worldView' => 'configure',
         ]);
+    }
+
+    public function exportMap(Request $request, LearningMap $map): StreamedResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $payload = $this->mapExportSerializer->serialize($map);
+
+        return response()->streamDownload(
+            static function () use ($payload): void {
+                echo json_encode(
+                    $payload,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
+                ).PHP_EOL;
+            },
+            "{$map->slug}-wicked-learning-map.json",
+            ['Content-Type' => 'application/json'],
+        );
     }
 
     public function storeMap(Request $request): RedirectResponse

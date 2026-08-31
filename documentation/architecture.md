@@ -177,6 +177,15 @@ surface and interaction configuration. Its permission-protected endpoint
 paginates one asset's revisions, and restore validates the asset relation before
 recording the current configuration and applying the selected version.
 
+The World Builder map export is an author-authorized streamed JSON manifest. Its
+serializer batch-loads the selected map's world, topic, nodes, activities,
+transitions, route starts and MapAssets, then loads portal references in one
+scoped query. It uses world/map/node/activity slugs rather than database IDs so a
+future importer can resolve references explicitly. Media-like configuration
+values are collected into a separate reference list. Learner progress, private
+revision history, local editing-group assignments and AI review state are not part
+of the export contract.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog

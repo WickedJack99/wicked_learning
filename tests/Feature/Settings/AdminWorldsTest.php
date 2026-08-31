@@ -148,6 +148,50 @@ test('admin users can open world builder map configuration and node inside setti
         ->toContain('npc_dialogue');
 });
 
+test('map authors can download an author-only map export manifest', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $response = $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.export', $map));
+
+    $response
+        ->assertOk()
+        ->assertHeader(
+            'Content-Disposition',
+            'attachment; filename=first-sector-wicked-learning-map.json',
+        )
+        ->assertHeader('Content-Type', 'application/json');
+
+    $payload = json_decode(
+        $response->streamedContent(),
+        true,
+        512,
+        JSON_THROW_ON_ERROR,
+    );
+    $signalGate = collect($payload['nodes'])
+        ->firstWhere('slug', 'signal-gate');
+    $signalAsset = collect($payload['mapAssets'])
+        ->firstWhere('nodeSlug', 'signal-gate');
+
+    expect($payload['format'])->toBe('wicked-learning-map')
+        ->and($payload['formatVersion'])->toBe(1)
+        ->and($payload['world']['slug'])->toBe('demo-learning-world')
+        ->and($payload['map']['slug'])->toBe('first-sector')
+        ->and($payload['map']['topicSlug'])->toBe('pattern-investigation')
+        ->and($signalGate['startActivitySlug'])->toBe('guided-signal-dialogue')
+        ->and($signalGate['activities'])->not->toBeEmpty()
+        ->and($signalAsset['imageUrl'])->toBe('/images/nodes/fantasy-hex-forest.png')
+        ->and($payload['portalTargets'])->not->toBeEmpty()
+        ->and($payload['references']['mediaUrls'])
+        ->toContain('/images/themes/abstract-map-background.svg')
+        ->and($payload)->not->toHaveKey('versions')
+        ->and($payload)->not->toHaveKey('learnerProgress');
+});
+
 test('admin users must select an item for an item unlock condition', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

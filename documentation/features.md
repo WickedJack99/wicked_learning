@@ -585,6 +585,12 @@ learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain
 separate authoring concerns.
 
+Authorized authors can download a single-map JSON export manifest containing
+authored map, node, MapAsset, activity-route and explicit media/portal reference
+data. The manifest uses portable slugs and excludes learner progress, revision
+history, local editing-group assignments and AI review internals. Importing and
+multi-map bundles remain future authoring work.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and

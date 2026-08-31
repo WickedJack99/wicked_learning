@@ -182,8 +182,8 @@ workflows remain future work.
 
 - Expand the initial map-detail and MapAsset version history into full
   map/world history, rollback and safe collaborative editing locks.
-- Add bulk import/export for maps and MapAssets with explicit reference
-  handling.
+- Expand the single-map export manifest into bulk import/export for maps and
+  MapAssets with explicit reference handling.
 - Add configuration profiles with visible inherited values and local overrides.
 - Expand activity templates into a shared, versioned library with richer
   context and asset resolution controls; the current copy flow supports an
