@@ -219,6 +219,9 @@ the contribution. Authors may also allow an anonymous contribution sample to
 be shown to later learners, but each learner opts in per submission. Playback
 shows only a small, bounded set of opted-in contributions and does not expose
 learner identities.
+With the default one-contribution policy, playback replaces the composer after
+the learner's contribution is accepted; activities explicitly configured for
+repeated contributions keep the composer available.
 When a shared task offers anonymous contributions or peer review, playback
 separates the contribution form, shared examples and peer-review exchange into
 an accessible in-panel area switcher. The prompt and shared progress remain

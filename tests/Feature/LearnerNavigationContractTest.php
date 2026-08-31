@@ -422,6 +422,8 @@ test('shared task cooperation areas switch instead of stacking every workflow', 
         ->toContain("type SharedTaskArea = 'contribute' | 'contributions' | 'peer_review';")
         ->toContain("activeArea === 'contributions'")
         ->toContain("activeArea === 'peer_review'")
+        ->toContain("(!state.hasSubmitted || allowsRepeatedContributions)")
+        ->toContain("activities.shared_task.contribution_once_title")
         ->toContain('aria-pressed={active}')
         ->toContain("'activities.shared_task.area_navigation'");
 });

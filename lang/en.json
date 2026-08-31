@@ -696,6 +696,8 @@
     "activities.shared_task.project_step_any": "Any project step",
     "activities.shared_task.project_step": "Project step",
     "activities.shared_task.contribution_recorded": "Your contribution has been recorded.",
+    "activities.shared_task.contribution_once_title": "Contribution already recorded",
+    "activities.shared_task.contribution_once_body": "This shared task accepts one contribution from you. Use another area above if you want to inspect shared contributions or peer review.",
     "activities.shared_task.character_count": ":current / :minimum characters",
     "activities.shared_task.submit": "Submit contribution",
     "activities.shared_task.submit_error": "This contribution could not be accepted.",

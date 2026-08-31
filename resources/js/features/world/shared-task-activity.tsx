@@ -98,7 +98,10 @@ export function SharedTaskActivity({
         Boolean(playRunId) &&
         !state.isComplete &&
         !isSubmitting &&
+        (activity.config.repeatPolicy === 'unlimited' || !state.hasSubmitted) &&
         body.trim().length >= minimumLength;
+    const allowsRepeatedContributions =
+        activity.config.repeatPolicy === 'unlimited';
 
     async function submitContribution() {
         if (!playRunId || !canSubmit) {
@@ -447,7 +450,8 @@ export function SharedTaskActivity({
                     )}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
-            ) : activeArea === 'contribute' ? (
+            ) : activeArea === 'contribute' &&
+              (!state.hasSubmitted || allowsRepeatedContributions) ? (
                 <div className="grid gap-2">
                     <label
                         className="text-sm font-medium text-slate-700 dark:text-slate-200"
@@ -556,6 +560,21 @@ export function SharedTaskActivity({
                             'Submit contribution',
                         )}
                     </Button>
+                </div>
+            ) : activeArea === 'contribute' && state.hasSubmitted ? (
+                <div className="grid gap-2 rounded-lg border border-cyan-200/70 bg-cyan-50/60 p-4 dark:border-teal-200/20 dark:bg-teal-100/6">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {t(
+                            'activities.shared_task.contribution_once_title',
+                            'Contribution already recorded',
+                        )}
+                    </p>
+                    <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
+                        {t(
+                            'activities.shared_task.contribution_once_body',
+                            'This shared task accepts one contribution from you. Use another area above if you want to inspect shared contributions or peer review.',
+                        )}
+                    </p>
                 </div>
             ) : null}
         </div>
