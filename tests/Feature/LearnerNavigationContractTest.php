@@ -69,13 +69,15 @@ test('the learning desk defaults to a useful populated area', function () {
         ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
 });
 
-test('the learning desk can temporarily hide its secondary rail', function () {
+test('the learning desk remembers its focus view preference locally', function () {
     $learningDesk = file_get_contents(
         resource_path('js/features/home/learning-desk.tsx'),
     );
 
     expect($learningDesk)
-        ->toContain('const [focusView, setFocusView] = useState(false);')
+        ->toContain('wicked-learning:desk-focus-view:${auth.user.id}')
+        ->toContain('readFocusViewPreference(focusPreferenceKey)')
+        ->toContain('writeFocusViewPreference(focusPreferenceKey, nextFocusView)')
         ->toContain("'home.learning_desk.focus.enter'")
         ->toContain("'home.learning_desk.focus.show_rail'")
         ->toContain('{!focusView ? <LearningDeskRail desk={desk} /> : null}');
