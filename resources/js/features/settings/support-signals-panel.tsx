@@ -309,7 +309,7 @@ function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
                                 <p className="text-sm font-semibold text-[var(--settings-primary-text)]">
                                     {item.activityTitle}
                                 </p>
-                                <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
                                     {item.mapTitle} · {item.nodeTitle}
                                 </p>
                             </div>
@@ -326,7 +326,7 @@ function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
                                     'Open map context',
                                 )}
                             </Link>
-                            <div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-xs">
+                            <div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-sm">
                                 <div>
                                     <p className="font-semibold text-[var(--settings-accent)]">
                                         {item.unresolvedReviewCount}
@@ -348,7 +348,7 @@ function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
                                     </p>
                                 </div>
                             </div>
-                            <p className="text-xs text-[var(--settings-muted-text)]">
+                            <p className="text-sm text-[var(--settings-muted-text)]">
                                 Latest review:{' '}
                                 {formatDateTime(item.latestReviewAt)}
                             </p>
