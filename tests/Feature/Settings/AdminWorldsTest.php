@@ -192,6 +192,53 @@ test('map authors can download an author-only map export manifest', function () 
         ->and($payload)->not->toHaveKey('learnerProgress');
 });
 
+test('map authors can validate an export manifest without changing content', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+    $mapCount = LearningMap::query()->count();
+    $exportResponse = $this->actingAs($admin)
+        ->get(route('settings.worlds.maps.export', $map));
+    $manifest = $exportResponse->streamedContent();
+    $exportPayload = json_decode($manifest, true, 512, JSON_THROW_ON_ERROR);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'first-sector.json',
+                $manifest,
+            ),
+        ])
+        ->assertOk()
+        ->assertJsonPath('valid', true)
+        ->assertJsonPath('map.slug', 'first-sector')
+        ->assertJsonPath('map.exists', true)
+        ->assertJsonPath('counts.nodes', 4)
+        ->assertJsonPath('counts.mediaReferences', count($exportPayload['references']['mediaUrls']));
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
+});
+
+test('map export validation reports malformed manifests', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.maps.exports.validate'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'broken.json',
+                json_encode(['format' => 'unknown'], JSON_THROW_ON_ERROR),
+            ),
+        ])
+        ->assertOk()
+        ->assertJsonPath('valid', false)
+        ->assertJsonPath('errors.0', 'format must be "wicked-learning-map".');
+});
+
 test('admin users must select an item for an item unlock condition', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

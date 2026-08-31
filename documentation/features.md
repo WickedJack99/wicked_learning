@@ -589,7 +589,9 @@ Authorized authors can download a single-map JSON export manifest containing
 authored map, node, MapAsset, activity-route and explicit media/portal reference
 data. The manifest uses portable slugs and excludes learner progress, revision
 history, local editing-group assignments and AI review internals. Importing and
-multi-map bundles remain future authoring work.
+multi-map bundles remain future authoring work. Authors can upload a manifest to
+run a bounded structural readiness check; it reports malformed links, missing
+workspace references and map-slug conflicts without creating or changing content.
 
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the

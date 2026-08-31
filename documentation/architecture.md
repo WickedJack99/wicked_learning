@@ -184,7 +184,9 @@ scoped query. It uses world/map/node/activity slugs rather than database IDs so 
 future importer can resolve references explicitly. Media-like configuration
 values are collected into a separate reference list. Learner progress, private
 revision history, local editing-group assignments and AI review state are not part
-of the export contract.
+of the export contract. The matching readiness validator caps collection sizes,
+checks slugs and graph links in memory, and performs only bounded workspace
+lookups; it never imports or mutates the submitted manifest.
 
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records

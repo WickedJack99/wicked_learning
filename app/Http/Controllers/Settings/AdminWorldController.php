@@ -33,6 +33,7 @@ use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
+use App\Learning\Validation\LearningMapExportValidator;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningMapAssetVersion;
@@ -56,6 +57,7 @@ class AdminWorldController extends Controller
         private readonly LearningMapExportSerializer $mapExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly AdminWorldRules $rules,
+        private readonly LearningMapExportValidator $mapExportValidator,
         private readonly CreateLearningMap $createLearningMap,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
@@ -123,6 +125,17 @@ class AdminWorldController extends Controller
             },
             "{$map->slug}-wicked-learning-map.json",
             ['Content-Type' => 'application/json'],
+        );
+    }
+
+    public function validateMapExport(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:10240'],
+        ]);
+
+        return response()->json(
+            $this->mapExportValidator->validate($data['manifest']),
         );
     }
 
