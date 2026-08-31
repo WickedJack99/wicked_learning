@@ -3128,6 +3128,18 @@ test('shared task authoring previews both enabled learner workflow states', func
         ->toContain('type="button"');
 });
 
+test('world builder review queue keeps paginated cards inside the panel without nested scrolling', function () {
+    $panel = file_get_contents(
+        resource_path('js/features/settings/world-builder-settings-panel.tsx'),
+    );
+
+    expect($panel)
+        ->toContain('const pageSize = 4;')
+        ->toContain('sm:grid-cols-2')
+        ->toContain('overflow-hidden py-4 pr-1')
+        ->not->toContain('[scrollbar-width:thin] overflow-y-auto');
+});
+
 test('activity evidence authoring previews the learner orientation', function () {
     $editor = file_get_contents(
         resource_path('js/pages/settings/worlds/activity-form-fields.tsx'),

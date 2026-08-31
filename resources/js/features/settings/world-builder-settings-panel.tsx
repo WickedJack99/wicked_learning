@@ -175,7 +175,7 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
         ),
     );
     const [page, setPage] = useState(0);
-    const pageSize = 6;
+    const pageSize = 4;
     const pageCount = Math.max(1, Math.ceil(reviewItems.length / pageSize));
     const currentPage = Math.min(page, pageCount - 1);
     const visibleItems = reviewItems.slice(
@@ -227,12 +227,12 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                 </div>
             ) : (
                 <>
-                    <div className="min-h-0 flex-1 [scrollbar-width:thin] overflow-y-auto py-4 pr-2">
-                        <div className="grid gap-3">
+                    <div className="min-h-0 flex-1 overflow-hidden py-4 pr-1">
+                        <div className="grid gap-3 sm:grid-cols-2">
                             {visibleItems.map(({ activity, map, node }) => (
                                 <Link
                                     aria-label={`Review ${activity.title}`}
-                                    className="group rounded-lg border border-[var(--settings-border-color)] p-4 transition hover:border-[var(--settings-accent)]"
+                                    className="group min-w-0 rounded-lg border border-[var(--settings-border-color)] p-3 transition hover:border-[var(--settings-accent)] focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--settings-content-background)] focus-visible:outline-none"
                                     href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${node.id}&worldView=nodes&reviewActivity=${activity.id}`}
                                     key={activity.id}
                                 >
@@ -241,14 +241,14 @@ function WorldBuilderReviewQueue({ worldGraph }: { worldGraph: WorldGraph }) {
                                             <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                                                 {map.title}
                                             </p>
-                                            <h3 className="mt-1 truncate font-semibold">
+                                            <h3 className="mt-1 truncate text-sm font-semibold">
                                                 {activity.title}
                                             </h3>
-                                            <p className="mt-1 text-sm text-[var(--settings-muted-text)]">
+                                            <p className="mt-1 truncate text-xs text-[var(--settings-muted-text)]">
                                                 {node.title} · {activity.type}
                                             </p>
                                         </div>
-                                        <span className="shrink-0 text-sm font-semibold text-[var(--settings-accent)] group-hover:underline">
+                                        <span className="shrink-0 text-xs font-semibold text-[var(--settings-accent)] group-hover:underline">
                                             {t(
                                                 'settings.world_builder.review_queue.open',
                                                 'Open',
