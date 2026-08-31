@@ -328,6 +328,16 @@ test('activity context exposes bounded alternative routes without a scroll regio
         ->not->toContain('alternative-routes-scroll');
 });
 
+test('paths filter empty state describes all planning filters', function () {
+    $pathsPage = file_get_contents(resource_path('js/pages/paths.tsx'));
+
+    expect($pathsPage)
+        ->toContain("'paths.filtered_empty.title'")
+        ->toContain('No routes match these filters yet')
+        ->toContain("'paths.filtered_empty.description'")
+        ->toContain('Try another purpose or time range, or return to all available routes.');
+});
+
 test('activity focus fallbacks use the platform translation catalog', function () {
     $activityUtils = file_get_contents(
         resource_path('js/features/world/activity-utils.tsx'),

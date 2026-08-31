@@ -249,13 +249,13 @@ export default function Paths({
                                 <h3 className="mt-5 text-sm font-semibold">
                                     {t(
                                         'paths.filtered_empty.title',
-                                        'No routes match this purpose yet',
+                                        'No routes match these filters yet',
                                     )}
                                 </h3>
                                 <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
                                         'paths.filtered_empty.description',
-                                        'Try another purpose or return to all available routes.',
+                                        'Try another purpose or time range, or return to all available routes.',
                                     )}
                                 </p>
                                 <button

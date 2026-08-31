@@ -1464,7 +1464,7 @@
     "paths.empty.description": "You can enter through a topic or open a map directly when a route is added.",
     "paths.empty.topics": "Browse topics",
     "paths.empty.world": "Open the map",
-    "paths.filtered_empty.title": "No routes match this purpose yet",
-    "paths.filtered_empty.description": "Try another purpose or return to all available routes.",
+    "paths.filtered_empty.title": "No routes match these filters yet",
+    "paths.filtered_empty.description": "Try another purpose or time range, or return to all available routes.",
     "paths.filtered_empty.clear": "Show all routes"
 }
