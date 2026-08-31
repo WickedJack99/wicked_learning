@@ -222,6 +222,89 @@ test('the learning desk surfaces only the current learners visible support repli
         );
 });
 
+test('the learning desk keeps older support replies from visible maps beyond newer restricted replies', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $restrictedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-support-map',
+        'title' => 'Restricted Support Map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    $visibleMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-support-map',
+        'title' => 'Visible Support Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $createSupportContext = function (LearningMap $map, string $slug, string $title, int $position) use ($user): void {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $slug,
+            'title' => $title,
+            'position_q' => $position,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $mapAsset = LearningMapAsset::query()->create([
+            'learning_map_id' => $map->id,
+            'learning_node_id' => $node->id,
+            'image_url' => "/images/{$slug}.png",
+        ]);
+        $topic = LearningMessageTopic::query()->create([
+            'learning_map_asset_id' => $mapAsset->id,
+            'slug' => "{$slug}-topic",
+            'title' => "{$title} topic",
+        ]);
+        $message = LearnerMessage::query()->create([
+            'learning_message_topic_id' => $topic->id,
+            'user_id' => $user->id,
+            'body' => "Question for {$title}",
+            'audience' => 'support',
+        ]);
+        LearnerMessageResponse::query()->create([
+            'learner_message_id' => $message->id,
+            'user_id' => $user->id,
+            'body' => "Reply from {$title}",
+        ]);
+
+    };
+
+    $createSupportContext($visibleMap, 'visible-support', 'Visible support', 0);
+
+    for ($index = 0; $index < 12; $index++) {
+        $createSupportContext(
+            $restrictedMap,
+            "restricted-support-{$index}",
+            "Restricted support {$index}",
+            $index,
+        );
+    }
+
+    $responseQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$responseQueries): void {
+        if (str_contains($query->sql, 'from "learner_message_responses"')) {
+            $responseQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.supportResponses', 1)
+            ->where('desk.supportResponses.0.body', 'Reply from Visible support')
+            ->where('desk.supportResponses.0.mapTitle', 'Visible Support Map')
+        );
+
+    expect($responseQueries)->toHaveCount(1);
+    expect($responseQueries[0]->sql)->toMatch('/limit 12/i');
+});
+
 test('the learning desk surfaces learner-chosen revisit invitations', function () {
     Carbon::setTestNow('2026-08-30 14:30:00');
     $user = User::factory()->create();

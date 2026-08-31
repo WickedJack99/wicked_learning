@@ -28,7 +28,9 @@ class LoadLearnerSupportResponses
                     ->where('audience', 'support')
                     ->whereNull('hidden_at');
             })
-            ->whereHas('message.topic.mapAsset.node.map')
+            ->whereHas('message.topic.mapAsset.node.map', function (Builder $query) use ($user): void {
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
             ->with('message.topic.mapAsset.node.map')
             ->latest('created_at')
             ->latest('id')
