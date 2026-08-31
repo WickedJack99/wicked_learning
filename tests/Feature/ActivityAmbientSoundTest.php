@@ -45,6 +45,53 @@ test('admins can configure reusable ambience for any activity type', function ()
         ->and($payload['configuredSounds'][0]['id'])->toBe($sound->id);
 });
 
+test('admins can add optional time guidance to any activity', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'time_guide_minutes' => 25,
+            'title' => 'Plan the observation',
+            'type' => 'open_practice',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $activity = LearningActivity::query()
+        ->where('slug', 'plan-the-observation')
+        ->firstOrFail();
+
+    $payload = app(LearningActivitySerializer::class)->serialize($activity);
+
+    expect($activity->config['timeGuideMinutes'])->toBe(25)
+        ->and($payload['timeGuideMinutes'])->toBe(25)
+        ->and($payload['config'])
+        ->not->toHaveKey('timeGuideMinutes');
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'time_guide_minutes' => null,
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($activity->refresh()->config)->not->toHaveKey('timeGuideMinutes');
+});
+
+test('activity time guidance is limited to a practical planning range', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activities.store', $node), [
+            'time_guide_minutes' => 181,
+            'title' => 'Plan too long',
+            'type' => 'open_practice',
+        ])
+        ->assertSessionHasErrors('time_guide_minutes');
+});
+
 test('clearing ambience removes it without replacing other activity configuration', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);

@@ -5,6 +5,7 @@ namespace App\Learning\Serializers;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ActivitySourceReferenceConfiguration;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Models\ActivityTransition;
 use App\Models\LearnerReflection;
 use App\Models\LearningActivity;
@@ -28,6 +29,7 @@ class LearningActivitySerializer
         private readonly ActivitySourceReferenceConfiguration $sourceReferences,
         private readonly ActivityCompletionChoiceConfiguration $completionChoice,
         private readonly DialogueTypingSoundSetSerializer $dialogueSoundSetSerializer,
+        private readonly ActivityTimeGuideConfiguration $timeGuide,
     ) {}
 
     /**
@@ -47,6 +49,7 @@ class LearningActivitySerializer
             'type' => $activity->type,
             'title' => $activity->title,
             'introduction' => $activity->introduction,
+            'timeGuideMinutes' => $this->timeGuide->forActivity($activity),
             'config' => $this->learnerConfig($activity),
             'feedbackGuidance' => $this->feedbackGuidance->forActivity($activity),
             'sources' => $this->sourceReferences->forActivity($activity),
@@ -79,6 +82,7 @@ class LearningActivitySerializer
     {
         $config = is_array($activity->config) ? $activity->config : [];
         unset($config[ActivitySourceReferenceConfiguration::CONFIG_KEY]);
+        unset($config[ActivityTimeGuideConfiguration::CONFIG_KEY]);
         $topics = $config['competenceTopics'] ?? null;
 
         if (! is_array($topics)) {

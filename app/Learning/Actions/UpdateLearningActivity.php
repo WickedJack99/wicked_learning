@@ -7,6 +7,7 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ActivitySourceReferenceConfiguration;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\LearningActivityReviewState;
@@ -35,6 +36,7 @@ class UpdateLearningActivity
         private readonly ActivityCompletionChoiceConfiguration $completionChoiceConfig,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
         private readonly ActivitySourceReferenceConfiguration $sourceReferenceConfig,
+        private readonly ActivityTimeGuideConfiguration $timeGuideConfig,
         private readonly LearningActivityReviewState $reviewState,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
@@ -122,6 +124,7 @@ class UpdateLearningActivity
             || $this->feedbackGuidanceConfig->shouldUpdate($data)
             || $this->completionChoiceConfig->shouldUpdate($data)
             || $this->sourceReferenceConfig->shouldUpdate($data)
+            || $this->timeGuideConfig->shouldUpdate($data)
         ) {
             $config = is_array($activity->config) ? $activity->config : [];
             $updates['config'] = $this->configFor($activity->node, $type, $data, $config);
@@ -151,11 +154,14 @@ class UpdateLearningActivity
             default => [],
         };
 
-        return $this->competenceConfig->mergeInto(
-            $this->completionChoiceConfig->mergeInto(
-                $this->feedbackGuidanceConfig->mergeInto(
-                    $this->sourceReferenceConfig->mergeInto(
-                        $this->ambientSoundConfig->mergeInto($config, $data),
+        return $this->timeGuideConfig->mergeInto(
+            $this->competenceConfig->mergeInto(
+                $this->completionChoiceConfig->mergeInto(
+                    $this->feedbackGuidanceConfig->mergeInto(
+                        $this->sourceReferenceConfig->mergeInto(
+                            $this->ambientSoundConfig->mergeInto($config, $data),
+                            $data,
+                        ),
                         $data,
                     ),
                     $data,

@@ -810,6 +810,15 @@ function ActivityFrame({
                             {activity.introduction}
                         </p>
                     ) : null}
+                    {activity.timeGuideMinutes ? (
+                        <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                            {translate(
+                                'learning.activity.time_guide',
+                                'Suggested time: :minutes minutes',
+                                { minutes: activity.timeGuideMinutes },
+                            )}
+                        </p>
+                    ) : null}
                     {relatedLearningAreas.length > 0 ? (
                         <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-5 text-[var(--learner-action-accent)]">
                             <span className="font-medium">

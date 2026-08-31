@@ -381,6 +381,7 @@ export type CreateActivityForm = {
     feedback_response: string;
     feedback_rubric: string;
     introduction: string;
+    time_guide_minutes: string;
     learning_intent: string;
     question_allow_multiple: boolean;
     question_explanation: string;

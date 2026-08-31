@@ -150,6 +150,10 @@ Implemented activity types are:
 - open practice pauses for learner-directed next steps, with an author-written
   invitation shown before the learner continues
 
+Authors can optionally add a suggested duration in minutes to any activity.
+Learners see it as a quiet planning cue before the activity content; it is not
+a countdown, deadline, completion condition or timing-based learner measure.
+
 Shared tasks can be authored as a general contribution, a question, or a
 reflection. Playback uses that kind to orient the learner and accepted
 submissions retain the kind as structured context; it does not grade or rank

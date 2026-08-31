@@ -352,6 +352,7 @@ export type LearningActivity = {
     type: 'question' | 'reflection' | 'review' | string;
     title: string;
     introduction: string | null;
+    timeGuideMinutes: number | null;
     config: Record<
         string,
         | Array<Record<string, unknown> | number | string>

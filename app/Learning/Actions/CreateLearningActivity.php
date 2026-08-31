@@ -7,6 +7,7 @@ use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityCompletionChoiceConfiguration;
 use App\Learning\Services\ActivityFeedbackGuidanceConfiguration;
 use App\Learning\Services\ActivitySourceReferenceConfiguration;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Learning\Services\ItemGrantActivityConfiguration;
 use App\Learning\Services\ItemObstacleActivityConfiguration;
 use App\Learning\Services\MarkdownActivityConfiguration;
@@ -33,6 +34,7 @@ class CreateLearningActivity
         private readonly ActivityCompletionChoiceConfiguration $completionChoiceConfig,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidanceConfig,
         private readonly ActivitySourceReferenceConfiguration $sourceReferenceConfig,
+        private readonly ActivityTimeGuideConfiguration $timeGuideConfig,
         private readonly EnsureCompetenceTopicDefinitions $ensureCompetenceTopics,
         private readonly MarkdownActivityConfiguration $markdownConfig,
         private readonly MessageActivityConfiguration $messageConfig,
@@ -97,11 +99,14 @@ class CreateLearningActivity
             default => [],
         };
 
-        return $this->competenceConfig->mergeInto(
-            $this->completionChoiceConfig->mergeInto(
-                $this->feedbackGuidanceConfig->mergeInto(
-                    $this->sourceReferenceConfig->mergeInto(
-                        $this->ambientSoundConfig->mergeInto($config, $data),
+        return $this->timeGuideConfig->mergeInto(
+            $this->competenceConfig->mergeInto(
+                $this->completionChoiceConfig->mergeInto(
+                    $this->feedbackGuidanceConfig->mergeInto(
+                        $this->sourceReferenceConfig->mergeInto(
+                            $this->ambientSoundConfig->mergeInto($config, $data),
+                            $data,
+                        ),
                         $data,
                     ),
                     $data,

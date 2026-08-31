@@ -152,6 +152,7 @@ export function ActivityFormFields({
         reference: SourceReferenceForm,
     ) => Promise<void>;
 }) {
+    const t = usePlatformTranslation();
     const [activeSection, setActiveSection] =
         useState<ActivitySettingsSection>('basics');
     const hasFlowSettings =
@@ -950,6 +951,42 @@ export function ActivityFormFields({
                                         value={form.introduction}
                                     />
                                     <InputError message={errors.introduction} />
+                                </div>
+
+                                <div className="grid gap-2 md:max-w-xs">
+                                    <Label htmlFor="activity-time-guide">
+                                        {t(
+                                            'settings.activity.time_guide.label',
+                                            'Suggested time (minutes)',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="activity-time-guide"
+                                        max={180}
+                                        min={1}
+                                        onChange={(event) =>
+                                            onChange((current) => ({
+                                                ...current,
+                                                time_guide_minutes:
+                                                    event.target.value,
+                                            }))
+                                        }
+                                        placeholder={t(
+                                            'settings.activity.time_guide.optional',
+                                            'Optional',
+                                        )}
+                                        type="number"
+                                        value={form.time_guide_minutes}
+                                    />
+                                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.activity.time_guide.helper',
+                                            'A quiet estimate to help learners plan; it is not a timer or deadline.',
+                                        )}
+                                    </p>
+                                    <InputError
+                                        message={errors.time_guide_minutes}
+                                    />
                                 </div>
                             </div>
                         </SettingsConfigurationSection>

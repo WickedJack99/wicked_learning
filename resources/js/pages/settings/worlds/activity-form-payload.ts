@@ -13,6 +13,7 @@ const coreFields: Array<keyof ActivityForm> = [
     'feedback_response',
     'feedback_rubric',
     'introduction',
+    'time_guide_minutes',
     'learning_intent',
     'question_allow_multiple',
     'question_explanation',

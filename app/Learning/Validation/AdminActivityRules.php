@@ -57,6 +57,7 @@ class AdminActivityRules
             ],
             'type' => ['sometimes', 'required', 'string', Rule::in($this->activityTypes->typeKeys())],
             'introduction' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'time_guide_minutes' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:180'],
             ...$this->itemGrantRules('sometimes'),
             ...$this->itemObstacleRules('sometimes'),
             ...$this->markdownRules('sometimes'),
@@ -177,6 +178,7 @@ class AdminActivityRules
             ],
             'type' => ['required', 'string', Rule::in($this->activityTypes->typeKeys())],
             'introduction' => ['nullable', 'string', 'max:1000'],
+            'time_guide_minutes' => ['nullable', 'integer', 'min:1', 'max:180'],
         ];
     }
 
