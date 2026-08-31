@@ -5,6 +5,7 @@ namespace App\Learning\Serializers;
 use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningSharedTaskReview;
+use App\Models\LearningSharedTaskReviewFollowUp;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,7 @@ class SharedTaskStateSerializer
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
     ) {}
 
-    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null} */
+    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null} */
     public function state(LearningActivity $activity, ?User $user = null, bool $includeContributions = false): array
     {
         $threshold = $this->threshold($activity);
@@ -86,7 +87,7 @@ class SharedTaskStateSerializer
             ->all();
     }
 
-    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null */
+    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null */
     private function peerReview(LearningActivity $activity, ?User $user, bool $hasSubmitted): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -117,12 +118,12 @@ class SharedTaskStateSerializer
         ];
     }
 
-    /** @return list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}> */
+    /** @return list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}> */
     private function receivedReviews(LearningActivity $activity, User $user): array
     {
         $projectSteps = $this->sharedTaskConfig->projectSteps(is_array($activity->config) ? $activity->config : []);
 
-        return LearningSharedTaskReview::query()
+        $reviews = LearningSharedTaskReview::query()
             ->where('learning_activity_id', $activity->id)
             ->whereHas('submission', function (Builder $query) use ($user): void {
                 $query
@@ -133,8 +134,14 @@ class SharedTaskStateSerializer
             ->latest('created_at')
             ->latest('id')
             ->limit(5)
-            ->get(['id', 'body', 'project_step_index', 'response_type', 'helpful_at', 'created_at'])
-            ->map(function (LearningSharedTaskReview $review) use ($projectSteps): array {
+            ->get(['id', 'body', 'project_step_index', 'response_type', 'helpful_at', 'created_at']);
+        $followUps = LearningSharedTaskReviewFollowUp::query()
+            ->whereIn('learning_shared_task_review_id', $reviews->pluck('id'))
+            ->where('user_id', $user->id)
+            ->pluck('body', 'learning_shared_task_review_id');
+
+        return $reviews
+            ->map(function (LearningSharedTaskReview $review) use ($followUps, $projectSteps): array {
                 return [
                     'id' => $review->id,
                     'body' => $review->body,
@@ -145,6 +152,7 @@ class SharedTaskStateSerializer
                     'canMarkHelpful' => true,
                     'isHelpful' => $review->helpful_at !== null,
                     'createdAt' => $review->created_at?->toIso8601String(),
+                    'followUp' => $followUps->get($review->id),
                 ];
             })
             ->values()

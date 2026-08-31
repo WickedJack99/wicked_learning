@@ -436,6 +436,7 @@ export type SharedTaskState = {
             canMarkHelpful: boolean;
             isHelpful: boolean;
             createdAt: string | null;
+            followUp: string | null;
         }>;
     } | null;
 };

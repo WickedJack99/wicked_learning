@@ -8,6 +8,7 @@ use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningSharedTaskReview;
+use App\Models\LearningSharedTaskReviewFollowUp;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\LearningWorld;
 use App\Models\User;
@@ -494,6 +495,67 @@ test('shared task contributors can mark one received peer review helpful', funct
         ->assertJsonPath('helpful', false);
 
     expect($secondReview->refresh()->helpful_at)->toBeNull();
+});
+
+test('shared task contributors can keep a private follow-up note about peer feedback', function () {
+    [$owner, $activity, $ownerRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+    ]);
+    [$reviewer, , $reviewerRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($owner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The owner contribution gives peers a clear pattern to examine.',
+            'play_run_id' => $ownerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $ownerSubmission = LearningSharedTaskSubmission::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('user_id', $owner->id)
+        ->firstOrFail();
+    $review = LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $activity->id,
+        'learning_shared_task_submission_id' => $ownerSubmission->id,
+        'user_id' => $reviewer->id,
+        'body' => 'This response helped me connect the two observations.',
+        'response_type' => 'explanation',
+    ]);
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.follow-up.update', [$activity, $review]), [
+            'body' => 'I will compare both observations before choosing my next step.',
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('followUp.body', 'I will compare both observations before choosing my next step.')
+        ->assertJsonPath('state.peerReview.receivedReviews.0.followUp', 'I will compare both observations before choosing my next step.');
+
+    expect(LearningSharedTaskReviewFollowUp::query()->count())->toBe(1);
+
+    $this->actingAs($reviewer)
+        ->patchJson(route('learning.activities.shared-task-reviews.follow-up.update', [$activity, $review]), [
+            'body' => 'This must stay private to the contributor.',
+            'play_run_id' => $reviewerRunId,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('review');
+
+    expect(LearningSharedTaskReviewFollowUp::query()->firstOrFail()->body)
+        ->toBe('I will compare both observations before choosing my next step.');
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.follow-up.update', [$activity, $review]), [
+            'body' => null,
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('followUp', null)
+        ->assertJsonPath('state.peerReview.receivedReviews.0.followUp', null);
+
+    expect(LearningSharedTaskReviewFollowUp::query()->count())->toBe(0);
 });
 
 test('shared task reviews stay hidden for private contributions', function () {

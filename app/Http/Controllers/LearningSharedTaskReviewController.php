@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Learning\Actions\MarkSharedTaskPeerReviewHelpful;
+use App\Learning\Actions\SaveSharedTaskReviewFollowUp;
 use App\Learning\Actions\SubmitSharedTaskPeerReview;
 use App\Learning\Serializers\SharedTaskStateSerializer;
 use App\Models\LearningActivity;
@@ -14,6 +15,7 @@ class LearningSharedTaskReviewController extends Controller
 {
     public function __construct(
         private readonly MarkSharedTaskPeerReviewHelpful $markReviewHelpful,
+        private readonly SaveSharedTaskReviewFollowUp $saveFollowUp,
         private readonly SubmitSharedTaskPeerReview $submitReview,
         private readonly SharedTaskStateSerializer $stateSerializer,
     ) {}
@@ -70,6 +72,33 @@ class LearningSharedTaskReviewController extends Controller
         return response()->json([
             'helpful' => $updatedReview->helpful_at !== null,
             'reviewId' => $updatedReview->id,
+            'state' => $this->stateSerializer->state($activity, $request->user(), true),
+        ]);
+    }
+
+    public function updateFollowUp(
+        Request $request,
+        LearningActivity $activity,
+        LearningSharedTaskReview $review,
+    ): JsonResponse {
+        $data = $request->validate([
+            'body' => ['nullable', 'string', 'max:2000'],
+            'play_run_id' => ['required', 'uuid'],
+        ]);
+
+        $followUp = $this->saveFollowUp->handle(
+            $request->user(),
+            $activity,
+            (string) $data['play_run_id'],
+            $review,
+            $data['body'] ?? null,
+        );
+
+        return response()->json([
+            'followUp' => $followUp ? [
+                'body' => $followUp->body,
+                'updatedAt' => $followUp->updated_at?->toIso8601String(),
+            ] : null,
             'state' => $this->stateSerializer->state($activity, $request->user(), true),
         ]);
     }

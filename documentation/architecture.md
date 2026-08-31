@@ -99,6 +99,10 @@ default. Each displayed contribution is limited to a 500-character excerpt;
 the stored submission is not rewritten by this presentation bound.
 Those contribution details are included only in activity-playback
 serialization, not in broad map-node payloads.
+Received peer reviews can carry one contributor-owned follow-up note. The
+serializer fetches those notes in one batched query for the bounded review set;
+the note endpoint rechecks activity access and contribution sharing before
+persisting or clearing it.
 
 The learner Paths query evaluates the existing per-user map and node state
 services in bounded candidate chunks, then serializes only the requested page

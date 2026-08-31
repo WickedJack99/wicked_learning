@@ -38,19 +38,38 @@ export function SharedTaskActivity({
         useState<PeerReviewResponseType | null>(null);
     const [peerReviewProjectStepIndex, setPeerReviewProjectStepIndex] =
         useState<number | null>(null);
-    const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<
+        number | null
+    >(null);
     const [peerReviewError, setPeerReviewError] = useState('');
-    const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(null);
+    const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(
+        null,
+    );
+    const [followUpReviewId, setFollowUpReviewId] = useState<number | null>(
+        null,
+    );
+    const [followUpBody, setFollowUpBody] = useState('');
+    const [followUpError, setFollowUpError] = useState('');
+    const [savingFollowUpId, setSavingFollowUpId] = useState<number | null>(
+        null,
+    );
     const [shareWithPeers, setShareWithPeers] = useState(false);
-    const [selectedProjectStepIndex, setSelectedProjectStepIndex] = useState<number | null>(null);
+    const [selectedProjectStepIndex, setSelectedProjectStepIndex] = useState<
+        number | null
+    >(null);
     const projectSteps = Array.isArray(activity.config.projectSteps)
         ? activity.config.projectSteps.filter(
-              (step): step is string => typeof step === 'string' && step.trim() !== '',
+              (step): step is string =>
+                  typeof step === 'string' && step.trim() !== '',
           )
         : [];
     const [completedProjectStepIndexes, setCompletedProjectStepIndexes] =
-        useState(() => sharedTaskChecklistFromState(initialState, projectSteps.length));
-    const [updatingProjectStepIndex, setUpdatingProjectStepIndex] = useState<number | null>(null);
+        useState(() =>
+            sharedTaskChecklistFromState(initialState, projectSteps.length),
+        );
+    const [updatingProjectStepIndex, setUpdatingProjectStepIndex] = useState<
+        number | null
+    >(null);
     const [projectChecklistError, setProjectChecklistError] = useState('');
     const taskKind = sharedTaskKind(activity.config.taskKind);
     const kindCopy = sharedTaskKindCopy(taskKind, t);
@@ -95,7 +114,10 @@ export function SharedTaskActivity({
             setSelectedProjectStepIndex(null);
             setState(response.state);
 
-            if (response.state.isComplete && !response.state.peerReview?.enabled) {
+            if (
+                response.state.isComplete &&
+                !response.state.peerReview?.enabled
+            ) {
                 await complete();
             }
         } catch {
@@ -154,7 +176,10 @@ export function SharedTaskActivity({
         }
     }
 
-    async function updatePeerReviewHelpfulness(reviewId: number, helpful: boolean) {
+    async function updatePeerReviewHelpfulness(
+        reviewId: number,
+        helpful: boolean,
+    ) {
         if (!playRunId || updatingReviewId !== null) {
             return;
         }
@@ -184,6 +209,38 @@ export function SharedTaskActivity({
         }
     }
 
+    async function updatePeerReviewFollowUp(reviewId: number, body: string) {
+        if (!playRunId || savingFollowUpId !== null) {
+            return;
+        }
+
+        setSavingFollowUpId(reviewId);
+        setFollowUpError('');
+
+        try {
+            const response = await patchJson<{ state: SharedTaskState }>(
+                `/learning/activities/${activity.id}/shared-task-reviews/${reviewId}/follow-up`,
+                {
+                    body: body.trim() || null,
+                    play_run_id: playRunId,
+                },
+            );
+
+            setState(response.state);
+            setFollowUpReviewId(null);
+            setFollowUpBody('');
+        } catch {
+            setFollowUpError(
+                t(
+                    'activities.shared_task.peer_review_follow_up_error',
+                    'The private note could not be saved yet.',
+                ),
+            );
+        } finally {
+            setSavingFollowUpId(null);
+        }
+    }
+
     async function toggleProjectStep(index: number) {
         if (updatingProjectStepIndex !== null) {
             return;
@@ -206,13 +263,10 @@ export function SharedTaskActivity({
         try {
             const response = await postJson<{
                 state: { completedStepIndexes: number[] };
-            }>(
-                `/learning/activities/${activity.id}/shared-task-checklist`,
-                {
-                    completed_step_indexes: nextIndexes,
-                    play_run_id: playRunId,
-                },
-            );
+            }>(`/learning/activities/${activity.id}/shared-task-checklist`, {
+                completed_step_indexes: nextIndexes,
+                play_run_id: playRunId,
+            });
 
             setCompletedProjectStepIndexes(response.state.completedStepIndexes);
         } catch {
@@ -292,6 +346,22 @@ export function SharedTaskActivity({
                     onHelpfulnessChange={(reviewId, helpful) =>
                         void updatePeerReviewHelpfulness(reviewId, helpful)
                     }
+                    activeFollowUpId={followUpReviewId}
+                    followUpBody={followUpBody}
+                    followUpError={followUpError}
+                    onFollowUpBodyChange={setFollowUpBody}
+                    onFollowUpClose={() => {
+                        setFollowUpReviewId(null);
+                        setFollowUpBody('');
+                    }}
+                    onFollowUpOpen={(reviewId, body) => {
+                        setFollowUpReviewId(reviewId);
+                        setFollowUpBody(body);
+                        setFollowUpError('');
+                    }}
+                    onFollowUpSave={(reviewId, body) =>
+                        updatePeerReviewFollowUp(reviewId, body)
+                    }
                     onSelect={setSelectedSubmissionId}
                     onProjectStepChange={setPeerReviewProjectStepIndex}
                     onResponseTypeChange={setPeerReviewResponseType}
@@ -302,6 +372,7 @@ export function SharedTaskActivity({
                     selectedSubmissionId={selectedSubmissionId}
                     state={state}
                     t={t}
+                    savingFollowUpId={savingFollowUpId}
                     updatingReviewId={updatingReviewId}
                 />
             ) : null}
@@ -377,7 +448,10 @@ export function SharedTaskActivity({
                                     )}
                                 </option>
                                 {projectSteps.map((step, index) => (
-                                    <option key={`${index}-${step}`} value={index}>
+                                    <option
+                                        key={`${index}-${step}`}
+                                        value={index}
+                                    >
                                         {step}
                                     </option>
                                 ))}
@@ -453,11 +527,14 @@ function SharedTaskProjectBrief({
             >
                 {t('activities.shared_task.project_brief', 'Project brief')}
             </h3>
-            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-700 dark:text-slate-200 sm:grid-cols-2">
+            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-700 sm:grid-cols-2 dark:text-slate-200">
                 {goal ? (
                     <div>
                         <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
-                            {t('activities.shared_task.project_goal', 'Shared goal')}
+                            {t(
+                                'activities.shared_task.project_goal',
+                                'Shared goal',
+                            )}
                         </p>
                         <p>{goal}</p>
                     </div>
@@ -465,7 +542,10 @@ function SharedTaskProjectBrief({
                 {deliverable ? (
                     <div>
                         <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
-                            {t('activities.shared_task.project_deliverable', 'Useful outcome')}
+                            {t(
+                                'activities.shared_task.project_deliverable',
+                                'Useful outcome',
+                            )}
                         </p>
                         <p>{deliverable}</p>
                     </div>
@@ -474,7 +554,10 @@ function SharedTaskProjectBrief({
             {steps.length > 0 ? (
                 <div className="mt-3">
                     <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
-                        {t('activities.shared_task.project_steps', 'Suggested steps')}
+                        {t(
+                            'activities.shared_task.project_steps',
+                            'Suggested steps',
+                        )}
                     </p>
                     <ol className="mt-2 grid gap-2 text-sm leading-6 text-slate-700 dark:text-slate-200">
                         {steps.map((step, index) => (
@@ -482,13 +565,21 @@ function SharedTaskProjectBrief({
                                 <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-md border border-cyan-200/70 bg-white/65 px-3 py-2 transition hover:border-cyan-400 dark:border-teal-200/15 dark:bg-slate-950/30 dark:hover:border-teal-200/40">
                                     <input
                                         aria-label={step}
-                                        checked={completedStepIndexes.includes(index)}
+                                        checked={completedStepIndexes.includes(
+                                            index,
+                                        )}
                                         className="mt-1 size-4 accent-cyan-600 dark:accent-teal-300"
                                         disabled={isUpdating}
                                         onChange={() => onToggleStep(index)}
                                         type="checkbox"
                                     />
-                                    <span className={completedStepIndexes.includes(index) ? 'text-slate-500 line-through dark:text-slate-400' : undefined}>
+                                    <span
+                                        className={
+                                            completedStepIndexes.includes(index)
+                                                ? 'text-slate-500 line-through dark:text-slate-400'
+                                                : undefined
+                                        }
+                                    >
                                         {step}
                                     </span>
                                 </label>
@@ -502,7 +593,11 @@ function SharedTaskProjectBrief({
                         )}
                     </p>
                     {error ? (
-                        <p aria-live="assertive" className="text-xs font-medium text-red-600 dark:text-red-300" role="alert">
+                        <p
+                            aria-live="assertive"
+                            className="text-xs font-medium text-red-600 dark:text-red-300"
+                            role="alert"
+                        >
                             {error}
                         </p>
                     ) : null}
@@ -549,8 +644,11 @@ function SharedTaskContributions({
                         <p>
                             {contribution.projectStep ? (
                                 <span className="mb-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
-                                    {t('activities.shared_task.project_step', 'Project step')}:{' '}
-                                    {contribution.projectStep}
+                                    {t(
+                                        'activities.shared_task.project_step',
+                                        'Project step',
+                                    )}
+                                    : {contribution.projectStep}
                                 </span>
                             ) : null}
                             {contribution.body}
@@ -564,10 +662,17 @@ function SharedTaskContributions({
 }
 
 function SharedTaskPeerReview({
+    activeFollowUpId,
     body,
     error,
+    followUpBody,
+    followUpError,
     isSubmitting,
     onBodyChange,
+    onFollowUpBodyChange,
+    onFollowUpClose,
+    onFollowUpOpen,
+    onFollowUpSave,
     onHelpfulnessChange,
     onSelect,
     onProjectStepChange,
@@ -576,15 +681,23 @@ function SharedTaskPeerReview({
     responseType,
     projectStepIndex,
     projectSteps,
+    savingFollowUpId,
     selectedSubmissionId,
     state,
     t,
     updatingReviewId,
 }: {
+    activeFollowUpId: number | null;
     body: string;
     error: string;
+    followUpBody: string;
+    followUpError: string;
     isSubmitting: boolean;
     onBodyChange: (value: string) => void;
+    onFollowUpBodyChange: (value: string) => void;
+    onFollowUpClose: () => void;
+    onFollowUpOpen: (reviewId: number, body: string) => void;
+    onFollowUpSave: (reviewId: number, body: string) => Promise<void>;
     onHelpfulnessChange: (reviewId: number, helpful: boolean) => void;
     onSelect: (value: number | null) => void;
     onProjectStepChange: (value: number | null) => void;
@@ -593,6 +706,7 @@ function SharedTaskPeerReview({
     responseType: PeerReviewResponseType | null;
     projectStepIndex: number | null;
     projectSteps: string[];
+    savingFollowUpId: number | null;
     selectedSubmissionId: number | null;
     state: SharedTaskState;
     t: ReturnType<typeof usePlatformTranslation>;
@@ -628,49 +742,188 @@ function SharedTaskPeerReview({
                     </p>
                     <div className="mt-2 grid gap-2">
                         {peerReview.receivedReviews.map((review) => (
-                            <p
-                                className="text-sm leading-6 text-slate-700 dark:text-slate-200"
+                            <article
+                                className="grid gap-2 text-sm leading-6 text-slate-700 dark:text-slate-200"
                                 key={review.id}
                             >
-                                {review.responseType ? (
-                                    <span className="mr-2 inline-flex rounded border border-violet-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:border-violet-200/30 dark:text-violet-200">
-                                        {peerReviewResponseTypeLabel(review.responseType, t)}
-                                    </span>
+                                <p>
+                                    {review.responseType ? (
+                                        <span className="mr-2 inline-flex rounded border border-violet-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:border-violet-200/30 dark:text-violet-200">
+                                            {peerReviewResponseTypeLabel(
+                                                review.responseType,
+                                                t,
+                                            )}
+                                        </span>
+                                    ) : null}
+                                    {review.projectStep ? (
+                                        <span className="mr-2 inline-flex rounded border border-cyan-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:border-teal-200/30 dark:text-teal-200">
+                                            {t(
+                                                'activities.shared_task.project_step',
+                                                'Project step',
+                                            )}
+                                            : {review.projectStep}
+                                        </span>
+                                    ) : null}
+                                    {review.body}
+                                    {review.canMarkHelpful ? (
+                                        <button
+                                            aria-pressed={review.isHelpful}
+                                            className="ml-2 inline-flex min-h-11 items-center rounded border border-violet-300/70 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-wait disabled:opacity-60 dark:border-violet-200/30 dark:text-violet-200 dark:hover:bg-violet-100/10"
+                                            disabled={
+                                                updatingReviewId === review.id
+                                            }
+                                            onClick={() =>
+                                                onHelpfulnessChange(
+                                                    review.id,
+                                                    !review.isHelpful,
+                                                )
+                                            }
+                                            type="button"
+                                        >
+                                            {review.isHelpful
+                                                ? t(
+                                                      'activities.shared_task.peer_review_helpful_clear',
+                                                      'Clear helpful mark',
+                                                  )
+                                                : t(
+                                                      'activities.shared_task.peer_review_helpful',
+                                                      'This helped',
+                                                  )}
+                                        </button>
+                                    ) : null}
+                                </p>
+                                {review.followUp ? (
+                                    <p className="rounded-md border border-slate-200/80 bg-slate-50/70 p-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-300">
+                                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                                            {t(
+                                                'activities.shared_task.peer_review_follow_up_saved',
+                                                'Private note:',
+                                            )}
+                                        </span>{' '}
+                                        {review.followUp}
+                                    </p>
                                 ) : null}
-                                {review.projectStep ? (
-                                    <span className="mr-2 inline-flex rounded border border-cyan-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:border-teal-200/30 dark:text-teal-200">
-                                        {t('activities.shared_task.project_step', 'Project step')}:{' '}
-                                        {review.projectStep}
-                                    </span>
-                                ) : null}
-                                {review.body}
-                                {review.canMarkHelpful ? (
+                                {activeFollowUpId === review.id ? (
+                                    <div className="grid gap-2 rounded-md border border-slate-200/80 bg-slate-50/70 p-3 dark:border-white/10 dark:bg-slate-950/35">
+                                        <label
+                                            className="grid gap-2 text-xs font-medium text-slate-700 dark:text-slate-200"
+                                            htmlFor={`shared-task-follow-up-${review.id}`}
+                                        >
+                                            {t(
+                                                'activities.shared_task.peer_review_follow_up_label',
+                                                'What will you carry forward? (private)',
+                                            )}
+                                            <textarea
+                                                className="min-h-20 resize-none rounded-md border border-slate-300/80 bg-white/80 px-3 py-2 text-sm font-normal text-slate-800 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30 dark:border-white/15 dark:bg-slate-950/50 dark:text-slate-100"
+                                                id={`shared-task-follow-up-${review.id}`}
+                                                onChange={(event) =>
+                                                    onFollowUpBodyChange(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder={t(
+                                                    'activities.shared_task.peer_review_follow_up_placeholder',
+                                                    'Note one idea, question, or next step for yourself.',
+                                                )}
+                                                value={followUpBody}
+                                            />
+                                        </label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Button
+                                                disabled={
+                                                    savingFollowUpId ===
+                                                        review.id ||
+                                                    (!followUpBody.trim() &&
+                                                        !review.followUp)
+                                                }
+                                                onClick={() =>
+                                                    void onFollowUpSave(
+                                                        review.id,
+                                                        followUpBody,
+                                                    )
+                                                }
+                                                size="sm"
+                                                type="button"
+                                            >
+                                                {savingFollowUpId === review.id
+                                                    ? t(
+                                                          'common.saving',
+                                                          'Saving…',
+                                                      )
+                                                    : t(
+                                                          'activities.shared_task.peer_review_follow_up_save',
+                                                          'Save private note',
+                                                      )}
+                                            </Button>
+                                            {review.followUp ? (
+                                                <Button
+                                                    disabled={
+                                                        savingFollowUpId ===
+                                                        review.id
+                                                    }
+                                                    onClick={() =>
+                                                        void onFollowUpSave(
+                                                            review.id,
+                                                            '',
+                                                        )
+                                                    }
+                                                    size="sm"
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    {t(
+                                                        'activities.shared_task.peer_review_follow_up_clear',
+                                                        'Clear note',
+                                                    )}
+                                                </Button>
+                                            ) : null}
+                                            <button
+                                                className="min-h-11 rounded px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-200/70 disabled:opacity-60 dark:text-slate-300 dark:hover:bg-white/10"
+                                                disabled={
+                                                    savingFollowUpId ===
+                                                    review.id
+                                                }
+                                                onClick={onFollowUpClose}
+                                                type="button"
+                                            >
+                                                {t('common.cancel', 'Cancel')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
                                     <button
-                                        className="ml-2 inline-flex items-center rounded border border-violet-300/70 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-wait disabled:opacity-60 dark:border-violet-200/30 dark:text-violet-200 dark:hover:bg-violet-100/10"
-                                        disabled={updatingReviewId === review.id}
-                                        aria-pressed={review.isHelpful}
+                                        className="min-h-11 justify-self-start rounded px-2 py-1 text-left text-xs font-medium text-violet-700 hover:bg-violet-100/70 dark:text-violet-200 dark:hover:bg-violet-100/10"
                                         onClick={() =>
-                                            onHelpfulnessChange(
+                                            onFollowUpOpen(
                                                 review.id,
-                                                !review.isHelpful,
+                                                review.followUp ?? '',
                                             )
                                         }
                                         type="button"
                                     >
-                                        {review.isHelpful
+                                        {review.followUp
                                             ? t(
-                                                  'activities.shared_task.peer_review_helpful_clear',
-                                                  'Clear helpful mark',
+                                                  'activities.shared_task.peer_review_follow_up_edit',
+                                                  'Edit private note',
                                               )
                                             : t(
-                                                  'activities.shared_task.peer_review_helpful',
-                                                  'This helped',
+                                                  'activities.shared_task.peer_review_follow_up_add',
+                                                  'Add private note',
                                               )}
                                     </button>
-                                ) : null}
-                            </p>
+                                )}
+                            </article>
                         ))}
                     </div>
+                    {followUpError ? (
+                        <p
+                            aria-live="assertive"
+                            className="mt-2 text-sm font-medium text-red-600 dark:text-red-300"
+                            role="alert"
+                        >
+                            {followUpError}
+                        </p>
+                    ) : null}
                 </div>
             ) : null}
             {error ? (
@@ -712,30 +965,40 @@ function SharedTaskPeerReview({
                                 'Choose one anonymous contribution',
                             )}
                         </legend>
-                        {peerReview.reviewableContributions.map((contribution) => (
-                            <label
-                                className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200/80 bg-white p-3 text-sm leading-6 text-slate-700 has-[:checked]:border-violet-500 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200 dark:has-[:checked]:border-violet-200"
-                                key={contribution.id}
-                            >
-                                <input
-                                    checked={selectedSubmissionId === contribution.id}
-                                    className="mt-1 size-4 accent-violet-600 dark:accent-violet-200"
-                                    name="shared-task-peer-review-submission"
-                                    onChange={() => onSelect(contribution.id)}
-                                    type="radio"
-                                />
-                                <span>
-                                    {contribution.projectStep ? (
-                                        <span className="mb-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
-                                            {t('activities.shared_task.project_step', 'Project step')}:{' '}
-                                            {contribution.projectStep}
-                                        </span>
-                                    ) : null}
-                                    {contribution.body}
-                                    {contribution.truncated ? '…' : ''}
-                                </span>
-                            </label>
-                        ))}
+                        {peerReview.reviewableContributions.map(
+                            (contribution) => (
+                                <label
+                                    className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200/80 bg-white p-3 text-sm leading-6 text-slate-700 has-[:checked]:border-violet-500 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200 dark:has-[:checked]:border-violet-200"
+                                    key={contribution.id}
+                                >
+                                    <input
+                                        checked={
+                                            selectedSubmissionId ===
+                                            contribution.id
+                                        }
+                                        className="mt-1 size-4 accent-violet-600 dark:accent-violet-200"
+                                        name="shared-task-peer-review-submission"
+                                        onChange={() =>
+                                            onSelect(contribution.id)
+                                        }
+                                        type="radio"
+                                    />
+                                    <span>
+                                        {contribution.projectStep ? (
+                                            <span className="mb-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
+                                                {t(
+                                                    'activities.shared_task.project_step',
+                                                    'Project step',
+                                                )}
+                                                : {contribution.projectStep}
+                                            </span>
+                                        ) : null}
+                                        {contribution.body}
+                                        {contribution.truncated ? '…' : ''}
+                                    </span>
+                                </label>
+                            ),
+                        )}
                     </fieldset>
                     <fieldset className="grid gap-2">
                         <legend className="text-xs font-semibold tracking-[0.12em] text-violet-700 uppercase dark:text-violet-200">
@@ -804,7 +1067,10 @@ function SharedTaskPeerReview({
                                     )}
                                 </option>
                                 {projectSteps.map((step, index) => (
-                                    <option key={`${index}-${step}`} value={index}>
+                                    <option
+                                        key={`${index}-${step}`}
+                                        value={index}
+                                    >
                                         {step}
                                     </option>
                                 ))}
@@ -822,7 +1088,9 @@ function SharedTaskPeerReview({
                         <textarea
                             className="min-h-24 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 font-normal text-slate-700 outline-none placeholder:text-slate-400 focus:border-violet-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-200/70"
                             id="shared-task-peer-review-body"
-                            onChange={(event) => onBodyChange(event.target.value)}
+                            onChange={(event) =>
+                                onBodyChange(event.target.value)
+                            }
                             placeholder={t(
                                 'activities.shared_task.peer_review_response_placeholder',
                                 'Name a useful connection, question, or extension.',

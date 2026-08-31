@@ -192,7 +192,10 @@ optionally describe a response as an explanation, example, question or
 counterexample and associate it with one authored project step; those labels
 orient the exchange without grading it. The contributor may mark one received
 response as helpful or clear that mark; this is a private resolution signal,
-not a rating or popularity measure.
+not a rating or popularity measure. The contributor may also keep an optional
+private follow-up note about what to carry forward from a received response;
+the note is visible only to that contributor, can be cleared, and does not
+change completion, evidence, or peer-review visibility.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or
