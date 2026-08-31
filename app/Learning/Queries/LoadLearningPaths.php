@@ -106,7 +106,7 @@ class LoadLearningPaths
         $total = 0;
         $firstMatch = ($page - 1) * self::PAGE_SIZE;
 
-        $this->routeQuery($topic, $worldId)->chunk(self::SCAN_CHUNK_SIZE, function (Collection $candidates) use ($user, $purpose, $timeBudget, &$routes, &$total, $firstMatch): void {
+        $this->routeQuery($topic, $worldId, $user)->chunk(self::SCAN_CHUNK_SIZE, function (Collection $candidates) use ($user, $purpose, $timeBudget, &$routes, &$total, $firstMatch): void {
             foreach ($candidates as $route) {
                 if (! $this->isVisibleRoute($route, $user)) {
                     continue;
@@ -139,7 +139,7 @@ class LoadLearningPaths
     /**
      * @return Builder<LearningActivityStart>
      */
-    private function routeQuery(?LearningTopic $topic, int $worldId): Builder
+    private function routeQuery(?LearningTopic $topic, int $worldId, User $user): Builder
     {
         return LearningActivityStart::query()
             ->with([
@@ -148,9 +148,15 @@ class LoadLearningPaths
                 'node.map.topic.area',
                 'node.mapAsset',
             ])
-            ->whereHas('node.map', function ($query) use ($topic, $worldId): void {
+            ->whereHas('node.map', function (Builder $query) use ($topic, $worldId, $user): void {
                 $query->where('learning_world_id', $worldId)
                     ->when($topic !== null, fn ($mapQuery) => $mapQuery->where('learning_topic_id', $topic->id));
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
+            ->whereHas('node', function (Builder $query): void {
+                $query
+                    ->whereNull('visual_config')
+                    ->orWhereJsonDoesntContain('visual_config->hideEmptySpace', true);
             })
             ->orderBy('learning_node_id')
             ->orderBy('sort_order')

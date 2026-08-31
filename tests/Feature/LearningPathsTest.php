@@ -10,6 +10,8 @@ use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 test('guests cannot open learning paths', function () {
@@ -271,6 +273,13 @@ test('learning paths exclude inaccessible maps and unavailable nodes', function 
         ]);
     }
 
+    $routeQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$routeQueries): void {
+        if (str_contains($query->sql, 'from "learning_activity_starts"')) {
+            $routeQueries[] = $query;
+        }
+    });
+
     $this->actingAs($user)
         ->get(route('paths.index'))
         ->assertOk()
@@ -278,4 +287,10 @@ test('learning paths exclude inaccessible maps and unavailable nodes', function 
             ->component('paths')
             ->has('paths', 0)
         );
+
+    $routeQuery = collect($routeQueries)->first();
+
+    expect($routeQuery)->not->toBeNull()
+        ->and($routeQuery->sql)->toContain('access_roles')
+        ->and($routeQuery->sql)->toContain('hideEmptySpace');
 });
