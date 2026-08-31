@@ -98,7 +98,14 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         ...(desk.recentRoutes.length > 0 ? (['recent'] as const) : []),
         'continue',
     ];
-    const defaultArea = availableAreas[0] ?? 'connections';
+    const defaultArea =
+        desk.connections.length > 0
+            ? 'connections'
+            : desk.currentRoutes.length > 0
+              ? 'continue'
+              : (availableAreas.find(
+                    (area) => area !== 'connections' && area !== 'continue',
+                ) ?? 'connections');
     const deskAreas = availableAreas.map((id) => ({
         id,
         label: areaLabels[id],

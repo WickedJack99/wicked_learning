@@ -101,8 +101,9 @@ switched through a local navigation control whose order remains stable as
 different areas become available. The selected area is also kept in the page
 URL, so a learner can refresh, share or return to the same desk direction
 without losing that choice. When no area is specified, the desk opens on the
-first visible area, Connections, so the initial view follows the navigation
-order. Route and revisit
+Connections area when saved connections exist, otherwise on active route work
+or the first populated area; an entirely empty desk keeps Connections as its
+orientation prompt. Route and revisit
 collections are paginated so the desktop desk does not need one growing
 collection scroll region. Revisit
 invitations explain both when the learner chose to return and when the item
