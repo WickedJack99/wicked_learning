@@ -5,277 +5,90 @@ tasks. Finished work is represented by Git history and, when useful, by the
 [Feature Overview](features.md). Detailed executable tasks belong in focused
 issues or the implementation plan for the current slice.
 
-Priorities reflect dependency and learning risk, not a promise of delivery
-dates. The research priorities come from the 22 August 2026 review after
-reconciling it with the implementation that exists today.
+Priorities reflect dependency and learning risk, not promised delivery dates.
+The research direction was reconciled with the implementation on 22 August
+2026. Evidence, retrieval, calibration and provenance foundations are mature
+enough to support product work; new research instrumentation should wait for a
+concrete learner or author need.
 
-## Current research priorities
+## Stabilization checkpoint
 
-### 1. Evidence semantics
+The current priority is to keep the existing learner and author journeys
+trustworthy while their recent foundations settle. In particular, verify that
+Companion context, assistance attribution, scoped authoring permissions and AI
+capability disclosures follow the active activity and play run. Preserve the
+privacy boundary around learner words, confidence and assistance context, and
+keep AI unable to navigate or mutate content directly.
 
-Complete the evidence-event contract without replacing qualitative competence
-with a hidden score. Activity-appropriate evidence may include quality or
-correctness, attempt number, confidence, assistance, latency, objectives,
-concepts and source links. Different evidence types must retain different
-meanings: participation, retrieval, reflection, explanation, application,
-review and transfer are not interchangeable.
+## Current product priorities
 
-The immutable event model, authored objective, lightweight concept-label and learning-purpose snapshots,
-question calibration slice, optional completion-latency observation and
-conservative learner evidence-claim layer are now the foundation. Retrieval
-support can build on this without collapsing participation, retrieval and
-transfer into a single hidden score. The first bounded reusable concept catalog
-now supports stable authoring vocabulary without changing evidence snapshots.
-Saved source records can now carry those labels, and copied activity provenance
-snapshots retain the source concept context. Richer concept relationships and
-source-to-concept linkage beyond this bounded snapshot remain open parts of
-this contract.
+### Exploration and orientation
 
-### 2. Retrieval and spacing
+Improve continuity between the Learning Desk, routes, maps, places and
+activities. Make next-step choices understandable without turning exploration
+into a linear course or a score system. Continue improving focus order,
+responsive layouts and recovery when a learner returns to an earlier place.
 
-Add transparent learner-controlled retrieval support: recall items, review
-schedules, review attempts, deterministic due explanations, snooze and
-replacement. The first finite return queue now persists its due state, queries
-only bounded due candidates, and records explicit due-review attempts without
-turning them into independent competence claims. It now also exposes when the
-learner chose to return, the indexed ready time and the learner-facing pause
-or postpone reason. Continue with transparent timing and richer review attempt
-contracts. Adaptive or AI scheduling should wait until the baseline is
-measurable and understandable. Reopened activity evidence now retains the same
-attempt sequence as its corresponding review-attempt record, and question
-revisits preserve their correctness and confidence in that record. Question
-activities now pause after showing question feedback so an optional
-post-feedback-confidence signal can be captured without collapsing it into the
-answer or a score. They also provide a private, learner-controlled recall queue
-links back to the existing activity without introducing a second scheduler.
-Review history now retains whether a due return followed a learner's pause or a
-later postponement, keeping the learner's spacing choice inspectable without
-turning it into a performance measure.
-The first transparent timing baseline for question recall is now implemented:
-the desk distinguishes ready items from future items and explicit recall answers
-record the next interval. Recall history also retains the optional confidence
-reflection made after feedback. Richer review outcomes for other activity types,
-including optional learner confidence before and after a review response and
-learner-selected observable cues, are now partly supported; a small descriptive
-review-outcome vocabulary is now also supported. Richer outcome contracts and
-adaptive scheduling remain open.
+### Learning interactions
 
-### 3. Self-explanation and transfer
-
-Add explicit authorable self-explanation and transfer task contracts with
-observable rubrics. A reflection or completed activity must not silently count
-as an explanation or a transfer demonstration. Feedback should describe the
-observable response and invite a useful next action.
-The current evidence-guidance slice preserves up to three author-written
-observable cues for explanation and transfer moments. Reflection activities now
-connect those cues to a task-specific learner response, with transfer also
-recording the changed context named by the learner. Learners can also mark the
-cues they noticed in their own response; this is a private self-observation
-snapshot, not an automated assessment. Continue by adding richer feedback and
-review contracts. Explanation, transfer and review responses with authored
-guidance now also pause for a learner-controlled comparison with the purpose,
-“what to notice” cues and possible next action, without treating these responses
-or cues as a rubric pass.
-Reflection and review completion also now stays at participation until the
-matching private response is saved, so the evidence label reflects the learner
-action that actually occurred.
-Authors can also provide an optional response-feedback note for that pause; it
-offers a bounded explanatory comparison without grading the learner. Richer
-individualized feedback remains open. Authors can now optionally add a fresh
-independent-check prompt for explanation and transfer activities. Learners may
-skip that check; when completed, it is stored as a separate private response
-and the evidence ledger distinguishes the resulting attempt from the initial
-response. Automatic rubric scoring and broader independent checks remain open.
-Authors may also provide a separate comparison note shown after the fresh
-response, making the independent attempt more useful without grading it. The
-pause also shows the first and fresh private responses together so learners can
-notice what changed or stayed consistent; this remains self-inspection rather
-than automated assessment. The optional confidence reflection follows the
-comparison and author guidance, keeping its timing aligned with its wording.
-
-### 4. Explanatory feedback and calibration
-
-Make confidence-before-feedback, explanatory critique and later independent
-checks first-class where an activity can support them. Question answers now
-preserve and explain a neutral confidence/result relationship after feedback.
-Explanation and transfer activities now also collect optional starting
-confidence before their authored guidance pause. Keep the existing
-feedback-guidance contract; they may now also collect an optional confidence
-signal after that pause and retain the pair for learner inspection. Continue
-calibration only where the activity actually collects meaningful signals and
-later independent checks can support a stronger claim.
-Question feedback now offers an optional fresh independent attempt before route
-completion, reusing the existing attempt history without treating retrying as a
-score or grade. Continue with independent checks only where the activity can
-make the new attempt meaningful, rather than adding retries to every activity
-by default. Question results can also show an author-written comparison note
-after the answer, keeping explanatory feedback learner-timed and separate from
-correctness or assessment.
-
-### 5. Source provenance
-
-The first slice now lets authors attach up to five bounded source references to
-an activity, lets learners inspect them during playback, and includes them in
-the scoped activity-review context. Authors can also save a validated source
-reference to a bounded catalog and reuse it in another activity; the reuse
-copies metadata into the activity so existing evidence snapshots remain stable.
-The catalog now supports bounded author-side editing and deletion without
-rewriting copied references, and each update preserves a paginated immutable
-revision history for authors. The source catalog also supports Concept Library
-labels that are copied into activity provenance snapshots and shown with
-learner-visible sources, and authoring reuse can now filter by those labels.
-Add richer concept linkage and reusable excerpts later. Authors can also
-restore a listed revision without losing the current state. AI authoring now
-accepts up to five explicitly selected catalog records as optional grounding
-and stores their metadata and excerpts with the reviewable draft. The author
-can now attribute those selected records per Activity during review, and only
-those attribution snapshots are copied when the draft is applied. Continue
-with richer concept linkage and reusable excerpts when the authoring contract
-can express more precise support relationships.
-
-### 6. Learner regulation and focus
-
-Explore optional intent and time-box settings, transparent recommendation
-reasons with alternatives, an optional focus workspace and authoring checks for
-meaningful segmentation and accessible alternatives. These controls must reduce
-friction without becoming deadlines, attention traps or opaque personalization.
-The Learning Desk now exposes source-specific reasons for its active, recent,
-revisit and recall areas, and a related check-in can lead to its authored
-connected competence areas. Shared-task project briefs now also offer an
-optional private checklist for the current run, keeping planning separate from
-completion and evidence; richer recommendation reasons and learner-selected
-alternatives remain open.
-The desk also offers a focus view that hides its secondary pinned rail without
-changing the selected area or learning state; that presentation preference is
-retained locally per signed-in account and browser. Learners can now explicitly
-remember their selected time or learning-purpose lens on their account so it
-can seed the desk on another device; this remains a view preference rather than
-a persistent learning intention. Learner-selected alternatives and richer
-intent settings remain open.
-Activities can also carry an optional author-provided suggested duration,
-shown as a planning cue without a countdown, deadline or timing-based learner
-measure. The Learning Desk can use that guide for a temporary learner-selected
-up-to-15 or up-to-30-minute route view; persistent intent settings remain open.
-The same view can also be narrowed by an authored learning
-purpose, while persistent intent settings and learner-selected alternatives
-remain open.
-
-### 7. Effort-preserving learner AI
-
-The Learning Companion now provides optional deterministic orientation across
-authenticated learner-facing surfaces, with inherited scope configuration,
-reusable assigned graphs, a bounded React Flow editor and local traversal of authored
-message, choice and end nodes. It also supports one provider-neutral,
-server-bounded plain-text turn for an authored AI node when an administrator
-enables a guarded learner-companion template. Learners can now choose AI-off,
-one reflective question or one small hint before a transient turn. After an
-activity is completed, learners can also request one bounded comparison or next
-question grounded in authored feedback guidance without sharing their private
-response. Generated turns now disclose that they use only authored guidance and
-displayed context, may be incomplete, do not receive the learner's private
-response and cannot navigate or mutate content. The first bounded
-assistance-evidence slice now carries a successful learner-selected question or
-hint into the current activity completion, so supported performance is not
-silently interpreted as independent capability. Post-attempt support remains
-transient and does not rewrite an earlier completion. The assistant must never
-emit arbitrary navigation or mutate content directly.
-
-### 8. Privacy-conscious evaluation
-
-Create research and operational measures for delayed unaided retrieval,
-transfer, confidence calibration, need satisfaction, self-regulation, help
-quality and AI-off performance. Keep these measures privacy-conscious and
-separate from learner rankings or public success definitions.
-
-### 9. Structured cooperation
-
-Extend the existing shared-task and message foundations into structured peer
-explanation, help and counterexample workflows plus mentor digests. Evaluate
-the quality and resolution of intellectual support, not message volume,
-popularity or public status. Participation remains optional.
-The first bounded slices now let authors add optional response guidance to a
-message wall and let learners describe a response as an explanation, example,
-question or counterexample. The learner who asked a peer question can now mark
-one response as helpful, giving the exchange a learner-controlled
-resolution signal without ranking responses. Learning Support now has a bounded
-needs-attention digest based on those existing resolution signals, without
-exposing additional learner text or ranking topics. Broader quality review and
-mentor workflows remain future work. Shared-task peer reviews now reuse the same
-optional explanation, example, question and counterexample vocabulary while
-keeping reviews anonymous and limited to one response per contributing learner.
-Reviewers can optionally associate a response with one authored project step.
-Contributors can now mark one received response helpful as a private,
-learner-controlled resolution signal; richer review, revision and mentor
-workflows remain future work. Learning Support also has a bounded anonymous
-activity digest for shared-task exchanges that have not received that signal;
-it shows context and counts only, while richer mentor workflows remain future
-work. Entries link to their map/node context; direct mentor intervention
-remains future work.
-
-## Product development
+Deepen bounded retrieval, self-explanation, transfer and explanatory feedback
+where an activity can support them meaningfully. Keep participation, recall,
+reflection, application and transfer distinguishable, and let learners inspect
+their own evidence without exposing a hidden competence score.
 
 ### Authoring and reuse
 
-- Expand the current map-detail, MapAsset, node-placement and
-  activity-configuration histories into full map/world history, rollback and
-  safe collaborative editing locks. Node-placement rollback currently covers
-  existing nodes only; deleted or newly added nodes remain outside its scope.
-- Expand the single-map export manifest into bulk import/export for maps and
-  MapAssets with explicit reference handling.
-- Add configuration profiles with visible inherited values and local overrides.
-- Expand the current private activity-template library into a shared, versioned
-    library with richer context and asset-resolution controls. The current flow
-    supports named private templates, an explicit MapAsset destination and
-    clearing source-scoped references. Authors can now share one saved template
-    with an organization they belong to, update it from an eligible activity,
-    and inspect or restore its paginated revision history. Richer
-    asset-resolution controls remain future work.
+- Expand map, world, node-placement and activity histories into safe rollback
+  and collaborative editing workflows.
+- Add bulk import/export for maps and MapAssets with explicit reference
+  handling.
+- Add configuration profiles with visible inherited values and local
+  overrides.
+- Grow the private and organization-scoped activity-template library with
+  clear versioning and asset-resolution controls.
 
-### Collaboration
+### Cooperation and support
 
-- Expand shared tasks into project briefs, decomposition and assignment. The
-  current project-brief, step-context and one-response anonymous peer-review slices remain
-  intentionally bounded; the project brief can now hold an optional private
-  learner checklist, contributions can optionally name the authored step they
-  support, and a contributor can now make one private-preserving revision after
-  peer feedback. Shared ownership, decomposition and assignment remain future
-  work.
-- Support richer peer review, revision and presentation of group work.
-- Allow scoped group authoring of worlds, maps and routes with clear ownership
-  and moderation boundaries.
+Extend shared tasks, peer explanation and Learning Support into optional,
+privacy-conscious help and revision workflows. Evaluate whether support helped
+resolve a learning need rather than ranking people, measuring message volume or
+exposing private learner writing.
 
-### AI authoring
+### AI and provenance
 
-- Move longer provider executions to queued jobs with progress and cancellation.
-- Add guarded administrator-selected context loaders and provider adapters.
-- Expand reviewed authoring to questions, feedback, branching routes and wider
-  world design.
-- Add side-by-side authoring conversation for scoped inspection and proposed
-  revisions before save or apply.
-- Let the world-design assistant propose reuse, merging or extension before
-  creating new content.
+Continue guarded, reviewable authoring with bounded context and grounded
+sources. Queue longer provider work only when real usage requires it. Expand
+AI authoring to additional activity types and scoped proposals before saving;
+do not build a general orchestration layer or give AI direct content or
+navigation authority.
 
-### Optional expansion
+### Evaluation and optional expansion
 
-- Add map ambience and dedicated portal and tool-use sounds. Dialogue-typing
-  sound sets now have an initial implementation; broader sound authoring and
-  additional sound layers remain future work.
-- Add currencies or merchant interactions only where their learning purpose is
-  explicit and they do not recreate reward pressure.
-- Add map lenses, richer competence relationships and learner notes when their
-  interpretation is clear.
-- Reconsider a browser extension only after core workflows are stable and its
-  privacy boundary is explicit.
+Add privacy-conscious evaluation for delayed unaided recall, transfer,
+confidence calibration, motivation, support quality and AI-off performance
+when the corresponding learner experience is stable. Consider ambience,
+purposeful tool or inventory interactions, richer map lenses and a browser
+extension only when their learning purpose and privacy boundaries are clear.
+
+## Explicit boundaries
+
+- No hidden score, ranking, reward pressure or public competence comparison.
+- No adaptive or AI-generated scheduling before the transparent retrieval
+  baseline is measurable and understandable.
+- No generic dashboard or broad visual redesign in place of improving the
+  existing exploration and authoring language.
+- No new documentation hierarchy; product rationale, current capabilities,
+  technical truth and strategy remain separated in the existing documents.
 
 ## Roadmap decision rule
 
 When choosing the next slice, prefer work that:
 
 1. protects an existing learner or author workflow;
-2. establishes a contract needed by a higher-priority research capability;
-3. improves evidence quality without inflating pressure or surveillance;
-4. reuses existing models, actions, queries, serializers and UI primitives; and
+2. improves orientation, exploration or learning interaction quality;
+3. reuses existing models, actions, queries, serializers and UI primitives;
+4. preserves privacy and the qualitative meaning of evidence; and
 5. can be tested with a focused behavioral or browser-level check.
 
-If a proposal conflicts with the product boundaries, it must explain the
-intended boundary change here and in the product document before implementation.
+If a proposal conflicts with the product boundaries, explain the intended
+boundary change in this document and `product.md` before implementation.
