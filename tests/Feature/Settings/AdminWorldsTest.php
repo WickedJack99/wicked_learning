@@ -3127,3 +3127,17 @@ test('shared task authoring previews both enabled learner workflow states', func
         ->toContain('does not create a rating or ranking')
         ->toContain('type="button"');
 });
+
+test('activity evidence authoring previews the learner orientation', function () {
+    $editor = file_get_contents(
+        resource_path('js/pages/settings/worlds/activity-form-fields.tsx'),
+    );
+
+    expect($editor)
+        ->toContain('<EvidenceContextPreview form={form} />')
+        ->toContain("'settings.world_builder.activity.evidence.preview_label'")
+        ->toContain("'learning.activity.evidence_context.objective'")
+        ->toContain("'learning.activity.evidence_context.concepts'")
+        ->toContain('Add an evidence objective or concept above')
+        ->not->toContain('overflow-y-auto');
+});

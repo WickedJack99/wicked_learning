@@ -369,7 +369,8 @@ export function ActivityFormFields({
                                                     onChange((current) => ({
                                                         ...current,
                                                         question_allow_multiple:
-                                                            event.target.checked,
+                                                            event.target
+                                                                .checked,
                                                     }))
                                                 }
                                                 type="checkbox"
@@ -384,9 +385,10 @@ export function ActivityFormFields({
                                                         Answers
                                                     </p>
                                                     <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
-                                                        Mark the correct answer and
-                                                        optionally connect an outcome
-                                                        key to a matching graph edge.
+                                                        Mark the correct answer
+                                                        and optionally connect
+                                                        an outcome key to a
+                                                        matching graph edge.
                                                     </p>
                                                 </div>
                                                 <Button
@@ -401,7 +403,10 @@ export function ActivityFormFields({
                                                                 ...current.question_options,
                                                                 emptyQuestionOption(
                                                                     String.fromCharCode(
-                                                                        65 + current.question_options.length,
+                                                                        65 +
+                                                                            current
+                                                                                .question_options
+                                                                                .length,
                                                                     ),
                                                                 ),
                                                             ],
@@ -414,14 +419,17 @@ export function ActivityFormFields({
                                                 </Button>
                                             </div>
                                             <InputError
-                                                message={errors.question_options}
+                                                message={
+                                                    errors.question_options
+                                                }
                                             />
                                             <div className="grid gap-4">
                                                 {form.question_options.map(
                                                     (option, index) => (
                                                         <QuestionOptionFields
                                                             canRemove={
-                                                                form.question_options
+                                                                form
+                                                                    .question_options
                                                                     .length > 2
                                                             }
                                                             errors={errors}
@@ -431,7 +439,9 @@ export function ActivityFormFields({
                                                                 update,
                                                             ) =>
                                                                 onChange(
-                                                                    (current) => ({
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
                                                                         ...current,
                                                                         question_options:
                                                                             current.question_options.map(
@@ -451,11 +461,16 @@ export function ActivityFormFields({
                                                             }
                                                             onRemove={() =>
                                                                 onChange(
-                                                                    (current) => ({
+                                                                    (
+                                                                        current,
+                                                                    ) => ({
                                                                         ...current,
                                                                         question_options:
                                                                             current.question_options.filter(
-                                                                                (_, optionIndex) =>
+                                                                                (
+                                                                                    _,
+                                                                                    optionIndex,
+                                                                                ) =>
                                                                                     optionIndex !==
                                                                                     index,
                                                                             ),
@@ -836,19 +851,24 @@ export function ActivityFormFields({
                                     form={form}
                                     onChange={onChange}
                                 />
-                                <EvidenceObjectiveField
-                                    errors={errors}
-                                    form={form}
-                                    onChange={onChange}
-                                />
-                                <EvidenceConceptsField
-                                    evidenceConceptOptions={
-                                        evidenceConceptOptions
-                                    }
-                                    errors={errors}
-                                    form={form}
-                                    onChange={onChange}
-                                />
+                                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)] lg:items-start">
+                                    <div className="grid gap-6">
+                                        <EvidenceObjectiveField
+                                            errors={errors}
+                                            form={form}
+                                            onChange={onChange}
+                                        />
+                                        <EvidenceConceptsField
+                                            evidenceConceptOptions={
+                                                evidenceConceptOptions
+                                            }
+                                            errors={errors}
+                                            form={form}
+                                            onChange={onChange}
+                                        />
+                                    </div>
+                                    <EvidenceContextPreview form={form} />
+                                </div>
                                 <FeedbackGuidanceFields
                                     errors={errors}
                                     form={form}
@@ -1783,6 +1803,95 @@ function EvidenceConceptsField({
             </p>
             <InputError message={errors.evidence_concepts} />
         </div>
+    );
+}
+
+function EvidenceContextPreview({ form }: { form: ActivityForm }) {
+    const t = usePlatformTranslation();
+    const objective = form.evidence_objective.trim();
+    const concepts = form.evidence_concepts
+        .split(/\r?\n/)
+        .map((concept) => concept.trim())
+        .filter(Boolean)
+        .slice(0, 8);
+
+    return (
+        <aside
+            aria-labelledby="activity-evidence-preview-title"
+            className="grid content-start gap-3 rounded-lg border border-cyan-500/25 bg-white/70 p-4 dark:border-teal-200/20 dark:bg-slate-950/55"
+        >
+            <div>
+                <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-200">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_label',
+                        'Learner orientation preview',
+                    )}
+                </p>
+                <h3
+                    className="mt-1 text-sm font-semibold text-slate-950 dark:text-white"
+                    id="activity-evidence-preview-title"
+                >
+                    {t(
+                        'learning.activity.evidence_context.title',
+                        'Learning focus',
+                    )}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_description',
+                        'This is the orientation learners will see before the activity.',
+                    )}
+                </p>
+            </div>
+            {objective || concepts.length > 0 ? (
+                <div className="grid gap-3">
+                    {objective ? (
+                        <div>
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.activity.evidence_context.objective',
+                                    'What this activity invites',
+                                )}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {objective}
+                            </p>
+                        </div>
+                    ) : null}
+                    {concepts.length > 0 ? (
+                        <div className="flex flex-wrap items-center gap-1.5 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                            <span className="font-medium">
+                                {t(
+                                    'learning.activity.evidence_context.concepts',
+                                    'Concepts',
+                                )}
+                            </span>
+                            {concepts.map((concept) => (
+                                <span
+                                    className="rounded-full border border-cyan-500/20 px-2 py-0.5 text-slate-700 dark:border-teal-100/20 dark:text-teal-50"
+                                    key={concept}
+                                >
+                                    {concept}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <p className="rounded-md border border-dashed border-slate-300 p-3 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.evidence.preview_empty',
+                        'Add an evidence objective or concept above to preview the learner orientation.',
+                    )}
+                </p>
+            )}
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {t(
+                    'settings.world_builder.activity.evidence.preview_note',
+                    'This is context for reflection, not a grade.',
+                )}
+            </p>
+        </aside>
     );
 }
 

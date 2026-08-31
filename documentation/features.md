@@ -563,6 +563,8 @@ turning it into a grade.
 Authors can also provide a concise evidence objective. The objective is copied
 into later evidence records as context for the learner's reflection; it does
 not create a grade or replace the activity's learning purpose.
+The activity editor shows a compact learner-orientation preview beside the
+objective and concept fields, so authors can see that context before saving.
 When Explain or Transfer is selected without observable “What to notice”
 guidance, the editor warns that the activity will remain participation evidence
 until that guidance is added; existing content is not silently rewritten.
