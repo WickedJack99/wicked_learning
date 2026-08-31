@@ -34,7 +34,10 @@ class LoadLearnerMessages
             ->orderByDesc('id')
             ->paginate(min(max($perPage, 1), 12), ['*'], 'page', max($page, 1));
         $loadedMessages = $messagePage->getCollection()->shuffle()->values();
-        $messageIds = $loadedMessages->modelKeys();
+        $messageIds = $loadedMessages
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
         $messageAuthors = $loadedMessages->mapWithKeys(
             fn (LearnerMessage $message): array => [$message->id => $message->user_id],
         );
@@ -87,7 +90,7 @@ class LoadLearnerMessages
 
     /**
      * @param  array<int, int|string>  $messageIds
-     * @param  Collection<int|string, int|string>  $messageAuthors
+     * @param  Collection<int, int<0, max>>  $messageAuthors
      * @return array<int|string, array<int, array{id: int, body: string, canMarkHelpful: bool, isHelpful: bool, responseType: ?string}>>
      */
     private function visibleResponses(array $messageIds, Collection $messageAuthors, int $userId): array
@@ -95,6 +98,14 @@ class LoadLearnerMessages
         $rankedResponses = DB::table('learner_message_responses')
             ->select(['id', 'learner_message_id', 'body', 'response_type', 'created_at', 'helpful_at'])
             ->selectRaw('ROW_NUMBER() OVER (PARTITION BY learner_message_id ORDER BY created_at DESC, id DESC) AS response_rank')
+            ->selectRaw('ROW_NUMBER() OVER (
+                PARTITION BY learner_message_id
+                ORDER BY
+                    CASE WHEN helpful_at IS NOT NULL THEN 0 ELSE 1 END,
+                    helpful_at DESC,
+                    created_at DESC,
+                    id DESC
+            ) AS helpful_rank')
             ->whereIn('learner_message_id', $messageIds)
             ->whereNull('hidden_at');
 
@@ -103,7 +114,11 @@ class LoadLearnerMessages
             ->where(function (Builder $query): void {
                 $query
                     ->where('response_rank', '<=', 3)
-                    ->orWhereNotNull('helpful_at');
+                    ->orWhere(function (Builder $query): void {
+                        $query
+                            ->whereNotNull('helpful_at')
+                            ->where('helpful_rank', '=', 1);
+                    });
             })
             ->orderBy('learner_message_id')
             ->orderByDesc('created_at')

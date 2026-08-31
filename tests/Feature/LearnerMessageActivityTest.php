@@ -609,6 +609,7 @@ test('learner message response loading stays bounded as a wall grows', function 
                 'learner_message_id' => $message->id,
                 'user_id' => $responseAuthors[$number]->id,
                 'body' => 'Response '.($number + 1),
+                'helpful_at' => $number === 0 ? now() : null,
             ]);
         }
     });
@@ -630,14 +631,23 @@ test('learner message response loading stays bounded as a wall grows', function 
     expect($queryCount)->toBe(5)
         ->and($responseQuery)->not->toBeNull()
         ->and(strtolower($responseQuery['query']))->toContain('response_rank" <= ?')
+        ->and(strtolower($responseQuery['query']))->toContain('helpful_rank" = ?')
         ->and($responseQuery['bindings'])->toContain(3)
+        ->and($responseQuery['bindings'])->toContain(1)
         ->and($payload['messages'])->toHaveCount(12)
-        ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 3))->toBeTrue()
-        ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['responses'])
-        ->toMatchArray([
-            ['id' => 8, 'body' => 'Response 8', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
-            ['id' => 9, 'body' => 'Response 9', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
-            ['id' => 10, 'body' => 'Response 10', 'responseType' => null, 'canMarkHelpful' => false, 'isHelpful' => false],
+        ->and(collect($payload['messages'])->every(fn (array $message): bool => count($message['responses']) === 4))->toBeTrue()
+        ->and(collect(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['responses']))
+        ->map(fn (array $response): array => [
+            'body' => $response['body'],
+            'isHelpful' => $response['isHelpful'],
+        ])
+        ->values()
+        ->all()
+        ->toBe([
+            ['body' => 'Response 1', 'isHelpful' => true],
+            ['body' => 'Response 8', 'isHelpful' => false],
+            ['body' => 'Response 9', 'isHelpful' => false],
+            ['body' => 'Response 10', 'isHelpful' => false],
         ])
         ->and(collect($payload['messages'])->firstWhere('id', $messages->first()->id)['hasResponded'])->toBeTrue();
 });
