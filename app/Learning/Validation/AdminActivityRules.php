@@ -197,6 +197,7 @@ class AdminActivityRules
             'feedback_response' => $this->optional($modifier, ['string', 'max:1000']),
             'feedback_next_action' => $this->optional($modifier, ['string', 'max:600']),
             'feedback_rubric' => $this->optional($modifier, ['string', 'max:900']),
+            'feedback_independent_check_feedback' => $this->optional($modifier, ['string', 'max:1000']),
             'completion_choice_prompt' => $this->optional($modifier, ['string', 'max:600']),
         ];
     }

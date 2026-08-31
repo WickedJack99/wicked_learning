@@ -9,6 +9,7 @@ const coreFields: Array<keyof ActivityForm> = [
     'evidence_objective',
     'feedback_evidence',
     'feedback_independent_check',
+    'feedback_independent_check_feedback',
     'feedback_next_action',
     'feedback_purpose',
     'feedback_response',

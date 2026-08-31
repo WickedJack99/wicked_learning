@@ -133,6 +133,7 @@ test('an authored independent check is stored separately and identified in evide
             'feedbackGuidance' => [
                 'evidence' => 'Connects the idea to a reason.',
                 'independentCheckPrompt' => 'Without looking back, explain the idea in a new example.',
+                'independentCheckFeedback' => 'Compare the new example with the original observation and notice what stayed true.',
             ],
         ],
     ]);

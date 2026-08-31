@@ -1246,6 +1246,20 @@ export function ReflectionActivity({
                         </Button>
                     </div>
                 ) : null}
+                {independentResponseSaved &&
+                activity.feedbackGuidance?.independentCheckFeedback ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.independent_check_feedback_label',
+                                'After your independent check',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {activity.feedbackGuidance.independentCheckFeedback}
+                        </p>
+                    </div>
+                ) : null}
                 <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
                     {t(
                         'learning.reflection.private_response_hint',

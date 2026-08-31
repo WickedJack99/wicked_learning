@@ -86,6 +86,8 @@ independent-check prompt for explanation and transfer activities. Learners may
 skip that check; when completed, it is stored as a separate private response
 and the evidence ledger distinguishes the resulting attempt from the initial
 response. Automatic rubric scoring and broader independent checks remain open.
+Authors may also provide a separate comparison note shown after the fresh
+response, making the independent attempt more useful without grading it.
 
 ### 4. Explanatory feedback and calibration
 

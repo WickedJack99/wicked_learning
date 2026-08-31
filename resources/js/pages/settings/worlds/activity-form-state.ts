@@ -30,6 +30,7 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         evidence_concepts: '',
         feedback_evidence: '',
         feedback_independent_check: '',
+        feedback_independent_check_feedback: '',
         feedback_next_action: '',
         feedback_purpose: '',
         feedback_response: '',
@@ -229,6 +230,10 @@ export function activityFormFromActivity(
         feedback_independent_check: feedbackGuidanceField(
             activity.config.feedbackGuidance,
             'independentCheckPrompt',
+        ),
+        feedback_independent_check_feedback: feedbackGuidanceField(
+            activity.config.feedbackGuidance,
+            'independentCheckFeedback',
         ),
         feedback_next_action: feedbackGuidanceField(
             activity.config.feedbackGuidance,
@@ -722,6 +727,7 @@ function feedbackGuidanceField(
         | 'nextAction'
         | 'responseFeedback'
         | 'independentCheckPrompt'
+        | 'independentCheckFeedback'
         | 'rubric',
 ): string {
     if (!isRecord(value)) {

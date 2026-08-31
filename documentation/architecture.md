@@ -140,7 +140,9 @@ type when feedback guidance includes an observable criterion. Otherwise the
 completion is recorded as participation while the activity itself remains
 usable. The optional response-feedback note is serialized as author guidance and
 shown only in the post-response comparison pause for explanation, transfer, and
-review activities; it is not copied into evidence as an automated judgment.
+review activities; it is not copied into evidence as an automated judgment. An
+optional independent-check feedback note is serialized alongside that guidance
+and is rendered only after a fresh independent response has been saved.
 
 `ActivitySourceReferenceConfiguration` stores up to five normalized source
 references, including an optional 800-character excerpt or location note, in

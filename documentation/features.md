@@ -484,7 +484,9 @@ transfer activities. After the feedback pause, learners can write a fresh
 private response without looking back or continue without it. The fresh
 response is stored separately from the first response and the evidence ledger
 identifies it as an independent check; it is still an attempt, not an
-automatic rubric result.
+automatic rubric result. Authors may also add a separate comparison note that
+appears only after the fresh response is saved, so the learner can relate the
+new example to the authored guidance without receiving an automated judgment.
 Review responses with authored guidance use the same pause and show its purpose
 before the learner continues, keeping the review signal descriptive rather than
 turning it into a grade.

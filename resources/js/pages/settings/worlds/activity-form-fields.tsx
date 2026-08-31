@@ -1457,7 +1457,8 @@ function FeedbackGuidanceFields({
             ))}
             {form.learning_intent === 'explain' ||
             form.learning_intent === 'transfer' ? (
-                <div className="grid gap-2">
+                <>
+                    <div className="grid gap-2">
                     <Label htmlFor="activity-feedback-independent-check">
                         {t(
                             'settings.world_builder.activity.feedback.independent_check_label',
@@ -1486,7 +1487,41 @@ function FeedbackGuidanceFields({
                         )}
                     </p>
                     <InputError message={errors.feedback_independent_check} />
-                </div>
+                    </div>
+                    <div className="grid gap-2">
+                    <Label htmlFor="activity-feedback-independent-check-feedback">
+                        {t(
+                            'settings.world_builder.activity.feedback.independent_check_feedback_label',
+                            'Independent check feedback (optional)',
+                        )}
+                    </Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                        id="activity-feedback-independent-check-feedback"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                feedback_independent_check_feedback:
+                                    event.target.value,
+                            }))
+                        }
+                        placeholder={t(
+                            'settings.world_builder.activity.feedback.independent_check_feedback_placeholder',
+                            'e.g. Compare the new example with the original observation and notice what stayed true.',
+                        )}
+                        value={form.feedback_independent_check_feedback}
+                    />
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {t(
+                            'settings.world_builder.activity.feedback.independent_check_feedback_description',
+                            'Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade.',
+                        )}
+                    </p>
+                    <InputError
+                        message={errors.feedback_independent_check_feedback}
+                    />
+                    </div>
+                </>
             ) : null}
         </div>
     );
