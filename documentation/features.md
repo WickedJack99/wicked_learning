@@ -165,7 +165,9 @@ can respond once to one other learner's explicitly shared contribution using the
 author's prompt. The interaction exposes no learner identities and provides no
 ratings, rankings or public quality score.
 The contributor can later see a bounded set of anonymous responses to their own
-contribution; other learners cannot see those responses.
+contribution; other learners cannot see those responses. Reviewers may
+optionally describe a response as an explanation, example, question or
+counterexample; the label orients the exchange without grading it.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or
@@ -326,6 +328,7 @@ resolution view or page loads only that slice while preserving the existing
 moderation actions. Response histories are also paged per message, so a busy
 thread does not expand the moderation payload without limit; response hide,
 show and delete actions remain available on each loaded response page.
+
 The moderation directory also summarizes helpful and unresolved message counts
 per topic. A bounded needs-attention digest links staff directly to up to three
 topics with unresolved exchanges, while the existing topic navigation remains

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A learner's anonymous, bounded response to one shared-task contribution. */
-#[Fillable(['learning_activity_id', 'learning_shared_task_submission_id', 'user_id', 'body'])]
+#[Fillable(['learning_activity_id', 'learning_shared_task_submission_id', 'user_id', 'body', 'response_type'])]
 class LearningSharedTaskReview extends Model
 {
     /** @return BelongsTo<LearningActivity, $this> */

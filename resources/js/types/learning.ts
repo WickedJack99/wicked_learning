@@ -426,6 +426,7 @@ export type SharedTaskState = {
         receivedReviews: Array<{
             id: number;
             body: string;
+            responseType: string | null;
             createdAt: string | null;
         }>;
     } | null;

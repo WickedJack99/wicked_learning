@@ -21,6 +21,7 @@ class SubmitSharedTaskPeerReview
         string $playRunId,
         int $submissionId,
         string $body,
+        ?string $responseType = null,
     ): LearningSharedTaskReview {
         abort_unless($activity->type === 'shared_task', 404);
         $this->activityAccess->assertActive($user, $activity, $playRunId);
@@ -45,7 +46,7 @@ class SubmitSharedTaskPeerReview
         $text = trim($body);
         abort_if($text === '', 422, 'The peer review cannot be empty.');
 
-        return DB::transaction(function () use ($activity, $submissionId, $text, $user): LearningSharedTaskReview {
+        return DB::transaction(function () use ($activity, $submissionId, $text, $responseType, $user): LearningSharedTaskReview {
             abort_if(
                 LearningSharedTaskReview::query()
                     ->where('learning_activity_id', $activity->id)
@@ -70,6 +71,7 @@ class SubmitSharedTaskPeerReview
                 'learning_shared_task_submission_id' => $submission->id,
                 'user_id' => $user->id,
                 'body' => $text,
+                'response_type' => $responseType,
             ]);
         });
     }

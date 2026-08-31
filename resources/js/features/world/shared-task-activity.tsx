@@ -32,6 +32,8 @@ export function SharedTaskActivity({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
     const [peerReviewBody, setPeerReviewBody] = useState('');
+    const [peerReviewResponseType, setPeerReviewResponseType] =
+        useState<PeerReviewResponseType | null>(null);
     const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
     const [peerReviewError, setPeerReviewError] = useState('');
     const [shareWithPeers, setShareWithPeers] = useState(false);
@@ -118,10 +120,12 @@ export function SharedTaskActivity({
                     body: peerReviewBody,
                     play_run_id: playRunId,
                     submission_id: selectedSubmissionId,
+                    response_type: peerReviewResponseType,
                 },
             );
 
             setPeerReviewBody('');
+            setPeerReviewResponseType(null);
             setSelectedSubmissionId(null);
             setState(response.state);
         } catch {
@@ -194,7 +198,9 @@ export function SharedTaskActivity({
                     isSubmitting={isSubmittingReview}
                     onBodyChange={setPeerReviewBody}
                     onSelect={setSelectedSubmissionId}
+                    onResponseTypeChange={setPeerReviewResponseType}
                     onSubmit={() => void submitPeerReview()}
+                    responseType={peerReviewResponseType}
                     selectedSubmissionId={selectedSubmissionId}
                     state={state}
                     t={t}
@@ -338,6 +344,11 @@ function SharedTaskProjectBrief({
 }
 
 type SharedTaskKind = 'text' | 'question' | 'reflection';
+type PeerReviewResponseType =
+    | 'explanation'
+    | 'example'
+    | 'question'
+    | 'counterexample';
 
 function SharedTaskContributions({
     contributions,
@@ -383,7 +394,9 @@ function SharedTaskPeerReview({
     isSubmitting,
     onBodyChange,
     onSelect,
+    onResponseTypeChange,
     onSubmit,
+    responseType,
     selectedSubmissionId,
     state,
     t,
@@ -393,7 +406,9 @@ function SharedTaskPeerReview({
     isSubmitting: boolean;
     onBodyChange: (value: string) => void;
     onSelect: (value: number | null) => void;
+    onResponseTypeChange: (value: PeerReviewResponseType | null) => void;
     onSubmit: () => void;
+    responseType: PeerReviewResponseType | null;
     selectedSubmissionId: number | null;
     state: SharedTaskState;
     t: ReturnType<typeof usePlatformTranslation>;
@@ -432,6 +447,11 @@ function SharedTaskPeerReview({
                                 className="text-sm leading-6 text-slate-700 dark:text-slate-200"
                                 key={review.id}
                             >
+                                {review.responseType ? (
+                                    <span className="mr-2 inline-flex rounded border border-violet-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:border-violet-200/30 dark:text-violet-200">
+                                        {peerReviewResponseTypeLabel(review.responseType, t)}
+                                    </span>
+                                ) : null}
                                 {review.body}
                             </p>
                         ))}
@@ -487,6 +507,45 @@ function SharedTaskPeerReview({
                             </label>
                         ))}
                     </fieldset>
+                    <fieldset className="grid gap-2">
+                        <legend className="text-xs font-semibold tracking-[0.12em] text-violet-700 uppercase dark:text-violet-200">
+                            {t(
+                                'activities.shared_task.peer_review_response_type',
+                                'What kind of response is this? (optional)',
+                            )}
+                        </legend>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            {peerReviewResponseTypes(t).map((option) => (
+                                <label
+                                    className="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200/80 bg-white px-3 py-2 text-sm text-slate-700 has-[:checked]:border-violet-500 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200 dark:has-[:checked]:border-violet-200"
+                                    key={option.value}
+                                >
+                                    <input
+                                        checked={responseType === option.value}
+                                        className="size-4 accent-violet-600 dark:accent-violet-200"
+                                        name="shared-task-peer-review-response-type"
+                                        onChange={() =>
+                                            onResponseTypeChange(option.value)
+                                        }
+                                        type="radio"
+                                    />
+                                    <span>{option.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {responseType ? (
+                            <button
+                                className="justify-self-start text-xs text-slate-600 underline underline-offset-2 hover:text-violet-700 dark:text-slate-300 dark:hover:text-violet-200"
+                                onClick={() => onResponseTypeChange(null)}
+                                type="button"
+                            >
+                                {t(
+                                    'activities.shared_task.peer_review_response_type_clear',
+                                    'Clear response type',
+                                )}
+                            </button>
+                        ) : null}
+                    </fieldset>
                     <label
                         className="grid gap-2 text-sm font-medium text-slate-700 dark:text-slate-200"
                         htmlFor="shared-task-peer-review-body"
@@ -530,6 +589,51 @@ function SharedTaskPeerReview({
                 </div>
             )}
         </section>
+    );
+}
+
+function peerReviewResponseTypes(
+    t: ReturnType<typeof usePlatformTranslation>,
+): Array<{ value: PeerReviewResponseType; label: string }> {
+    return [
+        {
+            value: 'explanation',
+            label: t(
+                'activities.shared_task.peer_review_type.explanation',
+                'Explanation',
+            ),
+        },
+        {
+            value: 'example',
+            label: t(
+                'activities.shared_task.peer_review_type.example',
+                'Example',
+            ),
+        },
+        {
+            value: 'question',
+            label: t(
+                'activities.shared_task.peer_review_type.question',
+                'Question',
+            ),
+        },
+        {
+            value: 'counterexample',
+            label: t(
+                'activities.shared_task.peer_review_type.counterexample',
+                'Counterexample',
+            ),
+        },
+    ];
+}
+
+function peerReviewResponseTypeLabel(
+    value: string,
+    t: ReturnType<typeof usePlatformTranslation>,
+): string {
+    return (
+        peerReviewResponseTypes(t).find((option) => option.value === value)
+            ?.label ?? value
     );
 }
 

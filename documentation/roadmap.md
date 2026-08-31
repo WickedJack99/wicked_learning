@@ -164,7 +164,9 @@ one response as helpful, giving the exchange a learner-controlled
 resolution signal without ranking responses. Learning Support now has a bounded
 needs-attention digest based on those existing resolution signals, without
 exposing additional learner text or ranking topics. Broader quality review and
-mentor digests remain future work.
+mentor digests remain future work. Shared-task peer reviews now reuse the same
+optional explanation, example, question and counterexample vocabulary while
+keeping reviews anonymous and limited to one response per contributing learner.
 
 ## Product development
 

@@ -21,6 +21,7 @@ class LearningSharedTaskReviewController extends Controller
             'body' => ['required', 'string', 'max:2000'],
             'play_run_id' => ['required', 'uuid'],
             'submission_id' => ['required', 'integer'],
+            'response_type' => ['nullable', 'string', 'in:explanation,example,question,counterexample'],
         ]);
 
         $review = $this->submitReview->handle(
@@ -29,11 +30,13 @@ class LearningSharedTaskReviewController extends Controller
             (string) $data['play_run_id'],
             (int) $data['submission_id'],
             (string) $data['body'],
+            $data['response_type'] ?? null,
         );
 
         return response()->json([
             'review' => [
                 'id' => $review->id,
+                'responseType' => $review->response_type,
                 'createdAt' => $review->created_at?->toIso8601String(),
             ],
             'state' => $this->stateSerializer->state($activity, $request->user(), true),

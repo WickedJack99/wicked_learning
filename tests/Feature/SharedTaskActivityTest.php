@@ -224,9 +224,12 @@ test('shared task peer review requires a contribution and can be submitted once'
             'body' => 'This connects the two observations clearly.',
             'play_run_id' => $secondRunId,
             'submission_id' => $reviewable[0]['id'],
+            'response_type' => 'explanation',
         ])
         ->assertOk()
-        ->assertJsonPath('state.peerReview.hasReviewed', true);
+        ->assertJsonPath('state.peerReview.hasReviewed', true)
+        ->assertJsonPath('review.responseType', 'explanation')
+        ->assertJsonPath('state.peerReview.receivedReviews', []);
 
     $firstLearnerState = app(SharedTaskStateSerializer::class)->state($activity, $firstLearner, true);
     $secondLearnerState = app(SharedTaskStateSerializer::class)->state($activity, $secondLearner, true);
@@ -234,6 +237,8 @@ test('shared task peer review requires a contribution and can be submitted once'
     expect($firstLearnerState['peerReview']['receivedReviews'])->toHaveCount(1)
         ->and($firstLearnerState['peerReview']['receivedReviews'][0]['body'])
         ->toBe('This connects the two observations clearly.')
+        ->and($firstLearnerState['peerReview']['receivedReviews'][0]['responseType'])
+        ->toBe('explanation')
         ->and($secondLearnerState['peerReview']['receivedReviews'])->toBeEmpty();
 
     $this->actingAs($secondLearner)
@@ -246,7 +251,46 @@ test('shared task peer review requires a contribution and can be submitted once'
 
     expect(LearningSharedTaskReview::query()->count())->toBe(1)
         ->and(LearningSharedTaskReview::query()->firstOrFail()->body)
-        ->toBe('This connects the two observations clearly.');
+        ->toBe('This connects the two observations clearly.')
+        ->and(LearningSharedTaskReview::query()->firstOrFail()->response_type)
+        ->toBe('explanation');
+});
+
+test('shared task peer review rejects unsupported response types', function () {
+    [$firstLearner, $activity, $firstRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+    ]);
+    [$secondLearner, , $secondRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($firstLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The first learner noticed a useful pattern.',
+            'play_run_id' => $firstRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $reviewable = $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The second learner adds another perspective.',
+            'play_run_id' => $secondRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->json('state.peerReview.reviewableContributions');
+
+    $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [
+            'body' => 'This response needs a supported label.',
+            'play_run_id' => $secondRunId,
+            'submission_id' => $reviewable[0]['id'],
+            'response_type' => 'unsupported',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('response_type');
+
+    expect(LearningSharedTaskReview::query()->count())->toBe(0);
 });
 
 /** @return array{0: User, 1: LearningActivity, 2: string} */
