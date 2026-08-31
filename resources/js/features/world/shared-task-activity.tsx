@@ -495,6 +495,7 @@ function SharedTaskPeerReview({
                                     <button
                                         className="ml-2 inline-flex items-center rounded border border-violet-300/70 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-wait disabled:opacity-60 dark:border-violet-200/30 dark:text-violet-200 dark:hover:bg-violet-100/10"
                                         disabled={updatingReviewId === review.id}
+                                        aria-pressed={review.isHelpful}
                                         onClick={() =>
                                             onHelpfulnessChange(
                                                 review.id,
@@ -518,6 +519,15 @@ function SharedTaskPeerReview({
                         ))}
                     </div>
                 </div>
+            ) : null}
+            {error ? (
+                <p
+                    aria-live="assertive"
+                    className="mt-3 text-sm font-medium text-red-600 dark:text-red-300"
+                    role="alert"
+                >
+                    {error}
+                </p>
             ) : null}
             {peerReview.hasReviewed ? (
                 <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
@@ -626,11 +636,6 @@ function SharedTaskPeerReview({
                             value={body}
                         />
                     </label>
-                    {error ? (
-                        <p aria-live="assertive" className="text-sm font-medium text-red-600 dark:text-red-300" role="alert">
-                            {error}
-                        </p>
-                    ) : null}
                     <Button
                         disabled={
                             selectedSubmissionId === null ||

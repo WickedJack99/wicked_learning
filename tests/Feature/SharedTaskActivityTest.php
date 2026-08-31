@@ -385,6 +385,44 @@ test('shared task contributors can mark one received peer review helpful', funct
     expect($secondReview->refresh()->helpful_at)->toBeNull();
 });
 
+test('shared task reviews stay hidden for private contributions', function () {
+    [$owner, $activity, $ownerRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+    ]);
+    [$reviewer] = activeSharedTaskFor($activity);
+
+    $this->actingAs($owner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'This contribution was intentionally kept private.',
+            'play_run_id' => $ownerRunId,
+            'share_with_peers' => false,
+        ])
+        ->assertOk();
+
+    $privateSubmission = LearningSharedTaskSubmission::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('user_id', $owner->id)
+        ->firstOrFail();
+    $review = LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $activity->id,
+        'learning_shared_task_submission_id' => $privateSubmission->id,
+        'user_id' => $reviewer->id,
+        'body' => 'This should never be shown for a private contribution.',
+    ]);
+
+    $state = app(SharedTaskStateSerializer::class)->state($activity, $owner, true);
+
+    expect($state['peerReview']['receivedReviews'])->toBeEmpty();
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.helpfulness.update', [$activity, $review]), [
+            'helpful' => true,
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertUnprocessable();
+});
+
 /** @return array{0: User, 1: LearningActivity, 2: string} */
 function activeSharedTask(array $config = []): array
 {

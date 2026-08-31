@@ -117,7 +117,8 @@ class SharedTaskStateSerializer
             ->whereHas('submission', function (Builder $query) use ($user): void {
                 $query
                     ->where('user_id', $user->id)
-                    ->where('status', 'accepted');
+                    ->where('status', 'accepted')
+                    ->where('metadata->shareWithPeers', true);
             })
             ->latest('created_at')
             ->latest('id')

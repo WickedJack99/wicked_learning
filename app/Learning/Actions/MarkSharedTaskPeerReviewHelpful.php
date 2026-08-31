@@ -41,11 +41,14 @@ class MarkSharedTaskPeerReviewHelpful
                 ->whereKey($review->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+            $submissionMetadata = $lockedReview->submission?->metadata;
 
             if (
                 $lockedReview->learning_activity_id !== $activity->id
                 || $lockedReview->submission?->user_id !== $user->id
                 || $lockedReview->submission?->status !== 'accepted'
+                || ! is_array($submissionMetadata)
+                || ($submissionMetadata['shareWithPeers'] ?? false) !== true
             ) {
                 throw ValidationException::withMessages([
                     'review' => 'Only the contributor can mark a received review helpful.',
@@ -65,7 +68,8 @@ class MarkSharedTaskPeerReviewHelpful
                 ->whereHas('submission', function (Builder $query) use ($user): void {
                     $query
                         ->where('user_id', $user->id)
-                        ->where('status', 'accepted');
+                        ->where('status', 'accepted')
+                        ->where('metadata->shareWithPeers', true);
                 })
                 ->update(['helpful_at' => null]);
 
