@@ -660,6 +660,7 @@ function LearningPulseTimeline({
                                     Next direction:{' '}
                                     {learningCheckInDirectionLabel(
                                         checkIn.nextDirection,
+                                        translate,
                                     )}
                                 </p>
                             ) : null}
@@ -1049,6 +1050,7 @@ function CompetenceReading({
                                         Next direction:{' '}
                                         {learningCheckInDirectionLabel(
                                             checkIn.nextDirection,
+                                            translate,
                                         )}
                                     </p>
                                 ) : null}

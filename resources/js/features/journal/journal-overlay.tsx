@@ -607,6 +607,8 @@ export function JournalOverlay({ onClose }: JournalOverlayProps) {
 }
 
 function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
+    const t = usePlatformTranslation();
+
     return (
         <section
             aria-label="Recent learning check-ins"
@@ -679,6 +681,7 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                                     Next direction:{' '}
                                     {learningCheckInDirectionLabel(
                                         checkIn.nextDirection,
+                                        t,
                                     )}
                                 </p>
                             ) : null}

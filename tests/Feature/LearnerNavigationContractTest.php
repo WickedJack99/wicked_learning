@@ -281,6 +281,38 @@ test('portal playback copy uses the platform translation catalog', function () {
         ->toContain("'learning.portal.traverse'");
 });
 
+test('check-in direction summaries use the platform translation catalog', function () {
+    $activityUtils = file_get_contents(
+        resource_path('js/features/world/activity-utils.tsx'),
+    );
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+    $journal = file_get_contents(
+        resource_path('js/features/journal/journal-overlay.tsx'),
+    );
+    $competence = file_get_contents(
+        resource_path('js/pages/competence/index.tsx'),
+    );
+
+    expect($activityUtils)
+        ->toContain("'learning.activity.check_in.direction.related.label'")
+        ->toContain("'learning.activity.check_in.direction.revisit.label'")
+        ->toContain("'learning.activity.check_in.direction.settle.label'")
+        ->not->toContain("related: 'Look for something related'");
+    expect($learningDesk)->toMatch(
+        '/const directionLabel = learningCheckInDirectionLabel\(\s*checkIn\.nextDirection,\s*t,\s*\);/',
+    );
+    expect($journal)
+        ->toContain('const t = usePlatformTranslation();')
+        ->toMatch(
+            '/learningCheckInDirectionLabel\(\s*checkIn\.nextDirection,\s*t,\s*\)/',
+        );
+    expect($competence)->toMatch(
+        '/learningCheckInDirectionLabel\(\s*checkIn\.nextDirection,\s*translate,\s*\)/',
+    );
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),

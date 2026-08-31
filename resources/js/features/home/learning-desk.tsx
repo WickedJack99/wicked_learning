@@ -1345,7 +1345,10 @@ function CheckInRow({
             ),
         }[checkIn.feeling ?? ''] ??
         t('home.learning_desk.reflections.feeling_default', 'A reflection');
-    const directionLabel = learningCheckInDirectionLabel(checkIn.nextDirection);
+    const directionLabel = learningCheckInDirectionLabel(
+        checkIn.nextDirection,
+        t,
+    );
 
     return (
         <article className="grid gap-4 py-3 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">

@@ -27,6 +27,21 @@ const learningFocusCopy: Record<string, [string, string]> = {
     transfer: ['activities.focus.transfer', 'Try an idea in a new context'],
 };
 
+const learningCheckInDirectionCopy: Record<string, [string, string]> = {
+    related: [
+        'learning.activity.check_in.direction.related.label',
+        'Look for something related',
+    ],
+    revisit: [
+        'learning.activity.check_in.direction.revisit.label',
+        'Return to this place',
+    ],
+    settle: [
+        'learning.activity.check_in.direction.settle.label',
+        'Let it settle',
+    ],
+};
+
 export function TypingText({ speed, text }: { speed: number; text: string }) {
     const [visibleText, setVisibleText] = useState('');
 
@@ -113,14 +128,11 @@ export function learningIntentLabel(
 
 export function learningCheckInDirectionLabel(
     direction: LearningCheckInNextDirection | string | null,
+    translate: PlatformTranslate,
 ): string | null {
-    return (
-        {
-            related: 'Look for something related',
-            revisit: 'Return to this place',
-            settle: 'Let it settle',
-        }[direction ?? ''] ?? null
-    );
+    const directionCopy = learningCheckInDirectionCopy[direction ?? ''];
+
+    return directionCopy ? translate(...directionCopy) : null;
 }
 
 function activityTypeLabel(type: string): string {
