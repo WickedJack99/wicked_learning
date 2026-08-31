@@ -203,6 +203,20 @@ test('NPC dialogue playback copy uses the platform translation catalog', functio
         ->not->toContain('aria-label="Next dialogue"');
 });
 
+test('question playback copy uses the platform translation catalog', function () {
+    $activities = file_get_contents(
+        resource_path('js/features/world/standard-activities.tsx'),
+    );
+
+    expect($activities)
+        ->toContain("'learning.question.confidence_before_label'")
+        ->toContain("'learning.question.recall_keep'")
+        ->toContain("'learning.question.earlier_tries'")
+        ->toContain("'learning.question.check_answers'")
+        ->not->toContain("{isSubmitting ? 'Checking...' : 'Check answers'}")
+        ->not->toContain("? 'Remove from recall queue'");
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),

@@ -256,6 +256,10 @@ Generic dialogue playback states, reflection controls and navigation guidance
 use the platform translation catalog; authored node titles, dialogue text and
 answer choices remain authored learning content.
 
+Question playback also resolves its confidence, recall, result and attempt
+controls through the platform translation catalog; question prompts, answer
+labels, feedback and explanations remain authored learning content.
+
 Activity authors can optionally add feedback guidance for any activity: its
 purpose, what to notice in a learner response or action, and one possible next
 action. Playback presents this as a compact orientation aid, and the scoped AI

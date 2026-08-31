@@ -588,14 +588,22 @@ export function QuestionActivity({
             {!visibleAnswer ? (
                 <div>
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
-                        Optional starting sense
+                        {t(
+                            'learning.question.confidence_before_label',
+                            'Optional starting sense',
+                        )}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        Choose a phrase for how settled your answer feels before
-                        you check it.
+                        {t(
+                            'learning.question.confidence_before_helper',
+                            'Choose a phrase for how settled your answer feels before you check it.',
+                        )}
                     </p>
                     <div
-                        aria-label="How settled your answer feels"
+                        aria-label={t(
+                            'learning.question.confidence_before_aria',
+                            'How settled your answer feels',
+                        )}
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"
                     >
@@ -614,7 +622,10 @@ export function QuestionActivity({
                                 }
                                 type="button"
                             >
-                                {option.label}
+                                {t(
+                                    `learning.review.confidence_${option.value}`,
+                                    option.label,
+                                )}
                             </button>
                         ))}
                     </div>
@@ -624,7 +635,10 @@ export function QuestionActivity({
             <div className="grid gap-3">
                 {question.allowMultiple && !visibleAnswer ? (
                     <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        Select all answers that fit before checking them.
+                        {t(
+                            'learning.question.multiple_select_helper',
+                            'Select all answers that fit before checking them.',
+                        )}
                     </p>
                 ) : null}
                 {question.options.map((option) => (
@@ -655,7 +669,9 @@ export function QuestionActivity({
                     onClick={() => void submitAnswer(selectedOptionIds)}
                     type="button"
                 >
-                    {isSubmitting ? 'Checking...' : 'Check answers'}
+                    {isSubmitting
+                        ? t('learning.question.checking', 'Checking...')
+                        : t('learning.question.check_answers', 'Check answers')}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             ) : null}
@@ -670,8 +686,14 @@ export function QuestionActivity({
                         )}
                         <span>
                             {visibleAnswer.isCorrect
-                                ? 'Useful clue found'
-                                : 'Adjust the hypothesis'}
+                                ? t(
+                                      'learning.review.outcome_correct',
+                                      'Useful clue found',
+                                  )
+                                : t(
+                                      'learning.review.outcome_incorrect',
+                                      'Adjust the hypothesis',
+                                  )}
                         </span>
                     </div>
                     {visibleAnswer.feedback ? (
@@ -786,13 +808,25 @@ export function QuestionActivity({
                                     className="mr-2 size-4"
                                 />
                                 {recallQueued
-                                    ? 'Remove from recall queue'
-                                    : 'Keep for later recall'}
+                                    ? t(
+                                          'learning.question.recall_remove',
+                                          'Remove from recall queue',
+                                      )
+                                    : t(
+                                          'learning.question.recall_keep',
+                                          'Keep for later recall',
+                                      )}
                             </Button>
                             <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
                                 {recallQueued
-                                    ? 'This question is waiting on your Learning Desk until you remove it.'
-                                    : 'Save this question when you want to return to it without changing your route.'}
+                                    ? t(
+                                          'learning.question.recall_queued_helper',
+                                          'This question is waiting on your Learning Desk until you remove it.',
+                                      )
+                                    : t(
+                                          'learning.question.recall_keep_helper',
+                                          'Save this question when you want to return to it without changing your route.',
+                                      )}
                             </p>
                             {recallError ? (
                                 <p
@@ -800,27 +834,47 @@ export function QuestionActivity({
                                     className="mt-2 text-xs text-red-600 dark:text-red-300"
                                     role="status"
                                 >
-                                    This recall choice could not be saved. Try
-                                    again.
+                                    {t(
+                                        'learning.question.recall_error',
+                                        'This recall choice could not be saved. Try again.',
+                                    )}
                                 </p>
                             ) : null}
                         </div>
                     ) : null}
                     {visibleAnswer.confidence ? (
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                            Starting sense:{' '}
-                            {questionConfidenceLabel(visibleAnswer.confidence)}
+                            {t(
+                                'learning.question.starting_sense',
+                                'Starting sense: :confidence',
+                                {
+                                    confidence: questionConfidenceLabel(
+                                        t,
+                                        visibleAnswer.confidence,
+                                    ),
+                                },
+                            )}
                             {visibleAnswer.attemptNumber &&
                             visibleAnswer.attemptNumber > 1
-                                ? ` · Attempt ${visibleAnswer.attemptNumber}`
+                                ? t(
+                                      'learning.question.attempt',
+                                      ' · Attempt :number',
+                                      { number: visibleAnswer.attemptNumber },
+                                  )
                                 : ''}
                         </p>
                     ) : null}
                     {visibleAnswer.earlierAttempts?.length ? (
                         <details className="mt-4 rounded-md border border-slate-200 px-3 py-2 dark:border-white/10">
                             <summary className="cursor-pointer text-xs font-medium text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-slate-300 dark:focus-visible:ring-teal-200">
-                                Earlier tries (
-                                {visibleAnswer.earlierAttempts.length})
+                                {t(
+                                    'learning.question.earlier_tries',
+                                    'Earlier tries (:count)',
+                                    {
+                                        count: visibleAnswer.earlierAttempts
+                                            .length,
+                                    },
+                                )}
                             </summary>
                             <div className="mt-2 grid gap-2">
                                 {visibleAnswer.earlierAttempts.map(
@@ -833,10 +887,28 @@ export function QuestionActivity({
                                                 <span className="font-medium text-slate-700 dark:text-slate-200">
                                                     {attempt.optionLabels
                                                         ?.length
-                                                        ? `Chose ${attempt.optionLabels.join(', ')}`
+                                                        ? t(
+                                                              'learning.question.chose_options',
+                                                              'Chose :options',
+                                                              {
+                                                                  options:
+                                                                      attempt.optionLabels.join(
+                                                                          ', ',
+                                                                      ),
+                                                              },
+                                                          )
                                                         : attempt.optionLabel
-                                                          ? `Chose ${attempt.optionLabel}`
-                                                          : 'Earlier answer'}
+                                                          ? t(
+                                                                'learning.question.chose_option',
+                                                                'Chose :option',
+                                                                {
+                                                                    option: attempt.optionLabel,
+                                                                },
+                                                            )
+                                                          : t(
+                                                                'learning.question.earlier_answer',
+                                                                'Earlier answer',
+                                                            )}
                                                 </span>
                                                 <span className="shrink-0 text-slate-500 dark:text-slate-400">
                                                     {formatReviewDate(
@@ -846,10 +918,26 @@ export function QuestionActivity({
                                             </div>
                                             <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                                                 {attempt.isCorrect
-                                                    ? 'Useful clue found'
-                                                    : 'Adjust the hypothesis'}
+                                                    ? t(
+                                                          'learning.review.outcome_correct',
+                                                          'Useful clue found',
+                                                      )
+                                                    : t(
+                                                          'learning.review.outcome_incorrect',
+                                                          'Adjust the hypothesis',
+                                                      )}
                                                 {attempt.confidence
-                                                    ? ` · Starting sense: ${questionConfidenceLabel(attempt.confidence)}`
+                                                    ? t(
+                                                          'learning.question.attempt_starting_sense',
+                                                          ' · Starting sense: :confidence',
+                                                          {
+                                                              confidence:
+                                                                  questionConfidenceLabel(
+                                                                      t,
+                                                                      attempt.confidence,
+                                                                  ),
+                                                          },
+                                                      )
                                                     : ''}
                                             </p>
                                         </div>
@@ -899,8 +987,8 @@ export function QuestionActivity({
                                   )
                                 : answerTransitionLabel ||
                                   (visibleAnswer.nextActivityId
-                                      ? 'Continue'
-                                      : 'Finish')}
+                                      ? t('common.continue', 'Continue')
+                                      : t('common.finish', 'Finish'))}
                             <ArrowRight className="ml-2 size-4" />
                         </Button>
                     ) : null}
@@ -919,10 +1007,18 @@ const questionConfidenceOptions: Array<{
     { label: 'Settled', value: 'settled' },
 ];
 
-function questionConfidenceLabel(value: QuestionConfidence): string {
+function questionConfidenceLabel(
+    t: ReturnType<typeof usePlatformTranslation>,
+    value: QuestionConfidence,
+): string {
+    const option = questionConfidenceOptions.find(
+        (candidate) => candidate.value === value,
+    );
+
     return (
-        questionConfidenceOptions.find((option) => option.value === value)
-            ?.label ?? value
+        (option
+            ? t(`learning.review.confidence_${option.value}`, option.label)
+            : null) ?? value
     );
 }
 
