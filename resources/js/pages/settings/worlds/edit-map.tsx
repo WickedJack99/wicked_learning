@@ -4,6 +4,7 @@ import {
     ChevronRight,
     Eye,
     GitBranch,
+    History,
     Image,
     Layers3,
     LockKeyhole,
@@ -68,6 +69,7 @@ import {
     MapAssetFields,
 } from '@/features/settings/map-asset-editor';
 import type { AssetForm } from '@/features/settings/map-asset-editor';
+import { MapAssetHistoryDialog } from '@/features/settings/map-asset-history-dialog';
 import { ImageAlphaHitArea } from '@/features/world/image-alpha-mask';
 import { MapAssetVisual } from '@/features/world/map-asset-visual';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
@@ -389,6 +391,7 @@ export default function EditWorldMap({
     );
     const [, setSelectedCell] = useState<GridCell | null>(null);
     const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
+    const [mapAssetHistoryOpen, setMapAssetHistoryOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [pendingDeleteNode, setPendingDeleteNode] =
@@ -646,6 +649,7 @@ export default function EditWorldMap({
 
     const closeDialog = () => {
         setNodeDialogOpen(false);
+        setMapAssetHistoryOpen(false);
         clearPendingNodeDialogReset(closeNodeDialogTimeoutRef);
         closeNodeDialogTimeoutRef.current = window.setTimeout(() => {
             setSelectedCell(null);
@@ -1478,6 +1482,31 @@ export default function EditWorldMap({
                             Configure the MapAsset and its learner-facing
                             behavior, or add a visual-only MapAsset.
                         </DialogDescription>
+                        {selectedMapAsset ? (
+                            <MapAssetHistoryDialog
+                                assetId={selectedMapAsset.id}
+                                onOpenChange={setMapAssetHistoryOpen}
+                                onRestored={(asset) => {
+                                    setSelectedMapAsset(asset);
+                                    setMapAssetForm(assetForm(asset));
+
+                                    if (!selectedNode) {
+                                        setForm(nodeFormFromMapAsset(asset));
+                                    }
+                                }}
+                                open={mapAssetHistoryOpen}
+                            >
+                                <Button
+                                    className="absolute top-4 right-12"
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <History className="size-4" />
+                                    History
+                                </Button>
+                            </MapAssetHistoryDialog>
+                        ) : null}
                     </DialogHeader>
 
                     <SettingsConfigurationLayout

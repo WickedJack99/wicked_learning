@@ -59,4 +59,10 @@ class LearningMapAsset extends Model
     {
         return $this->hasMany(LearningMessageTopic::class)->orderBy('title');
     }
+
+    /** @return HasMany<LearningMapAssetVersion, $this> */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(LearningMapAssetVersion::class)->latest('created_at')->latest('id');
+    }
 }

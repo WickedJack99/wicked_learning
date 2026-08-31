@@ -2508,6 +2508,89 @@ test('map detail versions cannot be restored across maps', function () {
         ->and($otherMap->versions()->count())->toBe(0);
 });
 
+test('authors can browse and restore MapAsset versions without losing current configuration', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $asset = LearningMapAsset::query()->whereNotNull('learning_node_id')->firstOrFail();
+    $originalText = $asset->text;
+    $originalImage = $asset->image_url;
+    $originalY = $asset->position_y;
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.assets.update', $asset), [
+            'image_url' => '/storage/learning/nodes/revised.svg',
+            'position_x' => $asset->position_x,
+            'position_y' => 61,
+            'position_z' => $asset->position_z,
+            'width' => $asset->width,
+            'opacity' => $asset->opacity,
+            'text' => 'Revised asset label',
+            'interaction_mode' => 'focusable',
+            'visual_config' => ['imageFit' => 'cover'],
+        ])
+        ->assertRedirect();
+
+    $version = $asset->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.assets.versions.index', $asset).'?page=1&per_page=4')
+        ->assertOk()
+        ->assertJsonPath('items.0.text', $originalText)
+        ->assertJsonPath('items.0.imageUrl', $originalImage)
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 4)
+        ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.assets.versions.restore', [
+            'asset' => $asset,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('asset.text', $originalText)
+        ->assertJsonPath('asset.imageUrl', $originalImage);
+
+    expect($asset->refresh()->text)->toBe($originalText)
+        ->and($asset->image_url)->toBe($originalImage)
+        ->and($asset->position_y)->toBe($originalY)
+        ->and($asset->versions()->count())->toBe(2);
+});
+
+test('MapAsset versions cannot be restored across assets', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $assets = LearningMapAsset::query()->whereNotNull('learning_node_id')->take(2)->get();
+    $asset = $assets->firstOrFail();
+    $otherAsset = $assets->last();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.assets.update', $asset), [
+            'position_x' => $asset->position_x,
+            'position_y' => $asset->position_y,
+            'position_z' => $asset->position_z,
+            'width' => $asset->width,
+            'opacity' => $asset->opacity,
+            'text' => 'Versioned asset',
+        ])
+        ->assertRedirect();
+
+    $version = $asset->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.assets.versions.restore', [
+            'asset' => $otherAsset,
+            'version' => $version,
+        ]))
+        ->assertNotFound();
+
+    expect($otherAsset->refresh()->text)->not->toBe('Versioned asset')
+        ->and($otherAsset->versions()->count())->toBe(0);
+});
+
 test('admin users can edit map visual theme variants', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

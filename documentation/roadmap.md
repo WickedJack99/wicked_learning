@@ -180,8 +180,8 @@ workflows remain future work.
 
 ### Authoring and reuse
 
-- Expand the initial map-detail version history into full map/world history,
-  rollback and safe collaborative editing locks.
+- Expand the initial map-detail and MapAsset version history into full
+  map/world history, rollback and safe collaborative editing locks.
 - Add bulk import/export for maps and MapAssets with explicit reference
   handling.
 - Add configuration profiles with visible inherited values and local overrides.

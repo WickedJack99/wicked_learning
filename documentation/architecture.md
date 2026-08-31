@@ -172,6 +172,11 @@ Map detail updates use the same transactional snapshot-before-update pattern in
 bounded page, and restore validates that the version belongs to the selected map
 before saving the current details as another version.
 
+`LearningMapAssetVersion` applies the same transaction to mutable MapAsset
+surface and interaction configuration. Its permission-protected endpoint
+paginates one asset's revisions, and restore validates the asset relation before
+recording the current configuration and applying the selected version.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog

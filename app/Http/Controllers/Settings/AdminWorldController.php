@@ -23,7 +23,10 @@ use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Learning\Queries\LoadLearningMapAssetVersions;
 use App\Learning\Queries\LoadLearningMapVersions;
+use App\Learning\Serializers\LearningMapAssetSerializer;
+use App\Learning\Serializers\LearningMapAssetVersionSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
@@ -31,6 +34,7 @@ use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMapAssetVersion;
 use App\Models\LearningMapVersion;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -44,6 +48,9 @@ class AdminWorldController extends Controller
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
         private readonly LoadLearningMapVersions $mapVersions,
+        private readonly LoadLearningMapAssetVersions $mapAssetVersions,
+        private readonly LearningMapAssetSerializer $mapAssetSerializer,
+        private readonly LearningMapAssetVersionSerializer $mapAssetVersionSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
@@ -129,10 +136,13 @@ class AdminWorldController extends Controller
     {
         $asset->loadMissing('map');
         $this->authorizeMapEdit($request, $asset->map);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $this->updateLearningMapAsset->handle(
             $asset,
             $request->validate($this->rules->mapAsset($asset->map, $asset->id)),
+            $user,
         );
 
         return $this->redirectToMap($asset->map);
@@ -146,6 +156,66 @@ class AdminWorldController extends Controller
         $this->deleteLearningMapAsset->handle($asset);
 
         return $this->redirectToMap($map);
+    }
+
+    public function mapAssetVersions(Request $request, LearningMapAsset $asset): JsonResponse
+    {
+        $asset->loadMissing('map');
+        $this->authorizeMapEdit($request, $asset->map);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->mapAssetVersions->paginate(
+            $asset,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 4,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningMapAssetVersion $version): array => $this->mapAssetVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function restoreMapAssetVersion(
+        Request $request,
+        LearningMapAsset $asset,
+        LearningMapAssetVersion $version,
+    ): JsonResponse {
+        $asset->loadMissing('map');
+        $this->authorizeMapEdit($request, $asset->map);
+        abort_unless($version->learning_map_asset_id === $asset->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $asset = $this->updateLearningMapAsset->handle($asset, [
+            'focusable' => $version->focusable,
+            'image_url' => $version->image_url,
+            'interaction_config' => $version->interaction_config,
+            'interaction_mode' => $version->interaction_mode,
+            'locked' => $version->locked,
+            'opacity' => $version->opacity,
+            'position_x' => $version->position_x,
+            'position_y' => $version->position_y,
+            'position_z' => $version->position_z,
+            'sound_config' => $version->sound_config,
+            'text' => $version->text,
+            'visual_config' => $version->visual_config,
+            'width' => $version->width,
+        ], $user);
+
+        return response()->json([
+            'asset' => $this->mapAssetSerializer->serialize($asset),
+        ]);
     }
 
     public function storePortalLink(Request $request): RedirectResponse

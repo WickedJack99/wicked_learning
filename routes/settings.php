@@ -111,6 +111,12 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::patch('settings/worlds/assets/{asset}', [AdminWorldController::class, 'updateMapAsset'])
         ->name('settings.worlds.assets.update');
 
+    Route::get('settings/worlds/assets/{asset}/versions', [AdminWorldController::class, 'mapAssetVersions'])
+        ->name('settings.worlds.assets.versions.index');
+
+    Route::post('settings/worlds/assets/{asset}/versions/{version}/restore', [AdminWorldController::class, 'restoreMapAssetVersion'])
+        ->name('settings.worlds.assets.versions.restore');
+
     Route::delete('settings/worlds/assets/{asset}', [AdminWorldController::class, 'destroyMapAsset'])
         ->name('settings.worlds.assets.destroy');
 

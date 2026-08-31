@@ -580,6 +580,11 @@ Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and
 restore an earlier version without losing the current details.
 
+Authors can also inspect a bounded private history for an individual MapAsset's
+learner-facing configuration and restore an earlier version without losing the
+current configuration. Structural node placement and broader map history remain
+separate authoring concerns.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and
