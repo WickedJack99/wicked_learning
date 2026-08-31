@@ -42,6 +42,23 @@ const learningCheckInDirectionCopy: Record<string, [string, string]> = {
     ],
 };
 
+const learningActivityTypeCopy: Record<string, [string, string]> = {
+    markdown: ['learning.activity.type.markdown', 'Markdown'],
+    npc_dialogue: ['learning.activity.type.npc_dialogue', 'NPC dialogue'],
+    question: ['learning.activity.type.question', 'Question'],
+    reflection: ['learning.activity.type.reflection', 'Reflection'],
+    review: ['learning.activity.type.review', 'Review'],
+    message_prompt: ['learning.activity.type.message_prompt', 'Message prompt'],
+    message_wall: ['learning.activity.type.message_wall', 'Message wall'],
+    shared_task: ['learning.activity.type.shared_task', 'Shared task'],
+    obstacle: ['learning.activity.type.obstacle', 'Obstacle'],
+    item_grant: ['learning.activity.type.item_grant', 'Item grant'],
+    item_obstacle: ['learning.activity.type.item_obstacle', 'Item obstacle'],
+    tool_grant: ['learning.activity.type.tool_grant', 'Tool grant'],
+    open_practice: ['learning.activity.type.open_practice', 'Open practice'],
+    portal: ['learning.activity.type.portal', 'Portal'],
+};
+
 export function TypingText({ speed, text }: { speed: number; text: string }) {
     const [visibleText, setVisibleText] = useState('');
 
@@ -110,7 +127,7 @@ export function learningFocusLabel(
         translate,
     );
 
-    return intentLabel || activityTypeLabel(activity.type);
+    return intentLabel || activityTypeLabel(activity.type, translate);
 }
 
 export function learningIntentLabel(
@@ -135,14 +152,17 @@ export function learningCheckInDirectionLabel(
     return directionCopy ? translate(...directionCopy) : null;
 }
 
-function activityTypeLabel(type: string): string {
-    const label = type.replaceAll('_', ' ').trim();
+function activityTypeLabel(
+    type: string,
+    translate: PlatformTranslate,
+): string {
+    const typeCopy = learningActivityTypeCopy[type];
 
-    if (label === '') {
-        return 'Learning activity';
+    if (typeCopy) {
+        return translate(...typeCopy);
     }
 
-    return label.charAt(0).toUpperCase() + label.slice(1);
+    return translate('learning.activity.type.default', 'Learning activity');
 }
 
 export function themedConfig(

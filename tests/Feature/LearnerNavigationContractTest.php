@@ -328,6 +328,19 @@ test('activity context exposes bounded alternative routes without a scroll regio
         ->not->toContain('alternative-routes-scroll');
 });
 
+test('activity focus fallbacks use the platform translation catalog', function () {
+    $activityUtils = file_get_contents(
+        resource_path('js/features/world/activity-utils.tsx'),
+    );
+
+    expect($activityUtils)
+        ->toContain("'learning.activity.type.default'")
+        ->toContain("'learning.activity.type.npc_dialogue'")
+        ->toContain("'learning.activity.type.item_obstacle'")
+        ->toContain('activityTypeLabel(activity.type, translate)')
+        ->not->toContain('return label.charAt(0).toUpperCase()');
+});
+
 test('learner activity actions preserve authored transition labels', function () {
     $activityUtils = file_get_contents(
         resource_path('js/features/world/activity-utils.tsx'),
