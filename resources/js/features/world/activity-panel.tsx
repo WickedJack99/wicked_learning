@@ -929,10 +929,12 @@ function ActivityFrame({
     );
 }
 
-function ActivityEvidenceContext({
+export function ActivityEvidenceContext({
     context,
+    title,
 }: {
     context: LearningActivity['evidenceContext'];
+    title?: string;
 }) {
     const t = usePlatformTranslation();
 
@@ -948,6 +950,11 @@ function ActivityEvidenceContext({
             )}
             className="mt-3 grid gap-2 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_20%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-action-accent)_5%,transparent)] px-3 py-2"
         >
+            {title ? (
+                <p className="text-xs font-medium tracking-[0.12em] text-[var(--learner-action-accent)] uppercase">
+                    {title}
+                </p>
+            ) : null}
             {context.objective ? (
                 <div>
                     <p className="text-xs font-medium text-[var(--learner-action-accent)]">

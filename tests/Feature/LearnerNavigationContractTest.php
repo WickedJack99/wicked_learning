@@ -144,6 +144,24 @@ test('activity orientation copy uses the platform translation catalog', function
         ->not->toContain('aria-label="Learning context"');
 });
 
+test('activity conclusions repeat authored learning focus as context', function () {
+    $checkIn = file_get_contents(
+        resource_path('js/features/world/learning-check-in.tsx'),
+    );
+    $activityPage = file_get_contents(
+        resource_path('js/pages/learning/node-play.tsx'),
+    );
+
+    expect($checkIn)
+        ->toContain('evidenceContext: LearningEvidenceContext;')
+        ->toContain('<ActivityEvidenceContext')
+        ->toContain("'learning.activity.conclusion.learning_focus_description'")
+        ->toContain('not a grade');
+    expect($activityPage)
+        ->toContain('evidenceContext: activity.evidenceContext')
+        ->toContain('pendingLearningCheckIn.evidenceContext');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),

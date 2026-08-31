@@ -3,8 +3,10 @@ import { ArrowRight, EyeOff, Heart } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
+import { ActivityEvidenceContext } from '@/features/world/activity-panel';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
+    LearningEvidenceContext,
     LearningCheckInFeeling,
     LearningCheckInNextDirection,
 } from '@/types';
@@ -61,6 +63,7 @@ const nextDirections: Array<{
 export function LearningCheckIn({
     activityTitle,
     choicePrompt,
+    evidenceContext,
     learningAreas,
     originTopicSlug,
     onContinue,
@@ -69,6 +72,7 @@ export function LearningCheckIn({
 }: {
     activityTitle: string;
     choicePrompt: string | null;
+    evidenceContext: LearningEvidenceContext;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug?: string | null;
     onContinue: (
@@ -160,6 +164,24 @@ export function LearningCheckIn({
                     </span>{' '}
                     {transitionLabel}
                 </p>
+            ) : null}
+            {evidenceContext.objective ||
+            evidenceContext.concepts.length > 0 ? (
+                <div>
+                    <p className="mt-4 text-sm leading-6 text-[var(--learner-body-text)]">
+                        {t(
+                            'learning.activity.conclusion.learning_focus_description',
+                            'This is the focus the activity invited. It remains context for reflection, not a grade.',
+                        )}
+                    </p>
+                    <ActivityEvidenceContext
+                        context={evidenceContext}
+                        title={t(
+                            'learning.activity.conclusion.learning_focus_title',
+                            'Learning focus',
+                        )}
+                    />
+                </div>
             ) : null}
             {learningAreas.length > 0 ? (
                 <div className="mt-4 rounded-md border border-[color-mix(in_srgb,var(--learner-action-accent)_25%,var(--learner-border-color))] bg-[color-mix(in_srgb,var(--learner-panel-background)_70%,transparent)] px-3 py-2">

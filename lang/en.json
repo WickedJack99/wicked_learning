@@ -26,6 +26,8 @@
     "learning.activity.evidence_context.title": "Learning focus",
     "learning.activity.evidence_context.objective": "What this activity invites",
     "learning.activity.evidence_context.concepts": "Concepts",
+    "learning.activity.conclusion.learning_focus_title": "Learning focus",
+    "learning.activity.conclusion.learning_focus_description": "This is the focus the activity invited. It remains context for reflection, not a grade.",
     "learning.activity.from_beginning": "From beginning",
     "learning.activity.sources": "Sources (:count)",
     "learning.activity.feedback.purpose": "Purpose",

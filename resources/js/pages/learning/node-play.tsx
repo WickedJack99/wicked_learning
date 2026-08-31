@@ -26,6 +26,7 @@ import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type {
     LearningActivity,
+    LearningEvidenceContext,
     LearningCheckInFeeling,
     LearningCheckInNextDirection,
     LearningNode,
@@ -76,6 +77,7 @@ type PendingLearningCheckIn = {
     activityTitle: string;
     choicePrompt: string | null;
     destination: CheckInDestination | null;
+    evidenceContext: LearningEvidenceContext;
     learningAreas: Array<{ name: string; slug: string | null }>;
     originTopicSlug: string | null;
     transitionLabel: string | null;
@@ -414,6 +416,7 @@ export default function NodePlay({
                 activityTitle: activity.title,
                 choicePrompt: activity.completionChoicePrompt,
                 destination: null,
+                evidenceContext: activity.evidenceContext,
                 learningAreas: learningAreaNames(activity),
                 originTopicSlug,
                 transitionLabel: options.transitionLabel?.trim() || null,
@@ -839,6 +842,9 @@ export default function NodePlay({
                                     }
                                     choicePrompt={
                                         pendingLearningCheckIn.choicePrompt
+                                    }
+                                    evidenceContext={
+                                        pendingLearningCheckIn.evidenceContext
                                     }
                                     learningAreas={
                                         pendingLearningCheckIn.learningAreas
