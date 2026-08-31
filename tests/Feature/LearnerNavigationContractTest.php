@@ -389,6 +389,19 @@ test('learner group chats paginate distinct groups instead of scrolling the grou
         ->not->toContain('min-h-0 overflow-y-auto');
 });
 
+test('topic detail delegates vertical overflow to the shared learner surface', function () {
+    $topicDetail = file_get_contents(
+        resource_path('js/features/topics/topic-detail.tsx'),
+    );
+
+    expect($topicDetail)
+        ->toContain('<LearnerDocumentSurface>')
+        ->toContain('className="pt-5"')
+        ->toContain('className="pr-1"')
+        ->not->toContain('<LearnerDocumentSurface scrollable={false}>')
+        ->not->toContain('h-full min-h-0 overflow-y-auto');
+});
+
 test('shared task cooperation areas switch instead of stacking every workflow', function () {
     $sharedTask = file_get_contents(
         resource_path('js/features/world/shared-task-activity.tsx'),

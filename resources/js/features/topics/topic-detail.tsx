@@ -70,8 +70,8 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
     }
 
     return (
-        <LearnerDocumentSurface scrollable={false}>
-            <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
+        <LearnerDocumentSurface>
+            <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-8 lg:px-12 lg:py-10">
                 <Link
                     className="inline-flex items-center gap-2 text-sm text-[var(--learner-muted-text)] transition hover:text-[var(--learner-accent)]"
                     href={topic.parent?.href ?? '/topics'}
@@ -157,7 +157,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     ))}
                 </nav>
 
-                <div className="min-h-0 flex-1 overflow-hidden pt-5">
+                <div className="pt-5">
                     {activeSection === 'trail' ? (
                         <TopicPanel id="trail">
                             <TopicCompetenceCard
@@ -410,7 +410,7 @@ function TopicPanel({
     return (
         <section
             aria-labelledby={`topic-${id}-tab`}
-            className="h-full min-h-0 overflow-y-auto pr-1"
+            className="pr-1"
             id={`topic-panel-${id}`}
             role="tabpanel"
         >
