@@ -189,6 +189,20 @@ test('reflection and review activity copy uses the platform translation catalog'
         ->not->toContain("{isReview ? 'Save review note' : 'Keep reflection'}");
 });
 
+test('NPC dialogue playback copy uses the platform translation catalog', function () {
+    $dialogue = file_get_contents(
+        resource_path('js/features/world/npc-dialogue-player.tsx'),
+    );
+
+    expect($dialogue)
+        ->toContain("'learning.npc_dialogue.no_start_path'")
+        ->toContain("'learning.npc_dialogue.reflection_placeholder'")
+        ->toContain("'learning.npc_dialogue.confirm_answer'")
+        ->toContain("'learning.npc_dialogue.keyboard_hint'")
+        ->not->toContain('aria-label="Previous dialogue"')
+        ->not->toContain('aria-label="Next dialogue"');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),

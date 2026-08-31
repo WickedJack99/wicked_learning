@@ -10,6 +10,7 @@ import {
     useAvailableLearningTools,
 } from '@/features/tools/tool-selection';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
     ActivityTransition,
@@ -73,6 +74,7 @@ export function NpcDialogueActivity({
 }: NpcDialogueActivityProps) {
     const { props } = usePage();
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const savedState = normalizeNpcDialogueState(activity, initialState);
     const [history, setHistory] = useState<number[]>(savedState.history);
     const [currentNodeId, setCurrentNodeId] = useState<number | null>(
@@ -343,7 +345,10 @@ export function NpcDialogueActivity({
     if (!currentNode) {
         return (
             <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-600 dark:border-white/15 dark:bg-white/6 dark:text-slate-300">
-                This NPC dialogue has no start path yet.
+                {t(
+                    'learning.npc_dialogue.no_start_path',
+                    'This NPC dialogue has no start path yet.',
+                )}
             </div>
         );
     }
@@ -371,6 +376,7 @@ export function NpcDialogueActivity({
             selectedAnswerKey={selectedAnswerKey}
             reflection={reflection}
             text={displayedText}
+            translation={t}
             typingSpeed={typingSpeed}
             typingSoundEnabled={typingSoundEnabled}
             typingSoundSet={typingSoundSet}
@@ -426,6 +432,7 @@ function NpcDialogueScene({
     selectedAnswerKey,
     reflection,
     text,
+    translation,
     typingSpeed,
     typingSoundEnabled,
     typingSoundSet,
@@ -447,6 +454,7 @@ function NpcDialogueScene({
     selectedAnswerKey: string | null;
     reflection: string;
     text: string;
+    translation: ReturnType<typeof usePlatformTranslation>;
     typingSpeed: number;
     typingSoundEnabled: boolean;
     typingSoundSet: DialogueTypingSoundSet | undefined;
@@ -535,7 +543,11 @@ function NpcDialogueScene({
                     />
                     {grantedToolName ? (
                         <p className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-800 dark:border-teal-200/30 dark:bg-teal-200/10 dark:text-teal-100">
-                            Added tool: {grantedToolName}
+                            {translation(
+                                'learning.npc_dialogue.tool_added',
+                                'Added tool: :tool',
+                                { tool: grantedToolName },
+                            )}
                         </p>
                     ) : null}
                     {isQuestion ? (
@@ -554,7 +566,10 @@ function NpcDialogueScene({
                                 onChange={(event) =>
                                     onReflectionChange(event.target.value)
                                 }
-                                placeholder="Write a reflection for your journal."
+                                placeholder={translation(
+                                    'learning.npc_dialogue.reflection_placeholder',
+                                    'Write a reflection for your journal.',
+                                )}
                                 value={reflection}
                             />
                             <Button
@@ -562,14 +577,20 @@ function NpcDialogueScene({
                                 onClick={onSubmitReflection}
                                 type="button"
                             >
-                                Keep reflection
+                                {translation(
+                                    'learning.npc_dialogue.keep_reflection',
+                                    'Keep reflection',
+                                )}
                             </Button>
                         </div>
                     ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-3">
                     <Button
-                        aria-label="Previous dialogue"
+                        aria-label={translation(
+                            'learning.npc_dialogue.previous',
+                            'Previous dialogue',
+                        )}
                         disabled={!canGoBack}
                         onClick={onBack}
                         size="icon"
@@ -580,13 +601,25 @@ function NpcDialogueScene({
                     </Button>
                     <p className="text-xs text-slate-600 dark:text-slate-300">
                         {isReflection
-                            ? 'Save your reflection to continue.'
+                            ? translation(
+                                  'learning.npc_dialogue.reflection_continue',
+                                  'Save your reflection to continue.',
+                              )
                             : isQuestion
-                              ? 'Choose an answer, then confirm.'
-                              : 'Use Space or arrows to move.'}
+                              ? translation(
+                                    'learning.npc_dialogue.question_continue',
+                                    'Choose an answer, then confirm.',
+                                )
+                              : translation(
+                                    'learning.npc_dialogue.keyboard_hint',
+                                    'Use Space or arrows to move.',
+                                )}
                     </p>
                     <Button
-                        aria-label="Next dialogue"
+                        aria-label={translation(
+                            'learning.npc_dialogue.next',
+                            'Next dialogue',
+                        )}
                         disabled={isQuestion || isReflection}
                         onClick={onContinue}
                         size="icon"
@@ -760,10 +793,15 @@ function NpcAnswerOptions({
     onSubmit: () => void;
     selectedAnswerKey: string | null;
 }) {
+    const t = usePlatformTranslation();
+
     if (answers.length === 0) {
         return (
             <p className="mt-4 rounded-lg border border-dashed border-white/20 p-3 text-sm opacity-80">
-                This question has no answers configured yet.
+                {t(
+                    'learning.npc_dialogue.no_answers',
+                    'This question has no answers configured yet.',
+                )}
             </p>
         );
     }
@@ -791,7 +829,7 @@ function NpcAnswerOptions({
                 onClick={onSubmit}
                 type="button"
             >
-                Confirm answer
+                {t('learning.npc_dialogue.confirm_answer', 'Confirm answer')}
             </Button>
         </div>
     );

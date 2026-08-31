@@ -252,6 +252,10 @@ the configured default. Spaces remain quiet and unsupported symbols reuse a
 random available letter sound; learners can still mute or lower effects sound
 through their existing sound preferences.
 
+Generic dialogue playback states, reflection controls and navigation guidance
+use the platform translation catalog; authored node titles, dialogue text and
+answer choices remain authored learning content.
+
 Activity authors can optionally add feedback guidance for any activity: its
 purpose, what to notice in a learner response or action, and one possible next
 action. Playback presents this as a compact orientation aid, and the scoped AI
