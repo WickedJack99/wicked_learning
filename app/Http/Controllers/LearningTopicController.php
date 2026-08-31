@@ -11,8 +11,10 @@ use App\Learning\Queries\LoadLearningTopics;
 use App\Learning\Serializers\LearningPathSerializer;
 use App\Learning\Serializers\LearningTopicSerializer;
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Models\LearningActivity;
 use App\Models\LearningTopic;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -48,11 +50,17 @@ class LearningTopicController extends Controller
         );
         $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
+        $maps = $this->topics->publishedMaps(
+            $topic,
+            $request->user(),
+            page: max(1, (int) $request->query('maps_page', 1)),
+        );
         $subtopics = $this->topics->publishedSubtopics(
             $topic,
             $request->user(),
             page: max(1, (int) $request->query('subtopics_page', 1)),
         );
+        $activities = $this->topics->publishedActivitiesForTopic($topic, $request->user());
         $topicSlugs = collect($this->topics->publishedDescendantSlugs($topic));
         $competenceTopics = collect($competenceMap['topics'])
             ->filter(function (array $entry) use ($topicSlugs): bool {
@@ -67,7 +75,7 @@ class LearningTopicController extends Controller
             })
             ->values();
         $competence = $competenceTopics->firstWhere('slug', $topic->slug);
-        $learningAreas = $this->learningAreas($topic);
+        $learningAreas = $this->learningAreas($activities);
         $learningPulse = $this->learningPulse(
             $competenceMap['checkIns'] ?? [],
             $learningAreas,
@@ -96,27 +104,33 @@ class LearningTopicController extends Controller
                     'perPage' => $subtopics->perPage(),
                     'total' => $subtopics->total(),
                 ],
+                maps: $this->serializer->maps($maps->getCollection()),
+                mapsPagination: [
+                    'currentPage' => $maps->currentPage(),
+                    'lastPage' => max(1, $maps->lastPage()),
+                    'perPage' => $maps->perPage(),
+                    'total' => $maps->total(),
+                ],
             ),
         ]);
     }
 
-    /** @return list<array{name: string, slug: string, learningIntents: list<string>}> */
-    private function learningAreas(LearningTopic $topic): array
+    /**
+     * @param  Collection<int, LearningActivity>  $activities
+     * @return list<array{name: string, slug: string, learningIntents: list<string>}>
+     */
+    private function learningAreas(Collection $activities): array
     {
         $entries = collect();
 
-        foreach ($topic->maps as $map) {
-            foreach ($map->nodes as $node) {
-                foreach ($node->activities as $activity) {
-                    foreach ($this->competenceConfiguration->topicsForActivity($activity) as $area) {
-                        $entries->push([
-                            'name' => $area['topic'],
-                            'slug' => $area['slug'],
-                            'learningIntent' => $this->competenceConfiguration
-                                ->learningIntentForActivity($activity),
-                        ]);
-                    }
-                }
+        foreach ($activities as $activity) {
+            foreach ($this->competenceConfiguration->topicsForActivity($activity) as $area) {
+                $entries->push([
+                    'name' => $area['topic'],
+                    'slug' => $area['slug'],
+                    'learningIntent' => $this->competenceConfiguration
+                        ->learningIntentForActivity($activity),
+                ]);
             }
         }
 

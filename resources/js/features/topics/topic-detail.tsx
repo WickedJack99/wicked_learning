@@ -74,6 +74,10 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             url.searchParams.delete('subtopics_page');
         }
 
+        if (section !== 'maps') {
+            url.searchParams.delete('maps_page');
+        }
+
         window.history.pushState(window.history.state, '', url);
     }
 
@@ -104,6 +108,23 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
         }
 
         url.searchParams.set('section', 'overview');
+
+        router.visit(`${url.pathname}${url.search}`, {
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    function visitMapPage(page: number) {
+        const url = new URL(window.location.href);
+
+        if (page === 1) {
+            url.searchParams.delete('maps_page');
+        } else {
+            url.searchParams.set('maps_page', String(page));
+        }
+
+        url.searchParams.set('section', 'maps');
 
         router.visit(`${url.pathname}${url.search}`, {
             preserveScroll: true,
@@ -320,8 +341,15 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                     <div className="mt-5">
                                         <LearnerPaginatedItems
                                             items={topic.maps}
-                                            pageSize={4}
-                                            paginationLabel="Topic maps"
+                                            onPageChange={visitMapPage}
+                                            pageSize={
+                                                topic.mapsPagination.perPage
+                                            }
+                                            pagination={topic.mapsPagination}
+                                            paginationLabel={t(
+                                                'topics.detail.maps.pagination',
+                                                'Topic maps',
+                                            )}
                                             renderItem={(map) => (
                                                 <TopicMapCard
                                                     key={map.id}

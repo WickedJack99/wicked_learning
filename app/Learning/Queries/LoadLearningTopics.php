@@ -3,6 +3,8 @@
 namespace App\Learning\Queries;
 
 use App\Learning\Services\LearningMapAccessService;
+use App\Models\LearningActivity;
+use App\Models\LearningMap;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\User;
@@ -12,6 +14,8 @@ use Illuminate\Support\Collection;
 
 class LoadLearningTopics
 {
+    private const int MAP_PAGE_SIZE = 4;
+
     private const int SUBTOPIC_PAGE_SIZE = 4;
 
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
@@ -46,12 +50,51 @@ class LoadLearningTopics
         $topic->load([
             'area',
             'parent',
-            'maps.nodes.activities',
         ]);
 
-        $topic->setRelation('maps', $this->mapAccess->visibleMaps($topic->maps, $user));
-
         return $topic;
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, LearningMap>
+     */
+    public function publishedMaps(LearningTopic $topic, ?User $user = null, int $page = 1): LengthAwarePaginator
+    {
+        $query = $this->mapAccess->constrainVisibleQuery(
+            $topic->maps()->getQuery()->withCount('nodes'),
+            $user,
+        )->orderBy('title');
+        $page = max(1, $page);
+        $maps = $query->paginate(self::MAP_PAGE_SIZE, ['*'], 'maps_page', $page);
+
+        if ($maps->currentPage() > $maps->lastPage() && $maps->total() > 0) {
+            return $query->paginate(
+                self::MAP_PAGE_SIZE,
+                ['*'],
+                'maps_page',
+                $maps->lastPage(),
+            );
+        }
+
+        return $maps;
+    }
+
+    /**
+     * Load only the activity configuration needed to describe a topic's
+     * learning areas, without hydrating every map and node relationship.
+     *
+     * @return Collection<int, LearningActivity>
+     */
+    public function publishedActivitiesForTopic(LearningTopic $topic, ?User $user = null): Collection
+    {
+        return LearningActivity::query()
+            ->select(['id', 'type', 'config'])
+            ->whereHas('node.map', function (Builder $query) use ($topic, $user): void {
+                $query
+                    ->where('learning_topic_id', $topic->id);
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
+            ->get();
     }
 
     /**

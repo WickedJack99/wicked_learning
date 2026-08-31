@@ -38,6 +38,8 @@ class LearningTopicSerializer
      * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $pathsPagination
      * @param  list<array<string, mixed>>  $subtopics
      * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $subtopicsPagination
+     * @param  list<array<string, mixed>>  $maps
+     * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $mapsPagination
      * @return array<string, mixed>
      */
     public function detail(
@@ -51,6 +53,8 @@ class LearningTopicSerializer
         ?array $reflectionNarrative = null,
         array $subtopics = [],
         array $subtopicsPagination = [],
+        array $maps = [],
+        array $mapsPagination = [],
     ): array {
         return [
             ...$this->summary($topic),
@@ -72,17 +76,8 @@ class LearningTopicSerializer
             'pathsPagination' => $pathsPagination,
             'subtopics' => $subtopics,
             'subtopicsPagination' => $subtopicsPagination,
-            'maps' => $topic->maps
-                ->map(fn (LearningMap $map): array => [
-                    'description' => $map->description,
-                    'href' => route('world', ['map' => $map->slug], false),
-                    'id' => $map->id,
-                    'nodeCount' => $map->nodes->count(),
-                    'slug' => $map->slug,
-                    'title' => $map->title,
-                ])
-                ->values()
-                ->all(),
+            'maps' => $maps,
+            'mapsPagination' => $mapsPagination,
         ];
     }
 
@@ -96,6 +91,25 @@ class LearningTopicSerializer
             ->map(fn (LearningTopic $subtopic): array => [
                 ...$this->summary($subtopic),
                 'mapCount' => (int) ($subtopic->visible_map_count ?? 0),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  Collection<int, LearningMap>  $maps
+     * @return list<array<string, mixed>>
+     */
+    public function maps(Collection $maps): array
+    {
+        return $maps
+            ->map(fn (LearningMap $map): array => [
+                'description' => $map->description,
+                'href' => route('world', ['map' => $map->slug], false),
+                'id' => $map->id,
+                'nodeCount' => (int) ($map->nodes_count ?? 0),
+                'slug' => $map->slug,
+                'title' => $map->title,
             ])
             ->values()
             ->all();

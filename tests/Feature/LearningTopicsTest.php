@@ -329,7 +329,11 @@ test('a topic detail bounds route collections with server pagination', function 
         ->get(route('topics.show', $topic))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('topic.maps', 13)
+            ->has('topic.maps', 4)
+            ->where('topic.maps.3.title', 'Many Paths Map 12')
+            ->where('topic.mapsPagination.currentPage', 1)
+            ->where('topic.mapsPagination.lastPage', 4)
+            ->where('topic.mapsPagination.total', 13)
             ->has('topic.paths', 6)
             ->where('topic.pathsPagination.currentPage', 1)
             ->where('topic.pathsPagination.lastPage', 3)
@@ -357,6 +361,15 @@ test('a topic detail bounds route collections with server pagination', function 
             ->has('topic.subtopics', 1)
             ->where('topic.subtopicsPagination.currentPage', 2)
             ->where('topic.subtopics.0.title', $subtopics[4]->title)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'maps', 'maps_page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.maps', 4)
+            ->where('topic.mapsPagination.currentPage', 2)
+            ->where('topic.maps.0.title', 'Many Paths Map 13')
         );
 });
 

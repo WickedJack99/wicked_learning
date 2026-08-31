@@ -522,6 +522,10 @@ browser.
 The Overview section applies the same bounded behavior to published subtopics;
 their accessible map counts are calculated in the database, and only the
 visible page is sent to the browser.
+The Maps section returns only the current bounded page of accessible maps from
+the server, with node counts calculated in the same query. Topic learning-area
+labels use a scoped activity-configuration query instead of hydrating every
+map and node relationship.
 
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments.

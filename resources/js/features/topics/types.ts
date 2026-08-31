@@ -29,6 +29,12 @@ export type TopicDetail = TopicSummary & {
     learningPulse: TopicLearningPulse[];
     reflectionNarrative: TopicReflectionNarrative | null;
     maps: TopicMapSummary[];
+    mapsPagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
     parent: TopicSummary | null;
     paths: TopicPath[];
     pathsPagination: {
