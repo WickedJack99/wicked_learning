@@ -155,6 +155,8 @@ export default function EditNodeActivities({
     const [loadingTemplateId, setLoadingTemplateId] = useState<number | null>(
         null,
     );
+    const [previewingActivityTemplate, setPreviewingActivityTemplate] =
+        useState<ActivityTemplateDetails | null>(null);
     const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
         () => activityGraph.sourceRecords,
     );
@@ -689,7 +691,7 @@ export default function EditNodeActivities({
         ],
     );
 
-    const applySavedTemplate = useCallback(
+    const previewSavedTemplate = useCallback(
         async (template: ActivityTemplateSummary): Promise<void> => {
             setLoadingTemplateId(template.id);
             setActivityTemplateError(null);
@@ -713,26 +715,7 @@ export default function EditNodeActivities({
                 const payload = (await response.json()) as {
                     template: ActivityTemplateDetails;
                 };
-                const snapshot = payload.template.snapshot;
-                const formSource = {
-                    config: snapshot.config,
-                    introduction: snapshot.introduction,
-                    portalLink: null,
-                    question: snapshot.question ?? null,
-                    slug: '',
-                    title: snapshot.title,
-                    type: snapshot.type,
-                };
-
-                setForm({
-                    ...activityFormFromActivity(formSource, firstType),
-                    slug: '',
-                    title: `${snapshot.title} (copy)`,
-                });
-                setDuplicateSourceTitle(payload.template.name);
-                setTargetNodeId(String(activityGraph.node.id));
-                setErrors({});
-                resetImageUploadErrors();
+                setPreviewingActivityTemplate(payload.template);
             } catch (error) {
                 setActivityTemplateError(
                     error instanceof Error
@@ -743,8 +726,41 @@ export default function EditNodeActivities({
                 setLoadingTemplateId(null);
             }
         },
-        [activityGraph.node.id, firstType, resetImageUploadErrors],
+        [],
     );
+
+    const applyTemplatePreview = useCallback((): void => {
+        if (!previewingActivityTemplate) {
+            return;
+        }
+
+        const snapshot = previewingActivityTemplate.snapshot;
+        const formSource = {
+            config: snapshot.config,
+            introduction: snapshot.introduction,
+            portalLink: null,
+            question: snapshot.question ?? null,
+            slug: '',
+            title: snapshot.title,
+            type: snapshot.type,
+        };
+
+        setForm({
+            ...activityFormFromActivity(formSource, firstType),
+            slug: '',
+            title: `${snapshot.title} (copy)`,
+        });
+        setDuplicateSourceTitle(previewingActivityTemplate.name);
+        setTargetNodeId(String(activityGraph.node.id));
+        setErrors({});
+        resetImageUploadErrors();
+        setPreviewingActivityTemplate(null);
+    }, [
+        activityGraph.node.id,
+        firstType,
+        previewingActivityTemplate,
+        resetImageUploadErrors,
+    ]);
 
     const saveActivityTemplate = useCallback(async (): Promise<void> => {
         if (!templateSaveActivity || templateName.trim() === '') {
@@ -923,6 +939,34 @@ export default function EditNodeActivities({
     );
     const copiedTemplateContext = duplicateSourceTitle
         ? activityTemplateContext(form)
+        : null;
+    const previewTemplateForm = useMemo(() => {
+        if (!previewingActivityTemplate) {
+            return null;
+        }
+
+        const snapshot = previewingActivityTemplate.snapshot;
+
+        return activityFormFromActivity(
+            {
+                config: snapshot.config,
+                introduction: snapshot.introduction,
+                portalLink: null,
+                question: snapshot.question ?? null,
+                slug: '',
+                title: snapshot.title,
+                type: snapshot.type,
+            },
+            firstType,
+        );
+    }, [firstType, previewingActivityTemplate]);
+    const previewTemplateContext = previewTemplateForm
+        ? activityTemplateContext(previewTemplateForm)
+        : null;
+    const previewTemplateTypeLabel = previewingActivityTemplate
+        ? (activityGraph.activityTypes.find(
+              (type) => type.key === previewingActivityTemplate.snapshot.type,
+          )?.label ?? previewingActivityTemplate.snapshot.type)
         : null;
     const copyingToAnotherMapAsset =
         duplicateSourceTitle && targetNodeId !== String(activityGraph.node.id);
@@ -1757,7 +1801,7 @@ export default function EditNodeActivities({
                                                             null
                                                     }
                                                     onClick={() =>
-                                                        void applySavedTemplate(
+                                                        void previewSavedTemplate(
                                                             template,
                                                         )
                                                     }
@@ -1773,7 +1817,13 @@ export default function EditNodeActivities({
                                                             {template.title}
                                                         </span>
                                                     </span>
-                                                    <ArrowRight className="size-4 shrink-0 text-[var(--settings-accent)]" />
+                                                    <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--settings-accent)]">
+                                                        {t(
+                                                            'settings.worlds.activities.template.preview',
+                                                            'Preview',
+                                                        )}
+                                                        <ArrowRight className="size-4" />
+                                                    </span>
                                                 </Button>
                                                 {managingActivityTemplates ? (
                                                     <div className="flex shrink-0 items-center gap-1 px-2">
@@ -2081,6 +2131,143 @@ export default function EditNodeActivities({
                             type="button"
                         >
                             Save template
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={previewingActivityTemplate !== null}
+                onOpenChange={(open) => {
+                    if (!open && loadingTemplateId === null) {
+                        setPreviewingActivityTemplate(null);
+                        setActivityTemplateError(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t(
+                                'settings.worlds.activities.template.preview_title',
+                                'Preview activity template',
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t(
+                                'settings.worlds.activities.template.preview_description',
+                                'Review what will be copied into a new editable activity before replacing the current draft.',
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {previewingActivityTemplate ? (
+                        <div className="grid gap-3 text-sm">
+                            <dl className="grid gap-2 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 sm:grid-cols-2">
+                                <div>
+                                    <dt className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.worlds.activities.template.preview_template',
+                                            'Template',
+                                        )}
+                                    </dt>
+                                    <dd className="mt-1 font-medium">
+                                        {previewingActivityTemplate.name}
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.worlds.activities.template.preview_activity_type',
+                                            'Activity type',
+                                        )}
+                                    </dt>
+                                    <dd className="mt-1 font-medium">
+                                        {previewTemplateTypeLabel}
+                                    </dd>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <dt className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.worlds.activities.template.preview_activity_title',
+                                            'Activity title',
+                                        )}
+                                    </dt>
+                                    <dd className="mt-1 font-medium">
+                                        {
+                                            previewingActivityTemplate.snapshot
+                                                .title
+                                        }
+                                    </dd>
+                                </div>
+                            </dl>
+                            <div className="grid gap-2 rounded-md border border-[var(--settings-border-color)] p-3">
+                                <p className="text-xs font-semibold tracking-wide text-[var(--settings-accent)] uppercase">
+                                    {t(
+                                        'settings.worlds.activities.template.preview_included',
+                                        'Included configuration',
+                                    )}
+                                </p>
+                                <ul className="grid gap-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                    <li>
+                                        {t(
+                                            'settings.worlds.activities.template.preview_activity_settings',
+                                            'Activity introduction and type-specific settings',
+                                        )}
+                                    </li>
+                                    {previewingActivityTemplate.snapshot
+                                        .question ? (
+                                        <li>
+                                            {t(
+                                                'settings.worlds.activities.template.preview_question',
+                                                'Question, options and feedback',
+                                            )}
+                                        </li>
+                                    ) : null}
+                                    {previewTemplateContext?.references.map(
+                                        (reference) => (
+                                            <li key={reference}>
+                                                {reference === 'message_topic'
+                                                    ? t(
+                                                          'settings.worlds.activities.template.preview_message_topic',
+                                                          'A message topic reference that should be reviewed',
+                                                      )
+                                                    : t(
+                                                          'settings.worlds.activities.template.preview_portal_destination',
+                                                          'A portal destination reference that should be reviewed',
+                                                      )}
+                                            </li>
+                                        ),
+                                    )}
+                                </ul>
+                            </div>
+                            <p className="text-xs leading-5 text-[var(--settings-muted-text)]">
+                                {t(
+                                    'settings.worlds.activities.template.preview_safety',
+                                    'Applying creates a new draft in the current MapAsset. It does not change this template or any existing activity. Learner responses and evidence are not part of the template.',
+                                )}
+                            </p>
+                        </div>
+                    ) : null}
+                    <DialogFooter>
+                        <Button
+                            onClick={() => setPreviewingActivityTemplate(null)}
+                            type="button"
+                            variant="outline"
+                        >
+                            {t(
+                                'settings.worlds.activities.template.preview_cancel',
+                                'Cancel',
+                            )}
+                        </Button>
+                        <Button
+                            disabled={loadingTemplateId !== null}
+                            onClick={applyTemplatePreview}
+                            type="button"
+                        >
+                            {t(
+                                'settings.worlds.activities.template.use_as_starting_point',
+                                'Use as starting point',
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
