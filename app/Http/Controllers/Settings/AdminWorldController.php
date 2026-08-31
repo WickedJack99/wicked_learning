@@ -510,9 +510,10 @@ class AdminWorldController extends Controller
             ->pluck('nodeId')
             ->map(fn (mixed $nodeId): int => (int) $nodeId)
             ->all();
-        $nodeTitles = $map->nodes()
+        $currentNodes = $map->nodes()
             ->whereIn('id', $nodeIds)
-            ->pluck('title', 'id');
+            ->get(['id', 'position_q', 'position_r', 'title'])
+            ->keyBy('id');
 
         return response()->json([
             'createdAt' => $version->created_at?->toIso8601String(),
@@ -521,7 +522,9 @@ class AdminWorldController extends Controller
                     'nodeId' => (int) $node['nodeId'],
                     'positionQ' => (int) $node['positionQ'],
                     'positionR' => (int) $node['positionR'],
-                    'title' => $nodeTitles->get((int) $node['nodeId'], 'Removed node'),
+                    'title' => $currentNodes->get((int) $node['nodeId'])?->title ?? 'Removed node',
+                    'currentPositionQ' => $currentNodes->get((int) $node['nodeId'])?->position_q,
+                    'currentPositionR' => $currentNodes->get((int) $node['nodeId'])?->position_r,
                 ])
                 ->all(),
             'pagination' => [

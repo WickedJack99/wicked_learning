@@ -3159,6 +3159,8 @@ test('authors can browse and restore map layout versions', function () {
             'nodeId' => $portal->id,
             'positionQ' => $portalStart[0],
             'positionR' => $portalStart[1],
+            'currentPositionQ' => $signalGateStart[0],
+            'currentPositionR' => $signalGateStart[1],
             'title' => $portal->title,
         ])
         ->assertJsonPath('pagination.total', $map->nodes()->count());
@@ -3346,6 +3348,8 @@ test('map layout history preview shows a bounded spatial surface and accessible 
     expect($dialog)
         ->toContain('<LayoutPreviewSurface')
         ->toContain('data-layout-preview-surface="true"')
+        ->toContain('currentPositionQ')
+        ->toContain('position_will_move')
         ->toContain('aria-hidden="true"')
         ->toContain('role="list"')
         ->toContain('per_page=4')

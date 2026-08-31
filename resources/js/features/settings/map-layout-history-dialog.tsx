@@ -32,6 +32,8 @@ type MapLayoutVersionPage = {
 type MapLayoutPreview = {
     createdAt: string | null;
     items: Array<{
+        currentPositionQ: number | null;
+        currentPositionR: number | null;
         nodeId: number;
         positionQ: number;
         positionR: number;
@@ -306,6 +308,37 @@ export function MapLayoutHistoryDialog({
                                                         },
                                                     )}
                                                 </p>
+                                                {item.currentPositionQ !==
+                                                    null &&
+                                                item.currentPositionR !==
+                                                    null ? (
+                                                    <>
+                                                        <p className="text-xs text-[var(--settings-muted-text)]">
+                                                            {t(
+                                                                'settings.map_layout_history.current_position',
+                                                                'Current position :q, :r',
+                                                                {
+                                                                    q: item.currentPositionQ,
+                                                                    r: item.currentPositionR,
+                                                                },
+                                                            )}
+                                                        </p>
+                                                        <p className="text-xs text-[var(--settings-muted-text)]">
+                                                            {item.currentPositionQ ===
+                                                                item.positionQ &&
+                                                            item.currentPositionR ===
+                                                                item.positionR
+                                                                ? t(
+                                                                      'settings.map_layout_history.position_unchanged',
+                                                                      'Unchanged from the current map.',
+                                                                  )
+                                                                : t(
+                                                                      'settings.map_layout_history.position_will_move',
+                                                                      'This node will move if restored.',
+                                                                  )}
+                                                        </p>
+                                                    </>
+                                                ) : null}
                                             </div>
                                         ))}
                                     </div>
