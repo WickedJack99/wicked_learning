@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $config
  * @property array<string, mixed>|null $ai_review
  * @property Carbon|null $ai_reviewed_at
+ * @property-read LearningNode|null $node
  */
 #[Fillable([
     'learning_node_id',

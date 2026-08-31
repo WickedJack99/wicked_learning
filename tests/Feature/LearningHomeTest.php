@@ -290,6 +290,100 @@ test('the learning desk surfaces learner-chosen revisit invitations', function (
         );
 });
 
+test('the learning desk keeps older visible revisit invitations beyond newer restricted candidates', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $restrictedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-revisit-map',
+        'title' => 'Restricted Revisit Map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    $visibleMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-revisit-map',
+        'title' => 'Visible Revisit Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $createInvitation = function (LearningMap $map, string $slug, string $title, int $position, DateTimeInterface $availableAt) use ($user): void {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $slug,
+            'title' => $title,
+            'position_q' => $position,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => "{$slug}-activity",
+            'title' => "{$title} activity",
+            'type' => 'markdown',
+            'sort_order' => 10,
+        ]);
+        LearnerActivityProgress::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'status' => 'completed',
+            'attempt_count' => 1,
+            'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_PENDING,
+            'revisit_available_at' => $availableAt,
+            'reached_at' => $availableAt,
+            'completed_at' => $availableAt,
+            'metadata' => [
+                'learningCheckIns' => [[
+                    'nextDirection' => 'revisit',
+                    'recordedAt' => Carbon::instance($availableAt)->subDays(4)->toIso8601String(),
+                ]],
+            ],
+        ]);
+    };
+
+    for ($index = 0; $index < 48; $index++) {
+        $createInvitation(
+            $restrictedMap,
+            "restricted-revisit-{$index}",
+            "Restricted revisit {$index}",
+            $index,
+            now()->subMinutes($index),
+        );
+    }
+
+    $createInvitation(
+        $visibleMap,
+        'visible-revisit',
+        'Visible revisit',
+        0,
+        now()->subDay(),
+    );
+
+    $revisitQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$revisitQueries): void {
+        if (str_contains($query->sql, 'from "learner_activity_progress"')
+            && str_contains($query->sql, 'revisit_status')) {
+            $revisitQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.revisitInvitations', 1)
+            ->where('desk.revisitInvitations.0.activityTitle', 'Visible revisit activity')
+            ->where('desk.revisitInvitations.0.mapTitle', 'Visible Revisit Map')
+        );
+
+    expect($revisitQueries)->toHaveCount(1);
+    expect($revisitQueries[0]->sql)->toMatch('/limit 48/i');
+});
+
 test('the learning desk presents current work and saved topics', function () {
     $user = User::factory()->create();
     $world = LearningWorld::query()->create([

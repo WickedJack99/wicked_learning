@@ -8,7 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
-/** @property array<string, mixed>|null $metadata */
+/**
+ * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $revisit_available_at
+ * @property-read LearningActivity|null $activity
+ */
 #[Fillable([
     'user_id',
     'learning_node_id',

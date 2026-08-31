@@ -6,6 +6,7 @@ use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearningActivity;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /** Loads learner-chosen activities that are ready to revisit after a pause. */
@@ -22,7 +23,7 @@ class LoadLearnerRevisitInvitations
     {
         $now = Carbon::now();
 
-        return LearnerActivityProgress::query()
+        return array_values(LearnerActivityProgress::query()
             ->where('user_id', $user->id)
             ->where('status', 'completed')
             ->whereIn('revisit_status', [
@@ -31,6 +32,9 @@ class LoadLearnerRevisitInvitations
             ])
             ->whereNotNull('revisit_available_at')
             ->where('revisit_available_at', '<=', $now)
+            ->whereHas('activity.node.map', function (Builder $query) use ($user): void {
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
             ->with('activity.node.map')
             ->orderByDesc('revisit_available_at')
             ->latest('updated_at')
@@ -95,12 +99,14 @@ class LoadLearnerRevisitInvitations
             })
             ->filter()
             ->unique('activityId')
-            ->values()
             ->take(12)
-            ->all();
+            ->all());
     }
 
-    /** @return array{recordedAt: string}|null */
+    /**
+     * @param  array<string, mixed>  $metadata
+     * @return array{recordedAt: string}|null
+     */
     private function latestRevisitCheckIn(array $metadata): ?array
     {
         $history = is_array($metadata['learningCheckIns'] ?? null)
