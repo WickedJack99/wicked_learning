@@ -168,6 +168,12 @@ Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function ()
     Route::post('settings/worlds/maps/{map}/nodes', [AdminWorldController::class, 'storeNode'])
         ->name('settings.worlds.maps.nodes.store');
 
+    Route::get('settings/worlds/maps/{map}/layout-versions', [AdminWorldController::class, 'mapLayoutVersions'])
+        ->name('settings.worlds.maps.layout-versions.index');
+
+    Route::post('settings/worlds/maps/{map}/layout-versions/{version}/restore', [AdminWorldController::class, 'restoreMapLayoutVersion'])
+        ->name('settings.worlds.maps.layout-versions.restore');
+
     Route::patch('settings/worlds/nodes/{node}', [AdminWorldController::class, 'updateNode'])
         ->name('settings.worlds.nodes.update');
 

@@ -207,6 +207,14 @@ Map detail updates use the same transactional snapshot-before-update pattern in
 bounded page, and restore validates that the version belongs to the selected map
 before saving the current details as another version.
 
+`LearningMapLayoutVersion` stores a private JSON snapshot of node IDs and axial
+positions before a World Builder placement update or neighboring-node swap. Its
+history endpoint is paginated and restore validates both map ownership and an
+unchanged node set before applying the positions. Restoration uses temporary
+coordinates inside one transaction so unique position constraints cannot be
+violated while nodes exchange tiles; content, deleted nodes and world-level
+history remain outside this bounded layout slice.
+
 `LearningMapAssetVersion` applies the same transaction to mutable MapAsset
 surface and interaction configuration. Its permission-protected endpoint
 paginates one asset's revisions, and restore validates the asset relation before

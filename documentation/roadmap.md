@@ -216,9 +216,10 @@ remains future work.
 
 ### Authoring and reuse
 
-- Expand the initial map-detail, MapAsset and activity-configuration version
-  history into full map/world history, rollback and safe collaborative editing
-  locks.
+- Expand the current map-detail, MapAsset, node-placement and
+  activity-configuration histories into full map/world history, rollback and
+  safe collaborative editing locks. Node-placement rollback currently covers
+  existing nodes only; deleted or newly added nodes remain outside its scope.
 - Expand the single-map export manifest into bulk import/export for maps and
   MapAssets with explicit reference handling.
 - Add configuration profiles with visible inherited values and local overrides.

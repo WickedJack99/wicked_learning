@@ -14,6 +14,7 @@ use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\DuplicateLearningMap;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
+use App\Learning\Actions\RestoreLearningMapLayoutVersion;
 use App\Learning\Actions\SetLearnerNodeManualUnlock;
 use App\Learning\Actions\SwapLearningNode;
 use App\Learning\Actions\UpdateLearningMapAccess;
@@ -25,11 +26,13 @@ use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
 use App\Learning\Queries\LoadLearningMapAssetVersions;
+use App\Learning\Queries\LoadLearningMapLayoutVersions;
 use App\Learning\Queries\LoadLearningMapVersions;
 use App\Learning\Queries\LoadWorldBuilderReviewQueue;
 use App\Learning\Serializers\LearningMapAssetSerializer;
 use App\Learning\Serializers\LearningMapAssetVersionSerializer;
 use App\Learning\Serializers\LearningMapExportSerializer;
+use App\Learning\Serializers\LearningMapLayoutVersionSerializer;
 use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
@@ -40,6 +43,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningMapAssetVersion;
+use App\Models\LearningMapLayoutVersion;
 use App\Models\LearningMapVersion;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -54,11 +58,13 @@ class AdminWorldController extends Controller
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
         private readonly LoadLearningMapVersions $mapVersions,
+        private readonly LoadLearningMapLayoutVersions $mapLayoutVersions,
         private readonly LoadLearningMapAssetVersions $mapAssetVersions,
         private readonly LearningMapAssetSerializer $mapAssetSerializer,
         private readonly LearningMapAssetVersionSerializer $mapAssetVersionSerializer,
         private readonly LearningMapExportSerializer $mapExportSerializer,
         private readonly LearningMapVersionSerializer $mapVersionSerializer,
+        private readonly LearningMapLayoutVersionSerializer $mapLayoutVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly LearningMapExportValidator $mapExportValidator,
         private readonly CreateLearningMap $createLearningMap,
@@ -73,6 +79,7 @@ class AdminWorldController extends Controller
         private readonly UpdateLearningMapAsset $updateLearningMapAsset,
         private readonly CreateLearningNode $createLearningNode,
         private readonly UpdateLearningNode $updateLearningNode,
+        private readonly RestoreLearningMapLayoutVersion $restoreMapLayoutVersion,
         private readonly DeleteLearningNode $deleteLearningNode,
         private readonly InsertLearningNodeIntoHexGrid $insertLearningNode,
         private readonly SwapLearningNode $swapLearningNode,
@@ -448,6 +455,53 @@ class AdminWorldController extends Controller
         ]);
     }
 
+    public function mapLayoutVersions(Request $request, LearningMap $map): JsonResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->mapLayoutVersions->paginate(
+            $map,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 6,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningMapLayoutVersion $version): array => $this->mapLayoutVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function restoreMapLayoutVersion(
+        Request $request,
+        LearningMap $map,
+        LearningMapLayoutVersion $version,
+    ): JsonResponse {
+        $this->authorizeMapEdit($request, $map);
+        abort_unless($version->learning_map_id === $map->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $map = $this->restoreMapLayoutVersion->handle($user, $map, $version);
+
+        return response()->json([
+            'map' => [
+                'id' => $map->id,
+                'title' => $map->title,
+            ],
+        ]);
+    }
+
     public function updateMapAccess(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapAccessEdit($request, $map);
@@ -501,11 +555,14 @@ class AdminWorldController extends Controller
     {
         $node->loadMissing('map');
         $this->authorizeMapEdit($request, $node->map);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $data = $request->validate($this->rules->node($request, $node->map, $node));
         $this->rules->validateNodeUnlock($data, $node);
 
         $this->updateLearningNode->handle(
+            $user,
             $node,
             $data,
         );
@@ -528,8 +585,11 @@ class AdminWorldController extends Controller
     {
         $node->loadMissing('map');
         $this->authorizeMapEdit($request, $node->map);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $this->swapLearningNode->handle(
+            $user,
             $node,
             $request->validate($this->rules->direction()),
         );

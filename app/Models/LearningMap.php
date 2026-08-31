@@ -121,4 +121,10 @@ class LearningMap extends Model
     {
         return $this->hasMany(LearningMapVersion::class);
     }
+
+    /** @return HasMany<LearningMapLayoutVersion, $this> */
+    public function layoutVersions(): HasMany
+    {
+        return $this->hasMany(LearningMapLayoutVersion::class);
+    }
 }

@@ -15,6 +15,7 @@ use App\Models\LearningCompanionDialogueAssignment;
 use App\Models\LearningItem;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMapLayoutVersion;
 use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
@@ -3114,6 +3115,91 @@ test('admin users can swap neighboring tiles', function () {
 
     expect([$portal->position_q, $portal->position_r])->toBe($signalGateStart)
         ->and([$signalGate->position_q, $signalGate->position_r])->toBe($portalStart);
+});
+
+test('authors can browse and restore map layout versions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $portal = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $signalGate = LearningNode::query()->where('slug', 'signal-gate')->firstOrFail();
+    $map = $portal->map()->firstOrFail();
+    $portalStart = [$portal->position_q, $portal->position_r];
+    $signalGateStart = [$signalGate->position_q, $signalGate->position_r];
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.swap', $portal), [
+            'direction_q' => $signalGate->position_q - $portal->position_q,
+            'direction_r' => $signalGate->position_r - $portal->position_r,
+        ])
+        ->assertRedirect();
+
+    $version = $map->layoutVersions()->firstOrFail();
+
+    expect($version)->toBeInstanceOf(LearningMapLayoutVersion::class)
+        ->and($map->layoutVersions()->count())->toBe(1);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.maps.layout-versions.index', $map).'?page=1&per_page=6')
+        ->assertOk()
+        ->assertJsonPath('items.0.nodeCount', $map->nodes()->count())
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 6)
+        ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.layout-versions.restore', [
+            'map' => $map,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('map.id', $map->id);
+
+    $portal->refresh();
+    $signalGate->refresh();
+
+    expect([$portal->position_q, $portal->position_r])->toBe($portalStart)
+        ->and([$signalGate->position_q, $signalGate->position_r])->toBe($signalGateStart)
+        ->and($map->layoutVersions()->count())->toBe(2);
+});
+
+test('node placement updates create a restorable layout version', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $map = $node->map()->firstOrFail();
+    $originalPosition = [$node->position_q, $node->position_r];
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'description' => $node->description,
+            'position_q' => 20,
+            'position_r' => 20,
+            'slug' => $node->slug,
+            'state' => $node->state,
+            'title' => $node->title,
+            'visual_config' => [
+                'label' => $node->title,
+            ],
+        ])
+        ->assertRedirect();
+
+    $version = $map->layoutVersions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.layout-versions.restore', [
+            'map' => $map,
+            'version' => $version,
+        ]))
+        ->assertOk();
+
+    $node->refresh();
+
+    expect([$node->position_q, $node->position_r])->toBe($originalPosition)
+        ->and($map->layoutVersions()->count())->toBe(2);
 });
 
 test('admin users can insert a tile between neighboring tiles', function () {

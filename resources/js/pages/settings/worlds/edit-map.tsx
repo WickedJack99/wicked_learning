@@ -70,6 +70,7 @@ import {
 } from '@/features/settings/map-asset-editor';
 import type { AssetForm } from '@/features/settings/map-asset-editor';
 import { MapAssetHistoryDialog } from '@/features/settings/map-asset-history-dialog';
+import { MapLayoutHistoryDialog } from '@/features/settings/map-layout-history-dialog';
 import { ImageAlphaHitArea } from '@/features/world/image-alpha-mask';
 import { MapAssetVisual } from '@/features/world/map-asset-visual';
 import { resolveThemeVariant, withOpacity } from '@/features/world/theme';
@@ -392,6 +393,7 @@ export default function EditWorldMap({
     const [, setSelectedCell] = useState<GridCell | null>(null);
     const [nodeDialogOpen, setNodeDialogOpen] = useState(false);
     const [mapAssetHistoryOpen, setMapAssetHistoryOpen] = useState(false);
+    const [mapLayoutHistoryOpen, setMapLayoutHistoryOpen] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [pendingDeleteNode, setPendingDeleteNode] =
@@ -1093,13 +1095,38 @@ export default function EditWorldMap({
                         previewImage={previewMapTheme.imageUrl}
                         previewOverlay={previewMapTheme.overlay}
                         toolbarAction={
-                            contentAuthoringTemplates ? (
-                                <ContentAuthoringDialog
+                            <div className="flex items-center gap-2">
+                                <MapLayoutHistoryDialog
                                     mapId={map.id}
                                     mapTitle={map.title}
-                                    templates={contentAuthoringTemplates}
-                                />
-                            ) : undefined
+                                    onOpenChange={setMapLayoutHistoryOpen}
+                                    onRestored={() =>
+                                        router.reload({
+                                            only: ['selectedWorldMap'],
+                                        })
+                                    }
+                                    open={mapLayoutHistoryOpen}
+                                >
+                                    <Button
+                                        size="sm"
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        <History className="size-4" />
+                                        {t(
+                                            'settings.map_layout_history.trigger',
+                                            'Layout history',
+                                        )}
+                                    </Button>
+                                </MapLayoutHistoryDialog>
+                                {contentAuthoringTemplates ? (
+                                    <ContentAuthoringDialog
+                                        mapId={map.id}
+                                        mapTitle={map.title}
+                                        templates={contentAuthoringTemplates}
+                                    />
+                                ) : null}
+                            </div>
                         }
                     />
 

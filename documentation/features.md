@@ -759,6 +759,11 @@ Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and
 restore an earlier version without losing the current details.
 
+Node placement edits also keep a bounded, paginated layout history. Authors can
+restore an earlier arrangement of the existing nodes without changing their
+content; restoration is unavailable after nodes have been added or removed, so
+the history cannot be mistaken for a complete map backup.
+
 Authors can also inspect a bounded private history for an individual MapAsset's
 learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain
