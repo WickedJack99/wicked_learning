@@ -160,6 +160,10 @@ Authors may optionally add a project brief with a shared goal, a useful outcome
 and up to six suggested steps. Learners see this orientation beside the shared
 task prompt; it does not assign roles, evaluate the outcome or replace learner
 choice about how to contribute.
+Authors may also invite one anonymous peer review. A learner who has contributed
+can respond once to one other learner's explicitly shared contribution using the
+author's prompt. The interaction exposes no learner identities and provides no
+ratings, rankings or public quality score.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

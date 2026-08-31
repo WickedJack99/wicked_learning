@@ -30,6 +30,10 @@ export function SharedTaskActivity({
     const t = usePlatformTranslation();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [peerReviewBody, setPeerReviewBody] = useState('');
+    const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
+    const [peerReviewError, setPeerReviewError] = useState('');
     const [shareWithPeers, setShareWithPeers] = useState(false);
     const taskKind = sharedTaskKind(activity.config.taskKind);
     const kindCopy = sharedTaskKindCopy(taskKind, t);
@@ -77,7 +81,7 @@ export function SharedTaskActivity({
             setBody('');
             setState(response.state);
 
-            if (response.state.isComplete) {
+            if (response.state.isComplete && !response.state.peerReview?.enabled) {
                 await complete();
             }
         } catch {
@@ -89,6 +93,46 @@ export function SharedTaskActivity({
             );
         } finally {
             setIsSubmitting(false);
+        }
+    }
+
+    async function submitPeerReview() {
+        if (
+            !playRunId ||
+            !state.peerReview?.enabled ||
+            state.peerReview.hasReviewed ||
+            selectedSubmissionId === null ||
+            peerReviewBody.trim().length < 10 ||
+            isSubmittingReview
+        ) {
+            return;
+        }
+
+        setIsSubmittingReview(true);
+        setPeerReviewError('');
+
+        try {
+            const response = await postJson<{ state: SharedTaskState }>(
+                `/learning/activities/${activity.id}/shared-task-reviews`,
+                {
+                    body: peerReviewBody,
+                    play_run_id: playRunId,
+                    submission_id: selectedSubmissionId,
+                },
+            );
+
+            setPeerReviewBody('');
+            setSelectedSubmissionId(null);
+            setState(response.state);
+        } catch {
+            setPeerReviewError(
+                t(
+                    'activities.shared_task.peer_review_submit_error',
+                    'This peer review could not be saved.',
+                ),
+            );
+        } finally {
+            setIsSubmittingReview(false);
         }
     }
 
@@ -139,6 +183,20 @@ export function SharedTaskActivity({
             {state.contributions.length > 0 ? (
                 <SharedTaskContributions
                     contributions={state.contributions}
+                    t={t}
+                />
+            ) : null}
+
+            {state.peerReview?.enabled ? (
+                <SharedTaskPeerReview
+                    body={peerReviewBody}
+                    error={peerReviewError}
+                    isSubmitting={isSubmittingReview}
+                    onBodyChange={setPeerReviewBody}
+                    onSelect={setSelectedSubmissionId}
+                    onSubmit={() => void submitPeerReview()}
+                    selectedSubmissionId={selectedSubmissionId}
+                    state={state}
                     t={t}
                 />
             ) : null}
@@ -319,6 +377,142 @@ function SharedTaskContributions({
     );
 }
 
+function SharedTaskPeerReview({
+    body,
+    error,
+    isSubmitting,
+    onBodyChange,
+    onSelect,
+    onSubmit,
+    selectedSubmissionId,
+    state,
+    t,
+}: {
+    body: string;
+    error: string;
+    isSubmitting: boolean;
+    onBodyChange: (value: string) => void;
+    onSelect: (value: number | null) => void;
+    onSubmit: () => void;
+    selectedSubmissionId: number | null;
+    state: SharedTaskState;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    const peerReview = state.peerReview;
+
+    if (!peerReview) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby="shared-task-peer-review-heading"
+            className="rounded-lg border border-violet-200/70 bg-violet-50/60 p-4 dark:border-violet-200/20 dark:bg-violet-100/6"
+        >
+            <h3
+                className="text-sm font-semibold text-slate-800 dark:text-slate-100"
+                id="shared-task-peer-review-heading"
+            >
+                {t('activities.shared_task.peer_review', 'Peer review')}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                {peerReview.prompt}
+            </p>
+            {peerReview.hasReviewed ? (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    {t(
+                        'activities.shared_task.peer_review_recorded',
+                        'Your anonymous peer review has been recorded.',
+                    )}
+                </p>
+            ) : !state.hasSubmitted ? (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    {t(
+                        'activities.shared_task.peer_review_contribute_first',
+                        'Contribute first, then you can respond to one shared contribution.',
+                    )}
+                </p>
+            ) : peerReview.reviewableContributions.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+                    {t(
+                        'activities.shared_task.peer_review_waiting',
+                        'There is no other shared contribution available yet.',
+                    )}
+                </p>
+            ) : (
+                <div className="mt-3 grid gap-3">
+                    <fieldset className="grid gap-2">
+                        <legend className="text-xs font-semibold tracking-[0.12em] text-violet-700 uppercase dark:text-violet-200">
+                            {t(
+                                'activities.shared_task.peer_review_choose',
+                                'Choose one anonymous contribution',
+                            )}
+                        </legend>
+                        {peerReview.reviewableContributions.map((contribution) => (
+                            <label
+                                className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200/80 bg-white p-3 text-sm leading-6 text-slate-700 has-[:checked]:border-violet-500 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200 dark:has-[:checked]:border-violet-200"
+                                key={contribution.id}
+                            >
+                                <input
+                                    checked={selectedSubmissionId === contribution.id}
+                                    className="mt-1 size-4 accent-violet-600 dark:accent-violet-200"
+                                    name="shared-task-peer-review-submission"
+                                    onChange={() => onSelect(contribution.id)}
+                                    type="radio"
+                                />
+                                <span>
+                                    {contribution.body}
+                                    {contribution.truncated ? '…' : ''}
+                                </span>
+                            </label>
+                        ))}
+                    </fieldset>
+                    <label
+                        className="grid gap-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                        htmlFor="shared-task-peer-review-body"
+                    >
+                        {t(
+                            'activities.shared_task.peer_review_response_label',
+                            'Your response',
+                        )}
+                        <textarea
+                            className="min-h-24 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 font-normal text-slate-700 outline-none placeholder:text-slate-400 focus:border-violet-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-200/70"
+                            id="shared-task-peer-review-body"
+                            onChange={(event) => onBodyChange(event.target.value)}
+                            placeholder={t(
+                                'activities.shared_task.peer_review_response_placeholder',
+                                'Name a useful connection, question, or extension.',
+                            )}
+                            value={body}
+                        />
+                    </label>
+                    {error ? (
+                        <p aria-live="assertive" className="text-sm font-medium text-red-600 dark:text-red-300" role="alert">
+                            {error}
+                        </p>
+                    ) : null}
+                    <Button
+                        disabled={
+                            selectedSubmissionId === null ||
+                            body.trim().length < 10 ||
+                            isSubmitting
+                        }
+                        onClick={onSubmit}
+                        type="button"
+                    >
+                        {isSubmitting
+                            ? t('common.saving', 'Saving…')
+                            : t(
+                                  'activities.shared_task.peer_review_submit',
+                                  'Save peer review',
+                              )}
+                    </Button>
+                </div>
+            )}
+        </section>
+    );
+}
+
 function sharedTaskKind(value: unknown): SharedTaskKind {
     return value === 'question' || value === 'reflection' ? value : 'text';
 }
@@ -461,6 +655,7 @@ function fallbackState(activity: LearningActivity): SharedTaskState {
         isComplete: false,
         latestSubmissionAt: null,
         remaining: threshold,
+        peerReview: null,
         threshold,
     };
 }

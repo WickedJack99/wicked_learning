@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { ActivityForm } from './edit-node-activity-types';
 
 export function SharedTaskFlowFields({
@@ -21,6 +22,8 @@ export function SharedTaskFlowFields({
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
 }) {
+    const t = usePlatformTranslation();
+
     return (
         <div className="grid gap-4 md:grid-cols-2">
             <SelectField
@@ -238,6 +241,53 @@ export function SharedTaskFlowFields({
                         value={form.shared_task_project_steps}
                     />
                     <InputError message={errors.shared_task_project_steps} />
+                </div>
+                <div className="flex items-start gap-3 md:col-span-2">
+                    <Checkbox
+                        checked={form.shared_task_peer_review_enabled}
+                        id="shared-task-peer-review-enabled"
+                        onCheckedChange={(checked) =>
+                            onChange((current) => ({
+                                ...current,
+                                shared_task_peer_review_enabled: checked === true,
+                            }))
+                        }
+                    />
+                    <div className="grid flex-1 gap-2">
+                        <Label htmlFor="shared-task-peer-review-enabled">
+                            {t(
+                                'activities.shared_task.authoring.peer_review_label',
+                                'Invite one anonymous peer review',
+                            )}
+                        </Label>
+                        <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                            {t(
+                                'activities.shared_task.authoring.peer_review_description',
+                                'Learners who contribute may respond once to one shared contribution. No ratings or rankings are shown.',
+                            )}
+                        </p>
+                        {form.shared_task_peer_review_enabled ? (
+                            <>
+                                <Label htmlFor="shared-task-peer-review-prompt">
+                                    {t(
+                                        'activities.shared_task.authoring.peer_review_prompt_label',
+                                        'Review invitation',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="shared-task-peer-review-prompt"
+                                    onChange={(event) =>
+                                        onChange((current) => ({
+                                            ...current,
+                                            shared_task_peer_review_prompt: event.target.value,
+                                        }))
+                                    }
+                                    value={form.shared_task_peer_review_prompt}
+                                />
+                                <InputError message={errors.shared_task_peer_review_prompt} />
+                            </>
+                        ) : null}
+                    </div>
                 </div>
             </div>
         </div>

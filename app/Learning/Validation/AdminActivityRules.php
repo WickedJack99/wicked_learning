@@ -339,6 +339,8 @@ class AdminActivityRules
             'shared_task_project_goal' => $this->optional($modifier, ['string', 'max:1000']),
             'shared_task_project_deliverable' => $this->optional($modifier, ['string', 'max:1000']),
             'shared_task_project_steps' => $this->optional($modifier, ['string', 'max:4000']),
+            'shared_task_peer_review_enabled' => [$modifier, 'boolean'],
+            'shared_task_peer_review_prompt' => $this->optional($modifier, ['string', 'max:1000']),
             'shared_task_threshold' => [$modifier, 'integer', 'min:1', 'max:1000'],
             'shared_task_minimum_length' => [$modifier, 'integer', 'min:0', 'max:10000'],
             'shared_task_repeat_policy' => [$modifier, 'string', Rule::in(['once_per_user', 'unlimited'])],

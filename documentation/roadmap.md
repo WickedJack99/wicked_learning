@@ -182,10 +182,9 @@ mentor digests remain future work.
 ### Collaboration
 
 - Expand shared tasks into project briefs, decomposition and assignment. The
-  first bounded project-brief slice now gives learners an optional shared goal,
-  useful outcome and up to six suggested steps; decomposition, assignment and
-  peer review remain future work.
-- Support peer review, revision and presentation of group work.
+  current project-brief and one-response anonymous peer-review slices remain
+  intentionally bounded; decomposition and assignment are future work.
+- Support richer peer review, revision and presentation of group work.
 - Allow scoped group authoring of worlds, maps and routes with clear ownership
   and moderation boundaries.
 

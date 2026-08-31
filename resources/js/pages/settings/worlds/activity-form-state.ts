@@ -145,6 +145,9 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         shared_task_project_deliverable: '',
         shared_task_project_goal: '',
         shared_task_project_steps: '',
+        shared_task_peer_review_enabled: false,
+        shared_task_peer_review_prompt:
+            'What does this contribution help you notice, question, or extend?',
         shared_task_show_contributions: false,
         shared_task_minimum_length: '20',
         shared_task_prompt: 'Add a useful contribution.',
@@ -543,6 +546,14 @@ export function activityFormFromActivity(
                   (step): step is string => typeof step === 'string',
               ).join('\n')
             : '',
+        shared_task_peer_review_enabled: booleanConfig(
+            activity.config.peerReviewEnabled,
+            false,
+        ),
+        shared_task_peer_review_prompt: stringConfig(
+            activity.config.peerReviewPrompt,
+            'What does this contribution help you notice, question, or extend?',
+        ),
         shared_task_show_contributions: booleanConfig(
             activity.config.showContributions,
             false,

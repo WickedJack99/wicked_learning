@@ -450,6 +450,8 @@ export type CreateActivityForm = {
     shared_task_project_deliverable: string;
     shared_task_project_goal: string;
     shared_task_project_steps: string;
+    shared_task_peer_review_enabled: boolean;
+    shared_task_peer_review_prompt: string;
     shared_task_show_contributions: boolean;
     shared_task_minimum_length: string;
     shared_task_prompt: string;

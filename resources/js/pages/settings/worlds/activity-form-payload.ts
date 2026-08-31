@@ -155,6 +155,8 @@ const sharedTaskFields: Array<keyof ActivityForm> = [
     'shared_task_project_deliverable',
     'shared_task_project_goal',
     'shared_task_project_steps',
+    'shared_task_peer_review_enabled',
+    'shared_task_peer_review_prompt',
     'shared_task_show_contributions',
     'shared_task_minimum_length',
     'shared_task_prompt',

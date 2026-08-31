@@ -6,6 +6,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
+use App\Models\LearningSharedTaskReview;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\LearningWorld;
 use App\Models\User;
@@ -187,6 +188,56 @@ test('shared task contribution samples bound displayed text', function () {
     expect($response->json('state.contributions.0.body'))
         ->toHaveLength(500)
         ->and(LearningSharedTaskSubmission::query()->firstOrFail()->body)->toBe(trim($body));
+});
+
+test('shared task peer review requires a contribution and can be submitted once', function () {
+    [$firstLearner, $activity, $firstRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+        'threshold' => 5,
+    ]);
+    [$secondLearner, , $secondRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($firstLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The first learner noticed a useful pattern.',
+            'play_run_id' => $firstRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $reviewable = $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The second learner adds another perspective.',
+            'play_run_id' => $secondRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.peerReview.enabled', true)
+        ->json('state.peerReview.reviewableContributions');
+
+    expect($reviewable)->toHaveCount(1);
+
+    $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [
+            'body' => 'This connects the two observations clearly.',
+            'play_run_id' => $secondRunId,
+            'submission_id' => $reviewable[0]['id'],
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.peerReview.hasReviewed', true);
+
+    $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [
+            'body' => 'A second response is not allowed.',
+            'play_run_id' => $secondRunId,
+            'submission_id' => $reviewable[0]['id'],
+        ])
+        ->assertStatus(422);
+
+    expect(LearningSharedTaskReview::query()->count())->toBe(1)
+        ->and(LearningSharedTaskReview::query()->firstOrFail()->body)
+        ->toBe('This connects the two observations clearly.');
 });
 
 /** @return array{0: User, 1: LearningActivity, 2: string} */

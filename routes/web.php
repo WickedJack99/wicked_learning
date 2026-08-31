@@ -12,6 +12,7 @@ use App\Http\Controllers\LearningHomeController;
 use App\Http\Controllers\LearningItemActivityController;
 use App\Http\Controllers\LearningPathController;
 use App\Http\Controllers\LearningRouteProgressController;
+use App\Http\Controllers\LearningSharedTaskReviewController;
 use App\Http\Controllers\LearningSharedTaskSubmissionController;
 use App\Http\Controllers\LearningTopicController;
 use App\Http\Controllers\LearningWorldController;
@@ -128,6 +129,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.reflection.store');
     Route::post('learning/activities/{activity}/shared-task-submissions', [LearningSharedTaskSubmissionController::class, 'store'])
         ->name('learning.activities.shared-task-submissions.store');
+    Route::post('learning/activities/{activity}/shared-task-reviews', [LearningSharedTaskReviewController::class, 'store'])
+        ->name('learning.activities.shared-task-reviews.store');
     Route::post('learning/npc-dialogue-nodes/{node}/reflection', [LearnerJournalController::class, 'storeDialogueReflection'])
         ->name('learning.npc-dialogue-nodes.reflection.store');
     Route::get('learning/activities/{activity}/translation', [LearningActivityTranslationController::class, 'show'])

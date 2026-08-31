@@ -413,6 +413,17 @@ export type SharedTaskState = {
         taskKind: string;
         truncated: boolean;
     }>;
+    peerReview: {
+        enabled: boolean;
+        prompt: string;
+        hasReviewed: boolean;
+        reviewableContributions: Array<{
+            id: number;
+            body: string;
+            taskKind: string;
+            truncated: boolean;
+        }>;
+    } | null;
 };
 
 export type LearningTool = {
