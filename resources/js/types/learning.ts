@@ -421,6 +421,13 @@ export type SharedTaskState = {
         enabled: boolean;
         prompt: string;
         hasReviewed: boolean;
+        submittedReview: {
+            id: number;
+            body: string;
+            projectStep: string | null;
+            responseType: string | null;
+            createdAt: string | null;
+        } | null;
         reviewableContributions: Array<{
             id: number;
             body: string;

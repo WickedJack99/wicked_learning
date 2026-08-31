@@ -103,6 +103,9 @@ Received peer reviews can carry one contributor-owned follow-up note. The
 serializer fetches those notes in one batched query for the bounded review set;
 the note endpoint rechecks activity access and contribution sharing before
 persisting or clearing it.
+The same serializer may include the requesting learner's own submitted review
+as a single private record, but never includes that record in another learner's
+payload.
 
 The learner Paths query evaluates the existing per-user map and node state
 services in bounded candidate chunks, then serializes only the requested page

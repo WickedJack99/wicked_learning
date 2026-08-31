@@ -826,6 +826,42 @@ function SharedTaskPeerReview({
             <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {peerReview.prompt}
             </p>
+            {peerReview.submittedReview ? (
+                <article className="mt-3 grid gap-2 rounded-md border border-cyan-300/70 bg-cyan-50/70 p-3 text-sm leading-6 text-slate-700 dark:border-teal-200/25 dark:bg-teal-100/6 dark:text-slate-200">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-200">
+                        {t(
+                            'activities.shared_task.peer_review_your_response',
+                            'Your peer review',
+                        )}
+                    </p>
+                    <p className="break-words">
+                        {peerReview.submittedReview.responseType ? (
+                            <span className="mr-2 inline-flex rounded border border-violet-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:border-violet-200/30 dark:text-violet-200">
+                                {peerReviewResponseTypeLabel(
+                                    peerReview.submittedReview.responseType,
+                                    t,
+                                )}
+                            </span>
+                        ) : null}
+                        {peerReview.submittedReview.projectStep ? (
+                            <span className="mr-2 inline-flex rounded border border-cyan-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:border-teal-200/30 dark:text-teal-200">
+                                {t(
+                                    'activities.shared_task.project_step',
+                                    'Project step',
+                                )}
+                                : {peerReview.submittedReview.projectStep}
+                            </span>
+                        ) : null}
+                        {peerReview.submittedReview.body}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {t(
+                            'activities.shared_task.peer_review_your_response_private',
+                            'This response is visible only to you here.',
+                        )}
+                    </p>
+                </article>
+            ) : null}
             {peerReview.receivedReviews.length > 0 ? (
                 <div className="mt-3 rounded-md border border-violet-200/80 bg-white/70 p-3 dark:border-violet-200/15 dark:bg-slate-950/30">
                     <p className="text-xs font-semibold tracking-[0.12em] text-violet-700 uppercase dark:text-violet-200">

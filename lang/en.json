@@ -569,6 +569,8 @@
     "activities.shared_task.peer_review": "Peer review",
     "activities.shared_task.peer_review_received": "Responses to your contribution",
     "activities.shared_task.peer_review_recorded": "Your anonymous peer review has been recorded.",
+    "activities.shared_task.peer_review_your_response": "Your peer review",
+    "activities.shared_task.peer_review_your_response_private": "This response is visible only to you here.",
     "activities.shared_task.peer_review_contribute_first": "Contribute first, then you can respond to one shared contribution.",
     "activities.shared_task.peer_review_waiting": "There is no other shared contribution available yet.",
     "activities.shared_task.peer_review_choose": "Choose one anonymous contribution",

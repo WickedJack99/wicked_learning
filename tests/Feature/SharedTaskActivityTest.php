@@ -298,6 +298,9 @@ test('shared task peer review requires a contribution and can be submitted once'
         ])
         ->assertOk()
         ->assertJsonPath('state.peerReview.hasReviewed', true)
+        ->assertJsonPath('state.peerReview.submittedReview.body', 'This connects the two observations clearly.')
+        ->assertJsonPath('state.peerReview.submittedReview.responseType', 'explanation')
+        ->assertJsonPath('state.peerReview.submittedReview.projectStep', 'Compare interpretations')
         ->assertJsonPath('review.responseType', 'explanation')
         ->assertJsonPath('review.projectStepIndex', 1)
         ->assertJsonPath('state.peerReview.receivedReviews', []);
@@ -312,6 +315,9 @@ test('shared task peer review requires a contribution and can be submitted once'
         ->toBe('explanation')
         ->and($firstLearnerState['peerReview']['receivedReviews'][0]['projectStep'])
         ->toBe('Compare interpretations')
+        ->and($firstLearnerState['peerReview']['submittedReview'])->toBeNull()
+        ->and($secondLearnerState['peerReview']['submittedReview']['body'])
+        ->toBe('This connects the two observations clearly.')
         ->and($secondLearnerState['peerReview']['receivedReviews'])->toBeEmpty();
 
     $this->actingAs($secondLearner)

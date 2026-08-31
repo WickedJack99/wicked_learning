@@ -19,7 +19,7 @@ class SharedTaskStateSerializer
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
     ) {}
 
-    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null} */
+    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, submittedReview: array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null} */
     public function state(LearningActivity $activity, ?User $user = null, bool $includeContributions = false): array
     {
         $threshold = $this->threshold($activity);
@@ -87,7 +87,7 @@ class SharedTaskStateSerializer
             ->all();
     }
 
-    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null */
+    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, submittedReview: array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null */
     private function peerReview(LearningActivity $activity, ?User $user, bool $hasSubmitted): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -99,22 +99,47 @@ class SharedTaskStateSerializer
                 'enabled' => true,
                 'prompt' => (string) ($config['peerReviewPrompt'] ?? self::DEFAULT_PEER_REVIEW_PROMPT),
                 'hasReviewed' => false,
+                'submittedReview' => null,
                 'reviewableContributions' => [],
                 'receivedReviews' => [],
             ] : null;
         }
 
-        $hasReviewed = LearningSharedTaskReview::query()
-            ->where('learning_activity_id', $activity->id)
-            ->where('user_id', $user->id)
-            ->exists();
+        $submittedReview = $this->submittedReview($activity, $user);
 
         return [
             'enabled' => true,
             'prompt' => (string) ($config['peerReviewPrompt'] ?? self::DEFAULT_PEER_REVIEW_PROMPT),
-            'hasReviewed' => $hasReviewed,
+            'hasReviewed' => $submittedReview !== null,
+            'submittedReview' => $submittedReview,
             'reviewableContributions' => $hasSubmitted ? $this->reviewableContributions($activity, $user) : [],
             'receivedReviews' => $hasSubmitted ? $this->receivedReviews($activity, $user) : [],
+        ];
+    }
+
+    /** @return array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null */
+    private function submittedReview(LearningActivity $activity, User $user): ?array
+    {
+        $projectSteps = $this->sharedTaskConfig->projectSteps(is_array($activity->config) ? $activity->config : []);
+        $review = LearningSharedTaskReview::query()
+            ->where('learning_activity_id', $activity->id)
+            ->where('user_id', $user->id)
+            ->latest('created_at')
+            ->latest('id')
+            ->first(['id', 'body', 'project_step_index', 'response_type', 'created_at']);
+
+        if (! $review) {
+            return null;
+        }
+
+        return [
+            'id' => $review->id,
+            'body' => $review->body,
+            'projectStep' => $review->project_step_index !== null
+                ? ($projectSteps[$review->project_step_index] ?? null)
+                : null,
+            'responseType' => $review->response_type,
+            'createdAt' => $review->created_at?->toIso8601String(),
         ];
     }
 
