@@ -12,6 +12,7 @@ import {
     toolAnimationWidthStyle,
 } from '@/features/tools/tool-visuals';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 import type {
     ActivityTransition,
@@ -45,6 +46,7 @@ export function ObstacleActivity({
     transition: ActivityTransition | null;
 }) {
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const selectedTool = useSelectedLearningTool();
     const [isPromptHidden, setIsPromptHidden] = useState(false);
     const [isSuccessHidden, setIsSuccessHidden] = useState(false);
@@ -125,18 +127,31 @@ export function ObstacleActivity({
         : activeObstacleMirrored;
     const promptText = stringValue(
         activity.config.promptText,
-        'Something blocks the way. Equip a suitable tool, then use it here.',
+        t(
+            'learning.obstacle.prompt',
+            'Something blocks the way. Equip a suitable tool, then use it here.',
+        ),
     );
     const toolHint = selectedTool
-        ? 'Selected tool: ' + selectedTool.title + '. Click the gate above.'
-        : 'Choose a tool with the hammer button, then click the gate above.';
+        ? t(
+              'learning.obstacle.selected_tool',
+              'Selected tool: :tool. Click the gate above.',
+              { tool: selectedTool.title },
+          )
+        : t(
+              'learning.obstacle.choose_tool',
+              'Choose a tool with the hammer button, then click the gate above.',
+          );
     const successText = stringValue(
         activity.config.successText,
-        'The obstacle gives way.',
+        t('learning.obstacle.success', 'The obstacle gives way.'),
     );
     const revisitText = stringValue(
         activity.config.revisitText,
-        'This obstacle has already been cleared.',
+        t(
+            'learning.obstacle.already_cleared',
+            'This obstacle has already been cleared.',
+        ),
     );
     const typingSpeed = numericConfig(activity.config.typingSpeed, 24);
     const successAnimation = stringValue(
@@ -164,7 +179,12 @@ export function ObstacleActivity({
 
         if (!selectedTool) {
             if (clickedObstacle) {
-                setHint('Equip a tool from the tool belt first.');
+                setHint(
+                    t(
+                        'learning.obstacle.equip_tool_first',
+                        'Equip a tool from the tool belt first.',
+                    ),
+                );
             }
 
             return;
@@ -197,7 +217,12 @@ export function ObstacleActivity({
             const response = await responsePromise;
 
             if (!response.result.isUseful) {
-                setHint('That tool does not seem useful here.');
+                setHint(
+                    t(
+                        'learning.obstacle.tool_not_useful',
+                        'That tool does not seem useful here.',
+                    ),
+                );
 
                 return;
             }
@@ -246,6 +271,14 @@ export function ObstacleActivity({
                     mirrored={obstacleMirrored}
                     successAnimation={successAnimation}
                     style={obstaclePlacement}
+                    targetAriaLabel={t(
+                        'learning.obstacle.use_tool',
+                        'Use an equipped tool on the gate',
+                    )}
+                    targetFallback={t(
+                        'learning.obstacle.target_fallback',
+                        'Equip a tool, then click the gate',
+                    )}
                 />
             )}
 
@@ -261,8 +294,10 @@ export function ObstacleActivity({
                     <ObstacleSpeechBubble
                         activity={activity}
                         hint={toolHint}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         mode={resolvedAppearance}
                         onHide={() => setIsPromptHidden(true)}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
                         text={promptText}
                         typingSpeed={typingSpeed}
                     />
@@ -271,8 +306,10 @@ export function ObstacleActivity({
                 {!isSuccessHidden && isResolved && !isClearedRevisit ? (
                     <ObstacleSpeechBubble
                         activity={activity}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         mode={resolvedAppearance}
                         onHide={() => setIsSuccessHidden(true)}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
                         text={successText}
                         typingSpeed={typingSpeed}
                     />
@@ -281,8 +318,10 @@ export function ObstacleActivity({
                 {!isRevisitHidden && isClearedRevisit ? (
                     <ObstacleSpeechBubble
                         activity={activity}
+                        label={t('learning.obstacle.label', 'Obstacle')}
                         mode={resolvedAppearance}
                         onHide={() => setIsRevisitHidden(true)}
+                        hideLabel={t('learning.obstacle.hide', 'Hide')}
                         text={revisitText}
                         typingSpeed={typingSpeed}
                     />
@@ -302,7 +341,10 @@ export function ObstacleActivity({
                         }
                         type="button"
                     >
-                        {activityTransitionLabel(transition, 'Continue')}
+                        {activityTransitionLabel(
+                            transition,
+                            t('common.continue', 'Continue'),
+                        )}
                         <ArrowRight className="ml-2 size-4" />
                     </Button>
                 ) : null}
@@ -327,6 +369,8 @@ function ObstacleTargetVisual({
     mirrored,
     style,
     successAnimation,
+    targetAriaLabel,
+    targetFallback,
 }: {
     imageUrl: string;
     isResolved: boolean;
@@ -334,6 +378,8 @@ function ObstacleTargetVisual({
     mirrored: boolean;
     style: CSSProperties;
     successAnimation: string;
+    targetAriaLabel: string;
+    targetFallback: string;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
 
@@ -358,7 +404,7 @@ function ObstacleTargetVisual({
                 )}
                 data-obstacle-target="true"
                 disabled={isResolving || isResolved}
-                aria-label="Use an equipped tool on the gate"
+                aria-label={targetAriaLabel}
                 type="button"
             >
                 {canShowImage ? (
@@ -375,7 +421,7 @@ function ObstacleTargetVisual({
                     />
                 ) : (
                     <span className="text-sm font-semibold">
-                        Equip a tool, then click the gate
+                        {targetFallback}
                     </span>
                 )}
             </button>
@@ -573,6 +619,8 @@ function obstacleDestroyedAt(
 function ObstacleSpeechBubble({
     activity,
     hint,
+    hideLabel,
+    label,
     mode,
     onHide,
     text,
@@ -580,6 +628,8 @@ function ObstacleSpeechBubble({
 }: {
     activity: LearningActivity;
     hint?: string;
+    hideLabel: string;
+    label: string;
     mode: 'dark' | 'light';
     onHide: () => void;
     text: string;
@@ -593,7 +643,7 @@ function ObstacleSpeechBubble({
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
                     <MessageCircle className="size-4" />
-                    Obstacle
+                    {label}
                 </div>
                 <Button
                     onClick={onHide}
@@ -601,7 +651,7 @@ function ObstacleSpeechBubble({
                     type="button"
                     variant="ghost"
                 >
-                    Hide
+                    {hideLabel}
                 </Button>
             </div>
             <TypingText key={text} speed={typingSpeed} text={text} />

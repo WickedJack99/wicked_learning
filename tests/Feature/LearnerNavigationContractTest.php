@@ -217,6 +217,20 @@ test('question playback copy uses the platform translation catalog', function ()
         ->not->toContain("? 'Remove from recall queue'");
 });
 
+test('obstacle playback copy uses the platform translation catalog', function () {
+    $obstacle = file_get_contents(
+        resource_path('js/features/world/obstacle-activity.tsx'),
+    );
+
+    expect($obstacle)
+        ->toContain("'learning.obstacle.prompt'")
+        ->toContain("'learning.obstacle.choose_tool'")
+        ->toContain("'learning.obstacle.tool_not_useful'")
+        ->toContain("'learning.obstacle.use_tool'")
+        ->toContain("'learning.obstacle.target_fallback'")
+        ->not->toContain('aria-label="Use an equipped tool on the gate"');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
@@ -261,7 +275,7 @@ test('learner activity actions preserve authored transition labels', function ()
     expect($markdownActivity)
         ->toContain("activityTransitionLabel(transition, 'Continue')");
     expect($obstacleActivity)
-        ->toContain("activityTransitionLabel(transition, 'Continue')");
+        ->toContain("t('common.continue', 'Continue')");
     expect($npcDialogue)
         ->toContain('npcExitTransition(activity, nextNode.id)')
         ->toContain('transitionLabel: exitTransition?.label');
