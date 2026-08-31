@@ -129,6 +129,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.reflection.store');
     Route::post('learning/activities/{activity}/shared-task-submissions', [LearningSharedTaskSubmissionController::class, 'store'])
         ->name('learning.activities.shared-task-submissions.store');
+    Route::patch('learning/activities/{activity}/shared-task-submissions/{submission}/revision', [LearningSharedTaskSubmissionController::class, 'updateRevision'])
+        ->name('learning.activities.shared-task-submissions.revision.update');
     Route::post('learning/activities/{activity}/shared-task-reviews', [LearningSharedTaskReviewController::class, 'store'])
         ->name('learning.activities.shared-task-reviews.store');
     Route::patch('learning/activities/{activity}/shared-task-reviews/{review}/helpfulness', [LearningSharedTaskReviewController::class, 'updateHelpfulness'])

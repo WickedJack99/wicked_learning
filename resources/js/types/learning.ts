@@ -417,6 +417,14 @@ export type SharedTaskState = {
     latestSubmissionAt: string | null;
     canShareContributions: boolean;
     hasSubmitted: boolean;
+    submission: {
+        id: number;
+        body: string;
+        projectStep: string | null;
+        revisedBody: string | null;
+        revisedAt: string | null;
+        canRevise: boolean;
+    } | null;
     contributions: Array<{
         body: string;
         projectStep: string | null;

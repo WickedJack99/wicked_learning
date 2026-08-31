@@ -19,7 +19,7 @@ class SharedTaskStateSerializer
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
     ) {}
 
-    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, submittedReview: array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null} */
+    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, submission: array{id: int, body: string, projectStep: string|null, revisedBody: string|null, revisedAt: string|null, canRevise: bool}|null, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, submittedReview: array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null} */
     public function state(LearningActivity $activity, ?User $user = null, bool $includeContributions = false): array
     {
         $threshold = $this->threshold($activity);
@@ -34,11 +34,16 @@ class SharedTaskStateSerializer
             ->latest('accepted_at')
             ->first();
 
-        $hasSubmitted = $includeContributions && $user !== null && LearningSharedTaskSubmission::query()
-            ->where('learning_activity_id', $activity->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'accepted')
-            ->exists();
+        $submission = $includeContributions && $user !== null
+            ? LearningSharedTaskSubmission::query()
+                ->where('learning_activity_id', $activity->id)
+                ->where('user_id', $user->id)
+                ->where('status', 'accepted')
+                ->latest('accepted_at')
+                ->latest('id')
+                ->first(['id', 'body', 'revised_body', 'revised_at', 'metadata'])
+            : null;
+        $hasSubmitted = $submission !== null;
 
         return [
             'acceptedCount' => $acceptedCount,
@@ -48,6 +53,7 @@ class SharedTaskStateSerializer
             'latestSubmissionAt' => $latest?->accepted_at?->toIso8601String(),
             'canShareContributions' => $this->showContributions($activity),
             'hasSubmitted' => $hasSubmitted,
+            'submission' => $submission ? $this->submission($submission, $activity) : null,
             'contributions' => $includeContributions ? $this->contributions($activity) : [],
             'peerReview' => $includeContributions ? $this->peerReview($activity, $user, $hasSubmitted) : null,
         ];
@@ -69,9 +75,9 @@ class SharedTaskStateSerializer
             ->latest('accepted_at')
             ->latest('id')
             ->limit(5)
-            ->get(['body', 'accepted_at', 'metadata'])
+            ->get(['body', 'revised_body', 'accepted_at', 'metadata'])
             ->map(function (LearningSharedTaskSubmission $submission) use ($projectSteps): array {
-                $body = $submission->body;
+                $body = $submission->revised_body ?? $submission->body;
 
                 return [
                     'body' => mb_substr($body, 0, 500),
@@ -85,6 +91,30 @@ class SharedTaskStateSerializer
             })
             ->values()
             ->all();
+    }
+
+    /** @return array{id: int, body: string, projectStep: string|null, revisedBody: string|null, revisedAt: string|null, canRevise: bool} */
+    private function submission(
+        LearningSharedTaskSubmission $submission,
+        LearningActivity $activity,
+    ): array {
+        $metadata = is_array($submission->metadata) ? $submission->metadata : [];
+
+        return [
+            'id' => $submission->id,
+            'body' => $submission->body,
+            'projectStep' => $this->projectStep(
+                $submission,
+                $this->sharedTaskConfig->projectSteps(is_array($activity->config) ? $activity->config : []),
+            ),
+            'revisedBody' => $submission->revised_body,
+            'revisedAt' => $submission->revised_at?->toIso8601String(),
+            'canRevise' => ($metadata['shareWithPeers'] ?? false) === true
+                && $submission->revised_body === null
+                && LearningSharedTaskReview::query()
+                    ->where('learning_shared_task_submission_id', $submission->id)
+                    ->exists(),
+        ];
     }
 
     /** @return array{enabled: bool, prompt: string, hasReviewed: bool, submittedReview: array{id: int, body: string, projectStep: string|null, responseType: string|null, createdAt: string|null}|null, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, projectStep: string|null, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null, followUp: string|null}>}|null */

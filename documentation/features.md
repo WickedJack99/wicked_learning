@@ -254,6 +254,11 @@ not a rating or popularity measure. The contributor may also keep an optional
 private follow-up note about what to carry forward from a received response;
 the note is visible only to that contributor, can be cleared, and does not
 change completion, evidence, or peer-review visibility.
+After receiving peer feedback, a contributor may optionally submit one revised
+version of their shared contribution. The original and revised text remain
+private to that contributor's history; the shared anonymous sample uses the
+revised text when present. This is a learner-controlled revision opportunity,
+not a grade or a second completion signal.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

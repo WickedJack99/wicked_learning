@@ -59,6 +59,9 @@ export function SharedTaskActivity({
     const [savingFollowUpId, setSavingFollowUpId] = useState<number | null>(
         null,
     );
+    const [revisionBody, setRevisionBody] = useState('');
+    const [revisionError, setRevisionError] = useState('');
+    const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
     const [shareWithPeers, setShareWithPeers] = useState(false);
     const [selectedProjectStepIndex, setSelectedProjectStepIndex] = useState<
         number | null
@@ -247,6 +250,42 @@ export function SharedTaskActivity({
         }
     }
 
+    async function submitRevision() {
+        if (
+            !playRunId ||
+            !state.submission?.canRevise ||
+            revisionBody.trim().length < minimumLength ||
+            isSubmittingRevision
+        ) {
+            return;
+        }
+
+        setIsSubmittingRevision(true);
+        setRevisionError('');
+
+        try {
+            const response = await patchJson<{ state: SharedTaskState }>(
+                `/learning/activities/${activity.id}/shared-task-submissions/${state.submission.id}/revision`,
+                {
+                    body: revisionBody,
+                    play_run_id: playRunId,
+                },
+            );
+
+            setRevisionBody('');
+            setState(response.state);
+        } catch {
+            setRevisionError(
+                t(
+                    'activities.shared_task.revision_error',
+                    'This revision could not be saved yet.',
+                ),
+            );
+        } finally {
+            setIsSubmittingRevision(false);
+        }
+    }
+
     async function toggleProjectStep(index: number) {
         if (updatingProjectStepIndex !== null) {
             return;
@@ -346,7 +385,8 @@ export function SharedTaskActivity({
                 />
             ) : null}
 
-            {activeArea === 'contributions' && state.contributions.length > 0 ? (
+            {activeArea === 'contributions' &&
+            state.contributions.length > 0 ? (
                 <SharedTaskContributions
                     contributions={state.contributions}
                     t={t}
@@ -378,6 +418,10 @@ export function SharedTaskActivity({
                     onFollowUpSave={(reviewId, body) =>
                         updatePeerReviewFollowUp(reviewId, body)
                     }
+                    isSubmittingRevision={isSubmittingRevision}
+                    minimumLength={minimumLength}
+                    onRevisionBodyChange={setRevisionBody}
+                    onRevisionSubmit={() => void submitRevision()}
                     onSelect={setSelectedSubmissionId}
                     onProjectStepChange={setPeerReviewProjectStepIndex}
                     onResponseTypeChange={setPeerReviewResponseType}
@@ -386,6 +430,8 @@ export function SharedTaskActivity({
                     projectStepIndex={peerReviewProjectStepIndex}
                     projectSteps={projectSteps}
                     selectedSubmissionId={selectedSubmissionId}
+                    revisionBody={revisionBody}
+                    revisionError={revisionError}
                     state={state}
                     t={t}
                     savingFollowUpId={savingFollowUpId}
@@ -769,12 +815,16 @@ function SharedTaskPeerReview({
     followUpBody,
     followUpError,
     isSubmitting,
+    isSubmittingRevision,
+    minimumLength,
     onBodyChange,
     onFollowUpBodyChange,
     onFollowUpClose,
     onFollowUpOpen,
     onFollowUpSave,
     onHelpfulnessChange,
+    onRevisionBodyChange,
+    onRevisionSubmit,
     onSelect,
     onProjectStepChange,
     onResponseTypeChange,
@@ -782,6 +832,8 @@ function SharedTaskPeerReview({
     responseType,
     projectStepIndex,
     projectSteps,
+    revisionBody,
+    revisionError,
     savingFollowUpId,
     selectedSubmissionId,
     state,
@@ -794,12 +846,16 @@ function SharedTaskPeerReview({
     followUpBody: string;
     followUpError: string;
     isSubmitting: boolean;
+    isSubmittingRevision: boolean;
+    minimumLength: number;
     onBodyChange: (value: string) => void;
     onFollowUpBodyChange: (value: string) => void;
     onFollowUpClose: () => void;
     onFollowUpOpen: (reviewId: number, body: string) => void;
     onFollowUpSave: (reviewId: number, body: string) => Promise<void>;
     onHelpfulnessChange: (reviewId: number, helpful: boolean) => void;
+    onRevisionBodyChange: (value: string) => void;
+    onRevisionSubmit: () => void;
     onSelect: (value: number | null) => void;
     onProjectStepChange: (value: number | null) => void;
     onResponseTypeChange: (value: PeerReviewResponseType | null) => void;
@@ -807,6 +863,8 @@ function SharedTaskPeerReview({
     responseType: PeerReviewResponseType | null;
     projectStepIndex: number | null;
     projectSteps: string[];
+    revisionBody: string;
+    revisionError: string;
     savingFollowUpId: number | null;
     selectedSubmissionId: number | null;
     state: SharedTaskState;
@@ -1059,6 +1117,87 @@ function SharedTaskPeerReview({
                             role="alert"
                         >
                             {followUpError}
+                        </p>
+                    ) : null}
+                </div>
+            ) : null}
+            {state.submission?.revisedBody ? (
+                <article className="mt-3 grid gap-2 rounded-md border border-cyan-300/70 bg-cyan-50/70 p-3 text-sm leading-6 text-slate-700 dark:border-teal-200/25 dark:bg-teal-100/6 dark:text-slate-200">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-200">
+                        {t(
+                            'activities.shared_task.revision_recorded',
+                            'Your revised contribution',
+                        )}
+                    </p>
+                    <p className="break-words">
+                        {state.submission.revisedBody}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                        {t(
+                            'activities.shared_task.revision_private_history',
+                            'Your original contribution remains in your private history.',
+                        )}
+                    </p>
+                </article>
+            ) : state.submission?.canRevise ? (
+                <div className="mt-3 grid gap-3 rounded-md border border-cyan-300/70 bg-cyan-50/70 p-3 dark:border-teal-200/25 dark:bg-teal-100/6">
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-200">
+                            {t(
+                                'activities.shared_task.revision_heading',
+                                'Try a revision',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                            {t(
+                                'activities.shared_task.revision_description',
+                                'Use the feedback above to submit one improved version. Your original contribution stays preserved privately.',
+                            )}
+                        </p>
+                    </div>
+                    <label
+                        className="grid gap-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                        htmlFor="shared-task-revision-body"
+                    >
+                        {t(
+                            'activities.shared_task.revision_label',
+                            'Revised contribution',
+                        )}
+                        <textarea
+                            className="min-h-24 resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 font-normal text-slate-700 outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                            id="shared-task-revision-body"
+                            onChange={(event) =>
+                                onRevisionBodyChange(event.target.value)
+                            }
+                            placeholder={t(
+                                'activities.shared_task.revision_placeholder',
+                                'Rewrite your contribution using what you noticed from the feedback.',
+                            )}
+                            value={revisionBody}
+                        />
+                    </label>
+                    <Button
+                        disabled={
+                            revisionBody.trim().length < minimumLength ||
+                            isSubmittingRevision
+                        }
+                        onClick={onRevisionSubmit}
+                        type="button"
+                    >
+                        {isSubmittingRevision
+                            ? t('common.saving', 'Saving…')
+                            : t(
+                                  'activities.shared_task.revision_submit',
+                                  'Save one revision',
+                              )}
+                    </Button>
+                    {revisionError ? (
+                        <p
+                            aria-live="assertive"
+                            className="text-sm font-medium text-red-600 dark:text-red-300"
+                            role="alert"
+                        >
+                            {revisionError}
                         </p>
                     ) : null}
                 </div>
@@ -1471,6 +1610,7 @@ function fallbackState(activity: LearningActivity): SharedTaskState {
         canShareContributions: false,
         contributions: [],
         hasSubmitted: false,
+        submission: null,
         acceptedCount: 0,
         isComplete: false,
         latestSubmissionAt: null,

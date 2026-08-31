@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A learner contribution to a shared, activity-wide task counter. */
-#[Fillable(['learning_activity_id', 'user_id', 'play_run_id', 'body', 'status', 'validation_mode', 'metadata', 'accepted_at'])]
+#[Fillable(['learning_activity_id', 'user_id', 'play_run_id', 'body', 'revised_body', 'status', 'validation_mode', 'metadata', 'accepted_at', 'revised_at'])]
 class LearningSharedTaskSubmission extends Model
 {
     protected function casts(): array
@@ -15,6 +15,7 @@ class LearningSharedTaskSubmission extends Model
         return [
             'accepted_at' => 'datetime',
             'metadata' => 'array',
+            'revised_at' => 'datetime',
         ];
     }
 

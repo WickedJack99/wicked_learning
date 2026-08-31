@@ -564,6 +564,85 @@ test('shared task contributors can keep a private follow-up note about peer feed
     expect(LearningSharedTaskReviewFollowUp::query()->count())->toBe(0);
 });
 
+test('shared task contributors can submit one revision after receiving peer feedback', function () {
+    [$owner, $activity, $ownerRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+        'minimumLength' => 5,
+    ]);
+    [$reviewer, , $reviewerRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($owner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The original contribution.',
+            'play_run_id' => $ownerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.submission.body', 'The original contribution.')
+        ->assertJsonPath('state.submission.canRevise', false);
+
+    $ownerSubmission = LearningSharedTaskSubmission::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('user_id', $owner->id)
+        ->firstOrFail();
+
+    $reviewable = $this->actingAs($reviewer)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'A reviewer contribution.',
+            'play_run_id' => $reviewerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->json('state.peerReview.reviewableContributions');
+
+    $this->actingAs($reviewer)
+        ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [
+            'body' => 'This helped me compare the two observations.',
+            'play_run_id' => $reviewerRunId,
+            'submission_id' => $reviewable[0]['id'],
+            'response_type' => 'explanation',
+        ])
+        ->assertOk();
+
+    $this->actingAs($reviewer)
+        ->patchJson(route('learning.activities.shared-task-submissions.revision.update', [$activity, $ownerSubmission]), [
+            'body' => 'A reviewer cannot revise another learner contribution.',
+            'play_run_id' => $reviewerRunId,
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('submission');
+
+    $response = $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-submissions.revision.update', [$activity, $ownerSubmission]), [
+            'body' => 'The revised contribution uses the feedback.',
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.submission.body', 'The original contribution.')
+        ->assertJsonPath('state.submission.revisedBody', 'The revised contribution uses the feedback.')
+        ->assertJsonPath('state.submission.canRevise', false);
+
+    expect($response->json('state.contributions'))
+        ->toContainEqual([
+            'body' => 'The revised contribution uses the feedback.',
+            'projectStep' => null,
+            'submittedAt' => $ownerSubmission->accepted_at?->toIso8601String(),
+            'taskKind' => 'text',
+            'truncated' => false,
+        ])
+        ->and($ownerSubmission->refresh()->body)->toBe('The original contribution.')
+        ->and($ownerSubmission->revised_body)->toBe('The revised contribution uses the feedback.')
+        ->and($ownerSubmission->revised_at)->not->toBeNull();
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-submissions.revision.update', [$activity, $ownerSubmission]), [
+            'body' => 'A second revision should be rejected.',
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertStatus(422);
+});
+
 test('shared task reviews stay hidden for private contributions', function () {
     [$owner, $activity, $ownerRunId] = activeSharedTask([
         'peerReviewEnabled' => true,

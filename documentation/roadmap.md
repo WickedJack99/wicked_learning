@@ -227,8 +227,10 @@ workflows remain future work.
 - Expand shared tasks into project briefs, decomposition and assignment. The
   current project-brief, step-context and one-response anonymous peer-review slices remain
   intentionally bounded; the project brief can now hold an optional private
-  learner checklist, and contributions can optionally name the authored step
-  they support. Shared ownership, decomposition and assignment are future work.
+  learner checklist, contributions can optionally name the authored step they
+  support, and a contributor can now make one private-preserving revision after
+  peer feedback. Shared ownership, decomposition and assignment remain future
+  work.
 - Support richer peer review, revision and presentation of group work.
 - Allow scoped group authoring of worlds, maps and routes with clear ownership
   and moderation boundaries.
