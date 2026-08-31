@@ -5,6 +5,7 @@ use App\Learning\Services\LearningNodeStateResolver;
 use App\Models\AccessRole;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
+use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningItem;
@@ -20,7 +21,9 @@ use App\Models\NpcDialogueNode;
 use App\Models\NpcDialogueTransition;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 test('guests can visit the public world route', function () {
@@ -847,6 +850,73 @@ test('authenticated users can play a node activity graph outside the map', funct
             ->where('node.activities.0.type', 'npc_dialogue')
             ->where('node.mapSlug', 'first-sector')
         );
+});
+
+test('node playback batches learner route progress lookups', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => 'route-progress-world',
+        'title' => 'Route progress world',
+    ]);
+    $map = LearningMap::query()->create([
+        'access_roles' => [User::ROLE_USER],
+        'learning_world_id' => $world->id,
+        'slug' => 'route-progress-map',
+        'title' => 'Route progress map',
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'position_q' => 0,
+        'position_r' => 0,
+        'slug' => 'route-progress-node',
+        'state' => 'available',
+        'title' => 'Route progress node',
+    ]);
+    $starts = collect(range(1, 4))->map(function (int $index) use ($node): LearningActivityStart {
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => 'route-progress-activity-'.$index,
+            'title' => 'Route progress activity '.$index,
+            'type' => 'markdown',
+        ]);
+
+        return LearningActivityStart::query()->create([
+            'learning_activity_id' => $activity->id,
+            'learning_node_id' => $node->id,
+            'label' => 'Route '.$index,
+            'sort_order' => $index,
+        ]);
+    });
+    $starts->take(2)->each(function (LearningActivityStart $start) use ($user): void {
+        LearnerRouteProgress::query()->create([
+            'current_learning_activity_id' => $start->learning_activity_id,
+            'learning_activity_start_id' => $start->id,
+            'learning_node_id' => $start->learning_node_id,
+            'start_learning_activity_id' => $start->learning_activity_id,
+            'status' => 'in_progress',
+            'user_id' => $user->id,
+        ]);
+    });
+
+    $progressQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$progressQueries): void {
+        if (str_contains($query->sql, 'from "learner_route_progress"')) {
+            $progressQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('learning.nodes.play', $node))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('node.startRoutes', 4)
+            ->where('node.startRoutes.0.progress.status', 'in_progress')
+            ->where('node.startRoutes.2.progress', null)
+        );
+
+    expect(collect($progressQueries)
+        ->filter(fn (QueryExecuted $query): bool => str_contains($query->sql, 'start_learning_activity_id" in')))
+        ->toHaveCount(1);
 });
 
 test('learners can open a requested activity within a playable node', function () {

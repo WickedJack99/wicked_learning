@@ -8,6 +8,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class LearnerRouteProgressService
@@ -21,6 +22,24 @@ class LearnerRouteProgressService
             ->where('learning_node_id', $start->learning_node_id)
             ->where('start_learning_activity_id', $start->learning_activity_id)
             ->first();
+    }
+
+    /**
+     * @param  Collection<int, LearningActivityStart>  $starts
+     * @return Collection<int, LearnerRouteProgress>
+     */
+    public function progressForStarts(User $user, Collection $starts): Collection
+    {
+        if ($starts->isEmpty()) {
+            return collect();
+        }
+
+        return LearnerRouteProgress::query()
+            ->where('user_id', $user->id)
+            ->where('learning_node_id', $starts->first()->learning_node_id)
+            ->whereIn('start_learning_activity_id', $starts->pluck('learning_activity_id')->all())
+            ->get()
+            ->keyBy('start_learning_activity_id');
     }
 
     public function startOrResume(User $user, LearningActivityStart $start): LearnerRouteProgress

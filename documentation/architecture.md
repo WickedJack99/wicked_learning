@@ -101,6 +101,11 @@ destinations are intentionally not copied across MapAssets.
 current Activity, run key, completion counts and completion time. Activity types
 can persist more specific state without putting it into the URL:
 
+When a learner node exposes route choices, the serializer batch-loads the
+current learner's progress for those starts in one node-scoped query. Missing
+progress remains a null route state, so route count does not turn into one
+database lookup per choice.
+
 Shared-task submissions keep their normalized authored task kind in metadata so
 later cooperation review can distinguish contribution, question and reflection
 without changing the shared-task completion counter or treating the kind as a

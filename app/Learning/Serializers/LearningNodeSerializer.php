@@ -356,9 +356,10 @@ class LearningNodeSerializer
      */
     private function startRoutes(LearningNode $node, ?User $user): Collection
     {
-        return $node->activityStarts
+        $eligibleStarts = $node->activityStarts
             ->filter(fn (LearningActivityStart $start): bool => $this->routeEligibility->canStart($start->activity))
-            ->map(fn (LearningActivityStart $start): array => $this->startSerializer->serialize($start, $user))
             ->values();
+
+        return $this->startSerializer->serializeMany($eligibleStarts, $user);
     }
 }
