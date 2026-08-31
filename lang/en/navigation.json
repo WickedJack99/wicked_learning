@@ -1,0 +1,12 @@
+{
+    "navigation.primary.learning_desk": "Learning desk",
+    "navigation.primary.map": "Map",
+    "navigation.primary.current_map": "Current map",
+    "navigation.primary.journal": "Journal",
+    "navigation.primary.bookmarks": "Bookmarks",
+    "navigation.primary.organizations": "Organizations",
+    "navigation.primary.settings": "Settings",
+    "navigation.primary.log_out": "Log out",
+    "navigation.activity.continue": "Continue activity",
+    "navigation.activity.return": "Return to :title"
+}

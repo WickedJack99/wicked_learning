@@ -2,6 +2,7 @@
 
 use App\Localization\Actions\ImportTranslationCatalog;
 use App\Localization\Services\ActivityTranslationPayloadFactory;
+use App\Localization\Services\TranslationCatalogExportService;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTranslation;
@@ -12,6 +13,7 @@ use App\Models\PlatformLanguage;
 use App\Models\User;
 use App\Models\UserPreference;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 function translatedLearningActivity(array $accessRoles = []): LearningActivity
 {
@@ -211,4 +213,24 @@ test('activity translation imports keep only learner-facing configuration copy',
 
     expect(app(ActivityTranslationPayloadFactory::class)->make($activity))
         ->toHaveKey('config.markdownPages.intro.title', 'Introduction');
+});
+
+test('translation imports reject a catalog exported before a concurrent change', function () {
+    $user = User::factory()->create();
+    $language = PlatformLanguage::query()->create([
+        'code' => 'ja',
+        'name' => 'Japanese',
+        'native_name' => 'Japanese',
+        'is_enabled' => true,
+    ]);
+    $catalog = app(TranslationCatalogExportService::class)->forLanguage($language);
+
+    $language->forceFill([
+        'name' => '日本語',
+        'updated_at' => now()->addMinute(),
+    ])->save();
+    $language->refresh();
+
+    expect(fn () => app(ImportTranslationCatalog::class)->handle($language, $catalog, $user))
+        ->toThrow(ValidationException::class);
 });

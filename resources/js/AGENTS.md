@@ -84,7 +84,8 @@ the product around the skill.
 
 ## Localization
 
-- Add fixed, generic, user-facing UI strings for touched features to `lang/en.json`.
+- Add fixed, generic, user-facing UI strings for touched features to the
+  appropriate namespace file under `lang/en/`.
 - Access platform copy through `usePlatformTranslation` or an existing wrapper around that hook.
 - Do not add a second translation mechanism or hard-code new fixed English strings in touched React files.
 - Keep authored content, deployment-configured content and protected activity-specific content out of the global catalog when it should not be preloaded.

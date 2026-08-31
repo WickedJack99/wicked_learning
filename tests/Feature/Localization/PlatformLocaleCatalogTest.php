@@ -43,3 +43,10 @@ test('english platform catalog keeps exported values flat strings', function () 
         expect($value)->toBeString();
     }
 });
+
+test('english platform catalog is composed from namespace files', function () {
+    $paths = glob(lang_path('en/*.json')) ?: [];
+
+    expect($paths)->not->toBeEmpty()
+        ->and(file_exists(lang_path('en.json')))->toBeFalse();
+});

@@ -12,7 +12,7 @@ class CreatePlatformLanguage
      */
     public function handle(array $data, User $user): PlatformLanguage
     {
-        return PlatformLanguage::query()->create([
+        $language = PlatformLanguage::query()->create([
             'code' => $data['code'],
             'name' => $data['name'],
             'native_name' => $data['native_name'],
@@ -20,5 +20,7 @@ class CreatePlatformLanguage
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
+
+        return $language;
     }
 }

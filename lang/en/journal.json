@@ -1,0 +1,12 @@
+{
+    "journal.feedback.pending": "Feedback request sent. This page is waiting for review.",
+    "journal.feedback.ready": "You can request informational feedback for this page once.",
+    "journal.feedback.received": "Feedback received",
+    "journal.feedback.request": "Request feedback",
+    "journal.feedback.requested": "Feedback requested",
+    "journal.feedback.review": "Expert feedback",
+    "journal.revisit.chosen": "You chose to return on",
+    "journal.revisit.ready": "Ready since",
+    "journal.revisit.due": "Ready after :days days away.",
+    "journal.revisit.snoozed": "You chose to wait longer before returning."
+}

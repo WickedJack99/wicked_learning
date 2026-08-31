@@ -38,6 +38,7 @@ class TranslationCatalogExportService
                 'format' => 'learning-worlds.translation-catalog',
                 'version' => 1,
                 'locale' => $language->code,
+                'source_updated_at' => $language->updated_at?->toISOString(),
             ],
             'platform' => $language->translations ?? [],
             'activities' => LearningActivity::query()

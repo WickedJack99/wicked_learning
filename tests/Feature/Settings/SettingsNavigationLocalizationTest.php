@@ -1,14 +1,12 @@
 <?php
 
+use App\Localization\Services\PlatformLocaleCatalog;
+
 test('settings navigation translation keys exist in the English catalog', function () {
     $navigation = file_get_contents(
         resource_path('js/features/settings/settings-navigation.ts'),
     );
-    $catalog = json_decode(
-        file_get_contents(base_path('lang/en.json')),
-        true,
-        flags: JSON_THROW_ON_ERROR,
-    );
+    $catalog = app(PlatformLocaleCatalog::class)->englishTranslations();
 
     preg_match_all(
         "/(?:labelKey|descriptionKey):\\s*'([^']+)'/",

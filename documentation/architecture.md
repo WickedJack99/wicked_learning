@@ -494,9 +494,11 @@ successive letter sounds do not overlap.
 
 Presentation data is split between authenticated preferences, database-backed
 public/settings/journal palettes, map-specific visuals and authored Activity
-content. Fixed platform UI strings belong in `lang/en.json` and are read through
-the platform translation hook. Authored or access-controlled learning content
-must not be copied into the global catalog.
+content. Fixed platform UI strings belong in the namespace files under
+`lang/en/` and are merged by `PlatformLocaleCatalog` through the platform
+translation hook. Administrator-managed platform languages remain in the
+`platform_languages` table and are cached after loading; authored or
+access-controlled learning content must not be copied into the global catalog.
 
 ## Implementation Boundaries
 

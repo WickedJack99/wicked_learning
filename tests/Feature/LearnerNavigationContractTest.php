@@ -1,5 +1,6 @@
 <?php
 
+use App\Localization\Services\PlatformLocaleCatalog;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\User;
@@ -428,8 +429,8 @@ test('learner activity actions preserve authored transition labels', function ()
     expect($npcDialogue)
         ->toContain('npcExitTransition(activity, nextNode.id)')
         ->toContain('transitionLabel: exitTransition?.label');
-    expect(file_get_contents(base_path('lang/en.json')))
-        ->toContain('"learning.activity.conclusion.next_step": "Next step"');
+    expect(app(PlatformLocaleCatalog::class)->englishTranslations())
+        ->toHaveKey('learning.activity.conclusion.next_step', 'Next step');
 });
 
 test('learner group chats paginate distinct groups instead of scrolling the group list', function () {
@@ -466,8 +467,8 @@ test('shared task cooperation areas switch instead of stacking every workflow', 
         ->toContain("type SharedTaskArea = 'contribute' | 'contributions' | 'peer_review';")
         ->toContain("activeArea === 'contributions'")
         ->toContain("activeArea === 'peer_review'")
-        ->toContain("(!state.hasSubmitted || allowsRepeatedContributions)")
-        ->toContain("activities.shared_task.contribution_once_title")
+        ->toContain('(!state.hasSubmitted || allowsRepeatedContributions)')
+        ->toContain('activities.shared_task.contribution_once_title')
         ->toContain('aria-pressed={active}')
         ->toContain("'activities.shared_task.area_navigation'");
 });

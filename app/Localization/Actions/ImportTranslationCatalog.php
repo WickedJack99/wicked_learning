@@ -3,6 +3,7 @@
 namespace App\Localization\Actions;
 
 use App\Localization\Services\ActivityTranslationPayloadFactory;
+use App\Localization\Services\PlatformLocaleCatalog;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTranslation;
 use App\Models\PlatformLanguage;
@@ -12,7 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class ImportTranslationCatalog
 {
-    public function __construct(private readonly ActivityTranslationPayloadFactory $activityPayloads) {}
+    public function __construct(
+        private readonly ActivityTranslationPayloadFactory $activityPayloads,
+        private readonly PlatformLocaleCatalog $catalog,
+    ) {}
 
     /**
      * @param  array<string, mixed>  $catalog
@@ -22,9 +26,16 @@ class ImportTranslationCatalog
         $this->validateCatalog($catalog, $language->code);
 
         DB::transaction(function () use ($catalog, $language, $user): void {
-            $language->translations = $this->platformTranslations($catalog['platform']);
-            $language->updated_by = $user->id;
-            $language->save();
+            $lockedLanguage = PlatformLanguage::query()
+                ->whereKey($language->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->validateCatalogVersion($catalog, $lockedLanguage);
+
+            $lockedLanguage->translations = $this->platformTranslations($catalog['platform']);
+            $lockedLanguage->updated_by = $user->id;
+            $lockedLanguage->save();
 
             foreach ($catalog['activities'] as $activityId => $content) {
                 if (! is_numeric($activityId) || ! is_array($content)) {
@@ -43,6 +54,8 @@ class ImportTranslationCatalog
                 );
             }
         });
+
+        $this->catalog->forget($language->code);
     }
 
     /**
@@ -61,6 +74,24 @@ class ImportTranslationCatalog
         if (! is_array($catalog['platform'] ?? null) || ! is_array($catalog['activities'] ?? null)) {
             throw ValidationException::withMessages([
                 'catalog' => 'The translation file has an invalid structure.',
+            ]);
+        }
+    }
+
+    /**
+     * Reject an export that was created before another administrator changed
+     * the same language catalog.
+     *
+     * @param  array<string, mixed>  $catalog
+     */
+    private function validateCatalogVersion(array $catalog, PlatformLanguage $language): void
+    {
+        $meta = is_array($catalog['meta'] ?? null) ? $catalog['meta'] : [];
+        $sourceUpdatedAt = $meta['source_updated_at'] ?? null;
+
+        if (is_string($sourceUpdatedAt) && $language->updated_at?->toISOString() !== $sourceUpdatedAt) {
+            throw ValidationException::withMessages([
+                'catalog' => 'The translation catalog changed after this file was exported. Download it again before importing.',
             ]);
         }
     }
