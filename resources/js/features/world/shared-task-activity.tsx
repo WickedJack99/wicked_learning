@@ -2,6 +2,7 @@ import { ArrowRight, CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import { cn } from '@/lib/utils';
 import type {
     ActivityTransition,
     LearningActivity,
@@ -29,6 +30,7 @@ export function SharedTaskActivity({
     const [state, setState] = useState<SharedTaskState>(
         activity.sharedTaskState ?? fallbackState(activity),
     );
+    const [activeArea, setActiveArea] = useState<SharedTaskArea>('contribute');
     const t = usePlatformTranslation();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -330,14 +332,24 @@ export function SharedTaskActivity({
                 </p>
             ) : null}
 
-            {state.contributions.length > 0 ? (
+            {state.contributions.length > 0 || state.peerReview?.enabled ? (
+                <SharedTaskAreaSwitcher
+                    activeArea={activeArea}
+                    hasContributions={state.contributions.length > 0}
+                    hasPeerReview={state.peerReview?.enabled ?? false}
+                    onChange={setActiveArea}
+                    t={t}
+                />
+            ) : null}
+
+            {activeArea === 'contributions' && state.contributions.length > 0 ? (
                 <SharedTaskContributions
                     contributions={state.contributions}
                     t={t}
                 />
             ) : null}
 
-            {state.peerReview?.enabled ? (
+            {activeArea === 'peer_review' && state.peerReview?.enabled ? (
                 <SharedTaskPeerReview
                     body={peerReviewBody}
                     error={peerReviewError}
@@ -382,7 +394,7 @@ export function SharedTaskActivity({
                     {t('common.continue', 'Continue')}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
-            ) : (
+            ) : activeArea === 'contribute' ? (
                 <div className="grid gap-2">
                     <label
                         className="text-sm font-medium text-slate-700 dark:text-slate-200"
@@ -492,8 +504,90 @@ export function SharedTaskActivity({
                         )}
                     </Button>
                 </div>
-            )}
+            ) : null}
         </div>
+    );
+}
+
+type SharedTaskArea = 'contribute' | 'contributions' | 'peer_review';
+
+function SharedTaskAreaSwitcher({
+    activeArea,
+    hasContributions,
+    hasPeerReview,
+    onChange,
+    t,
+}: {
+    activeArea: SharedTaskArea;
+    hasContributions: boolean;
+    hasPeerReview: boolean;
+    onChange: (area: SharedTaskArea) => void;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    return (
+        <div
+            aria-label={t(
+                'activities.shared_task.area_navigation',
+                'Shared task areas',
+            )}
+            className="flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-slate-950/30"
+            role="group"
+        >
+            <SharedTaskAreaButton
+                active={activeArea === 'contribute'}
+                label={t(
+                    'activities.shared_task.area.contribute',
+                    'Contribute',
+                )}
+                onClick={() => onChange('contribute')}
+            />
+            {hasContributions ? (
+                <SharedTaskAreaButton
+                    active={activeArea === 'contributions'}
+                    label={t(
+                        'activities.shared_task.area.contributions',
+                        'See contributions',
+                    )}
+                    onClick={() => onChange('contributions')}
+                />
+            ) : null}
+            {hasPeerReview ? (
+                <SharedTaskAreaButton
+                    active={activeArea === 'peer_review'}
+                    label={t(
+                        'activities.shared_task.area.peer_review',
+                        'Peer review',
+                    )}
+                    onClick={() => onChange('peer_review')}
+                />
+            ) : null}
+        </div>
+    );
+}
+
+function SharedTaskAreaButton({
+    active,
+    label,
+    onClick,
+}: {
+    active: boolean;
+    label: string;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            aria-pressed={active}
+            className={cn(
+                'min-h-11 rounded-md border border-transparent px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]',
+                active
+                    ? 'border-violet-500 bg-violet-100 text-violet-900 dark:border-violet-200/70 dark:bg-violet-100/15 dark:text-violet-100'
+                    : 'text-slate-600 hover:border-slate-300 hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:border-white/15 dark:hover:bg-white/6 dark:hover:text-slate-100',
+            )}
+            onClick={onClick}
+            type="button"
+        >
+            {label}
+        </button>
     );
 }
 

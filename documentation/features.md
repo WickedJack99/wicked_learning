@@ -179,6 +179,11 @@ the contribution. Authors may also allow an anonymous contribution sample to
 be shown to later learners, but each learner opts in per submission. Playback
 shows only a small, bounded set of opted-in contributions and does not expose
 learner identities.
+When a shared task offers anonymous contributions or peer review, playback
+separates the contribution form, shared examples and peer-review exchange into
+an accessible in-panel area switcher. The prompt and shared progress remain
+visible while the learner moves between those distinct workflows, so
+cooperation content does not push another workflow out of the activity view.
 Authors may optionally add a project brief with a shared goal, a useful outcome
 and up to six suggested steps. Learners see this orientation beside the shared
 task prompt and can optionally mark those steps as private planning notes for

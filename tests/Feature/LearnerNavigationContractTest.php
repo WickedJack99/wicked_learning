@@ -120,6 +120,20 @@ test('learner group chats paginate distinct groups instead of scrolling the grou
         ->not->toContain('min-h-0 overflow-y-auto');
 });
 
+test('shared task cooperation areas switch instead of stacking every workflow', function () {
+    $sharedTask = file_get_contents(
+        resource_path('js/features/world/shared-task-activity.tsx'),
+    );
+
+    expect($sharedTask)
+        ->toContain('<SharedTaskAreaSwitcher')
+        ->toContain("type SharedTaskArea = 'contribute' | 'contributions' | 'peer_review';")
+        ->toContain("activeArea === 'contributions'")
+        ->toContain("activeArea === 'peer_review'")
+        ->toContain('aria-pressed={active}')
+        ->toContain("'activities.shared_task.area_navigation'");
+});
+
 test('an authenticated learner can open a published topic detail surface', function () {
     $user = User::factory()->create();
     $area = LearningTopicArea::query()->create([
