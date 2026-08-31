@@ -113,6 +113,16 @@ test('learner content uses section separators without decorative route rails', f
         ->not->toContain('border-y border-[var(--learner-border-color)]');
 });
 
+test('continue learning keeps only its section boundary', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+
+    expect($learningDesk)
+        ->toContain('showTrailingRule={false}')
+        ->toContain('showTrailingRule = true');
+});
+
 test('the learning desk remembers its focus view preference locally', function () {
     $learningDesk = file_get_contents(
         resource_path('js/features/home/learning-desk.tsx'),

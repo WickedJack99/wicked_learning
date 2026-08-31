@@ -775,6 +775,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             'home.learning_desk.continue.title',
                                             'Continue learning',
                                         )}
+                                        showTrailingRule={false}
                                     />
                                     {hasTimeGuides || hasLearningPurposes ? (
                                         <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
@@ -1799,7 +1800,15 @@ function DeskReason({
     );
 }
 
-function SectionHeading({ id, label }: { id: string; label: string }) {
+function SectionHeading({
+    id,
+    label,
+    showTrailingRule = true,
+}: {
+    id: string;
+    label: string;
+    showTrailingRule?: boolean;
+}) {
     return (
         <div className="flex items-center gap-5 border-b border-[var(--learner-border-color)] pb-3">
             <h2
@@ -1809,7 +1818,9 @@ function SectionHeading({ id, label }: { id: string; label: string }) {
             >
                 {label}
             </h2>
-            <span className="h-px flex-1 bg-[var(--learner-border-color)]" />
+            {showTrailingRule ? (
+                <span className="h-px flex-1 bg-[var(--learner-border-color)]" />
+            ) : null}
         </div>
     );
 }
