@@ -23,7 +23,7 @@ class LearningBookmarkController extends Controller
 
     public function index(Request $request): Response
     {
-        $bookmarks = $this->loadLearnerBookmarks->visibleForUser($request->user()->id);
+        $bookmarks = $this->loadLearnerBookmarks->visibleForUser($request->user());
 
         return Inertia::render('bookmarks', [
             'bookmarkMap' => $this->bookmarkMapSerializer->serialize(
@@ -41,7 +41,7 @@ class LearningBookmarkController extends Controller
 
         return response()->json([
             'bookmarked' => true,
-            'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($userId),
+            'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($request->user()),
         ]);
     }
 
@@ -52,7 +52,7 @@ class LearningBookmarkController extends Controller
 
         return response()->json([
             'bookmarked' => false,
-            'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($userId),
+            'bookmarkedNodeIds' => $this->bookmarkService->bookmarkedNodeIds($request->user()),
         ]);
     }
 }

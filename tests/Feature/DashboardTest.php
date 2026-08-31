@@ -232,6 +232,63 @@ test('authenticated users can visit their bookmark map', function () {
         );
 });
 
+test('learner bookmark surfaces omit bookmarks from maps that are no longer accessible', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $publicMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'public-bookmark-map',
+        'title' => 'Public bookmark map',
+        'access_roles' => ['public'],
+    ]);
+    $privateMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'private-bookmark-map',
+        'title' => 'Private bookmark map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    $privateNode = LearningNode::query()->create([
+        'learning_map_id' => $privateMap->id,
+        'slug' => 'private-bookmark-node',
+        'title' => 'Private bookmark node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    LearningNode::query()->create([
+        'learning_map_id' => $publicMap->id,
+        'slug' => 'public-bookmark-node',
+        'title' => 'Public bookmark node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    LearningNodeBookmark::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $privateNode->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('bookmarks'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('bookmarks')
+            ->has('bookmarkMap.nodes', 0)
+            ->has('bookmarkMap.mapAssets', 0)
+        );
+
+    $this->actingAs($user)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->where('bookmarkedNodeIds', [])
+        );
+});
+
 test('authenticated users can create and remove node bookmarks', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();

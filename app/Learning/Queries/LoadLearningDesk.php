@@ -42,7 +42,7 @@ class LoadLearningDesk
         $recentRoutes = $this->routeProgressFor($user, 'completed', 'last_completed_at');
 
         $bookmarks = $this->bookmarks
-            ->visibleForUser($user->id)
+            ->visibleForUser($user)
             ->sortByDesc('created_at')
             ->take(8)
             ->values();

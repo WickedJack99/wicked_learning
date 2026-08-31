@@ -104,7 +104,7 @@ class LearningWorldController extends Controller
         }
 
         return Inertia::render('world', [
-            'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user->id) : [],
+            'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user) : [],
             'groups' => $groups
                 ? $groups
                     ->getCollection()

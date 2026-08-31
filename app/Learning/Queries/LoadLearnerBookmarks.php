@@ -6,6 +6,7 @@ use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearningBookmarkService;
 use App\Models\LearningMap;
 use App\Models\LearningNodeBookmark;
+use App\Models\User;
 use Illuminate\Support\Collection;
 
 class LoadLearnerBookmarks
@@ -18,11 +19,15 @@ class LoadLearnerBookmarks
     /**
      * @return Collection<int, LearningNodeBookmark>
      */
-    public function visibleForUser(int $userId): Collection
+    public function visibleForUser(User $user): Collection
     {
-        return LearningNodeBookmark::query()
+        $query = LearningNodeBookmark::query()
             ->with(['node.map.world', 'node.map.topic', 'node.mapAsset'])
-            ->where('user_id', $userId)
+            ->where('user_id', $user->id);
+
+        $this->bookmarkService->constrainVisibleBookmarkQuery($query, $user);
+
+        return $query
             ->oldest()
             ->get()
             ->filter(fn (LearningNodeBookmark $bookmark): bool => $this->bookmarkService->isVisibleNode($bookmark->node))
