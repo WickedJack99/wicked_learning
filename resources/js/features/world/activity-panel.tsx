@@ -180,7 +180,7 @@ function RouteStartButtons({
 
     return (
         <div className="relative mt-auto flex min-h-[50%] basis-1/2 flex-col pb-12 md:pb-14">
-            <div className="grid min-h-0 flex-1 content-start gap-2 px-1 pt-2 pb-1">
+            <div className="grid min-h-0 flex-1 content-end gap-2 px-1 pt-2 pb-1">
                 {visibleRoutes.map((route) => (
                     <RouteStartOption
                         key={`${route.id}:${route.activityId}`}

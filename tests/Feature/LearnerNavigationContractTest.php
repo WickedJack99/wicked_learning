@@ -120,6 +120,7 @@ test('node route choices use pagination instead of a growing scroll region', fun
         ->toContain('const ROUTE_PAGE_SIZE = 3;')
         ->toContain('const visibleRoutes = routes.slice(')
         ->toContain('<PaginationControls')
+        ->toContain('content-end gap-2')
         ->not->toContain('route-options-scroll');
 });
 
