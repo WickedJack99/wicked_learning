@@ -57,6 +57,11 @@ type DeskLearningPurpose =
 
 type DeskPurposeFilter = 'any' | DeskLearningPurpose;
 
+type DeskPlanningPreference = {
+    purposeFilter: DeskPurposeFilter;
+    timeBudget: DeskTimeBudget;
+};
+
 const DESK_LEARNING_PURPOSES: DeskLearningPurpose[] = [
     'apply',
     'explain',
@@ -75,12 +80,21 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const focusPreferenceKey = auth.user
         ? `wicked-learning:desk-focus-view:${auth.user.id}`
         : null;
+    const planningPreferenceKey = auth.user
+        ? `wicked-learning:desk-planning:${auth.user.id}`
+        : null;
+    const [savedPlanningPreference] = useState(() =>
+        readDeskPlanningPreference(planningPreferenceKey),
+    );
     const [focusView, setFocusView] = useState(() =>
         readFocusViewPreference(focusPreferenceKey),
     );
-    const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>('any');
-    const [purposeFilter, setPurposeFilter] =
-        useState<DeskPurposeFilter>('any');
+    const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>(
+        savedPlanningPreference.timeBudget,
+    );
+    const [purposeFilter, setPurposeFilter] = useState<DeskPurposeFilter>(
+        savedPlanningPreference.purposeFilter,
+    );
     const [handledRevisitIds, setHandledRevisitIds] = useState<number[]>([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
         null,
@@ -102,6 +116,28 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     function updateFocusView(nextFocusView: boolean) {
         setFocusView(nextFocusView);
         writeFocusViewPreference(focusPreferenceKey, nextFocusView);
+    }
+
+    function updateTimeBudget(nextTimeBudget: DeskTimeBudget) {
+        setTimeBudget(nextTimeBudget);
+        writeDeskPlanningPreference(planningPreferenceKey, {
+            purposeFilter,
+            timeBudget: nextTimeBudget,
+        });
+    }
+
+    function updatePurposeFilter(nextPurposeFilter: DeskPurposeFilter) {
+        setPurposeFilter(nextPurposeFilter);
+        writeDeskPlanningPreference(planningPreferenceKey, {
+            purposeFilter: nextPurposeFilter,
+            timeBudget,
+        });
+    }
+
+    function clearPlanningChoices() {
+        setTimeBudget('any');
+        setPurposeFilter('any');
+        clearDeskPlanningPreference(planningPreferenceKey);
     }
 
     const recallItems = desk.recallItems
@@ -183,20 +219,26 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         label: learningIntentLabel(purpose, t) ?? purpose,
         value: purpose,
     }));
-    const visibleCurrentRoutes = desk.currentRoutes.filter((route) =>
-        fitsDeskFilters(
-            route.timeGuideMinutes,
-            route.learningIntent,
-            timeBudget,
-            purposeFilter,
-        ),
-    );
+    const activePurposeFilter = learningPurposeOptions.some(
+        (option) => option.value === purposeFilter,
+    )
+        ? purposeFilter
+        : 'any';
     const hasTimeGuides = desk.currentRoutes.some(
         (route) => route.timeGuideMinutes !== null,
     );
     const hasLearningPurposes = learningPurposeOptions.length > 0;
+    const activeTimeBudget = hasTimeGuides ? timeBudget : 'any';
+    const visibleCurrentRoutes = desk.currentRoutes.filter((route) =>
+        fitsDeskFilters(
+            route.timeGuideMinutes,
+            route.learningIntent,
+            activeTimeBudget,
+            activePurposeFilter,
+        ),
+    );
     const hasActiveRouteFilter =
-        timeBudget !== 'any' || purposeFilter !== 'any';
+        activeTimeBudget !== 'any' || activePurposeFilter !== 'any';
 
     useEffect(() => {
         const handlePopState = () => {
@@ -709,6 +751,12 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                     />
                                     {hasTimeGuides || hasLearningPurposes ? (
                                         <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
+                                            <p className="text-xs text-[var(--learner-muted-text)] md:col-span-2">
+                                                {t(
+                                                    'home.learning_desk.planning.saved_locally',
+                                                    'Your planning choices are remembered on this device.',
+                                                )}
+                                            </p>
                                             {hasTimeGuides ? (
                                                 <fieldset>
                                                     <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
@@ -736,7 +784,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                                         option.value
                                                                     }
                                                                     onClick={() =>
-                                                                        setTimeBudget(
+                                                                        updateTimeBudget(
                                                                             option.value,
                                                                         )
                                                                     }
@@ -773,12 +821,14 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                         aria-describedby="learning-desk-purpose-help"
                                                         id="learning-desk-purpose"
                                                         onChange={(event) =>
-                                                            setPurposeFilter(
+                                                            updatePurposeFilter(
                                                                 event.target
                                                                     .value as DeskPurposeFilter,
                                                             )
                                                         }
-                                                        value={purposeFilter}
+                                                        value={
+                                                            activePurposeFilter
+                                                        }
                                                     >
                                                         <option value="any">
                                                             {t(
@@ -813,6 +863,20 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                         )}
                                                     </p>
                                                 </div>
+                                            ) : null}
+                                            {hasActiveRouteFilter ? (
+                                                <button
+                                                    className="min-h-11 text-left text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none md:col-span-2 md:justify-self-end"
+                                                    onClick={
+                                                        clearPlanningChoices
+                                                    }
+                                                    type="button"
+                                                >
+                                                    {t(
+                                                        'home.learning_desk.planning.clear',
+                                                        'Clear planning choices',
+                                                    )}
+                                                </button>
                                             ) : null}
                                         </div>
                                     ) : null}
@@ -868,8 +932,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             <button
                                                 className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
                                                 onClick={() => {
-                                                    setTimeBudget('any');
-                                                    setPurposeFilter('any');
+                                                    clearPlanningChoices();
                                                 }}
                                                 type="button"
                                             >
@@ -1789,10 +1852,66 @@ function readFocusViewPreference(key: string | null): boolean {
     }
 }
 
-function writeFocusViewPreference(
+function readDeskPlanningPreference(
     key: string | null,
-    enabled: boolean,
+): DeskPlanningPreference {
+    const fallback: DeskPlanningPreference = {
+        purposeFilter: 'any',
+        timeBudget: 'any',
+    };
+
+    if (!key || typeof window === 'undefined') {
+        return fallback;
+    }
+
+    try {
+        const value = JSON.parse(window.localStorage.getItem(key) ?? 'null');
+        const purposeFilter =
+            value?.purposeFilter === 'any' ||
+            DESK_LEARNING_PURPOSES.includes(value?.purposeFilter)
+                ? value.purposeFilter
+                : fallback.purposeFilter;
+        const timeBudget =
+            value?.timeBudget === 'any' ||
+            value?.timeBudget === 15 ||
+            value?.timeBudget === 30
+                ? value.timeBudget
+                : fallback.timeBudget;
+
+        return { purposeFilter, timeBudget };
+    } catch {
+        return fallback;
+    }
+}
+
+function writeDeskPlanningPreference(
+    key: string | null,
+    preference: DeskPlanningPreference,
 ): void {
+    if (!key || typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(key, JSON.stringify(preference));
+    } catch {
+        // Browser storage may be unavailable; the in-memory choices still work.
+    }
+}
+
+function clearDeskPlanningPreference(key: string | null): void {
+    if (!key || typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        window.localStorage.removeItem(key);
+    } catch {
+        // Browser storage may be unavailable; the in-memory choices still work.
+    }
+}
+
+function writeFocusViewPreference(key: string | null, enabled: boolean): void {
     if (!key || typeof window === 'undefined') {
         return;
     }

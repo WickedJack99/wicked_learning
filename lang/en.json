@@ -1071,6 +1071,8 @@
     "home.learning_desk.time_budget.medium": "Up to 30 minutes",
     "home.learning_desk.time_budget.helper": "This only narrows routes with an author-provided guide; it is not a deadline.",
     "home.learning_desk.time_budget.show_all": "Show all routes",
+    "home.learning_desk.planning.saved_locally": "Your planning choices are remembered on this device.",
+    "home.learning_desk.planning.clear": "Clear planning choices",
     "home.learning_desk.purpose_filter.label": "Explore by learning purpose",
     "home.learning_desk.purpose_filter.any": "Any purpose",
     "home.learning_desk.purpose_filter.helper": "Choose the kind of learning encounter that feels useful now. This only changes the view.",

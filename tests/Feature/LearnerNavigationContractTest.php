@@ -96,6 +96,20 @@ test('the learning desk offers a bounded time budget for guided routes', functio
         ->toContain('items={visibleCurrentRoutes}');
 });
 
+test('the learning desk remembers explicit planning choices locally', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+
+    expect($learningDesk)
+        ->toContain('wicked-learning:desk-planning:${auth.user.id}')
+        ->toContain('readDeskPlanningPreference(planningPreferenceKey)')
+        ->toContain('writeDeskPlanningPreference(planningPreferenceKey')
+        ->toContain('clearDeskPlanningPreference(planningPreferenceKey)')
+        ->toContain("'home.learning_desk.planning.saved_locally'")
+        ->toContain("'home.learning_desk.planning.clear'");
+});
+
 test('node route choices use pagination instead of a growing scroll region', function () {
     $activityPanel = file_get_contents(
         resource_path('js/features/world/activity-panel.tsx'),

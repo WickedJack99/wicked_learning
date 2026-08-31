@@ -118,8 +118,12 @@ secondary pinned-and-bookmarks rail while keeping the selected desk area and
 primary navigation available. The choice is retained locally per signed-in
 account and browser, so a refresh does not undo a deliberate presentation
 preference; it is not synced learning state, a recommendation or a progress
-signal. The normal desk layout returns when focus view is turned off. If time
-and purpose filters leave no current route visible, the
+signal. The normal desk layout returns when focus view is turned off. When time
+and purpose filters are selected, the desk remembers that planning lens on the
+same device for the signed-in learner and provides a clear action to reset it.
+These choices are only a view preference, not synced learning state, a
+recommendation or a progress signal. If time and purpose filters leave no
+current route visible, the
 Show all routes action clears both planning filters so the learner can recover
 the complete current-route view in one step.
 
