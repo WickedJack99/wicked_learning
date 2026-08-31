@@ -95,6 +95,7 @@
     "learning.item_obstacle.item_not_accepted": "That item cannot be placed there.",
     "learning.item_obstacle.not_ready": "This obstacle cannot continue yet.",
     "learning.item_obstacle.locked_until": "Locked until :date.",
+    "learning.open_practice.default_next_step": "Choose a useful next step, then continue when you are ready.",
     "settings.worlds.activities.route_description.title": "Route guidance",
     "settings.worlds.activities.route_description.description": "A short explanation helps learners choose this route without turning it into a ranked recommendation.",
     "settings.worlds.activities.route_description.label": "Description",

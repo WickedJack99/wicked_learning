@@ -257,6 +257,17 @@ test('item obstacle playback copy uses the platform translation catalog', functi
         ->not->toContain('Locked until {lockedUntil?.toLocaleString()}.');
 });
 
+test('open practice playback copy uses the platform translation catalog', function () {
+    $activities = file_get_contents(
+        resource_path('js/features/world/standard-activities.tsx'),
+    );
+
+    expect($activities)
+        ->toContain("'learning.open_practice.default_next_step'")
+        ->toContain("t('common.continue', 'Continue')")
+        ->not->toContain('const DEFAULT_OPEN_PRACTICE_STEP');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
