@@ -23,6 +23,7 @@ use App\Learning\Services\ToolGrantActivityConfiguration;
 use App\Learning\Support\UniqueSlugGenerator;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
+use App\Models\User;
 
 class UpdateLearningActivity
 {
@@ -47,19 +48,36 @@ class UpdateLearningActivity
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
         private readonly PortalLinkService $portalLinkService,
         private readonly UniqueSlugGenerator $slugGenerator,
+        private readonly RecordLearningActivityVersion $recordVersion,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(LearningActivity $activity, array $data): LearningActivity
-    {
+    public function handle(
+        LearningActivity $activity,
+        array $data,
+        ?User $user = null,
+    ): LearningActivity {
         $activity->loadMissing('node');
         $updates = $this->updatesFor($activity, $data);
+        $snapshot = $this->recordVersion->snapshot($activity);
 
         $activity->forceFill($updates);
 
         if ($activity->isDirty()) {
+            if (
+                $user instanceof User
+                && ($this->reviewState->hasContentChanges($activity)
+                    || $activity->isDirty([
+                        'companion_config',
+                        'graph_position_x',
+                        'graph_position_y',
+                    ]))
+            ) {
+                $this->recordVersion->handle($user, $activity, $snapshot);
+            }
+
             if ($this->reviewState->hasContentChanges($activity)) {
                 $this->reviewState->markNeedsReview($activity);
             } else {

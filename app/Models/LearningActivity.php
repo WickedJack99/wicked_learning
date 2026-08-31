@@ -122,6 +122,16 @@ class LearningActivity extends Model
     }
 
     /**
+     * @return HasMany<LearningActivityVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(LearningActivityVersion::class)
+            ->latest('created_at')
+            ->latest('id');
+    }
+
+    /**
      * @return HasMany<LearningSharedTaskSubmission, $this>
      */
     public function sharedTaskSubmissions(): HasMany

@@ -214,6 +214,12 @@ The resulting evidence keeps an internal reference to the private response for
 auditability, while learner ledgers and support signals continue to exclude its
 text. Shared-task contributions use their own submission path.
 
+Authors can open a bounded, paginated history for an activity's details and
+type-specific configuration and restore an earlier version. Restoring first
+preserves the current configuration and returns the activity to authoring
+review. Route connections and separate NPC dialogue graph records are not
+changed by this first activity-history slice.
+
 Review activities optionally collect the learner's own confidence after the
 review response. The value is stored as a descriptive signal on the completion
 and any due revisit attempt; choosing nothing remains valid and does not block

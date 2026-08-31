@@ -11,15 +11,18 @@ use App\Learning\Actions\CreateActivityTransition;
 use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
+use App\Learning\Actions\RestoreLearningActivityVersion;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Queries\LoadEditableSourceRecords;
+use App\Learning\Queries\LoadLearningActivityVersions;
 use App\Learning\Queries\LoadSourceRecordVersions;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
 use App\Learning\Serializers\EditableSourceRecordSerializer;
+use App\Learning\Serializers\LearningActivityVersionSerializer;
 use App\Learning\Serializers\SourceRecordVersionSerializer;
 use App\Learning\Services\ActivityStartRouteService;
 use App\Learning\Services\LearningMapEditAccessService;
@@ -28,6 +31,7 @@ use App\Models\ActivityTransition;
 use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningActivityVersion;
 use App\Models\LearningNode;
 use App\Models\LearningSourceRecord;
 use App\Models\LearningSourceRecordVersion;
@@ -59,6 +63,9 @@ class AdminActivityController extends Controller
         private readonly LoadSourceRecordVersions $sourceRecordVersions,
         private readonly SourceRecordVersionSerializer $sourceRecordVersionSerializer,
         private readonly LoadEditableSourceRecords $sourceRecords,
+        private readonly LoadLearningActivityVersions $activityVersions,
+        private readonly LearningActivityVersionSerializer $activityVersionSerializer,
+        private readonly RestoreLearningActivityVersion $restoreActivityVersion,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -239,6 +246,7 @@ class AdminActivityController extends Controller
         $activity = $this->updateLearningActivity->handle(
             $activity,
             $data,
+            $request->user(),
         );
 
         if (($data['return_to_markdown'] ?? false) && $activity->type === 'markdown') {
@@ -246,6 +254,59 @@ class AdminActivityController extends Controller
         }
 
         return $this->redirectToActivities($activity->node);
+    }
+
+    public function activityVersions(Request $request, LearningActivity $activity): JsonResponse
+    {
+        $this->authorizeActivityEdit($request, $activity);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->activityVersions->paginate(
+            $activity,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 6,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningActivityVersion $version): array => $this->activityVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function restoreActivityVersion(
+        Request $request,
+        LearningActivity $activity,
+        LearningActivityVersion $version,
+    ): JsonResponse {
+        $this->authorizeActivityEdit($request, $activity);
+        abort_unless($version->learning_activity_id === $activity->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $activity = $this->restoreActivityVersion->handle($user, $activity, $version);
+
+        return response()->json([
+            'activity' => [
+                'config' => $activity->config ?? [],
+                'companionConfig' => $activity->companion_config ?? [],
+                'graphPositionX' => $activity->graph_position_x,
+                'graphPositionY' => $activity->graph_position_y,
+                'introduction' => $activity->introduction,
+                'slug' => $activity->slug,
+                'title' => $activity->title,
+                'type' => $activity->type,
+            ],
+        ]);
     }
 
     public function review(
@@ -293,6 +354,7 @@ class AdminActivityController extends Controller
         $activity = $this->updateActivitySpecialGraphLayout->handle(
             $activity,
             $request->validate($this->rules->specialGraphNodeLayout()),
+            $request->user(),
         );
 
         if ($activity->type === 'markdown') {

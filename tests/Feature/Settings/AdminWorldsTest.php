@@ -9,6 +9,7 @@ use App\Models\LearnerActivityProgress;
 use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
+use App\Models\LearningActivityVersion;
 use App\Models\LearningCompanionDialogue;
 use App\Models\LearningCompanionDialogueAssignment;
 use App\Models\LearningItem;
@@ -2678,6 +2679,86 @@ test('authors can browse and restore map detail versions without losing the curr
     expect($map->refresh()->title)->toBe('First Clearing')
         ->and($map->description)->toBe($version->description)
         ->and($map->versions()->count())->toBe(2);
+});
+
+test('authors can browse and restore activity configuration versions without losing the current version', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()->where('slug', 'write-a-field-note')->firstOrFail();
+    $originalTitle = $activity->title;
+    $originalIntroduction = $activity->introduction;
+    $originalPrompt = $activity->config['prompt'];
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Updated field note',
+            'introduction' => 'A changed authoring prompt.',
+            'reflection_prompt' => 'A changed reflection prompt.',
+        ])
+        ->assertRedirect();
+
+    $version = $activity->versions()->firstOrFail();
+
+    expect($version->snapshot['title'])->toBe($originalTitle)
+        ->and($version->snapshot['introduction'])->toBe($originalIntroduction)
+        ->and($version->snapshot['config']['prompt'])->toBe($originalPrompt);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.activities.versions.index', $activity).'?page=1&per_page=4')
+        ->assertOk()
+        ->assertJsonPath('items.0.title', $originalTitle)
+        ->assertJsonPath('items.0.type', $activity->type)
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 4)
+        ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.versions.restore', [
+            'activity' => $activity,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('activity.title', $originalTitle)
+        ->assertJsonPath('activity.introduction', $originalIntroduction)
+        ->assertJsonPath('activity.config.prompt', $originalPrompt);
+
+    expect($activity->refresh()->title)->toBe($originalTitle)
+        ->and($activity->introduction)->toBe($originalIntroduction)
+        ->and($activity->config['prompt'])->toBe($originalPrompt)
+        ->and($activity->ai_review_status)->toBe(LearningActivity::AI_REVIEW_STATUS_NEEDS_REVIEW)
+        ->and($activity->versions()->count())->toBe(2);
+});
+
+test('activity versions cannot be restored across activities', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activities = LearningActivity::query()->take(2)->get();
+    $activity = $activities->firstOrFail();
+    $otherActivity = $activities->last();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activities.update', $activity), [
+            'title' => 'Versioned activity',
+        ])
+        ->assertRedirect();
+
+    $version = LearningActivityVersion::query()
+        ->where('learning_activity_id', $activity->id)
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.versions.restore', [
+            'activity' => $otherActivity,
+            'version' => $version,
+        ]))
+        ->assertNotFound();
+
+    expect($otherActivity->refresh()->title)->not->toBe('Versioned activity')
+        ->and($otherActivity->versions()->count())->toBe(0);
 });
 
 test('map detail versions cannot be restored across maps', function () {

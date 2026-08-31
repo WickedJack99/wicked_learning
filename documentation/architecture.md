@@ -177,6 +177,14 @@ surface and interaction configuration. Its permission-protected endpoint
 paginates one asset's revisions, and restore validates the asset relation before
 recording the current configuration and applying the selected version.
 
+`LearningActivityVersion` stores an immutable JSON snapshot of an activity's
+details, type-specific configuration, graph position and companion override.
+The activity editor exposes a permission-protected paginated history endpoint;
+restoration records the current snapshot first and then marks the restored
+activity for author review. Route connections and separate NPC dialogue graph
+records remain outside this bounded first slice so restoring a content snapshot
+cannot silently rewrite shared route edges or learner-facing graph IDs.
+
 The World Builder map export is an author-authorized streamed JSON manifest. Its
 serializer batch-loads the selected map's world, topic, nodes, activities,
 transitions, route starts and MapAssets, then loads portal references in one

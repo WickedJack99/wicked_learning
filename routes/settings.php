@@ -204,6 +204,12 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
         ->name('settings.worlds.activities.update');
 
+    Route::get('settings/worlds/activities/{activity}/versions', [AdminActivityController::class, 'activityVersions'])
+        ->name('settings.worlds.activities.versions.index');
+
+    Route::post('settings/worlds/activities/{activity}/versions/{version}/restore', [AdminActivityController::class, 'restoreActivityVersion'])
+        ->name('settings.worlds.activities.versions.restore');
+
     Route::post('settings/worlds/activities/{activity}/ai-review', [AdminActivityController::class, 'review'])
         ->name('settings.worlds.activities.ai-review');
 

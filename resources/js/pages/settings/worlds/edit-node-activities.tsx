@@ -13,6 +13,7 @@ import {
     ArrowRight,
     AlertTriangle,
     GitBranch,
+    History,
     Plus,
     Sparkles,
     Trash2,
@@ -35,6 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ActivityReviewMetadataSuggestions } from '@/features/ai/activity-review-client';
 import { ActivityReviewDialog } from '@/features/ai/activity-review-dialog';
+import { ActivityHistoryDialog } from '@/features/settings/activity-history-dialog';
 import { useAppearance } from '@/hooks/use-appearance';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -112,6 +114,7 @@ export default function EditNodeActivities({
         emptyCreateForm(firstType),
     );
     const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+    const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
     const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
         () => activityGraph.sourceRecords,
     );
@@ -1391,6 +1394,30 @@ export default function EditNodeActivities({
                                 <Sparkles className="size-4" />
                                 Review with AI
                             </Button>
+                        ) : null}
+                        {editingActivity ? (
+                            <ActivityHistoryDialog
+                                activityId={editingActivity.id}
+                                onOpenChange={setActivityHistoryOpen}
+                                onRestored={() => {
+                                    setActivityHistoryOpen(false);
+                                    setEditOpen(false);
+                                    setEditingActivity(null);
+                                    router.reload({
+                                        only: ['selectedWorldNode'],
+                                    });
+                                }}
+                                open={activityHistoryOpen}
+                            >
+                                <Button
+                                    disabled={updating}
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <History className="size-4" />
+                                    History
+                                </Button>
+                            </ActivityHistoryDialog>
                         ) : null}
                         <Button
                             disabled={updating}
