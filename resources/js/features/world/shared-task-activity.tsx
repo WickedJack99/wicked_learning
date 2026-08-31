@@ -418,6 +418,26 @@ function SharedTaskPeerReview({
             <p className="mt-1 text-sm leading-6 text-slate-700 dark:text-slate-200">
                 {peerReview.prompt}
             </p>
+            {peerReview.receivedReviews.length > 0 ? (
+                <div className="mt-3 rounded-md border border-violet-200/80 bg-white/70 p-3 dark:border-violet-200/15 dark:bg-slate-950/30">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-violet-700 uppercase dark:text-violet-200">
+                        {t(
+                            'activities.shared_task.peer_review_received',
+                            'Responses to your contribution',
+                        )}
+                    </p>
+                    <div className="mt-2 grid gap-2">
+                        {peerReview.receivedReviews.map((review) => (
+                            <p
+                                className="text-sm leading-6 text-slate-700 dark:text-slate-200"
+                                key={review.id}
+                            >
+                                {review.body}
+                            </p>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
             {peerReview.hasReviewed ? (
                 <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
                     {t(

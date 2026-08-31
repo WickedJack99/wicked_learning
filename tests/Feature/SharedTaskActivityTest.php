@@ -1,5 +1,6 @@
 <?php
 
+use App\Learning\Serializers\SharedTaskStateSerializer;
 use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
@@ -226,6 +227,14 @@ test('shared task peer review requires a contribution and can be submitted once'
         ])
         ->assertOk()
         ->assertJsonPath('state.peerReview.hasReviewed', true);
+
+    $firstLearnerState = app(SharedTaskStateSerializer::class)->state($activity, $firstLearner, true);
+    $secondLearnerState = app(SharedTaskStateSerializer::class)->state($activity, $secondLearner, true);
+
+    expect($firstLearnerState['peerReview']['receivedReviews'])->toHaveCount(1)
+        ->and($firstLearnerState['peerReview']['receivedReviews'][0]['body'])
+        ->toBe('This connects the two observations clearly.')
+        ->and($secondLearnerState['peerReview']['receivedReviews'])->toBeEmpty();
 
     $this->actingAs($secondLearner)
         ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [

@@ -6,6 +6,7 @@ use App\Models\LearningActivity;
 use App\Models\LearningSharedTaskReview;
 use App\Models\LearningSharedTaskSubmission;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 /** Shapes activity-wide shared task progress for learner playback. */
 class SharedTaskStateSerializer
@@ -77,7 +78,7 @@ class SharedTaskStateSerializer
             ->all();
     }
 
-    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, taskKind: string, truncated: bool}>}|null */
+    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, createdAt: string|null}>}|null */
     private function peerReview(LearningActivity $activity, ?User $user, bool $hasSubmitted): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -90,6 +91,7 @@ class SharedTaskStateSerializer
                 'prompt' => (string) ($config['peerReviewPrompt'] ?? self::DEFAULT_PEER_REVIEW_PROMPT),
                 'hasReviewed' => false,
                 'reviewableContributions' => [],
+                'receivedReviews' => [],
             ] : null;
         }
 
@@ -103,7 +105,31 @@ class SharedTaskStateSerializer
             'prompt' => (string) ($config['peerReviewPrompt'] ?? self::DEFAULT_PEER_REVIEW_PROMPT),
             'hasReviewed' => $hasReviewed,
             'reviewableContributions' => $hasSubmitted ? $this->reviewableContributions($activity, $user) : [],
+            'receivedReviews' => $hasSubmitted ? $this->receivedReviews($activity, $user) : [],
         ];
+    }
+
+    /** @return list<array{id: int, body: string, createdAt: string|null}> */
+    private function receivedReviews(LearningActivity $activity, User $user): array
+    {
+        return LearningSharedTaskReview::query()
+            ->where('learning_activity_id', $activity->id)
+            ->whereHas('submission', function (Builder $query) use ($user): void {
+                $query
+                    ->where('user_id', $user->id)
+                    ->where('status', 'accepted');
+            })
+            ->latest('created_at')
+            ->latest('id')
+            ->limit(5)
+            ->get(['id', 'body', 'created_at'])
+            ->map(fn (LearningSharedTaskReview $review): array => [
+                'id' => $review->id,
+                'body' => $review->body,
+                'createdAt' => $review->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return list<array{id: int, body: string, taskKind: string, truncated: bool}> */

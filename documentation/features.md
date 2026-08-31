@@ -164,6 +164,8 @@ Authors may also invite one anonymous peer review. A learner who has contributed
 can respond once to one other learner's explicitly shared contribution using the
 author's prompt. The interaction exposes no learner identities and provides no
 ratings, rankings or public quality score.
+The contributor can later see a bounded set of anonymous responses to their own
+contribution; other learners cannot see those responses.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

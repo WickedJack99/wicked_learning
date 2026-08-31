@@ -423,6 +423,11 @@ export type SharedTaskState = {
             taskKind: string;
             truncated: boolean;
         }>;
+        receivedReviews: Array<{
+            id: number;
+            body: string;
+            createdAt: string | null;
+        }>;
     } | null;
 };
 

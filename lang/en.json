@@ -504,6 +504,7 @@
     "activities.shared_task.submit": "Submit contribution",
     "activities.shared_task.submit_error": "This contribution could not be accepted.",
     "activities.shared_task.peer_review": "Peer review",
+    "activities.shared_task.peer_review_received": "Responses to your contribution",
     "activities.shared_task.peer_review_recorded": "Your anonymous peer review has been recorded.",
     "activities.shared_task.peer_review_contribute_first": "Contribute first, then you can respond to one shared contribution.",
     "activities.shared_task.peer_review_waiting": "There is no other shared contribution available yet.",
