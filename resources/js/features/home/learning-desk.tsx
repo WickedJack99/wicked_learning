@@ -43,12 +43,35 @@ type LearningDeskArea =
 
 type DeskTimeBudget = 'any' | 15 | 30;
 
+type DeskLearningPurpose =
+    | 'apply'
+    | 'explain'
+    | 'participate'
+    | 'reflect'
+    | 'retrieve'
+    | 'review'
+    | 'transfer';
+
+type DeskPurposeFilter = 'any' | DeskLearningPurpose;
+
+const DESK_LEARNING_PURPOSES: DeskLearningPurpose[] = [
+    'apply',
+    'explain',
+    'participate',
+    'reflect',
+    'retrieve',
+    'review',
+    'transfer',
+];
+
 export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
     const [focusView, setFocusView] = useState(false);
     const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>('any');
+    const [purposeFilter, setPurposeFilter] =
+        useState<DeskPurposeFilter>('any');
     const [handledRevisitIds, setHandledRevisitIds] = useState<number[]>([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
         null,
@@ -137,12 +160,26 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
             value: 30,
         },
     ];
+    const learningPurposeOptions = DESK_LEARNING_PURPOSES.filter((purpose) =>
+        desk.currentRoutes.some((route) => route.learningIntent === purpose),
+    ).map((purpose) => ({
+        label: learningIntentLabel(purpose, t) ?? purpose,
+        value: purpose,
+    }));
     const visibleCurrentRoutes = desk.currentRoutes.filter((route) =>
-        fitsTimeBudget(route.timeGuideMinutes, timeBudget),
+        fitsDeskFilters(
+            route.timeGuideMinutes,
+            route.learningIntent,
+            timeBudget,
+            purposeFilter,
+        ),
     );
     const hasTimeGuides = desk.currentRoutes.some(
         (route) => route.timeGuideMinutes !== null,
     );
+    const hasLearningPurposes = learningPurposeOptions.length > 0;
+    const hasActiveRouteFilter =
+        timeBudget !== 'any' || purposeFilter !== 'any';
 
     useEffect(() => {
         const handlePopState = () => {
@@ -595,49 +632,114 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                             'Continue learning',
                                         )}
                                     />
-                                    {hasTimeGuides ? (
-                                        <fieldset className="mt-4 border-b border-[var(--learner-border-color)] pb-4">
-                                            <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
-                                                {t(
-                                                    'home.learning_desk.time_budget.label',
-                                                    'Plan by suggested time',
-                                                )}
-                                            </legend>
-                                            <div className="mt-2 flex flex-wrap gap-2">
-                                                {timeBudgetOptions.map(
-                                                    (option) => (
-                                                        <button
-                                                            aria-pressed={
-                                                                timeBudget ===
-                                                                option.value
-                                                            }
-                                                            className={[
-                                                                'min-h-11 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
-                                                                timeBudget ===
-                                                                option.value
-                                                                    ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
-                                                                    : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
-                                                            ].join(' ')}
-                                                            key={option.value}
-                                                            onClick={() =>
-                                                                setTimeBudget(
-                                                                    option.value,
-                                                                )
-                                                            }
-                                                            type="button"
-                                                        >
-                                                            {option.label}
-                                                        </button>
-                                                    ),
-                                                )}
-                                            </div>
-                                            <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
-                                                {t(
-                                                    'home.learning_desk.time_budget.helper',
-                                                    'This only narrows routes with an author-provided guide; it is not a deadline.',
-                                                )}
-                                            </p>
-                                        </fieldset>
+                                    {hasTimeGuides || hasLearningPurposes ? (
+                                        <div className="mt-4 grid gap-4 border-b border-[var(--learner-border-color)] pb-4 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.7fr)]">
+                                            {hasTimeGuides ? (
+                                                <fieldset>
+                                                    <legend className="text-xs font-medium text-[var(--learner-muted-text)]">
+                                                        {t(
+                                                            'home.learning_desk.time_budget.label',
+                                                            'Plan by suggested time',
+                                                        )}
+                                                    </legend>
+                                                    <div className="mt-2 flex flex-wrap gap-2">
+                                                        {timeBudgetOptions.map(
+                                                            (option) => (
+                                                                <button
+                                                                    aria-pressed={
+                                                                        timeBudget ===
+                                                                        option.value
+                                                                    }
+                                                                    className={[
+                                                                        'min-h-11 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
+                                                                        timeBudget ===
+                                                                        option.value
+                                                                            ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
+                                                                            : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
+                                                                    ].join(' ')}
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setTimeBudget(
+                                                                            option.value,
+                                                                        )
+                                                                    }
+                                                                    type="button"
+                                                                >
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </button>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                                        {t(
+                                                            'home.learning_desk.time_budget.helper',
+                                                            'This only narrows routes with an author-provided guide; it is not a deadline.',
+                                                        )}
+                                                    </p>
+                                                </fieldset>
+                                            ) : null}
+                                            {hasLearningPurposes ? (
+                                                <div>
+                                                    <label
+                                                        className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                                        htmlFor="learning-desk-purpose"
+                                                    >
+                                                        {t(
+                                                            'home.learning_desk.purpose_filter.label',
+                                                            'Explore by learning purpose',
+                                                        )}
+                                                    </label>
+                                                    <select
+                                                        className="mt-2 min-h-11 w-full rounded-md border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-3 text-sm text-[var(--learner-heading-text)] focus:border-[var(--learner-action-accent)] focus:ring-2 focus:ring-[var(--learner-action-accent)] focus:outline-none"
+                                                        aria-describedby="learning-desk-purpose-help"
+                                                        id="learning-desk-purpose"
+                                                        onChange={(event) =>
+                                                            setPurposeFilter(
+                                                                event.target
+                                                                    .value as DeskPurposeFilter,
+                                                            )
+                                                        }
+                                                        value={purposeFilter}
+                                                    >
+                                                        <option value="any">
+                                                            {t(
+                                                                'home.learning_desk.purpose_filter.any',
+                                                                'Any purpose',
+                                                            )}
+                                                        </option>
+                                                        {learningPurposeOptions.map(
+                                                            (option) => (
+                                                                <option
+                                                                    key={
+                                                                        option.value
+                                                                    }
+                                                                    value={
+                                                                        option.value
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        option.label
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                    <p
+                                                        className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]"
+                                                        id="learning-desk-purpose-help"
+                                                    >
+                                                        {t(
+                                                            'home.learning_desk.purpose_filter.helper',
+                                                            'Choose the kind of learning encounter that feels useful now. This only changes the view.',
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     ) : null}
                                     {visibleCurrentRoutes.length > 0 ? (
                                         <LearnerPaginatedItems
@@ -658,7 +760,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                 />
                                             )}
                                         />
-                                    ) : timeBudget === 'any' ? (
+                                    ) : !hasActiveRouteFilter ? (
                                         <EmptyState
                                             body={t(
                                                 'home.learning_desk.continue.empty_body',
@@ -678,14 +780,14 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                         <div className="border-b border-[var(--learner-border-color)] py-7">
                                             <p className="font-medium">
                                                 {t(
-                                                    'home.learning_desk.time_budget.empty_title',
-                                                    'No guided routes fit that time yet',
+                                                    'home.learning_desk.route_filter.empty_title',
+                                                    'No current routes match these choices yet',
                                                 )}
                                             </p>
                                             <p className="mt-1 text-sm leading-6 text-[var(--learner-muted-text)]">
                                                 {t(
-                                                    'home.learning_desk.time_budget.empty_body',
-                                                    'Routes without a suggested time remain available when you choose Any time.',
+                                                    'home.learning_desk.route_filter.empty_body',
+                                                    'Try another time or purpose, or show every current route again.',
                                                 )}
                                             </p>
                                             <button
@@ -1525,6 +1627,18 @@ function fitsTimeBudget(
     return (
         timeBudget === 'any' ||
         (timeGuideMinutes !== null && timeGuideMinutes <= timeBudget)
+    );
+}
+
+function fitsDeskFilters(
+    timeGuideMinutes: number | null,
+    learningIntent: string | null,
+    timeBudget: DeskTimeBudget,
+    purposeFilter: DeskPurposeFilter,
+): boolean {
+    return (
+        fitsTimeBudget(timeGuideMinutes, timeBudget) &&
+        (purposeFilter === 'any' || learningIntent === purposeFilter)
     );
 }
 

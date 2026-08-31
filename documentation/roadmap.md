@@ -142,7 +142,8 @@ Activities can also carry an optional author-provided suggested duration,
 shown as a planning cue without a countdown, deadline or timing-based learner
 measure. The Learning Desk can use that guide for a temporary learner-selected
 up-to-15 or up-to-30-minute route view; persistent intent and focus settings
-remain open.
+remain open. The same view can also be narrowed by an authored learning
+purpose, while persistent learner-selected alternatives remain open.
 
 ### 7. Effort-preserving learner AI
 

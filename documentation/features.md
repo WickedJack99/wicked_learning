@@ -160,6 +160,9 @@ a countdown, deadline, completion condition or timing-based learner measure.
 On the Learning Desk, learners can optionally narrow current routes to those
 with an authored guide of up to 15 or 30 minutes. Routes without a guide remain
 available under Any time; the choice is temporary and does not change progress.
+Learners can also temporarily filter current routes by their authored learning
+purpose, such as applying, explaining or retrieving an idea. These filters only
+change the desk view and do not rank routes or alter progress.
 
 Shared tasks can be authored as a general contribution, a question, or a
 reflection. Playback uses that kind to orient the learner and accepted

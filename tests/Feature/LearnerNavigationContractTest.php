@@ -88,7 +88,8 @@ test('the learning desk offers a bounded time budget for guided routes', functio
 
     expect($learningDesk)
         ->toContain("type DeskTimeBudget = 'any' | 15 | 30;")
-        ->toContain('fitsTimeBudget(route.timeGuideMinutes, timeBudget)')
+        ->toContain('fitsDeskFilters(')
+        ->toContain("'home.learning_desk.purpose_filter.label'")
         ->toContain("'home.learning_desk.time_budget.helper'")
         ->toContain('items={visibleCurrentRoutes}');
 });
