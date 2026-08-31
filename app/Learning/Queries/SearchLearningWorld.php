@@ -8,6 +8,7 @@ use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningTopic;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 
 class SearchLearningWorld
 {
@@ -80,9 +81,11 @@ class SearchLearningWorld
                     ->orWhereRaw('LOWER(description) LIKE LOWER(?)', [$likeTerm])
                     ->orWhereRaw('LOWER(slug) LIKE LOWER(?)', [$likeTerm]);
             })
+            ->where(function (Builder $query) use ($user): void {
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
             ->limit(8)
             ->get()
-            ->filter(fn (LearningMap $map): bool => $this->mapAccess->canViewMap($map, $user))
             ->map(fn (LearningMap $map): array => [
                 'href' => route('world', ['map' => $map->slug], false),
                 'id' => "map:{$map->id}",
@@ -106,6 +109,14 @@ class SearchLearningWorld
             ->with('map')
             ->where('state', '!=', 'hidden')
             ->whereHas('map.world', fn ($query) => $query->where('slug', CurrentWorldResolver::DEFAULT_WORLD_SLUG))
+            ->whereHas('map', function (Builder $query) use ($user): void {
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereNull('visual_config')
+                    ->orWhereJsonDoesntContain('visual_config->hideEmptySpace', true);
+            })
             ->where(function ($query) use ($likeTerm): void {
                 $query
                     ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm])
@@ -114,11 +125,8 @@ class SearchLearningWorld
                     ->orWhereHas('map', fn ($mapQuery) => $mapQuery
                         ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm]));
             })
-            ->limit(32)
+            ->limit(24)
             ->get()
-            ->filter(fn (LearningNode $node): bool => $this->isVisibleNode($node)
-                && $this->mapAccess->canViewMap($node->map, $user))
-            ->take(24)
             ->map(fn (LearningNode $node): array => [
                 'href' => route('world', [
                     'map' => $node->map->slug,
@@ -134,10 +142,5 @@ class SearchLearningWorld
                 'title' => $node->title,
             ])
             ->all();
-    }
-
-    private function isVisibleNode(LearningNode $node): bool
-    {
-        return ($node->visual_config['hideEmptySpace'] ?? false) !== true;
     }
 }

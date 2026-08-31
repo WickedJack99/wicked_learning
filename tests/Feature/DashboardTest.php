@@ -336,6 +336,83 @@ test('authenticated users can search visible maps and nodes', function () {
         ]);
 });
 
+test('world search keeps visible maps and nodes beyond newer restricted matches', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+
+    $createSearchMap = function (string $slug, string $title, array $accessRoles) use ($world): void {
+        $map = LearningMap::query()->create([
+            'learning_world_id' => $world->id,
+            'slug' => $slug,
+            'title' => $title,
+            'access_roles' => $accessRoles,
+        ]);
+        LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => "{$slug}-place",
+            'title' => "{$title} place",
+            'position_q' => 0,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+    };
+
+    for ($index = 0; $index < 32; $index++) {
+        $createSearchMap(
+            "restricted-reachable-{$index}",
+            "Reachable restricted {$index}",
+            [User::ROLE_ADMIN],
+        );
+    }
+
+    $createSearchMap(
+        'reachable-destination',
+        'Reachable destination',
+        [User::ROLE_USER],
+    );
+
+    $searchQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$searchQueries): void {
+        if (str_contains($query->sql, 'from "learning_maps"')
+            || str_contains($query->sql, 'from "learning_nodes"')) {
+            $searchQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', ['query' => 'reachable']))
+        ->assertOk()
+        ->assertJsonFragment([
+            'kind' => 'map',
+            'mapSlug' => 'reachable-destination',
+        ])
+        ->assertJsonFragment([
+            'kind' => 'node',
+            'nodeSlug' => 'reachable-destination-place',
+        ])
+        ->assertJsonMissing([
+            'mapSlug' => 'restricted-reachable-0',
+        ])
+        ->assertJsonMissing([
+            'nodeSlug' => 'restricted-reachable-0-place',
+        ]);
+
+    $mapSearchQuery = collect($searchQueries)->first(
+        fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learning_maps"')
+            && preg_match('/limit 8/i', $query->sql) === 1,
+    );
+    $nodeSearchQuery = collect($searchQueries)->first(
+        fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learning_nodes"')
+            && preg_match('/limit 24/i', $query->sql) === 1,
+    );
+
+    expect($mapSearchQuery)->not->toBeNull()
+        ->and($nodeSearchQuery)->not->toBeNull();
+});
+
 test('authenticated users can search published topics', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();
