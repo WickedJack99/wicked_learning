@@ -79,7 +79,7 @@ class LearnerProgressSerializer
     {
         return LearnerQuestionAnswer::query()
             ->where('user_id', $userId)
-            ->with(['question.activity.transitions', 'selectedOption'])
+            ->with(['question.activity.transitions', 'question.options', 'selectedOption'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get()
@@ -90,6 +90,7 @@ class LearnerProgressSerializer
 
                 return [$answer->learning_question_id => [
                     'optionId' => $answer->learning_question_option_id,
+                    'optionIds' => $this->selectedOptionIds($answer),
                     'isCorrect' => $answer->is_correct,
                     'confidence' => $answer->confidence,
                     'calibration' => $answer->calibration,
@@ -107,10 +108,12 @@ class LearnerProgressSerializer
     }
 
     /**
-     * @return array{answeredAt: string|null, calibration: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null}
+     * @return array{answeredAt: string|null, calibration: string|null, confidence: string|null, isCorrect: bool, optionLabel: string|null, optionLabels: list<string>}
      */
     private function attempt(LearnerQuestionAnswer $answer): array
     {
+        $labels = $this->selectedOptionLabels($answer);
+
         return [
             'answeredAt' => $answer->created_at instanceof DateTimeInterface
                 ? $answer->created_at->format(DateTimeInterface::ATOM)
@@ -118,17 +121,59 @@ class LearnerProgressSerializer
             'calibration' => $answer->calibration,
             'confidence' => $answer->confidence,
             'isCorrect' => (bool) $answer->is_correct,
-            'optionLabel' => $answer->selectedOption?->label,
+            'optionLabel' => $labels[0] ?? null,
+            'optionLabels' => $labels,
         ];
     }
 
     private function nextActivityId(LearnerQuestionAnswer $answer): ?int
     {
-        if (! $answer->question || ! $answer->selectedOption) {
+        if (! $answer->question) {
             return null;
         }
 
-        return $this->transitionResolver->for($answer->question, $answer->selectedOption)?->to_activity_id;
+        $selectedOptionIds = $this->selectedOptionIds($answer);
+        $selectedOptions = $answer->question->options
+            ->filter(fn ($option): bool => in_array($option->id, $selectedOptionIds, true))
+            ->values()
+            ->all();
+
+        return $this->transitionResolver->forSelection(
+            $answer->question,
+            $selectedOptions,
+            (bool) $answer->is_correct,
+        )?->to_activity_id;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function selectedOptionIds(LearnerQuestionAnswer $answer): array
+    {
+        if (is_array($answer->selected_option_ids) && $answer->selected_option_ids !== []) {
+            return array_values(array_map(
+                static fn (mixed $optionId): int => (int) $optionId,
+                $answer->selected_option_ids,
+            ));
+        }
+
+        return $answer->learning_question_option_id === null
+            ? []
+            : [$answer->learning_question_option_id];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function selectedOptionLabels(LearnerQuestionAnswer $answer): array
+    {
+        $selectedOptionIds = $this->selectedOptionIds($answer);
+
+        return $answer->question?->options
+            ->filter(fn ($option): bool => in_array($option->id, $selectedOptionIds, true))
+            ->map(fn ($option): string => $option->label)
+            ->values()
+            ->all() ?? [];
     }
 
     private function dateTimeString(mixed $value): ?string

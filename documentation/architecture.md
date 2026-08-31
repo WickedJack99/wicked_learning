@@ -188,6 +188,11 @@ Question activities keep their prompt and answer records in the separate
 `LearningQuestion` and `LearningQuestionOption` tables. Activity creation and
 editing synchronize those records from the author form, and activity/template
 snapshots include them so reuse and restore do not produce an empty question.
+Single-choice answers retain their existing option reference. Multi-select
+answers reuse the answer record's `selected_option_ids` JSON field and are
+correct only when the submitted set exactly matches the authored correct set.
+They use the activity's generic correct or incorrect transition rather than
+guessing which one of several selected options should control an outcome branch.
 Question outcome transitions use the existing activity-transition graph: an
 outcome connector stores its answer key in `trigger_value`, while the resolver
 falls back to the generic correctness transition when no matching key exists.

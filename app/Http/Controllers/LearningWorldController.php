@@ -376,11 +376,21 @@ class LearningWorldController extends Controller
             'defer_completion' => ['sometimes', 'boolean'],
             'is_recall' => ['sometimes', 'boolean'],
             'is_revisit' => ['sometimes', 'boolean'],
-            'option_id' => ['required', 'integer'],
+            'option_id' => ['nullable', 'integer', 'required_without:option_ids'],
+            'option_ids' => ['nullable', 'array', 'required_without:option_id', 'min:1', 'max:24'],
+            'option_ids.*' => ['integer', 'distinct'],
             'play_run_id' => ['nullable', 'string', 'uuid'],
         ]);
         $question->loadMissing('activity');
         abort_unless($question->activity !== null, 404);
+        $optionIds = is_array($data['option_ids'] ?? null)
+            ? array_map(static fn (mixed $optionId): int => (int) $optionId, $data['option_ids'])
+            : [(int) $data['option_id']];
+        abort_unless(
+            $question->allow_multiple || count($optionIds) === 1,
+            422,
+            'This question accepts one answer.',
+        );
         $playRunId = is_string($data['play_run_id'] ?? null) ? (string) $data['play_run_id'] : null;
         if ($playRunId) {
             $this->activityAccess->assertActive($request->user(), $question->activity, $playRunId);
@@ -392,7 +402,7 @@ class LearningWorldController extends Controller
             'answer' => $this->questionAnswerService->answer(
                 $request->user()->id,
                 $question,
-                (int) $data['option_id'],
+                $optionIds,
                 $playRunId,
                 is_string($data['confidence'] ?? null) ? (string) $data['confidence'] : null,
                 is_bool($data['is_revisit'] ?? null) ? $data['is_revisit'] : false,

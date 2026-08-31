@@ -556,6 +556,7 @@ export type LearningCheckInNextDirection = 'revisit' | 'related' | 'settle';
 
 export type QuestionAnswerProgress = {
     optionId: number | null;
+    optionIds: number[];
     isCorrect: boolean;
     attemptNumber?: number;
     confidence?: QuestionConfidence | null;
@@ -576,6 +577,7 @@ export type QuestionAnswerAttempt = {
     confidence: QuestionConfidence | null;
     isCorrect: boolean;
     optionLabel: string | null;
+    optionLabels?: string[];
 };
 
 export type QuestionConfidence = 'exploring' | 'leaning' | 'settled';

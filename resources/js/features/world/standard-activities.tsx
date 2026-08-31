@@ -403,6 +403,14 @@ export function QuestionActivity({
     );
     const [confidenceAfterFeedback, setConfidenceAfterFeedback] =
         useState<QuestionConfidence | null>(null);
+    const [selection, setSelection] = useState<{
+        optionIds: number[];
+        questionId: number | null;
+    }>({
+        optionIds:
+            answer?.optionIds ?? (answer?.optionId ? [answer.optionId] : []),
+        questionId: activity.question?.id ?? null,
+    });
     const [isCompleting, setIsCompleting] = useState(false);
     const [isRecallUpdating, setIsRecallUpdating] = useState(false);
     const [recallError, setRecallError] = useState(false);
@@ -419,14 +427,27 @@ export function QuestionActivity({
         return null;
     }
 
-    const submitAnswer = async (optionId: number) => {
+    const draftOptionIds =
+        selection.questionId === question.id ? selection.optionIds : [];
+    const selectedOptionIds = answer
+        ? (answer.optionIds ?? (answer.optionId ? [answer.optionId] : []))
+        : draftOptionIds;
+
+    const submitAnswer = async (optionIds: number[]) => {
+        if (optionIds.length === 0) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
+            const answerPayload = question.allowMultiple
+                ? { option_ids: optionIds }
+                : { option_id: optionIds[0] };
             const response = await postJson<{ answer: QuestionAnswerProgress }>(
                 `/learning/questions/${question.id}/answer`,
                 {
-                    option_id: optionId,
+                    ...answerPayload,
                     confidence,
                     defer_completion: true,
                     is_recall: isRecall,
@@ -439,6 +460,26 @@ export function QuestionActivity({
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const toggleOption = (optionId: number) => {
+        if (question.allowMultiple) {
+            setSelection((current) => {
+                const currentOptionIds =
+                    current.questionId === question.id ? current.optionIds : [];
+
+                return {
+                    optionIds: currentOptionIds.includes(optionId)
+                        ? currentOptionIds.filter((id) => id !== optionId)
+                        : [...currentOptionIds, optionId],
+                    questionId: question.id,
+                };
+            });
+
+            return;
+        }
+
+        void submitAnswer([optionId]);
     };
 
     const completeQuestion = async () => {
@@ -555,16 +596,22 @@ export function QuestionActivity({
             ) : null}
 
             <div className="grid gap-3">
+                {question.allowMultiple && !answer ? (
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Select all answers that fit before checking them.
+                    </p>
+                ) : null}
                 {question.options.map((option) => (
                     <button
+                        aria-pressed={selectedOptionIds.includes(option.id)}
                         className={cn(
                             'rounded-lg border border-slate-200 bg-white p-4 text-left text-sm leading-6 text-slate-700 transition hover:border-cyan-500/60 hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:outline-none dark:border-white/10 dark:bg-slate-950/32 dark:text-slate-100 dark:hover:border-teal-200/60 dark:hover:bg-teal-100/8 dark:focus-visible:ring-teal-200',
-                            answer?.optionId === option.id &&
+                            selectedOptionIds.includes(option.id) &&
                                 'border-cyan-500/80 bg-cyan-50 dark:border-teal-200/80 dark:bg-teal-100/12',
                         )}
                         disabled={isSubmitting}
                         key={option.id}
-                        onClick={() => void submitAnswer(option.id)}
+                        onClick={() => toggleOption(option.id)}
                         type="button"
                     >
                         <span className="mr-2 font-semibold text-cyan-700 dark:text-teal-200">
@@ -574,6 +621,18 @@ export function QuestionActivity({
                     </button>
                 ))}
             </div>
+
+            {question.allowMultiple && !answer ? (
+                <Button
+                    className="self-start"
+                    disabled={isSubmitting || selectedOptionIds.length === 0}
+                    onClick={() => void submitAnswer(selectedOptionIds)}
+                    type="button"
+                >
+                    {isSubmitting ? 'Checking...' : 'Check answers'}
+                    <ArrowRight className="ml-2 size-4" />
+                </Button>
+            ) : null}
 
             {answer ? (
                 <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
@@ -723,9 +782,12 @@ export function QuestionActivity({
                                         >
                                             <div className="flex items-center justify-between gap-2 text-xs">
                                                 <span className="font-medium text-slate-700 dark:text-slate-200">
-                                                    {attempt.optionLabel
-                                                        ? `Chose ${attempt.optionLabel}`
-                                                        : 'Earlier answer'}
+                                                    {attempt.optionLabels
+                                                        ?.length
+                                                        ? `Chose ${attempt.optionLabels.join(', ')}`
+                                                        : attempt.optionLabel
+                                                          ? `Chose ${attempt.optionLabel}`
+                                                          : 'Earlier answer'}
                                                 </span>
                                                 <span className="shrink-0 text-slate-500 dark:text-slate-400">
                                                     {formatReviewDate(

@@ -865,6 +865,84 @@ test('a question can defer evidence until its feedback pause is complete', funct
         ->toBe('correct');
 });
 
+test('a multi-select question stores the full selection and uses aggregate correctness', function () {
+    $learner = User::factory()->create();
+    [$node, $activity, $start] = competenceRoute([]);
+    $activity->update(['type' => 'question']);
+    $nextActivity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'multi-select-next-activity',
+        'type' => 'markdown',
+        'title' => 'Next activity',
+        'config' => [],
+        'sort_order' => 20,
+    ]);
+    $question = LearningQuestion::query()->create([
+        'learning_activity_id' => $activity->id,
+        'prompt' => 'Which clues belong together?',
+        'allow_multiple' => true,
+        'feedback_correct' => 'Those clues form the complete pattern.',
+        'feedback_incorrect' => 'Look for the complete pattern.',
+    ]);
+    $firstCorrect = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'A',
+        'body' => 'The first clue.',
+        'is_correct' => true,
+        'sort_order' => 10,
+    ]);
+    $secondCorrect = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'B',
+        'body' => 'The second clue.',
+        'is_correct' => true,
+        'sort_order' => 20,
+    ]);
+    $incorrect = LearningQuestionOption::query()->create([
+        'learning_question_id' => $question->id,
+        'label' => 'C',
+        'body' => 'A distracting clue.',
+        'is_correct' => false,
+        'sort_order' => 30,
+    ]);
+    ActivityTransition::query()->create([
+        'from_activity_id' => $activity->id,
+        'to_activity_id' => $nextActivity->id,
+        'from_connector' => 'correct',
+        'to_connector' => 'in',
+        'trigger' => 'correct',
+        'label' => 'Continue',
+    ]);
+    $start->update(['learning_activity_id' => $activity->id]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'settled',
+            'defer_completion' => true,
+            'option_ids' => [$secondCorrect->id, $firstCorrect->id],
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.optionIds', [$firstCorrect->id, $secondCorrect->id])
+        ->assertJsonPath('answer.isCorrect', true)
+        ->assertJsonPath('answer.nextActivityId', $nextActivity->id)
+        ->assertJsonPath('answer.feedback', 'Those clues form the complete pattern.');
+
+    expect(LearnerQuestionAnswer::query()->firstOrFail())
+        ->selected_option_ids->toBe([$firstCorrect->id, $secondCorrect->id])
+        ->is_correct->toBeTrue();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'defer_completion' => true,
+            'option_ids' => [$firstCorrect->id, $incorrect->id],
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.optionIds', [$firstCorrect->id, $incorrect->id])
+        ->assertJsonPath('answer.isCorrect', false)
+        ->assertJsonPath('answer.nextActivityId', null)
+        ->assertJsonPath('answer.feedback', 'Look for the complete pattern.');
+});
+
 test('a revisited question records its outcome and confidence in review history', function () {
     Carbon::setTestNow('2026-08-29 10:00:00');
 

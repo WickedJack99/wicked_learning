@@ -241,11 +241,14 @@ When the reviewed activity saves a private response during that run, the attempt
 retains its response kind and an internal link to it; the response text remains
 private.
 
-Question activities show their feedback before route completion is recorded,
-giving learners an optional pause to reflect on how settled their understanding
-feels after comparing with the explanation. That post-feedback signal remains
-part of the activity evidence and does not grade the learner. They also let
-learners explicitly keep an answered question in a
+Question activities can be authored as single-choice or multi-select prompts.
+For multi-select prompts, an answer is correct only when it contains exactly
+the authored correct options; the interaction does not introduce partial-credit
+points. Feedback is shown before route completion is recorded, giving learners
+an optional pause to reflect on how settled their understanding feels after
+comparing with the explanation. That post-feedback signal remains part of the
+activity evidence and does not grade the learner. They also let learners
+explicitly keep an answered question in a
 private recall queue. The queue is shown as its own paginated Learning Desk
 area, links back to the originating activity and can be cleared by the learner;
 it has no deadline and does not alter route progress. This is a reusable
