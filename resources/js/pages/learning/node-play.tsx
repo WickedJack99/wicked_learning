@@ -105,6 +105,9 @@ export default function NodePlay({
     const [activeActivityId, setActiveActivityId] = useState<number | null>(
         initialActivity?.id ?? null,
     );
+    const companionContextActivityIdRef = useRef<number | null>(
+        initialActivity?.id ?? null,
+    );
     const [answerProgress, setAnswerProgress] = useState(progress.answers);
     const [recallQuestionIds, setRecallQuestionIds] = useState(
         progress.recallQuestionIds,
@@ -163,13 +166,20 @@ export default function NodePlay({
         const handleAssistanceUsed = (event: Event) => {
             const detail = (
                 event as CustomEvent<{
+                    activityId?: number;
                     assistanceLevel?: string;
+                    nodeId?: number;
+                    playRunId?: string | null;
                 }>
             ).detail;
             const assistanceLevel = detail?.assistanceLevel;
+            const activityId = detail?.activityId;
 
             if (
-                activeActivityId === null ||
+                !activityId ||
+                detail?.nodeId !== node.id ||
+                detail.playRunId !== playRunId ||
+                !getActivityById(node, activityId) ||
                 !isRecordedAssistanceLevel(assistanceLevel)
             ) {
                 return;
@@ -177,8 +187,8 @@ export default function NodePlay({
 
             setActivityAssistance((current) => ({
                 ...current,
-                [activeActivityId]: preferAssistanceLevel(
-                    current[activeActivityId],
+                [activityId]: preferAssistanceLevel(
+                    current[activityId],
                     assistanceLevel,
                 ),
             }));
@@ -194,7 +204,7 @@ export default function NodePlay({
                 'learning-companion:assistance-used',
                 handleAssistanceUsed,
             );
-    }, [activeActivityId]);
+    }, [node, playRunId]);
 
     useEffect(() => {
         if (!activeActivity) {
@@ -211,6 +221,16 @@ export default function NodePlay({
                 ? recallQuestionId
                 : null,
         );
+
+        if (
+            isAuthenticated &&
+            companionContextActivityIdRef.current !== activeActivity.id
+        ) {
+            companionContextActivityIdRef.current = activeActivity.id;
+            void router.reload({
+                only: ['companion'],
+            });
+        }
 
         if (isAuthenticated) {
             void postJson(

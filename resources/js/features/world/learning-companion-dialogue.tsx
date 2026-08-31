@@ -119,6 +119,7 @@ export function LearningCompanionDialogue({
             dialogue_node_id: node.id,
             map_id: context.map?.id ?? undefined,
             node_id: context.node?.id ?? undefined,
+            play_run_id: context.playRunId ?? undefined,
             surface: context.surface,
         };
         const csrfToken =
@@ -174,7 +175,10 @@ export function LearningCompanionDialogue({
                     window.dispatchEvent(
                         new CustomEvent('learning-companion:assistance-used', {
                             detail: {
+                                activityId: context.activity?.id,
                                 assistanceLevel,
+                                nodeId: context.node?.id,
+                                playRunId: context.playRunId,
                             },
                         }),
                     );

@@ -35,7 +35,16 @@ class LearningPlayRunService
             return false;
         }
 
-        return $this->isValidRun($request, $runId, $user, $activity->learning_node_id);
+        return $this->canUseRunForUser($user, $runId, $activity);
+    }
+
+    public function canUseRunForUser(User $user, string $runId, LearningActivity $activity): bool
+    {
+        return LearnerRouteProgress::query()
+            ->where('user_id', $user->id)
+            ->where('learning_node_id', $activity->learning_node_id)
+            ->where('current_play_run_id', $runId)
+            ->exists();
     }
 
     private function isValidRun(Request $request, string $runId, User $user, int $nodeId): bool

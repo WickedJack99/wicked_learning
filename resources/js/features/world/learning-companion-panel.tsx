@@ -79,6 +79,7 @@ export function LearningCompanionPanel({
 
             <LearningCompanionDialogue
                 companion={companion}
+                key={`${companion.context.activity?.id ?? 'none'}:${companion.context.playRunId ?? 'none'}`}
                 postAttemptAvailable={postAttemptAvailable}
             />
 

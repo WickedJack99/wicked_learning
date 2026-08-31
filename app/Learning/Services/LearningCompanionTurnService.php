@@ -24,6 +24,8 @@ class LearningCompanionTurnService
         private readonly LearningCompanionConfigurationResolver $configurationResolver,
         private readonly LearnerActivityAccessService $activityAccess,
         private readonly LearningMapAccessService $mapAccess,
+        private readonly LearningPlayRunService $playRuns,
+        private readonly LearnerProgressService $progress,
         private readonly RunAiAgentTemplate $runTemplate,
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
     ) {}
@@ -35,6 +37,17 @@ class LearningCompanionTurnService
     public function handle(User $user, array $data): array
     {
         [$world, $map, $node, $activity] = $this->resolveContext($user, $data);
+        $playRunId = is_string($data['play_run_id'] ?? null)
+            ? (string) $data['play_run_id']
+            : null;
+
+        if ($playRunId !== null && $activity !== null
+            && ! $this->playRuns->canUseRunForUser($user, $playRunId, $activity)) {
+            throw ValidationException::withMessages([
+                'play_run_id' => 'This activity run is no longer active.',
+            ]);
+        }
+
         $configuration = $this->configurationResolver->resolve(
             PlatformCompanionSetting::current(),
             $world,
@@ -120,10 +133,23 @@ class LearningCompanionTurnService
             ),
         );
 
+        $text = mb_substr(trim($result['text']), 0, 1200);
+        $recordedAssistanceLevel = $this->evidenceAssistanceLevel($assistanceLevel);
+
+        if ($activity !== null && $text !== ''
+            && in_array($recordedAssistanceLevel, ['hint', 'questions_only'], true)) {
+            $this->progress->recordCompanionAssistance(
+                $user->id,
+                $activity,
+                $recordedAssistanceLevel,
+                $playRunId,
+            );
+        }
+
         return [
             'node_id' => $nodeId,
-            'text' => mb_substr(trim($result['text']), 0, 1200),
-            'assistance_level' => $this->evidenceAssistanceLevel($assistanceLevel),
+            'text' => $text,
+            'assistance_level' => $recordedAssistanceLevel,
             'disclosure' => [
                 'kind' => 'bounded_authored_context',
                 'uses_private_learner_response' => false,
@@ -220,7 +246,7 @@ class LearningCompanionTurnService
             $assistanceInstruction,
             '',
             'Authored instruction: '.mb_substr((string) ($dialogueNode['instruction'] ?? ''), 0, 1000),
-            'Allowed context: '.implode(', ', $dialogueNode['capabilities'] ?? []),
+            'Allowed context: '.implode(', ', $capabilities),
             'Surface: '.(string) $data['surface'],
         ];
 

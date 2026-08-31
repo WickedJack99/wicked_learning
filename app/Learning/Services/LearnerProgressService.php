@@ -12,6 +12,10 @@ use Illuminate\Support\Carbon;
 
 class LearnerProgressService
 {
+    private const COMPANION_ASSISTANCE_KEY = 'companionAssistance';
+
+    private const MAX_COMPANION_ASSISTANCE_RECORDS = 20;
+
     public function __construct(
         private readonly LearnerRouteProgressService $routeProgress,
         private readonly LearnerActivityPlayStateService $activityPlayState,
@@ -44,6 +48,15 @@ class LearnerProgressService
             'attempt_count' => 1,
             'reached_at' => $now,
         ]);
+
+        if ($status === 'completed') {
+            $storedAssistance = $this->storedCompanionAssistanceLevel($progress, $playRunId);
+
+            if ($storedAssistance !== null) {
+                $assistanceLevel = $storedAssistance;
+            }
+        }
+
         $recordsReviewAttempt = $isRevisit
             && $status === 'completed'
             && $progress->status === 'completed'
@@ -71,6 +84,7 @@ class LearnerProgressService
 
             $metadata = is_array($progress->metadata) ? $progress->metadata : [];
             unset($metadata['revisitInvitation']);
+            $this->forgetCompanionAssistance($metadata, $playRunId);
             $progress->forceFill([
                 'metadata' => $metadata,
                 'revisit_status' => LearnerActivityProgress::REVISIT_STATUS_NONE,
@@ -166,6 +180,53 @@ class LearnerProgressService
         return $progress;
     }
 
+    public function recordCompanionAssistance(
+        int $userId,
+        LearningActivity $activity,
+        string $assistanceLevel,
+        ?string $playRunId = null,
+    ): void {
+        if (! in_array($assistanceLevel, ['hint', 'questions_only'], true)) {
+            return;
+        }
+
+        $progress = LearnerActivityProgress::query()->firstOrCreate([
+            'user_id' => $userId,
+            'learning_activity_id' => $activity->id,
+        ], [
+            'learning_node_id' => $activity->learning_node_id,
+            'status' => 'reached',
+            'attempt_count' => 1,
+            'reached_at' => Carbon::now(),
+        ]);
+
+        if ($progress->status === 'completed') {
+            return;
+        }
+
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $records = is_array($metadata[self::COMPANION_ASSISTANCE_KEY] ?? null)
+            ? $metadata[self::COMPANION_ASSISTANCE_KEY]
+            : [];
+        $recordKey = $playRunId ?? 'unbound';
+        $existingLevel = is_array($records[$recordKey] ?? null)
+            ? ($records[$recordKey]['level'] ?? null)
+            : null;
+
+        $records[$recordKey] = [
+            'level' => $this->strongerCompanionAssistanceLevel($existingLevel, $assistanceLevel),
+            'recordedAt' => Carbon::now()->toIso8601String(),
+        ];
+        $metadata[self::COMPANION_ASSISTANCE_KEY] = array_slice(
+            $records,
+            -self::MAX_COMPANION_ASSISTANCE_RECORDS,
+            null,
+            true,
+        );
+        $progress->metadata = $metadata;
+        $progress->save();
+    }
+
     public function markObstacleDestroyed(int $userId, LearningActivity $activity): LearnerActivityProgress
     {
         $progress = $this->mark($userId, $activity, 'reached');
@@ -178,6 +239,44 @@ class LearnerProgressService
         $progress->save();
 
         return $progress;
+    }
+
+    private function storedCompanionAssistanceLevel(
+        LearnerActivityProgress $progress,
+        ?string $playRunId,
+    ): ?string {
+        $metadata = is_array($progress->metadata) ? $progress->metadata : [];
+        $records = is_array($metadata[self::COMPANION_ASSISTANCE_KEY] ?? null)
+            ? $metadata[self::COMPANION_ASSISTANCE_KEY]
+            : [];
+        $record = $records[$playRunId ?? 'unbound'] ?? null;
+        $level = is_array($record) ? ($record['level'] ?? null) : null;
+
+        return in_array($level, ['hint', 'questions_only'], true) ? $level : null;
+    }
+
+    /** @param array<string, mixed> $metadata */
+    private function forgetCompanionAssistance(array &$metadata, ?string $playRunId): void
+    {
+        $records = is_array($metadata[self::COMPANION_ASSISTANCE_KEY] ?? null)
+            ? $metadata[self::COMPANION_ASSISTANCE_KEY]
+            : [];
+        $recordKey = $playRunId ?? 'unbound';
+
+        unset($records[$recordKey]);
+
+        if ($records === []) {
+            unset($metadata[self::COMPANION_ASSISTANCE_KEY]);
+
+            return;
+        }
+
+        $metadata[self::COMPANION_ASSISTANCE_KEY] = $records;
+    }
+
+    private function strongerCompanionAssistanceLevel(?string $current, string $incoming): string
+    {
+        return $current === 'hint' || $incoming === 'hint' ? 'hint' : 'questions_only';
     }
 
     public function recordCheckIn(

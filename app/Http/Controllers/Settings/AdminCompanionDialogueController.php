@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Access\AccessLevel;
+use App\Access\AccessScope;
+use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
+use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Validation\LearningCompanionDialogueGraphValidator;
 use App\Models\LearningActivity;
 use App\Models\LearningCompanionDialogue;
@@ -10,6 +14,7 @@ use App\Models\LearningCompanionDialogueAssignment;
 use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningWorld;
+use App\Models\User;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -25,6 +30,7 @@ class AdminCompanionDialogueController extends Controller
 
     public function __construct(
         private readonly LearningCompanionDialogueGraphValidator $graphValidator,
+        private readonly LearningMapEditAccessService $mapEditAccess,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -150,6 +156,7 @@ class AdminCompanionDialogueController extends Controller
             ->values();
 
         $this->ensureTargetsExist($assignments->all());
+        $this->assertAssignmentsEditable($request->user(), $assignments->all());
 
         DB::transaction(function () use ($assignments, $dialogue): void {
             $dialogue->assignments()->delete();
@@ -292,6 +299,49 @@ class AdminCompanionDialogueController extends Controller
             throw ValidationException::withMessages([
                 'assignments' => "One or more {$type} targets no longer exist.",
             ]);
+        }
+    }
+
+    /** @param list<array{scope_id: int, scope_type: string}> $assignments */
+    private function assertAssignmentsEditable(User $user, array $assignments): void
+    {
+        $byType = collect($assignments)->groupBy('scope_type');
+        $maps = LearningMap::query()
+            ->whereIn('id', $byType->get('map', collect())->pluck('scope_id'))
+            ->get()
+            ->keyBy('id');
+        $nodes = LearningNode::query()
+            ->with('map')
+            ->whereIn('id', $byType->get('node', collect())->pluck('scope_id'))
+            ->get()
+            ->keyBy('id');
+        $activities = LearningActivity::query()
+            ->with('node.map')
+            ->whereIn('id', $byType->get('activity', collect())->pluck('scope_id'))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($assignments as $assignment) {
+            $editable = match ($assignment['scope_type']) {
+                'world' => $user->hasScopedAccess(
+                    PermissionCatalog::WORLD_MAPS,
+                    AccessLevel::UPDATE,
+                    AccessScope::ALL,
+                ),
+                'map' => $this->mapEditAccess->canEditMap($user, $maps->get($assignment['scope_id'])),
+                'node' => $this->mapEditAccess->canEditNode($user, $nodes->get($assignment['scope_id'])),
+                'activity' => $this->mapEditAccess->canEditActivitiesOnNode(
+                    $user,
+                    $activities->get($assignment['scope_id'])->node,
+                ),
+                default => false,
+            };
+
+            if (! $editable) {
+                throw ValidationException::withMessages([
+                    'assignments' => 'You may only assign companion dialogues to learning content you can edit.',
+                ]);
+            }
         }
     }
 }

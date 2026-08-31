@@ -31,13 +31,14 @@ class LearningCompanionTurnRequest extends FormRequest
             'map_id' => ['nullable', 'integer', 'min:1'],
             'node_id' => ['nullable', 'integer', 'min:1'],
             'activity_id' => ['nullable', 'integer', 'min:1'],
+            'play_run_id' => ['nullable', 'string', 'uuid'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
         if ($this->input('surface') !== 'activity') {
-            $this->merge(['node_id' => null, 'activity_id' => null]);
+            $this->merge(['node_id' => null, 'activity_id' => null, 'play_run_id' => null]);
         }
 
         if ($this->input('surface') !== 'world') {
