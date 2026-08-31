@@ -468,6 +468,12 @@ The moderation directory also summarizes helpful and unresolved message counts
 per topic. A bounded needs-attention digest links staff directly to up to three
 topics with unresolved exchanges, while the existing topic navigation remains
 available for deliberate review.
+Learning Support also shows a bounded, anonymous digest of shared-task
+activities with accepted peer reviews that have not yet received a contributor's
+private helpful signal. It includes only map, node and activity context plus
+review and contributor counts and recency; learner writing and identities are
+not included. This is a prompt for a human support conversation, not an
+automated quality judgment or ranking.
 
 ### Journal, Competence And Collaboration
 

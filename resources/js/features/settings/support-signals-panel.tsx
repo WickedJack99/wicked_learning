@@ -1,5 +1,11 @@
 import { router } from '@inertiajs/react';
-import { HeartHandshake, Signal, Sparkles, Users } from 'lucide-react';
+import {
+    HandHelping,
+    HeartHandshake,
+    Signal,
+    Sparkles,
+    Users,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
     SettingsItemPanelHeader,
@@ -19,11 +25,24 @@ export type SupportSignalsSettings = {
     canGrantManualUnlocks: boolean;
     manualUnlockTargets: ManualUnlockTarget[];
     monthKey: string;
+    peerSupport: PeerSupportItem[];
     summary: {
         learners: number;
         learnersWithSignals: number;
         topicsWithMonthlyActivity: number;
     };
+};
+
+type PeerSupportItem = {
+    activityId: number;
+    activityTitle: string;
+    contributorCount: number;
+    latestReviewAt: string | null;
+    mapId: number;
+    mapTitle: string;
+    nodeId: number;
+    nodeTitle: string;
+    unresolvedReviewCount: number;
 };
 
 type ManualUnlockTarget = {
@@ -70,7 +89,7 @@ type Props = {
     settings: SupportSignalsSettings;
 };
 
-type SupportSignalsView = 'collective' | 'individual';
+type SupportSignalsView = 'collective' | 'individual' | 'peer-support';
 
 const supportSignalSections = [
     {
@@ -86,6 +105,13 @@ const supportSignalSections = [
         key: 'individual',
         label: 'Individual Support',
     },
+    {
+        description:
+            'Spot shared-task exchanges waiting for a learner-confirmed resolution.',
+        icon: HandHelping,
+        key: 'peer-support',
+        label: 'Peer Support',
+    },
 ] satisfies SettingsNavigationItem<SupportSignalsView>[];
 
 const supportSignalDescriptions = {
@@ -93,6 +119,8 @@ const supportSignalDescriptions = {
         'Anonymous 30-day activity signals show whether the learning space is alive without exposing daily learner histories.',
     individual:
         'Use learner-specific evidence patterns as conversation starters for support. They are not rankings and should not be used to compare learners.',
+    'peer-support':
+        'Use private resolution signals to notice shared-task exchanges that may benefit from a gentle support conversation.',
 } satisfies Record<SupportSignalsView, string>;
 
 const defaultSupportSignalsView: SupportSignalsView = 'collective';
@@ -104,7 +132,9 @@ function readSupportSignalsViewFromUrl(): SupportSignalsView {
 
     const value = new URL(window.location.href).searchParams.get('signals');
 
-    return value === 'collective' || value === 'individual'
+    return value === 'collective' ||
+        value === 'individual' ||
+        value === 'peer-support'
         ? value
         : defaultSupportSignalsView;
 }
@@ -190,6 +220,10 @@ export function SupportSignalsPanel({ sectionItem, settings }: Props) {
                 {activeView === 'collective' ? (
                     <CollectiveOverviewView settings={settings} />
                 ) : null}
+
+                {activeView === 'peer-support' ? (
+                    <PeerSupportView items={settings.peerSupport} />
+                ) : null}
             </div>
         </SettingsSectionWorkspace>
     );
@@ -239,6 +273,87 @@ function CollectiveOverviewView({
             <CollectiveSummary settings={settings} />
             <ActivityOverview buckets={settings.activityOverview30Days} />
         </>
+    );
+}
+
+function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
+    return (
+        <section className="grid max-w-5xl gap-4">
+            <div className="border-b border-[var(--settings-border-color)] pb-4">
+                <p className="text-xs font-medium tracking-[0.18em] text-[var(--settings-accent)] uppercase">
+                    Anonymous support queue
+                </p>
+                <h3 className="mt-2 text-lg font-semibold text-[var(--settings-primary-text)]">
+                    Shared-task exchanges to revisit
+                </h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--settings-muted-text)]">
+                    These activity-level signals show accepted peer feedback for
+                    visible learners where no contributor has marked a response
+                    helpful yet. They do not expose learner writing or reviewer
+                    identities.
+                </p>
+            </div>
+
+            {items.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {items.map((item) => (
+                        <article
+                            className="grid gap-3 border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] p-4"
+                            key={item.activityId}
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-[var(--settings-primary-text)]">
+                                    {item.activityTitle}
+                                </p>
+                                <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                    {item.mapTitle} · {item.nodeTitle}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-xs">
+                                <div>
+                                    <p className="font-semibold text-[var(--settings-accent)]">
+                                        {item.unresolvedReviewCount}
+                                    </p>
+                                    <p className="mt-1 text-[var(--settings-muted-text)]">
+                                        {item.unresolvedReviewCount === 1
+                                            ? 'review waiting'
+                                            : 'reviews waiting'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-[var(--settings-primary-text)]">
+                                        {item.contributorCount}
+                                    </p>
+                                    <p className="mt-1 text-[var(--settings-muted-text)]">
+                                        {item.contributorCount === 1
+                                            ? 'contributor'
+                                            : 'contributors'}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-[var(--settings-muted-text)]">
+                                Latest review:{' '}
+                                {formatDateTime(item.latestReviewAt)}
+                            </p>
+                        </article>
+                    ))}
+                </div>
+            ) : (
+                <section className="grid min-h-[18rem] place-items-center border-t border-[var(--settings-border-color)] p-6 text-center">
+                    <div className="max-w-md">
+                        <HandHelping className="mx-auto size-6 text-[var(--settings-accent)]" />
+                        <h3 className="mt-3 font-semibold text-[var(--settings-primary-text)]">
+                            No peer support follow-up is waiting
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-[var(--settings-muted-text)]">
+                            Shared-task feedback appears here only when a
+                            contributor has opted in to sharing and has not yet
+                            marked a received response helpful.
+                        </p>
+                    </div>
+                </section>
+            )}
+        </section>
     );
 }
 

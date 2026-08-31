@@ -15,8 +15,12 @@ use Illuminate\Support\Collection;
 
 class LoadLearnerSupportSignals
 {
+    public function __construct(
+        private readonly LoadLearnerPeerSupportDigest $peerSupportDigest,
+    ) {}
+
     /**
-     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>, monthKey: string, learners: list<array<string, mixed>>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
+     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>, monthKey: string, learners: list<array<string, mixed>>, peerSupport: list<array{activityId: int, activityTitle: string, contributorCount: int, latestReviewAt: string|null, mapId: int, mapTitle: string, nodeId: int, nodeTitle: string, unresolvedReviewCount: int}>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
      */
     public function handle(User $viewer): array
     {
@@ -53,6 +57,7 @@ class LoadLearnerSupportSignals
             'activityOverview30Days' => $this->activityOverview($learnerIds, $now),
             'monthKey' => $monthKey,
             'learners' => $supportLearnerList,
+            'peerSupport' => $this->peerSupportDigest->handle($learnerIds),
             'summary' => [
                 'learners' => count($supportLearnerList),
                 'learnersWithSignals' => collect($supportLearnerList)

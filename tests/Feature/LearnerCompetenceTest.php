@@ -20,6 +20,8 @@ use App\Models\LearningMap;
 use App\Models\LearningNode;
 use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
+use App\Models\LearningSharedTaskReview;
+use App\Models\LearningSharedTaskSubmission;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
@@ -1634,6 +1636,99 @@ test('learning support signals show scoped competence values without ranking lea
         ->and($learnerSignals['topics'][0]['totalContribution'])->toBe(16.0)
         ->and($learnerSignals['topics'][0]['monthlyContribution'])->toBe(16.0)
         ->and($learnerSignals)->not->toHaveKey('rank');
+});
+
+test('learning support exposes only unresolved shared task review aggregates', function () {
+    Carbon::setTestNow('2026-07-21 10:00:00');
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    [, $activity] = competenceRoute([]);
+    $activity->update([
+        'type' => 'shared_task',
+        'title' => 'Compare the signals',
+    ]);
+    $makeSharedTask = function (string $title) use ($activity): LearningActivity {
+        return LearningActivity::query()->create([
+            'learning_node_id' => $activity->learning_node_id,
+            'slug' => Str::slug($title).'-'.Str::lower(Str::random(6)),
+            'type' => 'shared_task',
+            'title' => $title,
+            'config' => [],
+        ]);
+    };
+
+    $unresolvedSubmission = LearningSharedTaskSubmission::query()->create([
+        'learning_activity_id' => $activity->id,
+        'user_id' => $learner->id,
+        'body' => 'A shared observation from the learner.',
+        'status' => 'accepted',
+        'metadata' => ['shareWithPeers' => true],
+        'accepted_at' => now(),
+    ]);
+    LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $activity->id,
+        'learning_shared_task_submission_id' => $unresolvedSubmission->id,
+        'user_id' => $admin->id,
+        'body' => 'Try comparing the two observations.',
+    ]);
+
+    $resolvedActivity = $makeSharedTask('Resolved signals');
+    $resolvedSubmission = LearningSharedTaskSubmission::query()->create([
+        'learning_activity_id' => $resolvedActivity->id,
+        'user_id' => $learner->id,
+        'body' => 'A second shared observation from the learner.',
+        'status' => 'accepted',
+        'metadata' => ['shareWithPeers' => true],
+        'accepted_at' => now(),
+    ]);
+    LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $resolvedActivity->id,
+        'learning_shared_task_submission_id' => $resolvedSubmission->id,
+        'user_id' => $admin->id,
+        'body' => 'A response that was found helpful.',
+        'helpful_at' => now(),
+    ]);
+
+    $privateActivity = $makeSharedTask('Private signals');
+    $privateSubmission = LearningSharedTaskSubmission::query()->create([
+        'learning_activity_id' => $privateActivity->id,
+        'user_id' => $learner->id,
+        'body' => 'A private observation from the learner.',
+        'status' => 'accepted',
+        'metadata' => ['shareWithPeers' => false],
+        'accepted_at' => now(),
+    ]);
+    LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $privateActivity->id,
+        'learning_shared_task_submission_id' => $privateSubmission->id,
+        'user_id' => $admin->id,
+        'body' => 'This private response must not enter the digest.',
+    ]);
+
+    $signals = app(LoadLearnerSupportSignals::class)->handle($admin);
+    $peerSupport = $signals['peerSupport'];
+
+    expect($peerSupport)->toHaveCount(1)
+        ->and($peerSupport[0])->toMatchArray([
+            'activityId' => $activity->id,
+            'activityTitle' => 'Compare the signals',
+            'contributorCount' => 1,
+            'unresolvedReviewCount' => 1,
+        ])
+        ->and($peerSupport[0])->toHaveKeys([
+            'latestReviewAt',
+            'mapId',
+            'mapTitle',
+            'nodeId',
+            'nodeTitle',
+        ])
+        ->and($peerSupport[0])->not->toHaveKeys([
+            'body',
+            'userId',
+        ]);
 });
 
 /**
