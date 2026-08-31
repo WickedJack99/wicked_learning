@@ -841,13 +841,25 @@ test('a question can defer evidence until its feedback pause is complete', funct
         ->assertOk()
         ->assertJsonPath('answer.isCorrect', true);
 
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'confidence' => 'exploring',
+            'defer_completion' => true,
+            'option_id' => $option->id,
+            'play_run_id' => $runId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.isCorrect', true)
+        ->assertJsonPath('answer.attemptNumber', 2)
+        ->assertJsonPath('answer.earlierAttempts.0.confidence', 'settled');
+
     expect(LearnerActivityProgress::query()->count())->toBe(0)
         ->and(LearnerEvidenceEvent::query()->count())->toBe(0);
 
     $this->actingAs($learner)
         ->postJson(route('learning.activities.progress', $activity), [
             'assistance_level' => 'independent',
-            'attempt_number' => 1,
+            'attempt_number' => 2,
             'calibration' => 'aligned',
             'confidence' => 'settled',
             'confidence_after_feedback' => 'leaning',

@@ -403,6 +403,7 @@ export function QuestionActivity({
     );
     const [confidenceAfterFeedback, setConfidenceAfterFeedback] =
         useState<QuestionConfidence | null>(null);
+    const [isRetrying, setIsRetrying] = useState(false);
     const [selection, setSelection] = useState<{
         optionIds: number[];
         questionId: number | null;
@@ -415,13 +416,16 @@ export function QuestionActivity({
     const [isRecallUpdating, setIsRecallUpdating] = useState(false);
     const [recallError, setRecallError] = useState(false);
     const continueButtonRef = useRef<HTMLButtonElement>(null);
+    const retryConfidenceRef = useRef<HTMLButtonElement>(null);
     const t = usePlatformTranslation();
 
     useEffect(() => {
-        if (answer) {
+        if (isRetrying) {
+            retryConfidenceRef.current?.focus();
+        } else if (answer) {
             continueButtonRef.current?.focus();
         }
-    }, [answer]);
+    }, [answer, isRetrying]);
 
     if (!question) {
         return null;
@@ -429,8 +433,10 @@ export function QuestionActivity({
 
     const draftOptionIds =
         selection.questionId === question.id ? selection.optionIds : [];
-    const selectedOptionIds = answer
-        ? (answer.optionIds ?? (answer.optionId ? [answer.optionId] : []))
+    const visibleAnswer = isRetrying ? undefined : answer;
+    const selectedOptionIds = visibleAnswer
+        ? (visibleAnswer.optionIds ??
+          (visibleAnswer.optionId ? [visibleAnswer.optionId] : []))
         : draftOptionIds;
 
     const submitAnswer = async (optionIds: number[]) => {
@@ -457,9 +463,21 @@ export function QuestionActivity({
             );
 
             onAnswer(question.id, response.answer);
+            setIsRetrying(false);
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const startRetry = () => {
+        if (isSubmitting || isCompleting || isCompleted) {
+            return;
+        }
+
+        setConfidence(null);
+        setConfidenceAfterFeedback(null);
+        setIsRetrying(true);
+        setSelection({ optionIds: [], questionId: question.id });
     };
 
     const toggleOption = (optionId: number) => {
@@ -483,7 +501,7 @@ export function QuestionActivity({
     };
 
     const completeQuestion = async () => {
-        if (isCompleting || !answer) {
+        if (isCompleting || isRetrying || !answer) {
             return;
         }
 
@@ -562,7 +580,7 @@ export function QuestionActivity({
                 {question.prompt}
             </p>
 
-            {!answer ? (
+            {!visibleAnswer ? (
                 <div>
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-700 uppercase dark:text-teal-200">
                         Optional starting sense
@@ -576,7 +594,7 @@ export function QuestionActivity({
                         className="mt-2 flex flex-wrap gap-2"
                         role="group"
                     >
-                        {questionConfidenceOptions.map((option) => (
+                        {questionConfidenceOptions.map((option, index) => (
                             <button
                                 aria-pressed={confidence === option.value}
                                 className={cn(
@@ -586,6 +604,9 @@ export function QuestionActivity({
                                 )}
                                 key={option.value}
                                 onClick={() => setConfidence(option.value)}
+                                ref={
+                                    index === 0 ? retryConfidenceRef : undefined
+                                }
                                 type="button"
                             >
                                 {option.label}
@@ -596,7 +617,7 @@ export function QuestionActivity({
             ) : null}
 
             <div className="grid gap-3">
-                {question.allowMultiple && !answer ? (
+                {question.allowMultiple && !visibleAnswer ? (
                     <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
                         Select all answers that fit before checking them.
                     </p>
@@ -622,7 +643,7 @@ export function QuestionActivity({
                 ))}
             </div>
 
-            {question.allowMultiple && !answer ? (
+            {question.allowMultiple && !visibleAnswer ? (
                 <Button
                     className="self-start"
                     disabled={isSubmitting || selectedOptionIds.length === 0}
@@ -634,31 +655,31 @@ export function QuestionActivity({
                 </Button>
             ) : null}
 
-            {answer ? (
+            {visibleAnswer ? (
                 <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/6">
                     <div className="mb-2 flex items-center gap-2 text-sm font-medium text-cyan-700 dark:text-teal-100">
-                        {answer.isCorrect ? (
+                        {visibleAnswer.isCorrect ? (
                             <CheckCircle2 className="size-4" />
                         ) : (
                             <RotateCcw className="size-4" />
                         )}
                         <span>
-                            {answer.isCorrect
+                            {visibleAnswer.isCorrect
                                 ? 'Useful clue found'
                                 : 'Adjust the hypothesis'}
                         </span>
                     </div>
-                    {answer.feedback ? (
+                    {visibleAnswer.feedback ? (
                         <p className="text-sm leading-6 text-slate-700 dark:text-slate-200">
-                            {answer.feedback}
+                            {visibleAnswer.feedback}
                         </p>
                     ) : null}
-                    {answer.explanation ? (
+                    {visibleAnswer.explanation ? (
                         <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                            {answer.explanation}
+                            {visibleAnswer.explanation}
                         </p>
                     ) : null}
-                    {answer.calibration ? (
+                    {visibleAnswer.calibration ? (
                         <p className="mt-3 rounded-md border border-cyan-500/15 bg-cyan-50/60 p-3 text-xs leading-5 text-cyan-950 dark:border-teal-100/15 dark:bg-teal-100/6 dark:text-teal-50">
                             <span className="font-medium">
                                 {t(
@@ -667,7 +688,10 @@ export function QuestionActivity({
                                 )}
                                 :{' '}
                             </span>
-                            {questionCalibrationMessage(t, answer.calibration)}
+                            {questionCalibrationMessage(
+                                t,
+                                visibleAnswer.calibration,
+                            )}
                         </p>
                     ) : null}
                     <fieldset className="mt-4 rounded-md border border-slate-200 p-3 dark:border-white/10">
@@ -716,12 +740,12 @@ export function QuestionActivity({
                             ))}
                         </div>
                     </fieldset>
-                    {isRecall && answer.recall ? (
+                    {isRecall && visibleAnswer.recall ? (
                         <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                             {t(
                                 'learning.recall.next_review',
                                 'Next recall in :days days.',
-                                { days: answer.recall.intervalDays },
+                                { days: visibleAnswer.recall.intervalDays },
                             )}
                         </p>
                     ) : null}
@@ -759,22 +783,24 @@ export function QuestionActivity({
                             ) : null}
                         </div>
                     ) : null}
-                    {answer.confidence ? (
+                    {visibleAnswer.confidence ? (
                         <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
                             Starting sense:{' '}
-                            {questionConfidenceLabel(answer.confidence)}
-                            {answer.attemptNumber && answer.attemptNumber > 1
-                                ? ` · Attempt ${answer.attemptNumber}`
+                            {questionConfidenceLabel(visibleAnswer.confidence)}
+                            {visibleAnswer.attemptNumber &&
+                            visibleAnswer.attemptNumber > 1
+                                ? ` · Attempt ${visibleAnswer.attemptNumber}`
                                 : ''}
                         </p>
                     ) : null}
-                    {answer.earlierAttempts?.length ? (
+                    {visibleAnswer.earlierAttempts?.length ? (
                         <details className="mt-4 rounded-md border border-slate-200 px-3 py-2 dark:border-white/10">
                             <summary className="cursor-pointer text-xs font-medium text-slate-600 outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:text-slate-300 dark:focus-visible:ring-teal-200">
-                                Earlier tries ({answer.earlierAttempts.length})
+                                Earlier tries (
+                                {visibleAnswer.earlierAttempts.length})
                             </summary>
                             <div className="mt-2 grid gap-2">
-                                {answer.earlierAttempts.map(
+                                {visibleAnswer.earlierAttempts.map(
                                     (attempt, index) => (
                                         <div
                                             className="rounded-md bg-slate-50 px-2.5 py-2 dark:bg-white/5"
@@ -809,7 +835,33 @@ export function QuestionActivity({
                             </div>
                         </details>
                     ) : null}
-                    {answer ? (
+                    {!isCompleted ? (
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <Button
+                                className="min-h-11"
+                                disabled={isCompleting}
+                                onClick={startRetry}
+                                type="button"
+                                variant="outline"
+                            >
+                                <RotateCcw
+                                    aria-hidden="true"
+                                    className="mr-2 size-4"
+                                />
+                                {t(
+                                    'learning.question.try_again',
+                                    'Try again independently',
+                                )}
+                            </Button>
+                            <p className="max-w-md text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {t(
+                                    'learning.question.try_again_helper',
+                                    'Clear the answer and make a fresh attempt before you finish. Earlier tries stay available for reflection.',
+                                )}
+                            </p>
+                        </div>
+                    ) : null}
+                    {visibleAnswer ? (
                         <Button
                             aria-busy={isCompleting}
                             className="mt-4"
@@ -822,7 +874,7 @@ export function QuestionActivity({
                                       'learning.question.saving_feedback',
                                       'Saving...',
                                   )
-                                : answer.nextActivityId
+                                : visibleAnswer.nextActivityId
                                   ? 'Continue'
                                   : 'Finish'}
                             <ArrowRight className="ml-2 size-4" />

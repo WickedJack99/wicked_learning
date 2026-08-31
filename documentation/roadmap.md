@@ -94,6 +94,11 @@ feedback-guidance contract; they may now also collect an optional confidence
 signal after that pause and retain the pair for learner inspection. Continue
 calibration only where the activity actually collects meaningful signals and
 later independent checks can support a stronger claim.
+Question feedback now offers an optional fresh independent attempt before route
+completion, reusing the existing attempt history without treating retrying as a
+score or grade. Continue with independent checks only where the activity can
+make the new attempt meaningful, rather than adding retries to every activity
+by default.
 
 ### 5. Source provenance
 
