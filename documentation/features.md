@@ -279,10 +279,12 @@ learner may also request one bounded comparison or next question grounded in
 the activity's authored feedback guidance. The post-attempt request does not
 send the learner's answer, confidence, journal or other private response to the
 companion. Only the selected question, hint or post-attempt request makes one
-server-resolved, plain-text provider turn; the response is transient in the
-open companion panel and cannot navigate, mutate content or read private
-journal, group or unrelated learner history. AI assistance is not independent
-learning evidence.
+server-resolved, plain-text provider turn. Generated responses are marked as
+based on authored guidance and the displayed context, may be incomplete, do
+not receive the learner's private response and cannot navigate or mutate
+learning content. The response is transient in the open companion panel and
+cannot read private journal, group or unrelated learner history. AI assistance
+is not independent learning evidence.
 Learners can open the companion from the lower-left corner on authenticated
 learner-facing pages, including the Learning Desk, paths, topics, competence
 map, bookmarks, organizations and activities, or immediately to the right of

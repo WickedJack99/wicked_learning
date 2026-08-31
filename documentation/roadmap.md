@@ -140,11 +140,13 @@ enables a guarded learner-companion template. Learners can now choose AI-off,
 one reflective question or one small hint before a transient turn. After an
 activity is completed, learners can also request one bounded comparison or next
 question grounded in authored feedback guidance without sharing their private
-response. Continue with grounded uncertainty disclosure and explicit assistance
-evidence only where the learner has consented and the interaction can support
-that interpretation; supported performance must not silently be interpreted as
-independent capability. The assistant must never emit arbitrary navigation or
-mutate content directly.
+response. Generated turns now disclose that they use only authored guidance and
+displayed context, may be incomplete, do not receive the learner's private
+response and cannot navigate or mutate content. Continue with explicit
+assistance evidence only where the learner has consented and the interaction
+can support that interpretation; supported performance must not silently be
+interpreted as independent capability. The assistant must never emit arbitrary
+navigation or mutate content directly.
 
 ### 8. Privacy-conscious evaluation
 

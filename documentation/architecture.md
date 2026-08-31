@@ -216,8 +216,11 @@ for the learner to choose `off`, `question` or `hint`; `off` performs no
 provider request, while the other choices make one bounded request and cache a
 successful response per node for the open panel. Failed requests remain
 retryable without creating a transcript. Loading and provider failures keep
-the authored fallback usable. AI must not receive direct authority to
-navigate, mutate content or emit arbitrary URLs.
+the authored fallback usable. Generated turns include a machine-readable
+disclosure that they use bounded authored context, do not use private learner
+responses and have no navigation or content-mutation authority; the panel shows
+that disclosure beside the transient response. AI must not receive direct
+authority to navigate, mutate content or emit arbitrary URLs.
 
 ## AI And Content API
 

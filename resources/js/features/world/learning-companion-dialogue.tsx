@@ -6,6 +6,12 @@ import { readJsonResponse } from '@/lib/json-response';
 import type { LearningCompanion, LearningCompanionDialogueNode } from '@/types';
 
 type CompanionTurnResponse = {
+    disclosure?: {
+        can_change_content: boolean;
+        can_navigate: boolean;
+        kind: string;
+        uses_private_learner_response: boolean;
+    } | null;
     errors?: Record<string, string[]>;
     message?: string;
     node_id: string;
@@ -26,6 +32,9 @@ export function LearningCompanionDialogue({
     const [nodeId, setNodeId] = useState(graph?.start ?? '');
     const [nodeHistory, setNodeHistory] = useState<string[]>([]);
     const [aiResponses, setAiResponses] = useState<Record<string, string>>({});
+    const [aiDisclosures, setAiDisclosures] = useState<Record<string, boolean>>(
+        {},
+    );
     const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
     const [aiAssistance, setAiAssistance] = useState<
         Record<string, CompanionAssistanceLevel>
@@ -130,6 +139,12 @@ export function LearningCompanionDialogue({
                     ...current,
                     [node.id]: payload.text,
                 }));
+                setAiDisclosures((current) => ({
+                    ...current,
+                    [node.id]:
+                        payload.disclosure?.kind ===
+                        'bounded_authored_context',
+                }));
             })
             .catch((error: unknown) => {
                 setAiErrors((current) => ({
@@ -196,6 +211,38 @@ export function LearningCompanionDialogue({
                         : nodeContent(node, t)}
                 </p>
             </div>
+
+            {node.type === 'ai' &&
+            hasAiResponse &&
+            aiDisclosures[node.id] ? (
+                <aside
+                    aria-label={t(
+                        'learning.companion.dialogue.ai_disclosure_title',
+                        'About this AI response',
+                    )}
+                    className="grid gap-1 rounded-lg border border-[var(--map-side-control-panel-border-color)] bg-[var(--map-side-control-hover-background)]/30 p-3 text-xs leading-5 text-[var(--map-side-control-muted-text-color)]"
+                    role="note"
+                >
+                    <p className="font-semibold text-[var(--map-side-control-text-color)]">
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_title',
+                            'About this AI response',
+                        )}
+                    </p>
+                    <p>
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_basis',
+                            'It uses the authored guidance and context shown here only, so it may be incomplete.',
+                        )}
+                    </p>
+                    <p>
+                        {t(
+                            'learning.companion.dialogue.ai_disclosure_limits',
+                            'It does not receive your private response and cannot navigate or change learning content.',
+                        )}
+                    </p>
+                </aside>
+            ) : null}
 
             {node.type === 'ai' && aiEnabled && !hasAiResponse ? (
                 <div className="grid gap-3 rounded-lg border border-[var(--map-side-control-panel-border-color)] p-3">

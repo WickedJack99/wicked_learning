@@ -28,7 +28,10 @@ class LearningCompanionTurnService
         private readonly ActivityFeedbackGuidanceConfiguration $feedbackGuidance,
     ) {}
 
-    /** @param array<string, mixed> $data @return array{node_id: string, text: string} */
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{node_id: string, text: string, disclosure: array{kind: string, uses_private_learner_response: bool, can_navigate: bool, can_change_content: bool}|null}
+     */
     public function handle(User $user, array $data): array
     {
         [$world, $map, $node, $activity] = $this->resolveContext($user, $data);
@@ -72,6 +75,7 @@ class LearningCompanionTurnService
             return [
                 'node_id' => $nodeId,
                 'text' => '',
+                'disclosure' => null,
             ];
         }
 
@@ -118,6 +122,12 @@ class LearningCompanionTurnService
         return [
             'node_id' => $nodeId,
             'text' => mb_substr(trim($result['text']), 0, 1200),
+            'disclosure' => [
+                'kind' => 'bounded_authored_context',
+                'uses_private_learner_response' => false,
+                'can_navigate' => false,
+                'can_change_content' => false,
+            ],
         ];
     }
 

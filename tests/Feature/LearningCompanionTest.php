@@ -293,7 +293,11 @@ test('learners can run an authored companion AI node with bounded server context
         ->assertJson([
             'node_id' => 'ai-turn',
             'text' => 'Notice how this place connects its parts.',
-        ]);
+        ])
+        ->assertJsonPath('disclosure.kind', 'bounded_authored_context')
+        ->assertJsonPath('disclosure.uses_private_learner_response', false)
+        ->assertJsonPath('disclosure.can_navigate', false)
+        ->assertJsonPath('disclosure.can_change_content', false);
 
     $this->actingAs($user)
         ->postJson(route('learning.companion.turn'), [
