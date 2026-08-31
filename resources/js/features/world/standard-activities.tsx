@@ -1246,6 +1246,78 @@ export function ReflectionActivity({
                         </Button>
                     </div>
                 ) : null}
+                {independentResponseSaved ? (
+                    <section
+                        aria-labelledby="activity-independent-comparison"
+                        className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20"
+                    >
+                        <h3
+                            className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                            id="activity-independent-comparison"
+                        >
+                            {t(
+                                'learning.reflection.independent_check_comparison_label',
+                                'Compare your responses',
+                            )}
+                        </h3>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            {t(
+                                'learning.reflection.independent_check_comparison_helper',
+                                'Notice what changed or stayed consistent. Both responses remain private.',
+                            )}
+                        </p>
+                        <div className="mt-3 grid gap-3 md:grid-cols-2">
+                            <div className="rounded-md border border-cyan-500/15 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-black/10">
+                                <p className="text-xs font-medium text-cyan-900 dark:text-teal-100">
+                                    {t(
+                                        'learning.reflection.independent_check_first_response_label',
+                                        'First response',
+                                    )}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
+                                    {reflection}
+                                </p>
+                                {isTransfer ? (
+                                    <>
+                                        <p className="mt-3 text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                            {t(
+                                                'learning.reflection.independent_check_context_label',
+                                                'Changed context',
+                                            )}
+                                        </p>
+                                        <p className="mt-1 text-xs leading-5 whitespace-pre-wrap text-cyan-950/70 dark:text-teal-50/70">
+                                            {responseContext}
+                                        </p>
+                                    </>
+                                ) : null}
+                            </div>
+                            <div className="rounded-md border border-cyan-500/15 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-black/10">
+                                <p className="text-xs font-medium text-cyan-900 dark:text-teal-100">
+                                    {t(
+                                        'learning.reflection.independent_check_fresh_response_label',
+                                        'Fresh response',
+                                    )}
+                                </p>
+                                <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-cyan-950/80 dark:text-teal-50/80">
+                                    {independentResponse}
+                                </p>
+                                {isTransfer ? (
+                                    <>
+                                        <p className="mt-3 text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                            {t(
+                                                'learning.reflection.independent_check_context_label',
+                                                'Changed context',
+                                            )}
+                                        </p>
+                                        <p className="mt-1 text-xs leading-5 whitespace-pre-wrap text-cyan-950/70 dark:text-teal-50/70">
+                                            {independentResponseContext}
+                                        </p>
+                                    </>
+                                ) : null}
+                            </div>
+                        </div>
+                    </section>
+                ) : null}
                 {independentResponseSaved &&
                 activity.feedbackGuidance?.independentCheckFeedback ? (
                     <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
