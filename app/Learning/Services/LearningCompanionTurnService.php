@@ -30,7 +30,7 @@ class LearningCompanionTurnService
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{node_id: string, text: string, disclosure: array{kind: string, uses_private_learner_response: bool, can_navigate: bool, can_change_content: bool}|null}
+     * @return array{node_id: string, text: string, assistance_level: string, disclosure: array{kind: string, uses_private_learner_response: bool, can_navigate: bool, can_change_content: bool}|null}
      */
     public function handle(User $user, array $data): array
     {
@@ -75,6 +75,7 @@ class LearningCompanionTurnService
             return [
                 'node_id' => $nodeId,
                 'text' => '',
+                'assistance_level' => 'untracked',
                 'disclosure' => null,
             ];
         }
@@ -122,6 +123,7 @@ class LearningCompanionTurnService
         return [
             'node_id' => $nodeId,
             'text' => mb_substr(trim($result['text']), 0, 1200),
+            'assistance_level' => $this->evidenceAssistanceLevel($assistanceLevel),
             'disclosure' => [
                 'kind' => 'bounded_authored_context',
                 'uses_private_learner_response' => false,
@@ -129,6 +131,16 @@ class LearningCompanionTurnService
                 'can_change_content' => false,
             ],
         ];
+    }
+
+    private function evidenceAssistanceLevel(string $assistanceLevel): string
+    {
+        return match ($assistanceLevel) {
+            'question' => 'questions_only',
+            'hint' => 'hint',
+            'post-attempt' => 'post_attempt_support',
+            default => 'untracked',
+        };
     }
 
     private function hasCompletedActivity(User $user, ?LearningActivity $activity): bool

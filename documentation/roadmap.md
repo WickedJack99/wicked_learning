@@ -142,11 +142,12 @@ activity is completed, learners can also request one bounded comparison or next
 question grounded in authored feedback guidance without sharing their private
 response. Generated turns now disclose that they use only authored guidance and
 displayed context, may be incomplete, do not receive the learner's private
-response and cannot navigate or mutate content. Continue with explicit
-assistance evidence only where the learner has consented and the interaction
-can support that interpretation; supported performance must not silently be
-interpreted as independent capability. The assistant must never emit arbitrary
-navigation or mutate content directly.
+response and cannot navigate or mutate content. The first bounded
+assistance-evidence slice now carries a successful learner-selected question or
+hint into the current activity completion, so supported performance is not
+silently interpreted as independent capability. Post-attempt support remains
+transient and does not rewrite an earlier completion. The assistant must never
+emit arbitrary navigation or mutate content directly.
 
 ### 8. Privacy-conscious evaluation
 

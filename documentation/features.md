@@ -299,7 +299,11 @@ based on authored guidance and the displayed context, may be incomplete, do
 not receive the learner's private response and cannot navigate or mutate
 learning content. The response is transient in the open companion panel and
 cannot read private journal, group or unrelated learner history. AI assistance
-is not independent learning evidence.
+is not independent learning evidence. When a learner receives a successful
+question or hint response before completing the current activity, that
+completion records the selected support level in its evidence instead of
+silently presenting it as independent performance. Post-attempt support does
+not rewrite the completed activity's earlier evidence.
 Learners can open the companion from the lower-left corner on authenticated
 learner-facing pages, including the Learning Desk, paths, topics, competence
 map, bookmarks, organizations and activities, or immediately to the right of

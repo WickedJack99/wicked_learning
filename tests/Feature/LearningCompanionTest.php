@@ -293,6 +293,7 @@ test('learners can run an authored companion AI node with bounded server context
         ->assertJson([
             'node_id' => 'ai-turn',
             'text' => 'Notice how this place connects its parts.',
+            'assistance_level' => 'questions_only',
         ])
         ->assertJsonPath('disclosure.kind', 'bounded_authored_context')
         ->assertJsonPath('disclosure.uses_private_learner_response', false)
@@ -307,7 +308,8 @@ test('learners can run an authored companion AI node with bounded server context
             'assistance_level' => 'post-attempt',
             'dialogue_node_id' => 'ai-turn',
         ])
-        ->assertOk();
+        ->assertOk()
+        ->assertJsonPath('assistance_level', 'post_attempt_support');
 
     Http::assertSent(function (Request $request): bool {
         $input = (string) $request['input'];
@@ -340,6 +342,7 @@ test('learners can run an authored companion AI node with bounded server context
         ->assertJson([
             'node_id' => 'ai-turn',
             'text' => '',
+            'assistance_level' => 'untracked',
         ]);
 
     Http::assertSentCount(2);

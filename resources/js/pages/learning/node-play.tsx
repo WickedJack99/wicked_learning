@@ -59,6 +59,11 @@ type CompletionOptions = {
     progressAlreadyMarked?: boolean;
 };
 
+type RecordedAssistanceLevel =
+    | 'hint'
+    | 'questions_only'
+    | 'post_attempt_support';
+
 type CheckInDestination =
     | { kind: 'activity'; activityId: number | null }
     | { kind: 'portal'; portalLink: LearningPortalLink };
@@ -103,6 +108,9 @@ export default function NodePlay({
     );
     const [activityPlayState, setActivityPlayState] =
         useState(initialPlayState);
+    const [activityAssistance, setActivityAssistance] = useState<
+        Record<number, RecordedAssistanceLevel>
+    >({});
     const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked);
     const [isBookmarking, setIsBookmarking] = useState(false);
     const [pendingLearningCheckIn, setPendingLearningCheckIn] =
@@ -134,6 +142,43 @@ export default function NodePlay({
                 : null,
         [activeActivity, activityTranslation],
     );
+
+    useEffect(() => {
+        const handleAssistanceUsed = (event: Event) => {
+            const detail = (
+                event as CustomEvent<{
+                    assistanceLevel?: string;
+                }>
+            ).detail;
+            const assistanceLevel = detail?.assistanceLevel;
+
+            if (
+                activeActivityId === null ||
+                !isRecordedAssistanceLevel(assistanceLevel)
+            ) {
+                return;
+            }
+
+            setActivityAssistance((current) => ({
+                ...current,
+                [activeActivityId]: preferAssistanceLevel(
+                    current[activeActivityId],
+                    assistanceLevel,
+                ),
+            }));
+        };
+
+        window.addEventListener(
+            'learning-companion:assistance-used',
+            handleAssistanceUsed,
+        );
+
+        return () =>
+            window.removeEventListener(
+                'learning-companion:assistance-used',
+                handleAssistanceUsed,
+            );
+    }, [activeActivityId]);
 
     useEffect(() => {
         if (!activeActivity) {
@@ -298,6 +343,12 @@ export default function NodePlay({
                 payload.observed_cues = options.observedCues;
             }
 
+            const recordedAssistanceLevel = activityAssistance[activity.id];
+
+            if (recordedAssistanceLevel) {
+                payload.assistance_level = recordedAssistanceLevel;
+            }
+
             if (!options.progressAlreadyMarked) {
                 const response = await postJson<{
                     progress: LearningProgress['activities'][number] & {
@@ -318,6 +369,17 @@ export default function NodePlay({
                 );
             }
 
+            setActivityAssistance((current) => {
+                if (!(activity.id in current)) {
+                    return current;
+                }
+
+                const next = { ...current };
+                delete next[activity.id];
+
+                return next;
+            });
+
             window.dispatchEvent(
                 new CustomEvent('learning-companion:attempt-completed', {
                     detail: { activityId: activity.id },
@@ -336,7 +398,13 @@ export default function NodePlay({
             setHiddenCheckInActivityId(null);
             setPendingLearningCheckIn(checkIn);
         },
-        [isAuthenticated, originTopicSlug, playRunId, revisitActivityId],
+        [
+            activityAssistance,
+            isAuthenticated,
+            originTopicSlug,
+            playRunId,
+            revisitActivityId,
+        ],
     );
 
     const moveToActivity = useCallback(
@@ -757,4 +825,31 @@ function getActivityById(
     return (
         node.activities.find((activity) => activity.id === activityId) ?? null
     );
+}
+
+function isRecordedAssistanceLevel(
+    value: string | undefined,
+): value is RecordedAssistanceLevel {
+    return (
+        value === 'hint' ||
+        value === 'questions_only' ||
+        value === 'post_attempt_support'
+    );
+}
+
+function preferAssistanceLevel(
+    current: string | undefined,
+    next: RecordedAssistanceLevel,
+): RecordedAssistanceLevel {
+    const rank: Record<RecordedAssistanceLevel, number> = {
+        hint: 2,
+        post_attempt_support: 3,
+        questions_only: 1,
+    };
+
+    return current &&
+        isRecordedAssistanceLevel(current) &&
+        rank[current] > rank[next]
+        ? current
+        : next;
 }

@@ -322,6 +322,8 @@
     "learning.companion.dialogue.assistance_hint": "Give me a hint",
     "learning.companion.dialogue.assistance_hint_description": "Offer one small clue.",
     "learning.companion.dialogue.assistance_disclosure": "AI support is optional and transient. It is not independent learning evidence.",
+    "learning.companion.dialogue.assistance_recorded": "If you complete this activity now, its evidence will show that you used support rather than independent support.",
+    "learning.companion.dialogue.assistance_post_attempt_recorded": "This post-attempt support does not rewrite the completed activity evidence.",
     "settings.ai.common.configured": "Configured",
     "settings.ai.common.disabled_suffix": " - disabled",
     "settings.ai.providers.eyebrow": "Provider",

@@ -16,9 +16,14 @@ type CompanionTurnResponse = {
     message?: string;
     node_id: string;
     text: string;
+    assistance_level?: string;
 };
 
 type CompanionAssistanceLevel = 'off' | 'question' | 'hint' | 'post-attempt';
+type RecordedAssistanceLevel =
+    | 'hint'
+    | 'questions_only'
+    | 'post_attempt_support';
 
 export function LearningCompanionDialogue({
     companion,
@@ -35,6 +40,12 @@ export function LearningCompanionDialogue({
     const [aiDisclosures, setAiDisclosures] = useState<Record<string, boolean>>(
         {},
     );
+    const [aiAssistanceUsed, setAiAssistanceUsed] = useState<
+        Record<string, boolean>
+    >({});
+    const [aiAssistanceLevels, setAiAssistanceLevels] = useState<
+        Record<string, RecordedAssistanceLevel>
+    >({});
     const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
     const [aiAssistance, setAiAssistance] = useState<
         Record<string, CompanionAssistanceLevel>
@@ -142,9 +153,32 @@ export function LearningCompanionDialogue({
                 setAiDisclosures((current) => ({
                     ...current,
                     [node.id]:
-                        payload.disclosure?.kind ===
-                        'bounded_authored_context',
+                        payload.disclosure?.kind === 'bounded_authored_context',
                 }));
+
+                const assistanceLevel = payload.assistance_level;
+
+                if (
+                    context.activity &&
+                    payload.text.trim() !== '' &&
+                    isRecordedAssistanceLevel(assistanceLevel)
+                ) {
+                    setAiAssistanceLevels((current) => ({
+                        ...current,
+                        [node.id]: assistanceLevel,
+                    }));
+                    setAiAssistanceUsed((current) => ({
+                        ...current,
+                        [node.id]: true,
+                    }));
+                    window.dispatchEvent(
+                        new CustomEvent('learning-companion:assistance-used', {
+                            detail: {
+                                assistanceLevel,
+                            },
+                        }),
+                    );
+                }
             })
             .catch((error: unknown) => {
                 setAiErrors((current) => ({
@@ -212,9 +246,7 @@ export function LearningCompanionDialogue({
                 </p>
             </div>
 
-            {node.type === 'ai' &&
-            hasAiResponse &&
-            aiDisclosures[node.id] ? (
+            {node.type === 'ai' && hasAiResponse && aiDisclosures[node.id] ? (
                 <aside
                     aria-label={t(
                         'learning.companion.dialogue.ai_disclosure_title',
@@ -242,6 +274,26 @@ export function LearningCompanionDialogue({
                         )}
                     </p>
                 </aside>
+            ) : null}
+
+            {node.type === 'ai' &&
+            hasAiResponse &&
+            aiAssistanceUsed[node.id] &&
+            companion.context.activity ? (
+                <p
+                    className="text-xs leading-5 text-[var(--map-side-control-muted-text-color)]"
+                    role="note"
+                >
+                    {aiAssistanceLevels[node.id] === 'post_attempt_support'
+                        ? t(
+                              'learning.companion.dialogue.assistance_post_attempt_recorded',
+                              'This post-attempt support does not rewrite the completed activity evidence.',
+                          )
+                        : t(
+                              'learning.companion.dialogue.assistance_recorded',
+                              'If you complete this activity now, its evidence will show that you used support rather than independent support.',
+                          )}
+                </p>
             ) : null}
 
             {node.type === 'ai' && aiEnabled && !hasAiResponse ? (
@@ -493,4 +545,14 @@ function nodeContent(
     }
 
     return node.type === 'choice' ? (node.prompt ?? '') : (node.message ?? '');
+}
+
+function isRecordedAssistanceLevel(
+    value: string | undefined,
+): value is 'hint' | 'questions_only' | 'post_attempt_support' {
+    return (
+        value === 'hint' ||
+        value === 'questions_only' ||
+        value === 'post_attempt_support'
+    );
 }
