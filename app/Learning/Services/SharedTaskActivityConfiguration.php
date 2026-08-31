@@ -63,6 +63,18 @@ class SharedTaskActivityConfiguration
         return in_array($taskKind, self::TASK_KINDS, true) ? $taskKind : 'text';
     }
 
+    /** @param array<string, mixed> $config @return list<string> */
+    public function projectSteps(array $config): array
+    {
+        return collect(is_array($config['projectSteps'] ?? null) ? $config['projectSteps'] : [])
+            ->map(fn (mixed $step): string => trim((string) $step))
+            ->filter()
+            ->map(fn (string $step): string => mb_substr($step, 0, 240))
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
     /** @param array<string, mixed> $data @param array<string, mixed> $existing */
     private function inputLabel(array $data, array $existing, string $taskKind): string
     {

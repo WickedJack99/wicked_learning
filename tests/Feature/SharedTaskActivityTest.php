@@ -128,6 +128,44 @@ test('shared task submissions preserve the configured contribution kind', functi
         ]);
 });
 
+test('shared task contributions can optionally name the project step they support', function () {
+    [$learner, $activity, $runId] = activeSharedTask([
+        'projectSteps' => ['Collect clues', 'Compare interpretations'],
+        'showContributions' => true,
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'This contribution compares the two observations carefully.',
+            'play_run_id' => $runId,
+            'project_step_index' => 1,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('state.contributions.0.projectStep', 'Compare interpretations');
+
+    expect(LearningSharedTaskSubmission::query()->firstOrFail()->metadata)
+        ->toMatchArray([
+            'projectStepIndex' => 1,
+        ]);
+});
+
+test('shared task submissions reject project steps that are not configured', function () {
+    [$learner, $activity, $runId] = activeSharedTask([
+        'projectSteps' => ['Collect clues'],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'This contribution names a step that does not exist.',
+            'play_run_id' => $runId,
+            'project_step_index' => 1,
+        ])
+        ->assertStatus(422);
+
+    expect(LearningSharedTaskSubmission::query()->count())->toBe(0);
+});
+
 test('shared task contribution sharing requires author and learner opt in', function () {
     [$firstLearner, $activity, $firstRunId] = activeSharedTask([
         'showContributions' => true,

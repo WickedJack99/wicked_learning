@@ -409,6 +409,7 @@ export type SharedTaskState = {
     hasSubmitted: boolean;
     contributions: Array<{
         body: string;
+        projectStep: string | null;
         submittedAt: string | null;
         taskKind: string;
         truncated: boolean;
@@ -420,6 +421,7 @@ export type SharedTaskState = {
         reviewableContributions: Array<{
             id: number;
             body: string;
+            projectStep: string | null;
             taskKind: string;
             truncated: boolean;
         }>;

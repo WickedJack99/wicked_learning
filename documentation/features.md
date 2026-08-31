@@ -159,8 +159,11 @@ learner identities.
 Authors may optionally add a project brief with a shared goal, a useful outcome
 and up to six suggested steps. Learners see this orientation beside the shared
 task prompt and can optionally mark those steps as private planning notes for
-the current play run; the checklist does not assign roles, affect completion or
-replace learner choice about how to contribute.
+the current play run. When useful, a learner can optionally associate a
+contribution with one authored project step; that label helps peers orient to
+the shared work without assigning ownership, affecting completion or replacing
+learner choice about how to contribute. The checklist remains private and does
+not become a public progress signal.
 Authors may also invite one anonymous peer review. A learner who has contributed
 can respond once to one other learner's explicitly shared contribution using the
 author's prompt. The interaction exposes no learner identities and provides no

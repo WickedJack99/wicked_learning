@@ -21,6 +21,7 @@ class LearningSharedTaskSubmissionController extends Controller
             'body' => ['required', 'string', 'max:20000'],
             'play_run_id' => ['required', 'uuid'],
             'share_with_peers' => ['sometimes', 'boolean'],
+            'project_step_index' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:5'],
         ]);
 
         $submission = $this->submitContribution->handle(
@@ -29,6 +30,7 @@ class LearningSharedTaskSubmissionController extends Controller
             (string) $data['play_run_id'],
             (string) $data['body'],
             (bool) ($data['share_with_peers'] ?? false),
+            isset($data['project_step_index']) ? (int) $data['project_step_index'] : null,
         );
 
         return response()->json([

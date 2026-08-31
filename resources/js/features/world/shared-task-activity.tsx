@@ -40,6 +40,7 @@ export function SharedTaskActivity({
     const [peerReviewError, setPeerReviewError] = useState('');
     const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(null);
     const [shareWithPeers, setShareWithPeers] = useState(false);
+    const [selectedProjectStepIndex, setSelectedProjectStepIndex] = useState<number | null>(null);
     const projectSteps = Array.isArray(activity.config.projectSteps)
         ? activity.config.projectSteps.filter(
               (step): step is string => typeof step === 'string' && step.trim() !== '',
@@ -83,11 +84,13 @@ export function SharedTaskActivity({
                 {
                     body,
                     play_run_id: playRunId,
+                    project_step_index: selectedProjectStepIndex,
                     share_with_peers: shareWithPeers,
                 },
             );
 
             setBody('');
+            setSelectedProjectStepIndex(null);
             setState(response.state);
 
             if (response.state.isComplete && !response.state.peerReview?.enabled) {
@@ -337,6 +340,43 @@ export function SharedTaskActivity({
                             </span>
                         </label>
                     ) : null}
+                    {projectSteps.length > 0 ? (
+                        <label
+                            className="grid gap-1 text-xs leading-5 text-slate-600 dark:text-slate-300"
+                            htmlFor={`shared-task-step-${activity.id}`}
+                        >
+                            <span className="font-medium text-slate-700 dark:text-slate-200">
+                                {t(
+                                    'activities.shared_task.project_step_label',
+                                    'Where would this contribution help? (optional)',
+                                )}
+                            </span>
+                            <select
+                                className="min-h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:focus:border-teal-200/70"
+                                id={`shared-task-step-${activity.id}`}
+                                onChange={(event) =>
+                                    setSelectedProjectStepIndex(
+                                        event.target.value === ''
+                                            ? null
+                                            : Number(event.target.value),
+                                    )
+                                }
+                                value={selectedProjectStepIndex ?? ''}
+                            >
+                                <option value="">
+                                    {t(
+                                        'activities.shared_task.project_step_any',
+                                        'Any project step',
+                                    )}
+                                </option>
+                                {projectSteps.map((step, index) => (
+                                    <option key={`${index}-${step}`} value={index}>
+                                        {step}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    ) : null}
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                         <span>
                             {t(
@@ -500,6 +540,12 @@ function SharedTaskContributions({
                         key={`${contribution.submittedAt ?? 'contribution'}-${index}`}
                     >
                         <p>
+                            {contribution.projectStep ? (
+                                <span className="mb-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
+                                    {t('activities.shared_task.project_step', 'Project step')}:{' '}
+                                    {contribution.projectStep}
+                                </span>
+                            ) : null}
                             {contribution.body}
                             {contribution.truncated ? '…' : ''}
                         </p>
@@ -515,6 +561,7 @@ function SharedTaskPeerReview({
     error,
     isSubmitting,
     onBodyChange,
+    onHelpfulnessChange,
     onSelect,
     onResponseTypeChange,
     onSubmit,
@@ -659,6 +706,12 @@ function SharedTaskPeerReview({
                                     type="radio"
                                 />
                                 <span>
+                                    {contribution.projectStep ? (
+                                        <span className="mb-1 block text-xs font-medium text-cyan-700 dark:text-teal-200">
+                                            {t('activities.shared_task.project_step', 'Project step')}:{' '}
+                                            {contribution.projectStep}
+                                        </span>
+                                    ) : null}
                                     {contribution.body}
                                     {contribution.truncated ? '…' : ''}
                                 </span>

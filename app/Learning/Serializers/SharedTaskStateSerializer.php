@@ -2,6 +2,7 @@
 
 namespace App\Learning\Serializers;
 
+use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningSharedTaskReview;
 use App\Models\LearningSharedTaskSubmission;
@@ -13,7 +14,11 @@ class SharedTaskStateSerializer
 {
     private const DEFAULT_PEER_REVIEW_PROMPT = 'What does this contribution help you notice, question, or extend?';
 
-    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null} */
+    public function __construct(
+        private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
+    ) {}
+
+    /** @return array{acceptedCount: int, threshold: int, remaining: int, isComplete: bool, latestSubmissionAt: string|null, canShareContributions: bool, hasSubmitted: bool, contributions: list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}>, peerReview: array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null} */
     public function state(LearningActivity $activity, ?User $user = null, bool $includeContributions = false): array
     {
         $threshold = $this->threshold($activity);
@@ -47,12 +52,14 @@ class SharedTaskStateSerializer
         ];
     }
 
-    /** @return list<array{body: string, submittedAt: string|null, taskKind: string, truncated: bool}> */
+    /** @return list<array{body: string, projectStep: string|null, submittedAt: string|null, taskKind: string, truncated: bool}> */
     private function contributions(LearningActivity $activity): array
     {
         if (! $this->showContributions($activity)) {
             return [];
         }
+
+        $projectSteps = $this->sharedTaskConfig->projectSteps(is_array($activity->config) ? $activity->config : []);
 
         return LearningSharedTaskSubmission::query()
             ->where('learning_activity_id', $activity->id)
@@ -62,11 +69,12 @@ class SharedTaskStateSerializer
             ->latest('id')
             ->limit(5)
             ->get(['body', 'accepted_at', 'metadata'])
-            ->map(function (LearningSharedTaskSubmission $submission): array {
+            ->map(function (LearningSharedTaskSubmission $submission) use ($projectSteps): array {
                 $body = $submission->body;
 
                 return [
                     'body' => mb_substr($body, 0, 500),
+                    'projectStep' => $this->projectStep($submission, $projectSteps),
                     'submittedAt' => $submission->accepted_at?->toIso8601String(),
                     'taskKind' => is_array($submission->metadata) && is_string($submission->metadata['taskKind'] ?? null)
                         ? $submission->metadata['taskKind']
@@ -78,7 +86,7 @@ class SharedTaskStateSerializer
             ->all();
     }
 
-    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null */
+    /** @return array{enabled: bool, prompt: string, hasReviewed: bool, reviewableContributions: list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}>, receivedReviews: list<array{id: int, body: string, responseType: string|null, canMarkHelpful: bool, isHelpful: bool, createdAt: string|null}>}|null */
     private function peerReview(LearningActivity $activity, ?User $user, bool $hasSubmitted): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -136,9 +144,11 @@ class SharedTaskStateSerializer
             ->all();
     }
 
-    /** @return list<array{id: int, body: string, taskKind: string, truncated: bool}> */
+    /** @return list<array{id: int, body: string, projectStep: string|null, taskKind: string, truncated: bool}> */
     private function reviewableContributions(LearningActivity $activity, User $user): array
     {
+        $projectSteps = $this->sharedTaskConfig->projectSteps(is_array($activity->config) ? $activity->config : []);
+
         return LearningSharedTaskSubmission::query()
             ->where('learning_activity_id', $activity->id)
             ->where('status', 'accepted')
@@ -148,12 +158,13 @@ class SharedTaskStateSerializer
             ->latest('id')
             ->limit(5)
             ->get(['id', 'body', 'metadata'])
-            ->map(function (LearningSharedTaskSubmission $submission): array {
+            ->map(function (LearningSharedTaskSubmission $submission) use ($projectSteps): array {
                 $body = $submission->body;
 
                 return [
                     'id' => $submission->id,
                     'body' => mb_substr($body, 0, 500),
+                    'projectStep' => $this->projectStep($submission, $projectSteps),
                     'taskKind' => is_array($submission->metadata) && is_string($submission->metadata['taskKind'] ?? null)
                         ? $submission->metadata['taskKind']
                         : 'text',
@@ -169,6 +180,17 @@ class SharedTaskStateSerializer
         $config = is_array($activity->config) ? $activity->config : [];
 
         return (bool) ($config['showContributions'] ?? false);
+    }
+
+    /** @param list<string> $projectSteps */
+    private function projectStep(LearningSharedTaskSubmission $submission, array $projectSteps): ?string
+    {
+        $metadata = is_array($submission->metadata) ? $submission->metadata : [];
+        $index = is_numeric($metadata['projectStepIndex'] ?? null)
+            ? (int) $metadata['projectStepIndex']
+            : null;
+
+        return $index !== null ? ($projectSteps[$index] ?? null) : null;
     }
 
     private function threshold(LearningActivity $activity): int

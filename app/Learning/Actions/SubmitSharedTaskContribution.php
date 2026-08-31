@@ -17,7 +17,7 @@ class SubmitSharedTaskContribution
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
     ) {}
 
-    public function handle(User $user, LearningActivity $activity, string $playRunId, string $body, bool $shareWithPeers = false): LearningSharedTaskSubmission
+    public function handle(User $user, LearningActivity $activity, string $playRunId, string $body, bool $shareWithPeers = false, ?int $projectStepIndex = null): LearningSharedTaskSubmission
     {
         abort_unless($activity->type === 'shared_task', 404);
 
@@ -30,6 +30,7 @@ class SubmitSharedTaskContribution
         $minimumLength = max(0, (int) ($config['minimumLength'] ?? 20));
         $repeatPolicy = (string) ($config['repeatPolicy'] ?? 'once_per_user');
         $text = trim($body);
+        $projectSteps = $this->sharedTaskConfig->projectSteps($config);
 
         abort_if($text === '', 422, 'The contribution cannot be empty.');
         abort_if(
@@ -37,8 +38,13 @@ class SubmitSharedTaskContribution
             422,
             "The contribution must be at least {$minimumLength} characters.",
         );
+        abort_if(
+            $projectStepIndex !== null && ! array_key_exists($projectStepIndex, $projectSteps),
+            422,
+            'Choose a valid project step.',
+        );
 
-        return DB::transaction(function () use ($activity, $playRunId, $repeatPolicy, $shareWithPeers, $showContributions, $taskKind, $text, $user, $validationMode): LearningSharedTaskSubmission {
+        return DB::transaction(function () use ($activity, $playRunId, $projectStepIndex, $repeatPolicy, $shareWithPeers, $showContributions, $taskKind, $text, $user, $validationMode): LearningSharedTaskSubmission {
             if ($repeatPolicy === 'once_per_user') {
                 $existing = LearningSharedTaskSubmission::query()
                     ->where('learning_activity_id', $activity->id)
@@ -61,6 +67,7 @@ class SubmitSharedTaskContribution
                     'bodyLength' => mb_strlen($text),
                     'shareWithPeers' => $showContributions && $shareWithPeers,
                     'taskKind' => $taskKind,
+                    'projectStepIndex' => $projectStepIndex,
                 ],
             ]);
         });
