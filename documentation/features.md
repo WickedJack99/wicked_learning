@@ -160,6 +160,9 @@ their prompts and saved learner responses remain authored or private content.
 Obstacle activities likewise resolve their generic prompt, tool guidance,
 success/revisit states and controls through the platform translation catalog;
 author-configured obstacle text and tool names remain authored content.
+Portal activities resolve their generic arrival, destination and travel controls
+through the same catalog; destination names, descriptions and authored portal
+labels remain configurable content.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

@@ -268,6 +268,19 @@ test('open practice playback copy uses the platform translation catalog', functi
         ->not->toContain('const DEFAULT_OPEN_PRACTICE_STEP');
 });
 
+test('portal playback copy uses the platform translation catalog', function () {
+    $activities = file_get_contents(
+        resource_path('js/features/world/standard-activities.tsx'),
+    );
+
+    expect($activities)
+        ->toContain("'learning.portal.continuing_from_exit'")
+        ->toContain("'learning.portal.exit_description'")
+        ->toContain("'learning.portal.travel_to'")
+        ->toContain("'learning.portal.not_linked_description'")
+        ->toContain("'learning.portal.traverse'");
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
@@ -306,7 +319,6 @@ test('learner activity actions preserve authored transition labels', function ()
     expect($activityComponents)
         ->toContain("activityTransitionLabel(transition, 'Continue')")
         ->toContain('activityTransitionLabel(')
-        ->toContain('isInputPortal ? \'Continue\' : \'Traverse\'')
         ->toContain('nextTransitionLabel')
         ->toContain('answerTransitionLabel');
     expect($markdownActivity)

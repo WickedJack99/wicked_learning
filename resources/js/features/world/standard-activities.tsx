@@ -100,6 +100,7 @@ export function PortalActivity({
     const [isTravelling, setIsTravelling] = useState(false);
     const skippedExitActivityId = useRef<number | null>(null);
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const portalMode = activity.config.portalMode;
     const link =
         node.outgoingPortalLinks.find(
@@ -145,6 +146,28 @@ export function PortalActivity({
         activity.config.portalBubbleTypingSpeed,
         24,
     );
+    const portalHeading = isInputPortal
+        ? t('learning.portal.exit', 'Exit portal')
+        : link
+          ? (link.label ?? t('learning.portal.linked', 'Linked portal'))
+          : t('learning.portal.not_linked', 'Portal not linked yet');
+    const portalDescription = isInputPortal
+        ? t(
+              'learning.portal.exit_description',
+              'This portal is configured as the exit point for paths that arrive here.',
+          )
+        : link
+          ? t('learning.portal.travel_to', 'Travel to :map / :node.', {
+                map: link.targetMapTitle,
+                node: link.targetNodeTitle,
+            })
+          : t(
+                'learning.portal.not_linked_description',
+                'An admin can choose a target exit portal in this portal activity.',
+            );
+    const portalAction = isInputPortal
+        ? t('common.continue', 'Continue')
+        : t('learning.portal.traverse', 'Traverse');
 
     const travel = useCallback(async () => {
         if (!link) {
@@ -210,7 +233,10 @@ export function PortalActivity({
     if (isInputPortal && !showOnArrival) {
         return (
             <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
-                Continuing from this exit portal...
+                {t(
+                    'learning.portal.continuing_from_exit',
+                    'Continuing from this exit portal...',
+                )}
             </div>
         );
     }
@@ -250,18 +276,10 @@ export function PortalActivity({
                         </span>
                         <div className="min-w-0">
                             <h4 className="text-sm font-semibold text-slate-950 dark:text-white">
-                                {isInputPortal
-                                    ? 'Exit portal'
-                                    : link
-                                      ? (link.label ?? 'Linked portal')
-                                      : 'Portal not linked yet'}
+                                {portalHeading}
                             </h4>
                             <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                                {isInputPortal
-                                    ? 'This portal is configured as the exit point for paths that arrive here.'
-                                    : link
-                                      ? `Travel to ${link.targetMapTitle} / ${link.targetNodeTitle}.`
-                                      : 'An admin can choose a target exit portal in this portal activity.'}
+                                {portalDescription}
                             </p>
                             {link?.description ? (
                                 <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -278,7 +296,7 @@ export function PortalActivity({
                             >
                                 {activityTransitionLabel(
                                     transition,
-                                    isInputPortal ? 'Continue' : 'Traverse',
+                                    portalAction,
                                 )}
                                 <ArrowRight className="ml-2 size-4" />
                             </Button>
