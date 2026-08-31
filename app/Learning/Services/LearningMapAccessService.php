@@ -6,6 +6,7 @@ use App\Models\LearningMap;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class LearningMapAccessService
@@ -61,8 +62,10 @@ class LearningMapAccessService
      * Restrict a map query to the same records as visibleMaps without loading
      * the full map collection into PHP first.
      *
-     * @param  Builder<LearningMap>  $query
-     * @return Builder<LearningMap>
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     * @return Builder<TModel>
      */
     public function constrainVisibleQuery(Builder $query, ?User $user): Builder
     {

@@ -52,6 +52,99 @@ test('authenticated learners can open an empty learning desk', function () {
         );
 });
 
+test('the learning desk keeps older visible routes beyond newer restricted progress', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $restrictedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-map',
+        'title' => 'Restricted Map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    $visibleMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-map',
+        'title' => 'Visible Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $createRouteProgress = function (LearningMap $map, string $slug, string $title, int $position, DateTimeInterface $lastEnteredAt) use ($user): void {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $slug,
+            'title' => $title,
+            'position_q' => $position,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => "{$slug}-activity",
+            'title' => "{$title} activity",
+            'type' => 'markdown',
+            'sort_order' => 10,
+        ]);
+        $start = LearningActivityStart::query()->create([
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'label' => "Visit {$title}",
+            'sort_order' => 10,
+        ]);
+        LearnerRouteProgress::query()->create([
+            'user_id' => $user->id,
+            'learning_node_id' => $node->id,
+            'learning_activity_start_id' => $start->id,
+            'start_learning_activity_id' => $activity->id,
+            'current_learning_activity_id' => $activity->id,
+            'status' => 'in_progress',
+            'started_at' => $lastEnteredAt,
+            'last_entered_at' => $lastEnteredAt,
+        ]);
+    };
+
+    for ($index = 0; $index < 12; $index++) {
+        $createRouteProgress(
+            $restrictedMap,
+            "restricted-place-{$index}",
+            "Restricted place {$index}",
+            $index,
+            now()->subMinutes($index),
+        );
+    }
+
+    $createRouteProgress(
+        $visibleMap,
+        'visible-place',
+        'Visible place',
+        0,
+        now()->subDay(),
+    );
+
+    $routeQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$routeQueries): void {
+        if (str_contains($query->sql, 'from "learner_route_progress"')) {
+            $routeQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.currentRoutes', 1)
+            ->where('desk.currentRoutes.0.nodeTitle', 'Visible place')
+            ->where('desk.currentRoutes.0.mapTitle', 'Visible Map')
+        );
+
+    expect($routeQueries)->toHaveCount(2);
+    expect(collect($routeQueries)->every(
+        fn (QueryExecuted $query): bool => preg_match('/limit 3/i', $query->sql) === 1,
+    ))->toBeTrue();
+});
+
 test('the learning desk surfaces only the current learners visible support replies', function () {
     $user = User::factory()->create();
     $otherLearner = User::factory()->create();

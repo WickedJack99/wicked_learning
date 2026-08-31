@@ -8,6 +8,7 @@ use App\Models\LearnerMessageResponse;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningNodeBookmark;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class LoadLearningDesk
@@ -78,16 +79,24 @@ class LoadLearningDesk
             ])
             ->where('user_id', $user->id)
             ->where('status', $status)
-            ->whereHas('node.map')
+            ->whereHas('node', function (Builder $query) use ($user): void {
+                $query
+                    ->where(function (Builder $query): void {
+                        $query
+                            ->whereNull('visual_config')
+                            ->orWhereJsonDoesntContain(
+                                'visual_config->hideEmptySpace',
+                                true,
+                            );
+                    })
+                    ->whereHas('map', function (Builder $query) use ($user): void {
+                        $this->mapAccess->constrainVisibleQuery($query, $user);
+                    });
+            })
             ->latest($orderBy)
             ->latest('id')
-            ->limit(12)
+            ->limit(3)
             ->get()
-            ->filter(fn (LearnerRouteProgress $progress): bool => $progress->node !== null
-                && $progress->node->map !== null
-                && $this->mapAccess->canViewMap($progress->node->map, $user)
-                && ($progress->node->visual_config['hideEmptySpace'] ?? false) !== true)
-            ->take(3)
             ->values();
     }
 }
