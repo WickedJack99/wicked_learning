@@ -206,7 +206,8 @@ learner-controlled resolution signal; richer review, revision and mentor
 workflows remain future work. Learning Support also has a bounded anonymous
 activity digest for shared-task exchanges that have not received that signal;
 it shows context and counts only, while richer mentor workflows remain future
-work.
+work. Entries link to their map/node context; direct mentor intervention
+remains future work.
 
 ## Product development
 

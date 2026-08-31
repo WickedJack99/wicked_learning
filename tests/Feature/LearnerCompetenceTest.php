@@ -1715,6 +1715,10 @@ test('learning support exposes only unresolved shared task review aggregates', f
         ->and($peerSupport[0])->toMatchArray([
             'activityId' => $activity->id,
             'activityTitle' => 'Compare the signals',
+            'contextHref' => route('world', [
+                'map' => $activity->node->map->slug,
+                'focused' => $activity->node->slug,
+            ], false),
             'contributorCount' => 1,
             'unresolvedReviewCount' => 1,
         ])

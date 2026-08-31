@@ -20,7 +20,7 @@ class LoadLearnerSupportSignals
     ) {}
 
     /**
-     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>, monthKey: string, learners: list<array<string, mixed>>, peerSupport: list<array{activityId: int, activityTitle: string, contributorCount: int, latestReviewAt: string|null, mapId: int, mapTitle: string, nodeId: int, nodeTitle: string, unresolvedReviewCount: int}>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
+     * @return array{activityOverview30Days: list<array{activeLearners: int, date: string, contributionRecorded: float, evidenceEvents: int}>, monthKey: string, learners: list<array<string, mixed>>, peerSupport: list<array{activityId: int, activityTitle: string, contextHref: string, contributorCount: int, latestReviewAt: string|null, mapId: int, mapTitle: string, nodeId: int, nodeTitle: string, unresolvedReviewCount: int}>, summary: array{learners: int, learnersWithSignals: int, topicsWithMonthlyActivity: int}}
      */
     public function handle(User $viewer): array
     {

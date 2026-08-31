@@ -474,6 +474,8 @@ private helpful signal. It includes only map, node and activity context plus
 review and contributor counts and recency; learner writing and identities are
 not included. This is a prompt for a human support conversation, not an
 automated quality judgment or ranking.
+Each entry links to its map/node context so support staff can orient themselves
+without opening learner writing.
 
 ### Journal, Competence And Collaboration
 

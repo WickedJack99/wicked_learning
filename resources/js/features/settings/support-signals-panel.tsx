@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     HandHelping,
     HeartHandshake,
@@ -12,6 +12,7 @@ import {
     SettingsSectionWorkspace,
 } from '@/components/settings-configuration-shell';
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
 
 export type SupportSignalsSettings = {
@@ -36,6 +37,7 @@ export type SupportSignalsSettings = {
 type PeerSupportItem = {
     activityId: number;
     activityTitle: string;
+    contextHref: string;
     contributorCount: number;
     latestReviewAt: string | null;
     mapId: number;
@@ -277,6 +279,8 @@ function CollectiveOverviewView({
 }
 
 function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
+    const t = usePlatformTranslation();
+
     return (
         <section className="grid max-w-5xl gap-4">
             <div className="border-b border-[var(--settings-border-color)] pb-4">
@@ -309,6 +313,19 @@ function PeerSupportView({ items }: { items: PeerSupportItem[] }) {
                                     {item.mapTitle} · {item.nodeTitle}
                                 </p>
                             </div>
+                            <Link
+                                aria-label={`${t(
+                                    'settings.learning_support.peer_support.open_context',
+                                    'Open map context',
+                                )}: ${item.activityTitle}`}
+                                className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--settings-accent)] hover:underline"
+                                href={item.contextHref}
+                            >
+                                {t(
+                                    'settings.learning_support.peer_support.open_context',
+                                    'Open map context',
+                                )}
+                            </Link>
                             <div className="grid grid-cols-2 gap-3 border-t border-[var(--settings-border-color)] pt-3 text-xs">
                                 <div>
                                     <p className="font-semibold text-[var(--settings-accent)]">

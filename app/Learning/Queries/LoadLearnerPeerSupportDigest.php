@@ -15,7 +15,7 @@ class LoadLearnerPeerSupportDigest
      * learner-controlled resolution signal yet.
      *
      * @param  list<int>  $learnerIds
-     * @return list<array{activityId: int, activityTitle: string, contributorCount: int, latestReviewAt: string|null, mapId: int, mapTitle: string, nodeId: int, nodeTitle: string, unresolvedReviewCount: int}>
+     * @return list<array{activityId: int, activityTitle: string, contextHref: string, contributorCount: int, latestReviewAt: string|null, mapId: int, mapTitle: string, nodeId: int, nodeTitle: string, unresolvedReviewCount: int}>
      */
     public function handle(array $learnerIds, int $limit = self::DEFAULT_LIMIT): array
     {
@@ -30,8 +30,10 @@ class LoadLearnerPeerSupportDigest
                 'learning_shared_task_reviews.learning_activity_id as activity_id',
                 'learning_activities.title as activity_title',
                 'learning_nodes.id as node_id',
+                'learning_nodes.slug as node_slug',
                 'learning_nodes.title as node_title',
                 'learning_maps.id as map_id',
+                'learning_maps.slug as map_slug',
                 'learning_maps.title as map_title',
             ])
             ->selectRaw('COUNT(*) as unresolved_review_count')
@@ -59,8 +61,10 @@ class LoadLearnerPeerSupportDigest
                 'learning_shared_task_reviews.learning_activity_id',
                 'learning_activities.title',
                 'learning_nodes.id',
+                'learning_nodes.slug',
                 'learning_nodes.title',
                 'learning_maps.id',
+                'learning_maps.slug',
                 'learning_maps.title',
             ])
             ->orderByDesc('unresolved_review_count')
@@ -71,6 +75,10 @@ class LoadLearnerPeerSupportDigest
             ->map(fn (LearningSharedTaskReview $review): array => [
                 'activityId' => (int) $review->activity_id,
                 'activityTitle' => (string) $review->activity_title,
+                'contextHref' => route('world', [
+                    'map' => $review->map_slug,
+                    'focused' => $review->node_slug,
+                ], false),
                 'contributorCount' => (int) $review->contributor_count,
                 'latestReviewAt' => $this->timestamp($review->latest_review_at),
                 'mapId' => (int) $review->map_id,
