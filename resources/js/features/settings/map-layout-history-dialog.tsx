@@ -17,6 +17,7 @@ type MapLayoutVersion = {
     createdAt: string | null;
     id: number;
     nodeCount: number;
+    restorable: boolean;
 };
 
 type MapLayoutVersionPage = {
@@ -204,9 +205,20 @@ export function MapLayoutHistoryDialog({
                                             { count: version.nodeCount },
                                         )}
                                     </p>
+                                    {!version.restorable ? (
+                                        <p className="text-xs text-[var(--settings-muted-text)]">
+                                            {t(
+                                                'settings.map_layout_history.unavailable_node_set',
+                                                'Unavailable because the map nodes have changed.',
+                                            )}
+                                        </p>
+                                    ) : null}
                                     <Button
                                         className="justify-self-end"
-                                        disabled={restoringId !== null}
+                                        disabled={
+                                            restoringId !== null ||
+                                            !version.restorable
+                                        }
                                         onClick={() =>
                                             void restoreVersion(version)
                                         }

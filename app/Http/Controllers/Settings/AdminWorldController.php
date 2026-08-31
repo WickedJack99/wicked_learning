@@ -467,10 +467,16 @@ class AdminWorldController extends Controller
             page: $data['page'] ?? 1,
             perPage: $data['per_page'] ?? 6,
         );
+        $currentNodeIds = $map->nodes()
+            ->pluck('id')
+            ->map(fn (mixed $nodeId): int => (int) $nodeId)
+            ->sort()
+            ->values()
+            ->all();
 
         return response()->json([
             'items' => $versions->getCollection()
-                ->map(fn (LearningMapLayoutVersion $version): array => $this->mapLayoutVersionSerializer->serialize($version))
+                ->map(fn (LearningMapLayoutVersion $version): array => $this->mapLayoutVersionSerializer->serialize($version, $currentNodeIds))
                 ->values()
                 ->all(),
             'pagination' => [

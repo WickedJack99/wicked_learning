@@ -3144,6 +3144,7 @@ test('authors can browse and restore map layout versions', function () {
         ->getJson(route('settings.worlds.maps.layout-versions.index', $map).'?page=1&per_page=6')
         ->assertOk()
         ->assertJsonPath('items.0.nodeCount', $map->nodes()->count())
+        ->assertJsonPath('items.0.restorable', true)
         ->assertJsonPath('pagination.page', 1)
         ->assertJsonPath('pagination.perPage', 6)
         ->assertJsonPath('pagination.total', 1);
@@ -3162,6 +3163,42 @@ test('authors can browse and restore map layout versions', function () {
     expect([$portal->position_q, $portal->position_r])->toBe($portalStart)
         ->and([$signalGate->position_q, $signalGate->position_r])->toBe($signalGateStart)
         ->and($map->layoutVersions()->count())->toBe(2);
+});
+
+test('map layout history marks entries unavailable after the map structure changes', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'portal-foundation')->firstOrFail();
+    $map = $node->map()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.nodes.update', $node), [
+            'description' => $node->description,
+            'position_q' => 20,
+            'position_r' => 20,
+            'slug' => $node->slug,
+            'state' => $node->state,
+            'title' => $node->title,
+            'visual_config' => [
+                'label' => $node->title,
+            ],
+        ])
+        ->assertRedirect();
+
+    $map->nodes()->create([
+        'position_q' => 100,
+        'position_r' => 100,
+        'slug' => 'new-structure-node',
+        'state' => 'available',
+        'title' => 'New structure node',
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.maps.layout-versions.index', $map))
+        ->assertOk()
+        ->assertJsonPath('items.0.restorable', false);
 });
 
 test('node placement updates create a restorable layout version', function () {

@@ -275,6 +275,7 @@
     "settings.map_layout_history.error": "Layout history could not be loaded or restored. Try again.",
     "settings.map_layout_history.entry": "Layout before placement change",
     "settings.map_layout_history.node_count": ":count nodes",
+    "settings.map_layout_history.unavailable_node_set": "Unavailable because the map nodes have changed.",
     "settings.map_layout_history.restoring": "Restoring…",
     "settings.map_layout_history.restore": "Restore this layout",
     "settings.map_layout_history.restore_confirm": "Restore this map layout? The current layout will be preserved in history.",
