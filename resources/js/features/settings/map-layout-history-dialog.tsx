@@ -1,5 +1,5 @@
 import { History, RotateCcw } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { axialToPoint } from '@/features/admin-worlds/hex-grid-geometry';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type MapLayoutVersion = {
@@ -106,7 +107,7 @@ export function MapLayoutHistoryDialog({
 
             try {
                 const response = await fetch(
-                    `/settings/worlds/maps/${mapId}/layout-versions/${versionId}/preview?page=${page}&per_page=8`,
+                    `/settings/worlds/maps/${mapId}/layout-versions/${versionId}/preview?page=${page}&per_page=4`,
                     {
                         credentials: 'same-origin',
                         headers: {
@@ -271,36 +272,44 @@ export function MapLayoutHistoryDialog({
                                     )}
                                 </p>
                             ) : preview && preview.items.length > 0 ? (
-                                <div
-                                    aria-label={t(
-                                        'settings.map_layout_history.preview_items',
-                                        'Saved node positions',
-                                    )}
-                                    className="grid gap-2 sm:grid-cols-2"
-                                    role="list"
-                                >
-                                    {preview.items.map((item) => (
-                                        <div
-                                            className="grid gap-1 rounded-md border border-[var(--settings-border-color)] p-3"
-                                            key={item.nodeId}
-                                            role="listitem"
-                                        >
-                                            <p className="text-sm font-medium">
-                                                {item.title}
-                                            </p>
-                                            <p className="text-xs text-[var(--settings-muted-text)]">
-                                                {t(
-                                                    'settings.map_layout_history.position',
-                                                    'Position q:r',
-                                                    {
-                                                        q: item.positionQ,
-                                                        r: item.positionR,
-                                                    },
-                                                )}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
+                                <>
+                                    <LayoutPreviewSurface
+                                        items={preview.items}
+                                    />
+                                    <div
+                                        aria-label={t(
+                                            'settings.map_layout_history.preview_items',
+                                            'Saved node positions',
+                                        )}
+                                        className="grid gap-2 sm:grid-cols-2"
+                                        role="list"
+                                    >
+                                        {preview.items.map((item, index) => (
+                                            <div
+                                                className="grid gap-1 rounded-md border border-[var(--settings-border-color)] p-3"
+                                                key={item.nodeId}
+                                                role="listitem"
+                                            >
+                                                <p className="text-sm font-medium">
+                                                    <span className="mr-2 text-[var(--settings-accent)]">
+                                                        {index + 1}.
+                                                    </span>
+                                                    {item.title}
+                                                </p>
+                                                <p className="text-xs text-[var(--settings-muted-text)]">
+                                                    {t(
+                                                        'settings.map_layout_history.position',
+                                                        'Position q:r',
+                                                        {
+                                                            q: item.positionQ,
+                                                            r: item.positionR,
+                                                        },
+                                                    )}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
                             ) : (
                                 <p className="text-sm text-[var(--settings-muted-text)]">
                                     {t(
@@ -481,6 +490,48 @@ export function MapLayoutHistoryDialog({
                 </div>
             </DialogContent>
         </Dialog>
+    );
+}
+
+function LayoutPreviewSurface({ items }: { items: MapLayoutPreview['items'] }) {
+    const points = useMemo(
+        () =>
+            items.map((item, index) => ({
+                ...item,
+                index,
+                point: axialToPoint(item.positionQ, item.positionR),
+            })),
+        [items],
+    );
+    const minX = Math.min(...points.map(({ point }) => point.x));
+    const maxX = Math.max(...points.map(({ point }) => point.x));
+    const minY = Math.min(...points.map(({ point }) => point.y));
+    const maxY = Math.max(...points.map(({ point }) => point.y));
+    const rangeX = Math.max(maxX - minX, 1);
+    const rangeY = Math.max(maxY - minY, 1);
+
+    return (
+        <div
+            aria-hidden="true"
+            className="relative h-48 overflow-hidden rounded-lg border border-[var(--settings-border-color)] bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--settings-accent)_12%,transparent),transparent_68%)]"
+            data-layout-preview-surface="true"
+        >
+            {points.map((item) => (
+                <span
+                    className="absolute grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center border border-[var(--settings-accent)] bg-[color-mix(in_srgb,var(--settings-accent)_24%,var(--settings-panel-background))] text-xs font-semibold text-[var(--settings-accent)] shadow-sm"
+                    key={item.nodeId}
+                    style={{
+                        clipPath:
+                            'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)',
+                        left: `${8 + ((item.point.x - minX) / rangeX) * 84}%`,
+                        top: `${10 + ((item.point.y - minY) / rangeY) * 80}%`,
+                    }}
+                    title={item.title}
+                >
+                    {item.index + 1}
+                </span>
+            ))}
+        </div>
     );
 }
 

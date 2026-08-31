@@ -3338,6 +3338,20 @@ test('world builder review queue keeps paginated cards inside the panel without 
         ->not->toContain('[scrollbar-width:thin] overflow-y-auto');
 });
 
+test('map layout history preview shows a bounded spatial surface and accessible position list', function () {
+    $dialog = file_get_contents(
+        resource_path('js/features/settings/map-layout-history-dialog.tsx'),
+    );
+
+    expect($dialog)
+        ->toContain('<LayoutPreviewSurface')
+        ->toContain('data-layout-preview-surface="true"')
+        ->toContain('aria-hidden="true"')
+        ->toContain('role="list"')
+        ->toContain('per_page=4')
+        ->toContain('overflow-hidden');
+});
+
 test('activity evidence authoring previews the learner orientation', function () {
     $editor = file_get_contents(
         resource_path('js/pages/settings/worlds/activity-form-fields.tsx'),

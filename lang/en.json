@@ -278,7 +278,7 @@
     "settings.map_layout_history.unavailable_node_set": "Unavailable because the map nodes have changed.",
     "settings.map_layout_history.preview": "Preview",
     "settings.map_layout_history.preview_title": "Layout preview",
-    "settings.map_layout_history.preview_description": "Inspect the saved node positions before restoring this layout.",
+    "settings.map_layout_history.preview_description": "Inspect the saved node positions spatially before restoring this layout.",
     "settings.map_layout_history.preview_loading": "Loading layout preview…",
     "settings.map_layout_history.preview_error": "The layout preview could not be loaded. Try again.",
     "settings.map_layout_history.preview_items": "Saved node positions",
