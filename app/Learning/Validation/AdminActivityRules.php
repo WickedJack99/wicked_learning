@@ -28,6 +28,7 @@ class AdminActivityRules
             ...$this->openPracticeRules(),
             ...$this->portalRules(),
             ...$this->reflectionRules(),
+            ...$this->questionRules(),
             ...$this->sharedTaskRules(),
             ...$this->toolGrantRules(),
             ...$this->ambientSoundRules(),
@@ -64,6 +65,7 @@ class AdminActivityRules
             ...$this->openPracticeRules('sometimes'),
             ...$this->portalRules('sometimes'),
             ...$this->reflectionRules('sometimes'),
+            ...$this->questionRules('sometimes'),
             ...$this->sharedTaskRules('sometimes'),
             ...$this->toolGrantRules('sometimes'),
             ...$this->ambientSoundRules('sometimes'),
@@ -324,6 +326,34 @@ class AdminActivityRules
             'reflection_note' => $this->optional($modifier, ['string', 'max:2000']),
             'reflection_topic' => $this->optional($modifier, ['string', 'max:160']),
             'reflection_subtopic' => $this->optional($modifier, ['string', 'max:160']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function questionRules(string $modifier = 'nullable'): array
+    {
+        $isQuestion = static fn (): bool => request()->input('type') === 'question';
+
+        return [
+            'question_prompt' => [
+                ...$this->optional($modifier, ['string', 'max:4000']),
+                Rule::requiredIf($isQuestion),
+            ],
+            'question_feedback_correct' => $this->optional($modifier, ['string', 'max:2000']),
+            'question_feedback_incorrect' => $this->optional($modifier, ['string', 'max:2000']),
+            'question_explanation' => $this->optional($modifier, ['string', 'max:4000']),
+            'question_allow_multiple' => [$modifier, 'boolean'],
+            'question_options' => [
+                ...$this->optional($modifier, ['array', 'min:2', 'max:12']),
+                Rule::requiredIf($isQuestion),
+            ],
+            'question_options.*.label' => ['required_with:question_options', 'string', 'max:30'],
+            'question_options.*.body' => ['required_with:question_options', 'string', 'max:2000'],
+            'question_options.*.is_correct' => ['required_with:question_options', 'boolean'],
+            'question_options.*.outcome_key' => ['nullable', 'string', 'max:120'],
+            'question_options.*.feedback' => ['nullable', 'string', 'max:2000'],
+            'question_options.*.weights' => ['nullable', 'array', 'max:20'],
+            'question_options.*.weights.*' => ['numeric', 'min:0', 'max:1000'],
         ];
     }
 

@@ -2,12 +2,15 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\QuestionActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTemplate;
 use App\Models\User;
 
 class SaveLearningActivityTemplate
 {
+    public function __construct(private readonly QuestionActivityConfiguration $questionConfig) {}
+
     public function handle(
         User $user,
         LearningActivity $activity,
@@ -21,6 +24,7 @@ class SaveLearningActivityTemplate
                 'companionConfig' => $activity->companion_config ?? [],
                 'config' => $activity->config ?? [],
                 'introduction' => $activity->introduction,
+                'question' => $this->questionConfig->snapshot($activity),
                 'title' => $activity->title,
                 'type' => $activity->type,
             ],

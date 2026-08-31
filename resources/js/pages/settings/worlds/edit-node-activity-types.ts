@@ -56,10 +56,29 @@ export type ActivitySummary = {
         x: number | null;
         y: number | null;
     };
+    question: ActivityQuestion | null;
     slug: string;
     title: string;
     type: string;
     updatedAt: string | null;
+};
+
+export type ActivityQuestion = {
+    allowMultiple: boolean;
+    explanation: string | null;
+    feedbackCorrect: string | null;
+    feedbackIncorrect: string | null;
+    options: ActivityQuestionOption[];
+    prompt: string;
+};
+
+export type ActivityQuestionOption = {
+    body: string;
+    feedback: string | null;
+    isCorrect: boolean;
+    label: string;
+    outcomeKey: string | null;
+    weights: Record<string, number>;
 };
 
 export type ActivityTemplateSummary = {
@@ -75,6 +94,7 @@ export type ActivityTemplateDetails = ActivityTemplateSummary & {
         companionConfig?: Record<string, unknown>;
         config: ActivitySummary['config'];
         introduction: string | null;
+        question?: ActivityQuestion | null;
         title: string;
         type: string;
     };
@@ -361,6 +381,12 @@ export type CreateActivityForm = {
     feedback_rubric: string;
     introduction: string;
     learning_intent: string;
+    question_allow_multiple: boolean;
+    question_explanation: string;
+    question_feedback_correct: string;
+    question_feedback_incorrect: string;
+    question_options: ActivityQuestionOptionForm[];
+    question_prompt: string;
     source_references: SourceReferenceForm[];
     item_grant_background_dark: string;
     item_grant_background_light: string;
@@ -509,6 +535,15 @@ export type CreateActivityForm = {
     tool_grant_tool_y: string;
     tool_grant_typing_speed: string;
     type: string;
+};
+
+export type ActivityQuestionOptionForm = {
+    body: string;
+    feedback: string;
+    is_correct: boolean;
+    label: string;
+    outcome_key: string;
+    weights: Record<string, number>;
 };
 
 export type ActivityForm = CreateActivityForm;

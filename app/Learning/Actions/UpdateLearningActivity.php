@@ -17,6 +17,7 @@ use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\OpenPracticeActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
+use App\Learning\Services\QuestionActivityConfiguration;
 use App\Learning\Services\ReflectionActivityConfiguration;
 use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Learning\Services\ToolGrantActivityConfiguration;
@@ -44,6 +45,7 @@ class UpdateLearningActivity
         private readonly OpenPracticeActivityConfiguration $openPracticeConfig,
         private readonly ToolGrantActivityConfiguration $toolGrantConfig,
         private readonly PortalActivityConfiguration $portalConfig,
+        private readonly QuestionActivityConfiguration $questionConfig,
         private readonly ReflectionActivityConfiguration $reflectionConfig,
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
         private readonly PortalLinkService $portalLinkService,
@@ -61,14 +63,16 @@ class UpdateLearningActivity
     ): LearningActivity {
         $activity->loadMissing('node');
         $updates = $this->updatesFor($activity, $data);
+        $questionChanged = $this->questionConfig->willChange($activity, $data, $updates);
         $snapshot = $this->recordVersion->snapshot($activity);
 
         $activity->forceFill($updates);
 
-        if ($activity->isDirty()) {
+        if ($activity->isDirty() || $questionChanged) {
             if (
                 $user instanceof User
                 && ($this->reviewState->hasContentChanges($activity)
+                    || $questionChanged
                     || $activity->isDirty([
                         'companion_config',
                         'graph_position_x',
@@ -78,13 +82,14 @@ class UpdateLearningActivity
                 $this->recordVersion->handle($user, $activity, $snapshot);
             }
 
-            if ($this->reviewState->hasContentChanges($activity)) {
+            if ($this->reviewState->hasContentChanges($activity) || $questionChanged) {
                 $this->reviewState->markNeedsReview($activity);
             } else {
                 $activity->save();
             }
         }
 
+        $this->questionConfig->sync($activity, $data);
         $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
         $this->syncPortalLinkWhenNeeded($activity, $data);
         $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));

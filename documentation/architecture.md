@@ -184,6 +184,10 @@ restoration records the current snapshot first and then marks the restored
 activity for author review. Route connections and separate NPC dialogue graph
 records remain outside this bounded first slice so restoring a content snapshot
 cannot silently rewrite shared route edges or learner-facing graph IDs.
+Question activities keep their prompt and answer records in the separate
+`LearningQuestion` and `LearningQuestionOption` tables. Activity creation and
+editing synchronize those records from the author form, and activity/template
+snapshots include them so reuse and restore do not produce an empty question.
 
 The World Builder map export is an author-authorized streamed JSON manifest. Its
 serializer batch-loads the selected map's world, topic, nodes, activities,

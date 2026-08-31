@@ -32,7 +32,7 @@ class AdminActivityGraphSerializer
      */
     public function serialize(LearningNode $node): array
     {
-        $node->loadMissing('activities.reviewRuns');
+        $node->loadMissing('activities.question.options', 'activities.reviewRuns');
 
         return [
             'world' => $this->world($node),
@@ -135,6 +135,7 @@ class AdminActivityGraphSerializer
             'title' => $activity->title,
             'introduction' => $activity->introduction,
             'config' => $activity->config ?? [],
+            'question' => $this->question($activity),
             'updatedAt' => $activity->updated_at?->toIso8601String(),
             'aiReviewStatus' => $activity->ai_review_status,
             'aiReviewedAt' => $activity->ai_reviewed_at?->toIso8601String(),
@@ -156,6 +157,33 @@ class AdminActivityGraphSerializer
                 'y' => $activity->graph_position_y,
             ],
             'connectors' => $this->activityTypes->connectorsFor($activity),
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    private function question(LearningActivity $activity): ?array
+    {
+        if (! $activity->question) {
+            return null;
+        }
+
+        return [
+            'allowMultiple' => $activity->question->allow_multiple,
+            'explanation' => $activity->question->explanation,
+            'feedbackCorrect' => $activity->question->feedback_correct,
+            'feedbackIncorrect' => $activity->question->feedback_incorrect,
+            'options' => $activity->question->options
+                ->map(fn ($option): array => [
+                    'body' => $option->body,
+                    'feedback' => $option->feedback,
+                    'isCorrect' => $option->is_correct,
+                    'label' => $option->label,
+                    'outcomeKey' => $option->outcome_key,
+                    'weights' => $option->weights ?? [],
+                ])
+                ->values()
+                ->all(),
+            'prompt' => $activity->question->prompt,
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Learning\Actions;
 
 use App\Learning\Services\LearningActivityReviewState;
+use App\Learning\Services\QuestionActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityVersion;
 use App\Models\User;
@@ -12,6 +13,7 @@ class RestoreLearningActivityVersion
 {
     public function __construct(
         private readonly LearningActivityReviewState $reviewState,
+        private readonly QuestionActivityConfiguration $questionConfig,
         private readonly RecordLearningActivityVersion $recordVersion,
     ) {}
 
@@ -38,6 +40,11 @@ class RestoreLearningActivityVersion
                 'title' => (string) ($snapshot['title'] ?? $activity->title),
                 'type' => (string) ($snapshot['type'] ?? $activity->type),
             ])->save();
+
+            $this->questionConfig->syncSnapshot(
+                $activity,
+                is_array($snapshot['question'] ?? null) ? $snapshot['question'] : [],
+            );
 
             $this->reviewState->markNeedsReview($activity);
 

@@ -2,12 +2,15 @@
 
 namespace App\Learning\Actions;
 
+use App\Learning\Services\QuestionActivityConfiguration;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityVersion;
 use App\Models\User;
 
 class RecordLearningActivityVersion
 {
+    public function __construct(private readonly QuestionActivityConfiguration $questionConfig) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -22,6 +25,7 @@ class RecordLearningActivityVersion
             'slug' => $activity->slug,
             'title' => $activity->title,
             'type' => $activity->type,
+            'question' => $this->questionConfig->snapshot($activity),
         ];
     }
 

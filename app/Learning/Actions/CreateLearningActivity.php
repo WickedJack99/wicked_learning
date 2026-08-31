@@ -16,6 +16,7 @@ use App\Learning\Services\ObstacleActivityConfiguration;
 use App\Learning\Services\OpenPracticeActivityConfiguration;
 use App\Learning\Services\PortalActivityConfiguration;
 use App\Learning\Services\PortalLinkService;
+use App\Learning\Services\QuestionActivityConfiguration;
 use App\Learning\Services\ReflectionActivityConfiguration;
 use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Learning\Services\ToolGrantActivityConfiguration;
@@ -44,6 +45,7 @@ class CreateLearningActivity
         private readonly ReflectionActivityConfiguration $reflectionConfig,
         private readonly SharedTaskActivityConfiguration $sharedTaskConfig,
         private readonly PortalLinkService $portalLinkService,
+        private readonly QuestionActivityConfiguration $questionConfig,
         private readonly UniqueSlugGenerator $slugGenerator,
     ) {}
 
@@ -68,6 +70,7 @@ class CreateLearningActivity
         ]);
 
         $this->portalLinkService->syncForActivity($activity, $data['target_portal_activity_id'] ?? null);
+        $this->questionConfig->sync($activity, $data);
         $this->npcDialogueConfig->scaffoldDefaultEnd($activity);
         $this->ensureCompetenceTopics->handle($this->competenceConfig->topicsForActivity($activity));
 

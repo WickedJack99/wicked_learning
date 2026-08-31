@@ -38,6 +38,7 @@ import { ActivityAmbientSoundFields } from './activity-ambient-sound-fields';
 import { ActivitySourceReferenceFields } from './activity-source-reference-fields';
 import type {
     ActivityForm,
+    ActivityQuestionOptionForm,
     ActivityTypeDefinition,
     EditableItem,
     EditableSourceRecord,
@@ -165,7 +166,8 @@ export function ActivityFormFields({
         form.type === 'review' ||
         form.type === 'message_prompt' ||
         form.type === 'message_wall' ||
-        form.type === 'open_practice';
+        form.type === 'open_practice' ||
+        form.type === 'question';
     const hasPresentationSettings =
         form.type === 'portal' ||
         form.type === 'item_grant' ||
@@ -276,6 +278,196 @@ export function ActivityFormFields({
                                         form={form}
                                         onChange={onChange}
                                     />
+                                </SettingsConfigurationSection>
+                            ) : null}
+
+                            {form.type === 'question' ? (
+                                <SettingsConfigurationSection
+                                    description="Write a retrieval question, explain the answer, and connect each option to the route outcome it should open."
+                                    title="Question and answers"
+                                >
+                                    <div className="grid gap-5">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="question-prompt">
+                                                Question prompt
+                                            </Label>
+                                            <textarea
+                                                className="min-h-28 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                                                id="question-prompt"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_prompt:
+                                                            event.target.value,
+                                                    }))
+                                                }
+                                                value={form.question_prompt}
+                                            />
+                                            <InputError
+                                                message={errors.question_prompt}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <QuestionTextField
+                                                error={
+                                                    errors.question_feedback_correct
+                                                }
+                                                id="question-feedback-correct"
+                                                label="Correct feedback"
+                                                onChange={(value) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_feedback_correct:
+                                                            value,
+                                                    }))
+                                                }
+                                                value={
+                                                    form.question_feedback_correct
+                                                }
+                                            />
+                                            <QuestionTextField
+                                                error={
+                                                    errors.question_feedback_incorrect
+                                                }
+                                                id="question-feedback-incorrect"
+                                                label="Incorrect feedback"
+                                                onChange={(value) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_feedback_incorrect:
+                                                            value,
+                                                    }))
+                                                }
+                                                value={
+                                                    form.question_feedback_incorrect
+                                                }
+                                            />
+                                        </div>
+
+                                        <QuestionTextField
+                                            error={errors.question_explanation}
+                                            id="question-explanation"
+                                            label="Explanation shown after answering"
+                                            onChange={(value) =>
+                                                onChange((current) => ({
+                                                    ...current,
+                                                    question_explanation: value,
+                                                }))
+                                            }
+                                            value={form.question_explanation}
+                                        />
+
+                                        <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+                                            <input
+                                                checked={
+                                                    form.question_allow_multiple
+                                                }
+                                                className="size-4 accent-[var(--settings-accent)]"
+                                                onChange={(event) =>
+                                                    onChange((current) => ({
+                                                        ...current,
+                                                        question_allow_multiple:
+                                                            event.target.checked,
+                                                    }))
+                                                }
+                                                type="checkbox"
+                                            />
+                                            Allow selecting more than one answer
+                                        </label>
+
+                                        <div className="grid gap-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                                                        Answers
+                                                    </p>
+                                                    <p className="text-sm leading-6 text-slate-500 dark:text-slate-400">
+                                                        Mark the correct answer and
+                                                        optionally connect an outcome
+                                                        key to a matching graph edge.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    disabled={
+                                                        form.question_options
+                                                            .length >= 12
+                                                    }
+                                                    onClick={() =>
+                                                        onChange((current) => ({
+                                                            ...current,
+                                                            question_options: [
+                                                                ...current.question_options,
+                                                                emptyQuestionOption(
+                                                                    String.fromCharCode(
+                                                                        65 + current.question_options.length,
+                                                                    ),
+                                                                ),
+                                                            ],
+                                                        }))
+                                                    }
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    Add answer
+                                                </Button>
+                                            </div>
+                                            <InputError
+                                                message={errors.question_options}
+                                            />
+                                            <div className="grid gap-4">
+                                                {form.question_options.map(
+                                                    (option, index) => (
+                                                        <QuestionOptionFields
+                                                            canRemove={
+                                                                form.question_options
+                                                                    .length > 2
+                                                            }
+                                                            errors={errors}
+                                                            index={index}
+                                                            key={`question-option-${index}`}
+                                                            onChange={(
+                                                                update,
+                                                            ) =>
+                                                                onChange(
+                                                                    (current) => ({
+                                                                        ...current,
+                                                                        question_options:
+                                                                            current.question_options.map(
+                                                                                (
+                                                                                    currentOption,
+                                                                                    currentIndex,
+                                                                                ) =>
+                                                                                    currentIndex ===
+                                                                                    index
+                                                                                        ? update(
+                                                                                              currentOption,
+                                                                                          )
+                                                                                        : currentOption,
+                                                                            ),
+                                                                    }),
+                                                                )
+                                                            }
+                                                            onRemove={() =>
+                                                                onChange(
+                                                                    (current) => ({
+                                                                        ...current,
+                                                                        question_options:
+                                                                            current.question_options.filter(
+                                                                                (_, optionIndex) =>
+                                                                                    optionIndex !==
+                                                                                    index,
+                                                                            ),
+                                                                    }),
+                                                                )
+                                                            }
+                                                            option={option}
+                                                        />
+                                                    ),
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </SettingsConfigurationSection>
                             ) : null}
 
@@ -1367,6 +1559,171 @@ function CompletionChoiceField({
                 this activity. The three directions remain short and optional.
             </p>
             <InputError message={errors.completion_choice_prompt} />
+        </div>
+    );
+}
+
+function emptyQuestionOption(label: string): ActivityQuestionOptionForm {
+    return {
+        body: '',
+        feedback: '',
+        is_correct: false,
+        label,
+        outcome_key: '',
+        weights: {},
+    };
+}
+
+function QuestionTextField({
+    error,
+    id,
+    label,
+    onChange,
+    value,
+}: {
+    error?: string;
+    id: string;
+    label: string;
+    onChange: (value: string) => void;
+    value: string;
+}) {
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={id}>{label}</Label>
+            <textarea
+                className="min-h-24 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                id={id}
+                onChange={(event) => onChange(event.target.value)}
+                value={value}
+            />
+            <InputError message={error} />
+        </div>
+    );
+}
+
+function QuestionOptionFields({
+    canRemove,
+    errors,
+    index,
+    onChange,
+    onRemove,
+    option,
+}: {
+    canRemove: boolean;
+    errors: Record<string, string>;
+    index: number;
+    onChange: (
+        update: (
+            option: ActivityQuestionOptionForm,
+        ) => ActivityQuestionOptionForm,
+    ) => void;
+    onRemove: () => void;
+    option: ActivityQuestionOptionForm;
+}) {
+    const fieldError = (field: string): string | undefined =>
+        errors[`question_options.${index}.${field}`];
+
+    return (
+        <div className="grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                    Answer {option.label || index + 1}
+                </p>
+                <Button
+                    disabled={!canRemove}
+                    onClick={onRemove}
+                    type="button"
+                    variant="ghost"
+                >
+                    <Trash2 className="size-4" />
+                    Remove
+                </Button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[8rem_1fr]">
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-label`}>
+                        Label
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-label`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                label: event.target.value,
+                            }))
+                        }
+                        value={option.label}
+                    />
+                    <InputError message={fieldError('label')} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-body`}>
+                        Answer text
+                    </Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                        id={`question-option-${index}-body`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                body: event.target.value,
+                            }))
+                        }
+                        value={option.body}
+                    />
+                    <InputError message={fieldError('body')} />
+                </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-outcome`}>
+                        Outcome key (optional)
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-outcome`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                outcome_key: event.target.value,
+                            }))
+                        }
+                        placeholder="e.g. review-source-distribution"
+                        value={option.outcome_key}
+                    />
+                    <InputError message={fieldError('outcome_key')} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor={`question-option-${index}-feedback`}>
+                        Answer feedback (optional)
+                    </Label>
+                    <Input
+                        id={`question-option-${index}-feedback`}
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                feedback: event.target.value,
+                            }))
+                        }
+                        value={option.feedback}
+                    />
+                    <InputError message={fieldError('feedback')} />
+                </div>
+            </div>
+            <label className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200">
+                <input
+                    checked={option.is_correct}
+                    className="size-4 accent-[var(--settings-accent)]"
+                    onChange={(event) =>
+                        onChange((current) => ({
+                            ...current,
+                            is_correct: event.target.checked,
+                        }))
+                    }
+                    type="checkbox"
+                />
+                Correct answer
+            </label>
+            <InputError message={fieldError('is_correct')} />
         </div>
     );
 }

@@ -1,5 +1,7 @@
 import type {
     ActivityForm,
+    ActivityQuestion,
+    ActivityQuestionOptionForm,
     ActivitySummary,
     CreateActivityForm,
     MarkdownPageForm,
@@ -10,7 +12,13 @@ import type {
 
 type ActivityFormSource = Pick<
     ActivitySummary,
-    'config' | 'introduction' | 'portalLink' | 'slug' | 'title' | 'type'
+    | 'config'
+    | 'introduction'
+    | 'portalLink'
+    | 'question'
+    | 'slug'
+    | 'title'
+    | 'type'
 >;
 export function emptyCreateForm(type: string): CreateActivityForm {
     return {
@@ -27,6 +35,12 @@ export function emptyCreateForm(type: string): CreateActivityForm {
         feedback_rubric: '',
         introduction: '',
         learning_intent: '',
+        question_allow_multiple: false,
+        question_explanation: '',
+        question_feedback_correct: '',
+        question_feedback_incorrect: '',
+        question_options: defaultQuestionOptions(),
+        question_prompt: '',
         source_references: [],
         item_grant_background_dark: '',
         item_grant_background_light: '',
@@ -228,6 +242,12 @@ export function activityFormFromActivity(
         ),
         introduction: activity.introduction ?? '',
         learning_intent: stringConfig(activity.config.learningIntent),
+        question_allow_multiple: activity.question?.allowMultiple ?? false,
+        question_explanation: activity.question?.explanation ?? '',
+        question_feedback_correct: activity.question?.feedbackCorrect ?? '',
+        question_feedback_incorrect: activity.question?.feedbackIncorrect ?? '',
+        question_options: questionOptions(activity.question),
+        question_prompt: activity.question?.prompt ?? '',
         source_references: sourceReferences(activity.config.sourceReferences),
         item_grant_background_dark: stringConfig(
             activity.config.backgroundDark,
@@ -867,6 +887,41 @@ function itemGrantItems(value: unknown): ActivityForm['item_grant_items'] {
         .filter((item) => item.itemId);
 
     return items.length > 0 ? items : [{ itemId: '', quantity: '1' }];
+}
+
+function defaultQuestionOptions(): ActivityQuestionOptionForm[] {
+    return [
+        emptyQuestionOption('A'),
+        emptyQuestionOption('B'),
+    ];
+}
+
+function emptyQuestionOption(label: string): ActivityQuestionOptionForm {
+    return {
+        body: '',
+        feedback: '',
+        is_correct: false,
+        label,
+        outcome_key: '',
+        weights: {},
+    };
+}
+
+function questionOptions(
+    question: ActivityQuestion | null,
+): ActivityQuestionOptionForm[] {
+    if (!question || question.options.length === 0) {
+        return defaultQuestionOptions();
+    }
+
+    return question.options.map((option) => ({
+        body: option.body,
+        feedback: option.feedback ?? '',
+        is_correct: option.isCorrect,
+        label: option.label,
+        outcome_key: option.outcomeKey ?? '',
+        weights: option.weights,
+    }));
 }
 
 function portalAssets(value: unknown): PortalAssetForm[] {

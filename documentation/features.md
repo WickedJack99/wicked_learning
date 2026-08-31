@@ -584,6 +584,11 @@ The World Builder provides:
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors
 
+Question activities can now be authored in the activity editor, including the
+prompt, answer choices, correctness, feedback, explanations and optional
+outcome keys for branching. Their separate question records are preserved when
+authors save and reuse private activity templates.
+
 Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and
 restore an earlier version without losing the current details.

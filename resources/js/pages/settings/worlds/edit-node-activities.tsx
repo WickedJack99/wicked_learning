@@ -717,6 +717,7 @@ export default function EditNodeActivities({
                     config: snapshot.config,
                     introduction: snapshot.introduction,
                     portalLink: null,
+                    question: snapshot.question ?? null,
                     slug: '',
                     title: snapshot.title,
                     type: snapshot.type,
