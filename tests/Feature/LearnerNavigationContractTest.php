@@ -54,8 +54,11 @@ test('document surfaces keep the shared learner header outside their scroll regi
             'className="flex min-h-svh min-w-0 flex-col overflow-hidden',
         )
         ->toContain(
-            'className="min-h-0 flex-1 overflow-y-auto xl:overflow-hidden',
+            'className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden',
         );
+    expect($competence)->toContain(
+        'className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-20',
+    );
 });
 
 test('the learning desk defaults to a useful populated area', function () {

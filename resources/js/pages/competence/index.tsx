@@ -79,8 +79,8 @@ export default function CompetenceStarMap({
                 className="flex min-h-svh min-w-0 flex-col overflow-hidden bg-black text-white focus:outline-none"
             >
                 <LearningDeskHeader />
-                <div className="min-h-0 flex-1 overflow-y-auto xl:overflow-hidden">
-                    <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-14">
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden">
+                    <div className="flex min-h-0 flex-1 flex-col px-4 py-6 pb-20">
                         <AccentHeading
                             className="shrink-0"
                             action={
