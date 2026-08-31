@@ -183,6 +183,63 @@ export function SharedTaskFlowFields({
                     value={form.shared_task_instructions}
                 />
             </div>
+            <div className="grid gap-3 rounded-lg border border-slate-200/80 bg-slate-50/70 p-4 md:col-span-2 dark:border-white/10 dark:bg-slate-950/30">
+                <div>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        Project brief (optional)
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        Give the group a clear shared direction without assigning roles or grading the result.
+                    </p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="shared-task-project-goal">Shared goal</Label>
+                    <Input
+                        id="shared-task-project-goal"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                shared_task_project_goal: event.target.value,
+                            }))
+                        }
+                        value={form.shared_task_project_goal}
+                    />
+                    <InputError message={errors.shared_task_project_goal} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="shared-task-project-deliverable">
+                        Useful outcome
+                    </Label>
+                    <Input
+                        id="shared-task-project-deliverable"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                shared_task_project_deliverable: event.target.value,
+                            }))
+                        }
+                        value={form.shared_task_project_deliverable}
+                    />
+                    <InputError message={errors.shared_task_project_deliverable} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="shared-task-project-steps">
+                        Suggested steps (one per line, up to 6)
+                    </Label>
+                    <textarea
+                        className="min-h-24 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-white/10 dark:bg-slate-950/40"
+                        id="shared-task-project-steps"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                shared_task_project_steps: event.target.value,
+                            }))
+                        }
+                        value={form.shared_task_project_steps}
+                    />
+                    <InputError message={errors.shared_task_project_steps} />
+                </div>
+            </div>
         </div>
     );
 }

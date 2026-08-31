@@ -447,6 +447,9 @@ export type CreateActivityForm = {
     shared_task_input_label: string;
     shared_task_instructions: string;
     shared_task_kind: string;
+    shared_task_project_deliverable: string;
+    shared_task_project_goal: string;
+    shared_task_project_steps: string;
     shared_task_show_contributions: boolean;
     shared_task_minimum_length: string;
     shared_task_prompt: string;

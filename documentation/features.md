@@ -156,6 +156,10 @@ the contribution. Authors may also allow an anonymous contribution sample to
 be shown to later learners, but each learner opts in per submission. Playback
 shows only a small, bounded set of opted-in contributions and does not expose
 learner identities.
+Authors may optionally add a project brief with a shared goal, a useful outcome
+and up to six suggested steps. Learners see this orientation beside the shared
+task prompt; it does not assign roles, evaluate the outcome or replace learner
+choice about how to contribute.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

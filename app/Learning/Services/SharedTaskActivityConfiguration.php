@@ -20,6 +20,9 @@ class SharedTaskActivityConfiguration
             'prompt' => $this->string($data, 'shared_task_prompt', $existing, 'prompt', 'Add a useful contribution.'),
             'instructions' => $this->string($data, 'shared_task_instructions', $existing, 'instructions', ''),
             'inputLabel' => $this->inputLabel($data, $existing, $taskKind),
+            'projectGoal' => $this->string($data, 'shared_task_project_goal', $existing, 'projectGoal', ''),
+            'projectDeliverable' => $this->string($data, 'shared_task_project_deliverable', $existing, 'projectDeliverable', ''),
+            'projectSteps' => $this->steps($data, $existing),
             'threshold' => $this->integer($data, 'shared_task_threshold', $existing, 'threshold', 3, 1, 1000),
             'minimumLength' => $this->integer($data, 'shared_task_minimum_length', $existing, 'minimumLength', 20, 0, 10000),
             'repeatPolicy' => $this->choice($data, 'shared_task_repeat_policy', $existing, 'repeatPolicy', ['once_per_user', 'unlimited'], 'once_per_user'),
@@ -37,6 +40,9 @@ class SharedTaskActivityConfiguration
             'shared_task_prompt',
             'shared_task_instructions',
             'shared_task_input_label',
+            'shared_task_project_goal',
+            'shared_task_project_deliverable',
+            'shared_task_project_steps',
             'shared_task_threshold',
             'shared_task_minimum_length',
             'shared_task_repeat_policy',
@@ -71,6 +77,22 @@ class SharedTaskActivityConfiguration
             'reflection' => 'Your reflection',
             default => 'Your contribution',
         };
+    }
+
+    /** @param array<string, mixed> $data @param array<string, mixed> $existing @return list<string> */
+    private function steps(array $data, array $existing): array
+    {
+        $value = array_key_exists('shared_task_project_steps', $data)
+            ? (string) $data['shared_task_project_steps']
+            : implode("\n", is_array($existing['projectSteps'] ?? null) ? $existing['projectSteps'] : []);
+
+        return collect(preg_split('/\r?\n/', $value) ?: [])
+            ->map(fn (string $step): string => trim($step))
+            ->filter()
+            ->map(fn (string $step): string => mb_substr($step, 0, 240))
+            ->take(6)
+            ->values()
+            ->all();
     }
 
     /** @param array<string, mixed> $data */

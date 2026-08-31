@@ -39,6 +39,13 @@ export function SharedTaskActivity({
         'Add a useful contribution.',
     );
     const instructions = stringValue(activity.config.instructions);
+    const projectGoal = stringValue(activity.config.projectGoal);
+    const projectDeliverable = stringValue(activity.config.projectDeliverable);
+    const projectSteps = Array.isArray(activity.config.projectSteps)
+        ? activity.config.projectSteps.filter(
+              (step): step is string => typeof step === 'string',
+          )
+        : [];
     const inputLabel = stringValue(
         activity.config.inputLabel,
         kindCopy.inputLabel,
@@ -105,6 +112,15 @@ export function SharedTaskActivity({
                     </p>
                 ) : null}
             </div>
+
+            {projectGoal || projectDeliverable || projectSteps.length > 0 ? (
+                <SharedTaskProjectBrief
+                    deliverable={projectDeliverable}
+                    goal={projectGoal}
+                    steps={projectSteps}
+                    t={t}
+                />
+            ) : null}
 
             <SharedTaskProgress state={state} t={t} />
 
@@ -204,6 +220,62 @@ export function SharedTaskActivity({
                 </div>
             )}
         </div>
+    );
+}
+
+function SharedTaskProjectBrief({
+    deliverable,
+    goal,
+    steps,
+    t,
+}: {
+    deliverable: string;
+    goal: string;
+    steps: string[];
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    return (
+        <section
+            aria-labelledby="shared-task-project-brief-heading"
+            className="rounded-lg border border-cyan-200/70 bg-cyan-50/60 p-4 dark:border-teal-200/20 dark:bg-teal-100/6"
+        >
+            <h3
+                className="text-sm font-semibold text-slate-800 dark:text-slate-100"
+                id="shared-task-project-brief-heading"
+            >
+                {t('activities.shared_task.project_brief', 'Project brief')}
+            </h3>
+            <div className="mt-3 grid gap-3 text-sm leading-6 text-slate-700 dark:text-slate-200 sm:grid-cols-2">
+                {goal ? (
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
+                            {t('activities.shared_task.project_goal', 'Shared goal')}
+                        </p>
+                        <p>{goal}</p>
+                    </div>
+                ) : null}
+                {deliverable ? (
+                    <div>
+                        <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
+                            {t('activities.shared_task.project_deliverable', 'Useful outcome')}
+                        </p>
+                        <p>{deliverable}</p>
+                    </div>
+                ) : null}
+            </div>
+            {steps.length > 0 ? (
+                <div className="mt-3">
+                    <p className="text-xs font-semibold tracking-[0.12em] text-cyan-700 uppercase dark:text-teal-200">
+                        {t('activities.shared_task.project_steps', 'Suggested steps')}
+                    </p>
+                    <ol className="mt-1 list-inside list-decimal text-sm leading-6 text-slate-700 dark:text-slate-200">
+                        {steps.map((step) => (
+                            <li key={step}>{step}</li>
+                        ))}
+                    </ol>
+                </div>
+            ) : null}
+        </section>
     );
 }
 

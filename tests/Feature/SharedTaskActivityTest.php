@@ -1,5 +1,6 @@
 <?php
 
+use App\Learning\Services\SharedTaskActivityConfiguration;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
@@ -33,6 +34,19 @@ test('shared task submissions count across users toward the activity threshold',
         ->assertJsonPath('state.isComplete', true);
 
     expect(LearningSharedTaskSubmission::query()->where('learning_activity_id', $activity->id)->count())->toBe(2);
+});
+
+test('shared task configuration normalizes an optional project brief', function () {
+    $config = app(SharedTaskActivityConfiguration::class)->fromData([
+        'shared_task_project_goal' => 'Compare the observations.',
+        'shared_task_project_deliverable' => 'A short group explanation.',
+        'shared_task_project_steps' => "Collect clues\n\nCompare interpretations\n".str_repeat("Extra step\n", 8),
+    ]);
+
+    expect($config['projectGoal'])->toBe('Compare the observations.')
+        ->and($config['projectDeliverable'])->toBe('A short group explanation.')
+        ->and($config['projectSteps'])->toHaveCount(6)
+        ->and($config['projectSteps'][0])->toBe('Collect clues');
 });
 
 test('shared task submissions enforce configured minimum length', function () {
