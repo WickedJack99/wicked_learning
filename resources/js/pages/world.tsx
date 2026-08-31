@@ -8,7 +8,10 @@ import {
 import { persistActiveActivity } from '@/features/world/active-activity';
 import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { GroupControl } from '@/features/world/group-control';
-import type { LearningGroup } from '@/features/world/group-control';
+import type {
+    LearningGroup,
+    LearningGroupPagination,
+} from '@/features/world/group-control';
 import { mapControlCssVariables } from '@/features/world/map-control-theme';
 import type { MapControlCssVars } from '@/features/world/map-control-theme';
 import { NodeDetailDrawer } from '@/features/world/node-detail-drawer';
@@ -33,6 +36,7 @@ import type {
 type WorldProps = {
     bookmarkedNodeIds: number[];
     groups: LearningGroup[];
+    groupsPagination: LearningGroupPagination;
     world: LearningWorld | null;
     progress: LearningProgress;
 };
@@ -40,6 +44,7 @@ type WorldProps = {
 export default function World({
     bookmarkedNodeIds: initialBookmarkedNodeIds,
     groups: initialGroups,
+    groupsPagination,
     world,
     progress,
 }: WorldProps) {
@@ -127,7 +132,6 @@ export default function World({
     const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isGroupsOpen, setIsGroupsOpen] = useState(false);
-    const [groups, setGroups] = useState(initialGroups);
 
     const selectedNode = useMemo(() => {
         if (!map) {
@@ -453,18 +457,10 @@ export default function World({
 
                 {isAuthenticated ? (
                     <GroupControl
-                        groups={groups}
+                        groups={initialGroups}
+                        pagination={groupsPagination}
                         isOpen={isGroupsOpen}
                         onClose={() => setIsGroupsOpen(false)}
-                        onGroupUpdated={(updatedGroup) =>
-                            setGroups((current) =>
-                                current.map((group) =>
-                                    group.id === updatedGroup.id
-                                        ? updatedGroup
-                                        : group,
-                                ),
-                            )
-                        }
                         onOpen={() => setIsGroupsOpen(true)}
                     />
                 ) : null}

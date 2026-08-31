@@ -11,6 +11,7 @@ use App\Models\LearningGroup;
 use App\Models\LearningGroupMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class LearningGroupController extends Controller
 {
@@ -21,12 +22,19 @@ class LearningGroupController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $groups = $this->groups->handle(
+            $request->user(),
+            $request->integer('page', 1),
+            $request->integer('per_page', LoadLearnerGroups::DEFAULT_PAGE_SIZE),
+        );
+
         return response()->json([
-            'groups' => $this->groups
-                ->handle($request->user())
+            'groups' => $groups
+                ->getCollection()
                 ->map(fn (LearningGroup $group): array => $this->serializer->forLearner($group, $request->user()))
                 ->values()
                 ->all(),
+            'pagination' => $this->pagination($groups),
         ]);
     }
 
@@ -76,5 +84,18 @@ class LearningGroupController extends Controller
         return response()->json([
             'group' => $this->serializer->forLearner($group->refresh(), $request->user()),
         ]);
+    }
+
+    /**
+     * @return array{currentPage: int, lastPage: int, perPage: int, total: int}
+     */
+    private function pagination(LengthAwarePaginator $groups): array
+    {
+        return [
+            'currentPage' => $groups->currentPage(),
+            'lastPage' => $groups->lastPage(),
+            'perPage' => $groups->perPage(),
+            'total' => $groups->total(),
+        ];
     }
 }

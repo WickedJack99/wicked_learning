@@ -86,8 +86,8 @@ test('learner group chats paginate distinct groups instead of scrolling the grou
     );
 
     expect($groupControl)
-        ->toContain('const GROUP_PAGE_SIZE = 1;')
-        ->toContain('const visibleGroups = groups.slice(')
+        ->toContain('getJson<LearningGroupsResponse>')
+        ->toContain('setVisibleGroups(response.groups)')
         ->toContain('<PaginationControls')
         ->not->toContain('min-h-0 overflow-y-auto');
 });

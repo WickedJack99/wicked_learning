@@ -258,6 +258,12 @@ Account and access models include:
 - `Organization`, `OrganizationMembership` and organization messages
 - `LearningGroup`, group messages and shared-task submissions
 
+Learner group chat uses a membership-scoped length-aware paginator. The world
+Inertia payload contains only the first group page; later pages are requested
+from the learner groups endpoint with `page` and `per_page`. Each page eager
+loads only its selected groups, their members, vote state and bounded message
+transcripts, keeping the initial collection and related rows bounded.
+
 Learning Support moderation loads topic summaries in the settings payload and
 uses the permission-protected message-topic endpoint for paginated message
 records and resolution counts. Response details are fetched in a small first

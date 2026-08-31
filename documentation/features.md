@@ -504,8 +504,8 @@ public scoring. Group members can label a message as a help request and mark
 that request resolved; this records that the request no longer needs attention,
 not that a response was correct or that a learner earned a result. When a
 learner belongs to multiple groups, the map group overlay presents one chat at
-a time with pagination; the message transcript itself remains a bounded
-reading area.
+a time with pagination and loads later group pages only when requested; the
+message transcript itself remains a bounded reading area.
 
 ### Tools, Items And Portals
 

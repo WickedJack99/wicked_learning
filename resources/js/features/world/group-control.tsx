@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatMessageTime } from '@/features/messages/message-time';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import { JsonRequestError, postJson } from './api';
+import { getJson, JsonRequestError, postJson } from './api';
 
 type GroupMessage = {
     body: string;
@@ -26,8 +26,6 @@ type GroupMessage = {
     } | null;
 };
 
-const GROUP_PAGE_SIZE = 1;
-
 export type LearningGroup = {
     adminChatRequiredVotes: number;
     adminChatVisible: boolean;
@@ -45,30 +43,72 @@ export type LearningGroup = {
     name: string;
 };
 
+export type LearningGroupPagination = {
+    currentPage: number;
+    lastPage: number;
+    perPage: number;
+    total: number;
+};
+
+type LearningGroupsResponse = {
+    groups: LearningGroup[];
+    pagination: LearningGroupPagination;
+};
+
 export function GroupControl({
     groups,
+    pagination: initialPagination,
     isOpen,
     onClose,
-    onGroupUpdated,
     onOpen,
 }: {
     groups: LearningGroup[];
+    pagination: LearningGroupPagination;
     isOpen: boolean;
     onClose: () => void;
-    onGroupUpdated: (group: LearningGroup) => void;
     onOpen: () => void;
 }) {
     const t = usePlatformTranslation();
-    const [groupPage, setGroupPage] = useState(0);
-    const groupPageCount = Math.ceil(groups.length / GROUP_PAGE_SIZE);
-    const currentGroupPage = Math.min(
-        groupPage,
-        Math.max(0, groupPageCount - 1),
-    );
-    const visibleGroups = groups.slice(
-        currentGroupPage * GROUP_PAGE_SIZE,
-        (currentGroupPage + 1) * GROUP_PAGE_SIZE,
-    );
+    const [visibleGroups, setVisibleGroups] = useState(groups);
+    const [pagination, setPagination] = useState(initialPagination);
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState('');
+
+    const loadGroupPage = async (page: number) => {
+        if (isLoading || page === pagination.currentPage) {
+            return;
+        }
+
+        setIsLoading(true);
+        setLoadError('');
+
+        try {
+            const response = await getJson<LearningGroupsResponse>(
+                `/learning/groups?page=${page}&per_page=${pagination.perPage}`,
+            );
+            setVisibleGroups(response.groups);
+            setPagination(response.pagination);
+        } catch (error) {
+            setLoadError(
+                error instanceof JsonRequestError
+                    ? error.message
+                    : t(
+                          'world.groups.load_error',
+                          'The group chats could not be loaded.',
+                      ),
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const updateGroup = (updatedGroup: LearningGroup) => {
+        setVisibleGroups((current) =>
+            current.map((group) =>
+                group.id === updatedGroup.id ? updatedGroup : group,
+            ),
+        );
+    };
 
     return (
         <>
@@ -121,7 +161,7 @@ export function GroupControl({
                         </Button>
                     </div>
                     <div>
-                        {groups.length === 0 ? (
+                        {pagination.total === 0 ? (
                             <p className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400">
                                 {t(
                                     'world.groups.empty',
@@ -129,24 +169,42 @@ export function GroupControl({
                                 )}
                             </p>
                         ) : (
-                            <div className="grid gap-3">
+                            <div aria-busy={isLoading} className="grid gap-3">
+                                {isLoading ? (
+                                    <p
+                                        aria-live="polite"
+                                        className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-400"
+                                        role="status"
+                                    >
+                                        {t(
+                                            'world.groups.loading',
+                                            'Loading group chat...',
+                                        )}
+                                    </p>
+                                ) : null}
                                 {visibleGroups.map((group) => (
                                     <GroupChatCard
                                         group={group}
                                         key={group.id}
-                                        onGroupUpdated={onGroupUpdated}
+                                        onGroupUpdated={updateGroup}
                                     />
                                 ))}
                             </div>
                         )}
                     </div>
+                    {loadError ? (
+                        <p className="text-sm text-red-600 dark:text-red-300" role="alert">
+                            {loadError}
+                        </p>
+                    ) : null}
                     <PaginationControls
                         buttonClassName="min-h-11 text-[var(--map-floating-accent-color)] transition hover:text-[var(--map-floating-text-color)]"
                         className="border-t border-[var(--map-floating-border-color)] pt-3"
-                        currentPage={currentGroupPage + 1}
+                        currentPage={pagination.currentPage}
+                        disabled={isLoading}
                         label={t('world.groups.pagination', 'Group chats')}
-                        onPageChange={(page) => setGroupPage(page - 1)}
-                        pageCount={groupPageCount}
+                        onPageChange={(page) => void loadGroupPage(page)}
+                        pageCount={pagination.lastPage}
                         textClassName="text-[var(--map-floating-text-color)]"
                     />
                 </section>

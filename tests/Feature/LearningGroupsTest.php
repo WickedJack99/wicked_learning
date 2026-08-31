@@ -109,6 +109,42 @@ test('group members can chat and vote to let admins view chat history', function
     expect($group->refresh()->admin_chat_visible_enabled)->toBeTrue();
 });
 
+test('learner group chat pages return only the requested group page', function () {
+    $user = User::factory()->create();
+    $groups = collect(['Alpha Circle', 'Beta Circle', 'Gamma Circle'])
+        ->map(fn (string $name): LearningGroup => LearningGroup::query()->create([
+            'name' => $name,
+            'slug' => str($name)->slug(),
+        ]));
+
+    $groups->each(fn (LearningGroup $group) => $group->members()->attach(
+        $user->id,
+        ['joined_at' => now()],
+    ));
+
+    $this->actingAs($user)
+        ->getJson(route('learning.groups.index', ['page' => 2, 'per_page' => 1]))
+        ->assertOk()
+        ->assertJsonCount(1, 'groups')
+        ->assertJsonPath('groups.0.name', 'Beta Circle')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 3)
+        ->assertJsonPath('pagination.perPage', 1)
+        ->assertJsonPath('pagination.total', 3);
+
+    $this->actingAs($user)
+        ->get(route('world'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('world')
+            ->has('groups', 1)
+            ->where('groupsPagination.currentPage', 1)
+            ->where('groupsPagination.lastPage', 3)
+            ->where('groupsPagination.perPage', 1)
+            ->where('groupsPagination.total', 3)
+        );
+});
+
 test('group members can mark a help request resolved without treating it as a result', function () {
     [$first, $second, $outsider] = User::factory()->count(3)->create();
     $group = LearningGroup::query()->create([

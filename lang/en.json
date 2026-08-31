@@ -28,6 +28,8 @@
     "common.upload": "Upload",
     "common.uploading": "Uploading...",
     "world.groups.pagination": "Group chats",
+    "world.groups.loading": "Loading group chat...",
+    "world.groups.load_error": "The group chats could not be loaded.",
     "world.groups.help.checkbox": "Ask the group for help",
     "world.groups.help.helper": "This labels your message as a request that another member can mark resolved.",
     "world.groups.help.mark_resolved": "Mark resolved",

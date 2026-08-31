@@ -14,6 +14,7 @@ export function PaginationControls({
     buttonClassName,
     textClassName,
     showSinglePage,
+    disabled,
 }: {
     currentPage: number;
     pageCount: number;
@@ -25,6 +26,7 @@ export function PaginationControls({
     buttonClassName?: string;
     textClassName?: string;
     showSinglePage?: boolean;
+    disabled?: boolean;
 }) {
     const t = usePlatformTranslation();
     const inputId = useId();
@@ -83,7 +85,7 @@ export function PaginationControls({
                     'inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)] disabled:pointer-events-none disabled:opacity-40',
                     buttonClassName,
                 )}
-                disabled={safeCurrentPage === 1}
+                disabled={disabled || safeCurrentPage === 1}
                 onClick={() => onPageChange(safeCurrentPage - 1)}
                 type="button"
             >
@@ -170,7 +172,7 @@ export function PaginationControls({
                     'inline-flex min-w-0 items-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)] disabled:pointer-events-none disabled:opacity-40',
                     buttonClassName,
                 )}
-                disabled={safeCurrentPage === safePageCount}
+                disabled={disabled || safeCurrentPage === safePageCount}
                 onClick={() => onPageChange(safeCurrentPage + 1)}
                 type="button"
             >

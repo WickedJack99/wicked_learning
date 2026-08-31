@@ -39,6 +39,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -77,6 +78,9 @@ class LearningWorldController extends Controller
     {
         $user = $request->user();
         $world = $this->loadLearningWorld->forMapView($user);
+        $groups = $user
+            ? $this->learnerGroups->handle($user, perPage: LoadLearnerGroups::DEFAULT_PAGE_SIZE)
+            : null;
 
         if (! $user && $world && $world->maps->isEmpty()) {
             return redirect()->route('welcome');
@@ -101,19 +105,35 @@ class LearningWorldController extends Controller
 
         return Inertia::render('world', [
             'bookmarkedNodeIds' => $user ? $this->bookmarkService->bookmarkedNodeIds($user->id) : [],
-            'groups' => $user
-                ? $this->learnerGroups
-                    ->handle($user)
+            'groups' => $groups
+                ? $groups
+                    ->getCollection()
                     ->map(fn ($group): array => $this->groupSerializer->forLearner($group, $user))
                     ->values()
                     ->all()
                 : [],
+            'groupsPagination' => $groups
+                ? $this->groupPagination($groups)
+                : ['currentPage' => 1, 'lastPage' => 1, 'perPage' => LoadLearnerGroups::DEFAULT_PAGE_SIZE, 'total' => 0],
             'world' => $world ? $this->worldSerializer->serialize($world, $user) : null,
             'companion' => $world ? $this->companionContext->forWorld($world, $selectedMap) : null,
             'progress' => $user
                 ? $this->progressSerializer->forUser($user->id)
                 : $this->progressSerializer->empty(),
         ]);
+    }
+
+    /**
+     * @return array{currentPage: int, lastPage: int, perPage: int, total: int}
+     */
+    private function groupPagination(LengthAwarePaginator $groups): array
+    {
+        return [
+            'currentPage' => $groups->currentPage(),
+            'lastPage' => $groups->lastPage(),
+            'perPage' => $groups->perPage(),
+            'total' => $groups->total(),
+        ];
     }
 
     public function play(Request $request, LearningNode $node): Response|RedirectResponse
