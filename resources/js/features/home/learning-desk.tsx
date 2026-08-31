@@ -966,11 +966,6 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                     key={route.id}
                                                     locale={localization.locale}
                                                     route={route}
-                                                    emphasized={
-                                                        route.id ===
-                                                        visibleCurrentRoutes[0]
-                                                            ?.id
-                                                    }
                                                 />
                                             )}
                                         />
@@ -1158,11 +1153,9 @@ function FeaturedBookmark({ bookmark }: { bookmark: LearningDeskBookmark }) {
 }
 
 function RouteRow({
-    emphasized,
     locale,
     route,
 }: {
-    emphasized: boolean;
     locale: string;
     route: LearningDeskRoute;
 }) {
@@ -1170,9 +1163,6 @@ function RouteRow({
 
     return (
         <div className="group relative grid gap-4 py-6 sm:grid-cols-[3.25rem_minmax(0,1fr)_auto] sm:items-center">
-            {emphasized ? (
-                <span className="absolute top-3 bottom-3 -left-4 w-0.5 bg-[var(--learner-accent)] sm:-left-6" />
-            ) : null}
             <Link
                 aria-label={route.routeLabel ?? route.nodeTitle}
                 className="grid size-12 place-items-center border border-[var(--learner-border-color)] text-[var(--learner-accent)] transition hover:border-[color-mix(in_srgb,var(--learner-accent)_55%,var(--learner-border-color))]"

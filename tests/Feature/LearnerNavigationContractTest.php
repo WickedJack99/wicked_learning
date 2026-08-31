@@ -96,6 +96,22 @@ test('the learning desk defaults to a useful populated area', function () {
         ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
 });
 
+test('learner content uses section separators without decorative route rails', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+    $topicDetail = file_get_contents(
+        resource_path('js/features/topics/topic-detail.tsx'),
+    );
+
+    expect($learningDesk)
+        ->not->toContain('absolute top-3 bottom-3 -left-4');
+    expect($topicDetail)
+        ->toContain('className="mt-6 shrink-0 border-b')
+        ->not->toContain('className="pr-1"')
+        ->not->toContain('border-y border-[var(--learner-border-color)]');
+});
+
 test('the learning desk remembers its focus view preference locally', function () {
     $learningDesk = file_get_contents(
         resource_path('js/features/home/learning-desk.tsx'),
@@ -436,7 +452,6 @@ test('topic detail delegates vertical overflow to the shared learner surface', f
     expect($topicDetail)
         ->toContain('<LearnerDocumentSurface>')
         ->toContain('className="pt-5"')
-        ->toContain('className="pr-1"')
         ->not->toContain('<LearnerDocumentSurface scrollable={false}>')
         ->not->toContain('h-full min-h-0 overflow-y-auto');
 });

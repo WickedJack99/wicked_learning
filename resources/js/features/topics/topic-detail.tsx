@@ -143,7 +143,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                     {topic.parent?.title ?? t('topics.title', 'Topics')}
                 </Link>
 
-                <header className="mt-6 max-w-3xl shrink-0 border-b border-[var(--learner-border-color)] pb-6">
+                <header className="mt-6 shrink-0 border-b border-[var(--learner-border-color)] pb-6">
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                         {topic.area.title}
                     </p>
@@ -249,7 +249,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             {topic.paths.length > 0 ? (
                                 <section
                                     aria-labelledby="topic-paths-heading"
-                                    className="mt-10 border-y border-[var(--learner-border-color)] py-7"
+                                    className="mt-10 border-b border-[var(--learner-border-color)] py-7"
                                 >
                                     <div className="flex items-start gap-3">
                                         <Route className="mt-0.5 size-5 shrink-0 text-[var(--learner-accent)]" />
@@ -300,7 +300,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                 </section>
                             ) : null}
                             {topic.paths.length === 0 ? (
-                                <p className="mt-8 border-y border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                <p className="mt-8 border-b border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
                                         'topics.detail.paths.empty',
                                         'No routes are available yet.',
@@ -315,7 +315,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                             {topic.maps.length > 0 ? (
                                 <section
                                     aria-labelledby="topic-maps-heading"
-                                    className="mt-10 border-y border-[var(--learner-border-color)] py-7"
+                                    className="mt-10 border-b border-[var(--learner-border-color)] py-7"
                                 >
                                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                                         {t(
@@ -361,7 +361,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                 </section>
                             ) : null}
                             {topic.maps.length === 0 ? (
-                                <p className="mt-8 border-y border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                <p className="mt-8 border-b border-[var(--learner-border-color)] py-7 text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {t(
                                         'topics.detail.maps.empty',
                                         'No maps are available yet.',
@@ -381,7 +381,7 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                             markdown={topic.content}
                                         />
                                     ) : (
-                                        <div className="border-y border-[var(--learner-border-color)] py-7">
+                                        <div className="border-b border-[var(--learner-border-color)] py-7">
                                             <BookOpenText className="size-5 text-[var(--learner-action-accent)]" />
                                             <p className="mt-3 text-sm leading-6 text-[var(--learner-muted-text)]">
                                                 {t(
@@ -497,7 +497,6 @@ function TopicPanel({
     return (
         <section
             aria-labelledby={`topic-${id}-tab`}
-            className="pr-1"
             id={`topic-panel-${id}`}
             role="tabpanel"
         >
@@ -522,7 +521,7 @@ function TopicLearningAreas({
     return (
         <section
             aria-labelledby="topic-learning-areas-heading"
-            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
+            className="mt-8 border-b border-[var(--learner-border-color)] py-7"
         >
             <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-action-accent)] uppercase">
                 {t('topics.detail.learning_areas.eyebrow', 'Learning areas')}
@@ -578,7 +577,7 @@ function TopicLearningPulse({ entries }: { entries: TopicLearningPulse[] }) {
     return (
         <section
             aria-labelledby="topic-learning-pulse-heading"
-            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
+            className="mt-8 border-b border-[var(--learner-border-color)] py-7"
         >
             <p className="text-xs font-semibold tracking-[0.2em] text-[var(--learner-accent)] uppercase">
                 {t(
@@ -649,7 +648,7 @@ function TopicReflectionComparison({
     return (
         <section
             aria-labelledby="topic-reflection-comparison-heading"
-            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
+            className="mt-8 border-b border-[var(--learner-border-color)] py-7"
         >
             <div className="flex items-start justify-between gap-4">
                 <div>
@@ -837,7 +836,7 @@ function TopicCompetenceCard({
     return (
         <section
             aria-labelledby="topic-learning-trail-heading"
-            className="mt-8 border-y border-[var(--learner-border-color)] py-7"
+            className="mt-8 border-b border-[var(--learner-border-color)] py-7"
         >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                 <div>
