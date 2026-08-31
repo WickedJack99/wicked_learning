@@ -154,6 +154,9 @@ outside that catalog.
 Its fixed copy is resolved at render time, so the pause follows the selected
 platform language without changing learner-entered notes or authored route
 labels.
+Reflection and review activities use the same catalog for their generic kind,
+orientation, earlier-note guidance, response placeholders and save actions;
+their prompts and saved learner responses remain authored or private content.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

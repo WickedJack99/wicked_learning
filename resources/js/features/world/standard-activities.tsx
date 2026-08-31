@@ -976,9 +976,8 @@ function QuestionFeedbackGuidance({
             ),
             value: guidance.nextAction,
         },
-    ].filter(
-        (entry): entry is { label: string; value: string } =>
-            Boolean(entry.value?.trim()),
+    ].filter((entry): entry is { label: string; value: string } =>
+        Boolean(entry.value?.trim()),
     );
 
     if (entries.length === 0 && !guidance.rubric?.length) {
@@ -1082,7 +1081,10 @@ export function ReflectionActivity({
     const prompt =
         typeof activity.config.prompt === 'string'
             ? activity.config.prompt
-            : 'What feels clearer now?';
+            : t(
+                  'learning.reflection.default_prompt',
+                  'What feels clearer now?',
+              );
     const note =
         typeof activity.config.note === 'string' ? activity.config.note : null;
     const isReview =
@@ -1471,22 +1473,31 @@ export function ReflectionActivity({
         <div className="flex flex-1 flex-col gap-4">
             <div className="flex items-center gap-2 text-xs font-medium tracking-[0.16em] text-cyan-700 uppercase dark:text-teal-200">
                 <RotateCcw className="size-3.5" />
-                {isReview ? 'Review / revisit' : 'Reflection'}
+                {isReview
+                    ? t('learning.reflection.review_kind', 'Review / revisit')
+                    : t('learning.reflection.kind', 'Reflection')}
             </div>
             {isReview ? (
                 <p className="rounded-lg border border-cyan-500/20 bg-cyan-50 p-3 text-xs leading-5 text-cyan-900 dark:border-teal-200/20 dark:bg-teal-100/8 dark:text-teal-100">
-                    Return to the idea and notice what feels clearer, more
-                    connected, or still open.
+                    {t(
+                        'learning.reflection.review_orientation',
+                        'Return to the idea and notice what feels clearer, more connected, or still open.',
+                    )}
                 </p>
             ) : null}
             {isReview && activity.reviewContext?.length ? (
                 <div className="rounded-lg border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-200/20 dark:bg-teal-100/6">
                     <p className="text-xs font-medium tracking-[0.14em] text-cyan-900 uppercase dark:text-teal-100">
-                        Earlier notes from you
+                        {t(
+                            'learning.reflection.earlier_notes_title',
+                            'Earlier notes from you',
+                        )}
                     </p>
                     <p className="mt-1 text-xs leading-5 text-cyan-900/75 dark:text-teal-100/75">
-                        Look back if it helps. You can also write without
-                        comparing.
+                        {t(
+                            'learning.reflection.earlier_notes_helper',
+                            'Look back if it helps. You can also write without comparing.',
+                        )}
                     </p>
                     <div className="mt-2 grid gap-2">
                         {activity.reviewContext.map((entry) => (
@@ -1602,8 +1613,14 @@ export function ReflectionActivity({
                                 'Write the idea in your own words.',
                             )
                           : isReview
-                            ? 'Write what feels clearer or still open.'
-                            : 'Write a short note for yourself.'
+                            ? t(
+                                  'learning.reflection.review_placeholder',
+                                  'Write what feels clearer or still open.',
+                              )
+                            : t(
+                                  'learning.reflection.placeholder',
+                                  'Write a short note for yourself.',
+                              )
                 }
                 value={reflection}
             />
@@ -1793,7 +1810,12 @@ export function ReflectionActivity({
                 }
                 onClick={() => void saveReflection()}
             >
-                {isReview ? 'Save review note' : 'Keep reflection'}
+                {isReview
+                    ? t('learning.reflection.save_review', 'Save review note')
+                    : t(
+                          'learning.reflection.keep_reflection',
+                          'Keep reflection',
+                      )}
             </Button>
         </div>
     );
@@ -1854,7 +1876,11 @@ export function ReflectionActivity({
     }
 
     async function saveIndependentResponse() {
-        if (!playRunId || isSavingIndependentResponse || !independentCheckPrompt) {
+        if (
+            !playRunId ||
+            isSavingIndependentResponse ||
+            !independentCheckPrompt
+        ) {
             return;
         }
 

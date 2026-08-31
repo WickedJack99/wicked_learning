@@ -175,6 +175,20 @@ test('activity conclusion copy uses the platform translation catalog', function 
         ->not->toContain('A small pause after {activityTitle}');
 });
 
+test('reflection and review activity copy uses the platform translation catalog', function () {
+    $activities = file_get_contents(
+        resource_path('js/features/world/standard-activities.tsx'),
+    );
+
+    expect($activities)
+        ->toContain("'learning.reflection.review_kind'")
+        ->toContain("'learning.reflection.review_orientation'")
+        ->toContain("'learning.reflection.save_review'")
+        ->toContain("'learning.reflection.keep_reflection'")
+        ->not->toContain("{isReview ? 'Review / revisit' : 'Reflection'}")
+        ->not->toContain("{isReview ? 'Save review note' : 'Keep reflection'}");
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
