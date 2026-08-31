@@ -121,6 +121,7 @@ export default function NodePlay({
     const pendingLearningCheckInRef = useRef<PendingLearningCheckIn | null>(
         null,
     );
+    const showConclusionButtonRef = useRef<HTMLButtonElement | null>(null);
     const [travelBlockedMessage, setTravelBlockedMessage] = useState('');
     const [activityTranslation, setActivityTranslation] = useState<{
         activityId: number;
@@ -142,6 +143,15 @@ export default function NodePlay({
                 : null,
         [activeActivity, activityTranslation],
     );
+
+    useEffect(() => {
+        if (
+            pendingLearningCheckIn &&
+            hiddenCheckInActivityId === pendingLearningCheckIn.activityId
+        ) {
+            showConclusionButtonRef.current?.focus();
+        }
+    }, [hiddenCheckInActivityId, pendingLearningCheckIn]);
 
     useEffect(() => {
         const handleAssistanceUsed = (event: Event) => {
@@ -724,6 +734,7 @@ export default function NodePlay({
                             <Button
                                 className="absolute top-3 right-3 z-30 shadow-lg"
                                 onClick={() => setHiddenCheckInActivityId(null)}
+                                ref={showConclusionButtonRef}
                                 size="sm"
                                 type="button"
                                 variant="outline"

@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ArrowRight, EyeOff, Heart } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { competenceTopicHref } from '@/features/competence/competence-links';
 import type {
@@ -81,6 +81,11 @@ export function LearningCheckIn({
     const [note, setNote] = useState('');
     const [nextDirection, setNextDirection] =
         useState<LearningCheckInNextDirection | null>(null);
+    const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+    useEffect(() => {
+        headingRef.current?.focus();
+    }, []);
 
     const continueWith = async (feeling: LearningCheckInFeeling | null) => {
         if (isSaving) {
@@ -117,6 +122,8 @@ export function LearningCheckIn({
                         <h2
                             className="text-sm font-semibold text-[var(--learner-heading-text)]"
                             id="learning-check-in-title"
+                            ref={headingRef}
+                            tabIndex={-1}
                         >
                             A small pause after {activityTitle}
                         </h2>
