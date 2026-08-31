@@ -4,6 +4,7 @@ namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityTimeGuideConfiguration;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningNodeBookmark;
@@ -27,6 +28,7 @@ class LearningDeskSerializer
      *     currentRoutes: Collection<int, LearnerRouteProgress>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     revisitInvitations: list<array<string, mixed>>,
+     *     supportResponses: Collection<int, LearnerMessageResponse>,
      *     featuredBookmark: LearningNodeBookmark|null
      * }  $desk
      * @return array<string, mixed>
@@ -62,6 +64,10 @@ class LearningDeskSerializer
                 ->all(),
             'revisitInvitations' => $desk['revisitInvitations'],
             'recallItems' => $desk['recallItems'],
+            'supportResponses' => $desk['supportResponses']
+                ->map(fn (LearnerMessageResponse $response): array => $this->supportResponse($response))
+                ->values()
+                ->all(),
             'featuredBookmark' => $desk['featuredBookmark']
                 ? $this->bookmark($desk['featuredBookmark'])
                 : null,
@@ -91,6 +97,28 @@ class LearningDeskSerializer
             'nodeId' => $node->id,
             'topic' => $this->topic($map->topic),
             'title' => $node->title,
+        ];
+    }
+
+    /** @return array{id: int, body: string, createdAt: string|null, mapTitle: string, nodeHref: string, nodeTitle: string, topicTitle: string} */
+    private function supportResponse(LearnerMessageResponse $response): array
+    {
+        $topic = $response->message->topic;
+        $mapAsset = $topic->mapAsset;
+        $node = $mapAsset->node;
+        $map = $node->map;
+
+        return [
+            'body' => $response->body,
+            'createdAt' => $this->dateTimeString($response->created_at),
+            'id' => $response->id,
+            'mapTitle' => $map->title,
+            'nodeHref' => route('world', [
+                'map' => $map->slug,
+                'focused' => $node->slug,
+            ], false),
+            'nodeTitle' => $node->title,
+            'topicTitle' => $topic->title,
         ];
     }
 

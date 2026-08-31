@@ -6,6 +6,7 @@ import {
     Clock3,
     Compass,
     Focus,
+    MessageCircle,
     Pin,
     Trash2,
 } from 'lucide-react';
@@ -31,6 +32,7 @@ import type {
     LearningDeskRevisitInvitation,
     LearningDeskRecallItem,
     LearningDeskRoute,
+    LearningDeskSupportResponse,
 } from './types';
 
 type LearningDeskArea =
@@ -39,6 +41,7 @@ type LearningDeskArea =
     | 'recall'
     | 'revisit'
     | 'recent'
+    | 'support'
     | 'continue';
 
 type DeskTimeBudget = 'any' | 15 | 30;
@@ -117,6 +120,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
             'Recent reflections',
         ),
         revisit: t('home.learning_desk.sections.revisit', 'Return when useful'),
+        support: t('home.learning_desk.sections.support', 'Learning Support'),
     };
     const availableAreas: LearningDeskArea[] = [
         'connections',
@@ -124,6 +128,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
         ...(recallItems.length > 0 ? (['recall'] as const) : []),
         ...(revisitInvitations.length > 0 ? (['revisit'] as const) : []),
         ...(desk.recentRoutes.length > 0 ? (['recent'] as const) : []),
+        ...(desk.supportResponses.length > 0 ? (['support'] as const) : []),
         'continue',
     ];
     const defaultArea =
@@ -469,6 +474,44 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                                 checkIn={checkIn}
                                                 key={`${checkIn.activityId}:${checkIn.recordedAt}`}
                                                 locale={localization.locale}
+                                            />
+                                        )}
+                                    />
+                                </section>
+                            ) : null}
+
+                            {visibleArea === 'support' &&
+                            desk.supportResponses.length > 0 ? (
+                                <section
+                                    aria-labelledby="support-heading"
+                                    className="mt-8"
+                                >
+                                    <SectionHeading
+                                        id="support-heading"
+                                        label={t(
+                                            'home.learning_desk.support.title',
+                                            'Learning Support replies',
+                                        )}
+                                    />
+                                    <p className="max-w-2xl border-b border-[var(--learner-border-color)] py-5 text-sm leading-6 text-[var(--learner-muted-text)]">
+                                        {t(
+                                            'home.learning_desk.support.body',
+                                            'Private replies to your support requests are kept here so you can return when the guidance is useful.',
+                                        )}
+                                    </p>
+                                    <LearnerPaginatedItems
+                                        className="divide-y divide-[var(--learner-border-color)] border-b border-[var(--learner-border-color)]"
+                                        items={desk.supportResponses}
+                                        pageSize={2}
+                                        paginationLabel={t(
+                                            'home.learning_desk.support.pagination',
+                                            'Learning Support replies',
+                                        )}
+                                        renderItem={(response) => (
+                                            <SupportResponseRow
+                                                key={response.id}
+                                                locale={localization.locale}
+                                                response={response}
                                             />
                                         )}
                                     />
@@ -1128,6 +1171,56 @@ function RecentRouteRow({
     );
 }
 
+function SupportResponseRow({
+    locale,
+    response,
+}: {
+    locale: string;
+    response: LearningDeskSupportResponse;
+}) {
+    const t = usePlatformTranslation();
+
+    return (
+        <article className="grid gap-4 py-5 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-start">
+            <MessageCircle
+                aria-hidden="true"
+                className="size-5 text-[var(--learner-action-accent)]"
+            />
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-medium text-[var(--learner-heading-text)]">
+                        {t(
+                            'home.learning_desk.support.reply_label',
+                            'Private reply from Learning Support',
+                        )}
+                    </span>
+                    {response.createdAt ? (
+                        <time
+                            className="text-xs text-[var(--learner-muted-text)]"
+                            dateTime={response.createdAt}
+                        >
+                            {formatDate(response.createdAt, locale)}
+                        </time>
+                    ) : null}
+                </div>
+                <p className="mt-2 line-clamp-4 text-sm leading-6 text-[var(--learner-body-text)]">
+                    {response.body}
+                </p>
+                <p className="mt-2 text-xs text-[var(--learner-muted-text)]">
+                    {response.topicTitle} · {response.mapTitle}
+                </p>
+            </div>
+            <Link
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--learner-action-accent)] sm:justify-self-end"
+                href={response.nodeHref}
+            >
+                {t('home.learning_desk.support.open', 'Return to place')}
+                <ArrowRight className="size-4" />
+            </Link>
+        </article>
+    );
+}
+
 function CheckInRow({
     checkIn,
     locale,
@@ -1612,7 +1705,8 @@ function deskAreaFromUrl(): LearningDeskArea | null {
         area === 'recent' ||
         area === 'recall' ||
         area === 'reflections' ||
-        area === 'revisit'
+        area === 'revisit' ||
+        area === 'support'
     ) {
         return area;
     }

@@ -75,6 +75,16 @@ export type LearningDeskRecallItem = {
     reviewCount: number;
 };
 
+export type LearningDeskSupportResponse = {
+    body: string;
+    createdAt: string | null;
+    id: number;
+    mapTitle: string;
+    nodeHref: string;
+    nodeTitle: string;
+    topicTitle: string;
+};
+
 export type LearningDeskData = {
     bookmarks: LearningDeskBookmark[];
     checkIns: LearningDeskCheckIn[];
@@ -84,6 +94,7 @@ export type LearningDeskData = {
     recallItems: LearningDeskRecallItem[];
     revisitInvitations: LearningDeskRevisitInvitation[];
     featuredBookmark: LearningDeskBookmark | null;
+    supportResponses: LearningDeskSupportResponse[];
 };
 
 export type LearningSearchResult = {

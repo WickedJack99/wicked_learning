@@ -3,11 +3,14 @@
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Queries\LoadLearnerActivityCheckIns;
 use App\Models\LearnerActivityProgress;
+use App\Models\LearnerMessage;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMessageTopic;
 use App\Models\LearningNode;
 use App\Models\LearningNodeBookmark;
 use App\Models\LearningTopic;
@@ -46,6 +49,83 @@ test('authenticated learners can open an empty learning desk', function () {
             ->has('desk.revisitInvitations', 0)
             ->has('desk.connections', 0)
             ->where('desk.featuredBookmark', null)
+        );
+});
+
+test('the learning desk surfaces only the current learners visible support replies', function () {
+    $user = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $supportStaff = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'support-map',
+        'title' => 'Support Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'support-node',
+        'title' => 'Support Node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $mapAsset = LearningMapAsset::query()->create([
+        'learning_map_id' => $map->id,
+        'learning_node_id' => $node->id,
+        'image_url' => '/images/support.png',
+    ]);
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $mapAsset->id,
+        'slug' => 'support-topic',
+        'title' => 'Support topic',
+    ]);
+    $message = LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $user->id,
+        'body' => 'I would like help with this place.',
+        'audience' => 'support',
+    ]);
+    LearnerMessageResponse::query()->create([
+        'learner_message_id' => $message->id,
+        'user_id' => $otherLearner->id,
+        'body' => 'A private answer for this learner.',
+    ]);
+    LearnerMessageResponse::query()->create([
+        'learner_message_id' => $message->id,
+        'user_id' => $supportStaff->id,
+        'body' => 'This hidden answer should not appear.',
+        'hidden_at' => now(),
+    ]);
+    $otherMessage = LearnerMessage::query()->create([
+        'learning_message_topic_id' => $topic->id,
+        'user_id' => $otherLearner->id,
+        'body' => 'A different learner question.',
+        'audience' => 'support',
+    ]);
+    LearnerMessageResponse::query()->create([
+        'learner_message_id' => $otherMessage->id,
+        'user_id' => $user->id,
+        'body' => 'This reply belongs to another learner.',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.supportResponses', 1)
+            ->where('desk.supportResponses.0.body', 'A private answer for this learner.')
+            ->where('desk.supportResponses.0.topicTitle', 'Support topic')
+            ->where('desk.supportResponses.0.mapTitle', 'Support Map')
+            ->where('desk.supportResponses.0.nodeTitle', 'Support Node')
+            ->where('desk.supportResponses.0.nodeHref', '/world?map=support-map&focused=support-node')
         );
 });
 

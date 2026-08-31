@@ -3,6 +3,7 @@
 namespace App\Learning\Queries;
 
 use App\Learning\Services\LearningMapAccessService;
+use App\Models\LearnerMessageResponse;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningNodeBookmark;
 use App\Models\User;
@@ -15,6 +16,7 @@ class LoadLearningDesk
         private readonly LoadLearnerActivityCheckIns $checkIns,
         private readonly LoadLearnerRecallItems $recallItems,
         private readonly LoadLearnerRevisitInvitations $revisitInvitations,
+        private readonly LoadLearnerSupportResponses $supportResponses,
         private readonly LearningMapAccessService $mapAccess,
     ) {}
 
@@ -26,6 +28,7 @@ class LoadLearningDesk
      *     recallItems: list<array<string, mixed>>,
      *     recentRoutes: Collection<int, LearnerRouteProgress>,
      *     revisitInvitations: list<array<string, mixed>>,
+     *     supportResponses: Collection<int, LearnerMessageResponse>,
      *     featuredBookmark: LearningNodeBookmark|null
      * }
      */
@@ -54,6 +57,7 @@ class LoadLearningDesk
             'currentRoutes' => $currentRoutes,
             'recentRoutes' => $recentRoutes,
             'revisitInvitations' => $this->revisitInvitations->handle($user),
+            'supportResponses' => $this->supportResponses->handle($user),
             'featuredBookmark' => $featuredBookmark,
         ];
     }

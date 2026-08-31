@@ -365,8 +365,8 @@ A message prompt may instead be configured as an optional support request. The
 learner chooses whether to send a short request to authorized Learning Support;
 support requests stay out of peer walls and remain available in this same
 moderation surface. Support staff can send private informational responses from
-that surface, and only the requesting learner can see them when they revisit the
-activity. These responses do not enter peer walls or change completion,
+that surface, and only the requesting learner can see them on the Learning Desk
+or when they revisit the activity. These responses do not enter peer walls or change completion,
 competence, ranking or helpfulness signals.
 
 Peer message walls may also invite one optional response per learner and

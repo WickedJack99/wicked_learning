@@ -333,6 +333,11 @@ permission-protected endpoint. The database applies a per-message
 `ROW_NUMBER()` range before response models are hydrated, keeping both SQL
 query count and returned response rows bounded by the requested page size.
 
+The Learning Desk loads at most 12 recent visible private support responses for
+the current learner, eager-loading their topic and place navigation context in
+that bounded query. Map visibility is checked before serialization, and the
+Desk exposes only the response body and a return-to-place link.
+
 Support and reflection models include:
 
 - `LearnerJournalPage` and `LearnerJournalFeedbackRequest`
