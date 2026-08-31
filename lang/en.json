@@ -1163,6 +1163,7 @@
     "learning.question.confidence_reflection": "Confidence reflection",
     "learning.question.confidence_after_feedback_prompt": "After comparing, how settled does this feel now? (optional)",
     "learning.question.confidence_after_feedback_helper": "This is a reflection on your understanding, not a grade.",
+    "learning.question.feedback_guidance_heading": "Compare your answer with the guidance",
     "learning.question.feedback_response_label": "Compare your response",
     "learning.question.try_again": "Try again independently",
     "learning.question.try_again_helper": "Clear the answer and make a fresh attempt before you finish. Earlier tries stay available for reflection.",

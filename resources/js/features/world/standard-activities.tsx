@@ -679,6 +679,11 @@ export function QuestionActivity({
                             {visibleAnswer.explanation}
                         </p>
                     ) : null}
+                    <QuestionFeedbackGuidance
+                        guidance={activity.feedbackGuidance}
+                        headingId={`question-feedback-guidance-heading-${activity.id}`}
+                        t={t}
+                    />
                     {activity.feedbackGuidance?.responseFeedback ? (
                         <div className="mt-3 rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
                             <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
@@ -930,6 +935,99 @@ function questionCalibrationMessage(
             uncertainty_made_gap_visible:
                 'Your uncertainty helped make this gap visible. Use the explanation to adjust your reasoning.',
         }[calibration],
+    );
+}
+
+function QuestionFeedbackGuidance({
+    guidance,
+    headingId,
+    t,
+}: {
+    guidance: LearningActivity['feedbackGuidance'];
+    headingId: string;
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    if (!guidance) {
+        return null;
+    }
+
+    const entries = [
+        {
+            label: t('learning.reflection.feedback_purpose_label', 'Purpose'),
+            value: guidance.purpose,
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_evidence_label',
+                'What to notice',
+            ),
+            value: guidance.evidence,
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_next_action_label',
+                'A possible next action',
+            ),
+            value: guidance.nextAction,
+        },
+    ].filter(
+        (entry): entry is { label: string; value: string } =>
+            Boolean(entry.value?.trim()),
+    );
+
+    if (entries.length === 0 && !guidance.rubric?.length) {
+        return null;
+    }
+
+    return (
+        <section
+            aria-labelledby={headingId}
+            className="mt-4 grid gap-3 rounded-md border border-cyan-500/20 bg-cyan-50/60 p-3 dark:border-teal-100/15 dark:bg-teal-100/6"
+        >
+            <p
+                className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-100"
+                id={headingId}
+            >
+                {t(
+                    'learning.question.feedback_guidance_heading',
+                    'Compare your answer with the guidance',
+                )}
+            </p>
+            {entries.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-3">
+                    {entries.map((entry) => (
+                        <div key={entry.label}>
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {entry.label}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {entry.value.trim()}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+            ) : null}
+            {guidance.rubric?.length ? (
+                <div className="border-t border-cyan-500/15 pt-3 dark:border-teal-100/15">
+                    <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                        {t(
+                            'learning.reflection.feedback_rubric_label',
+                            'Observable cues',
+                        )}
+                    </p>
+                    <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                        {guidance.rubric.map((cue) => (
+                            <li
+                                className="pl-4 before:mr-2 before:text-cyan-700 before:content-['•'] dark:before:text-teal-200"
+                                key={cue}
+                            >
+                                {cue}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+        </section>
     );
 }
 

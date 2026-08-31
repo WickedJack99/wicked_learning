@@ -499,6 +499,9 @@ identifies it as an independent check; it is still an attempt, not an
 automatic rubric result. Authors may also add a separate comparison note that
 appears only after the fresh response is saved, so the learner can relate the
 new example to the authored guidance without receiving an automated judgment.
+Question results also repeat authored purpose, observation guidance, next action
+and observable cues so learners can compare their answer with the intended
+learning focus.
 Review responses with authored guidance use the same pause and show its purpose
 before the learner continues, keeping the review signal descriptive rather than
 turning it into a grade.
