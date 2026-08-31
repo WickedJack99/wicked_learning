@@ -263,6 +263,7 @@ test('shared task peer review requires a contribution and can be submitted once'
         'peerReviewEnabled' => true,
         'showContributions' => true,
         'threshold' => 5,
+        'projectSteps' => ['Collect clues', 'Compare interpretations'],
     ]);
     [$secondLearner, , $secondRunId] = activeSharedTaskFor($activity);
 
@@ -292,10 +293,12 @@ test('shared task peer review requires a contribution and can be submitted once'
             'play_run_id' => $secondRunId,
             'submission_id' => $reviewable[0]['id'],
             'response_type' => 'explanation',
+            'project_step_index' => 1,
         ])
         ->assertOk()
         ->assertJsonPath('state.peerReview.hasReviewed', true)
         ->assertJsonPath('review.responseType', 'explanation')
+        ->assertJsonPath('review.projectStepIndex', 1)
         ->assertJsonPath('state.peerReview.receivedReviews', []);
 
     $firstLearnerState = app(SharedTaskStateSerializer::class)->state($activity, $firstLearner, true);
@@ -306,6 +309,8 @@ test('shared task peer review requires a contribution and can be submitted once'
         ->toBe('This connects the two observations clearly.')
         ->and($firstLearnerState['peerReview']['receivedReviews'][0]['responseType'])
         ->toBe('explanation')
+        ->and($firstLearnerState['peerReview']['receivedReviews'][0]['projectStep'])
+        ->toBe('Compare interpretations')
         ->and($secondLearnerState['peerReview']['receivedReviews'])->toBeEmpty();
 
     $this->actingAs($secondLearner)
@@ -320,7 +325,46 @@ test('shared task peer review requires a contribution and can be submitted once'
         ->and(LearningSharedTaskReview::query()->firstOrFail()->body)
         ->toBe('This connects the two observations clearly.')
         ->and(LearningSharedTaskReview::query()->firstOrFail()->response_type)
-        ->toBe('explanation');
+        ->toBe('explanation')
+        ->and(LearningSharedTaskReview::query()->firstOrFail()->project_step_index)
+        ->toBe(1);
+});
+
+test('shared task peer reviews reject project steps that are not configured', function () {
+    [$firstLearner, $activity, $firstRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+        'projectSteps' => ['Collect clues'],
+    ]);
+    [$secondLearner, , $secondRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($firstLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The first learner noticed a useful pattern.',
+            'play_run_id' => $firstRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $reviewable = $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The second learner adds another perspective.',
+            'play_run_id' => $secondRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk()
+        ->json('state.peerReview.reviewableContributions');
+
+    $this->actingAs($secondLearner)
+        ->postJson(route('learning.activities.shared-task-reviews.store', $activity), [
+            'body' => 'This response names a missing project step.',
+            'play_run_id' => $secondRunId,
+            'submission_id' => $reviewable[0]['id'],
+            'project_step_index' => 1,
+        ])
+        ->assertStatus(422);
+
+    expect(LearningSharedTaskReview::query()->count())->toBe(0);
 });
 
 test('shared task peer review rejects unsupported response types', function () {

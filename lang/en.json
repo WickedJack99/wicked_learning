@@ -519,6 +519,8 @@
     "activities.shared_task.peer_review_response_placeholder": "Name a useful connection, question, or extension.",
     "activities.shared_task.peer_review_response_type": "What kind of response is this? (optional)",
     "activities.shared_task.peer_review_response_type_clear": "Clear response type",
+    "activities.shared_task.peer_review_project_step": "What project step does this response address? (optional)",
+    "activities.shared_task.peer_review_project_step_any": "No specific step",
     "activities.shared_task.peer_review_type.explanation": "Explanation",
     "activities.shared_task.peer_review_type.example": "Example",
     "activities.shared_task.peer_review_type.question": "Question",

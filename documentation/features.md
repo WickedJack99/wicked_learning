@@ -171,9 +171,10 @@ ratings, rankings or public quality score.
 The contributor can later see a bounded set of anonymous responses to their own
 contribution; other learners cannot see those responses. Reviewers may
 optionally describe a response as an explanation, example, question or
-counterexample; the label orients the exchange without grading it. The
-contributor may mark one received response as helpful or clear that mark; this
-is a private resolution signal, not a rating or popularity measure.
+counterexample and associate it with one authored project step; those labels
+orient the exchange without grading it. The contributor may mark one received
+response as helpful or clear that mark; this is a private resolution signal,
+not a rating or popularity measure.
 
 NPC dialogue speech bubbles can optionally play letter-keyed typing sounds.
 Authors enable this per speech bubble and may choose an authored sound set or

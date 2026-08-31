@@ -36,6 +36,8 @@ export function SharedTaskActivity({
     const [peerReviewBody, setPeerReviewBody] = useState('');
     const [peerReviewResponseType, setPeerReviewResponseType] =
         useState<PeerReviewResponseType | null>(null);
+    const [peerReviewProjectStepIndex, setPeerReviewProjectStepIndex] =
+        useState<number | null>(null);
     const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
     const [peerReviewError, setPeerReviewError] = useState('');
     const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(null);
@@ -131,11 +133,13 @@ export function SharedTaskActivity({
                     play_run_id: playRunId,
                     submission_id: selectedSubmissionId,
                     response_type: peerReviewResponseType,
+                    project_step_index: peerReviewProjectStepIndex,
                 },
             );
 
             setPeerReviewBody('');
             setPeerReviewResponseType(null);
+            setPeerReviewProjectStepIndex(null);
             setSelectedSubmissionId(null);
             setState(response.state);
         } catch {
@@ -289,9 +293,12 @@ export function SharedTaskActivity({
                         void updatePeerReviewHelpfulness(reviewId, helpful)
                     }
                     onSelect={setSelectedSubmissionId}
+                    onProjectStepChange={setPeerReviewProjectStepIndex}
                     onResponseTypeChange={setPeerReviewResponseType}
                     onSubmit={() => void submitPeerReview()}
                     responseType={peerReviewResponseType}
+                    projectStepIndex={peerReviewProjectStepIndex}
+                    projectSteps={projectSteps}
                     selectedSubmissionId={selectedSubmissionId}
                     state={state}
                     t={t}
@@ -563,9 +570,12 @@ function SharedTaskPeerReview({
     onBodyChange,
     onHelpfulnessChange,
     onSelect,
+    onProjectStepChange,
     onResponseTypeChange,
     onSubmit,
     responseType,
+    projectStepIndex,
+    projectSteps,
     selectedSubmissionId,
     state,
     t,
@@ -577,9 +587,12 @@ function SharedTaskPeerReview({
     onBodyChange: (value: string) => void;
     onHelpfulnessChange: (reviewId: number, helpful: boolean) => void;
     onSelect: (value: number | null) => void;
+    onProjectStepChange: (value: number | null) => void;
     onResponseTypeChange: (value: PeerReviewResponseType | null) => void;
     onSubmit: () => void;
     responseType: PeerReviewResponseType | null;
+    projectStepIndex: number | null;
+    projectSteps: string[];
     selectedSubmissionId: number | null;
     state: SharedTaskState;
     t: ReturnType<typeof usePlatformTranslation>;
@@ -622,6 +635,12 @@ function SharedTaskPeerReview({
                                 {review.responseType ? (
                                     <span className="mr-2 inline-flex rounded border border-violet-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-violet-700 uppercase dark:border-violet-200/30 dark:text-violet-200">
                                         {peerReviewResponseTypeLabel(review.responseType, t)}
+                                    </span>
+                                ) : null}
+                                {review.projectStep ? (
+                                    <span className="mr-2 inline-flex rounded border border-cyan-300/70 px-1.5 py-0.5 text-xs font-semibold tracking-wide text-cyan-700 uppercase dark:border-teal-200/30 dark:text-teal-200">
+                                        {t('activities.shared_task.project_step', 'Project step')}:{' '}
+                                        {review.projectStep}
                                     </span>
                                 ) : null}
                                 {review.body}
@@ -757,6 +776,41 @@ function SharedTaskPeerReview({
                             </button>
                         ) : null}
                     </fieldset>
+                    {projectSteps.length > 0 ? (
+                        <label
+                            className="grid gap-2 text-sm font-medium text-slate-700 dark:text-slate-200"
+                            htmlFor="shared-task-peer-review-project-step"
+                        >
+                            {t(
+                                'activities.shared_task.peer_review_project_step',
+                                'What project step does this response address? (optional)',
+                            )}
+                            <select
+                                className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-violet-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:focus:border-violet-200/70"
+                                id="shared-task-peer-review-project-step"
+                                onChange={(event) =>
+                                    onProjectStepChange(
+                                        event.target.value === ''
+                                            ? null
+                                            : Number(event.target.value),
+                                    )
+                                }
+                                value={projectStepIndex ?? ''}
+                            >
+                                <option value="">
+                                    {t(
+                                        'activities.shared_task.peer_review_project_step_any',
+                                        'No specific step',
+                                    )}
+                                </option>
+                                {projectSteps.map((step, index) => (
+                                    <option key={`${index}-${step}`} value={index}>
+                                        {step}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    ) : null}
                     <label
                         className="grid gap-2 text-sm font-medium text-slate-700 dark:text-slate-200"
                         htmlFor="shared-task-peer-review-body"

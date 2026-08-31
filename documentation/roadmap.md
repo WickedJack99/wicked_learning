@@ -171,6 +171,7 @@ exposing additional learner text or ranking topics. Broader quality review and
 mentor digests remain future work. Shared-task peer reviews now reuse the same
 optional explanation, example, question and counterexample vocabulary while
 keeping reviews anonymous and limited to one response per contributing learner.
+Reviewers can optionally associate a response with one authored project step.
 Contributors can now mark one received response helpful as a private,
 learner-controlled resolution signal; richer review, revision and mentor
 workflows remain future work.
@@ -191,7 +192,7 @@ workflows remain future work.
 ### Collaboration
 
 - Expand shared tasks into project briefs, decomposition and assignment. The
-  current project-brief and one-response anonymous peer-review slices remain
+  current project-brief, step-context and one-response anonymous peer-review slices remain
   intentionally bounded; the project brief can now hold an optional private
   learner checklist, and contributions can optionally name the authored step
   they support. Shared ownership, decomposition and assignment are future work.

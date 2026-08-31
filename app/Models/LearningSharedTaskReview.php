@@ -7,12 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /** A learner's anonymous, bounded response to one shared-task contribution. */
-#[Fillable(['learning_activity_id', 'learning_shared_task_submission_id', 'user_id', 'body', 'response_type', 'helpful_at'])]
+#[Fillable(['learning_activity_id', 'learning_shared_task_submission_id', 'user_id', 'body', 'response_type', 'project_step_index', 'helpful_at'])]
 class LearningSharedTaskReview extends Model
 {
     protected function casts(): array
     {
         return [
+            'project_step_index' => 'integer',
             'helpful_at' => 'datetime',
         ];
     }

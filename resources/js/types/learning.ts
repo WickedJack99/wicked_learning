@@ -428,6 +428,7 @@ export type SharedTaskState = {
         receivedReviews: Array<{
             id: number;
             body: string;
+            projectStep: string | null;
             responseType: string | null;
             canMarkHelpful: boolean;
             isHelpful: boolean;
