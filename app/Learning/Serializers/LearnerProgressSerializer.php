@@ -3,6 +3,7 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\QuestionTransitionResolver;
+use App\Models\ActivityTransition;
 use App\Models\LearnerActivityProgress;
 use App\Models\LearnerQuestionAnswer;
 use App\Models\LearnerRecallItem;
@@ -87,6 +88,7 @@ class LearnerProgressSerializer
             ->mapWithKeys(function ($attempts): array {
                 /** @var LearnerQuestionAnswer $answer */
                 $answer = $attempts->first();
+                $nextTransition = $this->nextTransition($answer);
 
                 return [$answer->learning_question_id => [
                     'optionId' => $answer->learning_question_option_id,
@@ -96,7 +98,8 @@ class LearnerProgressSerializer
                     'calibration' => $answer->calibration,
                     'feedback' => $answer->feedback,
                     'explanation' => $answer->question?->explanation,
-                    'nextActivityId' => $this->nextActivityId($answer),
+                    'nextActivityId' => $nextTransition?->to_activity_id,
+                    'nextTransitionLabel' => $nextTransition?->label,
                     'earlierAttempts' => $attempts
                         ->slice(1, 3)
                         ->values()
@@ -126,7 +129,7 @@ class LearnerProgressSerializer
         ];
     }
 
-    private function nextActivityId(LearnerQuestionAnswer $answer): ?int
+    private function nextTransition(LearnerQuestionAnswer $answer): ?ActivityTransition
     {
         if (! $answer->question) {
             return null;
@@ -142,7 +145,7 @@ class LearnerProgressSerializer
             $answer->question,
             $selectedOptions,
             (bool) $answer->is_correct,
-        )?->to_activity_id;
+        );
     }
 
     /**

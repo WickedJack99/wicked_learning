@@ -92,6 +92,7 @@ class QuestionAnswerService
             'feedback' => $feedback,
             'explanation' => $question->explanation,
             'nextActivityId' => $transition?->to_activity_id,
+            'nextTransitionLabel' => $transition?->label,
             'earlierAttempts' => $this->earlierAttempts($userId, $question->id, $answer->id),
             'recall' => $recall,
         ];

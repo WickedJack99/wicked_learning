@@ -148,9 +148,9 @@ position is still valid; it does not silently switch to another route. Activity
 connections have meaningful learner-facing labels, and authors can edit or
 remove those labels while the platform supplies a safe default when no label is
 authored. Learner playback also carries an authored connection label into the
-post-activity action where that transition is known; generic action copy remains
-the fallback when no label is available. Authors can also add an optional short
-route description. Learners see
+post-activity action where that transition is known, including the branch chosen
+after a question answer; generic action copy remains the fallback when no label
+is available. Authors can also add an optional short route description. Learners see
 that guidance beside the route wherever they choose a starting point; it provides
 orientation without ranking routes or making an automatic recommendation. While
 a route is open, the activity page keeps the selected route,

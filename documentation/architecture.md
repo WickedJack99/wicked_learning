@@ -81,7 +81,10 @@ points to the first Activity and can carry route-card images, colors and an
 optional authored description used for learner orientation.
 Transition labels are optional presentation data: the learner serializer exposes
 them, and activity playback uses them for the relevant completion action without
-changing the transition resolver or navigation authority.
+changing the transition resolver or navigation authority. Branching question
+responses include the selected transition label alongside the existing next
+activity identifier so the learner can see the authored branch without resolving
+navigation in the browser.
 
 The administrator activity editor can copy an activity to another editable
 MapAsset from the already-loaded world graph. The create action authorizes the

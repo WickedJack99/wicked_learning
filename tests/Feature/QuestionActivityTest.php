@@ -170,5 +170,6 @@ test('question outcome transitions follow the matching answer key', function () 
             'option_id' => $option->id,
         ])
         ->assertOk()
-        ->assertJsonPath('answer.nextActivityId', $target->id);
+        ->assertJsonPath('answer.nextActivityId', $target->id)
+        ->assertJsonPath('answer.nextTransitionLabel', 'Follow the distributed clue');
 });

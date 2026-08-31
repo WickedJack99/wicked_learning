@@ -438,6 +438,7 @@ export function QuestionActivity({
     const draftOptionIds =
         selection.questionId === question.id ? selection.optionIds : [];
     const visibleAnswer = isRetrying ? undefined : answer;
+    const answerTransitionLabel = visibleAnswer?.nextTransitionLabel?.trim();
     const selectedOptionIds = visibleAnswer
         ? (visibleAnswer.optionIds ??
           (visibleAnswer.optionId ? [visibleAnswer.optionId] : []))
@@ -896,9 +897,10 @@ export function QuestionActivity({
                                       'learning.question.saving_feedback',
                                       'Saving...',
                                   )
-                                : visibleAnswer.nextActivityId
-                                  ? 'Continue'
-                                  : 'Finish'}
+                                : answerTransitionLabel ||
+                                  (visibleAnswer.nextActivityId
+                                      ? 'Continue'
+                                      : 'Finish')}
                             <ArrowRight className="ml-2 size-4" />
                         </Button>
                     ) : null}

@@ -577,6 +577,7 @@ export type QuestionAnswerProgress = {
     feedback: string | null;
     explanation?: string | null;
     nextActivityId?: number | null;
+    nextTransitionLabel?: string | null;
     recall?: {
         intervalDays: number;
         nextReviewAt: string;

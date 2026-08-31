@@ -131,7 +131,7 @@ test('activity orientation copy uses the platform translation catalog', function
     );
 
     expect($activityPanel)
-        ->toContain("usePlatformTranslation()")
+        ->toContain('usePlatformTranslation()')
         ->toContain("'learning.map.completed_count'")
         ->toContain("'learning.activity.related_areas'")
         ->not->toContain("return 'In progress';");
@@ -177,7 +177,9 @@ test('learner activity actions preserve authored transition labels', function ()
     expect($activityComponents)
         ->toContain("activityTransitionLabel(transition, 'Continue')")
         ->toContain('activityTransitionLabel(')
-        ->toContain('isInputPortal ? \'Continue\' : \'Traverse\'');
+        ->toContain('isInputPortal ? \'Continue\' : \'Traverse\'')
+        ->toContain('nextTransitionLabel')
+        ->toContain('answerTransitionLabel');
     expect($markdownActivity)
         ->toContain("activityTransitionLabel(transition, 'Continue')");
     expect($obstacleActivity)

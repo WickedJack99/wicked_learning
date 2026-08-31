@@ -1086,7 +1086,7 @@ test('returning to a question keeps its route continuation', function () {
         'from_connector' => 'correct',
         'to_connector' => 'in',
         'trigger' => 'correct',
-        'label' => 'Continue',
+        'label' => 'Follow the useful clue',
     ]);
     $start->update(['learning_activity_id' => $activity->id]);
     LearnerQuestionAnswer::query()->create([
@@ -1103,6 +1103,7 @@ test('returning to a question keeps its route continuation', function () {
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where("progress.answers.{$question->id}.nextActivityId", $nextActivity->id)
+            ->where("progress.answers.{$question->id}.nextTransitionLabel", 'Follow the useful clue')
         );
 });
 
