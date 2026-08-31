@@ -208,6 +208,15 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::get('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'activityTemplate'])
         ->name('settings.worlds.activity-templates.show');
 
+    Route::get('settings/worlds/activity-templates/{template}/revisions', [AdminActivityController::class, 'activityTemplateRevisions'])
+        ->name('settings.worlds.activity-templates.revisions.index');
+
+    Route::get('settings/worlds/activity-templates/{template}/revisions/{revision}', [AdminActivityController::class, 'activityTemplateRevision'])
+        ->name('settings.worlds.activity-templates.revisions.show');
+
+    Route::post('settings/worlds/activity-templates/{template}/revisions/{revision}/restore', [AdminActivityController::class, 'restoreActivityTemplateRevision'])
+        ->name('settings.worlds.activity-templates.revisions.restore');
+
     Route::patch('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'updateActivityTemplate'])
         ->name('settings.worlds.activity-templates.update');
 
@@ -225,6 +234,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
 
     Route::post('settings/worlds/activities/{activity}/templates', [AdminActivityController::class, 'storeActivityTemplate'])
         ->name('settings.worlds.activities.templates.store');
+
+    Route::patch('settings/worlds/activity-templates/{template}/from-activity/{activity}', [AdminActivityController::class, 'updateActivityTemplateFromActivity'])
+        ->name('settings.worlds.activity-templates.from-activity.update');
 
     Route::patch('settings/worlds/activities/{activity}', [AdminActivityController::class, 'update'])
         ->name('settings.worlds.activities.update');

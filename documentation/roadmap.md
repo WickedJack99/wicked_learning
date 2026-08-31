@@ -223,11 +223,12 @@ remains future work.
   MapAssets with explicit reference handling.
 - Add configuration profiles with visible inherited values and local overrides.
 - Expand the current private activity-template library into a shared, versioned
-  library with richer context and asset-resolution controls. The current flow
-  supports named private templates, an explicit MapAsset destination and
-  clearing source-scoped references. Authors can now share one saved template
-  with an organization they belong to; shared version history and richer
-  asset-resolution controls remain future work.
+    library with richer context and asset-resolution controls. The current flow
+    supports named private templates, an explicit MapAsset destination and
+    clearing source-scoped references. Authors can now share one saved template
+    with an organization they belong to, update it from an eligible activity,
+    and inspect or restore its paginated revision history. Richer
+    asset-resolution controls remain future work.
 
 ### Collaboration
 

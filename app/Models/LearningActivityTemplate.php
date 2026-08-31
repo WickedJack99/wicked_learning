@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'created_by_user_id',
@@ -38,5 +39,13 @@ class LearningActivityTemplate extends Model
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * @return HasMany<LearningActivityTemplateRevision, $this>
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(LearningActivityTemplateRevision::class);
     }
 }

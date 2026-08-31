@@ -17,6 +17,7 @@ import {
     History,
     Pencil,
     Plus,
+    RefreshCw,
     Sparkles,
     Trash2,
     X,
@@ -72,6 +73,8 @@ import type {
     ActivitySummary,
     ActivityTemplateDetails,
     ActivityTemplatePage,
+    ActivityTemplateRevision,
+    ActivityTemplateRevisionPage,
     ActivityTemplateSummary,
     EditableSourceRecord,
     EditableItem,
@@ -124,6 +127,8 @@ export default function EditNodeActivities({
     const [activityHistoryOpen, setActivityHistoryOpen] = useState(false);
     const [templateSaveActivity, setTemplateSaveActivity] =
         useState<ActivitySummary | null>(null);
+    const [templateUpdateActivity, setTemplateUpdateActivity] =
+        useState<ActivitySummary | null>(null);
     const [templateName, setTemplateName] = useState('');
     const [savingTemplate, setSavingTemplate] = useState(false);
     const [activityTemplates, setActivityTemplates] = useState<
@@ -158,6 +163,22 @@ export default function EditNodeActivities({
     const [activityTemplateError, setActivityTemplateError] = useState<
         string | null
     >(null);
+    const [templateHistory, setTemplateHistory] =
+        useState<ActivityTemplateSummary | null>(null);
+    const [templateRevisions, setTemplateRevisions] = useState<
+        ActivityTemplateRevision[]
+    >([]);
+    const [templateRevisionPagination, setTemplateRevisionPagination] =
+        useState<ActivityTemplateRevisionPage['pagination']>({
+            lastPage: 1,
+            page: 1,
+            perPage: 6,
+            total: 0,
+        });
+    const [loadingTemplateRevisions, setLoadingTemplateRevisions] =
+        useState(false);
+    const [restoringTemplateRevisionId, setRestoringTemplateRevisionId] =
+        useState<number | null>(null);
     const [loadingTemplateId, setLoadingTemplateId] = useState<number | null>(
         null,
     );
@@ -528,6 +549,73 @@ export default function EditNodeActivities({
         [],
     );
 
+    const requestUpdateTemplate = useCallback(
+        (activity: ActivitySummary): void => {
+            setTemplateUpdateActivity(activity);
+            setActivityTemplateError(null);
+            void loadActivityTemplates(1);
+        },
+        [loadActivityTemplates],
+    );
+
+    const updateTemplateFromActivity = useCallback(
+        async (template: ActivityTemplateSummary): Promise<void> => {
+            if (!templateUpdateActivity) {
+                return;
+            }
+
+            setUpdatingActivityTemplate(true);
+            setActivityTemplateError(null);
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${template.id}/from-activity/${templateUpdateActivity.id}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        method: 'PATCH',
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'The activity template could not be updated.',
+                    );
+                }
+
+                const payload = (await response.json()) as {
+                    template: ActivityTemplateSummary;
+                };
+                setActivityTemplates((current) =>
+                    current.map((currentTemplate) =>
+                        currentTemplate.id === payload.template.id
+                            ? payload.template
+                            : currentTemplate,
+                    ),
+                );
+                setTemplateUpdateActivity(null);
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The activity template could not be updated.',
+                );
+            } finally {
+                setUpdatingActivityTemplate(false);
+            }
+        },
+        [templateUpdateActivity],
+    );
+
     const beginRenameActivityTemplate = useCallback(
         (template: ActivityTemplateSummary): void => {
             setEditingActivityTemplate(template);
@@ -613,6 +701,130 @@ export default function EditNodeActivities({
         editingActivityTemplateName,
         t,
     ]);
+
+    const loadTemplateRevisions = useCallback(
+        async (template: ActivityTemplateSummary, page = 1): Promise<void> => {
+            setLoadingTemplateRevisions(true);
+            setActivityTemplateError(null);
+
+            try {
+                const params = new URLSearchParams({
+                    page: String(page),
+                    per_page: '6',
+                });
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${template.id}/revisions?${params.toString()}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'The activity template history could not be loaded.',
+                    );
+                }
+
+                const payload =
+                    (await response.json()) as ActivityTemplateRevisionPage;
+                setTemplateRevisions(payload.items);
+                setTemplateRevisionPagination(payload.pagination);
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The activity template history could not be loaded.',
+                );
+            } finally {
+                setLoadingTemplateRevisions(false);
+            }
+        },
+        [],
+    );
+
+    const openTemplateHistory = useCallback(
+        (template: ActivityTemplateSummary): void => {
+            setTemplateHistory(template);
+            void loadTemplateRevisions(template);
+        },
+        [loadTemplateRevisions],
+    );
+
+    const restoreTemplateRevision = useCallback(
+        async (revision: ActivityTemplateRevision): Promise<void> => {
+            if (!templateHistory) {
+                return;
+            }
+
+            if (
+                !window.confirm(
+                    `Restore “${revision.title}” to ${templateHistory.name}? The current template will be kept in history.`,
+                )
+            ) {
+                return;
+            }
+
+            setRestoringTemplateRevisionId(revision.id);
+            setActivityTemplateError(null);
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${templateHistory.id}/revisions/${revision.id}/restore`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        method: 'POST',
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'The activity template revision could not be restored.',
+                    );
+                }
+
+                const payload = (await response.json()) as {
+                    template: ActivityTemplateSummary;
+                };
+                setActivityTemplates((current) =>
+                    current.map((template) =>
+                        template.id === payload.template.id
+                            ? payload.template
+                            : template,
+                    ),
+                );
+                await loadTemplateRevisions(
+                    payload.template,
+                    templateRevisionPagination.page,
+                );
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The activity template revision could not be restored.',
+                );
+            } finally {
+                setRestoringTemplateRevisionId(null);
+            }
+        },
+        [
+            loadTemplateRevisions,
+            templateHistory,
+            templateRevisionPagination.page,
+        ],
+    );
 
     const shareActivityTemplate = useCallback(
         async (
@@ -942,6 +1154,7 @@ export default function EditNodeActivities({
                 useAsStartingPoint,
                 requestReview,
                 requestSaveTemplate,
+                requestUpdateTemplate,
             ),
         [
             activityGraph,
@@ -949,6 +1162,7 @@ export default function EditNodeActivities({
             requestDelete,
             requestReview,
             requestSaveTemplate,
+            requestUpdateTemplate,
             useAsStartingPoint,
         ],
     );
@@ -1922,6 +2136,33 @@ export default function EditNodeActivities({
                                                 </Button>
                                                 {managingActivityTemplates ? (
                                                     <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1 border-t border-[var(--settings-border-color)] px-2 py-2 sm:w-auto sm:border-t-0 sm:py-0">
+                                                        <Button
+                                                            aria-label={`${t(
+                                                                'settings.worlds.activities.template.history',
+                                                                'View template history',
+                                                            )}: ${template.name}`}
+                                                            className="size-8 p-0"
+                                                            disabled={
+                                                                loadingTemplateId !==
+                                                                    null ||
+                                                                updatingActivityTemplate ||
+                                                                deletingActivityTemplateId !==
+                                                                    null
+                                                            }
+                                                            onClick={() =>
+                                                                openTemplateHistory(
+                                                                    template,
+                                                                )
+                                                            }
+                                                            title={t(
+                                                                'settings.worlds.activities.template.history',
+                                                                'View template history',
+                                                            )}
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            <History className="size-3.5" />
+                                                        </Button>
                                                         {template.canManage ? (
                                                             <>
                                                                 {shareTargets.length >
@@ -2295,6 +2536,223 @@ export default function EditNodeActivities({
                             type="button"
                         >
                             Save template
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={templateUpdateActivity !== null}
+                onOpenChange={(open) => {
+                    if (!open && !updatingActivityTemplate) {
+                        setTemplateUpdateActivity(null);
+                        setActivityTemplateError(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Update a saved template</DialogTitle>
+                        <DialogDescription>
+                            Save the persisted configuration from{' '}
+                            <span className="font-medium">
+                                {templateUpdateActivity?.title}
+                            </span>{' '}
+                            as a new template version. Existing activities made
+                            from the template will not change.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        {loadingActivityTemplates ? (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                Loading saved templates…
+                            </p>
+                        ) : activityTemplates.length > 0 ? (
+                            activityTemplates.map((template) => (
+                                <div
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3"
+                                    key={template.id}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium">
+                                            {template.name}
+                                        </p>
+                                        <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                            {template.type} · current activity:{' '}
+                                            {template.title}
+                                        </p>
+                                    </div>
+                                    {template.canManage ? (
+                                        <Button
+                                            className="h-8 shrink-0 px-2.5 text-xs"
+                                            disabled={updatingActivityTemplate}
+                                            onClick={() =>
+                                                void updateTemplateFromActivity(
+                                                    template,
+                                                )
+                                            }
+                                            type="button"
+                                        >
+                                            <RefreshCw className="size-3.5" />
+                                            Update from activity
+                                        </Button>
+                                    ) : (
+                                        <span className="text-xs text-[var(--settings-muted-text)]">
+                                            Shared read-only template
+                                        </span>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                No saved templates are available to update.
+                            </p>
+                        )}
+                    </div>
+                    {activityTemplateError ? (
+                        <p
+                            className="text-sm text-red-600 dark:text-red-400"
+                            role="alert"
+                        >
+                            {activityTemplateError}
+                        </p>
+                    ) : null}
+                    <PaginationControls
+                        buttonClassName="text-xs text-[var(--settings-accent)] hover:text-[var(--settings-accent-foreground)]"
+                        className="border-t border-[var(--settings-border-color)] pt-2"
+                        currentPage={activityTemplatesPagination.page}
+                        disabled={
+                            loadingActivityTemplates || updatingActivityTemplate
+                        }
+                        label="Saved activity template pagination"
+                        nextLabel="Next saved template page"
+                        onPageChange={(page) =>
+                            void loadActivityTemplates(page)
+                        }
+                        pageCount={activityTemplatesPagination.lastPage}
+                        previousLabel="Previous saved template page"
+                    />
+                    <DialogFooter>
+                        <Button
+                            disabled={updatingActivityTemplate}
+                            onClick={() => setTemplateUpdateActivity(null)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={templateHistory !== null}
+                onOpenChange={(open) => {
+                    if (!open && restoringTemplateRevisionId === null) {
+                        setTemplateHistory(null);
+                        setTemplateRevisions([]);
+                        setActivityTemplateError(null);
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Template history</DialogTitle>
+                        <DialogDescription>
+                            Review recoverable snapshots of{' '}
+                            <span className="font-medium">
+                                {templateHistory?.name}
+                            </span>
+                            . Restoring changes the reusable template only; it
+                            does not alter existing activities.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        {loadingTemplateRevisions ? (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                Loading template history…
+                            </p>
+                        ) : templateRevisions.length > 0 ? (
+                            templateRevisions.map((revision) => (
+                                <div
+                                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3"
+                                    key={revision.id}
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium">
+                                            {revision.title}
+                                        </p>
+                                        <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
+                                            {revision.type}
+                                            {revision.createdAt
+                                                ? ` · ${formatTemplateDate(revision.createdAt)}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                    {templateHistory?.canManage ? (
+                                        <Button
+                                            className="h-8 shrink-0 px-2.5 text-xs"
+                                            disabled={
+                                                restoringTemplateRevisionId !==
+                                                null
+                                            }
+                                            onClick={() =>
+                                                void restoreTemplateRevision(
+                                                    revision,
+                                                )
+                                            }
+                                            type="button"
+                                            variant="outline"
+                                        >
+                                            <History className="size-3.5" />
+                                            Restore
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                No revisions recorded yet.
+                            </p>
+                        )}
+                    </div>
+                    {activityTemplateError ? (
+                        <p
+                            className="text-sm text-red-600 dark:text-red-400"
+                            role="alert"
+                        >
+                            {activityTemplateError}
+                        </p>
+                    ) : null}
+                    <PaginationControls
+                        buttonClassName="text-xs text-[var(--settings-accent)] hover:text-[var(--settings-accent-foreground)]"
+                        className="border-t border-[var(--settings-border-color)] pt-2"
+                        currentPage={templateRevisionPagination.page}
+                        disabled={
+                            loadingTemplateRevisions ||
+                            restoringTemplateRevisionId !== null
+                        }
+                        label="Activity template history pagination"
+                        nextLabel="Next template history page"
+                        onPageChange={(page) =>
+                            templateHistory
+                                ? void loadTemplateRevisions(
+                                      templateHistory,
+                                      page,
+                                  )
+                                : undefined
+                        }
+                        pageCount={templateRevisionPagination.lastPage}
+                        previousLabel="Previous template history page"
+                    />
+                    <DialogFooter>
+                        <Button
+                            disabled={restoringTemplateRevisionId !== null}
+                            onClick={() => setTemplateHistory(null)}
+                            type="button"
+                            variant="outline"
+                        >
+                            Close
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -3024,4 +3482,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
     return Boolean(
         target.closest('input, textarea, select, [contenteditable="true"]'),
     );
+}
+
+function formatTemplateDate(value: string): string {
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+          }).format(date);
 }

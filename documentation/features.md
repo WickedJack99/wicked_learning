@@ -793,9 +793,11 @@ Authors can rename or delete their own saved templates from that picker; these
 operations do not affect activities that were previously created from them.
 An author can also share a saved template with one organization they belong to;
 members can preview and reuse that snapshot as a read-only starting point,
-while the author retains rename, sharing and deletion control. Shared template
-version history and richer asset-resolution controls remain future authoring
-work.
+while the author retains rename, sharing, deletion and update control. An
+author can update a saved template from a persisted eligible activity; the
+previous snapshot is retained in a bounded, paginated history and can be
+restored. Existing activities remain independent copies. Richer
+asset-resolution controls remain future authoring work.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an

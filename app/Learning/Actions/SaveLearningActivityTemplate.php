@@ -2,32 +2,47 @@
 
 namespace App\Learning\Actions;
 
-use App\Learning\Services\QuestionActivityConfiguration;
+use App\Learning\Services\CaptureLearningActivityTemplateSnapshot;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTemplate;
+use App\Models\LearningActivityTemplateRevision;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class SaveLearningActivityTemplate
 {
-    public function __construct(private readonly QuestionActivityConfiguration $questionConfig) {}
+    public function __construct(private readonly CaptureLearningActivityTemplateSnapshot $snapshot) {}
 
     public function handle(
         User $user,
         LearningActivity $activity,
         string $name,
     ): LearningActivityTemplate {
-        return LearningActivityTemplate::query()->create([
+        return DB::transaction(function () use ($activity, $name, $user): LearningActivityTemplate {
+            $values = $this->snapshot->values($activity);
+            $template = LearningActivityTemplate::query()->create([
+                'created_by_user_id' => $user->id,
+                'name' => trim($name),
+                ...$values,
+            ]);
+
+            $this->recordRevision($template, $user, $values);
+
+            return $template;
+        });
+    }
+
+    /** @param array{type: string, snapshot: array<string, mixed>} $values */
+    private function recordRevision(
+        LearningActivityTemplate $template,
+        User $user,
+        array $values,
+    ): void {
+        LearningActivityTemplateRevision::query()->create([
             'created_by_user_id' => $user->id,
-            'name' => trim($name),
-            'type' => $activity->type,
-            'snapshot' => [
-                'companionConfig' => $activity->companion_config ?? [],
-                'config' => $activity->config ?? [],
-                'introduction' => $activity->introduction,
-                'question' => $this->questionConfig->snapshot($activity),
-                'title' => $activity->title,
-                'type' => $activity->type,
-            ],
+            'learning_activity_template_id' => $template->id,
+            'name' => $template->name,
+            ...$values,
         ]);
     }
 }

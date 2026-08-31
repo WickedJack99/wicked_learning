@@ -2,6 +2,7 @@
 
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTemplate;
+use App\Models\LearningActivityTemplateRevision;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
@@ -43,6 +44,58 @@ test('authors can save and retrieve a private activity template', function () {
         ->assertOk()
         ->assertJsonPath('template.snapshot.title', $activity->title)
         ->assertJsonPath('template.snapshot.config.promptText', data_get($activity->config, 'promptText'));
+});
+
+test('authors can update and restore activity template revisions', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()->where('type', 'obstacle')->firstOrFail();
+
+    $template = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.templates.store', $activity), [
+            'name' => 'Recoverable gate template',
+        ])
+        ->assertCreated()
+        ->json('template.id');
+
+    $originalRevision = LearningActivityTemplateRevision::query()
+        ->where('learning_activity_template_id', $template)
+        ->oldest('id')
+        ->firstOrFail();
+    $originalTitle = $activity->title;
+    $activity->forceFill([
+        'title' => 'Updated noisy gate',
+    ])->save();
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.activity-templates.from-activity.update', [
+            'template' => $template,
+            'activity' => $activity,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('template.title', 'Updated noisy gate');
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.activity-templates.revisions.index', $template))
+        ->assertOk()
+        ->assertJsonPath('pagination.total', 2)
+        ->assertJsonPath('items.1.title', $originalTitle);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activity-templates.revisions.restore', [
+            'template' => $template,
+            'revision' => $originalRevision,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('template.title', $originalTitle);
+
+    expect(LearningActivityTemplate::query()->findOrFail($template)->snapshot['title'])
+        ->toBe($originalTitle);
+    expect(LearningActivityTemplateRevision::query()
+        ->where('learning_activity_template_id', $template)
+        ->count())->toBe(3);
 });
 
 test('authors cannot inspect another authors activity template', function () {

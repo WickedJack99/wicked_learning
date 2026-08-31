@@ -105,6 +105,24 @@ export type ActivityTemplateDetails = ActivityTemplateSummary & {
     };
 };
 
+export type ActivityTemplateRevision = {
+    createdAt: string | null;
+    id: number;
+    name: string;
+    title: string;
+    type: string;
+};
+
+export type ActivityTemplateRevisionPage = {
+    items: ActivityTemplateRevision[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
+};
+
 export type ActivityTemplatePage = {
     items: ActivityTemplateSummary[];
     pagination: {
@@ -363,6 +381,7 @@ export type ActivityNodeData = {
     onEdit: (activity: ActivitySummary) => void;
     onReview: (activity: ActivitySummary) => void;
     onSaveTemplate: (activity: ActivitySummary) => void;
+    onUpdateTemplate: (activity: ActivitySummary) => void;
 };
 
 export type SpecialNodeData = {

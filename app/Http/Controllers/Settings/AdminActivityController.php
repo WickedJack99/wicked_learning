@@ -12,6 +12,7 @@ use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\DeleteLearningActivityTemplate;
+use App\Learning\Actions\RestoreLearningActivityTemplateRevision;
 use App\Learning\Actions\RestoreLearningActivityVersion;
 use App\Learning\Actions\SaveLearningActivityTemplate;
 use App\Learning\Actions\ShareLearningActivityTemplate;
@@ -19,14 +20,17 @@ use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
 use App\Learning\Actions\UpdateLearningActivityTemplate;
+use App\Learning\Actions\UpdateLearningActivityTemplateSnapshot;
 use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Queries\LoadEditableSourceRecords;
+use App\Learning\Queries\LoadLearningActivityTemplateRevisions;
 use App\Learning\Queries\LoadLearningActivityTemplates;
 use App\Learning\Queries\LoadLearningActivityVersions;
 use App\Learning\Queries\LoadSourceRecordVersions;
 use App\Learning\Serializers\AdminMarkdownActivitySerializer;
 use App\Learning\Serializers\EditableSourceRecordSerializer;
+use App\Learning\Serializers\LearningActivityTemplateRevisionSerializer;
 use App\Learning\Serializers\LearningActivityTemplateSerializer;
 use App\Learning\Serializers\LearningActivityVersionSerializer;
 use App\Learning\Serializers\SourceRecordVersionSerializer;
@@ -38,6 +42,7 @@ use App\Models\AiAgentTemplate;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningActivityTemplate;
+use App\Models\LearningActivityTemplateRevision;
 use App\Models\LearningActivityVersion;
 use App\Models\LearningNode;
 use App\Models\LearningSourceRecord;
@@ -77,9 +82,13 @@ class AdminActivityController extends Controller
         private readonly SaveLearningActivityTemplate $saveActivityTemplate,
         private readonly ShareLearningActivityTemplate $shareActivityTemplate,
         private readonly UpdateLearningActivityTemplate $updateActivityTemplate,
+        private readonly UpdateLearningActivityTemplateSnapshot $updateActivityTemplateSnapshot,
+        private readonly RestoreLearningActivityTemplateRevision $restoreActivityTemplateRevision,
         private readonly DeleteLearningActivityTemplate $deleteActivityTemplate,
         private readonly LoadLearningActivityTemplates $activityTemplates,
         private readonly LearningActivityTemplateSerializer $activityTemplateSerializer,
+        private readonly LoadLearningActivityTemplateRevisions $activityTemplateRevisions,
+        private readonly LearningActivityTemplateRevisionSerializer $activityTemplateRevisionSerializer,
     ) {}
 
     public function edit(Request $request, LearningNode $node): RedirectResponse
@@ -198,6 +207,52 @@ class AdminActivityController extends Controller
         ]);
     }
 
+    public function activityTemplateRevisions(Request $request, LearningActivityTemplate $template): JsonResponse
+    {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($this->canViewActivityTemplate($user, $template), 404);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $revisions = $this->activityTemplateRevisions->paginate(
+            $template,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 6,
+        );
+
+        return response()->json([
+            'items' => $revisions->getCollection()
+                ->map(fn (LearningActivityTemplateRevision $revision): array => $this->activityTemplateRevisionSerializer->serialize($revision))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $revisions->currentPage(),
+                'perPage' => $revisions->perPage(),
+                'total' => $revisions->total(),
+                'lastPage' => $revisions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function activityTemplateRevision(
+        Request $request,
+        LearningActivityTemplate $template,
+        LearningActivityTemplateRevision $revision,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($this->canViewActivityTemplate($user, $template), 404);
+        abort_unless($revision->learning_activity_template_id === $template->id, 404);
+
+        return response()->json([
+            'revision' => $this->activityTemplateRevisionSerializer->serializeDetails($revision),
+        ]);
+    }
+
     public function updateActivityTemplate(
         Request $request,
         LearningActivityTemplate $template,
@@ -213,6 +268,45 @@ class AdminActivityController extends Controller
         return response()->json([
             'template' => $this->activityTemplateSerializer->serialize(
                 $this->updateActivityTemplate->handle($template, $data['name']),
+                $user,
+            ),
+        ]);
+    }
+
+    public function updateActivityTemplateFromActivity(
+        Request $request,
+        LearningActivityTemplate $template,
+        LearningActivity $activity,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+        $this->authorizeActivityEdit($request, $activity);
+        abort_unless($activity->type !== 'npc_dialogue', 422);
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serialize(
+                $this->updateActivityTemplateSnapshot->handle($user, $template, $activity),
+                $user,
+            ),
+        ]);
+    }
+
+    public function restoreActivityTemplateRevision(
+        Request $request,
+        LearningActivityTemplate $template,
+        LearningActivityTemplateRevision $revision,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+        abort_unless($revision->learning_activity_template_id === $template->id, 404);
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serialize(
+                $this->restoreActivityTemplateRevision->handle($user, $template, $revision),
                 $user,
             ),
         ]);

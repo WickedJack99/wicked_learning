@@ -10,6 +10,7 @@ import {
     MessageCircle,
     Pencil,
     Play,
+    RefreshCw,
     Sparkles,
     Trash2,
 } from 'lucide-react';
@@ -171,6 +172,21 @@ function ActivityGraphNodeCard({
                         variant="ghost"
                     >
                         <Copy className="size-3.5" />
+                    </Button>
+                ) : null}
+                {activity.type !== 'npc_dialogue' ? (
+                    <Button
+                        aria-label={`Update a saved template from ${activity.title}`}
+                        className="h-8 w-8 px-0 text-slate-500"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            data.onUpdateTemplate(activity);
+                        }}
+                        title="Update saved template"
+                        type="button"
+                        variant="ghost"
+                    >
+                        <RefreshCw className="size-3.5" />
                     </Button>
                 ) : null}
                 {activity.type !== 'npc_dialogue' ? (
@@ -357,6 +373,7 @@ export function buildGraphNodes(
     onDuplicate: (activity: ActivitySummary) => void,
     onReview: (activity: ActivitySummary) => void,
     onSaveTemplate: (activity: ActivitySummary) => void,
+    onUpdateTemplate: (activity: ActivitySummary) => void,
 ): ActivityGraphNode[] {
     const activities = payload.activities.map((activity, index) => ({
         id: activity.id.toString(),
@@ -369,6 +386,7 @@ export function buildGraphNodes(
             onEdit,
             onReview,
             onSaveTemplate,
+            onUpdateTemplate,
         },
         ariaLabel: `${activity.type}: ${activity.title}`,
         position:
