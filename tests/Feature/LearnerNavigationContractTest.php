@@ -157,6 +157,33 @@ test('activity context exposes bounded alternative routes without a scroll regio
         ->not->toContain('alternative-routes-scroll');
 });
 
+test('learner activity actions preserve authored transition labels', function () {
+    $activityUtils = file_get_contents(
+        resource_path('js/features/world/activity-utils.tsx'),
+    );
+    $activityComponents = file_get_contents(
+        resource_path('js/features/world/standard-activities.tsx'),
+    );
+    $markdownActivity = file_get_contents(
+        resource_path('js/features/world/markdown-activity.tsx'),
+    );
+    $obstacleActivity = file_get_contents(
+        resource_path('js/features/world/obstacle-activity.tsx'),
+    );
+
+    expect($activityUtils)
+        ->toContain('function activityTransitionLabel(')
+        ->toContain('return label || fallback;');
+    expect($activityComponents)
+        ->toContain("activityTransitionLabel(transition, 'Continue')")
+        ->toContain('activityTransitionLabel(')
+        ->toContain('isInputPortal ? \'Continue\' : \'Traverse\'');
+    expect($markdownActivity)
+        ->toContain("activityTransitionLabel(transition, 'Continue')");
+    expect($obstacleActivity)
+        ->toContain("activityTransitionLabel(transition, 'Continue')");
+});
+
 test('learner group chats paginate distinct groups instead of scrolling the group list', function () {
     $groupControl = file_get_contents(
         resource_path('js/features/world/group-control.tsx'),

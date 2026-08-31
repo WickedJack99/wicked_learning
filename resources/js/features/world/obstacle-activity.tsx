@@ -21,6 +21,7 @@ import type {
 } from '@/types';
 import {
     activityBubbleStyle,
+    activityTransitionLabel,
     booleanConfig,
     numericConfig,
     stringValue,
@@ -301,7 +302,7 @@ export function ObstacleActivity({
                         }
                         type="button"
                     >
-                        Continue
+                        {activityTransitionLabel(transition, 'Continue')}
                         <ArrowRight className="ml-2 size-4" />
                     </Button>
                 ) : null}

@@ -11,7 +11,12 @@ import type {
     LearningItem,
     LearningProgress,
 } from '@/types';
-import { booleanConfig, numericConfig, themedConfig } from './activity-utils';
+import {
+    activityTransitionLabel,
+    booleanConfig,
+    numericConfig,
+    themedConfig,
+} from './activity-utils';
 import { postJson } from './api';
 
 type ItemObstacleState = {
@@ -221,7 +226,7 @@ export function ItemObstacleActivity({
                     onClick={() => void continueActivity()}
                     type="button"
                 >
-                    Continue
+                    {activityTransitionLabel(transition, 'Continue')}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             </div>

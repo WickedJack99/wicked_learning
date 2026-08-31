@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAppearance } from '@/hooks/use-appearance';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { ActivityTransition, LearningActivity } from '@/types';
+import { activityTransitionLabel } from './activity-utils';
 import { getJson, patchJson, postJson } from './api';
 
 type MessageResponse = {
@@ -254,7 +255,10 @@ export function MessagePromptActivity({
                             className="mt-5"
                             onClick={() => void continueRoute()}
                         >
-                            {t('activities.messages.continue', 'Continue')}
+                            {activityTransitionLabel(
+                                transition,
+                                t('activities.messages.continue', 'Continue'),
+                            )}
                         </Button>
                     </div>
                 ) : (

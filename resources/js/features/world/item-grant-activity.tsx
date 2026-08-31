@@ -12,7 +12,12 @@ import type {
     LearningActivity,
     LearningItem,
 } from '@/types';
-import { booleanConfig, stringConfig, themedConfig } from './activity-utils';
+import {
+    activityTransitionLabel,
+    booleanConfig,
+    stringConfig,
+    themedConfig,
+} from './activity-utils';
 import { postJson } from './api';
 
 type ItemGrantResult = {
@@ -157,7 +162,7 @@ export function ItemGrantActivity({
                     }}
                     type="button"
                 >
-                    {t('common.continue')}
+                    {activityTransitionLabel(transition, t('common.continue'))}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             </div>

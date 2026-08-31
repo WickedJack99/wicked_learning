@@ -8,7 +8,11 @@ import type {
     LearningActivity,
     SharedTaskState,
 } from '@/types';
-import { numericConfig, stringValue } from './activity-utils';
+import {
+    activityTransitionLabel,
+    numericConfig,
+    stringValue,
+} from './activity-utils';
 import { patchJson, postJson } from './api';
 
 export function SharedTaskActivity({
@@ -391,7 +395,10 @@ export function SharedTaskActivity({
 
             {state.isComplete ? (
                 <Button className="mt-auto" onClick={() => void complete()}>
-                    {t('common.continue', 'Continue')}
+                    {activityTransitionLabel(
+                        transition,
+                        t('common.continue', 'Continue'),
+                    )}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>
             ) : activeArea === 'contribute' ? (

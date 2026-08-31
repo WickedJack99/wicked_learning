@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { ActivityTransition, LearningActivity } from '@/types';
+import { activityTransitionLabel } from './activity-utils';
 
 type MarkdownPage = {
     body: string;
@@ -172,7 +173,7 @@ export function MarkdownActivity({
                         <ArrowRight className="size-4" />
                     ) : (
                         <>
-                            Continue
+                            {activityTransitionLabel(transition, 'Continue')}
                             <ArrowRight className="size-4" />
                         </>
                     )}

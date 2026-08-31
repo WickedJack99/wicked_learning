@@ -32,6 +32,7 @@ import type {
     ReviewOutcome,
 } from '@/types';
 import {
+    activityTransitionLabel,
     booleanConfig,
     numericConfig,
     stringConfig,
@@ -70,7 +71,7 @@ export function OpenPracticeActivity({
                 {nextStep}
             </p>
             <Button className="mt-auto" onClick={() => void complete()}>
-                Continue
+                {activityTransitionLabel(transition, 'Continue')}
                 <ArrowRight className="ml-2 size-4" />
             </Button>
         </div>
@@ -271,7 +272,10 @@ export function PortalActivity({
                                 onClick={() => void enterPortal()}
                                 type="button"
                             >
-                                {isInputPortal ? 'Continue' : 'Traverse'}
+                                {activityTransitionLabel(
+                                    transition,
+                                    isInputPortal ? 'Continue' : 'Traverse',
+                                )}
                                 <ArrowRight className="ml-2 size-4" />
                             </Button>
                         </div>
@@ -1453,7 +1457,7 @@ export function ReflectionActivity({
                 >
                     {t(
                         'learning.reflection.continue_after_feedback',
-                        'Continue',
+                        activityTransitionLabel(transition, 'Continue'),
                     )}
                     <ArrowRight className="ml-2 size-4" />
                 </Button>

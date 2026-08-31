@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { LearningActivity, LearningCheckInNextDirection } from '@/types';
+import type {
+    ActivityTransition,
+    LearningActivity,
+    LearningCheckInNextDirection,
+} from '@/types';
+
+export function activityTransitionLabel(
+    transition: ActivityTransition | null,
+    fallback: string,
+): string {
+    const label = transition?.label?.trim();
+
+    return label || fallback;
+}
 
 type PlatformTranslate = (key: string, fallback?: string) => string;
 
