@@ -98,7 +98,9 @@ Question feedback now offers an optional fresh independent attempt before route
 completion, reusing the existing attempt history without treating retrying as a
 score or grade. Continue with independent checks only where the activity can
 make the new attempt meaningful, rather than adding retries to every activity
-by default.
+by default. Question results can also show an author-written comparison note
+after the answer, keeping explanatory feedback learner-timed and separate from
+correctness or assessment.
 
 ### 5. Source provenance
 

@@ -679,6 +679,19 @@ export function QuestionActivity({
                             {visibleAnswer.explanation}
                         </p>
                     ) : null}
+                    {activity.feedbackGuidance?.responseFeedback ? (
+                        <div className="mt-3 rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                            <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.question.feedback_response_label',
+                                    'Compare your response',
+                                )}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {activity.feedbackGuidance.responseFeedback}
+                            </p>
+                        </div>
+                    ) : null}
                     {visibleAnswer.calibration ? (
                         <p className="mt-3 rounded-md border border-cyan-500/15 bg-cyan-50/60 p-3 text-xs leading-5 text-cyan-950 dark:border-teal-100/15 dark:bg-teal-100/6 dark:text-teal-50">
                             <span className="font-medium">

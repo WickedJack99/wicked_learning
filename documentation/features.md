@@ -249,7 +249,9 @@ an optional pause to reflect on how settled their understanding feels after
 comparing with the explanation. That post-feedback signal remains part of the
 activity evidence and does not grade the learner. They also let learners
 optionally clear the visible answer and make a fresh independent attempt before
-finishing; earlier attempts remain available as bounded private context rather
+finishing; an author-written comparison note can appear in that result pause
+without becoming automated critique or a grade. Earlier attempts remain
+available as bounded private context rather
 than being replaced. Learners can also explicitly keep an answered question in a
 private recall queue. The queue is shown as its own paginated Learning Desk
 area, links back to the originating activity and can be cleared by the learner;
