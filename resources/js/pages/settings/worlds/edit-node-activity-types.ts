@@ -210,6 +210,7 @@ export type ActivityTransitionSummary = {
     toActivityId: number | null;
     toConnector: string;
     trigger: string;
+    triggerValue: string | null;
 };
 
 export type ActivityGraphPayload = {

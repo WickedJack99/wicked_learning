@@ -158,6 +158,7 @@ class AdminActivityRules
     {
         return [
             'label' => ['nullable', 'string', 'max:120'],
+            'trigger_value' => ['nullable', 'string', 'max:120'],
         ];
     }
 

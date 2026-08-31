@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ActivityTransition;
 use App\Models\LearningActivity;
 use App\Models\LearningNode;
 use App\Models\User;
@@ -105,4 +106,69 @@ test('admins can author question content and preserve it in private templates', 
             'Which clue should guide the revised observation?',
         )
         ->assertJsonPath('template.snapshot.question.options.0.isCorrect', true);
+});
+
+test('question outcome transitions follow the matching answer key', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $learner = User::factory()->create();
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'branching-observation',
+        'title' => 'Branching observation',
+        'type' => 'question',
+        'config' => [],
+        'sort_order' => 910,
+    ]);
+    $target = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'observation-follow-up',
+        'title' => 'Observation follow-up',
+        'type' => 'reflection',
+        'config' => [],
+        'sort_order' => 920,
+    ]);
+    $question = $activity->question()->create([
+        'prompt' => 'Which route should open?',
+    ]);
+    $option = $question->options()->create([
+        'body' => 'Follow the distributed clue.',
+        'is_correct' => true,
+        'label' => 'A',
+        'outcome_key' => 'follow-distributed-clue',
+        'sort_order' => 10,
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.nodes.activity-transitions.store', $node), [
+            'from_activity_id' => $activity->id,
+            'to_activity_id' => $target->id,
+            'from_connector' => 'outcome',
+            'to_connector' => 'in',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $transition = ActivityTransition::query()
+        ->where('from_activity_id', $activity->id)
+        ->where('to_activity_id', $target->id)
+        ->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.activity-transitions.update', $transition), [
+            'label' => 'Follow the distributed clue',
+            'trigger_value' => 'follow-distributed-clue',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect($transition->refresh()->trigger_value)->toBe('follow-distributed-clue');
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.questions.answer', $question), [
+            'option_id' => $option->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('answer.nextActivityId', $target->id);
 });

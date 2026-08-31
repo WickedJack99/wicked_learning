@@ -586,8 +586,10 @@ The World Builder provides:
 
 Question activities can now be authored in the activity editor, including the
 prompt, answer choices, correctness, feedback, explanations and optional
-outcome keys for branching. Their separate question records are preserved when
-authors save and reuse private activity templates.
+outcome keys for branching. Authors can connect an outcome branch to a matching
+answer key in the activity graph; answers without a matching key continue to
+use the generic correctness branch. Their separate question records are
+preserved when authors save and reuse private activity templates.
 
 Map detail edits keep a private author history of the title, description, topic
 and MapAsset-surface lock settings. Authors can inspect the bounded history and

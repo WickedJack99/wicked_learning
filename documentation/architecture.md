@@ -188,6 +188,9 @@ Question activities keep their prompt and answer records in the separate
 `LearningQuestion` and `LearningQuestionOption` tables. Activity creation and
 editing synchronize those records from the author form, and activity/template
 snapshots include them so reuse and restore do not produce an empty question.
+Question outcome transitions use the existing activity-transition graph: an
+outcome connector stores its answer key in `trigger_value`, while the resolver
+falls back to the generic correctness transition when no matching key exists.
 
 The World Builder map export is an author-authorized streamed JSON manifest. Its
 serializer batch-loads the selected map's world, topic, nodes, activities,

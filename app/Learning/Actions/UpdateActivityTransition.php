@@ -17,6 +17,9 @@ class UpdateActivityTransition
         $transition->loadMissing('fromActivity', 'toActivity');
 
         $label = trim((string) ($data['label'] ?? ''));
+        $triggerValue = $transition->trigger === 'outcome'
+            ? trim((string) ($data['trigger_value'] ?? ''))
+            : '';
 
         $transition->update([
             'label' => $label !== ''
@@ -26,6 +29,7 @@ class UpdateActivityTransition
                         $transition->fromActivity,
                         (string) $transition->from_connector,
                     ),
+            'trigger_value' => $triggerValue !== '' ? $triggerValue : null,
         ]);
 
         return $transition->refresh();

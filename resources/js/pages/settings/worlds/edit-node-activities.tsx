@@ -171,6 +171,7 @@ export default function EditNodeActivities({
     const [selectedTransition, setSelectedTransition] =
         useState<ActivityTransitionSummary | null>(null);
     const [transitionLabel, setTransitionLabel] = useState('');
+    const [transitionTriggerValue, setTransitionTriggerValue] = useState('');
     const [transitionErrors, setTransitionErrors] = useState<
         Record<string, string>
     >({});
@@ -1185,6 +1186,7 @@ export default function EditNodeActivities({
             if (transition) {
                 setSelectedTransition(transition);
                 setTransitionLabel(transition.label ?? '');
+                setTransitionTriggerValue(transition.triggerValue ?? '');
                 setTransitionErrors({});
             }
         }
@@ -1236,7 +1238,10 @@ export default function EditNodeActivities({
 
         router.patch(
             `/settings/worlds/activity-transitions/${selectedTransition.id}`,
-            { label: transitionLabel },
+            {
+                label: transitionLabel,
+                trigger_value: transitionTriggerValue,
+            },
             {
                 preserveScroll: true,
                 onError: (nextErrors) => setTransitionErrors(nextErrors),
@@ -1504,6 +1509,56 @@ export default function EditNodeActivities({
                             </p>
                         ) : null}
                     </div>
+                    {selectedTransition?.trigger === 'outcome' ? (
+                        <div className="grid gap-2">
+                            <Label htmlFor="activity-transition-outcome">
+                                Answer outcome key
+                            </Label>
+                            <Input
+                                aria-describedby="activity-transition-outcome-help"
+                                id="activity-transition-outcome"
+                                list="activity-transition-outcome-options"
+                                maxLength={120}
+                                onChange={(event) =>
+                                    setTransitionTriggerValue(
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="e.g. inspect-spread"
+                                value={transitionTriggerValue}
+                            />
+                            <datalist id="activity-transition-outcome-options">
+                                {activityGraph.activities
+                                    .find(
+                                        (activity) =>
+                                            activity.id ===
+                                            selectedTransition.fromActivityId,
+                                    )
+                                    ?.question?.options.filter(
+                                        (option) => option.outcomeKey,
+                                    )
+                                    .map((option) => (
+                                        <option
+                                            key={option.outcomeKey}
+                                            value={option.outcomeKey ?? ''}
+                                        />
+                                    ))}
+                            </datalist>
+                            <p
+                                className="text-xs leading-5 text-muted-foreground"
+                                id="activity-transition-outcome-help"
+                            >
+                                Match this value to an answer outcome key on
+                                the source question. Leave it blank to use the
+                                question's generic correct or incorrect route.
+                            </p>
+                            {transitionErrors.trigger_value ? (
+                                <p className="text-sm text-red-600 dark:text-red-400">
+                                    {transitionErrors.trigger_value}
+                                </p>
+                            ) : null}
+                        </div>
+                    ) : null}
                     <DialogFooter className="gap-2 sm:justify-between">
                         <Button
                             className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-400/10"
