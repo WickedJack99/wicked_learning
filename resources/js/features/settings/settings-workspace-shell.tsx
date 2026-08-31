@@ -298,7 +298,7 @@ function SettingsNotificationsMenu({
                 >
                     <Bell className="size-4" />
                     {total > 0 ? (
-                        <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-[var(--settings-accent)] px-1 text-[0.65rem] font-semibold text-[var(--settings-accent-foreground)]">
+                        <span className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-[var(--settings-accent)] px-1 text-xs font-semibold text-[var(--settings-accent-foreground)]">
                             {total > 99 ? '99+' : total}
                         </span>
                     ) : null}

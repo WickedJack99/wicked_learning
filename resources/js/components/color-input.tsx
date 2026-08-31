@@ -299,7 +299,7 @@ export function ColorOpacityField({
             <div className="grid gap-2">
                 <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-end gap-3">
                     <Label
-                        className="text-[0.68rem] font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
+                        className="text-xs font-medium tracking-wide text-slate-500 uppercase dark:text-slate-400"
                         htmlFor={`${id}-opacity`}
                     >
                         {t('common.color.opacity_percent', 'Opacity %')}

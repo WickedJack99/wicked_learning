@@ -543,7 +543,7 @@ function ActivityOverview({
                                     y2={y}
                                 />
                                 <text
-                                    className="fill-[var(--settings-muted-text)] text-[10px]"
+                                    className="fill-[var(--settings-muted-text)] text-xs"
                                     dominantBaseline="middle"
                                     textAnchor="end"
                                     x={chartMargin.left - 10}
@@ -603,7 +603,7 @@ function ActivityOverview({
                                     y2={xAxisY + 6}
                                 />
                                 <text
-                                    className="fill-[var(--settings-muted-text)] text-[10px]"
+                                    className="fill-[var(--settings-muted-text)] text-xs"
                                     textAnchor="middle"
                                     x={point.x}
                                     y={xAxisY + 20}
@@ -632,7 +632,7 @@ function ActivityOverview({
                         </g>
                     ))}
                     <text
-                        className="fill-[var(--settings-muted-text)] text-[10px] font-medium tracking-[0.12em] uppercase"
+                        className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase"
                         textAnchor="middle"
                         transform={`rotate(-90 ${14} ${chartHeight / 2})`}
                         x={14}
@@ -641,7 +641,7 @@ function ActivityOverview({
                         Users per day
                     </text>
                     <text
-                        className="fill-[var(--settings-muted-text)] text-[10px] font-medium tracking-[0.12em] uppercase"
+                        className="fill-[var(--settings-muted-text)] text-xs font-medium tracking-[0.12em] uppercase"
                         textAnchor="middle"
                         x={chartMargin.left + drawableWidth / 2}
                         y={chartHeight - 6}

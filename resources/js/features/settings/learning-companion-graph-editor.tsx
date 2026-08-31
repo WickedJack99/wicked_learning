@@ -959,7 +959,7 @@ function CompanionDialogueNodeCard({
             ))}
             <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <p className="text-[10px] font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
+                    <p className="text-xs font-medium tracking-[0.16em] text-[var(--settings-accent)] uppercase">
                         {nodeTypeLabel(node.type)}
                     </p>
                     <p className="mt-1 truncate text-sm font-semibold">
@@ -985,7 +985,7 @@ function CompanionDialogueNodeCard({
                 <div className="mt-2 grid gap-1">
                     {(node.choices ?? []).map((choice, index) => (
                         <span
-                            className="rounded border border-[var(--settings-border-color)] px-2 py-1 text-[10px] text-[var(--settings-muted-text)]"
+                            className="rounded border border-[var(--settings-border-color)] px-2 py-1 text-xs text-[var(--settings-muted-text)]"
                             key={`${choice.key}-${index}`}
                         >
                             {choice.label || choice.key}

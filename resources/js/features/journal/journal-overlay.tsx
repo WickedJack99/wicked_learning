@@ -653,7 +653,7 @@ function LearningTrail({ checkIns }: { checkIns: JournalLearningCheckIn[] }) {
                                     {checkInFeelingLabel(checkIn.feeling)}
                                 </span>
                                 <time
-                                    className="shrink-0 text-[11px]"
+                                    className="shrink-0 text-xs"
                                     dateTime={checkIn.recordedAt}
                                     style={{
                                         color: 'var(--journal-muted-text)',

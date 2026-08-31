@@ -119,6 +119,34 @@ test('shared settings headings use the semantic foreground token', function () {
         ->not->toContain('text-slate-950 dark:text-white');
 });
 
+test('platform typography keeps compact text readable', function () {
+    $settingsCss = file_get_contents(resource_path('css/app.css'));
+    $frontendFilesIterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator(resource_path('js')),
+    );
+    $undersizedText = [];
+
+    foreach ($frontendFilesIterator as $frontendFileInfo) {
+        if (! $frontendFileInfo->isFile() || ! in_array($frontendFileInfo->getExtension(), ['ts', 'tsx'], true)) {
+            continue;
+        }
+
+        $frontendFile = $frontendFileInfo->getPathname();
+        $contents = file_get_contents($frontendFile);
+
+        if (preg_match('/text-\\[(?:[0-9]|1[01])px|text-\\[0\\.[0-7]\\d*rem\\]/', $contents)) {
+            $undersizedText[] = $frontendFile;
+        }
+    }
+
+    expect($settingsCss)
+        ->toContain('--text-xs: 0.8125rem;')
+        ->toContain('--text-xs--line-height: 1.25rem;')
+        ->and($undersizedText)->toBeEmpty(
+            'Use the shared text-xs token instead of frontend text below 12px.',
+        );
+});
+
 test('map editor configuration surfaces use settings palette tokens', function () {
     $editor = file_get_contents(resource_path('js/pages/settings/worlds/edit-map.tsx'));
 

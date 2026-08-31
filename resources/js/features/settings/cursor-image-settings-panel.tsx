@@ -506,7 +506,7 @@ function CursorPreview({ cursor }: { cursor: CursorImageSettings }) {
                             src={image}
                         />
                     ) : (
-                        <div className="grid h-full w-full place-items-center rounded-lg border border-dashed border-[var(--settings-border-color)] text-[0.65rem] text-[var(--settings-muted-text)]">
+                        <div className="grid h-full w-full place-items-center rounded-lg border border-dashed border-[var(--settings-border-color)] text-xs text-[var(--settings-muted-text)]">
                             No image
                         </div>
                     )}

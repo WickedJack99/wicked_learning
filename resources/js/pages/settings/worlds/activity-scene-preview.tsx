@@ -161,7 +161,7 @@ export function ScenePreviewSlot({
                 width: `${boundedPercent(width, 12, 1)}%`,
             }}
         >
-            <div className="grid size-full place-items-center rounded bg-white/30 text-center text-[0.65rem] font-semibold text-[var(--settings-accent)] dark:bg-slate-950/30">
+            <div className="grid size-full place-items-center rounded bg-white/30 text-center text-xs font-semibold text-[var(--settings-accent)] dark:bg-slate-950/30">
                 {imageUrl ? (
                     <img
                         alt=""

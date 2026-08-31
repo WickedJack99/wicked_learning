@@ -492,7 +492,7 @@ function MapGraphNode({
             </span>
             <span
                 className={cn(
-                    'mt-3 block rounded-md px-2 py-1 text-[11px] font-medium',
+                    'mt-3 block rounded-md px-2 py-1 text-xs font-medium',
                     map.reviewCount > 0
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-300/10 dark:text-amber-200'
                         : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-300/10 dark:text-emerald-200',
@@ -515,7 +515,7 @@ function MapGraphNode({
             </span>
             {firstNodeNeedingReview ? (
                 <Link
-                    className="nodrag nopan mt-2 inline-flex text-[11px] font-semibold text-[var(--settings-accent)] underline-offset-2 hover:underline"
+                    className="nodrag nopan mt-2 inline-flex text-xs font-semibold text-[var(--settings-accent)] underline-offset-2 hover:underline"
                     href={`/settings?panel=admin-world-builder&worldSection=graph&map=${map.id}&node=${firstNodeNeedingReview.id}&worldView=nodes`}
                     onClick={(event) => event.stopPropagation()}
                 >
@@ -637,7 +637,7 @@ function MapDetails({ map }: { map: MapSummary }) {
                                         <span className="min-w-0 truncate text-xs">
                                             {node.title}
                                         </span>
-                                        <span className="shrink-0 text-[11px] text-slate-500 dark:text-slate-400">
+                                        <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                                             {node.activityReviewCount}{' '}
                                             {node.activityReviewCount === 1
                                                 ? 'activity'

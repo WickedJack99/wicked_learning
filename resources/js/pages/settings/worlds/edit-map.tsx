@@ -3093,7 +3093,7 @@ function NodeSettingsSwitcher({
 
                     return (
                         <section className="grid gap-2" key={group.key}>
-                            <p className="px-3 text-[0.68rem] font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
+                            <p className="px-3 text-xs font-semibold tracking-[0.16em] text-[var(--settings-muted-text)] uppercase">
                                 {group.label}
                             </p>
                             {items.map((item) => {

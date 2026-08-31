@@ -990,7 +990,7 @@ function FeedbackRequestButton({
                     {request.page.title || t('common.untitled', 'Untitled')}
                 </p>
                 <span
-                    className="rounded-full px-2 py-1 text-[0.65rem] font-bold uppercase"
+                    className="rounded-full px-2 py-1 text-xs font-bold uppercase"
                     style={{
                         background: request.respondedAt
                             ? 'color-mix(in srgb, var(--settings-accent) 18%, transparent)'

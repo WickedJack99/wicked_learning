@@ -342,7 +342,7 @@ function GroupChatCard({
                                     {message.user?.name ?? 'Unknown user'}
                                 </p>
                                 {message.isHelpRequest ? (
-                                    <span className="rounded-full border border-amber-300/70 px-2 py-0.5 text-[0.7rem] font-semibold text-amber-700 dark:border-amber-200/30 dark:text-amber-200">
+                                    <span className="rounded-full border border-amber-300/70 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:border-amber-200/30 dark:text-amber-200">
                                         {message.resolvedAt
                                             ? t(
                                                   'world.groups.help.resolved',

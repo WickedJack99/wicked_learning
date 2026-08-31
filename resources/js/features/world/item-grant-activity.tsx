@@ -192,7 +192,7 @@ function GrantedItemTile({ display }: { display: GrantedItemDisplay }) {
             ) : (
                 <Package className="size-8 text-cyan-700 dark:text-teal-200" />
             )}
-            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-slate-950/82 px-1 text-center text-[0.65rem] font-semibold text-white dark:bg-teal-300 dark:text-slate-950">
+            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-slate-950/82 px-1 text-center text-xs font-semibold text-white dark:bg-teal-300 dark:text-slate-950">
                 {display.quantity}
             </span>
             <span className="sr-only">{display.item.title}</span>

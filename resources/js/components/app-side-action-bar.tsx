@@ -315,7 +315,7 @@ function ItemTile({
                 <Backpack className="size-6" />
             )}
             <span
-                className="absolute right-1 bottom-1 min-w-5 rounded px-1 text-center text-[0.65rem] font-semibold"
+                className="absolute right-1 bottom-1 min-w-5 rounded px-1 text-center text-xs font-semibold"
                 style={{
                     background: 'var(--map-side-control-active-background)',
                     color: 'var(--map-side-control-active-text-color)',
@@ -537,7 +537,7 @@ function ToolGrid({
                 >
                     <ToolImage className="size-10" mode={mode} tool={tool} />
                     <span
-                        className="mt-1 max-w-full truncate text-[0.65rem] font-medium"
+                        className="mt-1 max-w-full truncate text-xs font-medium"
                         style={{
                             color: 'var(--map-side-control-text-color)',
                         }}

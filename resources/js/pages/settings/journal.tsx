@@ -636,20 +636,20 @@ function JournalPreview({
             >
                 <div>
                     <p
-                        className="text-[0.45rem] leading-none font-medium tracking-[0.16em] uppercase"
+                        className="text-xs leading-none font-medium tracking-[0.16em] uppercase"
                         style={{ color: 'var(--journal-accent)' }}
                     >
                         Journal
                     </p>
                     <p
-                        className="mt-0.5 text-[0.65rem] leading-none font-semibold"
+                        className="mt-0.5 text-xs leading-none font-semibold"
                         style={{ color: 'var(--journal-heading-text)' }}
                     >
                         Reflections and notes
                     </p>
                 </div>
                 <span
-                    className="rounded border px-1.5 py-0.5 text-[0.5rem]"
+                    className="rounded border px-1.5 py-0.5 text-xs"
                     style={{
                         borderColor: 'var(--journal-button-border)',
                         color: 'var(--journal-button-text)',
@@ -675,13 +675,13 @@ function JournalPreview({
                         }}
                     >
                         <p
-                            className="truncate text-[0.6rem] font-semibold"
+                            className="truncate text-xs font-semibold"
                             style={{ color: 'var(--journal-selected-text)' }}
                         >
                             Field notes
                         </p>
                         <p
-                            className="mt-0.5 truncate text-[0.5rem]"
+                            className="mt-0.5 truncate text-xs"
                             style={{ color: 'var(--journal-selected-text)' }}
                         >
                             General / Week 1
@@ -699,11 +699,11 @@ function JournalPreview({
                                 color: 'var(--journal-heading-text)',
                             }}
                         >
-                            <div className="min-w-0 text-[0.6rem] font-semibold">
+                            <div className="min-w-0 text-xs font-semibold">
                                 Test Reflection
                             </div>
                             <span
-                                className="rounded px-1.5 py-0.5 text-[0.5rem]"
+                                className="rounded px-1.5 py-0.5 text-xs"
                                 style={{
                                     background: 'var(--journal-accent)',
                                     color: 'var(--journal-accent-text)',
@@ -720,13 +720,13 @@ function JournalPreview({
                             }}
                         >
                             <p
-                                className="text-[0.6rem] font-semibold"
+                                className="text-xs font-semibold"
                                 style={{ color: 'var(--journal-heading-text)' }}
                             >
                                 A clear thought
                             </p>
                             <p
-                                className="mt-1 text-[0.55rem] leading-3"
+                                className="mt-1 text-xs leading-4"
                                 style={{ color: 'var(--journal-body-text)' }}
                             >
                                 Markdown reflections appear in this writing

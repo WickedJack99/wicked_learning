@@ -623,7 +623,7 @@ function ItemGrantPreviewTile({
             ) : (
                 <Package className="size-7 text-[var(--settings-accent)]" />
             )}
-            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-[var(--settings-accent)] px-1 text-center text-[0.65rem] font-semibold text-[var(--settings-accent-foreground)]">
+            <span className="absolute right-1 bottom-1 min-w-5 rounded bg-[var(--settings-accent)] px-1 text-center text-xs font-semibold text-[var(--settings-accent-foreground)]">
                 {quantity || '1'}
             </span>
             <span className="sr-only">{title}</span>
