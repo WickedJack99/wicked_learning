@@ -468,6 +468,20 @@ test('play route refresh redirects stale activity query to saved current activit
         ->assertRedirectContains(route('learning.nodes.play', ['node' => $node]));
 
     $this->actingAs($learner)
+        ->get(route('learning.nodes.play', [
+            'activity_id' => $currentActivity->id,
+            'node' => $node,
+            'route' => $start->id,
+            'run' => $runId,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('learning/node-play')
+            ->where('playActivityId', $currentActivity->id)
+            ->where('playRouteId', $start->id)
+            ->where('playRunId', $runId));
+
+    $this->actingAs($learner)
         ->get(route('learning.nodes.play', ['node' => $node]))
         ->assertInertia(fn ($page) => $page
             ->component('learning/node-play')

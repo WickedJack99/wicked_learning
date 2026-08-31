@@ -189,6 +189,8 @@ export default function NodePlay({
         replacePlayUrl(
             node.id,
             activeActivity.id,
+            playRouteId,
+            playRunId,
             activeActivity.question?.id === recallQuestionId
                 ? recallQuestionId
                 : null,
@@ -222,7 +224,14 @@ export default function NodePlay({
                 // longer match the active activity. Both should keep source copy.
                 .catch(() => undefined);
         }
-    }, [activeActivity, isAuthenticated, node, playRunId, recallQuestionId]);
+    }, [
+        activeActivity,
+        isAuthenticated,
+        node,
+        playRouteId,
+        playRunId,
+        recallQuestionId,
+    ]);
 
     const returnToMap = useCallback(() => {
         router.visit(
@@ -793,12 +802,27 @@ function withoutActivityPlayState(
 function replacePlayUrl(
     nodeId: number,
     activityId: number,
+    routeId: number | null,
+    playRunId: string | null,
     recallQuestionId: number | null,
 ) {
-    const href =
-        recallQuestionId === null
-            ? `/learning/nodes/${nodeId}/play`
-            : `/learning/nodes/${nodeId}/play?activity_id=${activityId}&recall_question=${recallQuestionId}`;
+    const query = new URLSearchParams({
+        activity_id: activityId.toString(),
+    });
+
+    if (routeId) {
+        query.set('route', routeId.toString());
+    }
+
+    if (playRunId) {
+        query.set('run', playRunId);
+    }
+
+    if (recallQuestionId !== null) {
+        query.set('recall_question', recallQuestionId.toString());
+    }
+
+    const href = `/learning/nodes/${nodeId}/play?${query.toString()}`;
 
     window.history.replaceState(window.history.state, '', href);
 }

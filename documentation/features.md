@@ -135,7 +135,9 @@ Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity
 connections have meaningful learner-facing labels, and authors can edit or
 remove those labels while the platform supplies a safe default when no label is
-authored.
+authored. While a route is open, the activity page keeps the selected route,
+activity and run in its deep link so a refresh returns to the same place
+instead of falling back to the node's first route.
 
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. Routes are returned in bounded server
