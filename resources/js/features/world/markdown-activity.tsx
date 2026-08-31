@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MarkdownRenderer } from '@/features/platform-info/markdown-renderer';
 import { useAppearance } from '@/hooks/use-appearance';
+import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import type { ActivityTransition, LearningActivity } from '@/types';
 import { activityTransitionLabel } from './activity-utils';
 
@@ -39,6 +40,7 @@ export function MarkdownActivity({
     transition: ActivityTransition | null;
 }) {
     const { resolvedAppearance } = useAppearance();
+    const t = usePlatformTranslation();
     const pages = useMemo(
         () => markdownPages(activity.config.markdownPages),
         [activity.config.markdownPages],
@@ -115,9 +117,14 @@ export function MarkdownActivity({
         return (
             <div className="grid flex-1 place-items-center rounded-lg border border-dashed border-slate-300 bg-white p-6 text-center dark:border-white/15 dark:bg-white/6">
                 <div>
-                    <p className="font-semibold">No markdown pages</p>
+                    <p className="font-semibold">
+                        {t('learning.markdown.empty.title', 'No markdown pages')}
+                    </p>
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                        Add pages in the activity editor to make this readable.
+                        {t(
+                            'learning.markdown.empty.body',
+                            'Add pages in the activity editor to make this readable.',
+                        )}
                     </p>
                 </div>
             </div>
@@ -153,7 +160,10 @@ export function MarkdownActivity({
 
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
                 <Button
-                    aria-label="Previous page"
+                    aria-label={t(
+                        'learning.markdown.previous_page',
+                        'Previous page',
+                    )}
                     disabled={history.length === 0}
                     onClick={goBack}
                     size="icon"
@@ -173,7 +183,10 @@ export function MarkdownActivity({
                         <ArrowRight className="size-4" />
                     ) : (
                         <>
-                            {activityTransitionLabel(transition, 'Continue')}
+                            {activityTransitionLabel(
+                                transition,
+                                t('common.continue', 'Continue'),
+                            )}
                             <ArrowRight className="size-4" />
                         </>
                     )}

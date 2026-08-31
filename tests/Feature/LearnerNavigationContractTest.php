@@ -231,6 +231,19 @@ test('obstacle playback copy uses the platform translation catalog', function ()
         ->not->toContain('aria-label="Use an equipped tool on the gate"');
 });
 
+test('markdown playback copy uses the platform translation catalog', function () {
+    $markdown = file_get_contents(
+        resource_path('js/features/world/markdown-activity.tsx'),
+    );
+
+    expect($markdown)
+        ->toContain("'learning.markdown.empty.title'")
+        ->toContain("'learning.markdown.empty.body'")
+        ->toContain("'learning.markdown.previous_page'")
+        ->toContain("t('common.continue', 'Continue')")
+        ->not->toContain('aria-label="Previous page"');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
@@ -273,7 +286,7 @@ test('learner activity actions preserve authored transition labels', function ()
         ->toContain('nextTransitionLabel')
         ->toContain('answerTransitionLabel');
     expect($markdownActivity)
-        ->toContain("activityTransitionLabel(transition, 'Continue')");
+        ->toContain("t('common.continue', 'Continue')");
     expect($obstacleActivity)
         ->toContain("t('common.continue', 'Continue')");
     expect($npcDialogue)
