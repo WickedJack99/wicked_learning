@@ -8,7 +8,7 @@ import type {
     SharedTaskState,
 } from '@/types';
 import { numericConfig, stringValue } from './activity-utils';
-import { postJson } from './api';
+import { patchJson, postJson } from './api';
 
 export function SharedTaskActivity({
     activity,
@@ -36,6 +36,7 @@ export function SharedTaskActivity({
         useState<PeerReviewResponseType | null>(null);
     const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
     const [peerReviewError, setPeerReviewError] = useState('');
+    const [updatingReviewId, setUpdatingReviewId] = useState<number | null>(null);
     const [shareWithPeers, setShareWithPeers] = useState(false);
     const taskKind = sharedTaskKind(activity.config.taskKind);
     const kindCopy = sharedTaskKindCopy(taskKind, t);
@@ -140,6 +141,36 @@ export function SharedTaskActivity({
         }
     }
 
+    async function updatePeerReviewHelpfulness(reviewId: number, helpful: boolean) {
+        if (!playRunId || updatingReviewId !== null) {
+            return;
+        }
+
+        setUpdatingReviewId(reviewId);
+        setPeerReviewError('');
+
+        try {
+            const response = await patchJson<{ state: SharedTaskState }>(
+                `/learning/activities/${activity.id}/shared-task-reviews/${reviewId}/helpfulness`,
+                {
+                    helpful,
+                    play_run_id: playRunId,
+                },
+            );
+
+            setState(response.state);
+        } catch {
+            setPeerReviewError(
+                t(
+                    'activities.shared_task.peer_review_helpful_error',
+                    'The helpful response mark could not be saved yet.',
+                ),
+            );
+        } finally {
+            setUpdatingReviewId(null);
+        }
+    }
+
     async function complete() {
         await onComplete(activity);
         onMoveToActivity(transition?.toActivityId ?? null);
@@ -197,6 +228,9 @@ export function SharedTaskActivity({
                     error={peerReviewError}
                     isSubmitting={isSubmittingReview}
                     onBodyChange={setPeerReviewBody}
+                    onHelpfulnessChange={(reviewId, helpful) =>
+                        void updatePeerReviewHelpfulness(reviewId, helpful)
+                    }
                     onSelect={setSelectedSubmissionId}
                     onResponseTypeChange={setPeerReviewResponseType}
                     onSubmit={() => void submitPeerReview()}
@@ -204,6 +238,7 @@ export function SharedTaskActivity({
                     selectedSubmissionId={selectedSubmissionId}
                     state={state}
                     t={t}
+                    updatingReviewId={updatingReviewId}
                 />
             ) : null}
 
@@ -400,11 +435,13 @@ function SharedTaskPeerReview({
     selectedSubmissionId,
     state,
     t,
+    updatingReviewId,
 }: {
     body: string;
     error: string;
     isSubmitting: boolean;
     onBodyChange: (value: string) => void;
+    onHelpfulnessChange: (reviewId: number, helpful: boolean) => void;
     onSelect: (value: number | null) => void;
     onResponseTypeChange: (value: PeerReviewResponseType | null) => void;
     onSubmit: () => void;
@@ -412,6 +449,7 @@ function SharedTaskPeerReview({
     selectedSubmissionId: number | null;
     state: SharedTaskState;
     t: ReturnType<typeof usePlatformTranslation>;
+    updatingReviewId: number | null;
 }) {
     const peerReview = state.peerReview;
 
@@ -453,6 +491,29 @@ function SharedTaskPeerReview({
                                     </span>
                                 ) : null}
                                 {review.body}
+                                {review.canMarkHelpful ? (
+                                    <button
+                                        className="ml-2 inline-flex items-center rounded border border-violet-300/70 px-2 py-1 text-xs font-medium text-violet-700 hover:bg-violet-100 disabled:cursor-wait disabled:opacity-60 dark:border-violet-200/30 dark:text-violet-200 dark:hover:bg-violet-100/10"
+                                        disabled={updatingReviewId === review.id}
+                                        onClick={() =>
+                                            onHelpfulnessChange(
+                                                review.id,
+                                                !review.isHelpful,
+                                            )
+                                        }
+                                        type="button"
+                                    >
+                                        {review.isHelpful
+                                            ? t(
+                                                  'activities.shared_task.peer_review_helpful_clear',
+                                                  'Clear helpful mark',
+                                              )
+                                            : t(
+                                                  'activities.shared_task.peer_review_helpful',
+                                                  'This helped',
+                                              )}
+                                    </button>
+                                ) : null}
                             </p>
                         ))}
                     </div>

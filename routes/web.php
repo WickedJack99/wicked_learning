@@ -131,6 +131,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('learning.activities.shared-task-submissions.store');
     Route::post('learning/activities/{activity}/shared-task-reviews', [LearningSharedTaskReviewController::class, 'store'])
         ->name('learning.activities.shared-task-reviews.store');
+    Route::patch('learning/activities/{activity}/shared-task-reviews/{review}/helpfulness', [LearningSharedTaskReviewController::class, 'updateHelpfulness'])
+        ->name('learning.activities.shared-task-reviews.helpfulness.update');
     Route::post('learning/npc-dialogue-nodes/{node}/reflection', [LearnerJournalController::class, 'storeDialogueReflection'])
         ->name('learning.npc-dialogue-nodes.reflection.store');
     Route::get('learning/activities/{activity}/translation', [LearningActivityTranslationController::class, 'show'])

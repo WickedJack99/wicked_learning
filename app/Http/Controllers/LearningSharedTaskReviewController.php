@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Learning\Actions\MarkSharedTaskPeerReviewHelpful;
 use App\Learning\Actions\SubmitSharedTaskPeerReview;
 use App\Learning\Serializers\SharedTaskStateSerializer;
 use App\Models\LearningActivity;
+use App\Models\LearningSharedTaskReview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LearningSharedTaskReviewController extends Controller
 {
     public function __construct(
+        private readonly MarkSharedTaskPeerReviewHelpful $markReviewHelpful,
         private readonly SubmitSharedTaskPeerReview $submitReview,
         private readonly SharedTaskStateSerializer $stateSerializer,
     ) {}
@@ -39,6 +42,31 @@ class LearningSharedTaskReviewController extends Controller
                 'responseType' => $review->response_type,
                 'createdAt' => $review->created_at?->toIso8601String(),
             ],
+            'state' => $this->stateSerializer->state($activity, $request->user(), true),
+        ]);
+    }
+
+    public function updateHelpfulness(
+        Request $request,
+        LearningActivity $activity,
+        LearningSharedTaskReview $review,
+    ): JsonResponse {
+        $data = $request->validate([
+            'helpful' => ['required', 'boolean'],
+            'play_run_id' => ['required', 'uuid'],
+        ]);
+
+        $updatedReview = $this->markReviewHelpful->handle(
+            $request->user(),
+            $activity,
+            (string) $data['play_run_id'],
+            $review,
+            (bool) $data['helpful'],
+        );
+
+        return response()->json([
+            'helpful' => $updatedReview->helpful_at !== null,
+            'reviewId' => $updatedReview->id,
             'state' => $this->stateSerializer->state($activity, $request->user(), true),
         ]);
     }

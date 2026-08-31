@@ -167,6 +167,9 @@ exposing additional learner text or ranking topics. Broader quality review and
 mentor digests remain future work. Shared-task peer reviews now reuse the same
 optional explanation, example, question and counterexample vocabulary while
 keeping reviews anonymous and limited to one response per contributing learner.
+Contributors can now mark one received response helpful as a private,
+learner-controlled resolution signal; richer review, revision and mentor
+workflows remain future work.
 
 ## Product development
 

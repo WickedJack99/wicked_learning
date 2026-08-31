@@ -293,6 +293,98 @@ test('shared task peer review rejects unsupported response types', function () {
     expect(LearningSharedTaskReview::query()->count())->toBe(0);
 });
 
+test('shared task contributors can mark one received peer review helpful', function () {
+    [$owner, $activity, $ownerRunId] = activeSharedTask([
+        'peerReviewEnabled' => true,
+        'showContributions' => true,
+        'threshold' => 5,
+    ]);
+    [$firstReviewer, , $firstReviewerRunId] = activeSharedTaskFor($activity);
+    [$secondReviewer, , $secondReviewerRunId] = activeSharedTaskFor($activity);
+
+    $this->actingAs($owner)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The owner contribution gives peers a clear pattern to examine.',
+            'play_run_id' => $ownerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $ownerSubmission = LearningSharedTaskSubmission::query()
+        ->where('learning_activity_id', $activity->id)
+        ->where('user_id', $owner->id)
+        ->firstOrFail();
+
+    $this->actingAs($firstReviewer)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The first reviewer adds a careful explanation for the group.',
+            'play_run_id' => $firstReviewerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $firstReview = LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $activity->id,
+        'learning_shared_task_submission_id' => $ownerSubmission->id,
+        'user_id' => $firstReviewer->id,
+        'body' => 'This explanation helped me connect the two observations.',
+        'response_type' => 'explanation',
+    ]);
+
+    $this->actingAs($secondReviewer)
+        ->postJson(route('learning.activities.shared-task-submissions.store', $activity), [
+            'body' => 'The second reviewer adds a different example for the group.',
+            'play_run_id' => $secondReviewerRunId,
+            'share_with_peers' => true,
+        ])
+        ->assertOk();
+
+    $secondReview = LearningSharedTaskReview::query()->create([
+        'learning_activity_id' => $activity->id,
+        'learning_shared_task_submission_id' => $ownerSubmission->id,
+        'user_id' => $secondReviewer->id,
+        'body' => 'This example helped me see the pattern in a new setting.',
+        'response_type' => 'example',
+    ]);
+
+    $this->actingAs($firstReviewer)
+        ->patchJson(route('learning.activities.shared-task-reviews.helpfulness.update', [$activity, $firstReview]), [
+            'helpful' => true,
+            'play_run_id' => $firstReviewerRunId,
+        ])
+        ->assertUnprocessable();
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.helpfulness.update', [$activity, $firstReview]), [
+            'helpful' => true,
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('helpful', true);
+
+    expect($firstReview->refresh()->helpful_at)->not->toBeNull();
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.helpfulness.update', [$activity, $secondReview]), [
+            'helpful' => true,
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk();
+
+    expect($firstReview->refresh()->helpful_at)->toBeNull()
+        ->and($secondReview->refresh()->helpful_at)->not->toBeNull();
+
+    $this->actingAs($owner)
+        ->patchJson(route('learning.activities.shared-task-reviews.helpfulness.update', [$activity, $secondReview]), [
+            'helpful' => false,
+            'play_run_id' => $ownerRunId,
+        ])
+        ->assertOk()
+        ->assertJsonPath('helpful', false);
+
+    expect($secondReview->refresh()->helpful_at)->toBeNull();
+});
+
 /** @return array{0: User, 1: LearningActivity, 2: string} */
 function activeSharedTask(array $config = []): array
 {

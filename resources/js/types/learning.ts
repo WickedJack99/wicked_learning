@@ -427,6 +427,8 @@ export type SharedTaskState = {
             id: number;
             body: string;
             responseType: string | null;
+            canMarkHelpful: boolean;
+            isHelpful: boolean;
             createdAt: string | null;
         }>;
     } | null;
