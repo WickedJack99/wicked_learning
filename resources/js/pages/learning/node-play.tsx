@@ -746,6 +746,11 @@ export default function NodePlay({
                                             <span className="block font-medium">
                                                 {route.label}
                                             </span>
+                                            {route.description ? (
+                                                <span className="mt-1 block text-xs leading-5 text-[var(--learner-body-text)]">
+                                                    {route.description}
+                                                </span>
+                                            ) : null}
                                             {route.progress ? (
                                                 <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
                                                     {routeProgressText(

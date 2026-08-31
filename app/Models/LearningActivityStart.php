@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'learning_node_id',
     'learning_activity_id',
     'label',
+    'description',
     'image_dark',
     'image_light',
     'button_color_dark',

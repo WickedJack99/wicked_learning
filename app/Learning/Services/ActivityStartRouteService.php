@@ -50,6 +50,7 @@ class ActivityStartRouteService
     public function updateStartRoute(LearningActivityStart $start, array $data): void
     {
         $start->forceFill([
+            'description' => $data['description'] ?? null,
             'image_dark' => $data['image_dark'] ?? null,
             'image_light' => $data['image_light'] ?? null,
             'button_color_dark' => $data['button_color_dark'] ?? null,

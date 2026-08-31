@@ -204,6 +204,7 @@ export default function EditNodeActivities({
         button_border_color_light: '',
         button_color_dark: '',
         button_color_light: '',
+        description: '',
         image_dark: '',
         image_light: '',
     });
@@ -2427,6 +2428,53 @@ export default function EditNodeActivities({
                             />
 
                             <SettingsConfigurationSection
+                                description={t(
+                                    'settings.worlds.activities.route_description.description',
+                                    'A short explanation helps learners choose this route without turning it into a ranked recommendation.',
+                                )}
+                                title={t(
+                                    'settings.worlds.activities.route_description.title',
+                                    'Route guidance',
+                                )}
+                            >
+                                <div className="grid gap-2">
+                                    <Label htmlFor="route-description">
+                                        {t(
+                                            'settings.worlds.activities.route_description.label',
+                                            'Description',
+                                        )}
+                                    </Label>
+                                    <textarea
+                                        className="min-h-20 resize-y rounded-md border border-slate-300/80 bg-white/80 px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--settings-accent)] focus:ring-2 focus:ring-[var(--settings-accent)]/30 dark:border-white/15 dark:bg-slate-950/50 dark:text-slate-100"
+                                        id="route-description"
+                                        maxLength={600}
+                                        onChange={(event) =>
+                                            setStartRouteForm((current) => ({
+                                                ...current,
+                                                description: event.target.value,
+                                            }))
+                                        }
+                                        placeholder={t(
+                                            'settings.worlds.activities.route_description.placeholder',
+                                            'What might a learner explore through this route?',
+                                        )}
+                                        value={startRouteForm.description}
+                                    />
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        {t(
+                                            'settings.worlds.activities.route_description.helper',
+                                            'Optional, up to 600 characters. Shown with this route wherever learners choose a starting point.',
+                                        )}
+                                    </p>
+                                    {startRouteErrors.description ? (
+                                        <p className="text-xs text-red-600 dark:text-red-300">
+                                            {startRouteErrors.description}
+                                        </p>
+                                    ) : null}
+                                </div>
+                            </SettingsConfigurationSection>
+
+                            <SettingsConfigurationSection
                                 description="Optional images shown as the route card background."
                                 title="Route images"
                             >
@@ -2756,6 +2804,7 @@ function emptyStartRouteForm(): StartRouteForm {
         button_border_color_light: '',
         button_color_dark: '',
         button_color_light: '',
+        description: '',
         image_dark: '',
         image_light: '',
     };
@@ -2767,6 +2816,7 @@ function routeFormFromStartRoute(route: ActivityStartRoute): StartRouteForm {
         button_border_color_light: route.buttonBorderColorLight ?? '',
         button_color_dark: route.buttonColorDark ?? '',
         button_color_light: route.buttonColorLight ?? '',
+        description: route.description ?? '',
         image_dark: route.imageDark ?? '',
         image_light: route.imageLight ?? '',
     };

@@ -314,6 +314,7 @@ export type LearningActivityStart = {
     buttonBorderColorLight: string | null;
     buttonColorDark: string | null;
     buttonColorLight: string | null;
+    description: string | null;
     id: number;
     imageDark: string | null;
     imageLight: string | null;

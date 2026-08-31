@@ -147,7 +147,10 @@ Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity
 connections have meaningful learner-facing labels, and authors can edit or
 remove those labels while the platform supplies a safe default when no label is
-authored. While a route is open, the activity page keeps the selected route,
+authored. Authors can also add an optional short route description. Learners see
+that guidance beside the route wherever they choose a starting point; it provides
+orientation without ranking routes or making an automatic recommendation. While
+a route is open, the activity page keeps the selected route,
 activity and run in its deep link so a refresh returns to the same place
 instead of falling back to the node's first route.
 

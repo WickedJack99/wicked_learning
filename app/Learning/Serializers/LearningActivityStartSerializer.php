@@ -22,6 +22,7 @@ class LearningActivityStartSerializer
             'buttonBorderColorLight' => $start->button_border_color_light,
             'buttonColorDark' => $start->button_color_dark,
             'buttonColorLight' => $start->button_color_light,
+            'description' => $start->description,
             'imageDark' => $start->image_dark,
             'imageLight' => $start->image_light,
             'label' => $start->label ?: $start->activity->title,

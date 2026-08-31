@@ -293,6 +293,11 @@ function RouteStartOption({
                     route={route}
                     resetLabel={translate('learning.map.reset', 'Reset')}
                 />
+                {route.description ? (
+                    <p className="px-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {route.description}
+                    </p>
+                ) : null}
             </div>
         );
     }
@@ -318,6 +323,11 @@ function RouteStartOption({
                 route={route}
                 resetLabel={translate('learning.map.reset', 'Reset')}
             />
+            {route.description ? (
+                <p className="px-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {route.description}
+                </p>
+            ) : null}
         </div>
     );
 }

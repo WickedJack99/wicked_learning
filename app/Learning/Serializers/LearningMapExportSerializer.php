@@ -50,6 +50,7 @@ class LearningMapExportSerializer
                 'activityStarts' => $node->activityStarts->map(fn (LearningActivityStart $start): array => [
                     'activitySlug' => $start->activity?->slug,
                     'label' => $start->label,
+                    'description' => $start->description,
                     'imageDark' => $start->image_dark,
                     'imageLight' => $start->image_light,
                     'buttonColorDark' => $start->button_color_dark,

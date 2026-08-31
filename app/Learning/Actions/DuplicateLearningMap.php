@@ -343,6 +343,7 @@ class DuplicateLearningMap
                     'learning_node_id' => $nodeIds[$node->id],
                     'learning_activity_id' => $activityIds[$start->learning_activity_id],
                     'label' => $start->label,
+                    'description' => $start->description,
                     'image_dark' => $start->image_dark,
                     'image_light' => $start->image_light,
                     'button_color_dark' => $start->button_color_dark,

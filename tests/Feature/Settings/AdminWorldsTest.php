@@ -1619,6 +1619,7 @@ test('admin users can configure multiple independent start routes for a node', f
             'button_border_color_light' => '#e2e8f0',
             'button_color_dark' => '#0f172a',
             'button_color_light' => '#ffffff',
+            'description' => 'Begin with a concrete comparison before exploring the harder route.',
             'image_dark' => '/images/routes/easy-dark.svg',
             'image_light' => '/images/routes/easy-light.svg',
         ])
@@ -1630,6 +1631,7 @@ test('admin users can configure multiple independent start routes for a node', f
         ->and($easyStart->button_border_color_light)->toBe('#e2e8f0')
         ->and($easyStart->button_color_dark)->toBe('#0f172a')
         ->and($easyStart->button_color_light)->toBe('#ffffff')
+        ->and($easyStart->description)->toBe('Begin with a concrete comparison before exploring the harder route.')
         ->and($easyStart->image_dark)->toBe('/images/routes/easy-dark.svg')
         ->and($easyStart->image_light)->toBe('/images/routes/easy-light.svg');
 

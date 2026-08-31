@@ -302,6 +302,7 @@ export type ActivityStartRoute = {
     buttonBorderColorLight: string | null;
     buttonColorDark: string | null;
     buttonColorLight: string | null;
+    description: string | null;
     id: number;
     imageDark: string | null;
     imageLight: string | null;
@@ -314,6 +315,7 @@ export type StartRouteForm = {
     button_border_color_light: string;
     button_color_dark: string;
     button_color_light: string;
+    description: string;
     image_dark: string;
     image_light: string;
 };

@@ -129,6 +129,7 @@ class AdminActivityRules
     public function startRoute(): array
     {
         return [
+            'description' => ['nullable', 'string', 'max:600'],
             'image_dark' => ['nullable', 'string', 'max:2048'],
             'image_light' => ['nullable', 'string', 'max:2048'],
             'button_color_dark' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],

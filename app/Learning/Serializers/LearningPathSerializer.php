@@ -53,6 +53,7 @@ class LearningPathSerializer
                         $route->activity,
                     ),
                     'label' => $route->label ?: $route->activity->title,
+                    'routeDescription' => $route->description,
                     'mapHref' => route('world', ['map' => $map->slug], false),
                     'mapTitle' => $map->title,
                     'nodeHref' => route('world', [

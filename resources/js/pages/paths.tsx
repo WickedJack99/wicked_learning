@@ -16,6 +16,7 @@ type LearningPath = {
     learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     label: string;
+    routeDescription: string | null;
     mapHref: string;
     mapTitle: string;
     nodeHref: string;
@@ -186,6 +187,11 @@ function PathCard({ path }: { path: LearningPath }) {
                                 </Link>
                             ))}
                         </div>
+                    ) : null}
+                    {path.routeDescription ? (
+                        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-body-text)]">
+                            {path.routeDescription}
+                        </p>
                     ) : null}
                     <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
                         <Link

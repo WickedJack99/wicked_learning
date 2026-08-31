@@ -77,7 +77,8 @@ MapAsset dragging; placement is an explicit World Builder operation.
 
 Activities connect through `ActivityTransition` records. A MapAsset can expose
 several `LearningActivityStart` records as learner-facing route choices. A start
-points to the first Activity and can carry route-card images and colors.
+points to the first Activity and can carry route-card images, colors and an
+optional authored description used for learner orientation.
 
 The administrator activity editor can copy an activity to another editable
 MapAsset from the already-loaded world graph. The create action authorizes the
