@@ -38,6 +38,12 @@ export type TopicDetail = TopicSummary & {
         total: number;
     };
     subtopics: TopicSummary[];
+    subtopicsPagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
     subtopicCompetence: TopicCompetence[];
 };
 

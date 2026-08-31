@@ -70,6 +70,10 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             url.searchParams.delete('page');
         }
 
+        if (section !== 'overview') {
+            url.searchParams.delete('subtopics_page');
+        }
+
         window.history.pushState(window.history.state, '', url);
     }
 
@@ -83,6 +87,23 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
         }
 
         url.searchParams.set('section', 'routes');
+
+        router.visit(`${url.pathname}${url.search}`, {
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    function visitSubtopicPage(page: number) {
+        const url = new URL(window.location.href);
+
+        if (page === 1) {
+            url.searchParams.delete('subtopics_page');
+        } else {
+            url.searchParams.set('subtopics_page', String(page));
+        }
+
+        url.searchParams.set('section', 'overview');
 
         router.visit(`${url.pathname}${url.search}`, {
             preserveScroll: true,
@@ -355,8 +376,18 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                         <LearnerPaginatedItems
                                             className="divide-y divide-[var(--learner-border-color)]"
                                             items={topic.subtopics}
-                                            pageSize={4}
-                                            paginationLabel="Topic subtopics"
+                                            onPageChange={visitSubtopicPage}
+                                            pageSize={
+                                                topic.subtopicsPagination
+                                                    .perPage
+                                            }
+                                            pagination={
+                                                topic.subtopicsPagination
+                                            }
+                                            paginationLabel={t(
+                                                'topics.detail.subtopics.pagination',
+                                                'Topic subtopics',
+                                            )}
                                             renderItem={(subtopic) => (
                                                 <Link
                                                     className="group flex items-start justify-between gap-4 py-4 text-sm"

@@ -519,6 +519,9 @@ The Routes section on a topic page returns only the current bounded page of
 route starts from the server. Its pagination controls keep the route directory
 usable as a topic grows without sending the full route collection to the
 browser.
+The Overview section applies the same bounded behavior to published subtopics;
+their accessible map counts are calculated in the database, and only the
+visible page is sent to the browser.
 
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments.

@@ -4,6 +4,7 @@ namespace App\Learning\Services;
 
 use App\Models\LearningMap;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 
@@ -54,6 +55,27 @@ class LearningMapAccessService
         return $maps
             ->filter(fn (LearningMap $map): bool => $this->canViewMap($map, $user))
             ->values();
+    }
+
+    /**
+     * Restrict a map query to the same records as visibleMaps without loading
+     * the full map collection into PHP first.
+     *
+     * @param  Builder<LearningMap>  $query
+     * @return Builder<LearningMap>
+     */
+    public function constrainVisibleQuery(Builder $query, ?User $user): Builder
+    {
+        return $query->where(function (Builder $query) use ($user): void {
+            $query
+                ->whereNull('access_roles')
+                ->orWhereJsonLength('access_roles', 0)
+                ->orWhereJsonContains('access_roles', self::PUBLIC_GROUP);
+
+            foreach ($user?->assignedRoles() ?? [] as $role) {
+                $query->orWhereJsonContains('access_roles', $role);
+            }
+        });
     }
 
     /**

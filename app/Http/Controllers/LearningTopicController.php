@@ -48,6 +48,11 @@ class LearningTopicController extends Controller
         );
         $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
+        $subtopics = $this->topics->publishedSubtopics(
+            $topic,
+            $request->user(),
+            page: max(1, (int) $request->query('subtopics_page', 1)),
+        );
         $topicSlugs = collect($this->topics->publishedDescendantSlugs($topic));
         $competenceTopics = collect($competenceMap['topics'])
             ->filter(function (array $entry) use ($topicSlugs): bool {
@@ -84,6 +89,13 @@ class LearningTopicController extends Controller
                 $learningAreas,
                 $learningPulse,
                 $reflectionNarrative,
+                subtopics: $this->serializer->subtopics($subtopics->getCollection()),
+                subtopicsPagination: [
+                    'currentPage' => $subtopics->currentPage(),
+                    'lastPage' => max(1, $subtopics->lastPage()),
+                    'perPage' => $subtopics->perPage(),
+                    'total' => $subtopics->total(),
+                ],
             ),
         ]);
     }

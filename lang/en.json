@@ -1405,6 +1405,7 @@
     "topics.detail.subtopics": "Subtopics",
     "topics.detail.subtopics.map_count.one": "1 map available",
     "topics.detail.subtopics.map_count.many": ":count maps available",
+    "topics.detail.subtopics.pagination": "Topic subtopics",
     "topics.detail.no_subtopics": "No subtopics have been published here yet.",
     "topics.detail.paths.empty": "No routes are available yet.",
     "topics.detail.paths.pagination": "Topic routes",

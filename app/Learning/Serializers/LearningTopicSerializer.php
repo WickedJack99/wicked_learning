@@ -36,6 +36,8 @@ class LearningTopicSerializer
     /**
      * @param  list<array<string, mixed>>  $paths
      * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $pathsPagination
+     * @param  list<array<string, mixed>>  $subtopics
+     * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $subtopicsPagination
      * @return array<string, mixed>
      */
     public function detail(
@@ -47,6 +49,8 @@ class LearningTopicSerializer
         array $learningAreas = [],
         array $learningPulse = [],
         ?array $reflectionNarrative = null,
+        array $subtopics = [],
+        array $subtopicsPagination = [],
     ): array {
         return [
             ...$this->summary($topic),
@@ -66,13 +70,8 @@ class LearningTopicSerializer
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
             'pathsPagination' => $pathsPagination,
-            'subtopics' => $topic->children
-                ->map(fn (LearningTopic $child): array => [
-                    ...$this->summary($child),
-                    'mapCount' => $child->maps->count(),
-                ])
-                ->values()
-                ->all(),
+            'subtopics' => $subtopics,
+            'subtopicsPagination' => $subtopicsPagination,
             'maps' => $topic->maps
                 ->map(fn (LearningMap $map): array => [
                     'description' => $map->description,
@@ -85,6 +84,21 @@ class LearningTopicSerializer
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * @param  Collection<int, LearningTopic>  $subtopics
+     * @return list<array<string, mixed>>
+     */
+    public function subtopics(Collection $subtopics): array
+    {
+        return $subtopics
+            ->map(fn (LearningTopic $subtopic): array => [
+                ...$this->summary($subtopic),
+                'mapCount' => (int) ($subtopic->visible_map_count ?? 0),
+            ])
+            ->values()
+            ->all();
     }
 
     /**

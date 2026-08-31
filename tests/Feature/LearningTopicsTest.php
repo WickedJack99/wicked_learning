@@ -131,6 +131,13 @@ test('a published topic page exposes its published subtopics alphabetically', fu
         'title' => 'Waves Map',
         'access_roles' => [User::ROLE_USER],
     ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'learning_topic_id' => $subtopics['Waves']->id,
+        'slug' => 'staff-waves-map',
+        'title' => 'Staff Waves Map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
 
     $this->actingAs($user)
         ->get(route('topics.show', $topic))
@@ -327,8 +334,11 @@ test('a topic detail bounds route collections with server pagination', function 
             ->where('topic.pathsPagination.currentPage', 1)
             ->where('topic.pathsPagination.lastPage', 3)
             ->where('topic.pathsPagination.total', 13)
-            ->has('topic.subtopics', 5)
-            ->where('topic.subtopics.4.title', $subtopics->last()->title)
+            ->has('topic.subtopics', 4)
+            ->where('topic.subtopics.3.title', $subtopics[3]->title)
+            ->where('topic.subtopicsPagination.currentPage', 1)
+            ->where('topic.subtopicsPagination.lastPage', 2)
+            ->where('topic.subtopicsPagination.total', 5)
         );
 
     $this->actingAs($learner)
@@ -338,6 +348,15 @@ test('a topic detail bounds route collections with server pagination', function 
             ->has('topic.paths', 6)
             ->where('topic.pathsPagination.currentPage', 2)
             ->where('topic.paths.0.label', 'Begin path 7')
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', ['topic' => $topic, 'section' => 'overview', 'subtopics_page' => 99]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.subtopics', 1)
+            ->where('topic.subtopicsPagination.currentPage', 2)
+            ->where('topic.subtopics.0.title', $subtopics[4]->title)
         );
 });
 
