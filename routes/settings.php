@@ -131,6 +131,12 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
 
     Route::patch('settings/worlds/maps/{map}/details', [AdminWorldController::class, 'updateMapDetails'])
         ->name('settings.worlds.maps.details.update');
+
+    Route::get('settings/worlds/maps/{map}/versions', [AdminWorldController::class, 'mapVersions'])
+        ->name('settings.worlds.maps.versions.index');
+
+    Route::post('settings/worlds/maps/{map}/versions/{version}/restore', [AdminWorldController::class, 'restoreMapVersion'])
+        ->name('settings.worlds.maps.versions.restore');
 });
 
 Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function () {

@@ -576,6 +576,10 @@ The World Builder provides:
 - light/dark map palettes and previewable controls
 - activity, NPC dialogue and Markdown graph editors
 
+Map detail edits keep a private author history of the title, description, topic
+and MapAsset-surface lock settings. Authors can inspect the bounded history and
+restore an earlier version without losing the current details.
+
 The activity graph also provides a template action for eligible activities. It
 opens an editable copy with a destination MapAsset chooser, reusing the
 author's existing editable world graph. Copies preserve reusable content and

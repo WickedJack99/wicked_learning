@@ -23,12 +23,15 @@ use App\Learning\Actions\UpdateLearningMapVisuals;
 use App\Learning\Actions\UpdateLearningNode;
 use App\Learning\Queries\LoadEditableWorldGraph;
 use App\Learning\Queries\LoadLearnerSupportSignals;
+use App\Learning\Queries\LoadLearningMapVersions;
+use App\Learning\Serializers\LearningMapVersionSerializer;
 use App\Learning\Services\LearningMapEditAccessService;
 use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
+use App\Models\LearningMapVersion;
 use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\User;
@@ -40,6 +43,8 @@ class AdminWorldController extends Controller
 {
     public function __construct(
         private readonly LoadEditableWorldGraph $loadEditableWorldGraph,
+        private readonly LoadLearningMapVersions $mapVersions,
+        private readonly LearningMapVersionSerializer $mapVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly CreateLearningMap $createLearningMap,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
@@ -211,13 +216,70 @@ class AdminWorldController extends Controller
     public function updateMapDetails(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapEdit($request, $map);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $this->updateLearningMapDetails->handle(
+            $user,
             $map,
             $request->validate($this->rules->mapDetails()),
         );
 
         return $this->redirectBackToMap($map);
+    }
+
+    public function mapVersions(Request $request, LearningMap $map): JsonResponse
+    {
+        $this->authorizeMapEdit($request, $map);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $versions = $this->mapVersions->paginate(
+            $map,
+            page: $data['page'] ?? 1,
+            perPage: $data['per_page'] ?? 6,
+        );
+
+        return response()->json([
+            'items' => $versions->getCollection()
+                ->map(fn (LearningMapVersion $version): array => $this->mapVersionSerializer->serialize($version))
+                ->values()
+                ->all(),
+            'pagination' => [
+                'page' => $versions->currentPage(),
+                'perPage' => $versions->perPage(),
+                'total' => $versions->total(),
+                'lastPage' => $versions->lastPage(),
+            ],
+        ]);
+    }
+
+    public function restoreMapVersion(
+        Request $request,
+        LearningMap $map,
+        LearningMapVersion $version,
+    ): JsonResponse {
+        $this->authorizeMapEdit($request, $map);
+        abort_unless($version->learning_map_id === $map->id, 404);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        $map = $this->updateLearningMapDetails->handle($user, $map, [
+            'description' => $version->description,
+            'map_assets_locked' => $version->map_assets_locked,
+            'title' => $version->title,
+            'topic_id' => $version->learning_topic_id,
+        ]);
+
+        return response()->json([
+            'map' => [
+                'description' => $map->description,
+                'mapAssetsLocked' => (bool) $map->map_assets_locked,
+                'topicId' => $map->learning_topic_id,
+                'title' => $map->title,
+            ],
+        ]);
     }
 
     public function updateMapAccess(Request $request, LearningMap $map): RedirectResponse

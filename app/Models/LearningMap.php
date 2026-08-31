@@ -115,4 +115,10 @@ class LearningMap extends Model
             'source_learning_node_id',
         );
     }
+
+    /** @return HasMany<LearningMapVersion, $this> */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(LearningMapVersion::class);
+    }
 }

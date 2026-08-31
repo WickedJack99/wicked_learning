@@ -1,5 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import {
+    History,
     Image,
     LayoutPanelTop,
     Map as MapIcon,
@@ -10,12 +11,14 @@ import {
     ShieldCheck,
     SlidersHorizontal,
     Trash2,
+    RotateCcw,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ColorOpacityField, isHexColor } from '@/components/color-input';
 import { ConfigModeSwitch } from '@/components/config-mode-switch';
 import InputError from '@/components/input-error';
+import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsConfigurationShell,
     SettingsNestedWorkspace,
@@ -141,6 +144,25 @@ type DetailsForm = {
     map_assets_locked: boolean;
     topic_id: number | null;
     title: string;
+};
+
+type MapDetailsVersion = {
+    createdAt: string | null;
+    description: string | null;
+    id: number;
+    learningTopicId: number | null;
+    mapAssetsLocked: boolean;
+    title: string;
+};
+
+type MapDetailsVersionPage = {
+    items: MapDetailsVersion[];
+    pagination: {
+        lastPage: number;
+        page: number;
+        perPage: number;
+        total: number;
+    };
 };
 
 const mainSections: {
@@ -301,6 +323,12 @@ export default function ConfigureMap({
         topic_id: map.topicId,
         title: map.title,
     });
+    const [detailsBaseline, setDetailsBaseline] = useState<DetailsForm>({
+        description: map.description ?? '',
+        map_assets_locked: map.mapAssetsLocked,
+        topic_id: map.topicId,
+        title: map.title,
+    });
     const [visualForm, setVisualForm] = useState<MapVisualForm>(() =>
         mapVisualFormFromConfig(map.backgroundConfig),
     );
@@ -318,15 +346,20 @@ export default function ConfigureMap({
         null,
     );
     const [imageErrors, setImageErrors] = useState<Record<string, string>>({});
+    const [detailsHistoryOpen, setDetailsHistoryOpen] = useState(false);
+    const [detailsHistory, setDetailsHistory] =
+        useState<MapDetailsVersionPage | null>(null);
+    const [detailsHistoryLoading, setDetailsHistoryLoading] = useState(false);
+    const [detailsHistoryError, setDetailsHistoryError] = useState(false);
+    const [restoringDetailsVersionId, setRestoringDetailsVersionId] = useState<
+        number | null
+    >(null);
     const resolvedTheme = useMemo(
         () => resolveThemePreview(visualForm, mode),
         [mode, visualForm],
     );
     const hasDetailsChanges = useDirtyState(detailsForm, {
-        description: map.description ?? '',
-        map_assets_locked: map.mapAssetsLocked,
-        topic_id: map.topicId,
-        title: map.title,
+        ...detailsBaseline,
     });
     const hasVisualChanges = useDirtyState(
         visualForm,
@@ -380,7 +413,9 @@ export default function ConfigureMap({
         }
 
         if (mainSection === 'details') {
-            saveDetails(map.id, detailsForm, setErrors, setProcessing);
+            saveDetails(map.id, detailsForm, setErrors, setProcessing, () =>
+                setDetailsBaseline(detailsForm),
+            );
 
             return;
         }
@@ -410,6 +445,97 @@ export default function ConfigureMap({
         router.delete(`/settings/worlds/maps/${map.id}`, {
             onFinish: () => setDeleting(false),
         });
+    };
+
+    const loadDetailsHistory = async (page = 1) => {
+        setDetailsHistoryLoading(true);
+        setDetailsHistoryError(false);
+
+        try {
+            const response = await fetch(
+                `/settings/worlds/maps/${map.id}/versions?page=${page}&per_page=4`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The map history could not be loaded.');
+            }
+
+            setDetailsHistory((await response.json()) as MapDetailsVersionPage);
+        } catch {
+            setDetailsHistoryError(true);
+        } finally {
+            setDetailsHistoryLoading(false);
+        }
+    };
+
+    const openDetailsHistory = () => {
+        setDetailsHistoryOpen(true);
+        void loadDetailsHistory();
+    };
+
+    const restoreDetailsVersion = async (version: MapDetailsVersion) => {
+        if (
+            !window.confirm(
+                'Restore this map detail version? The current details will be preserved in history.',
+            )
+        ) {
+            return;
+        }
+
+        setRestoringDetailsVersionId(version.id);
+
+        try {
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const response = await fetch(
+                `/settings/worlds/maps/${map.id}/versions/${version.id}/restore`,
+                {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'POST',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error('The map version could not be restored.');
+            }
+
+            const payload = (await response.json()) as {
+                map: {
+                    description: string | null;
+                    mapAssetsLocked: boolean;
+                    topicId: number | null;
+                    title: string;
+                };
+            };
+            const restoredForm = {
+                description: payload.map.description ?? '',
+                map_assets_locked: payload.map.mapAssetsLocked,
+                topic_id: payload.map.topicId,
+                title: payload.map.title,
+            };
+            setDetailsForm(restoredForm);
+            setDetailsBaseline(restoredForm);
+            await loadDetailsHistory(detailsHistory?.pagination.page ?? 1);
+        } catch {
+            setDetailsHistoryError(true);
+        } finally {
+            setRestoringDetailsVersionId(null);
+        }
     };
 
     const uploadImage = async (
@@ -475,6 +601,7 @@ export default function ConfigureMap({
                     action={action}
                     errors={errors}
                     form={detailsForm}
+                    onOpenHistory={openDetailsHistory}
                     onChange={setDetailsForm}
                     previewTheme={resolvedTheme}
                     topicOptions={topicOptions}
@@ -594,6 +721,105 @@ export default function ConfigureMap({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <Dialog
+                onOpenChange={setDetailsHistoryOpen}
+                open={detailsHistoryOpen}
+            >
+                <DialogContent className="max-h-[min(44rem,calc(100vh-2rem))] overflow-hidden sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Map detail history</DialogTitle>
+                        <DialogDescription>
+                            Review earlier map title, description, topic and
+                            asset-lock settings. Restoring preserves the current
+                            details as a new history entry.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid min-h-0 gap-3 overflow-hidden">
+                        {detailsHistoryLoading ? (
+                            <p
+                                aria-live="polite"
+                                className="text-sm"
+                                role="status"
+                            >
+                                Loading map history…
+                            </p>
+                        ) : detailsHistoryError ? (
+                            <p
+                                aria-live="polite"
+                                className="text-sm text-red-400"
+                                role="status"
+                            >
+                                Map history could not be loaded. Try again.
+                            </p>
+                        ) : detailsHistory &&
+                          detailsHistory.items.length > 0 ? (
+                            <div className="grid min-h-0 gap-2">
+                                {detailsHistory.items.map((version) => (
+                                    <div
+                                        className="grid gap-1 rounded-md border border-[var(--settings-border-color)] p-3"
+                                        key={version.id}
+                                    >
+                                        <div className="flex items-baseline justify-between gap-3">
+                                            <p className="text-sm font-medium">
+                                                {version.title}
+                                            </p>
+                                            <time className="text-xs text-[var(--settings-muted-text)]">
+                                                {formatMapVersionDate(
+                                                    version.createdAt,
+                                                )}
+                                            </time>
+                                        </div>
+                                        <p className="line-clamp-2 text-xs text-[var(--settings-muted-text)]">
+                                            {version.description ||
+                                                'No description'}
+                                        </p>
+                                        <Button
+                                            className="justify-self-end"
+                                            disabled={
+                                                restoringDetailsVersionId !==
+                                                null
+                                            }
+                                            onClick={() =>
+                                                void restoreDetailsVersion(
+                                                    version,
+                                                )
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            <RotateCcw className="size-4" />
+                                            {restoringDetailsVersionId ===
+                                            version.id
+                                                ? 'Restoring…'
+                                                : 'Restore this version'}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-[var(--settings-muted-text)]">
+                                No earlier map details yet. The first update
+                                will create one.
+                            </p>
+                        )}
+                        {detailsHistory ? (
+                            <PaginationControls
+                                buttonClassName="text-[var(--settings-accent)]"
+                                currentPage={detailsHistory.pagination.page}
+                                disabled={detailsHistoryLoading}
+                                label="Map detail history pagination"
+                                onPageChange={(page) =>
+                                    void loadDetailsHistory(page)
+                                }
+                                pageCount={detailsHistory.pagination.lastPage}
+                                showSinglePage
+                                textClassName="text-[var(--settings-muted-text)]"
+                            />
+                        ) : null}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
@@ -603,6 +829,7 @@ function MapDetailsSection({
     errors,
     form,
     onChange,
+    onOpenHistory,
     previewTheme,
     topicOptions,
 }: {
@@ -610,12 +837,23 @@ function MapDetailsSection({
     errors: Record<string, string>;
     form: DetailsForm;
     onChange: (form: DetailsForm) => void;
+    onOpenHistory: () => void;
     previewTheme: MapVisualThemeFields;
     topicOptions: LearningTopicOption[];
 }) {
     return (
         <div className="flex h-full min-h-0 flex-col">
             <ConfigureMapSectionHeader
+                action={
+                    <Button
+                        onClick={onOpenHistory}
+                        type="button"
+                        variant="outline"
+                    >
+                        <History className="size-4" />
+                        History
+                    </Button>
+                }
                 description="These fields are shown in the top-left map title panel."
                 title="Map details"
             />
@@ -1246,6 +1484,21 @@ function ConfigureMapSectionFooter({ action }: { action: ReactNode }) {
     );
 }
 
+function formatMapVersionDate(value: string | null): string {
+    if (!value) {
+        return '—';
+    }
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.getTime())
+        ? value
+        : new Intl.DateTimeFormat(undefined, {
+              dateStyle: 'medium',
+              timeStyle: 'short',
+          }).format(date);
+}
+
 function SectionPreview({
     section,
     theme,
@@ -1485,9 +1738,7 @@ function PreviewIconButton({
         ? theme.sideControlActiveIconColor ||
           theme.sideControlActiveTextColor ||
           '#0f172a'
-        : theme.sideControlIconColor ||
-          theme.sideControlTextColor ||
-          '#e2e8f0';
+        : theme.sideControlIconColor || theme.sideControlTextColor || '#e2e8f0';
 
     return (
         <div
@@ -1681,13 +1932,17 @@ function saveDetails(
     form: DetailsForm,
     setErrors: (errors: Record<string, string>) => void,
     setProcessing: (processing: boolean) => void,
+    onSuccess: () => void,
 ) {
     setProcessing(true);
     router.patch(`/settings/worlds/maps/${mapId}/details`, form, {
         preserveScroll: true,
         onError: setErrors,
         onFinish: () => setProcessing(false),
-        onSuccess: () => setErrors({}),
+        onSuccess: () => {
+            setErrors({});
+            onSuccess();
+        },
     });
 }
 

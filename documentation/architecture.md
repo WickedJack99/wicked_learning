@@ -167,6 +167,11 @@ dependency on later catalog changes. AI-draft linkage remains roadmap work.
 Restoring a revision uses the same transactional update path, so the
 pre-restore current record is also retained in that history.
 
+Map detail updates use the same transactional snapshot-before-update pattern in
+`LearningMapVersion`. The permission-protected map versions endpoint returns a
+bounded page, and restore validates that the version belongs to the selected map
+before saving the current details as another version.
+
 `LearningConcept` is a small authoring catalog for reusable evidence vocabulary.
 Its bounded query supplies active names to the activity graph and all records
 to the permission-controlled Concept Library editor. Saving the catalog

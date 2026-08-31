@@ -2423,7 +2423,8 @@ test('admin users can edit map details', function () {
     $map->refresh();
 
     expect($map->title)->toBe('First Clearing')
-        ->and($map->description)->toBe('A quiet learning landscape for active practice.');
+        ->and($map->description)->toBe('A quiet learning landscape for active practice.')
+        ->and($map->versions()->count())->toBe(1);
 
     $workspaceUrl = route('settings.index', [
         'panel' => 'admin-world-builder',
@@ -2438,6 +2439,73 @@ test('admin users can edit map details', function () {
             'description' => 'Still inside the settings workspace.',
         ])
         ->assertRedirect($workspaceUrl);
+});
+
+test('authors can browse and restore map detail versions without losing the current version', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $map = LearningMap::query()->where('slug', 'first-sector')->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'description' => 'The first map description.',
+            'title' => 'First Clearing revised',
+        ])
+        ->assertRedirect();
+
+    $version = $map->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.maps.versions.index', $map).'?page=1&per_page=6')
+        ->assertOk()
+        ->assertJsonPath('items.0.title', $map->getOriginal('title'))
+        ->assertJsonPath('items.0.description', $map->getOriginal('description'))
+        ->assertJsonPath('pagination.page', 1)
+        ->assertJsonPath('pagination.perPage', 6)
+        ->assertJsonPath('pagination.total', 1);
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.versions.restore', [
+            'map' => $map,
+            'version' => $version,
+        ]))
+        ->assertOk()
+        ->assertJsonPath('map.title', $version->title)
+        ->assertJsonPath('map.description', $version->description);
+
+    expect($map->refresh()->title)->toBe('First Clearing')
+        ->and($map->description)->toBe($version->description)
+        ->and($map->versions()->count())->toBe(2);
+});
+
+test('map detail versions cannot be restored across maps', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $maps = LearningMap::query()->take(2)->get();
+    $map = $maps->firstOrFail();
+    $otherMap = $maps->last();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.worlds.maps.details.update', $map), [
+            'title' => 'Versioned map',
+        ])
+        ->assertRedirect();
+
+    $version = $map->versions()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.worlds.maps.versions.restore', [
+            'map' => $otherMap,
+            'version' => $version,
+        ]))
+        ->assertNotFound();
+
+    expect($otherMap->refresh()->title)->not->toBe('Versioned map')
+        ->and($otherMap->versions()->count())->toBe(0);
 });
 
 test('admin users can edit map visual theme variants', function () {
