@@ -3,6 +3,7 @@
 namespace App\Learning\Serializers;
 
 use App\Learning\Services\ActivityCompetenceConfiguration;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivityStart;
 use Illuminate\Support\Collection;
@@ -11,6 +12,7 @@ class LearningPathSerializer
 {
     public function __construct(
         private readonly ActivityCompetenceConfiguration $competence,
+        private readonly ActivityTimeGuideConfiguration $timeGuide,
     ) {}
 
     /**
@@ -66,6 +68,7 @@ class LearningPathSerializer
                         'lastEnteredAt' => $progress->last_entered_at?->toIso8601String(),
                         'status' => $progress->status,
                     ] : null,
+                    'timeGuideMinutes' => $this->timeGuide->forActivity($route->activity),
                     'topic' => $topic?->is_published ? [
                         'href' => route('topics.show', $topic, false),
                         'slug' => $topic->slug,

@@ -151,6 +151,7 @@ test('learning paths paginate long route collections on the server', function ()
             'type' => 'markdown',
             'config' => [
                 'learningIntent' => $index === 7 ? 'review' : 'participate',
+                'timeGuideMinutes' => $index === 7 ? 25 : 10,
             ],
         ]);
         LearningActivityStart::query()->create([
@@ -206,6 +207,29 @@ test('learning paths paginate long route collections on the server', function ()
             ->where('pagination.lastPage', 1)
             ->where('pagination.total', 1)
             ->where('paths.0.label', 'Long route 7')
+        );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['purpose' => 'review', 'time' => 30]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 1)
+            ->where('selectedPurpose', 'review')
+            ->where('selectedTimeBudget', 30)
+            ->where('pagination.total', 1)
+            ->where('paths.0.timeGuideMinutes', 25)
+        );
+
+    $this->actingAs($user)
+        ->get(route('paths.index', ['purpose' => 'review', 'time' => 15]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 0)
+            ->where('selectedPurpose', 'review')
+            ->where('selectedTimeBudget', 15)
+            ->where('pagination.total', 0)
         );
 });
 

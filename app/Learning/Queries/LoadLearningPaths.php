@@ -5,6 +5,7 @@ namespace App\Learning\Queries;
 use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\ActivityCompetenceConfiguration;
 use App\Learning\Services\ActivityRouteEligibility;
+use App\Learning\Services\ActivityTimeGuideConfiguration;
 use App\Learning\Services\LearningMapAccessService;
 use App\Learning\Services\LearningNodeStateResolver;
 use App\Models\LearnerRouteProgress;
@@ -24,6 +25,7 @@ class LoadLearningPaths
         private readonly CurrentWorldResolver $worldResolver,
         private readonly ActivityRouteEligibility $routeEligibility,
         private readonly ActivityCompetenceConfiguration $activityCompetence,
+        private readonly ActivityTimeGuideConfiguration $timeGuide,
         private readonly LearningMapAccessService $mapAccess,
         private readonly LearningNodeStateResolver $nodeStateResolver,
     ) {}
@@ -33,10 +35,11 @@ class LoadLearningPaths
      *     routes: Collection<int, LearningActivityStart>,
      *     progress: array<string, LearnerRouteProgress>,
      *     pagination: array{currentPage: int, lastPage: int, perPage: int, total: int},
-     *     purpose: ?string
+     *     purpose: ?string,
+     *     timeBudget: ?int
      * }
      */
-    public function handle(User $user, ?LearningTopic $topic = null, int $page = 1, ?string $purpose = null): array
+    public function handle(User $user, ?LearningTopic $topic = null, int $page = 1, ?string $purpose = null, ?int $timeBudget = null): array
     {
         $page = max(1, $page);
         $worldId = $this->worldResolver->query()->value('id');
@@ -52,15 +55,16 @@ class LoadLearningPaths
                     'total' => 0,
                 ],
                 'purpose' => $purpose,
+                'timeBudget' => $timeBudget,
             ];
         }
 
-        $scan = $this->scanRoutes($user, $topic, $worldId, $page, $purpose);
+        $scan = $this->scanRoutes($user, $topic, $worldId, $page, $purpose, $timeBudget);
         $lastPage = max(1, (int) ceil($scan['total'] / self::PAGE_SIZE));
 
         if ($page > $lastPage && $scan['total'] > 0) {
             $page = $lastPage;
-            $scan = $this->scanRoutes($user, $topic, $worldId, $page, $purpose);
+            $scan = $this->scanRoutes($user, $topic, $worldId, $page, $purpose, $timeBudget);
         }
 
         $routes = $scan['routes'];
@@ -86,6 +90,7 @@ class LoadLearningPaths
                 'total' => $scan['total'],
             ],
             'purpose' => $purpose,
+            'timeBudget' => $timeBudget,
         ];
     }
 
@@ -95,19 +100,25 @@ class LoadLearningPaths
      *
      * @return array{routes: Collection<int, LearningActivityStart>, total: int}
      */
-    private function scanRoutes(User $user, ?LearningTopic $topic, int $worldId, int $page, ?string $purpose): array
+    private function scanRoutes(User $user, ?LearningTopic $topic, int $worldId, int $page, ?string $purpose, ?int $timeBudget): array
     {
         $routes = collect();
         $total = 0;
         $firstMatch = ($page - 1) * self::PAGE_SIZE;
 
-        $this->routeQuery($topic, $worldId)->chunk(self::SCAN_CHUNK_SIZE, function (Collection $candidates) use ($user, $purpose, &$routes, &$total, $firstMatch): void {
+        $this->routeQuery($topic, $worldId)->chunk(self::SCAN_CHUNK_SIZE, function (Collection $candidates) use ($user, $purpose, $timeBudget, &$routes, &$total, $firstMatch): void {
             foreach ($candidates as $route) {
                 if (! $this->isVisibleRoute($route, $user)) {
                     continue;
                 }
 
                 if ($purpose !== null && $this->activityCompetence->learningIntentForActivity($route->activity) !== $purpose) {
+                    continue;
+                }
+
+                $timeGuideMinutes = $this->timeGuide->forActivity($route->activity);
+
+                if ($timeBudget !== null && ($timeGuideMinutes === null || $timeGuideMinutes > $timeBudget)) {
                     continue;
                 }
 

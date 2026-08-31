@@ -23,17 +23,24 @@ class LearningPathController extends Controller
             && in_array($purpose, ActivityCompetenceConfiguration::LEARNING_INTENTS, true)
             ? $purpose
             : null;
+        $timeBudget = $request->query('time');
+        $timeBudget = is_numeric($timeBudget)
+            && in_array((int) $timeBudget, [15, 30], true)
+            ? (int) $timeBudget
+            : null;
 
         $paths = $this->loadLearningPaths->handle(
             $request->user(),
             page: max(1, (int) $request->query('page', 1)),
             purpose: $purpose,
+            timeBudget: $timeBudget,
         );
 
         return Inertia::render('paths', [
             'paths' => $this->serializer->serialize($paths),
             'pagination' => $paths['pagination'],
             'selectedPurpose' => $paths['purpose'],
+            'selectedTimeBudget' => $paths['timeBudget'],
         ]);
     }
 }

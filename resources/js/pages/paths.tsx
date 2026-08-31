@@ -20,6 +20,7 @@ type LearningPath = {
     learningIntent: string | null;
     label: string;
     routeDescription: string | null;
+    timeGuideMinutes: number | null;
     mapHref: string;
     mapTitle: string;
     nodeHref: string;
@@ -39,11 +40,19 @@ type PathsPagination = {
     total: number;
 };
 
-function pathsUrl(page: number, purpose: string | null): string {
+function pathsUrl(
+    page: number,
+    purpose: string | null,
+    timeBudget: number | null,
+): string {
     const params = new URLSearchParams({ page: String(page) });
 
     if (purpose) {
         params.set('purpose', purpose);
+    }
+
+    if (timeBudget !== null) {
+        params.set('time', String(timeBudget));
     }
 
     return `/paths?${params.toString()}`;
@@ -53,13 +62,16 @@ export default function Paths({
     paths,
     pagination,
     selectedPurpose,
+    selectedTimeBudget,
 }: {
     paths: LearningPath[];
     pagination: PathsPagination;
     selectedPurpose: string | null;
+    selectedTimeBudget: number | null;
 }) {
     const t = usePlatformTranslation();
-    const hasSelectedPurpose = selectedPurpose !== null;
+    const hasActiveFilter =
+        selectedPurpose !== null || selectedTimeBudget !== null;
 
     return (
         <LearnerDocumentSurface>
@@ -78,7 +90,7 @@ export default function Paths({
                     )}
                 </p>
 
-                {paths.length > 0 || hasSelectedPurpose ? (
+                {paths.length > 0 || hasActiveFilter ? (
                     <section className="mt-12" aria-labelledby="paths-heading">
                         <div className="flex flex-col gap-4 border-b border-[var(--learner-border-color)] pb-4 sm:flex-row sm:items-end sm:justify-between">
                             <div className="flex items-center gap-4">
@@ -93,50 +105,108 @@ export default function Paths({
                                     )}
                                 </h2>
                             </div>
-                            <div className="sm:max-w-xs sm:min-w-64">
-                                <label
-                                    className="text-xs font-medium text-[var(--learner-muted-text)]"
-                                    htmlFor="paths-purpose"
-                                >
-                                    {t(
-                                        'paths.filters.purpose.label',
-                                        'Learning purpose',
-                                    )}
-                                </label>
-                                <select
-                                    className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
-                                    id="paths-purpose"
-                                    onChange={(event) =>
-                                        router.visit(
-                                            pathsUrl(
-                                                1,
-                                                event.target.value || null,
-                                            ),
-                                            {
-                                                preserveScroll: true,
-                                                replace: true,
-                                            },
-                                        )
-                                    }
-                                    value={selectedPurpose ?? ''}
-                                >
-                                    <option value="">
+                            <div className="grid w-full gap-3 sm:w-[32rem] sm:max-w-full sm:grid-cols-2">
+                                <div>
+                                    <label
+                                        className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                        htmlFor="paths-purpose"
+                                    >
                                         {t(
-                                            'paths.filters.purpose.any',
-                                            'Any purpose',
+                                            'paths.filters.purpose.label',
+                                            'Learning purpose',
                                         )}
-                                    </option>
-                                    {LEARNING_INTENTS.map((intent) => (
-                                        <option key={intent} value={intent}>
-                                            {learningIntentLabel(intent, t) ??
-                                                intent}
+                                    </label>
+                                    <select
+                                        className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                        id="paths-purpose"
+                                        onChange={(event) =>
+                                            router.visit(
+                                                pathsUrl(
+                                                    1,
+                                                    event.target.value || null,
+                                                    selectedTimeBudget,
+                                                ),
+                                                {
+                                                    preserveScroll: true,
+                                                    replace: true,
+                                                },
+                                            )
+                                        }
+                                        value={selectedPurpose ?? ''}
+                                    >
+                                        <option value="">
+                                            {t(
+                                                'paths.filters.purpose.any',
+                                                'Any purpose',
+                                            )}
                                         </option>
-                                    ))}
-                                </select>
-                                <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                                        {LEARNING_INTENTS.map((intent) => (
+                                            <option key={intent} value={intent}>
+                                                {learningIntentLabel(
+                                                    intent,
+                                                    t,
+                                                ) ?? intent}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        className="text-xs font-medium text-[var(--learner-muted-text)]"
+                                        htmlFor="paths-time"
+                                    >
+                                        {t(
+                                            'paths.filters.time.label',
+                                            'Available time',
+                                        )}
+                                    </label>
+                                    <select
+                                        className="mt-1 h-9 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-2 text-sm text-[var(--learner-body-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                        id="paths-time"
+                                        onChange={(event) =>
+                                            router.visit(
+                                                pathsUrl(
+                                                    1,
+                                                    selectedPurpose,
+                                                    event.target.value
+                                                        ? Number(
+                                                              event.target
+                                                                  .value,
+                                                          )
+                                                        : null,
+                                                ),
+                                                {
+                                                    preserveScroll: true,
+                                                    replace: true,
+                                                },
+                                            )
+                                        }
+                                        value={selectedTimeBudget ?? ''}
+                                    >
+                                        <option value="">
+                                            {t(
+                                                'paths.filters.time.any',
+                                                'Any time',
+                                            )}
+                                        </option>
+                                        <option value="15">
+                                            {t(
+                                                'paths.filters.time.short',
+                                                'Up to 15 minutes',
+                                            )}
+                                        </option>
+                                        <option value="30">
+                                            {t(
+                                                'paths.filters.time.medium',
+                                                'Up to 30 minutes',
+                                            )}
+                                        </option>
+                                    </select>
+                                </div>
+                                <p className="text-xs text-[var(--learner-muted-text)] sm:col-span-2">
                                     {t(
-                                        'paths.filters.purpose.description',
-                                        'Narrow the starting points by what the route invites you to do.',
+                                        'paths.filters.description',
+                                        'Narrow the starting points by purpose or the time you have available.',
                                     )}
                                 </p>
                             </div>
@@ -158,7 +228,11 @@ export default function Paths({
                                     )}
                                     onPageChange={(page) =>
                                         router.visit(
-                                            pathsUrl(page, selectedPurpose),
+                                            pathsUrl(
+                                                page,
+                                                selectedPurpose,
+                                                selectedTimeBudget,
+                                            ),
                                             {
                                                 preserveScroll: true,
                                                 replace: true,
@@ -187,7 +261,7 @@ export default function Paths({
                                 <button
                                     className="mt-5 text-sm font-medium text-[var(--learner-action-accent)] underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--learner-action-accent)]"
                                     onClick={() =>
-                                        router.visit(pathsUrl(1, null), {
+                                        router.visit(pathsUrl(1, null, null), {
                                             preserveScroll: true,
                                             replace: true,
                                         })
@@ -274,6 +348,15 @@ function PathCard({ path }: { path: LearningPath }) {
                     {path.learningIntent ? (
                         <p className="mt-1 text-xs font-medium text-[var(--learner-action-accent)]">
                             {learningIntentLabel(path.learningIntent, t)}
+                        </p>
+                    ) : null}
+                    {path.timeGuideMinutes ? (
+                        <p className="mt-1 text-xs text-[var(--learner-muted-text)]">
+                            {t(
+                                'learning.activity.time_guide',
+                                'Suggested time: :minutes minutes',
+                                { minutes: path.timeGuideMinutes },
+                            )}
                         </p>
                     ) : null}
                     {path.learningAreas.length > 0 ? (
