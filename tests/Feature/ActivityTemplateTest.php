@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LearningActivity;
+use App\Models\LearningActivityTemplate;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 
@@ -67,6 +68,47 @@ test('authors cannot inspect another authors activity template', function () {
         ->getJson(route('settings.worlds.activity-templates.index'))
         ->assertOk()
         ->assertJsonPath('pagination.total', 0);
+
+    $this->actingAs($otherAdmin)
+        ->patchJson(route('settings.worlds.activity-templates.update', $template), [
+            'name' => 'Stolen name',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($otherAdmin)
+        ->deleteJson(route('settings.worlds.activity-templates.destroy', $template))
+        ->assertNotFound();
+});
+
+test('authors can rename and delete their private activity templates', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $activity = LearningActivity::query()->where('type', 'obstacle')->firstOrFail();
+
+    $template = $this->actingAs($admin)
+        ->postJson(route('settings.worlds.activities.templates.store', $activity), [
+            'name' => 'Original gate template',
+        ])
+        ->assertCreated()
+        ->json('template.id');
+
+    $this->actingAs($admin)
+        ->patchJson(route('settings.worlds.activity-templates.update', $template), [
+            'name' => '  Renamed gate template  ',
+        ])
+        ->assertOk()
+        ->assertJsonPath('template.name', 'Renamed gate template');
+
+    expect(LearningActivityTemplate::query()->findOrFail($template)->name)
+        ->toBe('Renamed gate template');
+
+    $this->actingAs($admin)
+        ->deleteJson(route('settings.worlds.activity-templates.destroy', $template))
+        ->assertNoContent();
+
+    expect(LearningActivityTemplate::query()->find($template))->toBeNull();
 });
 
 test('npc dialogue graph activities cannot be saved as flat templates', function () {

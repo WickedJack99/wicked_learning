@@ -201,6 +201,12 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::get('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'activityTemplate'])
         ->name('settings.worlds.activity-templates.show');
 
+    Route::patch('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'updateActivityTemplate'])
+        ->name('settings.worlds.activity-templates.update');
+
+    Route::delete('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'destroyActivityTemplate'])
+        ->name('settings.worlds.activity-templates.destroy');
+
     Route::get('settings/worlds/nodes/{node}/activities', [AdminActivityController::class, 'edit'])
         ->name('settings.worlds.nodes.activities.edit');
 

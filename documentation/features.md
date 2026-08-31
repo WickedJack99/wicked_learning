@@ -616,6 +616,8 @@ template and browse their templates through a bounded paginated picker when
 creating an activity. Template metadata is listed separately from its full
 authored configuration, which is loaded only after selection. Learner
 responses, evidence and the separate NPC dialogue graph are not included.
+Authors can rename or delete their own saved templates from that picker; these
+operations do not affect activities that were previously created from them.
 Shared, versioned templates and richer asset-resolution controls remain future
 authoring work.
 

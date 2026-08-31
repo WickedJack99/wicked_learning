@@ -12,11 +12,14 @@ import {
     ArrowLeft,
     ArrowRight,
     AlertTriangle,
+    Check,
     GitBranch,
     History,
+    Pencil,
     Plus,
     Sparkles,
     Trash2,
+    X,
 } from 'lucide-react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -134,6 +137,16 @@ export default function EditNodeActivities({
             total: 0,
         });
     const [activityTemplateSearch, setActivityTemplateSearch] = useState('');
+    const [managingActivityTemplates, setManagingActivityTemplates] =
+        useState(false);
+    const [editingActivityTemplate, setEditingActivityTemplate] =
+        useState<ActivityTemplateSummary | null>(null);
+    const [editingActivityTemplateName, setEditingActivityTemplateName] =
+        useState('');
+    const [updatingActivityTemplate, setUpdatingActivityTemplate] =
+        useState(false);
+    const [deletingActivityTemplateId, setDeletingActivityTemplateId] =
+        useState<number | null>(null);
     const [loadingActivityTemplates, setLoadingActivityTemplates] =
         useState(false);
     const [activityTemplateError, setActivityTemplateError] = useState<
@@ -454,7 +467,7 @@ export default function EditNodeActivities({
     }, []);
 
     const loadActivityTemplates = useCallback(
-        async (page = 1, search = ''): Promise<void> => {
+        async (page = 1, search = ''): Promise<ActivityTemplatePage | null> => {
             setLoadingActivityTemplates(true);
             setActivityTemplateError(null);
             const params = new URLSearchParams({
@@ -485,17 +498,194 @@ export default function EditNodeActivities({
                 const payload = (await response.json()) as ActivityTemplatePage;
                 setActivityTemplates(payload.items);
                 setActivityTemplatesPagination(payload.pagination);
+
+                return payload;
             } catch (error) {
                 setActivityTemplateError(
                     error instanceof Error
                         ? error.message
                         : 'The activity templates could not be loaded.',
                 );
+
+                return null;
             } finally {
                 setLoadingActivityTemplates(false);
             }
         },
         [],
+    );
+
+    const beginRenameActivityTemplate = useCallback(
+        (template: ActivityTemplateSummary): void => {
+            setEditingActivityTemplate(template);
+            setEditingActivityTemplateName(template.name);
+            setActivityTemplateError(null);
+        },
+        [],
+    );
+
+    const cancelRenameActivityTemplate = useCallback((): void => {
+        setEditingActivityTemplate(null);
+        setEditingActivityTemplateName('');
+        setActivityTemplateError(null);
+    }, []);
+
+    const renameActivityTemplate = useCallback(async (): Promise<void> => {
+        if (
+            !editingActivityTemplate ||
+            editingActivityTemplateName.trim() === ''
+        ) {
+            return;
+        }
+
+        setUpdatingActivityTemplate(true);
+        setActivityTemplateError(null);
+        const csrfToken =
+            document.querySelector<HTMLMetaElement>(
+                'meta[name="csrf-token"]',
+            )?.content ?? '';
+
+        try {
+            const response = await fetch(
+                `/settings/worlds/activity-templates/${editingActivityTemplate.id}`,
+                {
+                    body: JSON.stringify({
+                        name: editingActivityTemplateName.trim(),
+                    }),
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    method: 'PATCH',
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    t(
+                        'settings.worlds.activities.template.rename_error',
+                        'The activity template could not be renamed.',
+                    ),
+                );
+            }
+
+            const payload = (await response.json()) as {
+                template: ActivityTemplateSummary;
+            };
+            setActivityTemplates((current) =>
+                current.map((template) =>
+                    template.id === payload.template.id
+                        ? payload.template
+                        : template,
+                ),
+            );
+            cancelRenameActivityTemplate();
+        } catch (error) {
+            setActivityTemplateError(
+                error instanceof Error
+                    ? error.message
+                    : t(
+                          'settings.worlds.activities.template.rename_error',
+                          'The activity template could not be renamed.',
+                      ),
+            );
+        } finally {
+            setUpdatingActivityTemplate(false);
+        }
+    }, [
+        cancelRenameActivityTemplate,
+        editingActivityTemplate,
+        editingActivityTemplateName,
+        t,
+    ]);
+
+    const deleteActivityTemplate = useCallback(
+        async (template: ActivityTemplateSummary): Promise<void> => {
+            if (
+                !window.confirm(
+                    t(
+                        'settings.worlds.activities.template.delete_confirm',
+                        'Delete this private template? Existing activities will not change.',
+                    ),
+                )
+            ) {
+                return;
+            }
+
+            setDeletingActivityTemplateId(template.id);
+            setActivityTemplateError(null);
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+            const page = activityTemplatesPagination.page;
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${template.id}`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        method: 'DELETE',
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        t(
+                            'settings.worlds.activities.template.delete_error',
+                            'The activity template could not be deleted.',
+                        ),
+                    );
+                }
+
+                const payload = await loadActivityTemplates(
+                    page,
+                    activityTemplateSearch,
+                );
+
+                if (
+                    payload &&
+                    payload.items.length === 0 &&
+                    payload.pagination.lastPage < page
+                ) {
+                    await loadActivityTemplates(
+                        payload.pagination.lastPage,
+                        activityTemplateSearch,
+                    );
+                }
+
+                if (editingActivityTemplate?.id === template.id) {
+                    cancelRenameActivityTemplate();
+                }
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : t(
+                              'settings.worlds.activities.template.delete_error',
+                              'The activity template could not be deleted.',
+                          ),
+                );
+            } finally {
+                setDeletingActivityTemplateId(null);
+            }
+        },
+        [
+            activityTemplateSearch,
+            activityTemplatesPagination.page,
+            cancelRenameActivityTemplate,
+            editingActivityTemplate,
+            loadActivityTemplates,
+            t,
+        ],
     );
 
     const applySavedTemplate = useCallback(
@@ -1377,26 +1567,46 @@ export default function EditNodeActivities({
                                         loads only after you choose one.
                                     </p>
                                 </div>
-                                <Input
-                                    aria-label="Search saved activity templates"
-                                    className="h-8 w-full sm:w-56"
-                                    onChange={(event) =>
-                                        setActivityTemplateSearch(
-                                            event.target.value,
-                                        )
-                                    }
-                                    onKeyDown={(event) => {
-                                        if (event.key === 'Enter') {
-                                            event.preventDefault();
-                                            void loadActivityTemplates(
-                                                1,
-                                                activityTemplateSearch,
+                                <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
+                                    <Button
+                                        aria-pressed={managingActivityTemplates}
+                                        className="h-8 px-2.5 text-xs"
+                                        onClick={() => {
+                                            setManagingActivityTemplates(
+                                                (current) => !current,
                                             );
+                                            cancelRenameActivityTemplate();
+                                        }}
+                                        type="button"
+                                        variant="outline"
+                                    >
+                                        <Pencil className="size-3.5" />
+                                        {t(
+                                            'settings.worlds.activities.template.manage',
+                                            'Manage saved templates',
+                                        )}
+                                    </Button>
+                                    <Input
+                                        aria-label="Search saved activity templates"
+                                        className="h-8 w-full sm:w-56"
+                                        onChange={(event) =>
+                                            setActivityTemplateSearch(
+                                                event.target.value,
+                                            )
                                         }
-                                    }}
-                                    placeholder="Search templates"
-                                    value={activityTemplateSearch}
-                                />
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                void loadActivityTemplates(
+                                                    1,
+                                                    activityTemplateSearch,
+                                                );
+                                            }
+                                        }}
+                                        placeholder="Search templates"
+                                        value={activityTemplateSearch}
+                                    />
+                                </div>
                             </div>
                             {loadingActivityTemplates ? (
                                 <p className="mt-3 text-xs text-[var(--settings-muted-text)]">
@@ -1404,28 +1614,163 @@ export default function EditNodeActivities({
                                 </p>
                             ) : activityTemplates.length > 0 ? (
                                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                    {activityTemplates.map((template) => (
-                                        <Button
-                                            className="h-auto min-h-16 justify-between gap-3 whitespace-normal border-[var(--settings-border-color)] px-3 py-2 text-left"
-                                            disabled={loadingTemplateId !== null}
-                                            key={template.id}
-                                            onClick={() =>
-                                                void applySavedTemplate(template)
-                                            }
-                                            type="button"
-                                            variant="outline"
-                                        >
-                                            <span className="min-w-0">
-                                                <span className="block truncate font-medium">
-                                                    {template.name}
-                                                </span>
-                                                <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
-                                                    {template.type} · {template.title}
-                                                </span>
-                                            </span>
-                                            <ArrowRight className="size-4 shrink-0 text-[var(--settings-accent)]" />
-                                        </Button>
-                                    ))}
+                                    {activityTemplates.map((template) =>
+                                        editingActivityTemplate?.id ===
+                                        template.id ? (
+                                            <div
+                                                className="grid min-h-16 gap-2 rounded-md border border-[var(--settings-accent)] bg-[var(--settings-content-background)] p-2"
+                                                key={template.id}
+                                            >
+                                                <Input
+                                                    aria-label={t(
+                                                        'settings.worlds.activities.template.rename',
+                                                        'Rename template',
+                                                    )}
+                                                    autoFocus
+                                                    maxLength={120}
+                                                    onChange={(event) =>
+                                                        setEditingActivityTemplateName(
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === 'Enter') {
+                                                            event.preventDefault();
+                                                            void renameActivityTemplate();
+                                                        }
+
+                                                        if (event.key === 'Escape') {
+                                                            event.preventDefault();
+                                                            cancelRenameActivityTemplate();
+                                                        }
+                                                    }}
+                                                    value={
+                                                        editingActivityTemplateName
+                                                    }
+                                                />
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        aria-label={t(
+                                                            'settings.worlds.activities.template.rename_cancel',
+                                                            'Cancel rename',
+                                                        )}
+                                                        className="h-7 px-2"
+                                                        disabled={
+                                                            updatingActivityTemplate
+                                                        }
+                                                        onClick={
+                                                            cancelRenameActivityTemplate
+                                                        }
+                                                        type="button"
+                                                        variant="outline"
+                                                    >
+                                                        <X className="size-3.5" />
+                                                    </Button>
+                                                    <Button
+                                                        aria-label={t(
+                                                            'settings.worlds.activities.template.rename_save',
+                                                            'Save name',
+                                                        )}
+                                                        className="h-7 px-2"
+                                                        disabled={
+                                                            updatingActivityTemplate ||
+                                                            editingActivityTemplateName.trim() ===
+                                                                ''
+                                                        }
+                                                        onClick={() =>
+                                                            void renameActivityTemplate()
+                                                        }
+                                                        type="button"
+                                                    >
+                                                        <Check className="size-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                className="flex min-h-16 items-stretch rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)]"
+                                                key={template.id}
+                                            >
+                                                <Button
+                                                    className="h-auto min-h-16 min-w-0 flex-1 justify-between gap-3 rounded-r-none border-0 px-3 py-2 text-left whitespace-normal"
+                                                    disabled={
+                                                        loadingTemplateId !==
+                                                            null ||
+                                                        updatingActivityTemplate ||
+                                                        deletingActivityTemplateId !==
+                                                            null
+                                                    }
+                                                    onClick={() =>
+                                                        void applySavedTemplate(
+                                                            template,
+                                                        )
+                                                    }
+                                                    type="button"
+                                                    variant="ghost"
+                                                >
+                                                    <span className="min-w-0">
+                                                        <span className="block truncate font-medium">
+                                                            {template.name}
+                                                        </span>
+                                                        <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
+                                                            {template.type} ·{' '}
+                                                            {template.title}
+                                                        </span>
+                                                    </span>
+                                                    <ArrowRight className="size-4 shrink-0 text-[var(--settings-accent)]" />
+                                                </Button>
+                                                {managingActivityTemplates ? (
+                                                    <div className="flex shrink-0 items-center gap-1 px-2">
+                                                        <Button
+                                                            aria-label={`${t(
+                                                                'settings.worlds.activities.template.rename',
+                                                                'Rename template',
+                                                            )}: ${template.name}`}
+                                                            className="size-8 p-0"
+                                                            disabled={
+                                                                loadingTemplateId !==
+                                                                    null ||
+                                                                deletingActivityTemplateId !==
+                                                                    null
+                                                            }
+                                                            onClick={() =>
+                                                                beginRenameActivityTemplate(
+                                                                    template,
+                                                                )
+                                                            }
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            <Pencil className="size-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            aria-label={`${t(
+                                                                'settings.worlds.activities.template.delete',
+                                                                'Delete template',
+                                                            )}: ${template.name}`}
+                                                            className="size-8 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                            disabled={
+                                                                loadingTemplateId !==
+                                                                    null ||
+                                                                updatingActivityTemplate ||
+                                                                deletingActivityTemplateId !==
+                                                                    null
+                                                            }
+                                                            onClick={() =>
+                                                                void deleteActivityTemplate(
+                                                                    template,
+                                                                )
+                                                            }
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            <Trash2 className="size-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        ),
+                                    )}
                                 </div>
                             ) : (
                                 <p className="mt-3 text-xs text-[var(--settings-muted-text)]">

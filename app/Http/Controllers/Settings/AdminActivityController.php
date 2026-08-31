@@ -11,11 +11,13 @@ use App\Learning\Actions\CreateActivityTransition;
 use App\Learning\Actions\CreateLearningActivity;
 use App\Learning\Actions\DeleteActivityTransition;
 use App\Learning\Actions\DeleteLearningActivity;
+use App\Learning\Actions\DeleteLearningActivityTemplate;
 use App\Learning\Actions\RestoreLearningActivityVersion;
 use App\Learning\Actions\SaveLearningActivityTemplate;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
+use App\Learning\Actions\UpdateLearningActivityTemplate;
 use App\Learning\Actions\UpdateLearningSourceRecord;
 use App\Learning\Actions\UpdateNodeActivityGraphLayout;
 use App\Learning\Queries\LoadEditableSourceRecords;
@@ -71,6 +73,8 @@ class AdminActivityController extends Controller
         private readonly LearningActivityVersionSerializer $activityVersionSerializer,
         private readonly RestoreLearningActivityVersion $restoreActivityVersion,
         private readonly SaveLearningActivityTemplate $saveActivityTemplate,
+        private readonly UpdateLearningActivityTemplate $updateActivityTemplate,
+        private readonly DeleteLearningActivityTemplate $deleteActivityTemplate,
         private readonly LoadLearningActivityTemplates $activityTemplates,
         private readonly LearningActivityTemplateSerializer $activityTemplateSerializer,
     ) {}
@@ -179,6 +183,39 @@ class AdminActivityController extends Controller
         return response()->json([
             'template' => $this->activityTemplateSerializer->serializeDetails($template),
         ]);
+    }
+
+    public function updateActivityTemplate(
+        Request $request,
+        LearningActivityTemplate $template,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+        ]);
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serialize(
+                $this->updateActivityTemplate->handle($template, $data['name']),
+            ),
+        ]);
+    }
+
+    public function destroyActivityTemplate(
+        Request $request,
+        LearningActivityTemplate $template,
+    ): HttpResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+
+        $this->deleteActivityTemplate->handle($template);
+
+        return response()->noContent();
     }
 
     public function storeSourceRecord(Request $request): JsonResponse
