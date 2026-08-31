@@ -10,7 +10,9 @@ use App\Models\LearningQuestion;
 use App\Models\LearningQuestionOption;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 
 test('a learner can keep a question in a private recall queue', function () {
@@ -62,6 +64,85 @@ test('a learner can keep a question in a private recall queue', function () {
         ->assertInertia(fn (AssertableInertia $page) => $page
             ->where('recallQuestionId', $question->id)
         );
+});
+
+test('the recall queue keeps older visible questions beyond newer restricted records', function () {
+    Carbon::setTestNow('2026-08-30 14:30:00');
+    $learner = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $restrictedMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-recall-map',
+        'title' => 'Restricted Recall Map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    $visibleMap = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-recall-map',
+        'title' => 'Visible Recall Map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $createRecallItem = function (LearningMap $map, string $slug, string $title, int $position) use ($learner): void {
+        $node = LearningNode::query()->create([
+            'learning_map_id' => $map->id,
+            'slug' => $slug,
+            'title' => $title,
+            'position_q' => $position,
+            'position_r' => 0,
+            'state' => 'available',
+        ]);
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => "{$slug}-activity",
+            'title' => "{$title} activity",
+            'type' => 'question',
+            'sort_order' => 10,
+        ]);
+        $question = LearningQuestion::query()->create([
+            'learning_activity_id' => $activity->id,
+            'prompt' => "Recall {$title}",
+        ]);
+        LearnerRecallItem::query()->create([
+            'user_id' => $learner->id,
+            'learning_question_id' => $question->id,
+            'next_review_at' => now(),
+        ]);
+    };
+
+    $createRecallItem($visibleMap, 'visible-recall', 'Visible recall', 0);
+
+    for ($index = 0; $index < 24; $index++) {
+        $createRecallItem(
+            $restrictedMap,
+            "restricted-recall-{$index}",
+            "Restricted recall {$index}",
+            $index,
+        );
+    }
+
+    $recallQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$recallQueries): void {
+        if (str_contains($query->sql, 'from "learner_recall_items"')) {
+            $recallQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($learner)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('desk.recallItems', 1)
+            ->where('desk.recallItems.0.prompt', 'Recall Visible recall')
+            ->where('desk.recallItems.0.mapTitle', 'Visible Recall Map')
+        );
+
+    expect($recallQueries)->toHaveCount(1);
+    expect($recallQueries[0]->sql)->toMatch('/limit 24/i');
+    Carbon::setTestNow();
 });
 
 test('a recall answer records a transparent next review interval', function () {

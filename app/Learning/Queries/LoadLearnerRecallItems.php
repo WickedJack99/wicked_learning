@@ -7,6 +7,7 @@ use App\Models\LearnerRecallItem;
 use App\Models\LearningActivity;
 use App\Models\LearningQuestion;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /** Loads a bounded set of learner-selected question prompts for later recall. */
@@ -23,8 +24,11 @@ class LoadLearnerRecallItems
     {
         $now = Carbon::now();
 
-        return LearnerRecallItem::query()
+        return array_values(LearnerRecallItem::query()
             ->where('user_id', $user->id)
+            ->whereHas('question.activity.node.map', function (Builder $query) use ($user): void {
+                $this->mapAccess->constrainVisibleQuery($query, $user);
+            })
             ->with(['question.activity.node.map'])
             ->orderByRaw(
                 'CASE WHEN next_review_at IS NULL OR next_review_at <= ? THEN 0 ELSE 1 END',
@@ -78,6 +82,6 @@ class LoadLearnerRecallItems
             })
             ->filter()
             ->values()
-            ->all();
+            ->all());
     }
 }
