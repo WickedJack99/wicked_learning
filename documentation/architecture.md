@@ -169,6 +169,12 @@ dependency on later catalog changes. AI-draft linkage remains roadmap work.
 Restoring a revision uses the same transactional update path, so the
 pre-restore current record is also retained in that history.
 
+Review activities load at most the latest three matching private reflections
+per distinct topic/subtopic category through a database window query before
+hydrating reflection models; page details are eager-loaded in the bounded
+follow-up query. The serializer then reuses those grouped results for every
+review activity in the node.
+
 Map detail updates use the same transactional snapshot-before-update pattern in
 `LearningMapVersion`. The permission-protected map versions endpoint returns a
 bounded page, and restore validates that the version belongs to the selected map

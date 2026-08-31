@@ -15,7 +15,9 @@ use App\Models\LearningNode;
 use App\Models\LearningPortalLink;
 use App\Models\LearningTopic;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class LearningNodeSerializer
 {
@@ -87,30 +89,74 @@ class LearningNodeSerializer
             return [];
         }
 
-        $topics = $reviewActivities
-            ->map(fn (LearningActivity $activity): string => $this->reviewTopic($activity, $node))
-            ->unique()
+        $categories = $reviewActivities
+            ->map(fn (LearningActivity $activity): array => $this->reviewCategory($activity, $node))
+            ->unique(fn (array $category): string => $this->reviewCategoryKey($category))
             ->values();
+        $categoryKeys = $categories
+            ->mapWithKeys(fn (array $category, int $categoryKey): array => [
+                $this->reviewCategoryKey($category) => $categoryKey,
+            ])
+            ->all();
+        $categoryRows = null;
+
+        foreach ($categories as $categoryKey => $category) {
+            $categoryRow = DB::query()->selectRaw(
+                '? as review_category, ? as category_topic, ? as category_subtopic',
+                [$categoryKey, $category[0], $category[1]],
+            );
+            $categoryRows = $categoryRows?->unionAll($categoryRow) ?? $categoryRow;
+        }
+
+        $rankedReflections = LearnerReflection::query()
+            ->select('learner_reflections.*')
+            ->selectRaw('review_categories.review_category')
+            ->selectRaw(
+                'ROW_NUMBER() OVER (PARTITION BY review_categories.review_category ORDER BY learner_reflections.created_at DESC, learner_reflections.id DESC) AS review_rank',
+            )
+            ->join(
+                'learner_journal_pages as review_pages',
+                'review_pages.id',
+                '=',
+                'learner_reflections.learner_journal_page_id',
+            )
+            ->crossJoinSub($categoryRows, 'review_categories')
+            ->where('learner_reflections.user_id', $user->id)
+            ->whereColumn('review_pages.topic', 'review_categories.category_topic')
+            ->where(function (Builder $query): void {
+                $query
+                    ->where('review_categories.category_subtopic', '')
+                    ->orWhereColumn('review_pages.subtopic', 'review_categories.category_subtopic');
+            });
         $reflections = LearnerReflection::query()
-            ->where('user_id', $user->id)
-            ->whereHas('page', fn ($query) => $query->whereIn('topic', $topics->all()))
-            ->latest()
+            ->fromSub($rankedReflections, 'ranked_review_reflections')
+            ->where('review_rank', '<=', 3)
             ->with('page')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get();
+        $reflectionsByCategory = $reflections->groupBy(
+            fn (LearnerReflection $reflection): int => (int) $reflection->review_category,
+        );
 
         return $reviewActivities
-            ->mapWithKeys(function (LearningActivity $activity) use ($node, $reflections): array {
+            ->mapWithKeys(function (LearningActivity $activity) use ($node, $categoryKeys, $reflectionsByCategory): array {
                 [$topic, $subtopic] = $this->reviewCategory($activity, $node);
+                $categoryKey = $categoryKeys[$this->reviewCategoryKey([$topic, $subtopic])] ?? null;
 
                 return [
-                    $activity->id => $reflections
-                        ->filter(fn (LearnerReflection $reflection): bool => $reflection->page->topic === $topic
-                            && ($subtopic === '' || $reflection->page->subtopic === $subtopic))
-                        ->take(3)
-                        ->values(),
+                    $activity->id => $categoryKey === null
+                        ? collect()
+                        : $reflectionsByCategory->get($categoryKey, collect())->values(),
                 ];
             })
             ->all();
+    }
+
+    /** @param array{0: string, 1: string} $category */
+    private function reviewCategoryKey(array $category): string
+    {
+        return $category[0]."\0".$category[1];
     }
 
     /** @return array{0: string, 1: string} */
@@ -122,11 +168,6 @@ class LearningNodeSerializer
             trim((string) ($config['topic'] ?? '')) ?: $node->title,
             trim((string) ($config['subtopic'] ?? '')),
         ];
-    }
-
-    private function reviewTopic(LearningActivity $activity, LearningNode $node): string
-    {
-        return $this->reviewCategory($activity, $node)[0];
     }
 
     /**

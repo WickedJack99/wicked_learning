@@ -17,6 +17,8 @@ use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\PlatformJournalSetting;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia;
 
@@ -271,6 +273,59 @@ test('a review activity offers earlier private reflections from the same journal
             ->where('node.activities.0.reviewContext.0.question', 'What did you notice before?')
             ->where('node.activities.0.reviewContext.0.reflection', 'I noticed the parts were connected.')
         );
+});
+
+test('review context limits reflection rows in the database', function () {
+    [$learner, $activity] = activeReflectionActivity();
+    $activity->update([
+        'config' => [
+            'learningIntent' => 'review',
+            'prompt' => 'What feels different now?',
+            'topic' => 'Systems Thinking',
+        ],
+    ]);
+
+    $page = LearnerJournalPage::query()->create([
+        'user_id' => $learner->id,
+        'title' => 'Systems Thinking',
+        'topic' => 'Systems Thinking',
+        'subtopic' => '',
+        'markdown' => 'Earlier notes',
+        'preferred_mode' => 'view',
+    ]);
+    foreach (range(1, 8) as $number) {
+        LearnerReflection::query()->create([
+            'user_id' => $learner->id,
+            'learner_journal_page_id' => $page->id,
+            'learning_node_id' => $activity->learning_node_id,
+            'learning_activity_id' => $activity->id,
+            'title' => "Earlier note {$number}",
+            'question' => 'What did you notice before?',
+            'reflection' => "Earlier reflection {$number}.",
+            'feedback_status' => 'not_requested',
+        ]);
+    }
+
+    $reviewQuery = null;
+    DB::listen(function (QueryExecuted $query) use (&$reviewQuery): void {
+        $sql = strtolower($query->sql);
+
+        if (str_contains($sql, 'row_number() over') && str_contains($sql, 'review_categories')) {
+            $reviewQuery = $query;
+        }
+    });
+
+    $this->actingAs($learner)
+        ->get(route('learning.nodes.play', $activity->learning_node_id))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('node.activities.0.reviewContext', 3)
+            ->where('node.activities.0.reviewContext.0.reflection', 'Earlier reflection 8.')
+            ->where('node.activities.0.reviewContext.2.reflection', 'Earlier reflection 6.')
+        );
+
+    expect($reviewQuery)->toBeInstanceOf(QueryExecuted::class)
+        ->and(strtolower($reviewQuery->sql))->toContain('"review_rank" <= ?');
 });
 
 test('an explicit review activity reuses private comparison context', function () {
