@@ -5,6 +5,7 @@ import {
     BookOpenText,
     Clock3,
     Compass,
+    Focus,
     Pin,
     Trash2,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
+    const [focusView, setFocusView] = useState(false);
     const [handledRevisitIds, setHandledRevisitIds] = useState<number[]>([]);
     const [updatingRevisitId, setUpdatingRevisitId] = useState<number | null>(
         null,
@@ -209,25 +211,63 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
 
     return (
         <LearnerDocumentSurface scrollable={false}>
-            <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden xl:grid-cols-[minmax(0,1fr)_25rem]">
+            <div
+                className={[
+                    'grid min-h-0 flex-1 overflow-y-auto lg:overflow-hidden',
+                    focusView
+                        ? 'lg:grid-cols-1'
+                        : 'lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_25rem]',
+                ].join(' ')}
+            >
                 <div className="min-w-0 px-5 py-10 sm:px-8 lg:min-h-0 lg:overflow-hidden lg:px-12 lg:py-14 xl:px-[clamp(3rem,7vw,8rem)]">
                     <div className="mx-auto flex max-w-4xl flex-col lg:h-full lg:min-h-0">
                         <section>
-                            <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
-                                {t(
-                                    'home.learning_desk.eyebrow',
-                                    'Your learning desk',
-                                )}
-                            </p>
-                            <h1 className="mt-3 text-3xl font-medium tracking-tight">
-                                {greeting(t)}, {firstName}.
-                            </h1>
-                            <p className="mt-2 text-sm text-[var(--learner-muted-text)]">
-                                {t(
-                                    'home.learning_desk.prompt',
-                                    'What would you like to think about next?',
-                                )}
-                            </p>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium tracking-[0.16em] text-[var(--learner-accent)] uppercase">
+                                        {t(
+                                            'home.learning_desk.eyebrow',
+                                            'Your learning desk',
+                                        )}
+                                    </p>
+                                    <h1 className="mt-3 text-3xl font-medium tracking-tight">
+                                        {greeting(t)}, {firstName}.
+                                    </h1>
+                                    <p className="mt-2 text-sm text-[var(--learner-muted-text)]">
+                                        {t(
+                                            'home.learning_desk.prompt',
+                                            'What would you like to think about next?',
+                                        )}
+                                    </p>
+                                </div>
+                                <button
+                                    aria-pressed={focusView}
+                                    className={[
+                                        'inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
+                                        focusView
+                                            ? 'border-[var(--learner-action-accent)] bg-[color-mix(in_srgb,var(--learner-action-accent)_14%,transparent)] text-[var(--learner-heading-text)]'
+                                            : 'border-[var(--learner-border-color)] text-[var(--learner-muted-text)] hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)]',
+                                    ].join(' ')}
+                                    onClick={() =>
+                                        setFocusView((current) => !current)
+                                    }
+                                    type="button"
+                                >
+                                    <Focus
+                                        aria-hidden="true"
+                                        className="size-4"
+                                    />
+                                    {focusView
+                                        ? t(
+                                              'home.learning_desk.focus.show_rail',
+                                              'Show pinned',
+                                          )
+                                        : t(
+                                              'home.learning_desk.focus.enter',
+                                              'Focus view',
+                                          )}
+                                </button>
+                            </div>
                             <LearningDeskSearch />
                         </section>
 
@@ -568,7 +608,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                     </div>
                 </div>
 
-                <LearningDeskRail desk={desk} />
+                {!focusView ? <LearningDeskRail desk={desk} /> : null}
             </div>
         </LearnerDocumentSurface>
     );

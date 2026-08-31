@@ -1031,6 +1031,8 @@
     "home.learning_desk.title": "Learning desk",
     "home.learning_desk.eyebrow": "Your learning desk",
     "home.learning_desk.prompt": "What would you like to think about next?",
+    "home.learning_desk.focus.enter": "Focus view",
+    "home.learning_desk.focus.show_rail": "Show pinned",
     "home.learning_desk.greeting.morning": "Good morning",
     "home.learning_desk.greeting.afternoon": "Good afternoon",
     "home.learning_desk.greeting.evening": "Good evening",

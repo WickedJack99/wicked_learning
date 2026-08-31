@@ -135,6 +135,9 @@ connected competence areas. Shared-task project briefs now also offer an
 optional private checklist for the current run, keeping planning separate from
 completion and evidence; richer recommendation reasons and learner-selected
 alternatives remain open.
+The desk also offers a temporary focus view that hides its secondary pinned
+rail without changing the selected area or learning state; persistent intent
+and focus preferences remain open.
 Activities can also carry an optional author-provided suggested duration,
 shown as a planning cue without a countdown, deadline or timing-based learner
 measure. Learner-controlled intent and focus settings remain open.

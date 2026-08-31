@@ -69,6 +69,18 @@ test('the learning desk defaults to a useful populated area', function () {
         ->toContain('const initialArea = deskAreaFromUrl() ?? defaultArea;');
 });
 
+test('the learning desk can temporarily hide its secondary rail', function () {
+    $learningDesk = file_get_contents(
+        resource_path('js/features/home/learning-desk.tsx'),
+    );
+
+    expect($learningDesk)
+        ->toContain('const [focusView, setFocusView] = useState(false);')
+        ->toContain("'home.learning_desk.focus.enter'")
+        ->toContain("'home.learning_desk.focus.show_rail'")
+        ->toContain('{!focusView ? <LearningDeskRail desk={desk} /> : null}');
+});
+
 test('node route choices use pagination instead of a growing scroll region', function () {
     $activityPanel = file_get_contents(
         resource_path('js/features/world/activity-panel.tsx'),
