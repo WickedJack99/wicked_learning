@@ -22,6 +22,7 @@ test('english platform catalog includes generic settings copy', function () {
         'navigation.activity.return',
         'learning.activity.context.aria_label',
         'learning.activity.bookmark.add',
+        'learning.activity.routes.title',
         'learning.map.completed_count',
         'settings.assets.title',
         'settings.assets.sections.tools.description',

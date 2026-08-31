@@ -139,7 +139,9 @@ The activity page keeps the global header focused on navigation and shows
 the current topic, map, route and place in a compact context panel beside the
 player. Its fixed orientation, route-progress, bookmark and empty-state copy
 uses the platform translation catalog; authored activity content remains
-separate from that generic UI catalog.
+separate from that generic UI catalog. When the place offers other authored
+routes, the context panel can disclose them as a small paginated set; choosing
+one starts or resumes that route while leaving the current route saved.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

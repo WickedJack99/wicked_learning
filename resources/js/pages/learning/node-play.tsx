@@ -7,6 +7,7 @@ import {
 } from '@/components/learner-navigation';
 import { LearnerNavigationHeader } from '@/components/learner-navigation-header';
 import type { LearnerNavigationItem } from '@/components/learner-navigation-header';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { applyActivityTranslation } from '@/features/localization/activity-translation';
 import type { LearningActivityTranslation } from '@/features/localization/activity-translation';
@@ -17,6 +18,7 @@ import {
 import {
     ActivityPlayer,
     learningAreaNames,
+    routeProgressText,
 } from '@/features/world/activity-panel';
 import { deleteJson, getJson, postJson } from '@/features/world/api';
 import { LearningCheckIn } from '@/features/world/learning-check-in';
@@ -606,6 +608,33 @@ export default function NodePlay({
     const activeRouteLabel = playRouteId
         ? node.startRoutes.find((route) => route.id === playRouteId)?.label
         : null;
+    const alternativeRoutes = useMemo(
+        () =>
+            node.startRoutes.filter(
+                (route) => route.id > 0 && route.id !== playRouteId,
+            ),
+        [node.startRoutes, playRouteId],
+    );
+    const [routeAlternativePageState, setRouteAlternativePageState] = useState({
+        nodeId: node.id,
+        page: 1,
+    });
+    const routeAlternativePageCount = Math.max(
+        1,
+        Math.ceil(alternativeRoutes.length / ROUTE_ALTERNATIVE_PAGE_SIZE),
+    );
+    const routeAlternativePage =
+        routeAlternativePageState.nodeId === node.id
+            ? routeAlternativePageState.page
+            : 1;
+    const currentRouteAlternativePage = Math.min(
+        routeAlternativePage,
+        routeAlternativePageCount,
+    );
+    const visibleAlternativeRoutes = alternativeRoutes.slice(
+        (currentRouteAlternativePage - 1) * ROUTE_ALTERNATIVE_PAGE_SIZE,
+        currentRouteAlternativePage * ROUTE_ALTERNATIVE_PAGE_SIZE,
+    );
     const navigationItems: LearnerNavigationItem[] =
         createLearnerPrimaryNavigation(translate);
 
@@ -693,6 +722,65 @@ export default function NodePlay({
                                 </div>
                             ) : null}
                         </dl>
+                        {alternativeRoutes.length > 0 ? (
+                            <details className="mt-5 rounded-md border border-[var(--learner-border-color)] bg-[color-mix(in_srgb,var(--learner-panel-background)_78%,transparent)] p-3">
+                                <summary className="cursor-pointer text-sm font-medium text-[var(--learner-heading-text)] outline-none marker:text-[var(--learner-action-accent)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--learner-panel-background)]">
+                                    {translate(
+                                        'learning.activity.routes.title',
+                                        'Other routes',
+                                    )}
+                                </summary>
+                                <p className="mt-2 text-xs leading-5 text-[var(--learner-muted-text)]">
+                                    {translate(
+                                        'learning.activity.routes.description',
+                                        'Your current route remains saved. Choose another route to start or resume it.',
+                                    )}
+                                </p>
+                                <div className="mt-3 grid gap-2">
+                                    {visibleAlternativeRoutes.map((route) => (
+                                        <Link
+                                            className="rounded-md border border-[var(--learner-border-color)] px-3 py-2 text-sm text-[var(--learner-body-text)] transition hover:border-[var(--learner-action-accent)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none"
+                                            href={`/learning/nodes/${node.id}/play?route=${route.id}`}
+                                            key={route.id}
+                                        >
+                                            <span className="block font-medium">
+                                                {route.label}
+                                            </span>
+                                            {route.progress ? (
+                                                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                    {routeProgressText(
+                                                        route,
+                                                        translate,
+                                                    ) ??
+                                                        translate(
+                                                            'learning.activity.routes.available',
+                                                            'Available route',
+                                                        )}
+                                                </span>
+                                            ) : (
+                                                <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                                                    {translate(
+                                                        'learning.activity.routes.available',
+                                                        'Available route',
+                                                    )}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
+                                <PaginationControls
+                                    className="mt-3 text-xs text-[var(--learner-muted-text)]"
+                                    currentPage={currentRouteAlternativePage}
+                                    onPageChange={(page) =>
+                                        setRouteAlternativePageState({
+                                            nodeId: node.id,
+                                            page,
+                                        })
+                                    }
+                                    pageCount={routeAlternativePageCount}
+                                />
+                            </details>
+                        ) : null}
                         {isAuthenticated ? (
                             <Button
                                 aria-pressed={isBookmarked}
@@ -836,6 +924,8 @@ export default function NodePlay({
         </>
     );
 }
+
+const ROUTE_ALTERNATIVE_PAGE_SIZE = 3;
 
 function withoutActivityPlayState(
     playState: Record<string, unknown>,

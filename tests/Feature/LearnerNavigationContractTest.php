@@ -142,6 +142,21 @@ test('activity orientation copy uses the platform translation catalog', function
         ->not->toContain('aria-label="Learning context"');
 });
 
+test('activity context exposes bounded alternative routes without a scroll region', function () {
+    $activityPage = file_get_contents(
+        resource_path('js/pages/learning/node-play.tsx'),
+    );
+
+    expect($activityPage)
+        ->toContain('const ROUTE_ALTERNATIVE_PAGE_SIZE = 3;')
+        ->toContain('const visibleAlternativeRoutes = alternativeRoutes.slice(')
+        ->toContain("'learning.activity.routes.title'")
+        ->toContain('href={`/learning/nodes/${node.id}/play?route=${route.id}`}')
+        ->toContain('Your current route remains saved')
+        ->toContain('<PaginationControls')
+        ->not->toContain('alternative-routes-scroll');
+});
+
 test('learner group chats paginate distinct groups instead of scrolling the group list', function () {
     $groupControl = file_get_contents(
         resource_path('js/features/world/group-control.tsx'),

@@ -352,7 +352,7 @@ function RouteProgressActions({
     );
 }
 
-function routeProgressText(
+export function routeProgressText(
     route: LearningNode['startRoutes'][number],
     translate: ReturnType<typeof usePlatformTranslation>,
 ): string | null {
