@@ -201,7 +201,9 @@ the peer-review area alongside the recorded confirmation; it is not exposed to
 the learner whose contribution they reviewed.
 The Shared Task editor includes a compact learner preview so authors can check
 the prompt, project orientation, contribution affordance and optional review
-handoff before saving; it does not simulate submissions or change learner state.
+handoff before saving. When peer review is enabled, the preview can switch
+between the contribution and peer-review states; it remains static and does not
+simulate submissions or change learner state.
 The contributor can later see a bounded set of anonymous responses to their own
 contribution; other learners cannot see those responses. Reviewers may
 optionally describe a response as an explanation, example, question or

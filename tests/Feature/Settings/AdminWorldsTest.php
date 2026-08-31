@@ -3111,3 +3111,17 @@ test('admin users can insert a tile between neighboring tiles', function () {
             $signalGateStart[1] + $direction[1],
         ]);
 });
+
+test('shared task authoring previews both enabled learner workflow states', function () {
+    $preview = file_get_contents(
+        resource_path('js/pages/settings/worlds/shared-task-activity-fields.tsx'),
+    );
+
+    expect($preview)
+        ->toContain("'contribution' | 'peer_review'")
+        ->toContain('aria-pressed={visiblePreviewMode ===')
+        ->toContain('SharedTaskPeerReviewPreview')
+        ->toContain("'activities.shared_task.preview_peer_review_privacy'")
+        ->toContain('does not create a rating or ranking')
+        ->toContain('type="button"');
+});

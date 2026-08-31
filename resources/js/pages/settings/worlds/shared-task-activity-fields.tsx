@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import InputError from '@/components/input-error';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -320,6 +322,9 @@ function SharedTaskLearnerPreview({
     projectSteps: string[];
 }) {
     const t = usePlatformTranslation();
+    const [previewMode, setPreviewMode] = useState<
+        'contribution' | 'peer_review'
+    >('contribution');
     const prompt =
         form.shared_task_prompt.trim() ||
         t(
@@ -349,6 +354,9 @@ function SharedTaskLearnerPreview({
             ),
         }[form.shared_task_kind] ??
         t('activities.shared_task.preview_kind_text', 'Shared contribution');
+    const visiblePreviewMode = form.shared_task_peer_review_enabled
+        ? previewMode
+        : 'contribution';
 
     return (
         <aside
@@ -378,124 +386,263 @@ function SharedTaskLearnerPreview({
                     )}
                 </p>
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(15rem,0.85fr)]">
-                <div className="grid gap-3 rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
-                    <div>
-                        <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
-                            {kindLabel}
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-cyan-950/85 dark:text-teal-50/85">
-                            {prompt}
-                        </p>
-                        {instructions ? (
-                            <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-                                {instructions}
-                            </p>
-                        ) : null}
-                    </div>
-                    <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/45">
-                        <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                            {inputLabel}
-                        </p>
-                        <div className="mt-2 min-h-12 rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-400 dark:border-white/15 dark:text-slate-500">
-                            {t(
-                                'activities.shared_task.preview_input_placeholder',
-                                'The learner writes here…',
-                            )}
-                        </div>
-                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                            {t(
-                                'activities.shared_task.preview_minimum_length',
-                                'Minimum: :minimum characters',
-                                {
-                                    minimum:
-                                        form.shared_task_minimum_length || '0',
-                                },
-                            )}
-                        </p>
-                    </div>
+            {form.shared_task_peer_review_enabled ? (
+                <div
+                    aria-label={t(
+                        'activities.shared_task.preview_mode_label',
+                        'Preview workflow',
+                    )}
+                    className="flex flex-wrap gap-2"
+                    role="group"
+                >
+                    <Button
+                        aria-pressed={visiblePreviewMode === 'contribution'}
+                        className="min-h-11"
+                        onClick={() => setPreviewMode('contribution')}
+                        type="button"
+                        variant={
+                            visiblePreviewMode === 'contribution'
+                                ? 'secondary'
+                                : 'outline'
+                        }
+                    >
+                        {t(
+                            'activities.shared_task.preview_mode_contribution',
+                            'Contribution',
+                        )}
+                    </Button>
+                    <Button
+                        aria-pressed={visiblePreviewMode === 'peer_review'}
+                        className="min-h-11"
+                        onClick={() => setPreviewMode('peer_review')}
+                        type="button"
+                        variant={
+                            visiblePreviewMode === 'peer_review'
+                                ? 'secondary'
+                                : 'outline'
+                        }
+                    >
+                        {t(
+                            'activities.shared_task.preview_mode_peer_review',
+                            'Peer review',
+                        )}
+                    </Button>
                 </div>
-                <div className="grid content-start gap-3">
-                    {projectGoal ||
-                    projectDeliverable ||
-                    projectSteps.length ? (
+            ) : null}
+            {visiblePreviewMode === 'peer_review' ? (
+                <SharedTaskPeerReviewPreview
+                    peerReviewPrompt={peerReviewPrompt}
+                    projectSteps={projectSteps}
+                    t={t}
+                />
+            ) : (
+                <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(15rem,0.85fr)]">
+                    <div className="grid gap-3 rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
+                        <div>
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {kindLabel}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/85 dark:text-teal-50/85">
+                                {prompt}
+                            </p>
+                            {instructions ? (
+                                <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                    {instructions}
+                                </p>
+                            ) : null}
+                        </div>
+                        <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/45">
+                            <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                                {inputLabel}
+                            </p>
+                            <div className="mt-2 min-h-12 rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-400 dark:border-white/15 dark:text-slate-500">
+                                {t(
+                                    'activities.shared_task.preview_input_placeholder',
+                                    'The learner writes here…',
+                                )}
+                            </div>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                {t(
+                                    'activities.shared_task.preview_minimum_length',
+                                    'Minimum: :minimum characters',
+                                    {
+                                        minimum:
+                                            form.shared_task_minimum_length ||
+                                            '0',
+                                    },
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="grid content-start gap-3">
+                        {projectGoal ||
+                        projectDeliverable ||
+                        projectSteps.length ? (
+                            <div className="rounded-md border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-slate-950/35">
+                                <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                    {t(
+                                        'activities.shared_task.preview_project_brief',
+                                        'Project brief',
+                                    )}
+                                </p>
+                                {projectGoal ? (
+                                    <p className="mt-2 text-xs leading-5 text-slate-700 dark:text-slate-200">
+                                        <span className="font-semibold">
+                                            {t(
+                                                'activities.shared_task.preview_goal',
+                                                'Goal:',
+                                            )}{' '}
+                                        </span>
+                                        {projectGoal}
+                                    </p>
+                                ) : null}
+                                {projectDeliverable ? (
+                                    <p className="mt-1 text-xs leading-5 text-slate-700 dark:text-slate-200">
+                                        <span className="font-semibold">
+                                            {t(
+                                                'activities.shared_task.preview_outcome',
+                                                'Outcome:',
+                                            )}{' '}
+                                        </span>
+                                        {projectDeliverable}
+                                    </p>
+                                ) : null}
+                                {projectSteps.length ? (
+                                    <ol className="mt-2 grid gap-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                        {projectSteps.map((step, index) => (
+                                            <li key={`${index}-${step}`}>
+                                                {index + 1}. {step}
+                                            </li>
+                                        ))}
+                                    </ol>
+                                ) : null}
+                            </div>
+                        ) : null}
                         <div className="rounded-md border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-slate-950/35">
                             <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
                                 {t(
-                                    'activities.shared_task.preview_project_brief',
-                                    'Project brief',
+                                    'activities.shared_task.preview_after_submit',
+                                    'After contributing',
                                 )}
                             </p>
-                            {projectGoal ? (
-                                <p className="mt-2 text-xs leading-5 text-slate-700 dark:text-slate-200">
-                                    <span className="font-semibold">
+                            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                                {form.shared_task_show_contributions
+                                    ? t(
+                                          'activities.shared_task.preview_shared_contributions',
+                                          'Learners can choose whether to share their contribution anonymously.',
+                                      )
+                                    : t(
+                                          'activities.shared_task.preview_private_contributions',
+                                          'Contributions remain private to the learner unless another setting changes that flow.',
+                                      )}
+                            </p>
+                            {form.shared_task_peer_review_enabled ? (
+                                <p className="mt-2 border-t border-slate-200 pt-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:text-slate-300">
+                                    <span className="font-semibold text-slate-700 dark:text-slate-200">
                                         {t(
-                                            'activities.shared_task.preview_goal',
-                                            'Goal:',
+                                            'activities.shared_task.preview_peer_review',
+                                            'Anonymous peer review:',
                                         )}{' '}
                                     </span>
-                                    {projectGoal}
+                                    {peerReviewPrompt ||
+                                        t(
+                                            'activities.shared_task.preview_peer_review_fallback',
+                                            'One shared contribution can receive one response.',
+                                        )}
                                 </p>
-                            ) : null}
-                            {projectDeliverable ? (
-                                <p className="mt-1 text-xs leading-5 text-slate-700 dark:text-slate-200">
-                                    <span className="font-semibold">
-                                        {t(
-                                            'activities.shared_task.preview_outcome',
-                                            'Outcome:',
-                                        )}{' '}
-                                    </span>
-                                    {projectDeliverable}
-                                </p>
-                            ) : null}
-                            {projectSteps.length ? (
-                                <ol className="mt-2 grid gap-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
-                                    {projectSteps.map((step, index) => (
-                                        <li key={`${index}-${step}`}>
-                                            {index + 1}. {step}
-                                        </li>
-                                    ))}
-                                </ol>
                             ) : null}
                         </div>
-                    ) : null}
+                    </div>
+                </div>
+            )}
+        </aside>
+    );
+}
+
+function SharedTaskPeerReviewPreview({
+    peerReviewPrompt,
+    projectSteps,
+    t,
+}: {
+    peerReviewPrompt: string;
+    projectSteps: string[];
+    t: ReturnType<typeof usePlatformTranslation>;
+}) {
+    return (
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(15rem,0.85fr)]">
+            <div className="grid content-start gap-3 rounded-md border border-violet-500/20 bg-violet-50/60 p-3 dark:border-violet-200/15 dark:bg-violet-100/5">
+                <div>
+                    <p className="text-xs font-medium tracking-[0.1em] text-violet-800 uppercase dark:text-violet-100">
+                        {t(
+                            'activities.shared_task.preview_peer_review_title',
+                            'Peer review',
+                        )}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-violet-950/85 dark:text-violet-50/85">
+                        {peerReviewPrompt ||
+                            t(
+                                'activities.shared_task.preview_peer_review_fallback',
+                                'One shared contribution can receive one response.',
+                            )}
+                    </p>
+                </div>
+                <div className="rounded-md border border-slate-200 bg-white/80 p-3 dark:border-white/10 dark:bg-slate-950/45">
+                    <p className="text-xs font-medium text-slate-700 dark:text-slate-200">
+                        {t(
+                            'activities.shared_task.preview_peer_review_contribution',
+                            'Anonymous contribution selected by the learner',
+                        )}
+                    </p>
+                    <div className="mt-2 min-h-16 rounded-md border border-dashed border-slate-300 px-3 py-2 text-xs text-slate-400 dark:border-white/15 dark:text-slate-500">
+                        {t(
+                            'activities.shared_task.preview_peer_review_contribution_placeholder',
+                            'A shared contribution appears here without the contributor’s name.',
+                        )}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        {t(
+                            'activities.shared_task.preview_peer_review_response',
+                            'The learner writes one explanation, example, question, or counterexample.',
+                        )}
+                    </p>
+                </div>
+            </div>
+            <div className="grid content-start gap-3">
+                {projectSteps.length ? (
                     <div className="rounded-md border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-slate-950/35">
                         <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
                             {t(
-                                'activities.shared_task.preview_after_submit',
-                                'After contributing',
+                                'activities.shared_task.preview_project_context',
+                                'Project context',
                             )}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
-                            {form.shared_task_show_contributions
-                                ? t(
-                                      'activities.shared_task.preview_shared_contributions',
-                                      'Learners can choose whether to share their contribution anonymously.',
-                                  )
-                                : t(
-                                      'activities.shared_task.preview_private_contributions',
-                                      'Contributions remain private to the learner unless another setting changes that flow.',
-                                  )}
+                            {t(
+                                'activities.shared_task.preview_peer_review_context',
+                                'The learner can connect the response to one suggested project step.',
+                            )}
                         </p>
-                        {form.shared_task_peer_review_enabled ? (
-                            <p className="mt-2 border-t border-slate-200 pt-2 text-xs leading-5 text-slate-600 dark:border-white/10 dark:text-slate-300">
-                                <span className="font-semibold text-slate-700 dark:text-slate-200">
-                                    {t(
-                                        'activities.shared_task.preview_peer_review',
-                                        'Anonymous peer review:',
-                                    )}{' '}
-                                </span>
-                                {peerReviewPrompt ||
-                                    t(
-                                        'activities.shared_task.preview_peer_review_fallback',
-                                        'One shared contribution can receive one response.',
-                                    )}
-                            </p>
-                        ) : null}
+                        <p className="mt-2 text-xs leading-5 text-slate-700 dark:text-slate-200">
+                            {projectSteps[0]}
+                        </p>
                     </div>
+                ) : null}
+                <div className="rounded-md border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-slate-950/35">
+                    <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                        {t(
+                            'activities.shared_task.preview_peer_review_after',
+                            'After the response',
+                        )}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">
+                        {t(
+                            'activities.shared_task.preview_peer_review_privacy',
+                            'The response is recorded anonymously and the reviewer can see their own response privately. It does not create a rating or ranking.',
+                        )}
+                    </p>
                 </div>
             </div>
-        </aside>
+        </div>
     );
 }
 
