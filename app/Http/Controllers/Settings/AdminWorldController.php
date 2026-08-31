@@ -488,6 +488,52 @@ class AdminWorldController extends Controller
         ]);
     }
 
+    public function previewMapLayoutVersion(
+        Request $request,
+        LearningMap $map,
+        LearningMapLayoutVersion $version,
+    ): JsonResponse {
+        $this->authorizeMapEdit($request, $map);
+        abort_unless($version->learning_map_id === $map->id, 404);
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
+        ]);
+        $snapshot = collect(is_array($version->snapshot) ? $version->snapshot : [])
+            ->filter(fn (mixed $node): bool => is_array($node)
+                && isset($node['nodeId'], $node['positionQ'], $node['positionR']))
+            ->values();
+        $page = max(1, $data['page'] ?? 1);
+        $perPage = max(1, min(24, $data['per_page'] ?? 12));
+        $items = $snapshot->forPage($page, $perPage)->values();
+        $nodeIds = $items
+            ->pluck('nodeId')
+            ->map(fn (mixed $nodeId): int => (int) $nodeId)
+            ->all();
+        $nodeTitles = $map->nodes()
+            ->whereIn('id', $nodeIds)
+            ->pluck('title', 'id');
+
+        return response()->json([
+            'createdAt' => $version->created_at?->toIso8601String(),
+            'items' => $items
+                ->map(fn (array $node): array => [
+                    'nodeId' => (int) $node['nodeId'],
+                    'positionQ' => (int) $node['positionQ'],
+                    'positionR' => (int) $node['positionR'],
+                    'title' => $nodeTitles->get((int) $node['nodeId'], 'Removed node'),
+                ])
+                ->all(),
+            'pagination' => [
+                'page' => $page,
+                'perPage' => $perPage,
+                'total' => $snapshot->count(),
+                'lastPage' => max(1, (int) ceil($snapshot->count() / $perPage)),
+            ],
+            'versionId' => $version->id,
+        ]);
+    }
+
     public function restoreMapLayoutVersion(
         Request $request,
         LearningMap $map,

@@ -171,6 +171,9 @@ Route::middleware(['auth', 'verified', 'can:world_nodes.ru'])->group(function ()
     Route::get('settings/worlds/maps/{map}/layout-versions', [AdminWorldController::class, 'mapLayoutVersions'])
         ->name('settings.worlds.maps.layout-versions.index');
 
+    Route::get('settings/worlds/maps/{map}/layout-versions/{version}/preview', [AdminWorldController::class, 'previewMapLayoutVersion'])
+        ->name('settings.worlds.maps.layout-versions.preview');
+
     Route::post('settings/worlds/maps/{map}/layout-versions/{version}/restore', [AdminWorldController::class, 'restoreMapLayoutVersion'])
         ->name('settings.worlds.maps.layout-versions.restore');
 

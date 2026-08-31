@@ -3150,6 +3150,30 @@ test('authors can browse and restore map layout versions', function () {
         ->assertJsonPath('pagination.total', 1);
 
     $this->actingAs($admin)
+        ->getJson(route('settings.worlds.maps.layout-versions.preview', [
+            'map' => $map,
+            'version' => $version,
+        ]).'?page=1&per_page=24')
+        ->assertOk()
+        ->assertJsonFragment([
+            'nodeId' => $portal->id,
+            'positionQ' => $portalStart[0],
+            'positionR' => $portalStart[1],
+            'title' => $portal->title,
+        ])
+        ->assertJsonPath('pagination.total', $map->nodes()->count());
+
+    $this->actingAs($admin)
+        ->getJson(route('settings.worlds.maps.layout-versions.preview', [
+            'map' => $map,
+            'version' => $version,
+        ]).'?page=1&per_page=1')
+        ->assertOk()
+        ->assertJsonCount(1, 'items')
+        ->assertJsonPath('pagination.perPage', 1)
+        ->assertJsonPath('pagination.total', $map->nodes()->count());
+
+    $this->actingAs($admin)
         ->postJson(route('settings.worlds.maps.layout-versions.restore', [
             'map' => $map,
             'version' => $version,

@@ -28,6 +28,21 @@ type MapLayoutVersionPage = {
     };
 };
 
+type MapLayoutPreview = {
+    createdAt: string | null;
+    items: Array<{
+        nodeId: number;
+        positionQ: number;
+        positionR: number;
+        title: string;
+    }>;
+    pagination: {
+        lastPage: number;
+        page: number;
+    };
+    versionId: number;
+};
+
 export function MapLayoutHistoryDialog({
     children,
     mapId,
@@ -48,6 +63,10 @@ export function MapLayoutHistoryDialog({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [restoringId, setRestoringId] = useState<number | null>(null);
+    const [preview, setPreview] = useState<MapLayoutPreview | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewVersion, setPreviewVersion] =
+        useState<MapLayoutVersion | null>(null);
 
     const loadHistory = useCallback(
         async (page = 1) => {
@@ -79,6 +98,43 @@ export function MapLayoutHistoryDialog({
         },
         [mapId],
     );
+
+    const loadPreview = useCallback(
+        async (versionId: number, page = 1) => {
+            setPreviewLoading(true);
+            setError(false);
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/maps/${mapId}/layout-versions/${versionId}/preview?page=${page}&per_page=8`,
+                    {
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error('Unable to load map layout preview.');
+                }
+
+                setPreview((await response.json()) as MapLayoutPreview);
+            } catch {
+                setError(true);
+            } finally {
+                setPreviewLoading(false);
+            }
+        },
+        [mapId],
+    );
+
+    const openPreview = (version: MapLayoutVersion) => {
+        setPreviewVersion(version);
+        setPreview(null);
+        void loadPreview(version.id);
+    };
 
     const restoreVersion = async (version: MapLayoutVersion) => {
         if (
@@ -118,6 +174,8 @@ export function MapLayoutHistoryDialog({
             }
 
             onRestored();
+            setPreview(null);
+            setPreviewVersion(null);
             await loadHistory(history?.pagination.page ?? 1);
         } catch {
             setError(true);
@@ -133,6 +191,9 @@ export function MapLayoutHistoryDialog({
 
                 if (nextOpen) {
                     void loadHistory();
+                } else {
+                    setPreview(null);
+                    setPreviewVersion(null);
                 }
             }}
             open={open}
@@ -155,7 +216,149 @@ export function MapLayoutHistoryDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid min-h-0 gap-3 overflow-hidden">
-                    {loading ? (
+                    {previewVersion ? (
+                        <div className="grid min-h-0 gap-3">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="grid gap-1">
+                                    <p className="text-sm font-medium">
+                                        {t(
+                                            'settings.map_layout_history.preview_title',
+                                            'Layout preview',
+                                        )}
+                                    </p>
+                                    <p className="text-xs text-[var(--settings-muted-text)]">
+                                        {t(
+                                            'settings.map_layout_history.preview_description',
+                                            'Inspect the saved node positions before restoring this layout.',
+                                        )}
+                                    </p>
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        setPreview(null);
+                                        setPreviewVersion(null);
+                                    }}
+                                    size="sm"
+                                    type="button"
+                                    variant="ghost"
+                                >
+                                    {t(
+                                        'settings.map_layout_history.back_to_history',
+                                        'Back to history',
+                                    )}
+                                </Button>
+                            </div>
+                            {previewLoading ? (
+                                <p
+                                    aria-live="polite"
+                                    className="text-sm"
+                                    role="status"
+                                >
+                                    {t(
+                                        'settings.map_layout_history.preview_loading',
+                                        'Loading layout preview…',
+                                    )}
+                                </p>
+                            ) : error ? (
+                                <p
+                                    aria-live="polite"
+                                    className="text-sm text-red-400"
+                                    role="status"
+                                >
+                                    {t(
+                                        'settings.map_layout_history.preview_error',
+                                        'The layout preview could not be loaded. Try again.',
+                                    )}
+                                </p>
+                            ) : preview && preview.items.length > 0 ? (
+                                <div
+                                    aria-label={t(
+                                        'settings.map_layout_history.preview_items',
+                                        'Saved node positions',
+                                    )}
+                                    className="grid gap-2 sm:grid-cols-2"
+                                    role="list"
+                                >
+                                    {preview.items.map((item) => (
+                                        <div
+                                            className="grid gap-1 rounded-md border border-[var(--settings-border-color)] p-3"
+                                            key={item.nodeId}
+                                            role="listitem"
+                                        >
+                                            <p className="text-sm font-medium">
+                                                {item.title}
+                                            </p>
+                                            <p className="text-xs text-[var(--settings-muted-text)]">
+                                                {t(
+                                                    'settings.map_layout_history.position',
+                                                    'Position q:r',
+                                                    {
+                                                        q: item.positionQ,
+                                                        r: item.positionR,
+                                                    },
+                                                )}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-[var(--settings-muted-text)]">
+                                    {t(
+                                        'settings.map_layout_history.preview_empty',
+                                        'This saved layout has no readable node positions.',
+                                    )}
+                                </p>
+                            )}
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <Button
+                                    disabled={
+                                        restoringId !== null ||
+                                        !previewVersion.restorable
+                                    }
+                                    onClick={() =>
+                                        void restoreVersion(previewVersion)
+                                    }
+                                    size="sm"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <RotateCcw className="size-4" />
+                                    {restoringId === previewVersion.id
+                                        ? t(
+                                              'settings.map_layout_history.restoring',
+                                              'Restoring…',
+                                          )
+                                        : t(
+                                              'settings.map_layout_history.restore',
+                                              'Restore this layout',
+                                          )}
+                                </Button>
+                                {preview ? (
+                                    <PaginationControls
+                                        buttonClassName="text-[var(--settings-accent)]"
+                                        currentPage={preview.pagination.page}
+                                        disabled={
+                                            previewLoading ||
+                                            restoringId !== null
+                                        }
+                                        label={t(
+                                            'settings.map_layout_history.preview_pagination',
+                                            'Layout preview pagination',
+                                        )}
+                                        onPageChange={(page) =>
+                                            void loadPreview(
+                                                previewVersion.id,
+                                                page,
+                                            )
+                                        }
+                                        pageCount={preview.pagination.lastPage}
+                                        showSinglePage
+                                        textClassName="text-[var(--settings-muted-text)]"
+                                    />
+                                ) : null}
+                            </div>
+                        </div>
+                    ) : loading ? (
                         <p aria-live="polite" className="text-sm" role="status">
                             {t(
                                 'settings.map_layout_history.loading',
@@ -213,30 +416,42 @@ export function MapLayoutHistoryDialog({
                                             )}
                                         </p>
                                     ) : null}
-                                    <Button
-                                        className="justify-self-end"
-                                        disabled={
-                                            restoringId !== null ||
-                                            !version.restorable
-                                        }
-                                        onClick={() =>
-                                            void restoreVersion(version)
-                                        }
-                                        size="sm"
-                                        type="button"
-                                        variant="ghost"
-                                    >
-                                        <RotateCcw className="size-4" />
-                                        {restoringId === version.id
-                                            ? t(
-                                                  'settings.map_layout_history.restoring',
-                                                  'Restoring…',
-                                              )
-                                            : t(
-                                                  'settings.map_layout_history.restore',
-                                                  'Restore this layout',
-                                              )}
-                                    </Button>
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                        <Button
+                                            onClick={() => openPreview(version)}
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            {t(
+                                                'settings.map_layout_history.preview',
+                                                'Preview',
+                                            )}
+                                        </Button>
+                                        <Button
+                                            disabled={
+                                                restoringId !== null ||
+                                                !version.restorable
+                                            }
+                                            onClick={() =>
+                                                void restoreVersion(version)
+                                            }
+                                            size="sm"
+                                            type="button"
+                                            variant="ghost"
+                                        >
+                                            <RotateCcw className="size-4" />
+                                            {restoringId === version.id
+                                                ? t(
+                                                      'settings.map_layout_history.restoring',
+                                                      'Restoring…',
+                                                  )
+                                                : t(
+                                                      'settings.map_layout_history.restore',
+                                                      'Restore this layout',
+                                                  )}
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

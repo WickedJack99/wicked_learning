@@ -762,7 +762,9 @@ restore an earlier version without losing the current details.
 Node placement edits also keep a bounded, paginated layout history. Authors can
 restore an earlier arrangement of the existing nodes without changing their
 content. The history view marks entries unavailable after nodes have been added
-or removed, so the history cannot be mistaken for a complete map backup.
+or removed, and authors can preview a saved arrangement's bounded, paginated
+node positions before restoring it, so the history cannot be mistaken for a
+complete map backup.
 
 Authors can also inspect a bounded private history for an individual MapAsset's
 learner-facing configuration and restore an earlier version without losing the
