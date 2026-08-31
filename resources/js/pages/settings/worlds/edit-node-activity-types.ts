@@ -82,8 +82,13 @@ export type ActivityQuestionOption = {
 };
 
 export type ActivityTemplateSummary = {
+    canManage: boolean;
     id: number;
     name: string;
+    organization: {
+        id: number;
+        name: string;
+    } | null;
     title: string;
     type: string;
     updatedAt: string | null;
@@ -108,6 +113,10 @@ export type ActivityTemplatePage = {
         perPage: number;
         total: number;
     };
+    shareTargets: Array<{
+        id: number;
+        name: string;
+    }>;
 };
 
 export type ActivityReviewHistoryEntry = {

@@ -211,6 +211,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::patch('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'updateActivityTemplate'])
         ->name('settings.worlds.activity-templates.update');
 
+    Route::patch('settings/worlds/activity-templates/{template}/sharing', [AdminActivityController::class, 'shareActivityTemplate'])
+        ->name('settings.worlds.activity-templates.sharing.update');
+
     Route::delete('settings/worlds/activity-templates/{template}', [AdminActivityController::class, 'destroyActivityTemplate'])
         ->name('settings.worlds.activity-templates.destroy');
 

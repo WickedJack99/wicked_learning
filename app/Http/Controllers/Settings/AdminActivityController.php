@@ -14,6 +14,7 @@ use App\Learning\Actions\DeleteLearningActivity;
 use App\Learning\Actions\DeleteLearningActivityTemplate;
 use App\Learning\Actions\RestoreLearningActivityVersion;
 use App\Learning\Actions\SaveLearningActivityTemplate;
+use App\Learning\Actions\ShareLearningActivityTemplate;
 use App\Learning\Actions\UpdateActivitySpecialGraphLayout;
 use App\Learning\Actions\UpdateActivityTransition;
 use App\Learning\Actions\UpdateLearningActivity;
@@ -41,6 +42,7 @@ use App\Models\LearningActivityVersion;
 use App\Models\LearningNode;
 use App\Models\LearningSourceRecord;
 use App\Models\LearningSourceRecordVersion;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -73,6 +75,7 @@ class AdminActivityController extends Controller
         private readonly LearningActivityVersionSerializer $activityVersionSerializer,
         private readonly RestoreLearningActivityVersion $restoreActivityVersion,
         private readonly SaveLearningActivityTemplate $saveActivityTemplate,
+        private readonly ShareLearningActivityTemplate $shareActivityTemplate,
         private readonly UpdateLearningActivityTemplate $updateActivityTemplate,
         private readonly DeleteLearningActivityTemplate $deleteActivityTemplate,
         private readonly LoadLearningActivityTemplates $activityTemplates,
@@ -140,7 +143,7 @@ class AdminActivityController extends Controller
 
         return response()->json([
             'items' => $templates->getCollection()
-                ->map(fn (LearningActivityTemplate $template): array => $this->activityTemplateSerializer->serialize($template))
+                ->map(fn (LearningActivityTemplate $template): array => $this->activityTemplateSerializer->serialize($template, $user))
                 ->values()
                 ->all(),
             'pagination' => [
@@ -149,6 +152,15 @@ class AdminActivityController extends Controller
                 'total' => $templates->total(),
                 'lastPage' => $templates->lastPage(),
             ],
+            'shareTargets' => $user->organizationMemberships()
+                ->with('organization:id,name')
+                ->get()
+                ->map(fn ($membership): array => [
+                    'id' => $membership->organization->id,
+                    'name' => $membership->organization->name,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -167,6 +179,7 @@ class AdminActivityController extends Controller
         return response()->json([
             'template' => $this->activityTemplateSerializer->serialize(
                 $this->saveActivityTemplate->handle($user, $activity, $data['name']),
+                $user,
             ),
         ], 201);
     }
@@ -178,10 +191,10 @@ class AdminActivityController extends Controller
         $this->authorizeGlobalActivityEdit($request);
         $user = $request->user();
         abort_unless($user instanceof User, 401);
-        abort_unless($template->created_by_user_id === $user->id, 404);
+        abort_unless($this->canViewActivityTemplate($user, $template), 404);
 
         return response()->json([
-            'template' => $this->activityTemplateSerializer->serializeDetails($template),
+            'template' => $this->activityTemplateSerializer->serializeDetails($template, $user),
         ]);
     }
 
@@ -200,6 +213,36 @@ class AdminActivityController extends Controller
         return response()->json([
             'template' => $this->activityTemplateSerializer->serialize(
                 $this->updateActivityTemplate->handle($template, $data['name']),
+                $user,
+            ),
+        ]);
+    }
+
+    public function shareActivityTemplate(
+        Request $request,
+        LearningActivityTemplate $template,
+    ): JsonResponse {
+        $this->authorizeGlobalActivityEdit($request);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+        abort_unless($template->created_by_user_id === $user->id, 404);
+        $data = $request->validate([
+            'organization_id' => ['nullable', 'integer', 'exists:organizations,id'],
+        ]);
+        $organization = isset($data['organization_id'])
+            ? Organization::query()->findOrFail($data['organization_id'])
+            : null;
+
+        if ($organization && ! $user->organizationMemberships()
+            ->where('organization_id', $organization->id)
+            ->exists()) {
+            abort(403, 'You can only share templates with organizations you belong to.');
+        }
+
+        return response()->json([
+            'template' => $this->activityTemplateSerializer->serialize(
+                $this->shareActivityTemplate->handle($template, $organization),
+                $user,
             ),
         ]);
     }
@@ -216,6 +259,17 @@ class AdminActivityController extends Controller
         $this->deleteActivityTemplate->handle($template);
 
         return response()->noContent();
+    }
+
+    private function canViewActivityTemplate(
+        User $user,
+        LearningActivityTemplate $template,
+    ): bool {
+        return $template->created_by_user_id === $user->id
+            || ($template->organization_id !== null
+                && $user->organizationMemberships()
+                    ->where('organization_id', $template->organization_id)
+                    ->exists());
     }
 
     public function storeSourceRecord(Request $request): JsonResponse

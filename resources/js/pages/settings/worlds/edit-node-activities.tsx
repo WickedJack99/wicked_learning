@@ -137,6 +137,9 @@ export default function EditNodeActivities({
             total: 0,
         });
     const [activityTemplateSearch, setActivityTemplateSearch] = useState('');
+    const [shareTargets, setShareTargets] = useState<
+        ActivityTemplatePage['shareTargets']
+    >([]);
     const [managingActivityTemplates, setManagingActivityTemplates] =
         useState(false);
     const [editingActivityTemplate, setEditingActivityTemplate] =
@@ -145,6 +148,9 @@ export default function EditNodeActivities({
         useState('');
     const [updatingActivityTemplate, setUpdatingActivityTemplate] =
         useState(false);
+    const [sharingActivityTemplateId, setSharingActivityTemplateId] = useState<
+        number | null
+    >(null);
     const [deletingActivityTemplateId, setDeletingActivityTemplateId] =
         useState<number | null>(null);
     const [loadingActivityTemplates, setLoadingActivityTemplates] =
@@ -496,12 +502,15 @@ export default function EditNodeActivities({
                 );
 
                 if (!response.ok) {
-                    throw new Error('The activity templates could not be loaded.');
+                    throw new Error(
+                        'The activity templates could not be loaded.',
+                    );
                 }
 
                 const payload = (await response.json()) as ActivityTemplatePage;
                 setActivityTemplates(payload.items);
                 setActivityTemplatesPagination(payload.pagination);
+                setShareTargets(payload.shareTargets);
 
                 return payload;
             } catch (error) {
@@ -545,9 +554,8 @@ export default function EditNodeActivities({
         setUpdatingActivityTemplate(true);
         setActivityTemplateError(null);
         const csrfToken =
-            document.querySelector<HTMLMetaElement>(
-                'meta[name="csrf-token"]',
-            )?.content ?? '';
+            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                ?.content ?? '';
 
         try {
             const response = await fetch(
@@ -605,6 +613,68 @@ export default function EditNodeActivities({
         editingActivityTemplateName,
         t,
     ]);
+
+    const shareActivityTemplate = useCallback(
+        async (
+            template: ActivityTemplateSummary,
+            organizationId: string,
+        ): Promise<void> => {
+            setSharingActivityTemplateId(template.id);
+            setActivityTemplateError(null);
+            const csrfToken =
+                document.querySelector<HTMLMetaElement>(
+                    'meta[name="csrf-token"]',
+                )?.content ?? '';
+
+            try {
+                const response = await fetch(
+                    `/settings/worlds/activity-templates/${template.id}/sharing`,
+                    {
+                        body: JSON.stringify({
+                            organization_id:
+                                organizationId === ''
+                                    ? null
+                                    : Number(organizationId),
+                        }),
+                        credentials: 'same-origin',
+                        headers: {
+                            Accept: 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        method: 'PATCH',
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        'The template sharing setting could not be saved.',
+                    );
+                }
+
+                const payload = (await response.json()) as {
+                    template: ActivityTemplateSummary;
+                };
+                setActivityTemplates((current) =>
+                    current.map((currentTemplate) =>
+                        currentTemplate.id === payload.template.id
+                            ? payload.template
+                            : currentTemplate,
+                    ),
+                );
+            } catch (error) {
+                setActivityTemplateError(
+                    error instanceof Error
+                        ? error.message
+                        : 'The template sharing setting could not be saved.',
+                );
+            } finally {
+                setSharingActivityTemplateId(null);
+            }
+        },
+        [],
+    );
 
     const deleteActivityTemplate = useCallback(
         async (template: ActivityTemplateSummary): Promise<void> => {
@@ -710,7 +780,9 @@ export default function EditNodeActivities({
                 );
 
                 if (!response.ok) {
-                    throw new Error('The selected template could not be loaded.');
+                    throw new Error(
+                        'The selected template could not be loaded.',
+                    );
                 }
 
                 const payload = (await response.json()) as {
@@ -771,9 +843,8 @@ export default function EditNodeActivities({
         setSavingTemplate(true);
         setActivityTemplateError(null);
         const csrfToken =
-            document.querySelector<HTMLMetaElement>(
-                'meta[name="csrf-token"]',
-            )?.content ?? '';
+            document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+                ?.content ?? '';
 
         try {
             const response = await fetch(
@@ -1593,8 +1664,8 @@ export default function EditNodeActivities({
                                 className="text-xs leading-5 text-muted-foreground"
                                 id="activity-transition-outcome-help"
                             >
-                                Match this value to an answer outcome key on
-                                the source question. Leave it blank to use the
+                                Match this value to an answer outcome key on the
+                                source question. Leave it blank to use the
                                 question's generic correct or incorrect route.
                             </p>
                             {transitionErrors.trigger_value ? (
@@ -1663,9 +1734,10 @@ export default function EditNodeActivities({
                                         Start from a saved template
                                     </h2>
                                     <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
-                                        Your templates are private and editable
-                                        starting points. The full configuration
-                                        loads only after you choose one.
+                                        {t(
+                                            'settings.worlds.activities.template.sharing_description',
+                                            'Templates are private by default. Share a saved template with an organization while keeping the full configuration behind an explicit preview.',
+                                        )}
                                     </p>
                                 </div>
                                 <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
@@ -1735,12 +1807,18 @@ export default function EditNodeActivities({
                                                         )
                                                     }
                                                     onKeyDown={(event) => {
-                                                        if (event.key === 'Enter') {
+                                                        if (
+                                                            event.key ===
+                                                            'Enter'
+                                                        ) {
                                                             event.preventDefault();
                                                             void renameActivityTemplate();
                                                         }
 
-                                                        if (event.key === 'Escape') {
+                                                        if (
+                                                            event.key ===
+                                                            'Escape'
+                                                        ) {
                                                             event.preventDefault();
                                                             cancelRenameActivityTemplate();
                                                         }
@@ -1789,7 +1867,7 @@ export default function EditNodeActivities({
                                             </div>
                                         ) : (
                                             <div
-                                                className="flex min-h-16 items-stretch rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)]"
+                                                className="flex min-h-16 flex-wrap items-stretch rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)]"
                                                 key={template.id}
                                             >
                                                 <Button
@@ -1817,6 +1895,22 @@ export default function EditNodeActivities({
                                                             {template.type} ·{' '}
                                                             {template.title}
                                                         </span>
+                                                        <span className="mt-1 block text-xs text-[var(--settings-muted-text)]">
+                                                            {template.organization
+                                                                ? t(
+                                                                      'settings.worlds.activities.template.shared_with',
+                                                                      'Shared with :name',
+                                                                      {
+                                                                          name: template
+                                                                              .organization
+                                                                              .name,
+                                                                      },
+                                                                  )
+                                                                : t(
+                                                                      'settings.worlds.activities.template.private_template',
+                                                                      'Private template',
+                                                                  )}
+                                                        </span>
                                                     </span>
                                                     <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--settings-accent)]">
                                                         {t(
@@ -1827,52 +1921,119 @@ export default function EditNodeActivities({
                                                     </span>
                                                 </Button>
                                                 {managingActivityTemplates ? (
-                                                    <div className="flex shrink-0 items-center gap-1 px-2">
-                                                        <Button
-                                                            aria-label={`${t(
-                                                                'settings.worlds.activities.template.rename',
-                                                                'Rename template',
-                                                            )}: ${template.name}`}
-                                                            className="size-8 p-0"
-                                                            disabled={
-                                                                loadingTemplateId !==
-                                                                    null ||
-                                                                deletingActivityTemplateId !==
-                                                                    null
-                                                            }
-                                                            onClick={() =>
-                                                                beginRenameActivityTemplate(
-                                                                    template,
-                                                                )
-                                                            }
-                                                            type="button"
-                                                            variant="outline"
-                                                        >
-                                                            <Pencil className="size-3.5" />
-                                                        </Button>
-                                                        <Button
-                                                            aria-label={`${t(
-                                                                'settings.worlds.activities.template.delete',
-                                                                'Delete template',
-                                                            )}: ${template.name}`}
-                                                            className="size-8 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                                            disabled={
-                                                                loadingTemplateId !==
-                                                                    null ||
-                                                                updatingActivityTemplate ||
-                                                                deletingActivityTemplateId !==
-                                                                    null
-                                                            }
-                                                            onClick={() =>
-                                                                void deleteActivityTemplate(
-                                                                    template,
-                                                                )
-                                                            }
-                                                            type="button"
-                                                            variant="outline"
-                                                        >
-                                                            <Trash2 className="size-3.5" />
-                                                        </Button>
+                                                    <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-1 border-t border-[var(--settings-border-color)] px-2 py-2 sm:w-auto sm:border-t-0 sm:py-0">
+                                                        {template.canManage ? (
+                                                            <>
+                                                                {shareTargets.length >
+                                                                0 ? (
+                                                                    <select
+                                                                        aria-label={`${t(
+                                                                            'settings.worlds.activities.template.share',
+                                                                            'Share template',
+                                                                        )}: ${template.name}`}
+                                                                        className="h-8 max-w-44 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-content-background)] px-2 text-xs text-[var(--settings-text-color)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)]"
+                                                                        disabled={
+                                                                            sharingActivityTemplateId ===
+                                                                                template.id ||
+                                                                            updatingActivityTemplate ||
+                                                                            deletingActivityTemplateId !==
+                                                                                null
+                                                                        }
+                                                                        onChange={(
+                                                                            event,
+                                                                        ) =>
+                                                                            void shareActivityTemplate(
+                                                                                template,
+                                                                                event
+                                                                                    .target
+                                                                                    .value,
+                                                                            )
+                                                                        }
+                                                                        value={
+                                                                            template.organization?.id.toString() ??
+                                                                            ''
+                                                                        }
+                                                                    >
+                                                                        <option value="">
+                                                                            {t(
+                                                                                'settings.worlds.activities.template.private',
+                                                                                'Private',
+                                                                            )}
+                                                                        </option>
+                                                                        {shareTargets.map(
+                                                                            (
+                                                                                organization,
+                                                                            ) => (
+                                                                                <option
+                                                                                    key={
+                                                                                        organization.id
+                                                                                    }
+                                                                                    value={String(
+                                                                                        organization.id,
+                                                                                    )}
+                                                                                >
+                                                                                    {
+                                                                                        organization.name
+                                                                                    }
+                                                                                </option>
+                                                                            ),
+                                                                        )}
+                                                                    </select>
+                                                                ) : null}
+                                                                <Button
+                                                                    aria-label={`${t(
+                                                                        'settings.worlds.activities.template.rename',
+                                                                        'Rename template',
+                                                                    )}: ${template.name}`}
+                                                                    className="size-8 p-0"
+                                                                    disabled={
+                                                                        loadingTemplateId !==
+                                                                            null ||
+                                                                        deletingActivityTemplateId !==
+                                                                            null
+                                                                    }
+                                                                    onClick={() =>
+                                                                        beginRenameActivityTemplate(
+                                                                            template,
+                                                                        )
+                                                                    }
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                >
+                                                                    <Pencil className="size-3.5" />
+                                                                </Button>
+                                                                <Button
+                                                                    aria-label={`${t(
+                                                                        'settings.worlds.activities.template.delete',
+                                                                        'Delete template',
+                                                                    )}: ${template.name}`}
+                                                                    className="size-8 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                                    disabled={
+                                                                        loadingTemplateId !==
+                                                                            null ||
+                                                                        updatingActivityTemplate ||
+                                                                        deletingActivityTemplateId !==
+                                                                            null
+                                                                    }
+                                                                    onClick={() =>
+                                                                        void deleteActivityTemplate(
+                                                                            template,
+                                                                        )
+                                                                    }
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                >
+                                                                    <Trash2 className="size-3.5" />
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <span className="px-1 text-xs text-[var(--settings-muted-text)]">
+                                                                {t(
+                                                                    'settings.worlds.activities.template.shared_read_only',
+                                                                    'Shared read-only template',
+                                                                )}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 ) : null}
                                             </div>
@@ -1910,9 +2071,7 @@ export default function EditNodeActivities({
                                         activityTemplateSearch,
                                     )
                                 }
-                                pageCount={
-                                    activityTemplatesPagination.lastPage
-                                }
+                                pageCount={activityTemplatesPagination.lastPage}
                                 previousLabel="Previous saved template page"
                             />
                         </section>
@@ -2084,7 +2243,9 @@ export default function EditNodeActivities({
             >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Save reusable activity template</DialogTitle>
+                        <DialogTitle>
+                            Save reusable activity template
+                        </DialogTitle>
                         <DialogDescription>
                             Save the authored configuration as a private,
                             editable starting point. Learner responses and
@@ -2127,7 +2288,9 @@ export default function EditNodeActivities({
                             Cancel
                         </Button>
                         <Button
-                            disabled={savingTemplate || templateName.trim() === ''}
+                            disabled={
+                                savingTemplate || templateName.trim() === ''
+                            }
                             onClick={() => void saveActivityTemplate()}
                             type="button"
                         >

@@ -2,6 +2,8 @@
 
 use App\Models\LearningActivity;
 use App\Models\LearningActivityTemplate;
+use App\Models\Organization;
+use App\Models\OrganizationMembership;
 use App\Models\User;
 use Database\Seeders\DemoLearningWorldSeeder;
 
@@ -109,6 +111,107 @@ test('authors can rename and delete their private activity templates', function 
         ->assertNoContent();
 
     expect(LearningActivityTemplate::query()->find($template))->toBeNull();
+});
+
+test('authors can share a template with organization members without exposing private templates', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $owner = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $member = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $outsider = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $organization = Organization::query()->create([
+        'created_by_user_id' => $owner->id,
+        'name' => 'Pattern Lab',
+        'slug' => 'pattern-lab',
+    ]);
+    $organization->memberships()->createMany([
+        [
+            'user_id' => $owner->id,
+            'role' => OrganizationMembership::ROLE_LEADER,
+            'joined_at' => now(),
+        ],
+        [
+            'user_id' => $member->id,
+            'role' => OrganizationMembership::ROLE_MEMBER,
+            'joined_at' => now(),
+        ],
+    ]);
+    $activity = LearningActivity::query()->where('type', 'obstacle')->firstOrFail();
+
+    $template = $this->actingAs($owner)
+        ->postJson(route('settings.worlds.activities.templates.store', $activity), [
+            'name' => 'Shared gate template',
+        ])
+        ->assertCreated()
+        ->json('template.id');
+
+    $this->actingAs($outsider)
+        ->patchJson(route('settings.worlds.activity-templates.sharing.update', $template), [
+            'organization_id' => $organization->id,
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($owner)
+        ->getJson(route('settings.worlds.activity-templates.index'))
+        ->assertOk()
+        ->assertJsonPath('items.0.canManage', true)
+        ->assertJsonPath('items.0.organization', null)
+        ->assertJsonPath('shareTargets.0.id', $organization->id);
+
+    $this->actingAs($owner)
+        ->patchJson(route('settings.worlds.activity-templates.sharing.update', $template), [
+            'organization_id' => $organization->id,
+        ])
+        ->assertOk()
+        ->assertJsonPath('template.organization.id', $organization->id)
+        ->assertJsonPath('template.organization.name', $organization->name);
+
+    $this->actingAs($member)
+        ->getJson(route('settings.worlds.activity-templates.index'))
+        ->assertOk()
+        ->assertJsonPath('pagination.total', 1)
+        ->assertJsonPath('items.0.canManage', false)
+        ->assertJsonPath('items.0.organization.id', $organization->id);
+
+    $this->actingAs($member)
+        ->getJson(route('settings.worlds.activity-templates.show', $template))
+        ->assertOk()
+        ->assertJsonPath('template.snapshot.title', $activity->title);
+
+    $this->actingAs($member)
+        ->patchJson(route('settings.worlds.activity-templates.update', $template), [
+            'name' => 'Changed by member',
+        ])
+        ->assertNotFound();
+
+    $this->actingAs($outsider)
+        ->getJson(route('settings.worlds.activity-templates.index'))
+        ->assertOk()
+        ->assertJsonPath('pagination.total', 0);
+
+    $this->actingAs($outsider)
+        ->getJson(route('settings.worlds.activity-templates.show', $template))
+        ->assertNotFound();
+
+    $this->actingAs($owner)
+        ->patchJson(route('settings.worlds.activity-templates.sharing.update', $template), [
+            'organization_id' => null,
+        ])
+        ->assertOk()
+        ->assertJsonPath('template.organization', null);
+
+    expect(LearningActivityTemplate::query()->findOrFail($template)->organization_id)
+        ->toBeNull();
+
+    $this->actingAs($member)
+        ->getJson(route('settings.worlds.activity-templates.index'))
+        ->assertOk()
+        ->assertJsonPath('pagination.total', 0);
 });
 
 test('npc dialogue graph activities cannot be saved as flat templates', function () {

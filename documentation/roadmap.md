@@ -218,7 +218,9 @@ workflows remain future work.
 - Expand the current private activity-template library into a shared, versioned
   library with richer context and asset-resolution controls. The current flow
   supports named private templates, an explicit MapAsset destination and
-  clearing source-scoped references.
+  clearing source-scoped references. Authors can now share one saved template
+  with an organization they belong to; shared version history and richer
+  asset-resolution controls remain future work.
 
 ### Collaboration
 
