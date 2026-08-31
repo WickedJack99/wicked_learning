@@ -6,7 +6,9 @@ use App\Learning\CurrentWorldResolver;
 use App\Learning\Services\LearnerMapLocationService;
 use App\Learning\Services\LearningMapAccessService;
 use App\Models\LearningMap;
+use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class LoadCurrentMenuMapTheme
 {
@@ -23,7 +25,12 @@ class LoadCurrentMenuMapTheme
     {
         $world = $this->worldResolver
             ->query()
-            ->with('maps')
+            ->with([
+                'maps' => /** @param Relation<LearningMap, LearningWorld, mixed> $relation */
+                function (Relation $relation) use ($user): void {
+                    $this->mapAccess->constrainVisibleQuery($relation->getQuery(), $user);
+                },
+            ])
             ->first();
 
         if (! $world) {

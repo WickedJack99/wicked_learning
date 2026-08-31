@@ -177,6 +177,44 @@ test('world loading scopes inaccessible maps before eager hydration', function (
     ))->not->toBeNull();
 });
 
+test('shared map theme loading scopes inaccessible maps before selecting a theme', function () {
+    $user = User::factory()->create();
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'restricted-menu-map',
+        'title' => 'Restricted menu map',
+        'access_roles' => [User::ROLE_ADMIN],
+    ]);
+    LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'visible-menu-map',
+        'title' => 'Visible menu map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+
+    $mapQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$mapQueries): void {
+        if (str_contains($query->sql, 'from "learning_maps"')) {
+            $mapQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('home'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('menuTheme.mapSlug', 'visible-menu-map')
+        );
+
+    expect(collect($mapQueries)->first(
+        fn (QueryExecuted $query): bool => str_contains($query->sql, 'access_roles'),
+    ))->not->toBeNull();
+});
+
 test('authenticated users return to the last world map stored on their account', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $user = User::factory()->create();
