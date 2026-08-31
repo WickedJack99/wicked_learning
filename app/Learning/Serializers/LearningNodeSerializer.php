@@ -35,8 +35,12 @@ class LearningNodeSerializer
     /**
      * @return array<string, mixed>
      */
-    public function serialize(LearningNode $node, ?User $user = null, bool $includeLearnerReviewContext = false): array
-    {
+    public function serialize(
+        LearningNode $node,
+        ?User $user = null,
+        bool $includeLearnerReviewContext = false,
+        ?Collection $routeProgressByStartKey = null,
+    ): array {
         $this->loadRelations($node);
         $userId = $user?->id;
         $state = $this->nodeStateResolver->stateForUser($node, $userId);
@@ -60,7 +64,7 @@ class LearningNodeSerializer
                 ->map(fn (LearningPortalLink $link): array => $this->portalLinkSerializer->serialize($link, $userId))
                 ->values(),
             'startActivityId' => $this->eligibleStartActivityId($node),
-            'startRoutes' => $this->startRoutes($node, $user),
+            'startRoutes' => $this->startRoutes($node, $user, $routeProgressByStartKey),
             'activities' => $node->activities
                 ->map(fn (LearningActivity $activity): array => $this->activitySerializer->serialize(
                     $activity,
@@ -352,14 +356,22 @@ class LearningNodeSerializer
     }
 
     /**
+     * @param  Collection<string, mixed>|null  $routeProgressByStartKey
      * @return Collection<int, array<string, mixed>>
      */
-    private function startRoutes(LearningNode $node, ?User $user): Collection
-    {
+    private function startRoutes(
+        LearningNode $node,
+        ?User $user,
+        ?Collection $routeProgressByStartKey = null,
+    ): Collection {
         $eligibleStarts = $node->activityStarts
             ->filter(fn (LearningActivityStart $start): bool => $this->routeEligibility->canStart($start->activity))
             ->values();
 
-        return $this->startSerializer->serializeMany($eligibleStarts, $user);
+        return $this->startSerializer->serializeMany(
+            $eligibleStarts,
+            $user,
+            $routeProgressByStartKey,
+        );
     }
 }

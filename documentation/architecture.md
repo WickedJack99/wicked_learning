@@ -102,9 +102,11 @@ current Activity, run key, completion counts and completion time. Activity types
 can persist more specific state without putting it into the URL:
 
 When a learner node exposes route choices, the serializer batch-loads the
-current learner's progress for those starts in one node-scoped query. Missing
-progress remains a null route state, so route count does not turn into one
-database lookup per choice.
+current learner's progress for those starts. Node playback uses one
+node-scoped query, while the world map collects starts across its visible maps
+and reuses one scoped query for the whole map payload. Missing progress remains
+a null route state, so route count does not turn into one database lookup per
+choice or node.
 
 Shared-task submissions keep their normalized authored task kind in metadata so
 later cooperation review can distinguish contribution, question and reflection

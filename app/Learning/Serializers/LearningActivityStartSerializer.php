@@ -13,13 +13,13 @@ class LearningActivityStartSerializer
     public function __construct(private readonly LearnerRouteProgressService $routeProgress) {}
 
     /**
-     * @param  Collection<int, LearnerRouteProgress>|null  $progressByActivityId
+     * @param  Collection<string, LearnerRouteProgress>|null  $progressByStartKey
      * @return array<string, mixed>
      */
     public function serialize(
         LearningActivityStart $start,
         ?User $user = null,
-        ?Collection $progressByActivityId = null,
+        ?Collection $progressByStartKey = null,
     ): array {
         return [
             'id' => $start->id,
@@ -33,9 +33,7 @@ class LearningActivityStartSerializer
             'imageLight' => $start->image_light,
             'label' => $start->label ?: $start->activity->title,
             'progress' => $user
-                ? ($progressByActivityId !== null
-                    ? $progressByActivityId->get($start->learning_activity_id)
-                    : $this->progress($start, $user))
+                ? $this->progress($start, $user, $progressByStartKey)
                 : null,
             'sortOrder' => $start->sort_order,
         ];
@@ -43,11 +41,15 @@ class LearningActivityStartSerializer
 
     /**
      * @param  Collection<int, LearningActivityStart>  $starts
+     * @param  Collection<string, LearnerRouteProgress>|null  $progressByStartKey
      * @return Collection<int, array<string, mixed>>
      */
-    public function serializeMany(Collection $starts, ?User $user = null): Collection
-    {
-        $progressByActivityId = $user
+    public function serializeMany(
+        Collection $starts,
+        ?User $user = null,
+        ?Collection $progressByStartKey = null,
+    ): Collection {
+        $progressByStartKey ??= $user
             ? $this->routeProgress->progressForStarts($user, $starts)
             : null;
 
@@ -55,17 +57,26 @@ class LearningActivityStartSerializer
             ->map(fn (LearningActivityStart $start): array => $this->serialize(
                 $start,
                 $user,
-                $progressByActivityId,
+                $progressByStartKey,
             ))
             ->values();
     }
 
     /**
+     * @param  Collection<string, LearnerRouteProgress>|null  $progressByStartKey
      * @return array<string, mixed>|null
      */
-    private function progress(LearningActivityStart $start, User $user): ?array
-    {
-        $progress = $this->routeProgress->progressForStart($user, $start);
+    private function progress(
+        LearningActivityStart $start,
+        User $user,
+        ?Collection $progressByStartKey = null,
+    ): ?array {
+        $progress = $progressByStartKey?->get($this->routeProgress->startProgressKey(
+            $start->learning_node_id,
+            $start->learning_activity_id,
+        )) ?? ($progressByStartKey === null
+            ? $this->routeProgress->progressForStart($user, $start)
+            : null);
 
         if (! $progress) {
             return null;

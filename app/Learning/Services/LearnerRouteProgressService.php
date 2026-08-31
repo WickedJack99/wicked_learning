@@ -7,6 +7,7 @@ use App\Models\LearnerRouteProgress;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -26,7 +27,7 @@ class LearnerRouteProgressService
 
     /**
      * @param  Collection<int, LearningActivityStart>  $starts
-     * @return Collection<int, LearnerRouteProgress>
+     * @return Collection<string, LearnerRouteProgress>
      */
     public function progressForStarts(User $user, Collection $starts): Collection
     {
@@ -34,12 +35,34 @@ class LearnerRouteProgressService
             return collect();
         }
 
-        return LearnerRouteProgress::query()
+        $startsByNode = $starts->groupBy('learning_node_id');
+        $progress = LearnerRouteProgress::query()
             ->where('user_id', $user->id)
-            ->where('learning_node_id', $starts->first()->learning_node_id)
-            ->whereIn('start_learning_activity_id', $starts->pluck('learning_activity_id')->all())
-            ->get()
-            ->keyBy('start_learning_activity_id');
+            ->where(function (Builder $query) use ($startsByNode): void {
+                foreach ($startsByNode as $nodeId => $nodeStarts) {
+                    $query->orWhere(function (Builder $query) use ($nodeId, $nodeStarts): void {
+                        $query
+                            ->where('learning_node_id', $nodeId)
+                            ->whereIn(
+                                'start_learning_activity_id',
+                                $nodeStarts->pluck('learning_activity_id')->all(),
+                            );
+                    });
+                }
+            })
+            ->get();
+
+        return $progress->keyBy(
+            fn (LearnerRouteProgress $item): string => $this->startProgressKey(
+                $item->learning_node_id,
+                $item->start_learning_activity_id,
+            ),
+        );
+    }
+
+    public function startProgressKey(int $nodeId, int $activityId): string
+    {
+        return $nodeId.':'.$activityId;
     }
 
     public function startOrResume(User $user, LearningActivityStart $start): LearnerRouteProgress
