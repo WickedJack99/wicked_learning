@@ -243,6 +243,75 @@ test('support requests stay out of peer walls and remain visible to learning sup
         ->assertJsonPath('pagination.total', 1);
 });
 
+test('learning support can answer a private request and only its learner can read the reply', function () {
+    $learner = User::factory()->create();
+    $otherLearner = User::factory()->create();
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'roles' => [User::ROLE_ADMIN],
+    ]);
+    $topic = LearningMessageTopic::query()->create([
+        'learning_map_asset_id' => $this->mapAsset->id,
+        'slug' => 'private-support-replies',
+        'title' => 'Private support replies',
+    ]);
+    $supportPrompt = LearningActivity::query()->create([
+        'learning_node_id' => $this->node->id,
+        'slug' => 'private-support-request',
+        'type' => 'message_prompt',
+        'title' => 'Private support request',
+        'config' => [
+            'messageTopicId' => $topic->id,
+            'messageAudience' => 'support',
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.messages.store', $supportPrompt), [
+            'body' => 'Could someone help me inspect this clue?',
+        ])
+        ->assertCreated();
+
+    $message = $topic->messages()->sole();
+
+    $this->actingAs($otherLearner)
+        ->getJson(route('learning.activities.messages.index', $supportPrompt))
+        ->assertOk()
+        ->assertJsonCount(0, 'messages');
+
+    $this->actingAs($otherLearner)
+        ->postJson(route('settings.learning-support.messages.responses.store', $message), [
+            'body' => 'This should not be allowed.',
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.learning-support.messages.responses.store', $message), [
+            'body' => 'Try comparing the two repeated shapes first.',
+        ])
+        ->assertCreated()
+        ->assertJsonPath('response.body', 'Try comparing the two repeated shapes first.');
+
+    $this->actingAs($admin)
+        ->postJson(route('settings.learning-support.messages.responses.store', $message), [
+            'body' => 'Compare the two repeated shapes before naming the pattern.',
+        ])
+        ->assertOk()
+        ->assertJsonPath('response.body', 'Compare the two repeated shapes before naming the pattern.');
+
+    expect($message->responses()->count())->toBe(1);
+
+    $this->actingAs($learner)
+        ->getJson(route('learning.activities.messages.index', $supportPrompt))
+        ->assertOk()
+        ->assertJsonCount(1, 'messages')
+        ->assertJsonPath(
+            'messages.0.responses.0.body',
+            'Compare the two repeated shapes before naming the pattern.',
+        )
+        ->assertJsonMissingPath('messages.0.responses.0.author');
+});
+
 test('support can page and filter learner message moderation results', function () {
     $admin = User::factory()->create([
         'role' => User::ROLE_ADMIN,

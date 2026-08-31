@@ -85,6 +85,8 @@ Route::middleware(['auth', 'verified', 'can:learner_messages.ru'])->group(functi
         ->name('settings.learning-support.message-topics.messages.index');
     Route::get('settings/learning-support/messages/{message}/responses', [LearnerMessageModerationController::class, 'responses'])
         ->name('settings.learning-support.messages.responses.index');
+    Route::post('settings/learning-support/messages/{message}/responses', [LearnerMessageModerationController::class, 'respondToSupport'])
+        ->name('settings.learning-support.messages.responses.store');
     Route::patch('settings/learning-support/messages/{message}/visibility', [LearnerMessageModerationController::class, 'updateVisibility'])
         ->name('settings.learning-support.messages.visibility.update');
     Route::patch('settings/learning-support/message-responses/{response}/visibility', [LearnerMessageModerationController::class, 'updateResponseVisibility'])

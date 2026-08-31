@@ -11,7 +11,7 @@ import {
 } from '@/components/settings-configuration-shell';
 import type { SettingsNavigationItem } from '@/components/settings-configuration-shell';
 import { Button } from '@/components/ui/button';
-import { getJson } from '@/features/world/api';
+import { getJson, postJson } from '@/features/world/api';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type ResponseFilter = 'all' | 'helpful' | 'unconfirmed';
@@ -118,6 +118,14 @@ export function LearnerMessageModerationPanel({
     const [responseLoadingMessageId, setResponseLoadingMessageId] = useState<
         number | null
     >(null);
+    const [replyingMessageId, setReplyingMessageId] = useState<number | null>(
+        null,
+    );
+    const [supportReplyBody, setSupportReplyBody] = useState('');
+    const [supportReplyError, setSupportReplyError] = useState('');
+    const [supportReplySuccessMessageId, setSupportReplySuccessMessageId] =
+        useState<number | null>(null);
+    const [submittingSupportReply, setSubmittingSupportReply] = useState(false);
     const responseRequestRef = useRef<AbortController | null>(null);
     const loadMessages = useCallback(
         async (
@@ -245,6 +253,44 @@ export function LearnerMessageModerationPanel({
 
         void loadMessages(Number(selectedTopicId), page, responseFilter);
     }, [loadMessages, page, responseFilter, selectedTopicId]);
+    const submitSupportReply = async (messageId: number): Promise<void> => {
+        if (supportReplyBody.trim().length < 2) {
+            setSupportReplyError(
+                t(
+                    'settings.learner_messages.reply_too_short',
+                    'Write at least two characters.',
+                ),
+            );
+
+            return;
+        }
+
+        setSubmittingSupportReply(true);
+        setSupportReplyError('');
+        setSupportReplySuccessMessageId(null);
+
+        try {
+            await postJson(
+                `/settings/learning-support/messages/${messageId}/responses`,
+                { body: supportReplyBody.trim() },
+            );
+            setReplyingMessageId(null);
+            setSupportReplyBody('');
+            refreshMessages();
+            setSupportReplySuccessMessageId(messageId);
+        } catch (requestError) {
+            setSupportReplyError(
+                requestError instanceof Error
+                    ? requestError.message
+                    : t(
+                          'settings.learner_messages.reply_save_error',
+                          'The private reply could not be saved yet.',
+                      ),
+            );
+        } finally {
+            setSubmittingSupportReply(false);
+        }
+    };
     const items = useMemo(
         () =>
             topics.map(
@@ -435,12 +481,47 @@ export function LearnerMessageModerationPanel({
                                                 </div>
                                                 {message.audience ===
                                                 'support' ? (
-                                                    <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
-                                                        {t(
-                                                            'settings.learner_messages.support_request',
-                                                            'Support request',
-                                                        )}
-                                                    </span>
+                                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                                        <span className="rounded-full border border-amber-400/40 px-2 py-1 text-xs font-medium text-amber-700 dark:border-amber-300/30 dark:text-amber-200">
+                                                            {t(
+                                                                'settings.learner_messages.support_request',
+                                                                'Support request',
+                                                            )}
+                                                        </span>
+                                                        <Button
+                                                            onClick={() => {
+                                                                setReplyingMessageId(
+                                                                    (
+                                                                        current,
+                                                                    ) =>
+                                                                        current ===
+                                                                        message.id
+                                                                            ? null
+                                                                            : message.id,
+                                                                );
+                                                                setSupportReplyBody(
+                                                                    '',
+                                                                );
+                                                                setSupportReplyError(
+                                                                    '',
+                                                                );
+                                                            }}
+                                                            size="sm"
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            {replyingMessageId ===
+                                                            message.id
+                                                                ? t(
+                                                                      'settings.learner_messages.close_reply',
+                                                                      'Close reply',
+                                                                  )
+                                                                : t(
+                                                                      'settings.learner_messages.reply_privately',
+                                                                      'Reply privately',
+                                                                  )}
+                                                        </Button>
+                                                    </div>
                                                 ) : null}
                                                 <div className="flex gap-2">
                                                     <Button
@@ -525,6 +606,97 @@ export function LearnerMessageModerationPanel({
                                                         ? ` · ${message.hiddenBy.name}`
                                                         : ''}
                                                 </p>
+                                            ) : null}
+                                            {supportReplySuccessMessageId ===
+                                            message.id ? (
+                                                <p
+                                                    aria-live="polite"
+                                                    className="mt-3 text-xs font-medium text-teal-700 dark:text-teal-300"
+                                                >
+                                                    {t(
+                                                        'settings.learner_messages.reply_saved',
+                                                        'Private reply sent to the learner.',
+                                                    )}
+                                                </p>
+                                            ) : null}
+                                            {replyingMessageId ===
+                                            message.id ? (
+                                                <form
+                                                    className="mt-4 grid gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[color-mix(in_srgb,var(--settings-accent-color)_5%,transparent)] p-3"
+                                                    onSubmit={(event) => {
+                                                        event.preventDefault();
+                                                        void submitSupportReply(
+                                                            message.id,
+                                                        );
+                                                    }}
+                                                >
+                                                    <label
+                                                        className="text-xs font-semibold tracking-wide text-[var(--settings-heading-color)] uppercase"
+                                                        htmlFor={`support-reply-${message.id}`}
+                                                    >
+                                                        {t(
+                                                            'settings.learner_messages.reply_label',
+                                                            'Private reply to learner',
+                                                        )}
+                                                    </label>
+                                                    <textarea
+                                                        aria-describedby={`support-reply-help-${message.id}`}
+                                                        className="min-h-24 rounded-md border border-[var(--settings-border-color)] bg-[var(--settings-input-background)] p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--settings-accent-color)]"
+                                                        id={`support-reply-${message.id}`}
+                                                        maxLength={280}
+                                                        onChange={(event) =>
+                                                            setSupportReplyBody(
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        value={supportReplyBody}
+                                                    />
+                                                    <div
+                                                        className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--settings-muted-text)]"
+                                                        id={`support-reply-help-${message.id}`}
+                                                    >
+                                                        <span>
+                                                            {t(
+                                                                'settings.learner_messages.reply_visibility',
+                                                                'Only this learner can read the reply.',
+                                                            )}
+                                                        </span>
+                                                        <span>
+                                                            {
+                                                                supportReplyBody.length
+                                                            }
+                                                            /280
+                                                        </span>
+                                                    </div>
+                                                    {supportReplyError ? (
+                                                        <p
+                                                            className="text-xs text-red-700 dark:text-red-200"
+                                                            role="alert"
+                                                        >
+                                                            {supportReplyError}
+                                                        </p>
+                                                    ) : null}
+                                                    <div>
+                                                        <Button
+                                                            disabled={
+                                                                submittingSupportReply
+                                                            }
+                                                            size="sm"
+                                                            type="submit"
+                                                        >
+                                                            {submittingSupportReply
+                                                                ? t(
+                                                                      'settings.learner_messages.reply_saving',
+                                                                      'Sending...',
+                                                                  )
+                                                                : t(
+                                                                      'settings.learner_messages.reply_submit',
+                                                                      'Send private reply',
+                                                                  )}
+                                                        </Button>
+                                                    </div>
+                                                </form>
                                             ) : null}
                                             {message.responseCount > 0 ? (
                                                 <div

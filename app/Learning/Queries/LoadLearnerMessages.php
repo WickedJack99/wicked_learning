@@ -21,7 +21,13 @@ class LoadLearnerMessages
         int $page = 1,
         int $perPage = 12,
     ): array {
-        $messages = $topic->messages()->where('audience', $audience);
+        $messages = $topic->messages()
+            ->where('audience', $audience)
+            ->when(
+                $audience === 'support',
+                fn ($query) => $query->where('user_id', $user->id),
+            );
+        $includeResponses = $allowResponses || $audience === 'support';
         $messagePage = (clone $messages)
             ->whereNull('hidden_at')
             ->latest()
@@ -39,7 +45,7 @@ class LoadLearnerMessages
                 ->pluck('learner_message_id')
                 ->map(fn (int|string $id): int => (int) $id)
             : collect();
-        $responsesByMessage = $allowResponses && $messageIds !== []
+        $responsesByMessage = $includeResponses && $messageIds !== []
             ? $this->visibleResponses($messageIds, $messageAuthors, $user->id)
             : [];
 
@@ -58,8 +64,8 @@ class LoadLearnerMessages
                 'total' => $messagePage->total(),
             ],
             'messages' => $loadedMessages
-                ->map(function (LearnerMessage $message) use ($allowResponses, $respondedMessageIds, $responsesByMessage, $user): array {
-                    $responses = $allowResponses
+                ->map(function (LearnerMessage $message) use ($allowResponses, $includeResponses, $respondedMessageIds, $responsesByMessage, $user): array {
+                    $responses = $includeResponses
                         ? collect($responsesByMessage[$message->id] ?? [])
                             ->reverse()
                             ->values()

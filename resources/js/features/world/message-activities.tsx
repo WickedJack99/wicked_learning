@@ -211,6 +211,45 @@ export function MessagePromptActivity({
                                 'You have already contributed to this topic.',
                             )}
                         </p>
+                        {isSupportRequest &&
+                        state.messages[0]?.responses.length ? (
+                            <div
+                                className="mt-5 grid gap-2 rounded-lg border p-3"
+                                style={{
+                                    backgroundColor: theme.surface,
+                                    borderColor: theme.border,
+                                }}
+                            >
+                                <p
+                                    className="text-xs font-semibold tracking-[0.12em] uppercase"
+                                    style={{ color: theme.accent }}
+                                >
+                                    {t(
+                                        'activities.messages.support_reply_title',
+                                        'Learning Support response',
+                                    )}
+                                </p>
+                                <div className="grid gap-3">
+                                    {state.messages[0].responses.map(
+                                        (response) => (
+                                            <p
+                                                className="text-sm leading-6"
+                                                key={response.id}
+                                            >
+                                                {response.body}
+                                            </p>
+                                        ),
+                                    )}
+                                </div>
+                            </div>
+                        ) : isSupportRequest ? (
+                            <p className="mt-4 text-sm leading-6 opacity-75">
+                                {t(
+                                    'activities.messages.support_waiting',
+                                    'Your request is with Learning Support. You can return here to check for a response.',
+                                )}
+                            </p>
+                        ) : null}
                         <Button
                             className="mt-5"
                             onClick={() => void continueRoute()}

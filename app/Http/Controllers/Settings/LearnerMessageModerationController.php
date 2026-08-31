@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Learning\Actions\RespondToLearnerSupportRequest;
 use App\Learning\Queries\LoadLearnerMessageModeration;
 use App\Models\LearnerMessage;
 use App\Models\LearnerMessageResponse;
@@ -15,6 +16,7 @@ class LearnerMessageModerationController extends Controller
 {
     public function __construct(
         private readonly LoadLearnerMessageModeration $moderation,
+        private readonly RespondToLearnerSupportRequest $respondToSupportRequest,
     ) {}
 
     public function messages(Request $request, LearningMessageTopic $topic): JsonResponse
@@ -47,6 +49,27 @@ class LearnerMessageModerationController extends Controller
             (int) ($data['page'] ?? 1),
             (int) ($data['per_page'] ?? 3),
         ));
+    }
+
+    public function respondToSupport(Request $request, LearnerMessage $message): JsonResponse
+    {
+        abort_unless($message->audience === 'support', 404);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'min:2', 'max:280'],
+        ]);
+        $response = $this->respondToSupportRequest->handle(
+            $request->user(),
+            $message,
+            $data['body'],
+        );
+
+        return response()->json([
+            'response' => [
+                'body' => $response->body,
+                'id' => $response->id,
+            ],
+        ], $response->wasRecentlyCreated ? 201 : 200);
     }
 
     public function updateVisibility(Request $request, LearnerMessage $message): RedirectResponse
