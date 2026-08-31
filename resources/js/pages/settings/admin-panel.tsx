@@ -18,6 +18,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
+import { PaginationControls } from '@/components/pagination-controls';
 import {
     SettingsConfigurationLayout,
     SettingsConfigurationShell,
@@ -29,11 +30,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { OrganizationIcon } from '@/features/organizations/organization-icon';
+import { LearningConceptsSection } from '@/features/settings/learning-concepts-section';
+import type { LearningConceptDefinition } from '@/features/settings/learning-concepts-section';
 import { useDirtyState } from '@/hooks/use-dirty-state';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 import { cn } from '@/lib/utils';
-import { LearningConceptsSection } from '@/features/settings/learning-concepts-section';
-import type { LearningConceptDefinition } from '@/features/settings/learning-concepts-section';
 
 export type AdminPanelMetrics = {
     feedbackRequests: number;
@@ -117,6 +118,12 @@ export type AdminPanelProps = {
     learningConcepts: LearningConceptDefinition[];
     embedded?: boolean;
     feedbackRequests: FeedbackRequest[];
+    feedbackRequestsPagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
     hideNavigation?: boolean;
     metrics: AdminPanelMetrics;
     onSelectSection?: (section: AdminPanelSection) => void;
@@ -191,6 +198,7 @@ export default function AdminPanel({
     learningConcepts,
     embedded = false,
     feedbackRequests,
+    feedbackRequestsPagination,
     hideNavigation = false,
     metrics,
     onSelectSection,
@@ -242,6 +250,7 @@ export default function AdminPanel({
                     </div>
                     <FeedbackRequestsSection
                         feedbackRequests={feedbackRequests}
+                        pagination={feedbackRequestsPagination}
                         t={t}
                     />
                 </div>
@@ -740,9 +749,16 @@ function SectionStatItem({ label, value }: { label: string; value: number }) {
 
 function FeedbackRequestsSection({
     feedbackRequests,
+    pagination,
     t,
 }: {
     feedbackRequests: FeedbackRequest[];
+    pagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
     t: ReturnType<typeof usePlatformTranslation>;
 }) {
     const [selectedId, setSelectedId] = useState<number | null>(
@@ -755,13 +771,18 @@ function FeedbackRequestsSection({
                     request.id,
                     request.feedback ?? '',
                 ]),
-            ),
+        ),
     );
+    const selectedPageId = feedbackRequests.some(
+        (request) => request.id === selectedId,
+    )
+        ? selectedId
+        : (feedbackRequests[0]?.id ?? null);
     const selectedRequest = useMemo(
         () =>
-            feedbackRequests.find((request) => request.id === selectedId) ??
+            feedbackRequests.find((request) => request.id === selectedPageId) ??
             null,
-        [feedbackRequests, selectedId],
+        [feedbackRequests, selectedPageId],
     );
     const currentFeedback = selectedRequest
         ? (feedbackById[selectedRequest.id] ?? '')
@@ -796,6 +817,18 @@ function FeedbackRequestsSection({
         );
     }
 
+    function changePage(page: number) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('panel', 'admin-learning-support');
+        url.searchParams.set('support', 'feedback-requests');
+        url.searchParams.set('feedback_page', String(page));
+
+        router.visit(`${url.pathname}?${url.searchParams.toString()}`, {
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
     return (
         <section className="mt-4 grid min-h-0 flex-1 gap-0 overflow-hidden lg:grid-cols-[22rem_minmax(0,1fr)]">
             <aside className="flex min-h-0 flex-col border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] lg:border-r lg:border-b-0">
@@ -811,31 +844,40 @@ function FeedbackRequestsSection({
                         )}
                     </h2>
                 </header>
-                <div className="min-h-0 flex-1 p-3">
-                    <LearnerPaginatedItems
-                        className="grid"
-                        emptyState={
+                <div className="flex min-h-0 flex-1 flex-col p-3">
+                    <div className="min-h-0 flex-1">
+                        {feedbackRequests.length > 0 ? (
+                            <div className="grid">
+                                {feedbackRequests.map((request) => (
+                                    <FeedbackRequestButton
+                                        active={selectedRequest?.id === request.id}
+                                        key={request.id}
+                                        onSelect={() => setSelectedId(request.id)}
+                                        request={request}
+                                        t={t}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
                             <p className="p-1 text-sm text-[var(--settings-muted-text)]">
                                 {t(
                                     'settings.admin_panel.no_feedback_requests',
                                     'No feedback requests yet.',
                                 )}
                             </p>
-                        }
-                        items={feedbackRequests}
-                        pageSize={6}
-                        paginationButtonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
-                        paginationClassName="flex items-center justify-between border-t border-[var(--settings-border-color)] pt-3"
-                        paginationTextClassName="text-xs text-[var(--settings-muted-text)]"
-                        renderItem={(request) => (
-                            <FeedbackRequestButton
-                                active={selectedRequest?.id === request.id}
-                                key={request.id}
-                                onSelect={() => setSelectedId(request.id)}
-                                request={request}
-                                t={t}
-                            />
                         )}
+                    </div>
+                    <PaginationControls
+                        buttonClassName="inline-flex items-center gap-1 text-sm text-[var(--settings-accent)] transition hover:text-[var(--settings-accent-foreground)] disabled:pointer-events-none disabled:opacity-40"
+                        className="shrink-0 border-t border-[var(--settings-border-color)] pt-3"
+                        currentPage={pagination.currentPage}
+                        label={t(
+                            'settings.admin_panel.feedback_requests_pagination',
+                            'Feedback requests',
+                        )}
+                        onPageChange={changePage}
+                        pageCount={pagination.lastPage}
+                        textClassName="text-xs text-[var(--settings-muted-text)]"
                     />
                 </div>
             </aside>

@@ -20,6 +20,7 @@ use App\Models\PlatformOrganizationSetting;
 use App\Models\User;
 use App\Organizations\Queries\LoadPendingOrganizationIconReports;
 use App\Organizations\Serializers\OrganizationIconReportSerializer;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class LoadLearningSupportSettings
 {
@@ -40,10 +41,10 @@ class LoadLearningSupportSettings
     /**
      * @return array{adminPanel: array<string, mixed>|null, journal: array<string, mixed>|null, learnerMessages: array{topics: array<int, array<string, mixed>>}|null, supportSignals: array<string, mixed>|null}
      */
-    public function handle(User $user): array
+    public function handle(User $user, int $feedbackPage = 1): array
     {
         return [
-            'adminPanel' => $this->adminPanel($user),
+            'adminPanel' => $this->adminPanel($user, $feedbackPage),
             'journal' => $this->journal($user),
             'learnerMessages' => $this->learnerMessages($user),
             'supportSignals' => $this->supportSignals($user),
@@ -61,7 +62,7 @@ class LoadLearningSupportSettings
     /**
      * @return array<string, mixed>|null
      */
-    private function adminPanel(User $user): ?array
+    private function adminPanel(User $user, int $feedbackPage): ?array
     {
         $canReviewFeedback = $user->can(PermissionCatalog::ability(PermissionCatalog::JOURNAL_FEEDBACK, AccessLevel::READ));
         $canManageCompetenceTopics = $user->can(PermissionCatalog::ability(PermissionCatalog::COMPETENCE_TOPICS, AccessLevel::READ));
@@ -72,6 +73,10 @@ class LoadLearningSupportSettings
             return null;
         }
 
+        $feedbackRequests = $canReviewFeedback
+            ? $this->feedbackRequests->handle($feedbackPage)
+            : null;
+
         return [
             'metrics' => $this->metrics->handle(),
             'competenceTopics' => $canManageCompetenceTopics
@@ -81,11 +86,19 @@ class LoadLearningSupportSettings
                 ? $this->learningConcepts->handle()
                 : [],
             'feedbackRequests' => $canReviewFeedback
-                ? $this->feedbackRequests->handle()
+                ? $feedbackRequests?->getCollection()
                     ->map(fn (LearnerJournalFeedbackRequest $feedbackRequest): array => $this->feedbackSerializer->feedbackRequest($feedbackRequest))
                     ->values()
                     ->all()
                 : [],
+            'feedbackRequestsPagination' => $feedbackRequests
+                ? $this->pagination($feedbackRequests)
+                : [
+                    'currentPage' => 1,
+                    'lastPage' => 1,
+                    'perPage' => LoadAdminJournalFeedbackRequests::PAGE_SIZE,
+                    'total' => 0,
+                ],
             'organizationIconReports' => $canModerateOrganizations
                 ? $this->iconReports->handle()
                     ->map(fn (OrganizationIconReport $report): array => $this->iconReportSerializer->serialize($report))
@@ -95,6 +108,17 @@ class LoadLearningSupportSettings
             'organizationSettings' => [
                 'maxMembershipsPerUser' => PlatformOrganizationSetting::current()->max_memberships_per_user,
             ],
+        ];
+    }
+
+    /** @return array{currentPage: int, lastPage: int, perPage: int, total: int} */
+    private function pagination(LengthAwarePaginator $paginator): array
+    {
+        return [
+            'currentPage' => $paginator->currentPage(),
+            'lastPage' => $paginator->lastPage(),
+            'perPage' => $paginator->perPage(),
+            'total' => $paginator->total(),
         ];
     }
 

@@ -33,6 +33,7 @@ class SettingsController extends Controller
                 $request->integer('map') ?: null,
                 $request->integer('node') ?: null,
                 $panel,
+                $request->integer('feedback_page') ?: null,
             ),
         );
     }

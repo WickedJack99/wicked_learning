@@ -98,6 +98,7 @@ class LoadSettingsIndex
         ?int $selectedMapId = null,
         ?int $selectedNodeId = null,
         ?string $panel = null,
+        ?int $feedbackPage = null,
     ): array {
         $hasExplicitPanel = $panel !== null;
         $panel = $this->normalizePanel($panel);
@@ -145,7 +146,7 @@ class LoadSettingsIndex
                 : null,
             'languages' => $loadsLanguages ? $this->languages($accessCapabilities) : [],
             'learningSupportSettings' => $loadsLearningSupport
-                ? $this->loadLearningSupportSettings->handle($user)
+                ? $this->loadLearningSupportSettings->handle($user, $feedbackPage ?? 1)
                 : [],
             'platformInfoPages' => $loadsPublicPages && $canManagePresentation
                 ? $this->platformInfoPages()

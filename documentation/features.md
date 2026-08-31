@@ -398,6 +398,9 @@ explicitly request feedback for one page from an eligible journal, group or
 organization domain. The request is shown in the permission-controlled
 feedback queue; this explicit request is the supported sharing path, and
 journals are not a general staff-reading surface.
+The Learning Support feedback queue shows a bounded page of requests at a time,
+with stable pagination for older requests while keeping the existing review and
+response actions available.
 Reflections created while playing an activity remain private and do not create
 feedback requests; learners can share the resulting journal page explicitly
 from the Journal when they choose a permitted feedback domain.

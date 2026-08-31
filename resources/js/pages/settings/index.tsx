@@ -420,6 +420,7 @@ function writeLearningSupportViewToUrl(section: LearningSupportView): void {
     const url = new URL(window.location.href);
     url.searchParams.set('panel', 'admin-learning-support');
     url.searchParams.set('support', section);
+    url.searchParams.delete('feedback_page');
     window.history.pushState({ panel: 'admin-learning-support' }, '', url);
 }
 
