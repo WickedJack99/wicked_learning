@@ -212,6 +212,9 @@ Authors may also add a short response-feedback note. For explanation, transfer,
 and review responses, it appears in the post-response comparison pause so the
 learner can relate their response to the authored guidance. It is explanatory
 author guidance, not automated critique, a grade, or a rubric result.
+The authoring form includes a compact learner preview of this pause, updating
+as guidance is written so authors can check the learner-facing sequence before
+saving.
 When an explanation or transfer activity includes an independent check, the
 pause also places the first and fresh private responses side by side. This
 supports learner inspection of what changed or stayed consistent without

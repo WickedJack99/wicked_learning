@@ -1434,96 +1434,248 @@ function FeedbackGuidanceFields({
                     the learner’s work.
                 </p>
             </div>
-            {fields.map((field) => (
-                <div className="grid gap-2" key={field.name}>
-                    <Label htmlFor={field.id}>{field.label}</Label>
-                    <textarea
-                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
-                        id={field.id}
-                        onChange={(event) =>
-                            onChange((current) => ({
-                                ...current,
-                                [field.name]: event.target.value,
-                            }))
-                        }
-                        placeholder={field.placeholder}
-                        value={form[field.name]}
-                    />
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {field.description}
-                    </p>
-                    <InputError message={errors[field.name]} />
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.72fr)] lg:items-start">
+                <div className="grid gap-3">
+                    {fields.map((field) => (
+                        <div className="grid gap-2" key={field.name}>
+                            <Label htmlFor={field.id}>{field.label}</Label>
+                            <textarea
+                                className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                id={field.id}
+                                onChange={(event) =>
+                                    onChange((current) => ({
+                                        ...current,
+                                        [field.name]: event.target.value,
+                                    }))
+                                }
+                                placeholder={field.placeholder}
+                                value={form[field.name]}
+                            />
+                            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                {field.description}
+                            </p>
+                            <InputError message={errors[field.name]} />
+                        </div>
+                    ))}
+                    {form.learning_intent === 'explain' ||
+                    form.learning_intent === 'transfer' ? (
+                        <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="activity-feedback-independent-check">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_label',
+                                        'Independent check (optional)',
+                                    )}
+                                </Label>
+                                <textarea
+                                    className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                    id="activity-feedback-independent-check"
+                                    onChange={(event) =>
+                                        onChange((current) => ({
+                                            ...current,
+                                            feedback_independent_check:
+                                                event.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'settings.world_builder.activity.feedback.independent_check_placeholder',
+                                        'e.g. Without looking back, explain how the idea works in a new example.',
+                                    )}
+                                    value={form.feedback_independent_check}
+                                />
+                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_description',
+                                        'After the feedback pause, invite a fresh response. Learners can skip it; the response is recorded separately from the first attempt.',
+                                    )}
+                                </p>
+                                <InputError
+                                    message={errors.feedback_independent_check}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="activity-feedback-independent-check-feedback">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_label',
+                                        'Independent check feedback (optional)',
+                                    )}
+                                </Label>
+                                <textarea
+                                    className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                                    id="activity-feedback-independent-check-feedback"
+                                    onChange={(event) =>
+                                        onChange((current) => ({
+                                            ...current,
+                                            feedback_independent_check_feedback:
+                                                event.target.value,
+                                        }))
+                                    }
+                                    placeholder={t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_placeholder',
+                                        'e.g. Compare the new example with the original observation and notice what stayed true.',
+                                    )}
+                                    value={
+                                        form.feedback_independent_check_feedback
+                                    }
+                                />
+                                <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                                    {t(
+                                        'settings.world_builder.activity.feedback.independent_check_feedback_description',
+                                        'Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade.',
+                                    )}
+                                </p>
+                                <InputError
+                                    message={
+                                        errors.feedback_independent_check_feedback
+                                    }
+                                />
+                            </div>
+                        </>
+                    ) : null}
                 </div>
-            ))}
-            {form.learning_intent === 'explain' ||
-            form.learning_intent === 'transfer' ? (
-                <>
-                    <div className="grid gap-2">
-                    <Label htmlFor="activity-feedback-independent-check">
-                        {t(
-                            'settings.world_builder.activity.feedback.independent_check_label',
-                            'Independent check (optional)',
-                        )}
-                    </Label>
-                    <textarea
-                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
-                        id="activity-feedback-independent-check"
-                        onChange={(event) =>
-                            onChange((current) => ({
-                                ...current,
-                                feedback_independent_check: event.target.value,
-                            }))
-                        }
-                        placeholder={t(
-                            'settings.world_builder.activity.feedback.independent_check_placeholder',
-                            'e.g. Without looking back, explain how the idea works in a new example.',
-                        )}
-                        value={form.feedback_independent_check}
-                    />
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {t(
-                            'settings.world_builder.activity.feedback.independent_check_description',
-                            'After the feedback pause, invite a fresh response. Learners can skip it; the response is recorded separately from the first attempt.',
-                        )}
-                    </p>
-                    <InputError message={errors.feedback_independent_check} />
-                    </div>
-                    <div className="grid gap-2">
-                    <Label htmlFor="activity-feedback-independent-check-feedback">
-                        {t(
-                            'settings.world_builder.activity.feedback.independent_check_feedback_label',
-                            'Independent check feedback (optional)',
-                        )}
-                    </Label>
-                    <textarea
-                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
-                        id="activity-feedback-independent-check-feedback"
-                        onChange={(event) =>
-                            onChange((current) => ({
-                                ...current,
-                                feedback_independent_check_feedback:
-                                    event.target.value,
-                            }))
-                        }
-                        placeholder={t(
-                            'settings.world_builder.activity.feedback.independent_check_feedback_placeholder',
-                            'e.g. Compare the new example with the original observation and notice what stayed true.',
-                        )}
-                        value={form.feedback_independent_check_feedback}
-                    />
-                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                        {t(
-                            'settings.world_builder.activity.feedback.independent_check_feedback_description',
-                            'Shown after a learner saves the fresh response. This is explanatory guidance, not automated critique or a grade.',
-                        )}
-                    </p>
-                    <InputError
-                        message={errors.feedback_independent_check_feedback}
-                    />
-                    </div>
-                </>
-            ) : null}
+                <FeedbackGuidancePreview form={form} />
+            </div>
         </div>
+    );
+}
+
+function FeedbackGuidancePreview({ form }: { form: ActivityForm }) {
+    const t = usePlatformTranslation();
+    const rubricCues = form.feedback_rubric
+        .split(/\r?\n/)
+        .map((cue) => cue.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+    const sections = [
+        {
+            label: t('learning.reflection.feedback_purpose_label', 'Purpose'),
+            value: form.feedback_purpose.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_evidence_label',
+                'What to notice',
+            ),
+            value: form.feedback_evidence.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_response_label',
+                'Compare your response',
+            ),
+            value: form.feedback_response.trim(),
+        },
+        {
+            label: t(
+                'learning.reflection.feedback_next_action_label',
+                'A possible next action',
+            ),
+            value: form.feedback_next_action.trim(),
+        },
+    ].filter((section) => section.value);
+    const hasIndependentCheck =
+        form.feedback_independent_check.trim() ||
+        form.feedback_independent_check_feedback.trim();
+
+    return (
+        <aside
+            aria-labelledby="activity-feedback-preview-title"
+            className="grid content-start gap-3 rounded-lg border border-cyan-500/25 bg-white/70 p-4 dark:border-teal-200/20 dark:bg-slate-950/55"
+        >
+            <div>
+                <p className="text-xs font-medium tracking-[0.14em] text-cyan-800 uppercase dark:text-teal-200">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_label',
+                        'Learner preview',
+                    )}
+                </p>
+                <h3
+                    className="mt-1 text-sm font-semibold text-slate-950 dark:text-white"
+                    id="activity-feedback-preview-title"
+                >
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_title',
+                        'After the response',
+                    )}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_description',
+                        'A quiet comparison pause uses the guidance you provide here.',
+                    )}
+                </p>
+            </div>
+            {sections.length || rubricCues.length || hasIndependentCheck ? (
+                <div className="grid gap-2">
+                    {sections.map((section) => (
+                        <div
+                            className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5"
+                            key={section.label}
+                        >
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {section.label}
+                            </p>
+                            <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {section.value}
+                            </p>
+                        </div>
+                    ))}
+                    {rubricCues.length ? (
+                        <div className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.reflection.feedback_rubric_label',
+                                    'Observable cues',
+                                )}
+                            </p>
+                            <ul className="mt-1 grid gap-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                {rubricCues.map((cue) => (
+                                    <li
+                                        className="pl-4 before:mr-2 before:text-cyan-700 before:content-['•'] dark:before:text-teal-200"
+                                        key={cue}
+                                    >
+                                        {cue}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
+                    {hasIndependentCheck ? (
+                        <div className="rounded-md border border-cyan-500/15 bg-cyan-50/50 p-3 dark:border-teal-100/15 dark:bg-teal-100/5">
+                            <p className="text-xs font-medium tracking-[0.1em] text-cyan-800 uppercase dark:text-teal-100">
+                                {t(
+                                    'learning.reflection.independent_check_label',
+                                    'Independent check (optional)',
+                                )}
+                            </p>
+                            {form.feedback_independent_check.trim() ? (
+                                <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                                    {form.feedback_independent_check.trim()}
+                                </p>
+                            ) : null}
+                            {form.feedback_independent_check_feedback.trim() ? (
+                                <p className="mt-2 border-t border-cyan-500/15 pt-2 text-sm leading-6 text-cyan-950/80 dark:border-teal-100/15 dark:text-teal-50/80">
+                                    {form.feedback_independent_check_feedback.trim()}
+                                </p>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
+            ) : (
+                <p className="rounded-md border border-dashed border-slate-300 p-3 text-sm leading-6 text-slate-500 dark:border-white/15 dark:text-slate-400">
+                    {t(
+                        'settings.world_builder.activity.feedback.preview_empty',
+                        'Add guidance above to preview the pause a learner will see after responding.',
+                    )}
+                </p>
+            )}
+            <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {t(
+                    'settings.world_builder.activity.feedback.preview_note',
+                    'This is explanatory guidance, not automated critique or a grade.',
+                )}
+            </p>
+        </aside>
     );
 }
 
