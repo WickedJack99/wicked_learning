@@ -41,6 +41,11 @@ class LearningTopicController extends Controller
 
     public function show(Request $request, LearningTopic $topic): Response
     {
+        $paths = $this->paths->handle(
+            $request->user(),
+            $topic,
+            page: max(1, (int) $request->query('page', 1)),
+        );
         $competenceMap = $this->competenceMap->handle($request->user());
         $topic = $this->topics->publishedDetail($topic, $request->user());
         $topicSlugs = collect($this->topics->publishedDescendantSlugs($topic));
@@ -70,9 +75,8 @@ class LearningTopicController extends Controller
         return Inertia::render('topics/show', [
             'topic' => $this->serializer->detail(
                 $topic,
-                $this->pathSerializer->serialize(
-                    $this->paths->handle($request->user(), $topic),
-                ),
+                $this->pathSerializer->serialize($paths),
+                $paths['pagination'],
                 $competence,
                 $competenceTopics
                     ->reject(fn (array $entry): bool => $entry['slug'] === $topic->slug)

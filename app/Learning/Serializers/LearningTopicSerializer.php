@@ -35,11 +35,13 @@ class LearningTopicSerializer
 
     /**
      * @param  list<array<string, mixed>>  $paths
+     * @param  array{currentPage: int, lastPage: int, perPage: int, total: int}  $pathsPagination
      * @return array<string, mixed>
      */
     public function detail(
         LearningTopic $topic,
         array $paths = [],
+        array $pathsPagination = [],
         ?array $competence = null,
         array $subtopicCompetence = [],
         array $learningAreas = [],
@@ -63,6 +65,7 @@ class LearningTopicSerializer
             )),
             'parent' => $topic->parent ? $this->summary($topic->parent) : null,
             'paths' => $paths,
+            'pathsPagination' => $pathsPagination,
             'subtopics' => $topic->children
                 ->map(fn (LearningTopic $child): array => [
                     ...$this->summary($child),

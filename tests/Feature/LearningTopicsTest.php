@@ -262,7 +262,7 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         );
 });
 
-test('a topic detail exposes complete collections for client pagination', function () {
+test('a topic detail bounds route collections with server pagination', function () {
     $learner = User::factory()->create(['role' => User::ROLE_USER]);
     $area = LearningTopicArea::query()->create([
         'slug' => 'science',
@@ -286,7 +286,7 @@ test('a topic detail exposes complete collections for client pagination', functi
         'title' => 'Learning World',
     ]);
 
-    foreach (range(1, 5) as $number) {
+    foreach (range(1, 13) as $number) {
         $map = LearningMap::query()->create([
             'learning_world_id' => $world->id,
             'learning_topic_id' => $topic->id,
@@ -322,10 +322,22 @@ test('a topic detail exposes complete collections for client pagination', functi
         ->get(route('topics.show', $topic))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('topic.maps', 5)
-            ->has('topic.paths', 5)
+            ->has('topic.maps', 13)
+            ->has('topic.paths', 6)
+            ->where('topic.pathsPagination.currentPage', 1)
+            ->where('topic.pathsPagination.lastPage', 3)
+            ->where('topic.pathsPagination.total', 13)
             ->has('topic.subtopics', 5)
             ->where('topic.subtopics.4.title', $subtopics->last()->title)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', ['topic' => $topic, 'page' => 2]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 6)
+            ->where('topic.pathsPagination.currentPage', 2)
+            ->where('topic.paths.0.label', 'Begin path 7')
         );
 });
 

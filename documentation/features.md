@@ -515,6 +515,11 @@ its map place. When two or more private reflections are connected to the
 topic's published map, the trail can offer a bounded chronological look back and
 link to the full Journal.
 
+The Routes section on a topic page returns only the current bounded page of
+route starts from the server. Its pagination controls keep the route directory
+usable as a topic grows without sending the full route collection to the
+browser.
+
 Activities can contribute weighted competence topics. Learners see a
 qualitative competence map, topic trails and bounded linked learning moments.
 The evidence ledger keeps a bounded set of recent events reachable through the

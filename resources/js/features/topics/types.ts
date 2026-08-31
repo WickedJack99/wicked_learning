@@ -31,6 +31,12 @@ export type TopicDetail = TopicSummary & {
     maps: TopicMapSummary[];
     parent: TopicSummary | null;
     paths: TopicPath[];
+    pathsPagination: {
+        currentPage: number;
+        lastPage: number;
+        perPage: number;
+        total: number;
+    };
     subtopics: TopicSummary[];
     subtopicCompetence: TopicCompetence[];
 };
@@ -125,6 +131,7 @@ export type TopicPath = {
     learningAreas: { name: string; slug: string }[];
     learningIntent: string | null;
     label: string;
+    timeGuideMinutes: number | null;
     mapHref: string;
     mapTitle: string;
     nodeHref: string;

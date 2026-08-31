@@ -8,27 +8,39 @@ export function LearnerPaginatedItems<T>({
     emptyState = null,
     items,
     pageSize,
+    pagination,
     paginationLabel,
     paginationButtonClassName = 'inline-flex items-center gap-1 text-sm text-[var(--learner-action-accent)] transition hover:text-[var(--learner-heading-text)] disabled:pointer-events-none disabled:opacity-40',
     paginationClassName = 'mt-5 flex items-center justify-between border-t border-[var(--learner-border-color)] pt-3',
     paginationTextClassName = 'text-xs text-[var(--learner-muted-text)]',
     renderItem,
+    onPageChange,
 }: {
     className?: string;
     emptyState?: ReactNode;
     items: T[];
     pageSize: number;
+    pagination?: {
+        currentPage: number;
+        lastPage: number;
+        perPage?: number;
+        total?: number;
+    };
     paginationLabel?: string;
     paginationButtonClassName?: string;
     paginationClassName?: string;
     paginationTextClassName?: string;
     renderItem: (item: T) => ReactNode;
+    onPageChange?: (page: number) => void;
 }) {
     const [page, setPage] = useState(0);
     const [reservedContentHeight, setReservedContentHeight] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
-    const pageCount = Math.ceil(items.length / pageSize);
-    const currentPage = Math.min(page, Math.max(0, pageCount - 1));
+    const pageCount =
+        pagination?.lastPage ?? Math.ceil(items.length / pageSize);
+    const currentPage = pagination?.currentPage
+        ? pagination.currentPage - 1
+        : Math.min(page, Math.max(0, pageCount - 1));
 
     const rememberContentHeight = useCallback(() => {
         const contentHeight =
@@ -49,7 +61,12 @@ export function LearnerPaginatedItems<T>({
 
     const changePage = (nextPage: number) => {
         rememberContentHeight();
-        setPage(nextPage - 1);
+
+        if (onPageChange) {
+            onPageChange(nextPage);
+        } else {
+            setPage(nextPage - 1);
+        }
     };
 
     if (items.length === 0) {
@@ -68,9 +85,13 @@ export function LearnerPaginatedItems<T>({
                             : undefined,
                 }}
             >
-                {items
-                    .slice(currentPage * pageSize, (currentPage + 1) * pageSize)
-                    .map(renderItem)}
+                {(pagination
+                    ? items
+                    : items.slice(
+                          currentPage * pageSize,
+                          (currentPage + 1) * pageSize,
+                      )
+                ).map(renderItem)}
             </div>
             <PaginationControls
                 buttonClassName={cn(

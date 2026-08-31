@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
     ArrowRight,
@@ -66,7 +66,28 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
             url.searchParams.set('section', section);
         }
 
+        if (section !== 'routes') {
+            url.searchParams.delete('page');
+        }
+
         window.history.pushState(window.history.state, '', url);
+    }
+
+    function visitRoutePage(page: number) {
+        const url = new URL(window.location.href);
+
+        if (page === 1) {
+            url.searchParams.delete('page');
+        } else {
+            url.searchParams.set('page', String(page));
+        }
+
+        url.searchParams.set('section', 'routes');
+
+        router.visit(`${url.pathname}${url.search}`, {
+            preserveScroll: true,
+            replace: true,
+        });
     }
 
     return (
@@ -217,8 +238,15 @@ export function TopicDetail({ topic }: { topic: TopicDetailData }) {
                                     <div className="mt-5">
                                         <LearnerPaginatedItems
                                             items={topic.paths}
-                                            pageSize={4}
-                                            paginationLabel="Topic routes"
+                                            onPageChange={visitRoutePage}
+                                            pageSize={
+                                                topic.pathsPagination.perPage
+                                            }
+                                            pagination={topic.pathsPagination}
+                                            paginationLabel={t(
+                                                'topics.detail.paths.pagination',
+                                                'Topic routes',
+                                            )}
                                             renderItem={(path) => (
                                                 <TopicPathCard
                                                     key={path.id}
@@ -1290,6 +1318,15 @@ function TopicPathCard({ path }: { path: TopicPath }) {
                 {path.learningIntent ? (
                     <span className="mt-1 block text-xs font-medium text-[var(--learner-action-accent)]">
                         {learningIntentLabel(path.learningIntent, t)}
+                    </span>
+                ) : null}
+                {path.timeGuideMinutes ? (
+                    <span className="mt-1 block text-xs text-[var(--learner-muted-text)]">
+                        {t(
+                            'learning.activity.time_guide',
+                            'Suggested time: :minutes minutes',
+                            { minutes: path.timeGuideMinutes },
+                        )}
                     </span>
                 ) : null}
                 <span className="mt-1 block truncate text-xs text-[var(--learner-muted-text)]">
