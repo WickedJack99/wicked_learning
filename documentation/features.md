@@ -148,6 +148,12 @@ describes what the activity invites without claiming that completion proves the
 objective or turning the labels into a score.
 The same context is repeated in the optional conclusion pause after completion,
 so learners can reflect on the invited focus while choosing what to do next.
+The conclusion pause's fixed heading, feelings, directions, labels and save
+states use the platform translation catalog; authored activity text remains
+outside that catalog.
+Its fixed copy is resolved at render time, so the pause follows the selected
+platform language without changing learner-entered notes or authored route
+labels.
 
 Selecting a route opens that route and resumes its saved position when the
 position is still valid; it does not silently switch to another route. Activity

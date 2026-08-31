@@ -162,6 +162,19 @@ test('activity conclusions repeat authored learning focus as context', function 
         ->toContain('pendingLearningCheckIn.evidenceContext');
 });
 
+test('activity conclusion copy uses the platform translation catalog', function () {
+    $checkIn = file_get_contents(
+        resource_path('js/features/world/learning-check-in.tsx'),
+    );
+
+    expect($checkIn)
+        ->toContain("'learning.activity.check_in.title'")
+        ->toContain("'learning.activity.check_in.feeling.clearer.label'")
+        ->toContain("'learning.activity.check_in.direction.revisit.label'")
+        ->toContain("'learning.activity.check_in.save_error'")
+        ->not->toContain('A small pause after {activityTitle}');
+});
+
 test('activity context exposes bounded alternative routes without a scroll region', function () {
     $activityPage = file_get_contents(
         resource_path('js/pages/learning/node-play.tsx'),
