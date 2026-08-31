@@ -28,6 +28,7 @@ type SettingsConfigurationShellProps = {
 type SettingsSectionButtonProps<T extends string> = {
     ariaControls?: string;
     active: boolean;
+    compact?: boolean;
     description?: string;
     danger?: boolean;
     elementId?: string;
@@ -52,6 +53,7 @@ export type SettingsNavigationItem<T extends string> = {
 type SettingsConfigurationLayoutProps = {
     children: ReactNode;
     className?: string;
+    collapseSidebarBelowWide?: boolean;
     contentClassName?: string;
     sidebar: ReactNode;
 };
@@ -69,6 +71,7 @@ type SettingsFormColumnProps = {
 type SettingsNestedWorkspaceProps = {
     action?: ReactNode;
     children: ReactNode;
+    collapseSidebarBelowWide?: boolean;
     contentClassName?: string;
     description?: ReactNode;
     eyebrow?: ReactNode;
@@ -205,6 +208,7 @@ export function SettingsSectionButton<T extends string>({
     ariaControls,
     active,
     buttonRef,
+    compact = false,
     danger = false,
     description,
     elementId,
@@ -222,6 +226,7 @@ export function SettingsSectionButton<T extends string>({
             aria-selected={role === 'tab' ? active : undefined}
             className={cn(
                 'relative flex items-start gap-3 overflow-hidden rounded-lg px-3 py-3 text-left text-sm font-medium transition focus-visible:ring-2 focus-visible:ring-[var(--settings-accent)] focus-visible:outline-none',
+                compact && 'max-[1535px]:items-center',
                 active &&
                     (danger
                         ? 'bg-red-500/10 text-red-500 dark:bg-red-400/10 dark:text-red-200'
@@ -254,6 +259,7 @@ export function SettingsSectionButton<T extends string>({
                     <span
                         className={cn(
                             'mt-1 block text-xs leading-5',
+                            compact && 'max-[1535px]:hidden',
                             active
                                 ? 'opacity-80'
                                 : 'text-[var(--settings-muted-text)]',
@@ -401,6 +407,7 @@ export function SettingsFormColumn({
 export function SettingsNestedWorkspace({
     action,
     children,
+    collapseSidebarBelowWide = false,
     contentClassName,
     footerAction,
     sidebar,
@@ -408,10 +415,27 @@ export function SettingsNestedWorkspace({
     return (
         <SettingsConfigurationLayout
             className="h-full gap-0"
+            collapseSidebarBelowWide={collapseSidebarBelowWide}
             contentClassName="flex min-h-0 flex-col bg-[var(--settings-content-background)]"
             sidebar={
-                <aside className="min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3 lg:border-r lg:border-b-0">
-                    <nav className="grid gap-2">{sidebar}</nav>
+                <aside
+                    className={cn(
+                        'min-h-0 overflow-hidden border-b border-[var(--settings-border-color)] bg-[var(--settings-nested-sidebar-background)] p-3',
+                        collapseSidebarBelowWide
+                            ? '2xl:border-r 2xl:border-b-0'
+                            : 'lg:border-r lg:border-b-0',
+                    )}
+                >
+                    <nav
+                        className={cn(
+                            'gap-2',
+                            collapseSidebarBelowWide &&
+                                'flex flex-wrap 2xl:grid',
+                            !collapseSidebarBelowWide && 'grid',
+                        )}
+                    >
+                        {sidebar}
+                    </nav>
                 </aside>
             }
         >
@@ -573,13 +597,17 @@ export function SettingsSaveButton({
 export function SettingsConfigurationLayout({
     children,
     className,
+    collapseSidebarBelowWide = false,
     contentClassName,
     sidebar,
 }: SettingsConfigurationLayoutProps) {
     return (
         <div
             className={cn(
-                'grid min-h-0 gap-4 overflow-hidden lg:grid-cols-[16rem_minmax(0,1fr)]',
+                'grid min-h-0 gap-4 overflow-hidden',
+                collapseSidebarBelowWide
+                    ? '2xl:grid-cols-[16rem_minmax(0,1fr)]'
+                    : 'lg:grid-cols-[16rem_minmax(0,1fr)]',
                 className,
             )}
         >

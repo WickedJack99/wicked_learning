@@ -772,6 +772,11 @@ learner-facing configuration and restore an earlier version without losing the
 current configuration. Structural node placement and broader map history remain
 separate authoring concerns.
 
+Map configuration keeps its existing section menus but switches nested authoring
+navigation to compact horizontal controls below wide-desktop layouts. Detail and
+visual preview columns stack at the same breakpoint so map fields and actions
+remain usable instead of being squeezed by nested sidebars.
+
 Authorized authors can download a single-map JSON export manifest containing
 authored map, node, MapAsset, activity-route and explicit media/portal reference
 data. The manifest uses portable slugs and excludes learner progress, revision

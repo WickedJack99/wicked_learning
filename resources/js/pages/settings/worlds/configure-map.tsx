@@ -585,6 +585,7 @@ export default function ConfigureMap({
             {mainSections.map((section) => (
                 <SettingsSectionButton
                     active={mainSection === section.id}
+                    compact
                     danger={section.danger}
                     icon={section.icon}
                     id={section.id}
@@ -653,6 +654,7 @@ export default function ConfigureMap({
             {!embedded ? <Head title={`Configure ${map.title}`} /> : null}
             {embedded ? (
                 <SettingsNestedWorkspace
+                    collapseSidebarBelowWide
                     contentClassName="p-0 sm:p-0"
                     description={
                         map.description ??
@@ -869,7 +871,7 @@ function MapDetailsSection({
                 description="These fields are shown in the top-left map title panel."
                 title="Map details"
             />
-            <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 overflow-y-auto p-5 2xl:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
                 <div className="grid min-w-0 content-start gap-5">
                     <TextField
                         error={errors.title}
@@ -1011,12 +1013,13 @@ function MapVisualsSection({
                 title="Map visuals"
             />
 
-            <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
-                <nav className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 lg:border-r lg:border-b-0">
-                    <div className="grid gap-2">
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 2xl:grid-cols-[17rem_minmax(0,1fr)]">
+                <nav className="min-h-0 overflow-y-auto border-b border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3 2xl:border-r 2xl:border-b-0">
+                    <div className="flex flex-wrap gap-2 2xl:grid 2xl:gap-2">
                         {visualSections.map((section) => (
                             <SettingsSectionButton
                                 active={visualSection === section.id}
+                                compact
                                 description={section.description}
                                 icon={section.icon}
                                 id={section.id}
@@ -1074,7 +1077,7 @@ function VisualEditorPanel({
 }) {
     if (section === 'backgroundImage') {
         return (
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+            <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_24rem]">
                 <ConfigImageInput
                     description="Background image displayed behind the map overlay."
                     error={
@@ -1115,7 +1118,7 @@ function VisualEditorPanel({
     }
 
     return (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_24rem]">
             <div className="grid content-start gap-4">
                 <h3 className="text-lg font-semibold">
                     {visualSections.find(
@@ -1167,7 +1170,7 @@ function MapAssetsEditor({
     values: MapVisualThemeFields;
 }) {
     return (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_30rem]">
+        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_30rem]">
             <div className="grid content-start gap-4">
                 <div>
                     <div>

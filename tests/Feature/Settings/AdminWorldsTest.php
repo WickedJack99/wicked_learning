@@ -3356,6 +3356,26 @@ test('map layout history preview shows a bounded spatial surface and accessible 
         ->toContain('overflow-hidden');
 });
 
+test('map configuration collapses nested navigation before the content is squeezed', function () {
+    $shell = file_get_contents(
+        resource_path('js/components/settings-configuration-shell.tsx'),
+    );
+    $configureMap = file_get_contents(
+        resource_path('js/pages/settings/worlds/configure-map.tsx'),
+    );
+
+    expect($shell)
+        ->toContain('collapseSidebarBelowWide')
+        ->toContain('2xl:grid-cols-[16rem_minmax(0,1fr)]')
+        ->toContain("compact && 'max-[1535px]:hidden'");
+
+    expect($configureMap)
+        ->toContain('collapseSidebarBelowWide')
+        ->toContain('grid-cols-1 gap-6')
+        ->toContain('2xl:grid-cols-[minmax(0,1fr)_24rem]')
+        ->toContain('compact');
+});
+
 test('activity evidence authoring previews the learner orientation', function () {
     $editor = file_get_contents(
         resource_path('js/pages/settings/worlds/activity-form-fields.tsx'),
