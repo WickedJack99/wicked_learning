@@ -63,6 +63,7 @@ export type TopicEvidenceLedgerEntry = {
     activityHref: string | null;
     activityTitle: string | null;
     evidenceClaim: string;
+    independentCheck: boolean;
     evidenceCriterion: string | null;
     evidenceRubric: string[];
     observedCues: string[];

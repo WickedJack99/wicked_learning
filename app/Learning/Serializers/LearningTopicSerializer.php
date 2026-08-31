@@ -144,6 +144,7 @@ class LearningTopicSerializer
                             : null,
                         'evidenceClaim' => (string) ($entry['evidenceClaim'] ?? 'learning_encounter'),
                         'evidenceType' => (string) ($entry['evidenceType'] ?? ''),
+                        'independentCheck' => (bool) ($entry['independentCheck'] ?? false),
                         'objective' => is_string($entry['objective'] ?? null)
                             ? $entry['objective']
                             : null,

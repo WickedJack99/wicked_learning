@@ -207,7 +207,7 @@ class LoadLearnerCompetenceMap
 
     /**
      * @param  Collection<int, LearnerEvidenceEvent>  $events
-     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, observedCues: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, confidenceAfterFeedback: string|null, outcome: string|null, attemptNumber: int, assistanceLevel: string|null}>
+     * @return list<array{id: int, evidenceType: string, evidenceClaim: string, independentCheck: bool, objective: string|null, concepts: list<string>, learningPurpose: string|null, evidenceCriterion: string|null, evidenceRubric: list<string>, observedCues: list<string>, sources: list<array<string, string|null>>, activityTitle: string|null, activityHref: string|null, nodeTitle: string|null, nodeHref: string|null, recordedAt: string|null, confidence: string|null, confidenceAfterFeedback: string|null, outcome: string|null, attemptNumber: int, assistanceLevel: string|null}>
      */
     private function evidenceLedger(Collection $events): array
     {
@@ -222,6 +222,7 @@ class LoadLearnerCompetenceMap
                     'activityTitle' => $activity?->title,
                     'evidenceClaim' => $this->evidenceClaim->forEvent($event),
                     'evidenceType' => $event->evidence_type,
+                    'independentCheck' => (bool) $event->is_independent_check,
                     'objective' => $event->objective,
                     'concepts' => is_array($event->concepts)
                         ? array_values(array_filter($event->concepts, 'is_string'))

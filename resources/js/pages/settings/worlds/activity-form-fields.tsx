@@ -1371,6 +1371,7 @@ function FeedbackGuidanceFields({
     form: ActivityForm;
     onChange: Dispatch<SetStateAction<ActivityForm>>;
 }) {
+    const t = usePlatformTranslation();
     const fields = [
         {
             description:
@@ -1454,6 +1455,39 @@ function FeedbackGuidanceFields({
                     <InputError message={errors[field.name]} />
                 </div>
             ))}
+            {form.learning_intent === 'explain' ||
+            form.learning_intent === 'transfer' ? (
+                <div className="grid gap-2">
+                    <Label htmlFor="activity-feedback-independent-check">
+                        {t(
+                            'settings.world_builder.activity.feedback.independent_check_label',
+                            'Independent check (optional)',
+                        )}
+                    </Label>
+                    <textarea
+                        className="min-h-20 rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 dark:border-white/10 dark:bg-slate-950/40"
+                        id="activity-feedback-independent-check"
+                        onChange={(event) =>
+                            onChange((current) => ({
+                                ...current,
+                                feedback_independent_check: event.target.value,
+                            }))
+                        }
+                        placeholder={t(
+                            'settings.world_builder.activity.feedback.independent_check_placeholder',
+                            'e.g. Without looking back, explain how the idea works in a new example.',
+                        )}
+                        value={form.feedback_independent_check}
+                    />
+                    <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                        {t(
+                            'settings.world_builder.activity.feedback.independent_check_description',
+                            'After the feedback pause, invite a fresh response. Learners can skip it; the response is recorded separately from the first attempt.',
+                        )}
+                    </p>
+                    <InputError message={errors.feedback_independent_check} />
+                </div>
+            ) : null}
         </div>
     );
 }

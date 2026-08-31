@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'reflection',
     'response_type',
     'response_context',
+    'is_independent_check',
     'observed_cues',
     'expert_access_requested',
     'feedback_status',
@@ -30,6 +31,7 @@ class LearnerReflection extends Model
     {
         return [
             'expert_access_requested' => 'boolean',
+            'is_independent_check' => 'boolean',
             'observed_cues' => 'array',
         ];
     }

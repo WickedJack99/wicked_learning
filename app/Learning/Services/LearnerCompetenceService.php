@@ -49,6 +49,7 @@ class LearnerCompetenceService
         }
 
         $learnerReflectionId = $response?->id;
+        $isIndependentCheck = (bool) ($response?->is_independent_check ?? false);
         $hasObservableGuidance = in_array($evidenceType, ['explain', 'review', 'transfer'], true);
         $evidenceCriterion = $hasObservableGuidance
             ? $this->feedbackGuidance->evidenceCriterionForActivity($activity)
@@ -64,13 +65,14 @@ class LearnerCompetenceService
             ? $this->feedbackGuidance->observedCuesForActivity($activity, $observedCues)
             : [];
 
-        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $confidenceAfterFeedback, $concepts, $evidenceCriterion, $evidenceRubric, $evidenceType, $latencySeconds, $learnerReflectionId, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
+        DB::transaction(function () use ($activity, $assistanceLevel, $attemptNumber, $calibration, $confidence, $confidenceAfterFeedback, $concepts, $evidenceCriterion, $evidenceRubric, $evidenceType, $isIndependentCheck, $latencySeconds, $learnerReflectionId, $learningPurpose, $objective, $observedCues, $outcome, $playRunId, $sourceReferences, $topics, $user): void {
             foreach ($topics as $topic) {
                 DB::table('learner_evidence_events')->insertOrIgnore([
                     'user_id' => $user->id,
                     'learning_activity_id' => $activity->id,
                     'play_run_id' => $playRunId,
                     'learner_reflection_id' => $learnerReflectionId,
+                    'is_independent_check' => $isIndependentCheck,
                     'objective' => $objective,
                     'concepts' => $concepts === []
                         ? null

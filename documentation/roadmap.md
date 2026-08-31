@@ -81,7 +81,11 @@ matching private response is saved, so the evidence label reflects the learner
 action that actually occurred.
 Authors can also provide an optional response-feedback note for that pause; it
 offers a bounded explanatory comparison without grading the learner. Richer
-individualized feedback and independent checks remain open.
+individualized feedback remains open. Authors can now optionally add a fresh
+independent-check prompt for explanation and transfer activities. Learners may
+skip that check; when completed, it is stored as a separate private response
+and the evidence ledger distinguishes the resulting attempt from the initial
+response. Automatic rubric scoring and broader independent checks remain open.
 
 ### 4. Explanatory feedback and calibration
 

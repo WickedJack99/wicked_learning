@@ -27,6 +27,7 @@ class ActivityFeedbackGuidanceConfiguration
             'responseFeedback' => $data['feedback_response'] ?? null,
             'nextAction' => $data['feedback_next_action'] ?? null,
             'rubric' => $data['feedback_rubric'] ?? null,
+            'independentCheckPrompt' => $data['feedback_independent_check'] ?? null,
         ]);
 
         if ($guidance === null) {
@@ -45,10 +46,11 @@ class ActivityFeedbackGuidanceConfiguration
             || array_key_exists('feedback_evidence', $data)
             || array_key_exists('feedback_response', $data)
             || array_key_exists('feedback_next_action', $data)
-            || array_key_exists('feedback_rubric', $data);
+            || array_key_exists('feedback_rubric', $data)
+            || array_key_exists('feedback_independent_check', $data);
     }
 
-    /** @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, rubric?: list<string>}|null */
+    /** @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, independentCheckPrompt?: string, rubric?: list<string>}|null */
     public function forActivity(LearningActivity $activity): ?array
     {
         $config = is_array($activity->config) ? $activity->config : [];
@@ -75,6 +77,11 @@ class ActivityFeedbackGuidanceConfiguration
         return $this->forActivity($activity)['rubric'] ?? [];
     }
 
+    public function independentCheckPromptForActivity(LearningActivity $activity): ?string
+    {
+        return $this->forActivity($activity)['independentCheckPrompt'] ?? null;
+    }
+
     /** @return list<string> */
     public function observedCuesForActivity(LearningActivity $activity, mixed $value): array
     {
@@ -92,7 +99,7 @@ class ActivityFeedbackGuidanceConfiguration
 
     /**
      * @param  array<string, mixed>  $guidance
-     * @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, rubric?: list<string>}|null
+     * @return array{purpose: string|null, evidence: string|null, nextAction: string|null, responseFeedback?: string, rubric?: list<string>, independentCheckPrompt?: string}|null
      */
     private function normalize(array $guidance): ?array
     {
@@ -103,15 +110,21 @@ class ActivityFeedbackGuidanceConfiguration
             'nextAction' => $this->text($guidance['nextAction'] ?? null),
         ];
         $responseFeedback = $this->text($guidance['responseFeedback'] ?? null);
+        $independentCheckPrompt = $this->text($guidance['independentCheckPrompt'] ?? null);
 
         if ($responseFeedback !== null) {
             $normalized['responseFeedback'] = $responseFeedback;
+        }
+
+        if ($independentCheckPrompt !== null) {
+            $normalized['independentCheckPrompt'] = $independentCheckPrompt;
         }
 
         return $normalized['purpose'] === null
             && $normalized['evidence'] === null
             && $normalized['nextAction'] === null
             && $responseFeedback === null
+            && $independentCheckPrompt === null
             && $rubric === []
             ? null
             : ($rubric === [] ? $normalized : [...$normalized, 'rubric' => $rubric]);

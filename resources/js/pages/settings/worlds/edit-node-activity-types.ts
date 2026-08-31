@@ -376,6 +376,7 @@ export type CreateActivityForm = {
     evidence_objective: string;
     evidence_concepts: string;
     feedback_evidence: string;
+    feedback_independent_check: string;
     feedback_next_action: string;
     feedback_purpose: string;
     feedback_response: string;

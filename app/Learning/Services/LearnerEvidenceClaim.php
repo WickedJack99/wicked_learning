@@ -9,6 +9,14 @@ class LearnerEvidenceClaim
 {
     public function forEvent(LearnerEvidenceEvent $event): string
     {
+        if ($event->is_independent_check && $event->evidence_type === 'explain') {
+            return 'independent_explanation_attempt';
+        }
+
+        if ($event->is_independent_check && $event->evidence_type === 'transfer') {
+            return 'independent_transfer_attempt';
+        }
+
         if (
             $event->evidence_type === 'retrieve'
             && $event->outcome === 'correct'

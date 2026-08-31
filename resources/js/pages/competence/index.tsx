@@ -1136,6 +1136,14 @@ function CompetenceReading({
                                                 evidence.evidenceClaim,
                                             )}
                                         </span>
+                                        {evidence.independentCheck ? (
+                                            <span className="mt-1 block text-xs text-cyan-100/70">
+                                                {translate(
+                                                    'learning.reflection.independent_check_short',
+                                                    'Independent check',
+                                                )}
+                                            </span>
+                                        ) : null}
                                         {evidence.outcome ? (
                                             <span className="mt-1 block text-xs text-cyan-100/70">
                                                 {translate(
@@ -1401,6 +1409,8 @@ function evidenceClaimLabel(claim: string): string {
         {
             application_attempt: 'An application attempt was recorded.',
             explanation_attempt: 'An explanation attempt was recorded.',
+            independent_explanation_attempt:
+                'A fresh independent explanation attempt was recorded.',
             independent_recall: 'Successful independent recall recorded.',
             learning_encounter: 'A learning encounter was recorded.',
             participation: 'Participation was recorded.',
@@ -1408,6 +1418,8 @@ function evidenceClaimLabel(claim: string): string {
             retrieval_attempt: 'A recall attempt was recorded.',
             review: 'A review was recorded.',
             transfer_attempt: 'A transfer attempt was recorded.',
+            independent_transfer_attempt:
+                'A fresh independent transfer attempt was recorded.',
         }[claim] ?? 'A learning encounter was recorded.'
     );
 }

@@ -124,6 +124,90 @@ test('a transfer reflection records its changed context as structured private ev
             ));
 });
 
+test('an authored independent check is stored separately and identified in evidence', function () {
+    [$learner, $activity, $runId] = activeReflectionActivity();
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'explain',
+            'feedbackGuidance' => [
+                'evidence' => 'Connects the idea to a reason.',
+                'independentCheckPrompt' => 'Without looking back, explain the idea in a new example.',
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'play_run_id' => $runId,
+            'reflection' => 'The idea connects the observation to a reason.',
+        ])
+        ->assertOk();
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'independent_check' => true,
+            'play_run_id' => $runId,
+            'reflection' => 'I can explain the idea using a different example.',
+        ])
+        ->assertOk()
+        ->assertJsonPath(
+            'reflection.question',
+            'Without looking back, explain the idea in a new example.',
+        );
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.progress', $activity), [
+            'play_run_id' => $runId,
+            'status' => 'completed',
+        ])
+        ->assertOk();
+
+    $reflections = LearnerReflection::query()->orderBy('id')->get();
+    $evidence = LearnerEvidenceEvent::query()->firstOrFail();
+
+    expect($reflections)->toHaveCount(2)
+        ->and($reflections[0]->is_independent_check)->toBeFalse()
+        ->and($reflections[1]->is_independent_check)->toBeTrue()
+        ->and($evidence->is_independent_check)->toBeTrue()
+        ->and($evidence->learner_reflection_id)->toBe($reflections[1]->id);
+
+    $this->actingAs($learner)
+        ->get(route('competence.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where(
+                'competenceMap.topics.0.visual.evidenceLedger.0.evidenceClaim',
+                'independent_explanation_attempt',
+            )
+            ->where(
+                'competenceMap.topics.0.visual.evidenceLedger.0.independentCheck',
+                true,
+            ));
+});
+
+test('an independent check cannot be claimed without an authored prompt', function () {
+    [$learner, $activity, $runId] = activeReflectionActivity();
+    $activity->update([
+        'config' => [
+            ...$activity->config,
+            'learningIntent' => 'explain',
+            'feedbackGuidance' => [
+                'evidence' => 'Connects the idea to a reason.',
+            ],
+        ],
+    ]);
+
+    $this->actingAs($learner)
+        ->postJson(route('learning.activities.reflection.store', $activity), [
+            'independent_check' => true,
+            'play_run_id' => $runId,
+            'reflection' => 'A response that should not be accepted as independent.',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('independent_check');
+});
+
 test('a review activity offers earlier private reflections from the same journal topic', function () {
     [$learner, $activity] = activeReflectionActivity();
     $activity->update([

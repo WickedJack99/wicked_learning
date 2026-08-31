@@ -24,6 +24,7 @@ export type CompetenceTopic = {
             activityTitle: string | null;
             activityHref: string | null;
             evidenceClaim: string;
+            independentCheck: boolean;
             evidenceCriterion: string | null;
             evidenceRubric: string[];
             observedCues: string[];

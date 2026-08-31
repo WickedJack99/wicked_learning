@@ -25,12 +25,16 @@ class RecordLearnerReflection
     ) {}
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, independent_check?: bool, topic?: string|null, subtopic?: string|null}  $data
      */
     public function forActivity(User $user, LearningActivity $activity, string $playRunId, array $data): LearnerReflection
     {
         $this->ensureActive($user, $activity, $playRunId);
         $config = is_array($activity->config) ? $activity->config : [];
+        $responseType = $this->responseTypeForActivity($activity);
+        $isIndependentCheck = (bool) ($data['independent_check'] ?? false);
+
+        $this->validateIndependentCheck($activity, $responseType, $isIndependentCheck);
 
         return $this->record(
             user: $user,
@@ -42,8 +46,11 @@ class RecordLearnerReflection
                 'topic' => trim((string) ($data['topic'] ?? '')) ?: ($config['topic'] ?? null),
                 'subtopic' => trim((string) ($data['subtopic'] ?? '')) ?: ($config['subtopic'] ?? null),
             ],
-            question: (string) ($config['prompt'] ?? 'What feels clearer now?'),
-            responseType: $this->responseTypeForActivity($activity),
+            question: $isIndependentCheck
+                ? (string) $this->feedbackGuidance->independentCheckPromptForActivity($activity)
+                : (string) ($config['prompt'] ?? 'What feels clearer now?'),
+            responseType: $responseType,
+            isIndependentCheck: $isIndependentCheck,
             title: $activity->node->title.' - '.$activity->title,
         );
     }
@@ -76,7 +83,7 @@ class RecordLearnerReflection
     }
 
     /**
-     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null}  $data
+     * @param  array{reflection: string, response_context?: string|null, observed_cues?: list<string>, independent_check?: bool, topic?: string|null, subtopic?: string|null}  $data
      */
     private function record(
         User $user,
@@ -87,6 +94,7 @@ class RecordLearnerReflection
         string $question,
         string $responseType,
         string $title,
+        bool $isIndependentCheck = false,
     ): LearnerReflection {
         if ($responseType === 'transfer' && trim((string) ($data['response_context'] ?? '')) === '') {
             throw ValidationException::withMessages([
@@ -101,7 +109,7 @@ class RecordLearnerReflection
             )
             : [];
 
-        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $observedCues, $playRunId, $question, $responseType, $title): LearnerReflection {
+        return DB::transaction(function () use ($user, $activity, $dialogueNode, $data, $isIndependentCheck, $observedCues, $playRunId, $question, $responseType, $title): LearnerReflection {
             $topic = trim((string) ($data['topic'] ?? $activity->node->title)) ?: $activity->node->title;
             $subtopic = trim((string) ($data['subtopic'] ?? $activity->title));
             $page = LearnerJournalPage::query()->firstOrCreate([
@@ -126,6 +134,7 @@ class RecordLearnerReflection
                 'question' => $question,
                 'reflection' => (string) $data['reflection'],
                 'response_type' => $responseType,
+                'is_independent_check' => $isIndependentCheck,
                 'response_context' => $responseType === 'transfer'
                     ? trim((string) ($data['response_context'] ?? ''))
                     : null,
@@ -158,5 +167,27 @@ class RecordLearnerReflection
         $intent = $this->activityCompetence->learningIntentForActivity($activity);
 
         return in_array($intent, ['explain', 'transfer'], true) ? $intent : 'reflection';
+    }
+
+    private function validateIndependentCheck(
+        LearningActivity $activity,
+        string $responseType,
+        bool $isIndependentCheck,
+    ): void {
+        if (! $isIndependentCheck) {
+            return;
+        }
+
+        if (! in_array($responseType, ['explain', 'transfer'], true)) {
+            throw ValidationException::withMessages([
+                'independent_check' => 'This activity does not offer an independent check.',
+            ]);
+        }
+
+        if ($this->feedbackGuidance->independentCheckPromptForActivity($activity) === null) {
+            throw ValidationException::withMessages([
+                'independent_check' => 'This activity has no authored independent-check prompt.',
+            ]);
+        }
     }
 }

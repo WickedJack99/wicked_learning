@@ -386,6 +386,7 @@ export type LearningFeedbackGuidance = {
     nextAction: string | null;
     purpose: string | null;
     responseFeedback?: string;
+    independentCheckPrompt?: string;
     rubric?: string[];
 };
 

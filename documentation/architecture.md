@@ -348,7 +348,8 @@ carry it through as a nullable signal without interpreting it as an assessment.
 Reflection responses retain their originating activity play-run, allowing
 explanation and transfer evidence to require the response from the same run
 without exposing private response text in the evidence ledger. Matching events
-also retain a nullable internal reflection reference; deleting a journal
+also retain a nullable internal reflection reference and whether that response
+was an authored independent check; deleting a journal
 response clears that reference without deleting the evidence event.
 The shared frontend review-outcome vocabulary supplies localized labels and
 plain-language explanations for the activity selector and learner histories.

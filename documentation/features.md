@@ -479,6 +479,12 @@ possible next action and observable cues again before the activity continues.
 The learner may optionally record a second confidence signal after that pause;
 the evidence ledger shows both sides of the comparison. This is explanatory
 orientation, not automated critique or grading.
+Authors may optionally add an independent-check prompt for explanation or
+transfer activities. After the feedback pause, learners can write a fresh
+private response without looking back or continue without it. The fresh
+response is stored separately from the first response and the evidence ledger
+identifies it as an independent check; it is still an attempt, not an
+automatic rubric result.
 Review responses with authored guidance use the same pause and show its purpose
 before the learner continues, keeping the review signal descriptive rather than
 turning it into a grade.

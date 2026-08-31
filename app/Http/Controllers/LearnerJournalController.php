@@ -151,12 +151,13 @@ class LearnerJournalController extends Controller
         );
     }
 
-    /** @return array{reflection: string, response_context?: string|null, observed_cues?: list<string>, topic?: string|null, subtopic?: string|null} */
+    /** @return array{reflection: string, response_context?: string|null, observed_cues?: list<string>, independent_check?: bool, topic?: string|null, subtopic?: string|null} */
     private function reflectionData(Request $request, bool $supportsResponseContext = false): array
     {
         $rules = [
             'play_run_id' => ['required', 'uuid'],
             'reflection' => ['required', 'string', 'max:20000'],
+            'independent_check' => ['sometimes', 'boolean'],
             'observed_cues' => ['sometimes', 'array', 'max:3'],
             'observed_cues.*' => ['string', 'max:300'],
             'topic' => ['nullable', 'string', 'max:160'],

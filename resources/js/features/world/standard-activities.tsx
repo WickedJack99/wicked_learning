@@ -958,6 +958,13 @@ export function ReflectionActivity({
     const [responseContext, setResponseContext] = useState('');
     const [observedCues, setObservedCues] = useState<string[]>([]);
     const [reflectionSaved, setReflectionSaved] = useState(false);
+    const [independentResponse, setIndependentResponse] = useState('');
+    const [independentResponseContext, setIndependentResponseContext] =
+        useState('');
+    const [independentResponseSaved, setIndependentResponseSaved] =
+        useState(false);
+    const [isSavingIndependentResponse, setIsSavingIndependentResponse] =
+        useState(false);
     const postResponseContinueRef = useRef<HTMLButtonElement>(null);
     const [confidence, setConfidence] = useState<QuestionConfidence | null>(
         null,
@@ -991,8 +998,14 @@ export function ReflectionActivity({
             activity.feedbackGuidance.evidence ||
             activity.feedbackGuidance.responseFeedback ||
             activity.feedbackGuidance.nextAction ||
+            activity.feedbackGuidance.independentCheckPrompt ||
             activity.feedbackGuidance.rubric?.length),
     );
+    const independentCheckPrompt =
+        (responseType === 'explain' || responseType === 'transfer') &&
+        activity.feedbackGuidance?.independentCheckPrompt
+            ? activity.feedbackGuidance.independentCheckPrompt
+            : null;
 
     useEffect(() => {
         if (reflectionSaved) {
@@ -1139,6 +1152,99 @@ export function ReflectionActivity({
                             ))}
                         </div>
                     </fieldset>
+                ) : null}
+                {independentCheckPrompt ? (
+                    <div className="rounded-md border border-cyan-500/20 bg-white/60 p-3 dark:border-teal-100/15 dark:bg-slate-950/20">
+                        <p className="text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100">
+                            {t(
+                                'learning.reflection.independent_check_label',
+                                'Independent check (optional)',
+                            )}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-cyan-950/80 dark:text-teal-50/80">
+                            {independentCheckPrompt}
+                        </p>
+                        <p className="mt-1 text-xs leading-5 text-cyan-950/70 dark:text-teal-50/70">
+                            {t(
+                                'learning.reflection.independent_check_helper',
+                                'Try a fresh response without looking back. This stays private and is recorded separately; you can continue without it.',
+                            )}
+                        </p>
+                        <label
+                            className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                            htmlFor="activity-independent-response"
+                        >
+                            {t(
+                                'learning.reflection.independent_check_response_label',
+                                'Fresh response',
+                            )}
+                        </label>
+                        <textarea
+                            className="mt-2 min-h-24 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                            disabled={independentResponseSaved}
+                            id="activity-independent-response"
+                            onChange={(event) =>
+                                setIndependentResponse(event.target.value)
+                            }
+                            placeholder={t(
+                                'learning.reflection.independent_check_response_placeholder',
+                                'Write what you can explain or apply on your own now.',
+                            )}
+                            value={independentResponse}
+                        />
+                        {isTransfer ? (
+                            <>
+                                <label
+                                    className="mt-3 block text-xs font-medium tracking-[0.12em] text-cyan-800 uppercase dark:text-teal-100"
+                                    htmlFor="activity-independent-context"
+                                >
+                                    {t(
+                                        'learning.reflection.independent_check_context_label',
+                                        'Changed context',
+                                    )}
+                                </label>
+                                <textarea
+                                    className="mt-2 min-h-20 w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-sm leading-6 text-slate-700 transition outline-none placeholder:text-slate-400 focus:border-cyan-500 dark:border-white/10 dark:bg-slate-950/45 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-teal-200/70"
+                                    disabled={independentResponseSaved}
+                                    id="activity-independent-context"
+                                    onChange={(event) =>
+                                        setIndependentResponseContext(
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder={t(
+                                        'learning.reflection.independent_check_context_placeholder',
+                                        'Where would this idea work in a new situation?',
+                                    )}
+                                    value={independentResponseContext}
+                                />
+                            </>
+                        ) : null}
+                        <Button
+                            className="mt-3"
+                            disabled={
+                                independentResponse.trim().length === 0 ||
+                                (isTransfer &&
+                                    independentResponseContext.trim().length ===
+                                        0) ||
+                                independentResponseSaved ||
+                                isSavingIndependentResponse ||
+                                !playRunId
+                            }
+                            onClick={() => void saveIndependentResponse()}
+                            type="button"
+                        >
+                            {independentResponseSaved
+                                ? t(
+                                      'learning.reflection.independent_check_saved',
+                                      'Independent response saved',
+                                  )
+                                : t(
+                                      'learning.reflection.independent_check_save',
+                                      'Save independent response',
+                                  )}
+                        </Button>
+                    </div>
                 ) : null}
                 <p className="text-xs leading-5 text-cyan-900/70 dark:text-teal-100/70">
                     {t(
@@ -1545,6 +1651,36 @@ export function ReflectionActivity({
             onMoveToActivity(transition?.toActivityId ?? null);
         } finally {
             setIsSaving(false);
+        }
+    }
+
+    async function saveIndependentResponse() {
+        if (!playRunId || isSavingIndependentResponse || !independentCheckPrompt) {
+            return;
+        }
+
+        setIsSavingIndependentResponse(true);
+
+        try {
+            await postJson(`/learning/activities/${activity.id}/reflection`, {
+                independent_check: true,
+                play_run_id: playRunId,
+                reflection: independentResponse,
+                ...(isTransfer
+                    ? { response_context: independentResponseContext }
+                    : {}),
+                topic:
+                    typeof activity.config.topic === 'string'
+                        ? activity.config.topic
+                        : '',
+                subtopic:
+                    typeof activity.config.subtopic === 'string'
+                        ? activity.config.subtopic
+                        : '',
+            });
+            setIndependentResponseSaved(true);
+        } finally {
+            setIsSavingIndependentResponse(false);
         }
     }
 }
