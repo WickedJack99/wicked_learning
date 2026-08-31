@@ -100,8 +100,10 @@ This keeps the desk from adding a separate progression panel. Desk areas are
 switched through a local navigation control whose order remains stable as
 different areas become available. The selected area is also kept in the page
 URL, so a learner can refresh, share or return to the same desk direction
-without losing that choice. When no area is specified, the desk opens on the
-Connections area when saved connections exist, otherwise on active route work
+without losing that choice. Each area control identifies its section and moves
+focus to the newly shown heading after an intentional switch. When no area is
+specified, the desk opens on the Connections area when saved connections exist,
+otherwise on active route work
 or the first populated area; an entirely empty desk keeps Connections as its
 orientation prompt. Route and revisit
 collections are paginated so the desktop desk does not need one growing

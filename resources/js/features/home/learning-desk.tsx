@@ -10,7 +10,7 @@ import {
     Pin,
     Trash2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { competenceTopicHref } from '@/features/competence/competence-links';
@@ -71,6 +71,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const { auth, localization } = usePage().props;
     const t = usePlatformTranslation();
     const firstName = auth.user?.name.trim().split(/\s+/)[0] ?? '';
+    const shouldFocusAreaHeadingRef = useRef(false);
     const [focusView, setFocusView] = useState(false);
     const [timeBudget, setTimeBudget] = useState<DeskTimeBudget>('any');
     const [purposeFilter, setPurposeFilter] =
@@ -197,6 +198,11 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     }, [defaultArea]);
 
     function selectArea(area: LearningDeskArea) {
+        if (area === visibleArea) {
+            return;
+        }
+
+        shouldFocusAreaHeadingRef.current = true;
         setActiveArea(area);
 
         const url = new URL(window.location.href);
@@ -213,6 +219,15 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
     const visibleArea = deskAreas.some((area) => area.id === activeArea)
         ? activeArea
         : (deskAreas[0]?.id ?? 'connections');
+
+    useEffect(() => {
+        if (!shouldFocusAreaHeadingRef.current) {
+            return;
+        }
+
+        shouldFocusAreaHeadingRef.current = false;
+        document.getElementById(`${visibleArea}-heading`)?.focus();
+    }, [visibleArea]);
 
     async function handleRevisitUpdate(
         activityId: number,
@@ -359,6 +374,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 {deskAreas.map((area) => (
                                     <button
                                         aria-pressed={visibleArea === area.id}
+                                        aria-controls={`${area.id}-section`}
                                         className={[
                                             'min-h-10 rounded-md border px-3 text-sm transition focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)] focus-visible:outline-none',
                                             visibleArea === area.id
@@ -380,6 +396,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     className="mt-8"
                                     aria-labelledby="connections-heading"
+                                    id="connections-section"
                                 >
                                     <SectionHeading
                                         id="connections-heading"
@@ -446,6 +463,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     aria-labelledby="reflections-heading"
                                     className="mt-4"
+                                    id="reflections-section"
                                 >
                                     <SectionHeading
                                         id="reflections-heading"
@@ -485,6 +503,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     aria-labelledby="support-heading"
                                     className="mt-8"
+                                    id="support-section"
                                 >
                                     <SectionHeading
                                         id="support-heading"
@@ -523,6 +542,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     className="mt-8"
                                     aria-labelledby="revisit-heading"
+                                    id="revisit-section"
                                 >
                                     <SectionHeading
                                         id="revisit-heading"
@@ -578,6 +598,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     aria-labelledby="recall-heading"
                                     className="mt-8"
+                                    id="recall-section"
                                 >
                                     <SectionHeading
                                         id="recall-heading"
@@ -639,6 +660,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     className="mt-8"
                                     aria-labelledby="recent-heading"
+                                    id="recent-section"
                                 >
                                     <SectionHeading
                                         id="recent-heading"
@@ -667,6 +689,7 @@ export function LearningDesk({ desk }: { desk: LearningDeskData }) {
                                 <section
                                     className="mt-8"
                                     aria-labelledby="continue-heading"
+                                    id="continue-section"
                                 >
                                     <SectionHeading
                                         id="continue-heading"
@@ -1640,8 +1663,9 @@ function SectionHeading({ id, label }: { id: string; label: string }) {
     return (
         <div className="flex items-center gap-5 border-b border-[var(--learner-border-color)] pb-3">
             <h2
-                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase"
+                className="shrink-0 text-xs font-semibold tracking-[0.22em] text-[var(--learner-muted-text)] uppercase focus:outline-none"
                 id={id}
+                tabIndex={-1}
             >
                 {label}
             </h2>
