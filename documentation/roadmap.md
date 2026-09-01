@@ -48,8 +48,8 @@ their own evidence without exposing a hidden competence score.
   reference handling; JSON world transfers remain reference-only.
 - Add configuration profiles with visible inherited values and local
   overrides.
-- Grow the private and organization-scoped activity-template library with
-  clear versioning and asset-resolution controls.
+- Continue growing the private and organization-scoped activity-template
+  library with clear versioning and broader asset-resolution controls.
 
 ### Cooperation and support
 

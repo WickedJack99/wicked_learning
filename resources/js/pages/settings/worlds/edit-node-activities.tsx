@@ -26,6 +26,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ColorField } from '@/components/color-input';
 import { PaginationControls } from '@/components/pagination-controls';
+import { ReusableImagePicker } from '@/components/reusable-image-picker';
 import { SettingsConfigurationDialog } from '@/components/settings-configuration-dialog';
 import { SettingsConfigurationSection } from '@/components/settings-configuration-section';
 import { Button } from '@/components/ui/button';
@@ -61,6 +62,11 @@ import {
 } from './activity-graph-elements';
 import { themedPreviewAsset } from './activity-scene-preview';
 import { activityTemplateContext } from './activity-template-context';
+import {
+    isImageMediaReference,
+    replaceTemplateMediaReferences,
+} from './activity-template-media';
+import type { TemplateMediaReplacements } from './activity-template-media';
 import type {
     ActivityForm,
     ActivityTemplateTargetGraph,
@@ -184,6 +190,10 @@ export default function EditNodeActivities({
     );
     const [previewingActivityTemplate, setPreviewingActivityTemplate] =
         useState<ActivityTemplateDetails | null>(null);
+    const [templateMediaReplacements, setTemplateMediaReplacements] =
+        useState<TemplateMediaReplacements>({});
+    const [templateMediaPickerReference, setTemplateMediaPickerReference] =
+        useState<string | null>(null);
     const [sourceRecords, setSourceRecords] = useState<EditableSourceRecord[]>(
         () => activityGraph.sourceRecords,
     );
@@ -1000,6 +1010,7 @@ export default function EditNodeActivities({
                 const payload = (await response.json()) as {
                     template: ActivityTemplateDetails;
                 };
+                setTemplateMediaReplacements({});
                 setPreviewingActivityTemplate(payload.template);
             } catch (error) {
                 setActivityTemplateError(
@@ -1020,8 +1031,12 @@ export default function EditNodeActivities({
         }
 
         const snapshot = previewingActivityTemplate.snapshot;
+        const resolvedConfig = replaceTemplateMediaReferences(
+            snapshot.config,
+            templateMediaReplacements,
+        ) as ActivitySummary['config'];
         const formSource = {
-            config: snapshot.config,
+            config: resolvedConfig,
             introduction: snapshot.introduction,
             portalLink: null,
             question: snapshot.question ?? null,
@@ -1040,11 +1055,13 @@ export default function EditNodeActivities({
         setErrors({});
         resetImageUploadErrors();
         setPreviewingActivityTemplate(null);
+        setTemplateMediaReplacements({});
     }, [
         activityGraph.node.id,
         firstType,
         previewingActivityTemplate,
         resetImageUploadErrors,
+        templateMediaReplacements,
     ]);
 
     const saveActivityTemplate = useCallback(async (): Promise<void> => {
@@ -2763,6 +2780,8 @@ export default function EditNodeActivities({
                 onOpenChange={(open) => {
                     if (!open && loadingTemplateId === null) {
                         setPreviewingActivityTemplate(null);
+                        setTemplateMediaReplacements({});
+                        setTemplateMediaPickerReference(null);
                         setActivityTemplateError(null);
                     }
                 }}
@@ -2864,7 +2883,10 @@ export default function EditNodeActivities({
                             </div>
                             {previewingActivityTemplate.mediaReferences.length >
                             0 ? (
-                                <div className="grid gap-2 rounded-md border border-[var(--settings-border-color)] p-3">
+                                <div
+                                    className="grid gap-2 rounded-md border border-[var(--settings-border-color)] p-3"
+                                    data-wl-id="admin.activity-template.media-resolution"
+                                >
                                     <p className="text-xs font-semibold tracking-wide text-[var(--settings-accent)] uppercase">
                                         {t(
                                             'settings.worlds.activities.template.preview_media',
@@ -2886,36 +2908,98 @@ export default function EditNodeActivities({
                                             },
                                         )}
                                     </p>
-                                    <ul className="grid gap-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                    {previewingActivityTemplate.mediaReferences.some(
+                                        (reference) => !reference.available,
+                                    ) ? (
+                                        <p className="text-xs leading-5 text-amber-700 dark:text-amber-300">
+                                            {t(
+                                                'settings.worlds.activities.template.preview_media_resolution_help',
+                                                'Unavailable image references can be replaced with an existing image before you create the editable activity.',
+                                            )}
+                                        </p>
+                                    ) : null}
+                                    <ul className="grid gap-2 text-xs leading-5 text-[var(--settings-muted-text)]">
                                         {previewingActivityTemplate.mediaReferences
-                                            .slice(0, 6)
+                                            .filter(
+                                                (reference, index) =>
+                                                    !reference.available ||
+                                                    index < 6,
+                                            )
                                             .map((reference) => (
                                                 <li
-                                                    className={
-                                                        reference.available
-                                                            ? undefined
-                                                            : 'text-amber-700 dark:text-amber-300'
-                                                    }
+                                                    className="flex flex-wrap items-center justify-between gap-2"
                                                     key={reference.url}
                                                 >
-                                                    {reference.available
-                                                        ? '✓'
-                                                        : '!'}{' '}
-                                                    {reference.url}
+                                                    <span
+                                                        className={
+                                                            reference.available
+                                                                ? undefined
+                                                                : 'text-amber-700 dark:text-amber-300'
+                                                        }
+                                                    >
+                                                        {reference.available
+                                                            ? '✓'
+                                                            : '!'}{' '}
+                                                        {reference.url}
+                                                        {templateMediaReplacements[
+                                                            reference.url
+                                                        ] ? (
+                                                            <span className="text-[var(--settings-accent)]">
+                                                                {' → '}
+                                                                {
+                                                                    templateMediaReplacements[
+                                                                        reference
+                                                                            .url
+                                                                    ]
+                                                                }
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                    {!reference.available &&
+                                                    isImageMediaReference(
+                                                        reference.url,
+                                                    ) ? (
+                                                        <Button
+                                                            data-wl-id="admin.activity-template.media-replacement"
+                                                            className="h-7 px-2 text-xs"
+                                                            onClick={() =>
+                                                                setTemplateMediaPickerReference(
+                                                                    reference.url,
+                                                                )
+                                                            }
+                                                            type="button"
+                                                            variant="outline"
+                                                        >
+                                                            {templateMediaReplacements[
+                                                                reference.url
+                                                            ]
+                                                                ? t(
+                                                                      'settings.worlds.activities.template.preview_media_change_replacement',
+                                                                      'Change replacement',
+                                                                  )
+                                                                : t(
+                                                                      'settings.worlds.activities.template.preview_media_choose_replacement',
+                                                                      'Choose replacement',
+                                                                  )}
+                                                        </Button>
+                                                    ) : null}
                                                 </li>
                                             ))}
                                     </ul>
-                                    {previewingActivityTemplate.mediaReferences
-                                        .length > 6 ? (
+                                    {previewingActivityTemplate.mediaReferences.filter(
+                                        (reference, index) =>
+                                            reference.available && index >= 6,
+                                    ).length > 0 ? (
                                         <p className="text-xs text-[var(--settings-muted-text)]">
                                             {t(
                                                 'settings.worlds.activities.template.preview_media_more',
                                                 ':count more media references are included.',
                                                 {
-                                                    count:
-                                                        previewingActivityTemplate
-                                                            .mediaReferences
-                                                            .length - 6,
+                                                    count: previewingActivityTemplate.mediaReferences.filter(
+                                                        (reference, index) =>
+                                                            reference.available &&
+                                                            index >= 6,
+                                                    ).length,
                                                 },
                                             )}
                                         </p>
@@ -2932,7 +3016,11 @@ export default function EditNodeActivities({
                     ) : null}
                     <DialogFooter>
                         <Button
-                            onClick={() => setPreviewingActivityTemplate(null)}
+                            onClick={() => {
+                                setPreviewingActivityTemplate(null);
+                                setTemplateMediaReplacements({});
+                                setTemplateMediaPickerReference(null);
+                            }}
                             type="button"
                             variant="outline"
                         >
@@ -3067,6 +3155,33 @@ export default function EditNodeActivities({
                     </DialogFooter>
                 </SettingsConfigurationDialog>
             </Dialog>
+
+            {templateMediaPickerReference ? (
+                <ReusableImagePicker
+                    currentValue={
+                        templateMediaReplacements[
+                            templateMediaPickerReference
+                        ] ?? templateMediaPickerReference
+                    }
+                    onClear={() => {
+                        setTemplateMediaReplacements((current) => {
+                            const next = { ...current };
+                            delete next[templateMediaPickerReference];
+
+                            return next;
+                        });
+                        setTemplateMediaPickerReference(null);
+                    }}
+                    onClose={() => setTemplateMediaPickerReference(null)}
+                    onSelect={(url) => {
+                        setTemplateMediaReplacements((current) => ({
+                            ...current,
+                            [templateMediaPickerReference]: url,
+                        }));
+                        setTemplateMediaPickerReference(null);
+                    }}
+                />
+            ) : null}
 
             <Dialog
                 open={Boolean(selectedStartRoute)}

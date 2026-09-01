@@ -867,7 +867,9 @@ while the author retains rename, sharing, deletion and update control. An
 author can update a saved template from a persisted eligible activity; the
 previous snapshot is retained in a bounded, paginated history and can be
 restored. Existing activities remain independent copies. Replacing missing
-media or transferring media bytes remains future authoring work.
+image references is available from the preview through the existing authorized
+image picker; selected replacements apply only to the new editable draft.
+Transferring media bytes remains future authoring work.
 
 The World Builder graph surfaces the same review state on each map card. Maps
 with waiting activity reviews link directly to the first affected node, so an
