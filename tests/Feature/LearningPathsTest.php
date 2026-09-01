@@ -1,11 +1,13 @@
 <?php
 
 use App\Learning\CurrentWorldResolver;
+use App\Models\LearnerNodeDiscovery;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
 use App\Models\LearningNode;
+use App\Models\LearningTool;
 use App\Models\LearningTopic;
 use App\Models\LearningTopicArea;
 use App\Models\LearningWorld;
@@ -342,4 +344,75 @@ test('learning paths keep nodes whose visual config has no empty-space flag', fu
             ->has('paths', 1)
             ->where('paths.0.label', 'Visible route')
         );
+});
+
+test('learning paths reuse node visibility checks for repeated starts', function () {
+    $user = User::factory()->create(['role' => User::ROLE_USER]);
+    $world = LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'slug' => 'revealed-route-map',
+        'title' => 'Revealed route map',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $tool = LearningTool::query()->create([
+        'slug' => 'pattern-lens',
+        'title' => 'Pattern lens',
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'revealed-node',
+        'title' => 'Revealed node',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'hidden',
+        'visual_config' => [
+            'reveal' => [
+                'enabled' => true,
+                'toolId' => $tool->id,
+            ],
+        ],
+    ]);
+    foreach (range(1, 2) as $index) {
+        $activity = LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => 'repeated-route-activity-'.$index,
+            'title' => 'Repeated route activity '.$index,
+            'type' => 'markdown',
+        ]);
+        LearningActivityStart::query()->create([
+            'learning_node_id' => $node->id,
+            'learning_activity_id' => $activity->id,
+            'label' => 'Repeated route '.$index,
+            'sort_order' => $index,
+        ]);
+    }
+    LearnerNodeDiscovery::query()->create([
+        'user_id' => $user->id,
+        'learning_node_id' => $node->id,
+        'learning_tool_id' => $tool->id,
+        'discovered_at' => now(),
+    ]);
+
+    $toolExistenceQueries = 0;
+    DB::listen(function (QueryExecuted $query) use (&$toolExistenceQueries): void {
+        if (str_contains($query->sql, 'from "learning_tools"')
+            && str_contains(strtolower($query->sql), 'exists')) {
+            $toolExistenceQueries++;
+        }
+    });
+
+    $this->actingAs($user)
+        ->get(route('paths.index'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('paths')
+            ->has('paths', 2)
+            ->where('paths.0.label', 'Repeated route 1')
+            ->where('paths.1.label', 'Repeated route 2'));
+
+    expect($toolExistenceQueries)->toBe(2);
 });

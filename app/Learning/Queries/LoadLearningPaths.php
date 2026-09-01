@@ -21,6 +21,15 @@ class LoadLearningPaths
 
     private const int SCAN_CHUNK_SIZE = 100;
 
+    /** @var array<int, bool> */
+    private array $mapVisibility = [];
+
+    /** @var array<int, bool> */
+    private array $nodePlayability = [];
+
+    /** @var array<int, bool> */
+    private array $activityEligibility = [];
+
     public function __construct(
         private readonly CurrentWorldResolver $worldResolver,
         private readonly ActivityRouteEligibility $routeEligibility,
@@ -41,6 +50,9 @@ class LoadLearningPaths
      */
     public function handle(User $user, ?LearningTopic $topic = null, int $page = 1, ?string $purpose = null, ?int $timeBudget = null): array
     {
+        $this->mapVisibility = [];
+        $this->nodePlayability = [];
+        $this->activityEligibility = [];
         $page = max(1, $page);
         $worldId = $this->worldResolver->query()->value('id');
 
@@ -172,13 +184,27 @@ class LoadLearningPaths
 
     private function isVisibleRoute(LearningActivityStart $route, User $user): bool
     {
-        return $route->node !== null
-            && $route->node->map !== null
-            && $route->activity !== null
-            && $this->mapAccess->canViewMap($route->node->map, $user)
-            && $this->nodeStateResolver->canPlay($route->node, $user->id)
+        if ($route->node === null
+            || $route->node->map === null
+            || $route->activity === null) {
+            return false;
+        }
+
+        $mapId = $route->node->map->getKey();
+        $nodeId = $route->node->getKey();
+        $activityId = $route->activity->getKey();
+
+        $mapVisible = $this->mapVisibility[$mapId]
+            ??= $this->mapAccess->canViewMap($route->node->map, $user);
+        $nodePlayable = $this->nodePlayability[$nodeId]
+            ??= $this->nodeStateResolver->canPlay($route->node, $user->id);
+        $activityEligible = $this->activityEligibility[$activityId]
+            ??= $this->routeEligibility->canStart($route->activity);
+
+        return $mapVisible
+            && $nodePlayable
             && ($route->node->visual_config['hideEmptySpace'] ?? false) !== true
-            && $this->routeEligibility->canStart($route->activity);
+            && $activityEligible;
     }
 
     private function progressKey(int $nodeId, ?int $activityId): string
