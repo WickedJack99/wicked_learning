@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Settings;
 
-use App\Access\AccessLevel;
-use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Http\Controllers\Controller;
 use App\Learning\Actions\SaveLearningGroup;
 use App\Learning\Actions\SyncLearningGroupMembers;
+use App\Learning\Services\LearningGroupManagementService;
 use App\Models\LearningGroup;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class AdminLearningGroupController extends Controller
 {
+    public function __construct(private readonly LearningGroupManagementService $groupManagement) {}
+
     public function index(): RedirectResponse
     {
         return $this->redirectToGroupsSection();
@@ -79,37 +79,14 @@ class AdminLearningGroupController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user && $this->hasGroupScope($user, $group, PermissionCatalog::GROUPS), 403);
+        abort_unless($user && $this->groupManagement->canManage($user, $group, PermissionCatalog::GROUPS), 403);
     }
 
     private function authorizeGroupMembershipUpdate(Request $request, LearningGroup $group): void
     {
         $user = $request->user();
 
-        abort_unless($user && $this->hasGroupScope($user, $group, PermissionCatalog::GROUP_MEMBERS), 403);
-    }
-
-    private function hasGroupScope(User $user, LearningGroup $group, string $resource): bool
-    {
-        if (! $user->hasAccess($resource, AccessLevel::UPDATE)) {
-            return false;
-        }
-
-        $scope = $user->accessScopeFor($resource, AccessLevel::UPDATE);
-
-        if (AccessScope::allows($scope, AccessScope::ALL)) {
-            return true;
-        }
-
-        if (
-            AccessScope::allows($scope, AccessScope::OWN)
-            && (int) $group->created_by_user_id === (int) $user->id
-        ) {
-            return true;
-        }
-
-        return AccessScope::allows($scope, AccessScope::ASSIGNED)
-            && $user->managesLearningGroup($group);
+        abort_unless($user && $this->groupManagement->canManage($user, $group, PermissionCatalog::GROUP_MEMBERS), 403);
     }
 
     private function redirectToGroupsSection(): RedirectResponse

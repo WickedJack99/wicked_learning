@@ -572,10 +572,13 @@ class AdminWorldController extends Controller
     public function updateMapEditingGroups(Request $request, LearningMap $map): RedirectResponse
     {
         $this->authorizeMapAccessEdit($request, $map);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
 
         $this->updateLearningMapEditingGroups->handle(
             $map,
             $request->validate($this->rules->mapEditingGroups())['group_ids'] ?? [],
+            $user,
         );
 
         return $this->redirectBackToMap($map);

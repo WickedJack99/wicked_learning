@@ -144,6 +144,81 @@ test('scoped group readers only hydrate groups in their management scope', funct
         ->and(app(LoadAdminLearningGroups::class)->handle(User::factory()->create()))->toBeEmpty();
 });
 
+test('map editor group options and assignments stay within the groups they manage', function () {
+    $author = userWithRole('scoped-map-editor', [
+        PermissionCatalog::GROUPS => [AccessLevel::UPDATE, AccessScope::ASSIGNED],
+        PermissionCatalog::WORLD_MAPS => [AccessLevel::UPDATE, AccessScope::OWN],
+        PermissionCatalog::WORLD_MAP_ACCESS => [AccessLevel::UPDATE, AccessScope::OWN],
+    ]);
+    $world = LearningWorld::query()->create([
+        'title' => 'Scoped World',
+        'slug' => 'scoped-world',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $world->id,
+        'created_by_user_id' => $author->id,
+        'title' => 'Scoped Map',
+        'slug' => 'scoped-map',
+    ]);
+    $ownGroup = LearningGroup::query()->create([
+        'created_by_user_id' => $author->id,
+        'name' => 'Own group',
+        'slug' => 'own-group',
+    ]);
+    $managedGroup = LearningGroup::query()->create([
+        'name' => 'Managed group',
+        'slug' => 'managed-group',
+    ]);
+    $managedGroup->members()->attach($author->id, [
+        'joined_at' => now(),
+        'role' => 'manager',
+    ]);
+    $unrelatedGroup = LearningGroup::query()->create([
+        'name' => 'Unrelated group',
+        'slug' => 'unrelated-group',
+    ]);
+    $groupQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$groupQueries): void {
+        if (str_contains($query->sql, 'learning_groups')) {
+            $groupQueries[] = $query;
+        }
+    });
+
+    $this->actingAs($author)
+        ->get(route('settings.index', [
+            'panel' => 'admin-world-builder',
+            'map' => $map->id,
+            'worldView' => 'configure',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedWorldMap.learningGroups.0.name', 'Managed group')
+            ->where('selectedWorldMap.learningGroups.1.name', 'Own group')
+            ->missing('selectedWorldMap.learningGroups.2'));
+
+    expect(collect($groupQueries)->contains(
+        fn (QueryExecuted $query): bool => str_contains($query->sql, 'created_by_user_id')
+            && str_contains($query->sql, 'learning_group_user'),
+    ))->toBeTrue();
+
+    $this->actingAs($author)
+        ->patch(route('settings.worlds.maps.editing-groups.update', $map), [
+            'group_ids' => [$unrelatedGroup->id],
+        ])
+        ->assertForbidden();
+
+    expect($map->editingGroups()->exists())->toBeFalse();
+
+    $this->actingAs($author)
+        ->patch(route('settings.worlds.maps.editing-groups.update', $map), [
+            'group_ids' => [$ownGroup->id, $managedGroup->id],
+        ])
+        ->assertRedirect();
+
+    expect($map->editingGroups()->pluck('learning_groups.id')->sort()->values()->all())
+        ->toBe(collect([$ownGroup->id, $managedGroup->id])->sort()->values()->all());
+});
+
 /**
  * @param  array<string, array{0: string, 1: string}>  $permissions
  */

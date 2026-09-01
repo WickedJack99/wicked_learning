@@ -596,7 +596,7 @@ class LoadSettingsIndex
                 ->map(fn (LearningItem $item): array => $this->adminItemSerializer->serialize($item))
                 ->values()
                 ->all(),
-            'learningGroups' => $this->loadLearningGroupOptions->handle(),
+            'learningGroups' => $this->loadLearningGroupOptions->handle($user),
             'roleOptions' => AccessRole::query()
                 ->orderBy('level')
                 ->orderBy('name')
