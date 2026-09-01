@@ -728,9 +728,10 @@ palettes are database-backed instead of being fixed to one deployment theme.
 ### Access Management
 
 Admins can manage users, registration tokens, roles, groups and account access.
-Access management also provides one-time, expiring access links for a
-configured tool grant, item grant, registration invitation or temporary
-learner login. Link tokens are shown only when created; redemption is checked
+Access management also provides expiring access links for a configured tool
+grant, item grant, registration invitation or temporary learner login. Admins
+can choose one-time, multiple-use or one-time-per-user behavior and enable or
+disable a link. Link tokens are shown only when created; redemption is checked
 on the server and temporary accounts receive the learner role plus a separate
 least-privileged temporary role. Existing registration tokens remain a
 separate compatibility path.

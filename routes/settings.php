@@ -84,6 +84,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 Route::middleware(['auth', 'verified', 'can:users.ru'])->group(function () {
     Route::post('settings/access-links', [AdminAccessLinkController::class, 'store'])
         ->name('settings.access-links.store');
+    Route::patch('settings/access-links/{accessLink}/status', [AdminAccessLinkController::class, 'updateStatus'])
+        ->name('settings.access-links.status.update');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

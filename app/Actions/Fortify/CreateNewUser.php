@@ -73,10 +73,13 @@ class CreateNewUser implements CreatesNewUsers
                     'used_at' => now(),
                 ])->save();
             } else {
-                $accessLink?->forceFill([
-                    'redeemed_by_user_id' => $user->id,
-                    'redeemed_at' => now(),
-                ])->save();
+                if (! $accessLink || ! $accessLink->canBeRedeemedBy($user)) {
+                    throw ValidationException::withMessages([
+                        'registration_token' => 'This registration token is invalid, expired or has already been used.',
+                    ]);
+                }
+
+                $accessLink->recordRedemption($user);
             }
 
             return $user;

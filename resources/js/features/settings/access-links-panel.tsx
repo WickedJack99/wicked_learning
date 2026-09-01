@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Check, Clipboard, Link, Plus, Trash2 } from 'lucide-react';
+import { Check, Clipboard, Link, Plus, Power, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import type {
     AccessLinkOption,
     AccessLinkPurpose,
     AccessLinkSummary,
+    AccessLinkUsagePolicy,
     AccessRoleSummary,
     UserRole,
 } from './settings-access-types';
@@ -35,6 +36,15 @@ const purposes: { label: string; value: AccessLinkPurpose }[] = [
     { label: 'Temporary learner login', value: 'temporary_login' },
 ];
 
+const usagePolicies: {
+    label: string;
+    value: AccessLinkUsagePolicy;
+}[] = [
+    { label: 'One time', value: 'one_time' },
+    { label: 'Multiple times', value: 'multiple' },
+    { label: 'One time per user', value: 'per_user' },
+];
+
 export function AccessLinksPanel({
     accessLinkOptions,
     accessLinks,
@@ -45,6 +55,8 @@ export function AccessLinksPanel({
 }: Props) {
     const t = usePlatformTranslation();
     const [purpose, setPurpose] = useState<AccessLinkPurpose>('grant_tool');
+    const [usagePolicy, setUsagePolicy] =
+        useState<AccessLinkUsagePolicy>('one_time');
     const [expiresAt, setExpiresAt] = useState(defaultExpiry());
     const [note, setNote] = useState('');
     const [toolId, setToolId] = useState('');
@@ -66,6 +78,7 @@ export function AccessLinksPanel({
                 note: note.trim() || null,
                 roles: purpose === 'registration' ? selectedRoles : [],
                 tool_id: purpose === 'grant_tool' ? toolId : null,
+                usage_policy: usagePolicy,
             },
             { preserveScroll: true, preserveState: true },
         );
@@ -99,7 +112,7 @@ export function AccessLinksPanel({
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--settings-muted-text)]">
                     {t(
                         'settings.access.links.description',
-                        'Create one-time, expiring links for a controlled grant, registration or temporary demonstration login.',
+                        'Create expiring links with controlled use for a grant, registration or temporary demonstration login.',
                     )}
                 </p>
             </div>
@@ -141,12 +154,19 @@ export function AccessLinksPanel({
                                 className="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
                                 disabled={!canCreate}
                                 id="access-link-purpose"
-                                onChange={(event) =>
-                                    setPurpose(
-                                        event.currentTarget
-                                            .value as AccessLinkPurpose,
-                                    )
-                                }
+                                onChange={(event) => {
+                                    const nextPurpose = event.currentTarget
+                                        .value as AccessLinkPurpose;
+
+                                    setPurpose(nextPurpose);
+
+                                    if (
+                                        nextPurpose === 'temporary_login' &&
+                                        usagePolicy === 'per_user'
+                                    ) {
+                                        setUsagePolicy('one_time');
+                                    }
+                                }}
                                 value={purpose}
                             >
                                 {purposes.map((option) => (
@@ -312,6 +332,45 @@ export function AccessLinksPanel({
                             </div>
                         ) : null}
 
+                        <div className="grid gap-1 sm:col-span-2">
+                            <Label htmlFor="access-link-usage-policy">
+                                {t(
+                                    'settings.access.links.usage',
+                                    'Usage',
+                                )}
+                            </Label>
+                            <select
+                                className="h-10 rounded-md border border-input bg-transparent px-3 text-sm"
+                                disabled={!canCreate}
+                                id="access-link-usage-policy"
+                                onChange={(event) =>
+                                    setUsagePolicy(
+                                        event.currentTarget
+                                            .value as AccessLinkUsagePolicy,
+                                    )
+                                }
+                                value={usagePolicy}
+                            >
+                                {usagePolicies.map((option) => (
+                                    <option
+                                        disabled={
+                                            purpose === 'temporary_login' &&
+                                            option.value === 'per_user'
+                                        }
+                                        key={option.value}
+                                        value={option.value}
+                                    >
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-[var(--settings-muted-text)]">
+                                {purpose === 'temporary_login'
+                                    ? 'Temporary login supports one or multiple uses; each use creates a new learner.'
+                                    : 'Control whether this link can be used once, repeatedly, or once by each user.'}
+                            </p>
+                        </div>
+
                         <div className="grid gap-1">
                             <Label htmlFor="access-link-expires-at">
                                 {t(
@@ -376,12 +435,40 @@ export function AccessLinksPanel({
                                         {purposeLabel(link.purpose)}
                                     </span>
                                     <span className="text-xs text-[var(--settings-muted-text)]">
-                                        {link.isExpired
+                                        {!link.isEnabled
+                                            ? 'Disabled'
+                                            : link.isExpired
                                             ? 'Expired'
                                             : link.isRedeemed
                                               ? 'Redeemed'
                                               : 'Available'}
                                     </span>
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--settings-muted-text)]">
+                                    <span>{usagePolicyLabel(link.usagePolicy)}</span>
+                                    <Button
+                                        aria-label={
+                                            link.isEnabled
+                                                ? 'Disable link'
+                                                : 'Enable link'
+                                        }
+                                        className="h-7 px-2 text-xs"
+                                        onClick={() =>
+                                            router.patch(
+                                                `/settings/access-links/${link.id}/status`,
+                                                { enabled: !link.isEnabled },
+                                                {
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                },
+                                            )
+                                        }
+                                        type="button"
+                                        variant="secondary"
+                                    >
+                                        <Power className="size-3" />
+                                        {link.isEnabled ? 'Disable' : 'Enable'}
+                                    </Button>
                                 </div>
                                 {link.note ? (
                                     <p className="mt-1 text-xs text-[var(--settings-muted-text)]">
@@ -418,6 +505,13 @@ function updateItemGrant(
 function purposeLabel(purpose: AccessLinkPurpose): string {
     return (
         purposes.find((option) => option.value === purpose)?.label ?? purpose
+    );
+}
+
+function usagePolicyLabel(policy: AccessLinkUsagePolicy): string {
+    return (
+        usagePolicies.find((option) => option.value === policy)?.label ??
+        policy
     );
 }
 

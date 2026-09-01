@@ -18,6 +18,26 @@ test('users without user-management permission cannot create access links', func
     expect(AccessLink::query()->count())->toBe(0);
 });
 
+test('users without user-management permission cannot change access-link status', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $user = User::factory()->create();
+    AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_REGISTRATION,
+        ['roles' => [User::ROLE_USER]],
+        now()->addDay(),
+    );
+    $link = AccessLink::query()->firstOrFail();
+
+    $this->actingAs($user)
+        ->patch(route('settings.access-links.status.update', ['accessLink' => $link]), [
+            'enabled' => false,
+        ])
+        ->assertForbidden();
+
+    expect($link->fresh()->is_enabled)->toBeTrue();
+});
+
 test('administrators can create and view access links without receiving the token back in listings', function () {
     $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
     $tool = LearningTool::query()->create([
@@ -42,6 +62,10 @@ test('administrators can create and view access links without receiving the toke
 
     expect($link->purpose)
         ->toBe(AccessLink::PURPOSE_GRANT_TOOL)
+        ->and($link->usage_policy)
+        ->toBe(AccessLink::USAGE_ONE_TIME)
+        ->and($link->is_enabled)
+        ->toBeTrue()
         ->and($link->payload)
         ->toBe(['toolId' => $tool->id])
         ->and(strlen($link->token_hash))
@@ -69,6 +93,8 @@ test('administrators can create and view access links without receiving the toke
         ->assertInertia(fn ($page) => $page
             ->where('accessLinks.0.purpose', AccessLink::PURPOSE_GRANT_TOOL)
             ->where('accessLinks.0.note', 'Workshop demo')
+            ->where('accessLinks.0.usagePolicy', AccessLink::USAGE_ONE_TIME)
+            ->where('accessLinks.0.isEnabled', true)
             ->missing('accessLinks.0.token_hash'));
 });
 
@@ -80,6 +106,9 @@ test('administrators can create registration and temporary login links from the 
             ->post(route('settings.access-links.store'), [
                 'purpose' => $purpose,
                 'expires_at' => now()->addDay()->format('Y-m-d H:i:s'),
+                'usage_policy' => $purpose === AccessLink::PURPOSE_REGISTRATION
+                    ? AccessLink::USAGE_PER_USER
+                    : AccessLink::USAGE_ONE_TIME,
                 'roles' => $purpose === AccessLink::PURPOSE_REGISTRATION
                     ? [User::ROLE_USER]
                     : [],
@@ -94,6 +123,11 @@ test('administrators can create registration and temporary login links from the 
         ->toBe([
             AccessLink::PURPOSE_REGISTRATION,
             AccessLink::PURPOSE_TEMPORARY_LOGIN,
+        ])
+        ->and(AccessLink::query()->orderBy('id')->pluck('usage_policy')->all())
+        ->toBe([
+            AccessLink::USAGE_PER_USER,
+            AccessLink::USAGE_ONE_TIME,
         ]);
 });
 
@@ -154,6 +188,124 @@ test('item links grant their configured quantities and reject an expired link', 
     $this->actingAs($learner)
         ->get(route('access-links.show', ['token' => $expiredToken]))
         ->assertGone();
+});
+
+test('multiple-use links can be redeemed repeatedly', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $learner = User::factory()->create();
+    $item = LearningItem::query()->create([
+        'slug' => 'repeatable-item',
+        'title' => 'Repeatable Item',
+    ]);
+    $token = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_GRANT_ITEMS,
+        ['items' => [['itemId' => $item->id, 'quantity' => 2]]],
+        now()->addDay(),
+        null,
+        AccessLink::USAGE_MULTIPLE,
+    );
+
+    $this->actingAs($learner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertRedirect(route('home', absolute: false));
+    $this->actingAs($learner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertRedirect(route('home', absolute: false));
+
+    expect($learner->fresh()->learningItems()->whereKey($item->id)->first()?->pivot?->quantity)
+        ->toBe(4)
+        ->and(AccessLink::query()->firstOrFail()->redemptions()->count())
+        ->toBe(2);
+});
+
+test('per-user links allow one redemption for each learner but reject a replay', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $firstLearner = User::factory()->create();
+    $secondLearner = User::factory()->create();
+    $tool = LearningTool::query()->create([
+        'slug' => 'per-user-tool',
+        'title' => 'Per User Tool',
+    ]);
+    $token = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_GRANT_TOOL,
+        ['toolId' => $tool->id],
+        now()->addDay(),
+        null,
+        AccessLink::USAGE_PER_USER,
+    );
+
+    $this->actingAs($firstLearner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertRedirect(route('home', absolute: false));
+    $this->actingAs($firstLearner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertGone();
+    $this->actingAs($secondLearner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertRedirect(route('home', absolute: false));
+
+    expect($firstLearner->fresh()->learningTools()->whereKey($tool->id)->exists())->toBeTrue()
+        ->and($secondLearner->fresh()->learningTools()->whereKey($tool->id)->exists())->toBeTrue()
+        ->and(AccessLink::query()->firstOrFail()->redemptions()->count())->toBe(2);
+});
+
+test('administrators can disable and re-enable an access link', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+    $learner = User::factory()->create();
+    $token = AccessLink::createFor(
+        $admin,
+        AccessLink::PURPOSE_GRANT_TOOL,
+        ['toolId' => LearningTool::query()->create([
+            'slug' => 'toggle-tool',
+            'title' => 'Toggle Tool',
+        ])->id],
+        now()->addDay(),
+    );
+    $link = AccessLink::query()->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.access-links.status.update', ['accessLink' => $link]), [
+            'enabled' => false,
+        ])
+        ->assertRedirect(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'links',
+        ]));
+
+    $this->actingAs($learner)
+        ->get(route('access-links.show', ['token' => $token]))
+        ->assertGone();
+    $this->actingAs($learner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertGone();
+
+    $this->actingAs($admin)
+        ->patch(route('settings.access-links.status.update', ['accessLink' => $link]), [
+            'enabled' => true,
+        ])
+        ->assertRedirect();
+
+    expect($link->fresh()->is_enabled)->toBeTrue();
+
+    $this->actingAs($learner)
+        ->post(route('access-links.redeem', ['token' => $token]))
+        ->assertRedirect(route('home', absolute: false));
+});
+
+test('temporary login links reject the per-user policy', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.access-links.store'), [
+            'purpose' => AccessLink::PURPOSE_TEMPORARY_LOGIN,
+            'usage_policy' => AccessLink::USAGE_PER_USER,
+            'expires_at' => now()->addDay()->format('Y-m-d H:i:s'),
+        ])
+        ->assertSessionHasErrors('usage_policy');
+
+    expect(AccessLink::query()->count())->toBe(0);
 });
 
 test('registration links enter the existing registration flow and are consumed when the account is created', function () {

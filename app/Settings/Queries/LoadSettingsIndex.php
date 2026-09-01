@@ -526,11 +526,14 @@ class LoadSettingsIndex
                 'expiresAt' => $this->dateForFrontend($link->expires_at),
                 'id' => $link->id,
                 'isExpired' => $link->expires_at?->isPast() ?? false,
-                'isRedeemed' => $link->redeemed_at !== null,
+                'isEnabled' => $link->is_enabled,
+                'isRedeemed' => $link->usage_policy === AccessLink::USAGE_ONE_TIME
+                    && $link->redeemed_at !== null,
                 'note' => $link->note,
                 'purpose' => $link->purpose,
                 'redeemedAt' => $this->dateForFrontend($link->redeemed_at),
                 'redeemedBy' => $link->redeemedBy ? $this->userReference($link->redeemedBy) : null,
+                'usagePolicy' => $link->usage_policy,
             ])
             ->all();
     }

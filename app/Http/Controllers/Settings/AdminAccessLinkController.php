@@ -26,6 +26,7 @@ class AdminAccessLinkController extends Controller
     {
         $data = $request->validate([
             'purpose' => ['required', 'string', Rule::in(array_keys($this->purposeLabels()))],
+            'usage_policy' => ['sometimes', 'string', Rule::in(array_keys($this->usagePolicyLabels()))],
             'expires_at' => ['required', 'date', 'after:now'],
             'note' => ['nullable', 'string', 'max:500'],
             'tool_id' => ['nullable', 'integer', 'exists:learning_tools,id'],
@@ -39,6 +40,15 @@ class AdminAccessLinkController extends Controller
         ]);
 
         $purpose = (string) $data['purpose'];
+        $usagePolicy = (string) ($data['usage_policy'] ?? AccessLink::USAGE_ONE_TIME);
+
+        if ($purpose === AccessLink::PURPOSE_TEMPORARY_LOGIN
+            && $usagePolicy === AccessLink::USAGE_PER_USER) {
+            return back()->withErrors([
+                'usage_policy' => 'Temporary learner login links cannot use the per-user policy.',
+            ]);
+        }
+
         $payload = match ($purpose) {
             AccessLink::PURPOSE_GRANT_TOOL => [
                 'toolId' => (int) ($data['tool_id'] ?? 0),
@@ -73,6 +83,7 @@ class AdminAccessLinkController extends Controller
             $payload,
             $data['expires_at'],
             filled($data['note'] ?? null) ? trim($data['note']) : null,
+            $usagePolicy,
         );
 
         return redirect()->route('settings.index', [
@@ -114,7 +125,7 @@ class AdminAccessLinkController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            abort_unless($link->canBeRedeemed(), 410);
+            abort_unless($link->canBeRedeemedBy($request->user()), 410);
             abort_unless(in_array($link->purpose, [
                 AccessLink::PURPOSE_GRANT_TOOL,
                 AccessLink::PURPOSE_GRANT_ITEMS,
@@ -130,10 +141,7 @@ class AdminAccessLinkController extends Controller
                 $this->inventory->grantItems($request->user(), $link->payload['items'] ?? []);
             }
 
-            $link->forceFill([
-                'redeemed_by_user_id' => $request->user()->id,
-                'redeemed_at' => now(),
-            ])->save();
+            $link->recordRedemption($request->user());
 
             return $link;
         });
@@ -150,6 +158,32 @@ class AdminAccessLinkController extends Controller
             AccessLink::PURPOSE_REGISTRATION => 'Allow registration',
             AccessLink::PURPOSE_TEMPORARY_LOGIN => 'Temporary learner login',
         ];
+    }
+
+    /** @return array<string, string> */
+    public function usagePolicyLabels(): array
+    {
+        return [
+            AccessLink::USAGE_ONE_TIME => 'One time',
+            AccessLink::USAGE_MULTIPLE => 'Multiple times',
+            AccessLink::USAGE_PER_USER => 'One time per user',
+        ];
+    }
+
+    public function updateStatus(Request $request, AccessLink $accessLink): RedirectResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        $accessLink->forceFill([
+            'is_enabled' => (bool) $data['enabled'],
+        ])->save();
+
+        return redirect()->route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'links',
+        ]);
     }
 
     private function usableLink(string $token): AccessLink
@@ -180,10 +214,7 @@ class AdminAccessLinkController extends Controller
             $user->setAssignedRoles([User::ROLE_USER, User::ROLE_TEMPORARY]);
             $user->save();
 
-            $lockedLink->forceFill([
-                'redeemed_by_user_id' => $user->id,
-                'redeemed_at' => now(),
-            ])->save();
+            $lockedLink->recordRedemption($user);
 
             return $user;
         });

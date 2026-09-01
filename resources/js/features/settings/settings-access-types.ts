@@ -48,17 +48,21 @@ export type AccessLinkPurpose =
     | 'registration'
     | 'temporary_login';
 
+export type AccessLinkUsagePolicy = 'one_time' | 'multiple' | 'per_user';
+
 export type AccessLinkSummary = {
     createdAt: string | null;
     createdBy: UserReference | null;
     expiresAt: string | null;
     id: number;
+    isEnabled: boolean;
     isExpired: boolean;
     isRedeemed: boolean;
     note: string | null;
     purpose: AccessLinkPurpose;
     redeemedAt: string | null;
     redeemedBy: UserReference | null;
+    usagePolicy: AccessLinkUsagePolicy;
 };
 
 export type AccessLinkOption = {
