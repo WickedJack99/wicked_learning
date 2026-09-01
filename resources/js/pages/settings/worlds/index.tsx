@@ -326,7 +326,11 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                             <MapIcon className="size-4" />
                             Create world node
                         </Button>
-                        <Button asChild className="mt-2 w-full" variant="outline">
+                        <Button
+                            asChild
+                            className="mt-2 w-full"
+                            variant="outline"
+                        >
                             <a
                                 data-wl-id="settings.world-builder.world.export"
                                 download
@@ -341,6 +345,10 @@ export function WorldBuilderPanel({ worldGraph }: { worldGraph: WorldGraph }) {
                         </Button>
                         <MapExportValidationDialog endpoint="/settings/worlds/maps/exports/validate" />
                         <MapImportDialog endpoint="/settings/worlds/maps/import" />
+                        <MapImportDialog
+                            endpoint="/settings/worlds/import"
+                            scope="world"
+                        />
                     </div>
 
                     <div className="shrink-0 p-5">

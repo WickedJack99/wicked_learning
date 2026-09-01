@@ -244,7 +244,7 @@ The World Builder map export is an author-authorized streamed JSON manifest. Its
 serializer batch-loads the selected map's world, topic, nodes, activities,
 transitions, route starts and MapAssets, then loads portal references in one
 scoped query. It uses world/map/node/activity slugs rather than database IDs so a
-future importer can resolve references explicitly. Media-like configuration
+importer can resolve references explicitly. Media-like configuration
 values are collected into a separate reference list. Learner progress, private
 revision history, local editing-group assignments and AI review state are not part
 of the export contract. The matching readiness validator caps collection sizes,
@@ -258,6 +258,13 @@ reuses the single-map serializer for each entry and adds only world metadata and
 a deduplicated media reference list. It does not expand access to maps outside
 the author's scope or include learner state, history, permissions or media
 bytes.
+
+The matching world import accepts only a validated bundle for the current
+workspace and caps it at twelve single-map manifests. It creates all destination
+maps first, then populates their child records, and restores portal links last so
+links between included maps can use a source-to-destination slug map. The whole
+operation is transactional and creates fresh authored maps; media bytes, learner
+state, history, permissions and editor groups are deliberately excluded.
 
 Same-workspace map duplication is a separate transactional authoring action from
 portable import. It remaps internal node, activity, MapAsset message-topic,

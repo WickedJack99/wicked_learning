@@ -35,53 +35,112 @@ class ImportLearningMap
      */
     public function handle(array $payload, LearningWorld $world, array $data, User $creator): LearningMap
     {
+        return DB::transaction(function () use ($creator, $data, $payload, $world): LearningMap {
+            $map = $this->createDestinationMap($payload, $world, $data, $creator);
+            $this->populateMap($payload, $world, $map);
+
+            return $map->refresh();
+        });
+    }
+
+    /**
+     * Create the destination map without importing its child records.
+     * Callers importing multiple maps can create every destination first so
+     * cross-map portal references can be remapped in one transaction.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $data
+     */
+    public function createDestinationMap(
+        array $payload,
+        LearningWorld $world,
+        array $data,
+        User $creator,
+    ): LearningMap {
         $mapPayload = is_array($payload['map'] ?? null) ? $payload['map'] : [];
         $topicSlug = is_string($mapPayload['topicSlug'] ?? null) ? $mapPayload['topicSlug'] : null;
         $topic = $topicSlug === null
             ? null
             : LearningTopic::query()->where('slug', $topicSlug)->firstOrFail();
-        $sourceMapSlug = (string) ($mapPayload['slug'] ?? '');
 
-        return DB::transaction(function () use ($creator, $data, $mapPayload, $payload, $sourceMapSlug, $topic, $world): LearningMap {
-            $map = LearningMap::query()->create([
-                'learning_world_id' => $world->id,
-                'learning_topic_id' => $topic?->id,
-                'created_by_user_id' => $creator->id,
-                'updated_by_user_id' => $creator->id,
-                'slug' => ($data['slug'] ?? null) ?: $this->slugGenerator->forMap($world, (string) $data['title']),
-                'title' => trim((string) $data['title']),
-                'description' => $mapPayload['description'] ?? null,
-                'background_config' => $mapPayload['backgroundConfig'] ?? [],
-                'grid_config' => $mapPayload['gridConfig'] ?? [],
-                // Access restrictions are controlled by the destination authoring
-                // boundary, not by an uploaded file from another context.
-                'access_roles' => null,
-                'time_background_enabled' => (bool) ($mapPayload['timeBackgroundEnabled'] ?? false),
-                'map_assets_locked' => (bool) ($mapPayload['mapAssetsLocked'] ?? false),
-                'companion_config' => $mapPayload['companionConfig'] ?? null,
-            ]);
+        return LearningMap::query()->create([
+            'learning_world_id' => $world->id,
+            'learning_topic_id' => $topic?->id,
+            'created_by_user_id' => $creator->id,
+            'updated_by_user_id' => $creator->id,
+            'slug' => ($data['slug'] ?? null) ?: $this->slugGenerator->forMap($world, (string) $data['title']),
+            'title' => trim((string) $data['title']),
+            'description' => $mapPayload['description'] ?? null,
+            'background_config' => $mapPayload['backgroundConfig'] ?? [],
+            'grid_config' => $mapPayload['gridConfig'] ?? [],
+            // Access restrictions are controlled by the destination authoring
+            // boundary, not by an uploaded file from another context.
+            'access_roles' => null,
+            'time_background_enabled' => (bool) ($mapPayload['timeBackgroundEnabled'] ?? false),
+            'map_assets_locked' => (bool) ($mapPayload['mapAssetsLocked'] ?? false),
+            'companion_config' => $mapPayload['companionConfig'] ?? null,
+        ]);
+    }
 
-            $nodeIds = $this->importNodes($payload['nodes'] ?? [], $map);
-            $messageTopicIds = $this->importAssets($payload['mapAssets'] ?? [], $map, $nodeIds);
-            $activityIds = $this->importActivities(
-                $payload['nodes'] ?? [],
-                $nodeIds,
-                $messageTopicIds,
-            );
+    /**
+     * Import child records into a destination map.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $mapSlugMap  Source map slug to destination map slug.
+     * @return array{nodeIds: array<string, int>, activityIds: array<string, int>}
+     */
+    public function populateMap(
+        array $payload,
+        LearningWorld $world,
+        LearningMap $map,
+        array $mapSlugMap = [],
+        bool $importPortals = true,
+    ): array {
+        $nodeIds = $this->importNodes($payload['nodes'] ?? [], $map);
+        $messageTopicIds = $this->importAssets($payload['mapAssets'] ?? [], $map, $nodeIds);
+        $activityIds = $this->importActivities(
+            $payload['nodes'] ?? [],
+            $nodeIds,
+            $messageTopicIds,
+        );
 
-            $this->importActivityTransitions($payload['nodes'] ?? [], $activityIds);
-            $this->importActivityStarts($payload['nodes'] ?? [], $nodeIds, $activityIds);
-            $this->importPortalLinks(
-                $payload['portalTargets'] ?? [],
-                $world,
-                $map,
-                $sourceMapSlug,
-                $nodeIds,
-                $activityIds,
-            );
+        $this->importActivityTransitions($payload['nodes'] ?? [], $activityIds);
+        $this->importActivityStarts($payload['nodes'] ?? [], $nodeIds, $activityIds);
+        if ($importPortals) {
+            $this->populatePortals($payload, $world, $map, $nodeIds, $activityIds, $mapSlugMap);
+        }
 
-            return $map->refresh();
-        });
+        return [
+            'nodeIds' => $nodeIds,
+            'activityIds' => $activityIds,
+        ];
+    }
+
+    /**
+     * Import portal links after all destination maps have their nodes.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, int>  $nodeIds
+     * @param  array<string, int>  $activityIds
+     * @param  array<string, string>  $mapSlugMap  Source map slug to destination map slug.
+     */
+    public function populatePortals(
+        array $payload,
+        LearningWorld $world,
+        LearningMap $map,
+        array $nodeIds,
+        array $activityIds,
+        array $mapSlugMap = [],
+    ): void {
+        $this->importPortalLinks(
+            $payload['portalTargets'] ?? [],
+            $world,
+            $map,
+            (string) data_get($payload, 'map.slug', ''),
+            $nodeIds,
+            $activityIds,
+            $mapSlugMap,
+        );
     }
 
     /**
@@ -434,6 +493,7 @@ class ImportLearningMap
     /**
      * @param  array<string, int>  $nodeIds
      * @param  array<string, int>  $activityIds
+     * @param  array<string, string>  $mapSlugMap  Source map slug to destination map slug.
      */
     private function importPortalLinks(
         mixed $portalsValue,
@@ -442,6 +502,7 @@ class ImportLearningMap
         string $sourceMapSlug,
         array $nodeIds,
         array $activityIds,
+        array $mapSlugMap = [],
     ): void {
         foreach (is_array($portalsValue) ? $portalsValue : [] as $portal) {
             if (! is_array($portal) || ! is_string($portal['sourceNodeSlug'] ?? null)) {
@@ -466,9 +527,10 @@ class ImportLearningMap
                 $targetMap = $map;
                 $targetNodeId = $nodeIds[$targetNodeSlug] ?? null;
             } else {
+                $destinationTargetMapSlug = $mapSlugMap[$targetMapSlug] ?? $targetMapSlug;
                 $targetMap = LearningMap::query()
                     ->where('learning_world_id', $world->id)
-                    ->where('slug', $targetMapSlug)
+                    ->where('slug', $destinationTargetMapSlug)
                     ->first();
                 $targetNodeId = $targetMap?->nodes()->where('slug', $targetNodeSlug)->value('id');
             }

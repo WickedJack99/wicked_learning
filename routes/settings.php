@@ -154,6 +154,9 @@ Route::middleware(['auth', 'verified', 'can:world_maps.ru'])->group(function () 
     Route::post('settings/worlds/maps/import', [AdminWorldController::class, 'importMap'])
         ->name('settings.worlds.maps.import');
 
+    Route::post('settings/worlds/import', [AdminWorldController::class, 'importWorld'])
+        ->name('settings.worlds.import');
+
     Route::patch('settings/worlds/maps/{map}', [AdminWorldController::class, 'updateMap'])
         ->name('settings.worlds.maps.update');
 

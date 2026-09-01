@@ -40,7 +40,8 @@ their own evidence without exposing a hidden competence score.
 
 - Expand map, world, node-placement and activity histories into safe rollback
   and collaborative editing workflows.
-- Add bulk import/export for maps and MapAssets with explicit reference
+- Extend the current bounded map/world import and export contracts to cover
+  standalone MapAsset transfer and explicit media transfer with reference
   handling.
 - Add configuration profiles with visible inherited values and local
   overrides.

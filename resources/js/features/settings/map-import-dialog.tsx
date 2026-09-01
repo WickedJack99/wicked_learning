@@ -18,8 +18,17 @@ import { usePlatformTranslation } from '@/hooks/use-platform-translation';
 
 type ImportMapErrors = Record<string, string>;
 
-export function MapImportDialog({ endpoint }: { endpoint: string }) {
+type MapImportDialogProps = {
+    endpoint: string;
+    scope?: 'map' | 'world';
+};
+
+export function MapImportDialog({
+    endpoint,
+    scope = 'map',
+}: MapImportDialogProps) {
     const t = usePlatformTranslation();
+    const isWorldImport = scope === 'world';
     const [open, setOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<ImportMapErrors>({});
@@ -39,18 +48,29 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
         setProcessing(true);
         setErrors({});
 
-        router.post(endpoint, form, {
-            forceFormData: true,
-            preserveScroll: true,
-            onError: (nextErrors) => setErrors(nextErrors),
-            onFinish: () => setProcessing(false),
-        });
+        router.post(
+            endpoint,
+            isWorldImport
+                ? { manifest: form.file }
+                : {
+                      manifest: form.file,
+                      slug: form.slug,
+                      title: form.title,
+                  },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onError: (nextErrors) => setErrors(nextErrors),
+                onFinish: () => setProcessing(false),
+            },
+        );
     };
 
     return (
         <>
             <Button
                 className="mt-2 w-full"
+                data-wl-id={`settings.world-builder.${isWorldImport ? 'world' : 'map'}.import`}
                 onClick={() => {
                     reset();
                     setOpen(true);
@@ -59,7 +79,15 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
                 variant="outline"
             >
                 <FileUp className="size-4" />
-                {t('settings.world_builder.import.open', 'Import map export')}
+                {isWorldImport
+                    ? t(
+                          'settings.world_builder.import.world_open',
+                          'Import world export',
+                      )
+                    : t(
+                          'settings.world_builder.import.open',
+                          'Import map export',
+                      )}
             </Button>
 
             <Dialog
@@ -76,14 +104,22 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
                     <DialogHeader>
                         <DialogTitle>
                             {t(
-                                'settings.world_builder.import.title',
-                                'Import authored map',
+                                isWorldImport
+                                    ? 'settings.world_builder.import.world_title'
+                                    : 'settings.world_builder.import.title',
+                                isWorldImport
+                                    ? 'Import authored world'
+                                    : 'Import authored map',
                             )}
                         </DialogTitle>
                         <DialogDescription>
                             {t(
-                                'settings.world_builder.import.description',
-                                'Create a new map from a validated single-map export. Learner history, versions, review state, access restrictions and editor groups are not imported.',
+                                isWorldImport
+                                    ? 'settings.world_builder.import.world_description'
+                                    : 'settings.world_builder.import.description',
+                                isWorldImport
+                                    ? 'Create fresh maps from a validated world export. Portal links between included maps are remapped; learner history, versions, access restrictions and editor groups are not imported.'
+                                    : 'Create a new map from a validated single-map export. Learner history, versions, review state, access restrictions and editor groups are not imported.',
                             )}
                         </DialogDescription>
                     </DialogHeader>
@@ -93,7 +129,9 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
                             <Label htmlFor="map-import-file">
                                 {t(
                                     'settings.world_builder.import.file',
-                                    'JSON export file',
+                                    isWorldImport
+                                        ? 'JSON world bundle'
+                                        : 'JSON export file',
                                 )}
                             </Label>
                             <Input
@@ -111,49 +149,53 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
                             <InputError message={errors.manifest} />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="map-import-title">
-                                {t(
-                                    'settings.world_builder.import.name',
-                                    'Map title',
-                                )}
-                            </Label>
-                            <Input
-                                id="map-import-title"
-                                maxLength={120}
-                                onChange={(event) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        title: event.target.value,
-                                    }))
-                                }
-                                required
-                                value={form.title}
-                            />
-                            <InputError message={errors.title} />
-                        </div>
+                        {!isWorldImport ? (
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="map-import-title">
+                                        {t(
+                                            'settings.world_builder.import.name',
+                                            'Map title',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="map-import-title"
+                                        maxLength={120}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                title: event.target.value,
+                                            }))
+                                        }
+                                        required
+                                        value={form.title}
+                                    />
+                                    <InputError message={errors.title} />
+                                </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="map-import-slug">
-                                {t(
-                                    'settings.world_builder.import.slug',
-                                    'Slug (optional)',
-                                )}
-                            </Label>
-                            <Input
-                                id="map-import-slug"
-                                maxLength={140}
-                                onChange={(event) =>
-                                    setForm((current) => ({
-                                        ...current,
-                                        slug: event.target.value,
-                                    }))
-                                }
-                                placeholder="A unique slug is generated from the title"
-                                value={form.slug}
-                            />
-                            <InputError message={errors.slug} />
-                        </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="map-import-slug">
+                                        {t(
+                                            'settings.world_builder.import.slug',
+                                            'Slug (optional)',
+                                        )}
+                                    </Label>
+                                    <Input
+                                        id="map-import-slug"
+                                        maxLength={140}
+                                        onChange={(event) =>
+                                            setForm((current) => ({
+                                                ...current,
+                                                slug: event.target.value,
+                                            }))
+                                        }
+                                        placeholder="A unique slug is generated from the title"
+                                        value={form.slug}
+                                    />
+                                    <InputError message={errors.slug} />
+                                </div>
+                            </div>
+                        ) : null}
 
                         <DialogFooter>
                             <Button
@@ -174,8 +216,12 @@ export function MapImportDialog({ endpoint }: { endpoint: string }) {
                                           'Importing...',
                                       )
                                     : t(
-                                          'settings.world_builder.import.submit',
-                                          'Import map',
+                                          isWorldImport
+                                              ? 'settings.world_builder.import.world_submit'
+                                              : 'settings.world_builder.import.submit',
+                                          isWorldImport
+                                              ? 'Import world'
+                                              : 'Import map',
                                       )}
                             </Button>
                         </DialogFooter>

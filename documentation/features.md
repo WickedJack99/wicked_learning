@@ -793,8 +793,12 @@ as a new authored map with a fresh slug;
 the import is transactional and sends imported activities back to authoring
 review. Imported maps start with the workspace's default access roles; map
 access restrictions and companion dialogue assignments are not imported.
-Cross-workspace media transfer and world-bundle import remain future authoring
-work. Within the current world, authors can also duplicate a map as a new
+Authorized authors can also import an editable world bundle into the current
+workspace. The bundle creates fresh maps transactionally, populates every map
+before restoring portal links, and remaps links between included maps. Media
+bytes, learner state, revision history, permissions and editor groups remain
+outside both import contracts; cross-workspace media transfer remains future
+authoring work. Within the current world, authors can also duplicate a map as a new
 authored copy, including its activities,
 routes, assets, questions, dialogue graphs and companion assignments. The copy
 gets fresh content IDs, starts activities in authoring review, and does not

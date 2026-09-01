@@ -13,6 +13,7 @@ use App\Learning\Actions\DeleteLearningMapAsset;
 use App\Learning\Actions\DeleteLearningNode;
 use App\Learning\Actions\DuplicateLearningMap;
 use App\Learning\Actions\ImportLearningMap;
+use App\Learning\Actions\ImportLearningWorld;
 use App\Learning\Actions\InsertLearningNodeIntoHexGrid;
 use App\Learning\Actions\ResetLearningNodeUnlocks;
 use App\Learning\Actions\RestoreLearningMapLayoutVersion;
@@ -42,6 +43,7 @@ use App\Learning\Services\NodeImageUploadService;
 use App\Learning\Services\WorldPortalLinkService;
 use App\Learning\Validation\AdminWorldRules;
 use App\Learning\Validation\LearningMapExportValidator;
+use App\Learning\Validation\LearningWorldExportValidator;
 use App\Models\LearningActivity;
 use App\Models\LearningMap;
 use App\Models\LearningMapAsset;
@@ -73,9 +75,11 @@ class AdminWorldController extends Controller
         private readonly LearningMapLayoutVersionSerializer $mapLayoutVersionSerializer,
         private readonly AdminWorldRules $rules,
         private readonly LearningMapExportValidator $mapExportValidator,
+        private readonly LearningWorldExportValidator $worldExportValidator,
         private readonly CreateLearningMap $createLearningMap,
         private readonly DuplicateLearningMap $duplicateLearningMap,
         private readonly ImportLearningMap $importLearningMap,
+        private readonly ImportLearningWorld $importLearningWorld,
         private readonly CreateLearningMapAsset $createLearningMapAsset,
         private readonly UpdateLearningMapAccess $updateLearningMapAccess,
         private readonly UpdateLearningMapEditingGroups $updateLearningMapEditingGroups,
@@ -258,6 +262,43 @@ class AdminWorldController extends Controller
         $map = $this->importLearningMap->handle($payload, $world, $data, $creator);
 
         return $this->redirectToMap($map);
+    }
+
+    public function importWorld(Request $request): RedirectResponse
+    {
+        $this->authorizeMapCreate($request);
+        $world = $this->worldResolver->query()->firstOrFail();
+        $data = $request->validate([
+            'manifest' => ['required', 'file', 'mimes:json,txt', 'max:51200'],
+        ]);
+        $validation = $this->worldExportValidator->validate($data['manifest'], $world);
+
+        if (! $validation['valid']) {
+            throw ValidationException::withMessages([
+                'manifest' => $validation['summary'].' '.implode(' ', $validation['errors']),
+            ]);
+        }
+
+        try {
+            $payload = json_decode($data['manifest']->get(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw ValidationException::withMessages([
+                'manifest' => 'The selected file is not valid JSON.',
+            ]);
+        }
+
+        if (! is_array($payload)) {
+            throw ValidationException::withMessages([
+                'manifest' => 'The selected file is not a world bundle.',
+            ]);
+        }
+
+        $creator = $request->user();
+        abort_unless($creator instanceof User, 401);
+
+        $this->importLearningWorld->handle($payload, $world, $creator);
+
+        return $this->redirectToWorldGraph($request);
     }
 
     public function storeMap(Request $request): RedirectResponse

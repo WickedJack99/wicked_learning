@@ -281,13 +281,83 @@ test('map authors can download an editable world export bundle', function () {
         JSON_THROW_ON_ERROR,
     );
 
+    $firstMap = collect($payload['maps'])->firstWhere('map.slug', 'first-sector');
+
     expect($payload['format'])->toBe('wicked-learning-world')
         ->and($payload['formatVersion'])->toBe(1)
         ->and($payload['world']['slug'])->toBe('demo-learning-world')
         ->and(collect($payload['maps'])->pluck('map.slug')->all())
         ->toBe(['first-sector', 'signal-archive'])
+        ->and($firstMap['portalTargets'])->not->toBeEmpty()
         ->and($payload['references']['mediaUrls'])->not->toBeEmpty()
         ->and($portalQueries)->toHaveCount(1);
+});
+
+test('map authors can import an editable world export bundle with remapped portal links', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $originalMapCount = LearningMap::query()->count();
+    $originalPortalCount = LearningPortalLink::query()->count();
+    $manifest = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'))
+        ->streamedContent();
+
+    $response = $this->actingAs($admin)
+        ->post(route('settings.worlds.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'world.json',
+                $manifest,
+            ),
+        ]);
+
+    $response->assertRedirect(route('settings.worlds.index'));
+
+    $importedMaps = LearningMap::query()
+        ->where('created_by_user_id', $admin->id)
+        ->get();
+    $importedMapIds = $importedMaps->pluck('id');
+    $importedSourceNode = LearningNode::query()
+        ->whereIn('learning_map_id', $importedMapIds)
+        ->where('slug', 'portal-foundation')
+        ->firstOrFail();
+    $importedPortal = LearningPortalLink::query()
+        ->where('source_learning_node_id', $importedSourceNode->id)
+        ->firstOrFail();
+
+    expect($importedMaps)->toHaveCount(2)
+        ->and(LearningMap::query()->count())->toBe($originalMapCount + 2)
+        ->and(LearningPortalLink::query()->count())->toBe($originalPortalCount + 1)
+        ->and($importedMaps->pluck('access_roles')->filter()->all())->toBe([])
+        ->and($importedPortal->targetNode->map->created_by_user_id)
+        ->toBe($admin->id)
+        ->and($importedPortal->targetNode->map->slug)
+        ->toBe('quiet-library');
+});
+
+test('world import rejects duplicate source map slugs without creating maps', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $manifest = $this->actingAs($admin)
+        ->get(route('settings.worlds.export'))
+        ->streamedContent();
+    $payload = json_decode($manifest, true, 512, JSON_THROW_ON_ERROR);
+    $payload['maps'][1]['map']['slug'] = $payload['maps'][0]['map']['slug'];
+    $mapCount = LearningMap::query()->count();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.import'), [
+            'manifest' => UploadedFile::fake()->createWithContent(
+                'duplicate-world.json',
+                json_encode($payload, JSON_THROW_ON_ERROR),
+            ),
+        ])
+        ->assertSessionHasErrors('manifest');
+
+    expect(LearningMap::query()->count())->toBe($mapCount);
 });
 
 test('map authors can validate an export manifest without changing content', function () {
