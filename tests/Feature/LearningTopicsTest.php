@@ -104,6 +104,11 @@ test('the topic directory paginates topics in the database for the selected area
         'title' => 'Science',
         'sort_order' => 10,
     ]);
+    $otherArea = LearningTopicArea::query()->create([
+        'slug' => 'arts',
+        'title' => 'Arts',
+        'sort_order' => 20,
+    ]);
 
     foreach (range(1, 13) as $number) {
         LearningTopic::query()->create([
@@ -114,11 +119,18 @@ test('the topic directory paginates topics in the database for the selected area
         ]);
     }
 
+    LearningTopic::query()->create([
+        'learning_topic_area_id' => $otherArea->id,
+        'slug' => 'other-topic-12',
+        'title' => 'Topic 12',
+        'is_published' => true,
+    ]);
+
     $this->actingAs($learner)
         ->get(route('topics.index'))
         ->assertOk()
         ->assertInertia(fn (AssertableInertia $page) => $page
-            ->has('areaOptions', 1)
+            ->has('areaOptions', 2)
             ->where('selectedArea.slug', 'science')
             ->has('selectedArea.topics', 6)
             ->where('selectedArea.topics.0.title', 'Topic 01')
@@ -145,6 +157,19 @@ test('the topic directory paginates topics in the database for the selected area
             ->has('selectedArea.topics', 1)
             ->where('selectedArea.topics.0.title', 'Topic 13')
             ->where('pagination.currentPage', 3)
+        );
+
+    $this->actingAs($learner)
+        ->get(route('topics.index', [
+            'area' => 'science',
+            'search' => 'Topic 12',
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('selectedArea.topics', 1)
+            ->where('selectedArea.topics.0.title', 'Topic 12')
+            ->where('search', 'Topic 12')
+            ->where('pagination.total', 1)
         );
 });
 

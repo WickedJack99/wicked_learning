@@ -1,5 +1,7 @@
 import { Link, router } from '@inertiajs/react';
-import { ArrowRight, FolderTree, Settings2 } from 'lucide-react';
+import { ArrowRight, FolderTree, Search, Settings2, X } from 'lucide-react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 import { LearnerDocumentSurface } from '@/components/learner-document-surface';
 import { LearnerPaginatedItems } from '@/components/learner-paginated-items';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
@@ -9,6 +11,7 @@ export function TopicDirectory({
     areaOptions,
     canManageTopics,
     pagination,
+    search,
     selectedArea,
 }: {
     areaOptions: TopicAreaOption[];
@@ -19,21 +22,36 @@ export function TopicDirectory({
         perPage: number;
         total: number;
     };
+    search: string;
     selectedArea: TopicArea | null;
 }) {
     const t = usePlatformTranslation();
+    const [searchTerm, setSearchTerm] = useState(search);
 
-    function visitTopics(area: string, page = 1) {
+    function visitTopics(area: string, page = 1, term = searchTerm) {
         const params = new URLSearchParams({ area });
+        const trimmedTerm = term.trim();
 
         if (page > 1) {
             params.set('page', String(page));
+        }
+
+        if (trimmedTerm !== '') {
+            params.set('search', trimmedTerm);
         }
 
         router.visit(`/topics?${params.toString()}`, {
             preserveScroll: true,
             replace: true,
         });
+    }
+
+    function submitSearch(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+
+        if (selectedArea) {
+            visitTopics(selectedArea.slug, 1);
+        }
     }
 
     return (
@@ -94,6 +112,62 @@ export function TopicDirectory({
                             </select>
                         </div>
 
+                        <form
+                            className="mt-5 max-w-xl"
+                            data-wl-id="topics-search-form"
+                            onSubmit={submitSearch}
+                        >
+                            <label
+                                className="text-sm font-medium text-[var(--learner-body-text)]"
+                                htmlFor="topics-search"
+                            >
+                                {t('topics.search.label', 'Search this area')}
+                            </label>
+                            <div className="relative mt-2">
+                                <Search
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--learner-muted-text)]"
+                                />
+                                <input
+                                    className="h-10 w-full rounded border border-[var(--learner-border-color)] bg-[var(--learner-panel-background)] px-10 pr-10 text-sm text-[var(--learner-body-text)] outline-none placeholder:text-[var(--learner-muted-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                    data-wl-id="topics-search-input"
+                                    id="topics-search"
+                                    onChange={(event) =>
+                                        setSearchTerm(event.target.value)
+                                    }
+                                    placeholder={t(
+                                        'topics.search.placeholder',
+                                        'Search topic titles or descriptions',
+                                    )}
+                                    type="search"
+                                    value={searchTerm}
+                                />
+                                {searchTerm !== '' ? (
+                                    <button
+                                        aria-label={t(
+                                            'topics.search.clear',
+                                            'Clear topic search',
+                                        )}
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-[var(--learner-muted-text)] hover:text-[var(--learner-heading-text)] focus-visible:ring-2 focus-visible:ring-[var(--learner-action-accent)]"
+                                        onClick={() => {
+                                            setSearchTerm('');
+                                            visitTopics(
+                                                selectedArea.slug,
+                                                1,
+                                                '',
+                                            );
+                                        }}
+                                        type="button"
+                                    >
+                                        <X
+                                            aria-hidden="true"
+                                            className="size-4"
+                                        />
+                                    </button>
+                                ) : null}
+                            </div>
+                        </form>
+
                         <div className="mt-10 border-b border-[var(--learner-border-color)] pb-3">
                             <h2 className="text-sm font-semibold">
                                 {selectedArea.title}
@@ -101,6 +175,15 @@ export function TopicDirectory({
                             {selectedArea.description ? (
                                 <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--learner-muted-text)]">
                                     {selectedArea.description}
+                                </p>
+                            ) : null}
+                            {search !== '' ? (
+                                <p className="mt-2 text-sm text-[var(--learner-muted-text)]">
+                                    {t(
+                                        'topics.search.summary',
+                                        'Showing topics matching “:search”.',
+                                        { search },
+                                    )}
                                 </p>
                             ) : null}
                         </div>

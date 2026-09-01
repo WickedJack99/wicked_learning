@@ -40,9 +40,24 @@ class LoadLearningTopics
         LearningTopicArea $area,
         ?User $user = null,
         int $page = 1,
+        ?string $search = null,
     ): LengthAwarePaginator {
         $query = $area->rootTopics()
             ->where('is_published', true)
+            ->when(trim((string) $search) !== '', function (Builder $query) use ($search): void {
+                $needle = '%'.str_replace(
+                    ['\\', '%', '_'],
+                    ['\\\\', '\\%', '\\_'],
+                    mb_strtolower(trim((string) $search)),
+                ).'%';
+
+                $query->where(function (Builder $query) use ($needle): void {
+                    $query
+                        ->whereRaw('LOWER(title) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(description) LIKE ?', [$needle])
+                        ->orWhereRaw('LOWER(slug) LIKE ?', [$needle]);
+                });
+            })
             ->withCount([
                 'maps as visible_map_count' => fn (Builder $query): Builder => $this->mapAccess
                     ->constrainVisibleQuery($query, $user),

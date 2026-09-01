@@ -34,6 +34,7 @@ class LearningTopicController extends Controller
     {
         $areas = $this->topics->overviewAreas();
         $selectedAreaSlug = $request->query('area');
+        $search = mb_substr(trim((string) $request->query('search', '')), 0, 120);
         $selectedArea = $areas->firstWhere(
             'slug',
             is_string($selectedAreaSlug) ? $selectedAreaSlug : '',
@@ -43,6 +44,7 @@ class LearningTopicController extends Controller
                 $selectedArea,
                 $request->user(),
                 page: max(1, (int) $request->query('page', 1)),
+                search: $search,
             )
             : null;
 
@@ -67,6 +69,7 @@ class LearningTopicController extends Controller
                     'perPage' => 6,
                     'total' => 0,
                 ],
+            'search' => $search,
             'canManageTopics' => $request->user()?->hasAccess(
                 PermissionCatalog::CONTENT_TOPICS,
                 AccessLevel::READ,

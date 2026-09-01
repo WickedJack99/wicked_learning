@@ -14,11 +14,13 @@ export default function Topics({
     areaOptions,
     canManageTopics,
     pagination,
+    search,
     selectedArea,
 }: {
     areaOptions: TopicAreaOption[];
     canManageTopics: boolean;
     pagination: TopicsPagination;
+    search: string;
     selectedArea: TopicArea | null;
 }) {
     const t = usePlatformTranslation();
@@ -30,6 +32,7 @@ export default function Topics({
                 areaOptions={areaOptions}
                 canManageTopics={canManageTopics}
                 pagination={pagination}
+                search={search}
                 selectedArea={selectedArea}
             />
         </>

@@ -190,8 +190,9 @@ graph editor. The order is shared by the learner node panel, Paths and topic
 route views; moving a route does not alter its saved progress or activity
 connections.
 
-The Topics directory offers a small area switcher and shows one bounded page of
-published topics at a time. The Paths directory shows each route's authored
+The Topics directory offers a small area switcher, server-side search and shows
+one bounded page of published topics at a time. The Paths directory shows each
+route's authored
 learning areas and links those areas to the focused competence reading.
 Learners can optionally narrow the
 directory by the route's learning purpose or its authored time guide, while
