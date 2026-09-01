@@ -3,7 +3,6 @@
 namespace App\Settings\Queries;
 
 use App\Access\AccessLevel;
-use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
 use App\Access\Queries\LoadAccessRoles;
 use App\Access\Serializers\AccessRoleSerializer;
@@ -302,30 +301,10 @@ class LoadSettingsIndex
     private function accessGroups(User $user): array
     {
         return $this->loadLearningGroups
-            ->handle()
-            ->filter(fn (LearningGroup $group): bool => $this->canSeeGroup($user, $group))
+            ->handle($user)
             ->map(fn (LearningGroup $group): array => $this->learningGroupSerializer->forAdmin($group))
             ->values()
             ->all();
-    }
-
-    private function canSeeGroup(User $user, LearningGroup $group): bool
-    {
-        $scope = $user->accessScopeFor(PermissionCatalog::GROUPS, AccessLevel::READ);
-
-        if (AccessScope::allows($scope, AccessScope::ALL)) {
-            return true;
-        }
-
-        if (
-            AccessScope::allows($scope, AccessScope::OWN)
-            && (int) $group->created_by_user_id === (int) $user->id
-        ) {
-            return true;
-        }
-
-        return AccessScope::allows($scope, AccessScope::ASSIGNED)
-            && $user->managesLearningGroup($group);
     }
 
     /**

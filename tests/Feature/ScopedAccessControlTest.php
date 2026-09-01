@@ -3,11 +3,14 @@
 use App\Access\AccessLevel;
 use App\Access\AccessScope;
 use App\Access\PermissionCatalog;
+use App\Learning\Queries\LoadAdminLearningGroups;
 use App\Models\AccessRole;
 use App\Models\LearningGroup;
 use App\Models\LearningMap;
 use App\Models\LearningWorld;
 use App\Models\User;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 test('a scoped teacher can create groups and maps but cannot manage members without permission', function () {
@@ -86,6 +89,59 @@ test('own scoped map deletion does not allow deleting another users map', functi
 
     expect(LearningMap::query()->whereKey($ownMap->id)->exists())->toBeFalse()
         ->and(LearningMap::query()->whereKey($otherMap->id)->exists())->toBeTrue();
+});
+
+test('scoped group readers only hydrate groups in their management scope', function () {
+    $manager = userWithRole('group-reader', [
+        PermissionCatalog::GROUPS => [AccessLevel::READ, AccessScope::ASSIGNED],
+    ]);
+    $ownGroup = LearningGroup::query()->create([
+        'created_by_user_id' => $manager->id,
+        'name' => 'Own group',
+        'slug' => 'own-group',
+    ]);
+    $managedGroup = LearningGroup::query()->create([
+        'name' => 'Managed group',
+        'slug' => 'managed-group',
+    ]);
+    $managedGroup->members()->attach($manager->id, [
+        'joined_at' => now(),
+        'role' => 'manager',
+    ]);
+    LearningGroup::query()->create([
+        'name' => 'Unrelated group',
+        'slug' => 'unrelated-group',
+    ]);
+
+    expect($ownGroup->refresh()->created_by_user_id)->toBe($manager->id)
+        ->and($manager->accessScopeFor(PermissionCatalog::GROUPS, AccessLevel::READ))
+        ->toBe(AccessScope::ASSIGNED);
+
+    $groupQueries = [];
+    DB::listen(function (QueryExecuted $query) use (&$groupQueries): void {
+        if (str_contains($query->sql, 'learning_groups')) {
+            $groupQueries[] = $query;
+        }
+    });
+
+    $response = $this->actingAs($manager)
+        ->get(route('settings.index', [
+            'panel' => 'admin-access',
+            'access' => 'groups',
+        ]));
+
+    $response->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('accessGroups', 2)
+            ->where('accessGroups.0.name', 'Managed group')
+            ->where('accessGroups.1.name', 'Own group'));
+
+    expect($groupQueries)->not->toBeEmpty()
+        ->and(collect($groupQueries)->contains(
+            fn (QueryExecuted $query): bool => str_contains($query->sql, 'created_by_user_id')
+                && str_contains($query->sql, 'learning_group_user'),
+        ))->toBeTrue()
+        ->and(app(LoadAdminLearningGroups::class)->handle(User::factory()->create()))->toBeEmpty();
 });
 
 /**
