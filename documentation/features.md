@@ -180,6 +180,10 @@ orientation without ranking routes or making an automatic recommendation. While
 a route is open, the activity page keeps the selected route,
 activity and run in its deep link so a refresh returns to the same place
 instead of falling back to the node's first route.
+Authors can also move a node's starting routes earlier or later in the existing
+graph editor. The order is shared by the learner node panel, Paths and topic
+route views; moving a route does not alter its saved progress or activity
+connections.
 
 The Paths directory shows each route's authored learning areas and links those
 areas to the focused competence reading. Learners can optionally narrow the

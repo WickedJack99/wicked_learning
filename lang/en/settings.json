@@ -1,4 +1,8 @@
 {
+    "settings.worlds.activities.route_order.title": "Route order",
+    "settings.worlds.activities.route_order.description": "Choose which starting route learners see first. This changes order only; it does not change route progress.",
+    "settings.worlds.activities.route_order.move_earlier": "Move route earlier",
+    "settings.worlds.activities.route_order.move_later": "Move route later",
     "settings.worlds.activities.route_description.title": "Route guidance",
     "settings.worlds.activities.route_description.description": "A short explanation helps learners choose this route without turning it into a ranked recommendation.",
     "settings.worlds.activities.route_description.label": "Description",

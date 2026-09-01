@@ -691,6 +691,17 @@ class AdminActivityController extends Controller
         return $this->redirectToActivities($start->node);
     }
 
+    public function reorderStartRoute(Request $request, LearningActivityStart $start): RedirectResponse
+    {
+        $start->loadMissing('node');
+        $this->authorizeNodeEdit($request, $start->node);
+
+        $data = $request->validate($this->rules->startRouteReorder());
+        $this->startRouteService->reorderStartRoute($start, $data['direction']);
+
+        return $this->redirectToActivities($start->node);
+    }
+
     public function destroyStartRoute(Request $request, LearningActivityStart $start): RedirectResponse
     {
         $start->loadMissing('node');

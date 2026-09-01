@@ -78,7 +78,10 @@ MapAsset dragging; placement is an explicit World Builder operation.
 Activities connect through `ActivityTransition` records. A MapAsset can expose
 several `LearningActivityStart` records as learner-facing route choices. A start
 points to the first Activity and can carry route-card images, colors and an
-optional authored description used for learner orientation.
+optional authored description used for learner orientation. Their `sort_order`
+is author-controlled and is reused by learner route serializers; reordering
+resequences only the starts for that node and keeps their activity destinations
+and progress keys stable.
 Transition labels are optional presentation data: the learner serializer exposes
 them, and activity playback uses them for the relevant completion action without
 changing the transition resolver or navigation authority. Branching question

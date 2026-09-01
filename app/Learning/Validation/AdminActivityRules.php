@@ -101,6 +101,14 @@ class AdminActivityRules
     }
 
     /** @return array<string, mixed> */
+    public function startRouteReorder(): array
+    {
+        return [
+            'direction' => ['required', Rule::in(['up', 'down'])],
+        ];
+    }
+
+    /** @return array<string, mixed> */
     public function sourceRecord(): array
     {
         return [

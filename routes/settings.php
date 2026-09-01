@@ -334,6 +334,9 @@ Route::middleware(['auth', 'verified', 'can:world_activities.ru'])->group(functi
     Route::patch('settings/worlds/activity-starts/{start}', [AdminActivityController::class, 'updateStartRoute'])
         ->name('settings.worlds.activity-starts.update');
 
+    Route::post('settings/worlds/activity-starts/{start}/reorder', [AdminActivityController::class, 'reorderStartRoute'])
+        ->name('settings.worlds.activity-starts.reorder');
+
     Route::delete('settings/worlds/activity-starts/{start}', [AdminActivityController::class, 'destroyStartRoute'])
         ->name('settings.worlds.activity-starts.destroy');
 

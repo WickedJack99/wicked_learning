@@ -2875,6 +2875,77 @@ test('admin users can configure multiple independent start routes for a node', f
             ->exists())->toBeTrue();
 });
 
+test('authors can reorder starting routes without changing their destinations', function () {
+    $this->seed(DemoLearningWorldSeeder::class);
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+    ]);
+    $node = LearningNode::query()->where('slug', 'field-notes')->firstOrFail();
+    LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->delete();
+    $node->forceFill(['start_activity_id' => null])->save();
+    $activities = collect(['First route', 'Second route', 'Third route'])
+        ->values()
+        ->map(fn (string $title, int $index): LearningActivity => LearningActivity::query()->create([
+            'learning_node_id' => $node->id,
+            'slug' => 'ordered-route-'.($index + 1),
+            'type' => 'open_practice',
+            'title' => $title,
+            'sort_order' => ($index + 1) * 10,
+        ]));
+
+    foreach ($activities as $activity) {
+        $this->actingAs($admin)
+            ->post(route('settings.worlds.nodes.activities.start.update', $node), [
+                'activity_id' => $activity->id,
+            ])
+            ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+    }
+
+    $starts = LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->orderBy('sort_order')
+        ->orderBy('id')
+        ->get();
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activity-starts.reorder', $starts[1]), [
+            'direction' => 'up',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    $node->refresh();
+    expect(LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->orderBy('sort_order')
+        ->orderBy('id')
+        ->pluck('learning_activity_id')
+        ->all())->toBe([$activities[1]->id, $activities[0]->id, $activities[2]->id])
+        ->and($node->start_activity_id)->toBe($activities[1]->id);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activity-starts.reorder', [
+            'start' => $starts[1]->refresh(),
+        ]), [
+            'direction' => 'up',
+        ])
+        ->assertRedirect(route('settings.worlds.nodes.activities.edit', $node));
+
+    expect(LearningActivityStart::query()
+        ->where('learning_node_id', $node->id)
+        ->orderBy('sort_order')
+        ->orderBy('id')
+        ->pluck('learning_activity_id')
+        ->all())->toBe([$activities[1]->id, $activities[0]->id, $activities[2]->id]);
+
+    $this->actingAs($admin)
+        ->post(route('settings.worlds.activity-starts.reorder', $starts[0]), [
+            'direction' => 'sideways',
+        ])
+        ->assertSessionHasErrors('direction');
+});
+
 test('admin users can edit and delete activity graph nodes', function () {
     $this->seed(DemoLearningWorldSeeder::class);
     $admin = User::factory()->create([

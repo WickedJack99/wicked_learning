@@ -11,7 +11,9 @@ import type { Connection } from '@xyflow/react';
 import {
     ArrowLeft,
     ArrowRight,
+    ArrowDown,
     AlertTriangle,
+    ArrowUp,
     Check,
     GitBranch,
     History,
@@ -251,6 +253,9 @@ export default function EditNodeActivities({
         Record<string, string>
     >({});
     const [updatingStartRoute, setUpdatingStartRoute] = useState(false);
+    const [reorderingStartRoute, setReorderingStartRoute] = useState<
+        'up' | 'down' | null
+    >(null);
     const [pendingDeleteStartRoute, setPendingDeleteStartRoute] =
         useState<ActivityStartRoute | null>(null);
     const [deletingStartRoute, setDeletingStartRoute] = useState(false);
@@ -1444,6 +1449,41 @@ export default function EditNodeActivities({
                     setStartRouteErrors({});
                 },
                 onFinish: () => setUpdatingStartRoute(false),
+            },
+        );
+    };
+
+    const reorderStartRoute = (direction: 'up' | 'down') => {
+        if (!selectedStartRoute || selectedStartRoute.id <= 0) {
+            return;
+        }
+
+        const currentIndex = activityGraph.node.startRoutes.findIndex(
+            (route) => route.id === selectedStartRoute.id,
+        );
+        const targetIndex =
+            direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+
+        if (
+            currentIndex < 0 ||
+            targetIndex < 0 ||
+            targetIndex >= activityGraph.node.startRoutes.length
+        ) {
+            return;
+        }
+
+        setReorderingStartRoute(direction);
+        router.post(
+            `/settings/worlds/activity-starts/${selectedStartRoute.id}/reorder`,
+            { direction },
+            {
+                preserveScroll: true,
+                onError: (nextErrors) => setStartRouteErrors(nextErrors),
+                onSuccess: () => {
+                    setSelectedStartRoute(null);
+                    setStartRouteErrors({});
+                },
+                onFinish: () => setReorderingStartRoute(null),
             },
         );
     };
@@ -3217,6 +3257,100 @@ export default function EditNodeActivities({
                                     )}
                                 </p>
                             </div>
+
+                            {(() => {
+                                const routeIndex =
+                                    activityGraph.node.startRoutes.findIndex(
+                                        (route) =>
+                                            route.id === selectedStartRoute.id,
+                                    );
+                                const hasRouteOrder =
+                                    selectedStartRoute.id > 0 &&
+                                    routeIndex >= 0;
+
+                                return hasRouteOrder ? (
+                                    <div
+                                        className="grid gap-2 rounded-lg border border-[var(--settings-border-color)] bg-[var(--settings-sidebar-background)] p-3"
+                                        data-wl-id="settings.world-builder.route-order"
+                                    >
+                                        <div>
+                                            <p className="text-sm font-semibold">
+                                                {t(
+                                                    'settings.worlds.activities.route_order.title',
+                                                    'Route order',
+                                                )}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-5 text-[var(--settings-muted-text)]">
+                                                {t(
+                                                    'settings.worlds.activities.route_order.description',
+                                                    'Choose which starting route learners see first. This changes order only; it does not change route progress.',
+                                                )}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-3">
+                                            <span className="text-sm text-[var(--settings-muted-text)]">
+                                                {routeIndex + 1} of{' '}
+                                                {
+                                                    activityGraph.node
+                                                        .startRoutes.length
+                                                }
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    aria-label={t(
+                                                        'settings.worlds.activities.route_order.move_earlier',
+                                                        'Move route earlier',
+                                                    )}
+                                                    disabled={
+                                                        reorderingStartRoute !==
+                                                            null ||
+                                                        routeIndex === 0
+                                                    }
+                                                    onClick={() =>
+                                                        reorderStartRoute('up')
+                                                    }
+                                                    title={t(
+                                                        'settings.worlds.activities.route_order.move_earlier',
+                                                        'Move route earlier',
+                                                    )}
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    <ArrowUp className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    aria-label={t(
+                                                        'settings.worlds.activities.route_order.move_later',
+                                                        'Move route later',
+                                                    )}
+                                                    disabled={
+                                                        reorderingStartRoute !==
+                                                            null ||
+                                                        routeIndex ===
+                                                            activityGraph.node
+                                                                .startRoutes
+                                                                .length -
+                                                                1
+                                                    }
+                                                    onClick={() =>
+                                                        reorderStartRoute(
+                                                            'down',
+                                                        )
+                                                    }
+                                                    title={t(
+                                                        'settings.worlds.activities.route_order.move_later',
+                                                        'Move route later',
+                                                    )}
+                                                    type="button"
+                                                    variant="outline"
+                                                >
+                                                    <ArrowDown className="size-4" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null;
+                            })()}
 
                             <RouteVisualPreview
                                 form={startRouteForm}

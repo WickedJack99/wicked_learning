@@ -5,6 +5,7 @@ namespace App\Learning\Services;
 use App\Models\LearningActivity;
 use App\Models\LearningActivityStart;
 use App\Models\LearningNode;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ActivityStartRouteService
@@ -59,6 +60,47 @@ class ActivityStartRouteService
             'button_color_light' => $data['button_color_light'] ?? null,
             'button_border_color_light' => $data['button_border_color_light'] ?? null,
         ])->save();
+    }
+
+    public function reorderStartRoute(
+        LearningActivityStart $start,
+        string $direction,
+    ): void {
+        DB::transaction(function () use ($direction, $start): void {
+            $starts = LearningActivityStart::query()
+                ->where('learning_node_id', $start->learning_node_id)
+                ->lockForUpdate()
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get()
+                ->values();
+            $currentIndex = $starts->search(
+                static fn (LearningActivityStart $candidate): bool => $candidate->is($start),
+            );
+
+            if ($currentIndex === false) {
+                return;
+            }
+
+            $targetIndex = $direction === 'up'
+                ? $currentIndex - 1
+                : $currentIndex + 1;
+
+            if ($targetIndex < 0 || $targetIndex >= $starts->count()) {
+                return;
+            }
+
+            $ordered = $starts->all();
+            $moved = array_splice($ordered, $currentIndex, 1)[0];
+            array_splice($ordered, $targetIndex, 0, [$moved]);
+
+            foreach ($ordered as $index => $candidate) {
+                $candidate->forceFill(['sort_order' => ($index + 1) * 10])->save();
+            }
+
+            $node = $start->node()->firstOrFail();
+            $this->syncLegacyStartActivity($node);
+        });
     }
 
     public function destroyStartRoute(LearningActivityStart $start): LearningNode
