@@ -44,7 +44,7 @@ class LoadLearningPaths
         $page = max(1, $page);
         $worldId = $this->worldResolver->query()->value('id');
 
-        if (! $worldId) {
+        if (! $worldId && $topic === null) {
             return [
                 'routes' => collect(),
                 'progress' => [],
@@ -100,7 +100,7 @@ class LoadLearningPaths
      *
      * @return array{routes: Collection<int, LearningActivityStart>, total: int}
      */
-    private function scanRoutes(User $user, ?LearningTopic $topic, int $worldId, int $page, ?string $purpose, ?int $timeBudget): array
+    private function scanRoutes(User $user, ?LearningTopic $topic, ?int $worldId, int $page, ?string $purpose, ?int $timeBudget): array
     {
         $routes = collect();
         $total = 0;
@@ -139,7 +139,7 @@ class LoadLearningPaths
     /**
      * @return Builder<LearningActivityStart>
      */
-    private function routeQuery(?LearningTopic $topic, int $worldId, User $user): Builder
+    private function routeQuery(?LearningTopic $topic, ?int $worldId, User $user): Builder
     {
         return LearningActivityStart::query()
             ->with([
@@ -149,8 +149,12 @@ class LoadLearningPaths
                 'node.mapAsset',
             ])
             ->whereHas('node.map', function (Builder $query) use ($topic, $worldId, $user): void {
-                $query->where('learning_world_id', $worldId)
-                    ->when($topic !== null, fn ($mapQuery) => $mapQuery->where('learning_topic_id', $topic->id));
+                if ($topic === null) {
+                    $query->where('learning_world_id', $worldId);
+                } else {
+                    $query->where('learning_topic_id', $topic->id);
+                }
+
                 $this->mapAccess->constrainVisibleQuery($query, $user);
             })
             ->whereHas('node', function (Builder $query): void {

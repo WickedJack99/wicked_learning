@@ -322,6 +322,64 @@ test('a topic page exposes playable routes from its assigned maps', function () 
         );
 });
 
+test('a topic page exposes routes from assigned maps outside the current world', function () {
+    $learner = User::factory()->create(['role' => User::ROLE_USER]);
+    $area = LearningTopicArea::query()->create([
+        'slug' => 'science',
+        'title' => 'Science',
+    ]);
+    $topic = LearningTopic::query()->create([
+        'learning_topic_area_id' => $area->id,
+        'slug' => 'astronomy',
+        'title' => 'Astronomy',
+        'is_published' => true,
+    ]);
+    LearningWorld::query()->create([
+        'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
+        'title' => 'Current World',
+    ]);
+    $otherWorld = LearningWorld::query()->create([
+        'slug' => 'another-learning-world',
+        'title' => 'Another Learning World',
+    ]);
+    $map = LearningMap::query()->create([
+        'learning_world_id' => $otherWorld->id,
+        'learning_topic_id' => $topic->id,
+        'slug' => 'night-sky',
+        'title' => 'Night Sky',
+        'access_roles' => [User::ROLE_USER],
+    ]);
+    $node = LearningNode::query()->create([
+        'learning_map_id' => $map->id,
+        'slug' => 'constellations',
+        'title' => 'Constellations',
+        'position_q' => 0,
+        'position_r' => 0,
+        'state' => 'available',
+    ]);
+    $activity = LearningActivity::query()->create([
+        'learning_node_id' => $node->id,
+        'slug' => 'notice-patterns',
+        'title' => 'Notice patterns',
+        'type' => 'markdown',
+    ]);
+    $start = LearningActivityStart::query()->create([
+        'learning_node_id' => $node->id,
+        'learning_activity_id' => $activity->id,
+        'label' => 'Begin observing',
+    ]);
+
+    $this->actingAs($learner)
+        ->get(route('topics.show', $topic))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->has('topic.paths', 1)
+            ->where('topic.paths.0.id', $start->id)
+            ->where('topic.paths.0.mapTitle', 'Night Sky')
+            ->where('topic.pathsPagination.total', 1)
+        );
+});
+
 test('a topic detail bounds route collections with server pagination', function () {
     $learner = User::factory()->create(['role' => User::ROLE_USER]);
     $area = LearningTopicArea::query()->create([

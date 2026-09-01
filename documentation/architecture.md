@@ -129,9 +129,12 @@ payload.
 
 The learner Paths query evaluates the existing per-user map and node state
 services in bounded candidate chunks, then serializes only the requested page
-of routes and its progress. This keeps the Inertia response and hydrated route
-models bounded while preserving unlock and reveal rules that are configured in
-node JSON and cannot yet be expressed as a portable SQL scope.
+of routes and its progress. The standalone Paths directory scopes candidates to
+the current world; topic detail passes a topic scope so its route list matches
+the topic's accessible maps even when those maps belong to another world. This
+keeps the Inertia response and hydrated route models bounded while preserving
+unlock and reveal rules that are configured in node JSON and cannot yet be
+expressed as a portable SQL scope.
 
 - NPC dialogue uses nested nodes, answers and transitions.
 - questions store learner answers and branch outcomes.

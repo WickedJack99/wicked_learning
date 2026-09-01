@@ -537,7 +537,9 @@ link to the full Journal.
 The Routes section on a topic page returns only the current bounded page of
 route starts from the server. Its pagination controls keep the route directory
 usable as a topic grows without sending the full route collection to the
-browser.
+browser. It includes routes from every accessible map assigned to that topic,
+not only maps in the current world. The standalone Paths directory remains
+scoped to the current world.
 The Overview section applies the same bounded behavior to published subtopics;
 their accessible map counts are calculated in the database, and only the
 visible page is sent to the browser.
