@@ -597,12 +597,17 @@ class LearningWorldController extends Controller
     public function search(Request $request): JsonResponse
     {
         $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:24'],
             'query' => ['required', 'string', 'min:1', 'max:80'],
         ]);
 
-        return response()->json([
-            'results' => $this->searchLearningWorld->handle((string) $data['query'], $request->user()),
-        ]);
+        return response()->json($this->searchLearningWorld->handle(
+            (string) $data['query'],
+            $request->user(),
+            (int) ($data['page'] ?? 1),
+            (int) ($data['per_page'] ?? 5),
+        ));
     }
 
     private function routeFromRequest(Request $request, LearningNode $node): ?LearningActivityStart

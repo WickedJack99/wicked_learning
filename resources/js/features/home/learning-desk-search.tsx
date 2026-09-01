@@ -11,11 +11,11 @@ import type { FormEvent } from 'react';
 import { PaginationControls } from '@/components/pagination-controls';
 import { getJson } from '@/features/world/api';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
-import type { LearningSearchResult } from './types';
-
-type SearchResponse = {
-    results: LearningSearchResult[];
-};
+import type {
+    LearningSearchPagination,
+    LearningSearchResponse,
+    LearningSearchResult,
+} from '@/types/learning-search';
 
 const SEARCH_PAGE_SIZE = 5;
 
@@ -24,6 +24,12 @@ export function LearningDeskSearch() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<LearningSearchResult[]>([]);
     const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState<LearningSearchPagination>({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: SEARCH_PAGE_SIZE,
+        total: 0,
+    });
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const requestId = useRef(0);
@@ -39,14 +45,15 @@ export function LearningDeskSearch() {
         const controller = new AbortController();
         const timeout = window.setTimeout(() => {
             setLoading(true);
-            void getJson<SearchResponse>(
-                `/learning/search?query=${encodeURIComponent(term)}`,
+            void getJson<LearningSearchResponse>(
+                `/learning/search?query=${encodeURIComponent(term)}&page=${page}&per_page=${SEARCH_PAGE_SIZE}`,
                 controller.signal,
             )
                 .then((response) => {
                     if (id === requestId.current) {
                         setResults(response.results);
-                        setPage(1);
+                        setPagination(response.pagination);
+                        setPage(response.pagination.currentPage);
                         setOpen(true);
                     }
                 })
@@ -69,7 +76,7 @@ export function LearningDeskSearch() {
             controller.abort();
             window.clearTimeout(timeout);
         };
-    }, [query]);
+    }, [page, query]);
 
     const visit = (result: LearningSearchResult) => {
         router.visit(result.href);
@@ -84,15 +91,6 @@ export function LearningDeskSearch() {
             setOpen(true);
         }
     };
-
-    const totalPages = Math.max(
-        1,
-        Math.ceil(results.length / SEARCH_PAGE_SIZE),
-    );
-    const visibleResults = results.slice(
-        (page - 1) * SEARCH_PAGE_SIZE,
-        page * SEARCH_PAGE_SIZE,
-    );
 
     return (
         <div className="relative mt-7">
@@ -116,9 +114,17 @@ export function LearningDeskSearch() {
                             if (value.trim().length < 2) {
                                 requestId.current++;
                                 setResults([]);
+                                setPagination({
+                                    currentPage: 1,
+                                    lastPage: 1,
+                                    perPage: SEARCH_PAGE_SIZE,
+                                    total: 0,
+                                });
                                 setPage(1);
                                 setLoading(false);
                                 setOpen(false);
+                            } else {
+                                setPage(1);
                             }
                         }}
                         onFocus={() => setOpen(true)}
@@ -146,7 +152,7 @@ export function LearningDeskSearch() {
                     {results.length > 0 ? (
                         <>
                             <ul className="p-2">
-                                {visibleResults.map((result) => (
+                                {results.map((result) => (
                                     <li key={result.id}>
                                         <button
                                             className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition hover:bg-[color-mix(in_srgb,var(--learner-action-accent)_8%,transparent)]"
@@ -172,7 +178,7 @@ export function LearningDeskSearch() {
                                     </li>
                                 ))}
                             </ul>
-                            {totalPages > 1 ? (
+                            {pagination.lastPage > 1 ? (
                                 <PaginationControls
                                     buttonClassName="rounded px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/8 dark:hover:text-white"
                                     className="border-t border-slate-200 px-3 py-2 text-xs dark:border-white/10"
@@ -183,7 +189,7 @@ export function LearningDeskSearch() {
                                     )}
                                     nextLabel={t('common.next', 'Next results')}
                                     onPageChange={setPage}
-                                    pageCount={totalPages}
+                                    pageCount={pagination.lastPage}
                                     previousLabel={t(
                                         'common.previous',
                                         'Previous results',

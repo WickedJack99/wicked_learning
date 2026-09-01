@@ -471,7 +471,7 @@ test('authenticated users can search visible maps and nodes', function () {
         ]);
 });
 
-test('world search keeps visible maps and nodes beyond newer restricted matches', function () {
+test('world search paginates visible maps and nodes before hydrating rows', function () {
     $user = User::factory()->create();
     $world = LearningWorld::query()->create([
         'slug' => CurrentWorldResolver::DEFAULT_WORLD_SLUG,
@@ -503,11 +503,23 @@ test('world search keeps visible maps and nodes beyond newer restricted matches'
         );
     }
 
-    $createSearchMap(
-        'reachable-destination',
-        'Reachable destination',
-        [User::ROLE_USER],
-    );
+    for ($index = 0; $index < 8; $index++) {
+        $createSearchMap(
+            "reachable-destination-{$index}",
+            "Reachable destination {$index}",
+            [User::ROLE_USER],
+        );
+    }
+
+    $this->actingAs($user)
+        ->getJson(route('learning.search', [
+            'page' => 1,
+            'per_page' => 5,
+            'query' => 'reachable',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('results.0.mapSlug', 'reachable-destination-0')
+        ->assertJsonPath('results.4.mapSlug', 'reachable-destination-4');
 
     $searchQueries = [];
     DB::listen(function (QueryExecuted $query) use (&$searchQueries): void {
@@ -518,15 +530,24 @@ test('world search keeps visible maps and nodes beyond newer restricted matches'
     });
 
     $this->actingAs($user)
-        ->getJson(route('learning.search', ['query' => 'reachable']))
+        ->getJson(route('learning.search', [
+            'page' => 2,
+            'per_page' => 5,
+            'query' => 'reachable',
+        ]))
         ->assertOk()
+        ->assertJsonCount(5, 'results')
+        ->assertJsonPath('pagination.currentPage', 2)
+        ->assertJsonPath('pagination.lastPage', 4)
+        ->assertJsonPath('pagination.perPage', 5)
+        ->assertJsonPath('pagination.total', 16)
         ->assertJsonFragment([
             'kind' => 'map',
-            'mapSlug' => 'reachable-destination',
+            'mapSlug' => 'reachable-destination-5',
         ])
         ->assertJsonFragment([
             'kind' => 'node',
-            'nodeSlug' => 'reachable-destination-place',
+            'nodeSlug' => 'reachable-destination-0-place',
         ])
         ->assertJsonMissing([
             'mapSlug' => 'restricted-reachable-0',
@@ -535,17 +556,18 @@ test('world search keeps visible maps and nodes beyond newer restricted matches'
             'nodeSlug' => 'restricted-reachable-0-place',
         ]);
 
-    $mapSearchQuery = collect($searchQueries)->first(
-        fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learning_maps"')
-            && preg_match('/limit 8/i', $query->sql) === 1,
-    );
-    $nodeSearchQuery = collect($searchQueries)->first(
-        fn (QueryExecuted $query): bool => str_contains($query->sql, 'from "learning_nodes"')
-            && preg_match('/limit 24/i', $query->sql) === 1,
-    );
+    $boundedSearchQueries = collect($searchQueries)
+        ->filter(fn (QueryExecuted $query): bool => str_contains($query->sql, ' limit '))
+        ->values();
 
-    expect($mapSearchQuery)->not->toBeNull()
-        ->and($nodeSearchQuery)->not->toBeNull();
+    expect($boundedSearchQueries)->toHaveCount(2)
+        ->and($boundedSearchQueries->every(
+            function (QueryExecuted $query): bool {
+                preg_match('/limit (\d+)/i', $query->toRawSql(), $matches);
+
+                return isset($matches[1]) && (int) $matches[1] <= 5;
+            },
+        ))->toBeTrue();
 });
 
 test('authenticated users can search published topics', function () {
@@ -570,7 +592,9 @@ test('authenticated users can search published topics', function () {
     $this->actingAs($user)
         ->getJson(route('learning.search', ['query' => 'private patterns']))
         ->assertOk()
-        ->assertJsonCount(0, 'results');
+        ->assertJsonCount(0, 'results')
+        ->assertJsonPath('pagination.total', 0)
+        ->assertJsonPath('pagination.lastPage', 1);
 });
 
 test('world map serializes outgoing portal links for learner travel', function () {

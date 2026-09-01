@@ -12,19 +12,72 @@ use Illuminate\Database\Eloquent\Builder;
 
 class SearchLearningWorld
 {
+    private const int DEFAULT_PAGE_SIZE = 5;
+
+    private const int MAX_PAGE_SIZE = 24;
+
     public function __construct(private readonly LearningMapAccessService $mapAccess) {}
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{
+     *     results: array<int, array<string, mixed>>,
+     *     pagination: array{currentPage: int, lastPage: int, perPage: int, total: int}
+     * }
      */
-    public function handle(string $query, ?User $user = null): array
-    {
+    public function handle(
+        string $query,
+        ?User $user = null,
+        int $page = 1,
+        int $perPage = self::DEFAULT_PAGE_SIZE,
+    ): array {
         $term = trim($query);
+        $page = max(1, $page);
+        $perPage = max(1, min(self::MAX_PAGE_SIZE, $perPage));
+
+        $topicQuery = $this->topicQuery($term);
+        $mapQuery = $this->mapQuery($term, $user);
+        $nodeQuery = $this->nodeQuery($term, $user);
+        $topicTotal = (clone $topicQuery)->count();
+        $mapTotal = (clone $mapQuery)->count();
+        $nodeTotal = (clone $nodeQuery)->count();
+        $total = $topicTotal + $mapTotal + $nodeTotal;
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $lastPage);
+        $remainingOffset = ($page - 1) * $perPage;
+        $remaining = $perPage;
+
+        $results = [
+            ...$this->categoryResults(
+                $topicQuery,
+                $topicTotal,
+                $remainingOffset,
+                $remaining,
+                fn (Builder $query): array => $this->topicResults($query),
+            ),
+            ...$this->categoryResults(
+                $mapQuery,
+                $mapTotal,
+                $remainingOffset,
+                $remaining,
+                fn (Builder $query): array => $this->mapResults($query),
+            ),
+            ...$this->categoryResults(
+                $nodeQuery,
+                $nodeTotal,
+                $remainingOffset,
+                $remaining,
+                fn (Builder $query): array => $this->nodeResults($query),
+            ),
+        ];
 
         return [
-            ...$this->topicResults($term),
-            ...$this->mapResults($term, $user),
-            ...$this->nodeResults($term, $user),
+            'results' => $results,
+            'pagination' => [
+                'currentPage' => $page,
+                'lastPage' => $lastPage,
+                'perPage' => $perPage,
+                'total' => $total,
+            ],
         ];
     }
 
@@ -39,9 +92,9 @@ class SearchLearningWorld
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return Builder<LearningTopic>
      */
-    private function topicResults(string $term): array
+    private function topicQuery(string $term): Builder
     {
         $likeTerm = $this->likeTerm($term);
 
@@ -54,7 +107,16 @@ class SearchLearningWorld
                     ->orWhereRaw('LOWER(slug) LIKE LOWER(?)', [$likeTerm]);
             })
             ->orderBy('title')
-            ->limit(8)
+            ->orderBy('id');
+    }
+
+    /**
+     * @param  Builder<LearningTopic>  $query
+     * @return array<int, array<string, mixed>>
+     */
+    private function topicResults(Builder $query): array
+    {
+        return $query
             ->get()
             ->map(fn (LearningTopic $topic): array => [
                 'href' => route('topics.show', $topic, false),
@@ -67,9 +129,9 @@ class SearchLearningWorld
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return Builder<LearningMap>
      */
-    private function mapResults(string $term, ?User $user): array
+    private function mapQuery(string $term, ?User $user): Builder
     {
         $likeTerm = $this->likeTerm($term);
 
@@ -84,7 +146,17 @@ class SearchLearningWorld
             ->where(function (Builder $query) use ($user): void {
                 $this->mapAccess->constrainVisibleQuery($query, $user);
             })
-            ->limit(8)
+            ->orderBy('title')
+            ->orderBy('id');
+    }
+
+    /**
+     * @param  Builder<LearningMap>  $query
+     * @return array<int, array<string, mixed>>
+     */
+    private function mapResults(Builder $query): array
+    {
+        return $query
             ->get()
             ->map(fn (LearningMap $map): array => [
                 'href' => route('world', ['map' => $map->slug], false),
@@ -99,9 +171,9 @@ class SearchLearningWorld
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return Builder<LearningNode>
      */
-    private function nodeResults(string $term, ?User $user): array
+    private function nodeQuery(string $term, ?User $user): Builder
     {
         $likeTerm = $this->likeTerm($term);
 
@@ -125,7 +197,17 @@ class SearchLearningWorld
                     ->orWhereHas('map', fn ($mapQuery) => $mapQuery
                         ->whereRaw('LOWER(title) LIKE LOWER(?)', [$likeTerm]));
             })
-            ->limit(24)
+            ->orderBy('title')
+            ->orderBy('id');
+    }
+
+    /**
+     * @param  Builder<LearningNode>  $query
+     * @return array<int, array<string, mixed>>
+     */
+    private function nodeResults(Builder $query): array
+    {
+        return $query
             ->get()
             ->map(fn (LearningNode $node): array => [
                 'href' => route('world', [
@@ -142,5 +224,44 @@ class SearchLearningWorld
                 'title' => $node->title,
             ])
             ->all();
+    }
+
+    /**
+     * Restrict each category in SQL while preserving its position in the
+     * combined topic, map and node result stream.
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $query
+     * @param  callable(Builder<TModel>): array<int, array<string, mixed>>  $serialize
+     * @return array<int, array<string, mixed>>
+     */
+    private function categoryResults(
+        Builder $query,
+        int $total,
+        int &$remainingOffset,
+        int &$remaining,
+        callable $serialize,
+    ): array {
+        if ($total === 0 || $remaining === 0) {
+            return [];
+        }
+
+        if ($remainingOffset >= $total) {
+            $remainingOffset -= $total;
+
+            return [];
+        }
+
+        $take = min($remaining, $total - $remainingOffset);
+        $results = $serialize(
+            $query
+                ->offset($remainingOffset)
+                ->limit($take),
+        );
+        $remainingOffset = 0;
+        $remaining -= $take;
+
+        return $results;
     }
 }

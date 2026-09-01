@@ -72,7 +72,8 @@ MapAssets have four interaction modes:
 ### Search And Bookmarks
 
 Map search runs on the server and can find accessible MapAssets on other maps.
-Search results navigate to the matching map and focusable place.
+Learning Desk and map search return bounded, paginated result pages with a
+total count, and results navigate to the matching map and focusable place.
 
 Learners can bookmark focusable MapAssets. Bookmarks appear on a personal map
 and link back to the original learning place.

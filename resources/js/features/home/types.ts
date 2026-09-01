@@ -115,15 +115,3 @@ export type DeskPurposeFilter =
     | 'retrieve'
     | 'review'
     | 'transfer';
-
-export type LearningSearchResult = {
-    href: string;
-    id: string;
-    kind: 'map' | 'node' | 'topic';
-    mapId?: number;
-    mapSlug?: string;
-    nodeId?: number;
-    nodeSlug?: string;
-    subtitle: string;
-    title: string;
-};

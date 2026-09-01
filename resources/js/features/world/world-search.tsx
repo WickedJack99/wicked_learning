@@ -1,40 +1,17 @@
 import { BookOpenText, Map as MapIcon, MapPin, Search, X } from 'lucide-react';
+import { PaginationControls } from '@/components/pagination-controls';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePlatformTranslation } from '@/hooks/use-platform-translation';
+import type {
+    LearningSearchPagination,
+    LearningSearchResponse,
+    LearningSearchResult,
+} from '@/types/learning-search';
 
-export type SearchResult =
-    | {
-          href: string;
-          id: string;
-          kind: 'topic';
-          subtitle: string;
-          title: string;
-      }
-    | {
-          href: string;
-          id: string;
-          kind: 'map';
-          mapId: number;
-          mapSlug: string;
-          subtitle: string;
-          title: string;
-      }
-    | {
-          href: string;
-          id: string;
-          kind: 'node';
-          mapId: number;
-          mapSlug: string;
-          nodeId: number;
-          nodeSlug: string;
-          subtitle: string;
-          title: string;
-      };
-
-export type SearchResponse = {
-    results: SearchResult[];
-};
+export type SearchResult = LearningSearchResult;
+export type SearchResponse = LearningSearchResponse;
+export type SearchPagination = LearningSearchPagination;
 
 export function WorldSearch({
     isLoading,
@@ -42,9 +19,11 @@ export function WorldSearch({
     onClear,
     onMobilePanelClose,
     onMobilePanelOpen,
+    onPageChange,
     onSearchTermChange,
     onSelectResult,
     results,
+    pagination,
     searchTerm,
 }: {
     isLoading: boolean;
@@ -52,9 +31,11 @@ export function WorldSearch({
     onClear: () => void;
     onMobilePanelClose: () => void;
     onMobilePanelOpen: () => void;
+    onPageChange: (page: number) => void;
     onSearchTermChange: (value: string) => void;
     onSelectResult: (result: SearchResult) => void;
     results: SearchResult[];
+    pagination: SearchPagination;
     searchTerm: string;
 }) {
     const t = usePlatformTranslation();
@@ -94,52 +75,70 @@ export function WorldSearch({
         }
 
         return (
-            <div className="grid gap-1">
-                {results.map((result) => (
-                    <button
-                        className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
-                        key={result.id}
-                        onClick={() => onSelectResult(result)}
-                        style={{
-                            cursor: 'var(--platform-action-cursor)',
-                        }}
-                        type="button"
-                    >
-                        <span
-                            className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/12 dark:text-teal-200"
+            <>
+                <div className="grid gap-1">
+                    {results.map((result) => (
+                        <button
+                            className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition hover:bg-cyan-50 focus-visible:ring-2 focus-visible:ring-cyan-600 focus-visible:outline-none dark:hover:bg-teal-200/10 dark:focus-visible:ring-teal-200"
+                            key={result.id}
+                            onClick={() => onSelectResult(result)}
                             style={{
-                                color: 'var(--map-floating-accent-color)',
+                                cursor: 'var(--platform-action-cursor)',
                             }}
+                            type="button"
                         >
-                            {result.kind === 'topic' ? (
-                                <BookOpenText className="size-4" />
-                            ) : result.kind === 'map' ? (
-                                <MapIcon className="size-4" />
-                            ) : (
-                                <MapPin className="size-4" />
-                            )}
-                        </span>
-                        <span className="min-w-0">
                             <span
-                                className="block truncate text-sm font-semibold"
+                                className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-cyan-100 text-cyan-700 dark:bg-teal-300/12 dark:text-teal-200"
                                 style={{
-                                    color: 'var(--map-floating-text-color)',
+                                    color: 'var(--map-floating-accent-color)',
                                 }}
                             >
-                                {result.title}
+                                {result.kind === 'topic' ? (
+                                    <BookOpenText className="size-4" />
+                                ) : result.kind === 'map' ? (
+                                    <MapIcon className="size-4" />
+                                ) : (
+                                    <MapPin className="size-4" />
+                                )}
                             </span>
-                            <span
-                                className="mt-0.5 block truncate text-xs"
-                                style={{
-                                    color: 'var(--map-floating-muted-text-color)',
-                                }}
-                            >
-                                {result.subtitle}
+                            <span className="min-w-0">
+                                <span
+                                    className="block truncate text-sm font-semibold"
+                                    style={{
+                                        color: 'var(--map-floating-text-color)',
+                                    }}
+                                >
+                                    {result.title}
+                                </span>
+                                <span
+                                    className="mt-0.5 block truncate text-xs"
+                                    style={{
+                                        color: 'var(--map-floating-muted-text-color)',
+                                    }}
+                                >
+                                    {result.subtitle}
+                                </span>
                             </span>
-                        </span>
-                    </button>
-                ))}
-            </div>
+                        </button>
+                    ))}
+                </div>
+                {pagination.lastPage > 1 ? (
+                    <PaginationControls
+                        buttonClassName="rounded px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/8 dark:hover:text-white"
+                        className="mt-2 border-t border-slate-200 px-2 pt-2 text-xs dark:border-white/10"
+                        currentPage={pagination.currentPage}
+                        label={t(
+                            'world.search.pagination',
+                            'Map search pagination',
+                        )}
+                        nextLabel={t('common.next', 'Next results')}
+                        onPageChange={onPageChange}
+                        pageCount={pagination.lastPage}
+                        previousLabel={t('common.previous', 'Previous results')}
+                        textClassName="text-slate-500 dark:text-slate-400"
+                    />
+                ) : null}
+            </>
         );
     };
     const renderSearchInput = (autoFocus = false) => (
@@ -185,7 +184,7 @@ export function WorldSearch({
             <div className="absolute bottom-5 left-5 z-20 hidden w-[min(24rem,calc(100%-2rem))] md:block">
                 {hasSearch ? (
                     <div
-                        className="mb-2 max-h-[42svh] overflow-y-auto rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86"
+                        className="mb-2 rounded-xl border border-slate-200 bg-white/92 p-2 shadow-2xl backdrop-blur-md dark:border-white/10 dark:bg-slate-950/86"
                         style={{
                             background: 'var(--map-floating-background)',
                             borderColor: 'var(--map-floating-border-color)',

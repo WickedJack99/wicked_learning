@@ -22,6 +22,7 @@ import { soundFromNode, WorldMap } from '@/features/world/world-map';
 import { WorldSearch } from '@/features/world/world-search';
 import type {
     SearchResponse,
+    SearchPagination,
     SearchResult,
 } from '@/features/world/world-search';
 import { useAppearance } from '@/hooks/use-appearance';
@@ -129,6 +130,13 @@ export default function World({
     );
     const [searchTerm, setSearchTerm] = useState('');
     const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searchPage, setSearchPage] = useState(1);
+    const [searchPagination, setSearchPagination] = useState<SearchPagination>({
+        currentPage: 1,
+        lastPage: 1,
+        perPage: 5,
+        total: 0,
+    });
     const [isSearchLoading, setIsSearchLoading] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isGroupsOpen, setIsGroupsOpen] = useState(false);
@@ -155,10 +163,14 @@ export default function World({
             setIsSearchLoading(true);
 
             void getJson<SearchResponse>(
-                `/learning/search?query=${encodeURIComponent(query)}`,
+                `/learning/search?query=${encodeURIComponent(query)}&page=${searchPage}&per_page=5`,
                 controller.signal,
             )
-                .then((response) => setSearchResults(response.results))
+                .then((response) => {
+                    setSearchResults(response.results);
+                    setSearchPagination(response.pagination);
+                    setSearchPage(response.pagination.currentPage);
+                })
                 .catch((error: unknown) => {
                     if (
                         error instanceof DOMException &&
@@ -180,7 +192,7 @@ export default function World({
             controller.abort();
             window.clearTimeout(timer);
         };
-    }, [searchTerm]);
+    }, [searchPage, searchTerm]);
 
     useEffect(() => {
         if (!focusedNodeSlug) {
@@ -361,7 +373,16 @@ export default function World({
 
         if (value.trim().length === 0) {
             setSearchResults([]);
+            setSearchPagination({
+                currentPage: 1,
+                lastPage: 1,
+                perPage: 5,
+                total: 0,
+            });
+            setSearchPage(1);
             setIsSearchLoading(false);
+        } else {
+            setSearchPage(1);
         }
     }, []);
 
@@ -448,9 +469,11 @@ export default function World({
                     onClear={() => updateSearchTerm('')}
                     onMobilePanelClose={() => setIsMobileSearchOpen(false)}
                     onMobilePanelOpen={() => setIsMobileSearchOpen(true)}
+                    onPageChange={setSearchPage}
                     onSearchTermChange={updateSearchTerm}
                     onSelectResult={goToSearchResult}
                     results={searchResults}
+                    pagination={searchPagination}
                     searchTerm={searchTerm}
                     isLoading={isSearchLoading}
                 />
